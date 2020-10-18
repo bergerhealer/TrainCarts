@@ -28,6 +28,7 @@ public class MapWidgetAnimationView extends MapWidget {
     private int _selectedNodeIndex = 0;
     private int _selectedNodeRange = 0;
     private boolean _multiSelectActive = false;
+    private boolean _reorderActive = false;
     private Animation _animation = null;
     private MapTexture _scrollbarBG = MapTexture.createEmpty();
 
@@ -41,6 +42,17 @@ public class MapWidgetAnimationView extends MapWidget {
      * Called when the selected node is changed
      */
     public void onSelectionChanged() {
+    }
+
+    /**
+     * Called when the group of selected items needs to be moved
+     * up or down. A guarantee is made that this function is only
+     * called when moving the items up/down this amount is actually
+     * possible.
+     * 
+     * @param offset Offset to move the items (-1 or 1)
+     */
+    public void onReorder(int offset) {
     }
 
     /**
@@ -167,6 +179,12 @@ public class MapWidgetAnimationView extends MapWidget {
     public void onDeactivate() {
         super.onDeactivate();
 
+        if (this._multiSelectActive) {
+            this.stopMultiSelect();
+        }
+        if (this._reorderActive) {
+            this.stopReordering();
+        }
         for (MapWidgetAnimationNode node : this._nodes) {
             node.setSelected(false);
         }
@@ -180,7 +198,19 @@ public class MapWidgetAnimationView extends MapWidget {
             return;
         }
 
-        if (this._multiSelectActive) {
+        if (this._reorderActive) {
+            if (event.getKey() == MapPlayerInput.Key.UP) {
+                if (this.getSelectionStart() >= 1) {
+                    onReorder(-1);
+                }
+            } else if (event.getKey() == MapPlayerInput.Key.DOWN) {
+                if (this.getSelectionEnd() < (this._animation.getNodeCount()-1)) {
+                    onReorder(1);
+                }
+            } else if (event.getKey() == MapPlayerInput.Key.ENTER) {
+                this.stopReordering();
+            }
+        } else if (this._multiSelectActive) {
             if (event.getKey() == MapPlayerInput.Key.UP) {
                 this.setSelectedItemRange(this.getSelectedItemRange()-1);
             } else if (event.getKey() == MapPlayerInput.Key.DOWN) {
@@ -351,6 +381,26 @@ public class MapWidgetAnimationView extends MapWidget {
         this._multiSelectActive = false;
         display.playSound(SoundEffect.PISTON_CONTRACT);
         this.updateView();
+    }
+
+    /**
+     * Starts re-ordering mode. When up/down keys are pressed,
+     * the re-order callback is called. When enter is pressed,
+     * this mode is automatically exited.
+     */
+    public void startReordering() {
+        _reorderActive = true;
+        display.playSound(SoundEffect.PISTON_EXTEND);
+        updateView();
+    }
+
+    /**
+     * Exits re-ordering mode.
+     */
+    public void stopReordering() {
+        _reorderActive = false;
+        display.playSound(SoundEffect.PISTON_CONTRACT);
+        updateView();
     }
 
     private void updateView() {

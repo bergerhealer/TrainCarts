@@ -75,6 +75,11 @@ public class AnimationMenu extends MapWidgetMenu {
                     }
 
                     @Override
+                    public void onReorder() {
+                        startReordering();
+                    }
+
+                    @Override
                     public void onDuplicate() {
                         duplicateAnimationNodes();
                     }
@@ -101,6 +106,11 @@ public class AnimationMenu extends MapWidgetMenu {
             if (node != null) {
                 previewAnimationNode(this.getSelectedIndex(), node);
             }
+        }
+
+        @Override
+        public void onReorder(int offset) {
+            moveAnimationNodes(offset);
         }
     };
     private final MapWidgetSubmitText animNameBox = new MapWidgetSubmitText() {
@@ -316,7 +326,6 @@ public class AnimationMenu extends MapWidgetMenu {
         Animation anim = this.getAnimation().clone();
         anim.getOptions().setName(newName);
         this.setAnimation(anim);
-        sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
     }
 
     /**
@@ -436,6 +445,43 @@ public class AnimationMenu extends MapWidgetMenu {
     }
 
     /**
+     * Moves the selected animation nodes up or down based on the offset
+     * 
+     * @param offset Number of rows to move the node up/down the list
+     */
+    public void moveAnimationNodes(int offset) {
+        Animation old_anim = this.animView.getAnimation();
+        if (old_anim == null) {
+            return;
+        }
+
+        int start = this.animView.getSelectionStart();
+        int end = this.animView.getSelectionEnd();
+        int count = (end-start+1);
+
+        AnimationNode[] old_nodes = old_anim.getNodeArray();
+        ArrayList<AnimationNode> tmp = new ArrayList<AnimationNode>(Arrays.asList(old_nodes));
+
+        // Remove nodes on the old positions
+        for (int n = 0; n < count; n++) {
+            tmp.remove(start);
+        }
+
+        // Insert nodes again at the new positions
+        for (int n = 0; n < count; n++) {
+            tmp.add(start + offset + n, old_nodes[start + n]);
+        }
+
+        AnimationNode[] new_nodes = LogicUtil.toArray(tmp, AnimationNode.class);
+        Animation replacement = new Animation(old_anim.getOptions().getName(), new_nodes);
+        replacement.setOptions(old_anim.getOptions().clone());
+        setAnimation(replacement);
+
+        // Adjust selection also
+        this.animView.setSelectedIndex(this.animView.getSelectedIndex() + offset);
+    }
+
+    /**
      * Animates the model of the edited cart to display the positions
      * of the animation node at an index.
      * 
@@ -502,6 +548,9 @@ public class AnimationMenu extends MapWidgetMenu {
             this.animSelectionBox.addItem(new_name);
             this.animSelectionBox.setSelectedItem(new_name);
         }
+
+        // Important: let the underlying system know about the updated animation!
+        sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
     }
 
     public ConfigurationNode getAnimRootConfig() {

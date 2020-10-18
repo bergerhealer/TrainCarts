@@ -37,6 +37,12 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
     }
 
     /**
+     * Called when the order of the nodes should be changed
+     */
+    public void onReorder() {
+    }
+
+    /**
      * Called when this node needs to be deleted from the array
      */
     public void onDelete() {
@@ -75,7 +81,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         // Adjust own bounds to be relative to where parent is at
         this.setBounds(5 - this.parent.getX(), 15 - this.parent.getY(), 105, 88);
         
-        int slider_width = 70;
+        int slider_width = 71;
         int x_offset = 32;
         int y_offset = 4;
         int y_step = 10;
@@ -117,22 +123,35 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         }.setPosition(x_offset + 7, y_offset));
 
         // Select a range of animation frames from the currently selected node
+        int mtmpx = x_offset + 18;
+        final int mtmpx_step = 12;
         this.addWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onClick() {
                 onMultiSelect();
                 ConfigureAnimationNodeDialog.this.close();
             }
-        }).setTooltip("Multi-select").setIcon("attachments/anim_node_multiselect.png").setPosition(x_offset + 20, y_offset);
+        }).setTooltip("Multi-select").setIcon("attachments/anim_node_multiselect.png").setPosition(mtmpx, y_offset);
+
+        // Change the position of one or a group of nodes, moving it up/down
+        mtmpx += mtmpx_step;
+        this.addWidget(new MapWidgetBlinkyButton() {
+            @Override
+            public void onClick() {
+                onReorder();
+                ConfigureAnimationNodeDialog.this.close();
+            }
+        }).setTooltip("Change order").setIcon("attachments/anim_node_reorder.png").setPosition(mtmpx, y_offset);
 
         // Duplicate node below this one node
+        mtmpx += mtmpx_step;
         MapWidget duplicateButton = this.addWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onClick() {
                 onDuplicate();
                 ConfigureAnimationNodeDialog.this.close();
             }
-        }).setTooltip("Duplicate").setIcon("attachments/anim_node_duplicate.png").setPosition(x_offset + 40, y_offset);
+        }).setTooltip("Duplicate").setIcon("attachments/anim_node_duplicate.png").setPosition(mtmpx, y_offset);
 
         // Delete the node
         this.addWidget(new MapWidgetBlinkyButton() {
