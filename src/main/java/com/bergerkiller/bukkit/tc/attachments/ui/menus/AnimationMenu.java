@@ -96,7 +96,7 @@ public class AnimationMenu extends MapWidgetMenu {
                         // Refresh model so that it uses these options in the actual animation
                         sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
                     }
-                });
+                }).setAttachment(attachment);
             }
         }
 

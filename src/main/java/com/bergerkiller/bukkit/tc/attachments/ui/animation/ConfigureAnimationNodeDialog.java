@@ -194,12 +194,11 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         addLabel(5, y_offset + 3, "Delta T");
         y_offset += y_step;
 
-        this.addWidget(new MapWidgetNumberBox() { // Position X
+        MapWidget posXWidget = this.addWidget(new MapWidgetNumberBox() { // Position X
             @Override
             public void onAttached() {
                 super.onAttached();
                 this.setValue(getAverage().getPosition().getX());
-                this.focus();
             }
 
             @Override
@@ -317,6 +316,28 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         }).setBounds(x_offset, y_offset, slider_width, 9);
         addLabel(5, y_offset + 3, "Roll");
         y_offset += y_step;
+
+        // Focus the widget we had focused last time the menu was open
+        // If -1, select pos x by default
+        int initialFocusedIndex = attachment.getEditorOption("animNodeSelectedOption", -1);
+        if (initialFocusedIndex >= 0 && initialFocusedIndex < this.getWidgetCount()) {
+            this.getWidget(initialFocusedIndex).focus();
+        } else {
+            posXWidget.focus();
+        }
+    }
+
+    @Override
+    public void onKeyPressed(MapKeyEvent event) {
+        super.onKeyPressed(event);
+
+        // Key press may have altered focused widget
+        if (display != null) {
+            int index = getWidgets().indexOf(display.getFocusedWidget());
+            if (index != -1) {
+                attachment.setEditorOption("animNodeSelectedOption", -1, index);
+            }
+        }
     }
 
     private void updateNode(ChangeMode mode, double new_value) {
