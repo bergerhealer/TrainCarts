@@ -674,6 +674,8 @@ public class Util {
      * <li>20/ss  =  20 blocks/second^2 (0.05 blocks/tick^2)</li>
      * <li>20/s2  =  20 blocks/second^2 (0.05 blocks/tick^2)</li>
      * <li>20/mm  =  20 blocks/minute^2</li>
+     * <li>20m/s/s =  20 blocks/second^2</li>
+     * <li>20km/h/s = 20000 blocks/hour per second</li>
      * </ul>
      * 
      * @param accelerationString The text to parse
@@ -689,28 +691,54 @@ public class Util {
         // Parsing of the /tt and so on formats of acceleration
         int slashIndex = accelerationString.indexOf('/');
         if (slashIndex != -1) {
-            // Take all characters before the slash, eliminate non-digit ones
-            StringBuilder valueStr = new StringBuilder(slashIndex+1);
-            for (int i = 0; i < slashIndex; i++) {
-                char c = accelerationString.charAt(i);
-                if (Character.isDigit(c) || c == '.' || c == ',' || c == '-') {
-                    valueStr.append(c);
+            double value;
+
+            // Process the number value contents before the slash
+            {
+                // Take all characters before the slash, eliminate non-digit ones
+                // When encountering a 'k', assume 1000 blocks unit
+                double factor = 1.0;
+                StringBuilder valueStr = new StringBuilder(slashIndex+1);
+                for (int i = 0; i < slashIndex; i++) {
+                    char c = accelerationString.charAt(i);
+                    if (Character.isDigit(c) || c == '.' || c == ',' || c == '-') {
+                        valueStr.append(c);
+                    } else if (c == 'k' || c == 'K') {
+                        factor = 1000.0;
+                    }
                 }
-            }
-            double value = ParseUtil.parseDouble(valueStr.toString(), Double.NaN);
-            if (Double.isNaN(value)) {
-                return defaultValue;
+                value = ParseUtil.parseDouble(valueStr.toString(), Double.NaN);
+                if (Double.isNaN(value)) {
+                    return defaultValue;
+                }
+
+                // Factor following the number (e.g: km)
+                value *= factor;
             }
 
+            int num_units = 0;
             double factor = 1.0; // tick
-            for (int i = slashIndex+1; i < accelerationString.length(); i++) {
+            for (int i = slashIndex+1; i < accelerationString.length() && num_units < 2; i++) {
                 char c = accelerationString.charAt(i);
-                if (c == 's') {
-                    factor = 400.0; // second is 20 ticks, square it for acceleration factor
-                } else if (c == 'm') {
-                    factor = 1440000.0; // minute is 1200 ticks, square it for acceleration factor
+                if (c == 's' || c == 'S') {
+                    factor *= 20.0; // second is 20 ticks
+                    num_units++;
+                } else if (c == 'm' || c == 'M') {
+                    factor *= 1200.0; // minute is 1200 ticks
+                    num_units++;
+                } else if (c == 'h' || c == 'H') {
+                    factor *= 72000.0; // hour is 72000 ticks
+                    num_units++;
                 }
             }
+
+            // If only one time unit was specified, assume we have to square it
+            // For example, 20m/s -> 20m/ss
+            // 20m/s2 -> 20m/ss
+            if (num_units == 1) {
+                factor *= factor;
+            }
+
             return value / factor;
         }
 
