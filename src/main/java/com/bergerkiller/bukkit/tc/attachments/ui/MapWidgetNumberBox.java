@@ -65,6 +65,7 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
     @Override
     public boolean acceptTextValue(String value) {
         this.setValue(ParseUtil.parseDouble(value, this.getValue()));
+        this.onValueChangeEnd();
         return true;
     }
 
