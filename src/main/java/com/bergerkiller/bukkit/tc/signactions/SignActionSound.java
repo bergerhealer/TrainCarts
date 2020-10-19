@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.signactions;
 import com.bergerkiller.bukkit.common.resources.ResourceKey;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -15,6 +16,7 @@ import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import net.md_5.bungee.api.ChatColor;
 
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
 
 public class SignActionSound extends SignAction {
     @Override
@@ -35,52 +37,63 @@ public class SignActionSound extends SignAction {
         boolean move = info.isType("msound");
         if (!info.isPowered()) return;
 
-        ResourceKey<SoundEffect> sound = getSound(info);
-        if (sound == null) {
+        SoundArgs args = new SoundArgs();
+
+        args.sound = getSound(info);
+        if (args.sound == null) {
             return;
         }
 
-        float pitch = 1f;
-        float volume = 1f;
+        // Arg parsing on second line
+        {
+            String[] str_args = StringUtil.getAfter(info.getLine(1), " ").trim().split(" ", -1);
 
-        String[] args = StringUtil.getAfter(info.getLine(1), " ").trim().split(" ", -1);
-        try {
-            if (args.length >= 1) {
-                pitch = (float) ParseUtil.parseDouble(args[0], 1.0);
+            // Parse special flags from args before processing numbers
+            for (int i = 0; i < str_args.length; i++) {
+                if (str_args[i].equalsIgnoreCase("in")) {
+                    args.onlyInside = true;
+                } else {
+                    continue;
+                }
+
+                // Parsed a flag, remove it and revisit same index again
+                str_args = StringUtil.remove(str_args, i);
+                i--;
             }
-            if (args.length == 2) {
-                volume = (float) ParseUtil.parseDouble(args[1], 1.0);
+
+            try {
+                if (str_args.length >= 1) {
+                    args.pitch = (float) ParseUtil.parseDouble(str_args[0], 1.0);
+                }
+                if (str_args.length == 2) {
+                    args.volume = (float) ParseUtil.parseDouble(str_args[1], 1.0);
+                }
+            } catch (NumberFormatException ignored) {
             }
-        } catch (NumberFormatException ignored) {
         }
 
         if (info.isAction(SignActionType.MEMBER_MOVE)) {
             if (move) {
                 if (info.isTrainSign()) {
                     for (MinecartMember<?> member : info.getGroup()) {
-                        Location location = member.getEntity().getLocation();
-                        WorldUtil.playSound(location, sound, volume, pitch);
+                        args.play(member);
                     }
                 } else if (info.isCartSign()) {
-                    Location location = info.getMember().getEntity().getLocation();
-                    WorldUtil.playSound(location, sound, volume, pitch);
+                    args.play(info.getMember());
                 }
             }
             return;
         }
         if (info.isTrainSign() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER) && info.hasGroup()) {
             for (MinecartMember<?> member : info.getGroup()) {
-                Location location = member.getEntity().getLocation();
-                WorldUtil.playSound(location, sound, volume, pitch);
+                args.play(member);
             }
         } else if (info.isCartSign() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.MEMBER_ENTER) && info.hasMember()) {
-            Location location = info.getMember().getEntity().getLocation();
-            WorldUtil.playSound(location, sound, volume, pitch);
+            args.play(info.getMember());
         } else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
             for (MinecartGroup group : info.getRCTrainGroups()) {
                 for (MinecartMember<?> member : group) {
-                    Location location = member.getEntity().getLocation();
-                    WorldUtil.playSound(location, sound, volume, pitch);
+                    args.play(member);
                 }
             }
         } else if (info.isAction(SignActionType.REDSTONE_ON)) {
@@ -90,7 +103,7 @@ public class SignActionSound extends SignAction {
             } else {
                 location = info.getLocation().add(0.0, 2.0, 0.0);
             }
-            WorldUtil.playSound(location, sound, volume, pitch);
+            args.play(location);
         }
     }
 
@@ -125,5 +138,28 @@ public class SignActionSound extends SignAction {
     @Override
     public boolean canSupportRC() {
         return true;
+    }
+
+    private static class SoundArgs {
+        public float volume = 1.0f;
+        public float pitch = 1.0f;
+        public boolean onlyInside = false;
+        public ResourceKey<SoundEffect> sound;
+
+        public void play(MinecartMember<?> member) {
+            if (onlyInside) {
+                // Play where the player passengers are
+                for (Player passenger : member.getEntity().getPlayerPassengers()) {
+                    PlayerUtil.playSound(passenger, passenger.getEyeLocation(), sound, volume, pitch);
+                }
+            } else {
+                // Play near the minecart position
+                play(member.getEntity().getLocation());
+            }
+        }
+
+        public void play(Location location) {
+            WorldUtil.playSound(location, sound, volume, pitch);
+        }
     }
 }
