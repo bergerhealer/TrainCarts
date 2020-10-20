@@ -667,15 +667,18 @@ public class Util {
      * Assumes 1 block is 1 meter.
      * Supports the following formats:
      * <ul>
-     * <li>12     =  12 blocks/tick^2</li>
-     * <li>12.5   =  12.5 blocks/tick^2</li>
-     * <li>1g     =  9.81 blocks/second^2 (0.024525 blocks/tick^2)</li>
-     * <li>20/tt  =  20 blocks/tick^2 (0.024525 blocks/tick^2)</li>
-     * <li>20/ss  =  20 blocks/second^2 (0.05 blocks/tick^2)</li>
-     * <li>20/s2  =  20 blocks/second^2 (0.05 blocks/tick^2)</li>
-     * <li>20/mm  =  20 blocks/minute^2</li>
-     * <li>20m/s/s =  20 blocks/second^2</li>
-     * <li>20km/h/s = 20000 blocks/hour per second</li>
+     * <li>12       =  12 blocks/tick^2</li>
+     * <li>12.5     =  12.5 blocks/tick^2</li>
+     * <li>1g       =  9.81 blocks/second^2 (0.024525 blocks/tick^2)</li>
+     * <li>20/tt    =  20 blocks/tick^2 (0.024525 blocks/tick^2)</li>
+     * <li>20/ss    =  20 blocks/second^2 (0.05 blocks/tick^2)</li>
+     * <li>20/s2    =  20 blocks/second^2 (0.05 blocks/tick^2)</li>
+     * <li>20/mm    =  20 blocks/minute^2</li>
+     * <li>20m/s/s  =  20 blocks/second^2</li>
+     * <li>20km/h/s =  20000 blocks/hour per second</li>
+     * <li>1mi/h/s  =  0.44704 blocks/second^2 (0.0011176 blocks/tick^2)</li>
+     * <li>1mph/s   =  1mi/h/s</li>
+     * <li>3.28ft/s/s = 1 blocks/second^2</li>
      * </ul>
      * 
      * @param accelerationString The text to parse
@@ -687,6 +690,15 @@ public class Util {
         if (accelerationString.isEmpty()) {
             return defaultValue;
         }
+
+        // To lowercase to prevent weird problems with units
+        accelerationString = accelerationString.toLowerCase(Locale.ENGLISH);
+
+        // Some common accepted aliases
+        accelerationString = accelerationString.replace("kmh", "kmph");
+        accelerationString = accelerationString.replace("kmph", "km/h");
+        accelerationString = accelerationString.replace("miph", "mph");
+        accelerationString = accelerationString.replace("mph", "mi/h");
 
         // Parsing of the /tt and so on formats of acceleration
         int slashIndex = accelerationString.indexOf('/');
@@ -703,8 +715,14 @@ public class Util {
                     char c = accelerationString.charAt(i);
                     if (Character.isDigit(c) || c == '.' || c == ',' || c == '-') {
                         valueStr.append(c);
-                    } else if (c == 'k' || c == 'K') {
-                        factor = 1000.0;
+                    } else if (c == 'k') {
+                        factor = 1000.0; // kilo(meter)
+                    } else if (c == 'f' && accelerationString.charAt(i+1) == 't') {
+                        factor = 1.0 / 3.28; // feet
+                        i++; // skip 't'
+                    } else if (c == 'm' && accelerationString.charAt(i+1) == 'i') {
+                        factor = 1609.344; // miles
+                        i++; // skip 'i'
                     }
                 }
                 value = ParseUtil.parseDouble(valueStr.toString(), Double.NaN);
@@ -720,13 +738,13 @@ public class Util {
             double factor = 1.0; // tick
             for (int i = slashIndex+1; i < accelerationString.length() && num_units < 2; i++) {
                 char c = accelerationString.charAt(i);
-                if (c == 's' || c == 'S') {
+                if (c == 's') {
                     factor *= 20.0; // second is 20 ticks
                     num_units++;
-                } else if (c == 'm' || c == 'M') {
+                } else if (c == 'm') {
                     factor *= 1200.0; // minute is 1200 ticks
                     num_units++;
-                } else if (c == 'h' || c == 'H') {
+                } else if (c == 'h') {
                     factor *= 72000.0; // hour is 72000 ticks
                     num_units++;
                 }
@@ -744,7 +762,7 @@ public class Util {
 
         // Check whether unit is in g's
         char lastChar = accelerationString.charAt(accelerationString.length()-1);
-        if (lastChar == 'g' || lastChar == 'G') {
+        if (lastChar == 'g') {
             // Unit is in g's
             String g_value_str = accelerationString.substring(0, accelerationString.length()-1);
             double value = ParseUtil.parseDouble(g_value_str, Double.NaN);
@@ -766,8 +784,9 @@ public class Util {
      * <li>12     =  12 blocks/tick</li>
      * <li>12.5   =  12.5 blocks/tick</li>
      * <li>20m/s  =  20 meters/second (1 blocks/tick)</li>
-     * <li>20km/h =  20 kilometers/hour (0.278 blocks/tick)</li>
+     * <li>20km/h =  20 kilometers/hour (0.27778 blocks/tick)</li>
      * <li>20mi/h =  20 miles/hour (0.44704 blocks/tick)</li>
+     * <li>3.28ft/s = same as 1 meters/second (0.05 blocks/tick)</li>
      * <li>20kmh  =  same as 20km/h</li>
      * <li>20kmph =  same as 20km/h</li>
      * <li>20mph  =  same as 20mi/h</li>
@@ -807,9 +826,11 @@ public class Util {
                 String num = unitText.substring(0, slashIndex);
                 String den = unitText.substring(slashIndex + 1);
                 if (num.equals("k") || num.equals("km")) {
-                    value *= 1000.0;
+                    value *= 1000.0; // Kilometers
                 } else if (num.equals("mi")) {
-                    value *= 1609.344;
+                    value *= 1609.344; // Miles
+                } else if (num.equals("ft")) {
+                    value *= (1.0 / 3.28); // Feet
                 }
                 if (LogicUtil.contains(den, "s", "sec", "second")) {
                     value /= 20.0;
