@@ -176,13 +176,28 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Sets the acceleration in blocks/tick^2 of the train when speeding up again after waiting for a train.
+     * Sets the acceleration in blocks/tick^2 of the train when speeding up and slowing down
+     * while trying to maintain distance. The acceleration of speeding up and slowing down
+     * is set to the same value
      * 
-     * @param acceleration
-     * @see {@link #getWaitAcceleration()}
+     * @param acceleration Acceleration at which to speed up/slow down
      */
     public void setWaitAcceleration(double acceleration) {
+        setWaitAcceleration(acceleration, acceleration);
+    }
+
+    /**
+     * Sets the acceleration in blocks/tick^2 of the train when speeding up and slowing down
+     * while trying to maintain distance. The acceleration (speed up) and deceleration (slowing down)
+     * can be separately specified.
+     * 
+     * @param acceleration Acceleration at which to speed up
+     * @param deceleration Acceleration at which to slow down
+     * @see {@link #getWaitAcceleration()}
+     */
+    public void setWaitAcceleration(double acceleration, double deceleration) {
         this.waitAcceleration = acceleration;
+        this.waitDeceleration = deceleration;
     }
 
     /**
@@ -194,17 +209,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     public double getWaitDeceleration() {
         return this.waitDeceleration;
-    }
-
-    /**
-     * Gets the deceleration inblocks/tick^2 of the train when slowing down, when the train has to wait
-     * for another train.
-     * 
-     * @param deceleration
-     * @see {@link #getWaitDeceleration()}
-     */
-    public void setWaitDeceleration(double deceleration) {
-        this.waitDeceleration = deceleration;
     }
 
     /**
@@ -1170,9 +1174,16 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (key.equalsIgnoreCase("waitdelay")) {
             this.setWaitDelay(ParseUtil.parseDouble(arg, this.waitDelay));
         } else if (LogicUtil.containsIgnoreCase(key, "waitacceleration", "waitaccel", "waitacc")) {
-            this.setWaitAcceleration(Util.parseAcceleration(arg, this.waitAcceleration));
-        } else if (LogicUtil.containsIgnoreCase(key, "waitdeceleration", "waitdecel", "waitdec", "waitdeacc")) {
-            this.setWaitDeceleration(Util.parseAcceleration(arg, this.waitDeceleration));
+            String[] args = arg.trim().split(" ");
+            if (args.length >= 2) {
+                this.setWaitAcceleration(Util.parseAcceleration(args[0], this.waitAcceleration),
+                                         Util.parseAcceleration(args[1], this.waitDeceleration));
+            } else {
+                double accel = Util.parseAcceleration(arg, Double.NaN);
+                if (!Double.isNaN(accel)) {
+                    this.setWaitAcceleration(accel);
+                }
+            }
         } else if (key.equalsIgnoreCase("playerenter")) {
             this.setPlayersEnter(ParseUtil.parseBool(arg));
         } else if (key.equalsIgnoreCase("playerexit")) {
