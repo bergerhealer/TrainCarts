@@ -5,8 +5,6 @@ import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartHopper;
-import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
-import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -26,19 +24,29 @@ public class MinecartMemberHopper extends MinecartMember<CommonMinecartHopper> {
     }
 
     @Override
-    public void onPhysicsPostMove() throws MemberMissingException, GroupUnloadedException {
-        super.onPhysicsPostMove();
+    public void onTick() {
+        super.onTick();
+
         if (entity.isDead() || !entity.isSuckingItems()) {
             return;
         }
-        entity.setSuckingCooldown(entity.getSuckingCooldown() - 1);
-        if (entity.getSuckingCooldown() <= 0) {
-            entity.setSuckingCooldown(0);
-            if (entity.suckItems()) {
-                entity.setSuckingCooldown(4);
-                entity.update();
-            }
+
+        // ALL THIS CODE IS BROKEN BECAUSE VANILLA MINECRAFT BLOCK CHANGED HANDLING IS KAPUT
+        // https://github.com/bergerhealer/TrainCarts/issues/398#issuecomment-713913866
+        /*
+        // Decrease sucking cooldown until 0 is reached
+        int cooldown = entity.getSuckingCooldown();
+        if (cooldown > 0) {
+            entity.setSuckingCooldown(cooldown - 1);
+        } else if (entity.suckItems()) {
+            entity.setSuckingCooldown(4);
+            entity.update();
         }
+        */
+
+        // Just suck in items every tick. Whatever.
+        entity.setSuckingCooldown(0);
+        entity.suckItems();
     }
 
     @Override
