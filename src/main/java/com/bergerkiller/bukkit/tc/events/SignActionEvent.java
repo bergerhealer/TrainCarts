@@ -240,6 +240,7 @@ public class SignActionEvent extends Event implements Cancellable {
             state.setRailPiece(this.getRailPiece());
             state.position().setLocation(state.railType().getSpawnLocation(state.railBlock(), signDirection));
             state.position().setMotion(signDirection);
+            state.initEnterDirection();
             state.loadRailLogic().getPath().snap(state.position(), state.railBlock());
             state.initEnterDirection();
             return state.enterFace();
