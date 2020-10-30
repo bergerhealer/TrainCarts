@@ -577,7 +577,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
         CartAttachmentSeat seat = (network == null) ? null : network.findSeat(passenger);
 
-        if (seat == null) {
+        if (seat == null || !seat.isAttached()) {
             // Fallback
             Location mloc = entity.getLocation();
             mloc.setYaw(FaceUtil.faceToYaw(getDirection()));
