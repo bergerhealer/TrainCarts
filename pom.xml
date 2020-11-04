@@ -12,6 +12,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.finalNameBase>${project.name}-${project.version}</project.finalNameBase>
         <project.mcversion>1.13.2</project.mcversion>
         <project.cbversion>${project.mcversion}-R0.1-SNAPSHOT</project.cbversion>
         <project.bkcversion>1.16.2-v1</project.bkcversion>
