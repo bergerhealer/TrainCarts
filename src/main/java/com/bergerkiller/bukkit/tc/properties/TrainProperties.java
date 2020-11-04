@@ -1131,7 +1131,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.playerCollision = this.miscCollision = mode;
             this.setCollisionModeForMobs(mode);
         } else if (LogicUtil.containsIgnoreCase(key, "speedlimit", "maxspeed")) {
-            this.setSpeedLimit(ParseUtil.parseDouble(arg, 0.4));
+            this.setSpeedLimit(Util.parseVelocity(arg, this.getSpeedLimit()));
         } else if (LogicUtil.containsIgnoreCase(key, "gravity")) {
             this.setGravity(ParseUtil.parseDouble(arg, 1.0));
         } else if (LogicUtil.containsIgnoreCase(key, "allowmanual", "manualmove", "manual")) {
