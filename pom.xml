@@ -4,7 +4,7 @@
 
     <groupId>com.bergerkiller.bukkit</groupId>
     <artifactId>TrainCarts</artifactId>
-    <version>1.16.4-v1</version>
+    <version>1.16.4-v2-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>TrainCarts</name>
@@ -12,7 +12,6 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.finalNameBase>${project.name}-${project.version}</project.finalNameBase>
         <project.mcversion>1.13.2</project.mcversion>
         <project.cbversion>${project.mcversion}-R0.1-SNAPSHOT</project.cbversion>
         <project.bkcversion>1.16.2-v1</project.bkcversion>
@@ -60,6 +59,18 @@
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
         </repository>
+
+        <!-- Repo for access to LightAPI -->
+        <repository>
+            <id>sonatype</id>
+            <url>https://oss.sonatype.org/content/groups/public/</url>
+        </repository>
+
+        <!-- Repo for access to Multiverse API -->
+        <repository>
+            <id>onarandombox</id>
+            <url>http://repo.onarandombox.com/content/repositories/multiverse/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -81,12 +92,9 @@
 
         <!-- LightAPI (optional) for light attachment -->
         <dependency>
-            <groupId>ru.beykerykt</groupId>
-            <artifactId>lightapi</artifactId>
-            <version>3.4.2</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/LightAPI-fork-3.4.2.jar</systemPath>
-            <optional>true</optional>
+            <groupId>io.github.qveshn</groupId>
+            <artifactId>LightAPI-fork</artifactId>
+            <version>3.4.2-SNAPSHOT</version>
         </dependency>
 
         <!-- Vault (optional) for Economy integration -->
@@ -111,20 +119,28 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.onarandombox</groupId>
+            <groupId>com.onarandombox.multiverseportals</groupId>
             <artifactId>Multiverse-Portals</artifactId>
-            <version>2.5.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/Multiverse-Portals-2.5.0.jar</systemPath>
-            <optional>true</optional>
+            <version>4.2.0</version>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.bukkit</groupId>
+                    <artifactId>craftbukkit</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
-            <groupId>com.onarandombox</groupId>
+            <groupId>com.onarandombox.multiversecore</groupId>
             <artifactId>Multiverse-Core</artifactId>
-            <version>2.5.1</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/Multiverse-Core-2.5.1-SNAPSHOT.jar</systemPath>
-            <optional>true</optional>
+            <version>4.2.0</version>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.bukkit</groupId>
+                    <artifactId>craftbukkit</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.bergerkiller.bukkit</groupId>
@@ -184,7 +200,6 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.0.1</version>
                 <configuration>
-                    <finalName>${project.finalNameBase}</finalName>
                     <failOnError>false</failOnError>
                     <doclint>none</doclint>
                 </configuration>
@@ -194,9 +209,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
                 <version>3.0.1</version>
-                <configuration>
-                    <finalName>${project.finalNameBase}</finalName>
-                </configuration>
             </plugin>
 
             <!-- Shade plugin -->
