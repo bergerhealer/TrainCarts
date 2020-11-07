@@ -801,7 +801,7 @@ public class Util {
         String unitText = "";
         for (int i = 0; i < velocityString.length(); i++) {
             char c = velocityString.charAt(i);
-            if (!Character.isDigit(c) && c != '.' && c != ',' && c != ' ') {
+            if (!Character.isDigit(c) && c != '.' && c != ',' && c != ' ' && c != '-') {
                 numberText = velocityString.substring(0, i);
                 unitText = velocityString.substring(i).replace(" ", "").trim().toLowerCase(Locale.ENGLISH);
                 break;

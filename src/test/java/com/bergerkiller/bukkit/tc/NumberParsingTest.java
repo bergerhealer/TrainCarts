@@ -14,6 +14,7 @@ public class NumberParsingTest {
         // Various ways of specifying velocity
         assertEquals(12, Util.parseVelocity("12", Double.NaN), 1e-5);
         assertEquals(12.5, Util.parseVelocity("12.5", Double.NaN), 1e-5);
+        assertEquals(-12.5, Util.parseVelocity("-12.5", Double.NaN), 1e-5);
         assertEquals(1.0, Util.parseVelocity("20m/s", Double.NaN), 1e-5);
         assertEquals(0.27778, Util.parseVelocity("20km/h", Double.NaN), 1e-5);
         assertEquals(0.44704, Util.parseVelocity("20mi/h", Double.NaN), 1e-5);
@@ -21,6 +22,7 @@ public class NumberParsingTest {
         assertEquals(0.27778, Util.parseVelocity("20kmh", Double.NaN), 1e-5);
         assertEquals(0.27778, Util.parseVelocity("20kmph", Double.NaN), 1e-5);
         assertEquals(0.44704, Util.parseVelocity("20mph", Double.NaN), 1e-5);
+        assertEquals(-0.44704, Util.parseVelocity("-20mph", Double.NaN), 1e-5);
 
         // Invalid numbers
         assertEquals(20.0, Util.parseVelocity("gibberish", 20.0), 0.0);
