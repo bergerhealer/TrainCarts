@@ -1221,7 +1221,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      * @return obstacle found within this distance, null if there is none
      */
     public SpeedAheadWaiter.Obstacle findObstacleAhead(double distance) {
-        return this.speedAheadWaiter.findObstacleAhead(distance);
+        return this.speedAheadWaiter.findObstacleAhead(distance, true);
     }
 
     /**
@@ -1234,7 +1234,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      * @see {@link #findObstacleAhead(double)}
      */
     public double getSpeedAhead(double distance) {
-        SpeedAheadWaiter.Obstacle obstacle = this.speedAheadWaiter.findObstacleAhead(distance);
+        SpeedAheadWaiter.Obstacle obstacle = this.speedAheadWaiter.findObstacleAhead(distance, true);
         return (obstacle != null) ? obstacle.speed : Double.MAX_VALUE;
     }
 

@@ -140,6 +140,7 @@ public class SpeedAheadWaiter {
         // As this train slows down due to a reduced speed limit, we have to check less and less
         // distance up a head, since it takes less long to slow to a complete stop.
         this.safeDistance = properties.getWaitDistance();
+        boolean checkTrains = (this.safeDistance > 0.0);
         if (properties.getWaitDeceleration() > 0.0) {
             int numSlowdownSteps = MathUtil.floor(oldSpeedLimit / properties.getWaitDeceleration());
             for (int n = 0; n < numSlowdownSteps; n++) {
@@ -152,7 +153,7 @@ public class SpeedAheadWaiter {
         this.safeDistance = Math.min(2000.0, this.safeDistance);
 
         // Check for obstacles, with a +1 block leeway
-        Obstacle obstacle = this.findObstacleAhead(1.0 + this.safeDistance);
+        Obstacle obstacle = this.findObstacleAhead(this.safeDistance + 1.0, checkTrains);
 
         // No obstacle means full steam ahead!
         if (obstacle == null) {
@@ -173,10 +174,11 @@ public class SpeedAheadWaiter {
      * Looks up ahead on the track for obstacles. These can be other trains, or mutex
      * signs that disallow movement further.
      * 
-     * @param distance
+     * @param distance Distance in blocks to check ahead of the train
+     * @param checkTrains Whether to look for trains or only for mutex signs
      * @return obstacle that was detected, null if there is no obstacle
      */
-    public Obstacle findObstacleAhead(double distance) {
+    public Obstacle findObstacleAhead(double distance, boolean checkTrains) {
         // Not sure if fixed, but if this train is empty, return MAX_VALUE
         if (group.isEmpty()) {
             return null;
@@ -202,10 +204,8 @@ public class SpeedAheadWaiter {
         // The actual minimum distance allowed from the walking point position to any minecarts discovered
         // This takes into account that the start position is halfway the length of the Minecart
         // When distance is not greater than 0, we don't check for other trains at all.
-        boolean checkTrains = false;
         double waitDistance = distance;
-        if (waitDistance > 0.0) {
-            checkTrains = true;
+        if (checkTrains) {
             waitDistance += selfCartOffset;
         }
 
