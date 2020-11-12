@@ -1,14 +1,18 @@
 package com.bergerkiller.bukkit.tc.actions;
 
 import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
 
 public class MemberActionLaunchDirection extends MemberActionLaunch implements MovementAction {
     private BlockFace direction;
+    private boolean directionWasCorrected;
 
     public MemberActionLaunchDirection() {
         this.direction = BlockFace.SELF;
+        this.directionWasCorrected = false;
     }
 
     /**
@@ -40,12 +44,25 @@ public class MemberActionLaunchDirection extends MemberActionLaunch implements M
 
     @Override
     public boolean update() {
-        if (super.update()) {
-            return true;
+        boolean success = super.update();
+
+        // Once speed of the train increases to the point it is moving, we
+        // can correct direction to make sure it leads into the direction that
+        // was configured. We then stop checking. The direction should only change
+        // at the very beginning of the launch. We do this also when success is
+        // true right away, to properly handle instantaneous launches. Note that
+        // the member direction property can't be used for this, as it isn't updated
+        // when the speed is changed.
+        if (!this.directionWasCorrected) {
+            Vector vel = this.getMember().getEntity().getVelocity();
+            if (vel.lengthSquared() > 1e-20) {
+                this.directionWasCorrected = true;
+                if (vel.dot(FaceUtil.faceToVector(this.direction)) < 0.0) {
+                    this.getGroup().reverse();
+                }
+            }
         }
-        if (super.getDistance() < 1 && this.getMember().isDirectionTo(this.direction.getOppositeFace())) {
-            this.getGroup().reverse();
-        }
-        return false;
+
+        return success;
     }
 }
