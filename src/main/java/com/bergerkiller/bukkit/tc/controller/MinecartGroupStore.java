@@ -104,21 +104,32 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
     }
 
     public static MinecartGroup spawn(SpawnableGroup spawnableGroup, List<Location> spawnLocations) {
-        List<SpawnableMember> types = spawnableGroup.getMembers();
-        if (types.size() > spawnLocations.size()) {
+        List<SpawnableMember> members = spawnableGroup.getMembers();
+        if (members.size() > spawnLocations.size()) {
             return null;
         }
 
+        // Convert to a SpawnLocationList and do all the spawn logic there
+        SpawnableGroup.SpawnLocationList locations = new SpawnableGroup.SpawnLocationList();
+        for (int i = 0; i < members.size(); i++) {
+            Location loc = spawnLocations.get(i);
+            locations.addMember(members.get(i), loc.getDirection(), loc);
+        }
+        return spawn(spawnableGroup, locations);
+    }
+
+    public static MinecartGroup spawn(SpawnableGroup spawnableGroup, SpawnableGroup.SpawnLocationList locations) {
         MinecartGroup group = new MinecartGroup();
         groups.add(group);
-        for (int i = spawnLocations.size() - 1; i >= 0; i--) {
-            Location spawnLoc = spawnLocations.get(i);
-            if (types.get(i).isFlipped()) {
+        for (int i = locations.locations.size() - 1; i >= 0; i--) {
+            SpawnableMember.SpawnLocation loc = locations.locations.get(i);
+            Location spawnLoc = loc.location;
+            if (loc.member.isFlipped()) {
                 spawnLoc = Util.invertRotation(spawnLoc);
             }
 
             // Spawn the minecart
-            group.add(types.get(i).spawn(spawnLoc));
+            group.add(loc.member.spawn(spawnLoc));
         }
         group.updateDirection();
         group.getProperties().load(spawnableGroup.getConfig());

@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.controller.spawnable;
 
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -107,7 +108,17 @@ public class SpawnableMember {
 
     @Override
     public SpawnableMember clone() {
-        return new SpawnableMember(this.group, this.config);
+        return cloneWithGroup(this.group);
+    }
+
+    /**
+     * Clones this SpawnableMember and assigns it a new group
+     * 
+     * @param group
+     * @return spawnable member with new group assigned
+     */
+    protected SpawnableMember cloneWithGroup(SpawnableGroup group) {
+        return new SpawnableMember(group, this.config);
     }
 
     @Override
@@ -115,4 +126,21 @@ public class SpawnableMember {
         return this.entityType.toString();
     }
 
+    /**
+     * Stores the information used to spawn a single spawnable member
+     */
+    public static class SpawnLocation {
+        /** The SpawnableMember this spawn location is for */
+        public final SpawnableMember member;
+        /** The exact location and forward-orientation of the member when spawned */
+        public final Location location;
+        /** The forward movement direction the member has at this spawn location */
+        public final Vector forward;
+
+        public SpawnLocation(SpawnableMember member, Vector forward, Location location) {
+            this.member = member;
+            this.forward = forward;
+            this.location = location;
+        }
+    }
 }

@@ -3,12 +3,10 @@ package com.bergerkiller.bukkit.tc.signactions.spawner;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
@@ -24,6 +22,7 @@ import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
+import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
@@ -266,14 +265,14 @@ public class SpawnSign {
             }
 
             // Perform the spawn
-            List<Location> locs = SignActionSpawn.spawn(this, sign);
-            if (locs != null && !locs.isEmpty()) {
+            SpawnableGroup.SpawnLocationList locs = SignActionSpawn.spawn(this, sign);
+            if (locs != null && !locs.locations.isEmpty()) {
                 // Compute a new mapping of all the chunks that must be loaded at these positions
                 // The coordinates might change as a result of switchers / change on the sign
                 LongHashMap<SignSpawnChunk> new_chunks = new LongHashMap<SignSpawnChunk>(this.chunks.size());
-                for (Location loc : locs) {
-                    int x = MathUtil.toChunk(loc.getX());
-                    int z = MathUtil.toChunk(loc.getZ());
+                for (SpawnableMember.SpawnLocation loc : locs.locations) {
+                    int x = MathUtil.toChunk(loc.location.getX());
+                    int z = MathUtil.toChunk(loc.location.getZ());
                     for (int dx = -2; dx <= 2; dx++) {
                         for (int dz = -2; dz <= 2; dz++) {
                             int cx = x + dx;

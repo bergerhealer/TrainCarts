@@ -389,6 +389,18 @@ public class RailState {
         return state;
     }
 
+    /**
+     * Clones this RailState and inverts the motion vector, so that the directions
+     * are reversed.
+     * 
+     * @return clone of this RailState with motion inverted
+     */
+    public RailState cloneAndInvertMotion() {
+        RailState reverse = clone();
+        reverse.position().invertMotion();
+        return reverse;
+    }
+
     @Override
     public String toString() {
         return "{rail=" + this._railPiece.toString() +
