@@ -21,6 +21,7 @@ import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -370,12 +371,12 @@ public class SpawnSign {
         if (bits.length >= 2) {
             // Choose
             if (!bits[0].contains(":")) {
-                return ParseUtil.parseDouble(bits[0], 0.0);
+                return Util.parseVelocity(bits[0], 0.0);
             } else {
-                return ParseUtil.parseDouble(bits[1], 0.0);
+                return Util.parseVelocity(bits[1], 0.0);
             }
         } else if (bits.length >= 1 && !bits[0].contains(":")) {
-            return ParseUtil.parseDouble(bits[0], 0.0);
+            return Util.parseVelocity(bits[0], 0.0);
         }
         return 0.0;
     }

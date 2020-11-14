@@ -97,7 +97,6 @@ public class SignActionSpawn extends SignAction {
     // only called from spawn sign
     public static SpawnableGroup.SpawnLocationList spawn(SpawnSign spawnSign, SignActionEvent info) {
         if ((info.isTrainSign() || info.isCartSign()) && info.hasRails()) {
-            final double spawnForce = spawnSign.getSpawnForce();
             if (spawnSign.getSpawnableGroup().getMembers().isEmpty()) {
                 return null;
             }
@@ -234,9 +233,17 @@ public class SignActionSpawn extends SignAction {
 
             // Spawn and launch
             MinecartGroup group = spawnable.spawn(spawnLocations);
+            double spawnForce = spawnSign.getSpawnForce();
             if (group != null && spawnForce != 0.0) {
                 Vector headDirection = spawnLocations.locations.get(spawnLocations.locations.size()-1).forward;
                 BlockFace launchDirection = Util.vecToFace(headDirection, false);
+
+                // Negative spawn force launches in reverse
+                if (spawnForce < 0.0) {
+                    launchDirection = launchDirection.getOppositeFace();
+                    spawnForce = -spawnForce;
+                }
+
                 group.head().getActions().addActionLaunch(launchDirection, 2, spawnForce);
             }
 
