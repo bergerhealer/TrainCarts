@@ -107,7 +107,7 @@ public class Commands {
     ) {
         if (arguments.has(2) && arguments.get(2).equals("ticket")) {
             if (arguments.has(3)) {
-                TicketCommands.execute(sender, arguments.get(3), arguments.range(3).array());
+                TicketCommands.execute(sender, arguments.get(3), arguments.range(4).array());
             } else {
                 sender.sendMessage(ChatColor.YELLOW + "/train ticket <command> [arguments]");
             }
