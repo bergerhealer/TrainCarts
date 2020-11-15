@@ -11,12 +11,19 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
+import com.bergerkiller.bukkit.tc.commands.cloud.ArgumentList;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+
+import cloud.commandframework.annotations.Argument;
+import cloud.commandframework.annotations.CommandDescription;
+import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.annotations.specifier.Greedy;
+
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -30,7 +37,18 @@ import java.util.Set;
 
 public class CartCommands {
 
-    public static boolean execute(Player p, CartProperties prop, String cmd, String[] args) throws NoPermissionException {
+    @CommandMethod("cart <arguments>")
+    @CommandDescription("Performs commands that operate individual carts of a train")
+    private void commandCart(
+              final Player player,
+              final CartProperties prop,
+              final ArgumentList arguments,
+              final @Argument("arguments") @Greedy String unused_arguments
+    ) {
+        execute(player, prop, arguments.get(1), arguments.range(2).array());
+    }
+
+    public static void execute(Player p, CartProperties prop, String cmd, String[] args) throws NoPermissionException {
         TrainPropertiesStore.markForAutosave();
         if (cmd.equals("info") || cmd.equals("i")) {
             info(p, prop);
@@ -181,7 +199,7 @@ public class CartCommands {
                     }
                     if (mats.isEmpty()) {
                         p.sendMessage(ChatColor.RED + "Failed to find possible and allowed block types in the list given.");
-                        return true;
+                        return;
                     }
                     if (asBreak) {
                         prop.getBlockBreakTypes().addAll(mats);
@@ -250,17 +268,16 @@ public class CartCommands {
             }
         } else if (args.length == 1 && Util.parseProperties(prop, cmd, args[0])) {
             p.sendMessage(ChatColor.GREEN + "Property has been updated!");
-            return true;
+            return;
         } else {
             // Show help
             if (!cmd.equalsIgnoreCase("help") && !cmd.equalsIgnoreCase("?")) {
                 p.sendMessage(ChatColor.RED + "Unknown cart command: '" + cmd + "'!");
             }
             help(new MessageBuilder()).send(p);
-            return true;
+            return;
         }
         prop.tryUpdate();
-        return true;
     }
 
     public static MessageBuilder help(MessageBuilder builder) {

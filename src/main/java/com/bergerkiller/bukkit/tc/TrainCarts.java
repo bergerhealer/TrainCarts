@@ -80,6 +80,7 @@ public class TrainCarts extends PluginBase {
     private RouteManager routeManager;
     private Economy econ = null;
     private SmoothCoastersAPI smoothCoastersAPI;
+    private Commands commands;
 
     /**
      * Gets a helper class for assigning (fake) entities to teams to change their glowing effect
@@ -467,12 +468,15 @@ public class TrainCarts extends PluginBase {
             }
         });
 
+        // Initialize commands (Cloud command framework)
+        commands = new Commands();
+        commands.enable(this);
+
         // Register listeners and commands
         this.register(packetListener = new TCPacketListener(), TCPacketListener.LISTENED_TYPES);
         this.register(interactionPacketListener = new TCInteractionPacketListener(), TCInteractionPacketListener.TYPES);
         this.register(TCListener.class);
         this.register(this.redstoneTracker = new RedstoneTracker(this));
-        this.register("train", "cart");
 
         // Destroy all trains after initializing if specified
         if (TCConfig.destroyAllOnShutdown) {
@@ -646,8 +650,9 @@ public class TrainCarts extends PluginBase {
         AttachmentTypeRegistry.instance().unregisterAll();
     }
 
+    @Override
     public boolean command(CommandSender sender, String cmd, String[] args) {
-        return Commands.execute(sender, cmd, args);
+        return false; // Note: unused, no commands are registered in plugin.yml
     }
 
     @Override

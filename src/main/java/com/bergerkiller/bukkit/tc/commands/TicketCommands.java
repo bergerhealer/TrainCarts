@@ -16,7 +16,7 @@ import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 
 public class TicketCommands {
 
-    public static boolean execute(CommandSender sender, String cmd, String[] args) throws NoPermissionException {
+    public static void execute(CommandSender sender, String cmd, String[] args) throws NoPermissionException {
         Permission.TICKET_MANAGE.handle(sender);
         if (cmd.equals("edit")) {
             // Edit command for selecting new tickets to be edited
@@ -32,7 +32,7 @@ public class TicketCommands {
                 sender.sendMessage(ChatColor.RED + "You must enter the name of the ticket to edit");
                 sender.sendMessage(ChatColor.RED + "To see which tickets are available, use /train ticket list");
             }
-            return true;
+            return;
         } else if (cmd.equals("create")) {
             // Creating new tickets
             Ticket newTicket;
@@ -42,19 +42,19 @@ public class TicketCommands {
                 newTicket = TicketStore.createTicket(TicketStore.DEFAULT, args[0]);
                 if (newTicket == null) {
                     sender.sendMessage(ChatColor.RED + "Failed to create ticket: a ticket with the name " + args[0] + " already exists");
-                    return true;
+                    return;
                 }
             }
             sender.sendMessage(ChatColor.GREEN + "You have created a new ticket with the name " + ChatColor.YELLOW + newTicket.getName());
             TicketStore.setEditing(sender.getName(), newTicket);
-            return true;
+            return;
         } else if (cmd.equals("give")) {
             // Gives a ticket to a player as an item to use
             if (args.length >= 2) {
                 Ticket ticket = TicketStore.getTicket(args[0]);
                 if (ticket == null) {
                     sender.sendMessage(ChatColor.RED + "Failed to give ticket: ticket with name " + args[0] + " does not exist!");
-                    return true;
+                    return;
                 }
                 for (int pIdx = 1; pIdx < args.length; pIdx++) {
                     String playerName = args[pIdx];
@@ -71,7 +71,7 @@ public class TicketCommands {
             } else {
                 sender.sendMessage(ChatColor.RED + "Incorrect syntax. Use /train ticket give [ticketname] [playernames...]");
             }
-            return true;
+            return;
         }
 
         Ticket ticket = TicketStore.getEditing(sender.getName());
@@ -79,7 +79,7 @@ public class TicketCommands {
             sender.sendMessage(ChatColor.RED + "You are not editing any tickets right now");
             sender.sendMessage(ChatColor.RED + "To create a new train ticket, use /train ticket create");
             sender.sendMessage(ChatColor.RED + "To edit an existing train ticket, use /train ticket edit [name]");
-            return true;
+            return;
         }
 
         // Creating new tickets by cloning an existing one
@@ -91,12 +91,12 @@ public class TicketCommands {
                 newTicket = TicketStore.createTicket(ticket, args[0]);
                 if (newTicket == null) {
                     sender.sendMessage(ChatColor.RED + "Failed to clone ticket: a ticket with the name " + args[0] + " already exists");
-                    return true;
+                    return;
                 }
             }
             sender.sendMessage(ChatColor.GREEN + "You cloned the ticket, creating a new ticket with the name " + ChatColor.YELLOW + newTicket.getName());
             TicketStore.setEditing(sender.getName(), newTicket);
-            return true;
+            return;
         }
 
         // Change the name of an existing ticket
@@ -110,7 +110,7 @@ public class TicketCommands {
             } else {
                 sender.sendMessage(ChatColor.RED + "Incorrect syntax. To rename, use /train ticket rename [new_name]");
             }
-            return true;
+            return;
         }
 
         // Set a ticket realm
@@ -122,7 +122,7 @@ public class TicketCommands {
             } else {
                 sender.sendMessage(ChatColor.RED + "Incorrect syntax. To set a realm, use /train ticket realm [realm]");
             }
-            return true;
+            return;
         }
 
         // Changes the background image
@@ -167,7 +167,7 @@ public class TicketCommands {
             } else {
                 sender.sendMessage(ChatColor.RED + "Incorrect syntax. To set the maximum number of uses, use /train ticket maxuses [max_uses]");
             }
-            return true;
+            return;
         }
 
         // Modifies ticket properties. These are all pretty much exactly the same as the train/cart commands
@@ -182,7 +182,7 @@ public class TicketCommands {
             } else {
                 sender.sendMessage(ChatColor.RED + "Incorrect syntax. To set the ticket destination, use /train ticket destination [name]");
             }
-            return true;
+            return;
         }
 
         // Tags
@@ -193,9 +193,7 @@ public class TicketCommands {
             } else {
                 sender.sendMessage(ChatColor.GREEN + "Ticket tags set: " + ChatColor.YELLOW + StringUtil.combineNames(args));
             }
-            return true;
+            return;
         }
-
-        return true;
     }
 }

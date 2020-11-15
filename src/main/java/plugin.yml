@@ -8,13 +8,3 @@ description: Plugin that allows the use of minecart trains with adjustable setti
 depend: [BKCommonLib]
 softdepend: [MinecartManiaCore, SignLink, My_Worlds, LightAPI, Vault]
 dev-url: ${project.url}
-commands:
-    train:
-        description: Perform TrainCarts commands for complete trains
-        usage: See development or WIKI page of TrainCarts
-    cart:
-        description: Perform TrainCarts commands for single minecarts
-        usage: See development or WIKI page of TrainCarts
-    savedtrain:
-        description: Performs TrainCarts commands for trains that have been saved
-        usage: See development or WIKI page of TrainCarts

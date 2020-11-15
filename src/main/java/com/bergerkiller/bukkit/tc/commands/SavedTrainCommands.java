@@ -27,13 +27,40 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
+import com.bergerkiller.bukkit.tc.commands.cloud.ArgumentList;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore;
+
+import cloud.commandframework.annotations.Argument;
+import cloud.commandframework.annotations.CommandDescription;
+import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.annotations.specifier.Greedy;
 
 /**
  * Commands to modify an existing saved train
  */
 public class SavedTrainCommands {
+
+    @CommandMethod("savedtrain")
+    @CommandDescription("Shows command usage of /savedtrain, lists saved trains")
+    private void commandSavedTrain(
+              final CommandSender sender
+    ) {
+        sender.sendMessage(ChatColor.YELLOW + "Use /savedtrain <trainname> [command] to modify saved trains");
+        sender.sendMessage("");
+        execute(sender, "list", new String[0]);
+    }
+
+    @CommandMethod("savedtrain <trainname> [arguments]")
+    @CommandDescription("Performs commands that operate on saved trains by name")
+    private void commandSavedTrain(
+              final CommandSender sender,
+              final ArgumentList arguments,
+              final @Argument("trainname") String savedTrainName,
+              final @Argument("arguments") @Greedy String unused_arguments
+    ) {
+        execute(sender, savedTrainName, arguments.range(2).array());
+    }
 
     public static void execute(CommandSender sender, String savedTrainName, String[] args) throws NoPermissionException {
         // This section verifies the saved train name, and supplies the list command functionality

@@ -8,112 +8,141 @@ import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.commands.cloud.ArgumentList;
+import com.bergerkiller.bukkit.tc.commands.cloud.CloudHandler;
+import com.bergerkiller.bukkit.tc.exception.command.NoTrainSelectedException;
+import com.bergerkiller.bukkit.tc.exception.command.SelectedTrainNotOwnedException;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathWorld;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+
+import cloud.commandframework.annotations.Argument;
+import cloud.commandframework.annotations.CommandDescription;
+import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.annotations.specifier.Greedy;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 public class Commands {
+    private final CloudHandler cloud = new CloudHandler();
 
-    public static void permission(CommandSender sender, String node) throws NoPermissionException {
-        if (sender instanceof Player && !sender.hasPermission(node)) {
-            throw new NoPermissionException();
-        }
+    // Command handlers
+    private final CartCommands commands_cart = new CartCommands();
+    private final TrainCommands commands_train = new TrainCommands();
+    private final GlobalCommands commands_train_global = new GlobalCommands();
+    private final RouteCommands commands_train_route = new RouteCommands();
+    private final TicketCommands commands_train_ticket = new TicketCommands();
+    private final SavedTrainCommands commands_savedtrain = new SavedTrainCommands();
+
+    public void enable(TrainCarts plugin) {
+        cloud.enable(plugin);
+
+        // Localization
+        cloud.captionFromLocalization(Localization.class);
+
+        // Handle train not found exception
+        cloud.injector(CartProperties.class, (context, annotations) -> {
+            if (!(context.getSender() instanceof Player)) {
+                throw new NoTrainSelectedException();
+            }
+            Player player = (Player) context.getSender();
+            CartProperties properties = CartPropertiesStore.getEditing(player);
+            if (properties == null) {
+                throw new NoTrainSelectedException();
+            }
+            if (!properties.hasOwnership(player)) {
+                throw new SelectedTrainNotOwnedException();
+            }
+            return properties;
+        });
+        cloud.injector(TrainProperties.class, (context, annotations) -> {
+            if (!(context.getSender() instanceof Player)) {
+                throw new NoTrainSelectedException();
+            }
+            Player player = (Player) context.getSender();
+            CartProperties properties = CartPropertiesStore.getEditing(player);
+            if (properties == null) {
+                throw new NoTrainSelectedException();
+            }
+            TrainProperties trainProperties = properties.getTrainProperties();
+            if (!trainProperties.hasOwnership(player)) {
+                throw new SelectedTrainNotOwnedException();
+            }
+            return trainProperties;
+        });
+        cloud.handleMessage(NoPermissionException.class, Localization.COMMAND_NOPERM.getName());
+        cloud.handleMessage(NoTrainSelectedException.class, Localization.EDIT_NOSELECT.getName());
+        cloud.handleMessage(SelectedTrainNotOwnedException.class, Localization.EDIT_NOTOWNED.getName());
+
+        // Register all the commands
+        cloud.annotations(commands_cart);
+        cloud.annotations(commands_train);
+        cloud.annotations(commands_train_global);
+        cloud.annotations(commands_train_route);
+        cloud.annotations(commands_train_ticket);
+        cloud.annotations(commands_savedtrain);
+
+        cloud.annotations(this);
     }
 
-    public static boolean execute(CommandSender sender, String command, String[] args) {
-        try {
-            // Saved train properties
-            if (command.equalsIgnoreCase("savedtrain")) {
-                if (args.length == 0) {
-                    sender.sendMessage(ChatColor.YELLOW + "Use /savedtrain [trainname] [command] to modify saved trains");
-                    sender.sendMessage("");
-                    SavedTrainCommands.execute(sender, "list", new String[0]);
-                    return true;
+    @CommandMethod("train")
+    @CommandDescription("Displays the TrainCarts plugin about message, with version information")
+    private void commandShowAbout(final CommandSender sender) {
+        Localization.COMMAND_ABOUT.message(sender, TrainCarts.plugin.getDebugVersion());
+    }
+
+    @CommandMethod("train <arguments>")
+    @CommandDescription("Performs commands that operate on trains, or TrainCarts in general")
+    private void commandTrain(
+              final CommandSender sender,
+              final ArgumentList arguments,
+              final @Argument("arguments") @Greedy String unused_arguments
+    ) {
+        if (arguments.has(2) && arguments.get(2).equals("ticket")) {
+            if (arguments.has(3)) {
+                TicketCommands.execute(sender, arguments.get(3), arguments.range(3).array());
+            } else {
+                sender.sendMessage(ChatColor.YELLOW + "/train ticket <command> [arguments]");
+            }
+        } else {
+            if (GlobalCommands.execute(sender, arguments.range(1).array())) {
+                // Good.
+            } else if (sender instanceof Player) {
+                Player player = (Player) sender;
+
+                Permission.COMMAND_PROPERTIES.handle(sender);
+
+                CartProperties cprop = CartProperties.getEditing(player);
+                if (cprop == null) {
+                    throw new NoTrainSelectedException();
                 }
 
-                String savedTrainName = args[0];
-                String[] st_args = StringUtil.remove(args, 0);
-                SavedTrainCommands.execute(sender, savedTrainName, st_args);
-                return true;
-            }
+                // Only cart/train works here. Get appropriate properties
+                TrainProperties properties = cprop.getTrainProperties();
 
-            // Show version information when /train or /cart is used
-            if (args.length == 0) {
-                Localization.COMMAND_ABOUT.message(sender, TrainCarts.plugin.getDebugVersion());
-                return true;
-            }
-
-            // Global commands that do not mutate properties or tickets
-            if (GlobalCommands.execute(sender, args)) {
-                return true;
-            }
-
-            // Commands for creating and updating ticket types, and giving tickets to players
-            // Applying ticket whitelists is done for trains themselves
-            if (args.length >= 2 && args[0].equals("ticket")) {
-                String t_cmd = args[1];
-                String[] t_args = StringUtil.remove(StringUtil.remove(args, 0), 0);
-                if (TicketCommands.execute(sender, t_cmd, t_args)) {
-                    return true;
+                // Check ownership
+                if (!properties.hasOwnership(player)) {
+                    throw new SelectedTrainNotOwnedException();
                 }
-            }
 
-            if (!(sender instanceof Player)) {
-                return false;
-            }
+                // Execute the /train route and /cart route set of commands
+                if (arguments.get(1).equalsIgnoreCase("route")) {
+                    RouteCommands.execute(sender, properties, arguments.range(1).array());
+                    return;
+                }
 
-            Permission.COMMAND_PROPERTIES.handle(sender);
-            //editing?
-            Player player = (Player) sender;
-            CartProperties cprop = CartProperties.getEditing(player);
-            if (cprop == null) {
-                Localization.EDIT_NOSELECT.message(player);
-                return true;
-            }
-
-            // Only cart/train works here. Get appropriate properties
-            IProperties properties;
-            if (command.equalsIgnoreCase("train")) {
-                properties = cprop.getTrainProperties();
-            } else if (command.equalsIgnoreCase("cart")) {
-                properties = cprop;
+                // Execute commands for the appropriate properties
+                TrainCommands.execute(player, properties, arguments.get(1), arguments.range(2).array());
             } else {
-                return false;
+                sender.sendMessage("This command is only for players or does not exist");
             }
-
-            // Check ownership
-            if (!properties.hasOwnership(player)) {
-                Localization.EDIT_NOTOWNED.message(player);
-                return true;
-            }
-
-            // Execute the /train route and /cart route set of commands
-            if (args[0].equalsIgnoreCase("route")) {
-                RouteCommands.execute(sender, properties, StringUtil.remove(args, 0));
-                return true;
-            }
-
-            // Execute commands for the appropriate properties
-            String cmd = args[0];
-            args = StringUtil.remove(args, 0);
-            if (properties instanceof TrainProperties) {
-                return TrainCommands.execute(player, (TrainProperties) properties, cmd, args);
-            } else if (properties instanceof CartProperties) {
-                return CartCommands.execute(player, (CartProperties) properties, cmd, args);
-            } else {
-                return false;
-            }
-        } catch (NoPermissionException ex) {
-            Localization.COMMAND_NOPERM.message(sender);
-            return true;
         }
     }
 
