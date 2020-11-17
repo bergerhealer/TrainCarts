@@ -220,6 +220,7 @@ public class HelperMethods {
      * @param viewers of this attachment
      */
     public static void updateActiveRecursive(Attachment attachment, boolean active, Collection<Player> viewers) {
+        attachment.onActiveChanged(active);
         if (attachment.isHiddenWhenInactive()) {
             if (active) {
                 for (Player viewer : viewers) {

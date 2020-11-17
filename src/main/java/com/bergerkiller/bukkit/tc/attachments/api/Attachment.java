@@ -154,6 +154,16 @@ public interface Attachment {
     }
 
     /**
+     * Called when the attachment {@link #isActive()} property changes as a result
+     * of reconfiguration or animation being played. If a parent of this attachment
+     * becomes inactive or active, it may also fire such events.
+     * 
+     * @param active The new active state
+     */
+    default void onActiveChanged(boolean active) {
+    }
+
+    /**
      * Makes this attachment visible to a viewer for the first time.
      * This is automatically called for you after {@link #onAttached()} is called,
      * and whenever a new viewer moves within range.

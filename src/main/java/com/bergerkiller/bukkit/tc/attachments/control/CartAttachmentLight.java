@@ -17,6 +17,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.control.light.LightAPIController;
+import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 
@@ -125,12 +126,14 @@ public class CartAttachmentLight extends CartAttachment {
     private IntVector3 prev_block = null;
     private LightAPIController controller = null;
     private int lightLevel = 15;
+    private boolean lightVisible = true;
 
     @Override
     public void onAttached() {
         boolean isSky = getConfig().get("lightType", "BLOCK").equalsIgnoreCase("SKY");
         controller = LightAPIController.get(this.getManager().getWorld(), isSky);
         lightLevel = getConfig().get("lightLevel", 15);
+        lightVisible = !HelperMethods.hasInactiveParent(this);
     }
 
     @Override
@@ -150,6 +153,15 @@ public class CartAttachmentLight extends CartAttachment {
     }
 
     @Override
+    public void onActiveChanged(boolean active) {
+        lightVisible = active;
+        if (!active && prev_block != null) {
+            controller.remove(prev_block, lightLevel);
+            prev_block = null;
+        }
+    }
+
+    @Override
     public void onTick() {
     }
 
@@ -158,7 +170,7 @@ public class CartAttachmentLight extends CartAttachment {
         Vector pos_d = this.getTransform().toVector();
         IntVector3 pos = new IntVector3(pos_d.getX(), pos_d.getY(), pos_d.getZ());
 
-        if (this.isActive()) {
+        if (lightVisible) {
             if (prev_block == null) {
                 controller.add(pos, lightLevel);
                 prev_block = pos;
