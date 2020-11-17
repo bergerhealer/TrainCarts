@@ -1386,7 +1386,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         }
         if (node.isNode("wait")) {
             ConfigurationNode wait = node.getNode("wait");
-            this.waitDeceleration = wait.get("distance", this.waitDistance);
+            this.waitDistance = wait.get("distance", this.waitDistance);
             this.waitDelay = wait.get("delay", this.waitDelay);
             this.waitAcceleration = wait.get("acceleration", this.waitAcceleration);
             this.waitDeceleration = wait.get("deceleration", this.waitDeceleration);
