@@ -4,6 +4,8 @@ import com.bergerkiller.bukkit.common.localization.LocalizationEnum;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
+import cloud.commandframework.captions.Caption;
+
 import java.util.HashSet;
 
 import org.bukkit.ChatColor;
@@ -12,6 +14,11 @@ import org.bukkit.entity.Player;
 public class Localization extends LocalizationEnum {
     public static final Localization COMMAND_ABOUT = new Localization("command.about", "TrainCarts %0% - See WIKI page for more information");
     public static final Localization COMMAND_NOPERM = new Localization("command.noperm", ChatColor.RED + "You do not have permission, ask an admin to do this for you.");
+    public static final Localization COMMAND_SAVEDTRAIN_CLAIMED = new Localization("command.savedtrain.claimed", ChatColor.RED + "Saved train with name %0% is claimed by someone else, you can not access it!");
+    public static final Localization COMMAND_SAVEDTRAIN_GLOBAL_NOPERM = new Localization("command.savedtrain.global.noperm", ChatColor.RED + "You do not have permission to force access to saved trains by others, ask an admin to do this for you.");
+    public static final Localization COMMAND_SAVEDTRAIN_NOTFOUND = new Localization("command.savedtrain.notfound", ChatColor.RED + "Saved train with name %0% does not exist!");
+    public static final Localization COMMAND_SAVEDTRAIN_FORCE = new Localization("command.savedtrain.force", ChatColor.RED + "Saved train with name %0% is claimed by someone else, you can access it anyway with --force");
+    public static final Localization COMMAND_SAVEDTRAIN_CLAIM_INVALID = new Localization("command.savedtrain.claim.invalid", ChatColor.RED + "Invalid player name specified: %0%");
     public static final Localization EDIT_NOSELECT = new Localization("edit.noselect", ChatColor.YELLOW + "You haven't selected a train to edit yet!");
     public static final Localization EDIT_NOTALLOWED = new Localization("edit.notallowed", ChatColor.RED + "You are not allowed to own trains!");
     public static final Localization EDIT_NONEFOUND = new Localization("edit.nonefound", ChatColor.RED + "You do not own any trains you can edit.");
@@ -58,6 +65,15 @@ public class Localization extends LocalizationEnum {
     @Override
     public String get(String... arguments) {
         return TrainCarts.plugin.getLocale(this.getName(), arguments);
+    }
+
+    /**
+     * Gets the cloud framework caption matching this localization
+     * 
+     * @return caption
+     */
+    public Caption getCaption() {
+        return Caption.of(getName());
     }
 
     public void broadcast(MinecartGroup group, String... arguments) {

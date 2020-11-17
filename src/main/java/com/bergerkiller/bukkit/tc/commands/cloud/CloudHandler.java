@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.commands.cloud;
 
 import java.lang.annotation.Annotation;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.function.BiConsumer;
@@ -9,9 +10,14 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import com.bergerkiller.bukkit.common.localization.LocalizationEnum;
@@ -21,6 +27,7 @@ import cloud.commandframework.annotations.AnnotationParser;
 import cloud.commandframework.annotations.injection.ParameterInjector;
 import cloud.commandframework.arguments.parser.ArgumentParseResult;
 import cloud.commandframework.arguments.parser.ArgumentParser;
+import cloud.commandframework.arguments.parser.ParserParameter;
 import cloud.commandframework.arguments.parser.ParserParameters;
 import cloud.commandframework.arguments.parser.StandardParameters;
 import cloud.commandframework.brigadier.CloudBrigadierManager;
@@ -32,6 +39,7 @@ import cloud.commandframework.captions.SimpleCaptionRegistry;
 import cloud.commandframework.context.CommandContext;
 import cloud.commandframework.exceptions.CommandExecutionException;
 import cloud.commandframework.execution.CommandExecutionCoordinator;
+import cloud.commandframework.execution.postprocessor.CommandPostprocessor;
 import cloud.commandframework.meta.CommandMeta;
 import cloud.commandframework.paper.PaperCommandManager;
 import io.leangen.geantyref.TypeToken;
@@ -110,6 +118,55 @@ public class CloudHandler {
                     "Exception executing command handler", cause);
             sender.sendMessage(ChatColor.RED + "An internal error occurred while attempting to perform this command.");
         });
+        
+        /*
+        this.annotationParser.registerPreprocessorMapper(TestAnnot.class, a -> {
+            return (context, queue) -> {
+                System.out.println("PREPROCESS");
+                return ArgumentParseResult.success(Boolean.TRUE);
+            };
+        });
+        */
+
+        suggest("playername", (context, input) -> {
+            // Try online players first
+            List<String> names = Bukkit.getOnlinePlayers().stream()
+                .map(Player::getName)
+                .filter(p -> p.startsWith(input))
+                .collect(Collectors.toList());
+
+            if (!names.isEmpty()) {
+                return names;
+            }
+
+            // Try offline players second, to reduce clutter
+            // TODO: Doesnt work? Weird.
+            return Stream.of(Bukkit.getOfflinePlayers())
+                .map(OfflinePlayer::getName)
+                .filter(p -> p.startsWith(input))
+                .collect(Collectors.toList());
+        });
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+    }
+
+    /**
+     * Register a new command postprocessor. The order they are registered in is respected, and they
+     * are called in LIFO order. This is called before the command handler is executed.
+     *
+     * @param processor Processor to register
+     * @see #preprocessContext(CommandContext, LinkedList) Preprocess a context
+     */
+    public void postProcess(final CommandPostprocessor<CommandSender> processor) {
+        this.manager.registerCommandPostProcessor(processor);
     }
 
     /**
@@ -191,6 +248,45 @@ public class CloudHandler {
             final ParameterInjector<CommandSender, T> injector
     ) {
         this.annotationParser.getParameterInjectorRegistry().registerInjector(clazz, injector);
+    }
+
+    /**
+     * Register an annotation mapper with a constant parameter value
+     *
+     * @param annotation Annotation class
+     * @param parameter  Parameter
+     * @param value      Parameter value
+     * @param <A>        Annotation type
+     * @param <T>        Parameter value type
+     */
+    public <A extends Annotation, T> void annotationParameter(
+            final Class<A> annotation,
+            final ParserParameter<T> parameter,
+            final T value
+    ) {
+        manager.getParserRegistry().registerAnnotationMapper(annotation, (a, typeToken) -> {
+            return ParserParameters.single(parameter, value);
+        });
+    }
+
+    /**
+     * Register an annotation mapper with a function to read the parameter value
+     * from an annotation
+     *
+     * @param annotation   Annotation class
+     * @param parameter    Parameter
+     * @param valueMapper  Mapper from annotation to parameter value
+     * @param <A>          Annotation type
+     * @param <T>          Parameter value type
+     */
+    public <A extends Annotation, T> void annotationParameter(
+            final Class<A> annotation,
+            final ParserParameter<T> parameter,
+            final Function<A, T> valueMapper
+    ) {
+        manager.getParserRegistry().registerAnnotationMapper(annotation, (a, typeToken) -> {
+            return ParserParameters.single(parameter, valueMapper.apply(a));
+        });
     }
 
     /**

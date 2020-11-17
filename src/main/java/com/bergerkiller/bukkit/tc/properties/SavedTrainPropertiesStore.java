@@ -37,19 +37,21 @@ import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
  */
 public class SavedTrainPropertiesStore {
     private final FileConfiguration savedTrainsConfig;
+    private String name;
     private String modulesDirectory = "";
     private final List<String> names = new ArrayList<String>();
     private Map<String, SavedTrainPropertiesStore> modules = new HashMap<String, SavedTrainPropertiesStore>();;
-    private boolean changed = false;
+    protected boolean changed = false;
     private boolean allowModules;
 
-    public SavedTrainPropertiesStore(String filename) {
-        this(filename, true);
+    public SavedTrainPropertiesStore(String name, String filename) {
+        this(name, filename, true);
     }
 
-    public SavedTrainPropertiesStore(String filename, boolean allowModules) {
+    public SavedTrainPropertiesStore(String name, String filename, boolean allowModules) {
         this.savedTrainsConfig = new FileConfiguration(filename);
         this.savedTrainsConfig.load();
+        this.name = name;
         this.names.addAll(this.savedTrainsConfig.getKeys());
         this.allowModules = allowModules;
 
@@ -70,6 +72,25 @@ public class SavedTrainPropertiesStore {
         } else {
             throw new UnsupportedOperationException("This store is not authorized to load modules");
         }
+    }
+
+    /**
+     * Gets the name of this saved train store. If this is a module,
+     * returns the name of the module, otherwise returns null.
+     * 
+     * @return module name
+     */
+    public String getName() {
+        return this.name;
+    }
+
+    /**
+     * Gets whether this store is the default module
+     * 
+     * @return True if this is the default module
+     */
+    public boolean isDefault() {
+        return this.name == null;
     }
 
     /**
@@ -190,7 +211,7 @@ public class SavedTrainPropertiesStore {
         }
         name = name.toLowerCase(Locale.ENGLISH);
 
-        modules.put(name, new SavedTrainPropertiesStore(modulesDirectory + File.separator + fileName, false));
+        modules.put(name, new SavedTrainPropertiesStore(name, modulesDirectory + File.separator + fileName, false));
     }
 
     /**
@@ -202,24 +223,8 @@ public class SavedTrainPropertiesStore {
      * @return True if the player has permission
      */
     public boolean hasPermission(CommandSender sender, String name) {
-        // Console always has permission
-        if (!(sender instanceof Player)) {
-            return true; 
-        }
-
-        // Check claims
-        List<Claim> claims = this.getClaims(name);
-        if (claims.isEmpty()) {
-            return true;
-        } else {
-            UUID playerUUID = ((Player) sender).getUniqueId();
-            for (Claim claim : claims) {
-                if (playerUUID.equals(claim.playerUUID)) {
-                    return true;
-                }
-            }
-            return false;
-        }
+        SavedTrainProperties savedProperties = this.getProperties(name);
+        return savedProperties == null || savedProperties.hasPermission(sender);
     }
 
     /**
@@ -230,23 +235,9 @@ public class SavedTrainPropertiesStore {
      * @param name
      * @return list of player claims, empty is unclaimed or non-existant train
      */
-    public List<Claim> getClaims(String name) {
-        ConfigurationNode config = this.getConfig(name);
-        if (config != null && config.contains("claims")) {
-            List<String> claim_strings = config.getList("claims", String.class);
-            if (claim_strings != null && !claim_strings.isEmpty()) {
-                List<Claim> claims = new ArrayList<Claim>(claim_strings.size());
-                for (String claim_str : claim_strings) {
-                    try {
-                        claims.add(new Claim(claim_str));
-                    } catch (IllegalArgumentException ex) {
-                        // Ignore
-                    }
-                }
-                return Collections.unmodifiableList(claims);
-            }
-        }
-        return Collections.emptyList();
+    public Set<Claim> getClaims(String name) {
+        SavedTrainProperties savedProperties = this.getProperties(name);
+        return (savedProperties == null) ? Collections.emptySet() : savedProperties.getClaims();
     }
 
     /**
@@ -256,7 +247,7 @@ public class SavedTrainPropertiesStore {
      * @param player to add to the claim list
      */
     public void setClaim(String name, Player player) {
-        setClaims(name, Collections.singletonList(new Claim(player)));
+        setClaims(name, Collections.singleton(new Claim(player)));
     }
 
     /**
@@ -267,27 +258,10 @@ public class SavedTrainPropertiesStore {
      * @param name
      * @param claims list to set to
      */
-    public void setClaims(String name, List<Claim> claims) {
-        ConfigurationNode config = this.getConfig(name);
-        if (config != null) {
-            // Update configuration
-            if (claims.isEmpty()) {
-                config.remove("claims");
-            } else {
-                List<String> claim_strings = new ArrayList<String>(claims.size());
-                for (Claim claim : claims) {
-                    claim_strings.add(claim.toString());
-                }
-                config.set("claims", claim_strings);
-            }
-
-            // Mark changed
-            String moduleName = this.getModuleNameOfTrain(name);
-            if (moduleName != null) {
-                this.modules.get(moduleName).changed = true;
-            } else {
-                this.changed = true;
-            }
+    public void setClaims(String name, Set<Claim> claims) {
+        SavedTrainProperties savedProperties = this.getProperties(name);
+        if (savedProperties != null) {
+            savedProperties.setClaims(claims);
         }
     }
 
@@ -391,6 +365,25 @@ public class SavedTrainPropertiesStore {
         this.savedTrainsConfig.set(name, config);
         this.names.remove(name);
         this.names.add(name);
+    }
+
+    /**
+     * Gets the properties of a saved train
+     * 
+     * @param name Name of the saved train
+     * @return properties, null if not found
+     */
+    public SavedTrainProperties getProperties(String name) {
+        if (!this.savedTrainsConfig.isNode(name)) {
+            for (SavedTrainPropertiesStore module : this.modules.values()) {
+                ConfigurationNode config = module.getConfig(name);
+                if (config != null) {
+                    return SavedTrainProperties.of(module, name, config);
+                }
+            }
+            return null;
+        }
+        return SavedTrainProperties.of(this, name, this.savedTrainsConfig.getNode(name));
     }
 
     /**
@@ -503,22 +496,11 @@ public class SavedTrainPropertiesStore {
      * @return True if the train was found and reversed
      */
     public boolean reverse(String name) {
-        if (this.savedTrainsConfig.isNode(name)) {
-            ConfigurationNode config = this.savedTrainsConfig.getNode(name);
-            List<ConfigurationNode> carts = config.getNodeList("carts");
-            Collections.reverse(carts);
-            for (ConfigurationNode cart : carts) {
-                cart.set("flipped", !cart.get("flipped", false));
-            }
-            config.setNodeList("carts", carts);
-            this.changed = true;
+        SavedTrainProperties properties = this.getProperties(name);
+        if (properties != null) {
+            properties.reverse();
             return true;
         } else {
-            for (SavedTrainPropertiesStore module : this.modules.values()) {
-                if (module.reverse(name)) {
-                    return true;
-                }
-            }
             return false;
         }
     }
@@ -749,7 +731,7 @@ public class SavedTrainPropertiesStore {
 
         public Claim(String config) throws IllegalArgumentException {
             config = config.trim();
-            int name_end = config.indexOf(' ');
+            int name_end = config.lastIndexOf(' ');
             if (name_end == -1) {
                 // Assume only UUID is specified
                 this.playerName = null;

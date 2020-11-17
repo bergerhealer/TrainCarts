@@ -313,7 +313,7 @@ public class TrainCarts extends PluginBase {
     }
 
     public void loadSavedTrains() {
-        this.savedTrainsStore = new SavedTrainPropertiesStore(getDataFolder() + File.separator + "SavedTrainProperties.yml");
+        this.savedTrainsStore = new SavedTrainPropertiesStore(null, getDataFolder() + File.separator + "SavedTrainProperties.yml");
         this.savedTrainsStore.loadModules(getDataFolder() + File.separator + "savedTrainModules");
     }
 
