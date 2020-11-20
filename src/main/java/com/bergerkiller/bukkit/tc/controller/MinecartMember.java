@@ -114,7 +114,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private boolean unloaded = true;
     protected boolean unloadedLastPlayerTakable = false;
     protected SoundLoop<?> soundLoop;
-    private BlockFace direction;
+    protected BlockFace direction;
     private BlockFace directionTo;
     private BlockFace directionFrom = null;
     private boolean ignoreAllCollisions = false;

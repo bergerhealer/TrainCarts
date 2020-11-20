@@ -29,6 +29,7 @@ import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.SignTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.SpeedAheadWaiter;
+import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
@@ -672,10 +673,25 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public void reverse() {
-        // Reverse velocity of all carts and then perform a full refresh
+        // Invert current velocity
         for (MinecartMember<?> mm : this) {
             mm.getEntity().vel.multiply(-1.0);
+            if (mm.direction != null) {
+                mm.direction = mm.direction.getOppositeFace();
+            }
         }
+
+        // Invert motion direction on the rails
+        for (TrackedRail rail : this.getRailTracker().getRailInformation()) {
+            rail.state.position().invertMotion();
+            rail.state.initEnterDirection();
+        }
+
+        // With velocity at 0, updateDirection() would (falsely) assume there are no changes
+        // Just to make sure we always recalculate the rails, force an update
+        hasPhysicsChanges = true;
+
+        // Must be re-calculated since this alters the path the train takes
         this.updateDirection();
     }
 
