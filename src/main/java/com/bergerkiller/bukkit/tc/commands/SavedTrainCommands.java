@@ -43,77 +43,14 @@ public class SavedTrainCommands {
         this.plugin = plugin;
     }
 
-    // These commands are all broken because of problems in the Cloud library
-    // No workaround could be found. For now, listing only works using suggestions.
-    // https://github.com/Incendo/cloud/issues/136
-    // https://github.com/Incendo/cloud/issues/137
-    /*
-    @CommandMethod("savedtrain list modules")
-    @CommandDescription("Lists all modules on the server in which trains are saved")
-    private void commandListSavedTrains(
-              final CommandSender sender
-    ) {
-        MessageBuilder builder = new MessageBuilder();
-        builder.newLine();
-        builder.blue("The following modules are available:");
-        builder.newLine().setSeparator(ChatColor.WHITE, " / ");
-        for (String moduleName : plugin.getSavedTrains().getModuleNames()) {
-            builder.aqua(moduleName);
-        }
-        builder.send(sender);
-    }
-
-    @CommandMethod("savedtrain list modules")
-    @CommandDescription("Lists all modules in which saved trains are saved")
-    private void commandListModules(final CommandSender sender) {
-        MessageBuilder builder = new MessageBuilder();
-        builder.newLine();
-        builder.blue("The following modules are available:");
-        builder.newLine().setSeparator(ChatColor.WHITE, " / ");
-        for (String moduleName : plugin.getSavedTrains().getModuleNames()) {
-            builder.aqua(moduleName);
-        }
-        builder.send(sender);
-    }
-
-    @CommandMethod("savedtrain <trainname> [arguments]")
-    @CommandDescription("Performs commands that operate on saved trains by name")
-    private void commandSavedTrain(
-              final CommandSender sender,
-              final ArgumentList arguments,
-              final @Argument("trainname") String savedTrainName,
-              final @Argument("arguments") @Greedy String unused_arguments,
-              final @Flag("force") boolean force
-    ) {
-        checkForcePermission(sender, force);
-        execute(sender, savedTrainName, arguments.range(2).array(), force);
-    }
-
-    @CommandMethod("savedtrain <savedtrainname>")
-    @CommandDescription("Shows detailed information about a saved train, or lists all trains")
-    private void commandShowInfo(
-            final CommandSender sender,
-            final @Argument("savedtrainname") String savedTrainName,
-            final @Flag(value="all", description="Show all trains on this server, not just those owned by the player") boolean showAll,
-            final @Flag(value="module", suggestions="savedtrainmodules", description="Selects a module to list the saved trains of") String moduleName
-    ) {
-        if (savedTrainName.equals("list")) {
-            this.commandListSavedTrains(sender, showAll, moduleName);
-        } else {
-            sender.sendMessage(ChatColor.RED + "No operation was specified. Syntax:");
-            sender.sendMessage(ChatColor.RED + "/savedtrain list");
-            sender.sendMessage(ChatColor.RED + "/savedtrain <savedtrainname> <operation> [arguments]");
-        }
-    }
-    */
-
     @CommandMethod("savedtrain")
     @CommandDescription("Shows command usage of /savedtrain, lists saved trains")
     private void commandUsage(
             final CommandSender sender
     ) {
         sender.sendMessage(ChatColor.YELLOW + "Use /savedtrain <trainname> [command] to modify saved trains");
-        commandListSavedTrains(sender, true, null);
+        sender.sendMessage(ChatColor.YELLOW + "Use /savedtrain list to list all trains");
+        this.commandShowInfo(sender, false, null);
     }
 
     @CommandMethod("savedtrain <savedtrainname> info")
@@ -390,14 +327,12 @@ public class SavedTrainCommands {
         });
     }
 
-    /*
-    @CommandMethod("savedtrain list3")
-    @CommandDescription("Lists all trains accessible to the player")
-    */
-    private void commandListSavedTrains(
-              final CommandSender sender,
-              final @Flag(value="all", description="Show all trains on this server, not just those owned by the player") boolean showAll,
-              final @Flag(value="module", suggestions="savedtrainmodules", description="Selects a module to list the saved trains of") String moduleName
+    @CommandMethod("savedtrain list")
+    @CommandDescription("Lists all the train that exist on the server that a player can modify")
+    private void commandShowInfo(
+            final CommandSender sender,
+            final @Flag(value="all", description="Show all trains on this server, not just those owned by the player") boolean showAll,
+            final @Flag(value="module", suggestions="savedtrainmodules", description="Selects a module to list the saved trains of") String moduleName
     ) {
         SavedTrainPropertiesStore module = plugin.getSavedTrains();
         MessageBuilder builder = new MessageBuilder();
@@ -423,7 +358,19 @@ public class SavedTrainCommands {
             }
         }
         builder.send(sender);
-        return;
+    }
+
+    @CommandMethod("savedtrain list modules")
+    @CommandDescription("Lists all modules in which saved trains are saved")
+    private void commandListModules(final CommandSender sender) {
+        MessageBuilder builder = new MessageBuilder();
+        builder.newLine();
+        builder.blue("The following modules are available:");
+        builder.newLine().setSeparator(ChatColor.WHITE, " / ");
+        for (String moduleName : plugin.getSavedTrains().getModuleNames()) {
+            builder.aqua(moduleName);
+        }
+        builder.send(sender);
     }
 
     private static void updateClaimList(CommandSender sender, SavedTrainProperties savedTrain,
