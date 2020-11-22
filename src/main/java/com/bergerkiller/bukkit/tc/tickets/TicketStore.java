@@ -31,7 +31,7 @@ public class TicketStore {
     private static final String saveFileName = "tickets.yml";
     private static boolean hasChanges = false;
     private static final HashMap<String, Ticket> ticketMap = new HashMap<String, Ticket>();
-    private static final HashMap<String, Ticket> editingMap = new HashMap<String, Ticket>();
+    private static final HashMap<UUID, Ticket> editingMap = new HashMap<UUID, Ticket>();
 
     static {
         
@@ -144,21 +144,41 @@ public class TicketStore {
     /**
      * Gets the ticket a player is currently editing through commands
      *
-     * @param playerName
+     * @param playerUUID Unique Id of the Player
      * @return ticket that is being edited
      */
-    public static Ticket getEditing(String playerName) {
-        return editingMap.get(playerName);
+    public static Ticket getEditing(UUID playerUUID) {
+        return editingMap.get(playerUUID);
+    }
+
+    /**
+     * Gets the ticket a player is currently editing through commands
+     *
+     * @param player Player to get it for
+     * @return ticket that is being edited
+     */
+    public static Ticket getEditing(Player player) {
+        return getEditing(player.getUniqueId());
     }
 
     /**
      * Sets the ticket a player is currently editing through commands
      *
-     * @param playerName
+     * @param playerUUID Unique Id of the Player
      * @param ticket to set as being edited
      */
-    public static void setEditing(String playerName, Ticket ticket) {
-        editingMap.put(playerName, ticket);
+    public static void setEditing(UUID playerUUID, Ticket ticket) {
+        editingMap.put(playerUUID, ticket);
+    }
+
+    /**
+     * Sets the ticket a player is currently editing through commands
+     *
+     * @param player Player to set it for
+     * @param ticket to set as being edited
+     */
+    public static void setEditing(Player player, Ticket ticket) {
+        setEditing(player.getUniqueId(), ticket);
     }
 
     /**

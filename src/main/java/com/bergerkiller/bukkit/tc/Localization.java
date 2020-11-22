@@ -19,6 +19,11 @@ public class Localization extends LocalizationEnum {
     public static final Localization COMMAND_SAVEDTRAIN_NOTFOUND = new Localization("command.savedtrain.notfound", ChatColor.RED + "Saved train with name %0% does not exist!");
     public static final Localization COMMAND_SAVEDTRAIN_FORCE = new Localization("command.savedtrain.force", ChatColor.RED + "Saved train with name %0% is claimed by someone else, you can access it anyway with --force");
     public static final Localization COMMAND_SAVEDTRAIN_CLAIM_INVALID = new Localization("command.savedtrain.claim.invalid", ChatColor.RED + "Invalid player name specified: %0%");
+    public static final Localization COMMAND_TICKET_NOTFOUND = new Localization("command.ticket.notfound", ChatColor.RED + "Ticket with name %0% does not exist");
+    public static final Localization COMMAND_TICKET_NOTEDITING = new Localization("command.ticket.notediting",
+            ChatColor.RED + "You are not editing any tickets right now\n" +
+            ChatColor.RED + "To create a new train ticket, use /train ticket create\n" +
+            ChatColor.RED + "To edit an existing train ticket, use /train ticket edit [name]");
     public static final Localization EDIT_NOSELECT = new Localization("edit.noselect", ChatColor.YELLOW + "You haven't selected a train to edit yet!");
     public static final Localization EDIT_NOTALLOWED = new Localization("edit.notallowed", ChatColor.RED + "You are not allowed to own trains!");
     public static final Localization EDIT_NONEFOUND = new Localization("edit.nonefound", ChatColor.RED + "You do not own any trains you can edit.");

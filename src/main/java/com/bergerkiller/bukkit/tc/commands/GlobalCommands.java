@@ -34,9 +34,12 @@ import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
-import com.bergerkiller.bukkit.tc.tickets.Ticket;
-import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bergerkiller.bukkit.tc.utils.StoredTrainItemUtil;
+
+import cloud.commandframework.annotations.Argument;
+import cloud.commandframework.annotations.CommandDescription;
+import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.annotations.specifier.Greedy;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -60,6 +63,65 @@ import java.util.Collections;
 import java.util.Locale;
 
 public class GlobalCommands {
+
+    @CommandMethod("train list destinations")
+    @CommandDescription("Lists all the destination names that exist on the server")
+    private void commandListDestinations(
+            final CommandSender sender
+    ) {
+        MessageBuilder builder = new MessageBuilder();
+        builder.yellow("The following train destinations are available:");
+        builder.newLine().setSeparator(ChatColor.WHITE, " / ");
+        Collection<PathWorld> worlds;
+        if (sender instanceof Player) {
+            World playerWorld = ((Player) sender).getWorld();
+            worlds = Collections.singleton(TrainCarts.plugin.getPathProvider().getWorld(playerWorld));
+        } else {
+            worlds = TrainCarts.plugin.getPathProvider().getWorlds();
+        }
+        for (PathWorld world : worlds) {
+            for (PathNode node : world.getNodes()) {
+                if (!node.containsOnlySwitcher()) {
+                    builder.green(node.getName());
+                }
+            }
+        }
+        builder.send(sender);
+    }
+
+    @CommandMethod("train list [statement]")
+    @CommandDescription("Lists all the destination names that exist on the server")
+    private void commandListDestinations(
+            final CommandSender sender,
+            final @Argument("statement") @Greedy String statementText
+    ) {
+        // Trains
+        int count = 0, moving = 0;
+        for (MinecartGroup group : MinecartGroupStore.getGroups()) {
+            count++;
+            if (group.isMoving()) {
+                moving++;
+            }
+            // Get properties: ensures that ALL trains are listed
+            group.getProperties();
+        }
+        count += OfflineGroupManager.getStoredCountInLoadedWorlds();
+        int minecartCount = 0;
+        for (World world : WorldUtil.getWorlds()) {
+            for (org.bukkit.entity.Entity e : WorldUtil.getEntities(world)) {
+                if (e instanceof Minecart) {
+                    minecartCount++;
+                }
+            }
+        }
+        MessageBuilder builder = new MessageBuilder();
+        builder.green("There are ").yellow(count).green(" trains on this server (of which ");
+        builder.yellow(moving).green(" are moving)");
+        builder.newLine().green("There are ").yellow(minecartCount).green(" minecart entities");
+        builder.send(sender);
+        // Show additional information about owned trains to players
+        listTrains(sender, statementText == null ? "" : statementText);
+    }
 
     public static boolean execute(CommandSender sender, String[] args) throws NoPermissionException {
         if (args[0].equals("msg") || args[0].equals("message")) {
@@ -213,50 +275,6 @@ public class GlobalCommands {
                 OfflineGroupManager.removeBuggedMinecarts(world);
             }
             sender.sendMessage(ChatColor.YELLOW + "Bugged minecarts have been forcibly removed.");
-            return true;
-        } else if (args[0].equals("list")) {
-            String listType = (args.length >= 2) ? args[1] : "";
-            if (listType.equals("destination") || listType.equals("destinations")) {
-                // Destinations
-                listDestinations(sender);
-            } else if (listType.equals("ticket") || listType.equals("tickets")) {
-                // Tickets
-                listTickets(sender);
-            } else {
-                // Trains
-                int count = 0, moving = 0;
-                for (MinecartGroup group : MinecartGroupStore.getGroups()) {
-                    count++;
-                    if (group.isMoving()) {
-                        moving++;
-                    }
-                    // Get properties: ensures that ALL trains are listed
-                    group.getProperties();
-                }
-                count += OfflineGroupManager.getStoredCountInLoadedWorlds();
-                int minecartCount = 0;
-                for (World world : WorldUtil.getWorlds()) {
-                    for (org.bukkit.entity.Entity e : WorldUtil.getEntities(world)) {
-                        if (e instanceof Minecart) {
-                            minecartCount++;
-                        }
-                    }
-                }
-                MessageBuilder builder = new MessageBuilder();
-                builder.green("There are ").yellow(count).green(" trains on this server (of which ");
-                builder.yellow(moving).green(" are moving)");
-                builder.newLine().green("There are ").yellow(minecartCount).green(" minecart entities");
-                builder.send(sender);
-                // Show additional information about owned trains to players
-                StringBuilder statement = new StringBuilder();
-                for (int i = 1; i < args.length; i++) {
-                    if (i > 1) {
-                        statement.append(' ');
-                    }
-                    statement.append(args[i]);
-                }
-                listTrains(sender, statement.toString());
-            }
             return true;
         } else if (args[0].equals("edit")) {
             if (!(sender instanceof Player)) {
@@ -648,37 +666,6 @@ public class GlobalCommands {
 
         // Give new item
         player.getInventory().addItem(item);
-    }
-
-    public static void listDestinations(CommandSender sender) {
-        MessageBuilder builder = new MessageBuilder();
-        builder.yellow("The following train destinations are available:");
-        builder.newLine().setSeparator(ChatColor.WHITE, " / ");
-        Collection<PathWorld> worlds;
-        if (sender instanceof Player) {
-            World playerWorld = ((Player) sender).getWorld();
-            worlds = Collections.singleton(TrainCarts.plugin.getPathProvider().getWorld(playerWorld));
-        } else {
-            worlds = TrainCarts.plugin.getPathProvider().getWorlds();
-        }
-        for (PathWorld world : worlds) {
-            for (PathNode node : world.getNodes()) {
-                if (!node.containsOnlySwitcher()) {
-                    builder.green(node.getName());
-                }
-            }
-        }
-        builder.send(sender);
-    }
-
-    public static void listTickets(CommandSender sender) {
-        MessageBuilder builder = new MessageBuilder();
-        builder.yellow("The following tickets are available:");
-        builder.newLine().setSeparator(ChatColor.WHITE, " / ");
-        for (Ticket ticket : TicketStore.getAll()) {
-            builder.green(ticket.getName());
-        }
-        builder.send(sender);
     }
 
     public static void listTrains(CommandSender sender, String statement) {

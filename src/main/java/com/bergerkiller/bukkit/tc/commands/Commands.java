@@ -168,44 +168,36 @@ public class Commands {
               final ArgumentList arguments,
               final @Argument("arguments") @Greedy String unused_arguments
     ) {
-        if (arguments.has(2) && arguments.get(2).equals("ticket")) {
-            if (arguments.has(3)) {
-                TicketCommands.execute(sender, arguments.get(3), arguments.range(4).array());
-            } else {
-                sender.sendMessage(ChatColor.YELLOW + "/train ticket <command> [arguments]");
+        if (GlobalCommands.execute(sender, arguments.range(1).array())) {
+            // Good.
+        } else if (sender instanceof Player) {
+            Player player = (Player) sender;
+
+            Permission.COMMAND_PROPERTIES.handle(sender);
+
+            CartProperties cprop = CartProperties.getEditing(player);
+            if (cprop == null) {
+                throw new NoTrainSelectedException();
             }
+
+            // Only cart/train works here. Get appropriate properties
+            TrainProperties properties = cprop.getTrainProperties();
+
+            // Check ownership
+            if (!properties.hasOwnership(player)) {
+                throw new SelectedTrainNotOwnedException();
+            }
+
+            // Execute the /train route and /cart route set of commands
+            if (arguments.get(1).equalsIgnoreCase("route")) {
+                RouteCommands.execute(sender, properties, arguments.range(1).array());
+                return;
+            }
+
+            // Execute commands for the appropriate properties
+            TrainCommands.execute(player, properties, arguments.get(1), arguments.range(2).array());
         } else {
-            if (GlobalCommands.execute(sender, arguments.range(1).array())) {
-                // Good.
-            } else if (sender instanceof Player) {
-                Player player = (Player) sender;
-
-                Permission.COMMAND_PROPERTIES.handle(sender);
-
-                CartProperties cprop = CartProperties.getEditing(player);
-                if (cprop == null) {
-                    throw new NoTrainSelectedException();
-                }
-
-                // Only cart/train works here. Get appropriate properties
-                TrainProperties properties = cprop.getTrainProperties();
-
-                // Check ownership
-                if (!properties.hasOwnership(player)) {
-                    throw new SelectedTrainNotOwnedException();
-                }
-
-                // Execute the /train route and /cart route set of commands
-                if (arguments.get(1).equalsIgnoreCase("route")) {
-                    RouteCommands.execute(sender, properties, arguments.range(1).array());
-                    return;
-                }
-
-                // Execute commands for the appropriate properties
-                TrainCommands.execute(player, properties, arguments.get(1), arguments.range(2).array());
-            } else {
-                sender.sendMessage("This command is only for players or does not exist");
-            }
+            sender.sendMessage("This command is only for players or does not exist");
         }
     }
 
