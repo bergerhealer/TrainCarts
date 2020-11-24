@@ -48,7 +48,7 @@ public class RouteCommands {
 
     public static void execute(CommandSender sender, IProperties properties, String[] args) throws NoPermissionException {
         String cmd_prefix = ChatColor.YELLOW + ((properties instanceof TrainProperties) ? "/train route " : "/cart route ");
-        if (args.length == 0) {
+        if (args == null || args.length == 0) {
             // Show current route set
             // Shows the current destination in green and others in yellow
             List<String> route = properties.getDestinationRoute();
