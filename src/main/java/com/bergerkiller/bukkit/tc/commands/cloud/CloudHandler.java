@@ -240,6 +240,22 @@ public class CloudHandler {
      *
      * @param clazz    Type that the injector should inject for. This type will matched using
      *                 {@link Class#isAssignableFrom(Class)}
+     * @param value    The value to inject where clazz is used
+     * @param <T>      Injected type
+     */
+    public <T> void inject(
+            final Class<T> clazz,
+            final T value
+    ) {
+        injector(clazz, (context, annotations) -> value);
+    }
+
+    /**
+     * Register an injector for a particular type.
+     * Will automatically inject this type of object when provided in method signatures.
+     *
+     * @param clazz    Type that the injector should inject for. This type will matched using
+     *                 {@link Class#isAssignableFrom(Class)}
      * @param injector The injector that should inject the value into the command method
      * @param <T>      Injected type
      */

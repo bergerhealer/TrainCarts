@@ -88,6 +88,8 @@ public class CartAttachmentItem extends CartAttachment {
         this.entity.setEntityType(EntityType.ARMOR_STAND);
         this.entity.setSyncMode(SyncMode.ITEM);
         this.entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
+        this.entity.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
+                EntityArmorStandHandle.DATA_FLAG_HAS_ARMS, true);
         this.transformType = ItemTransformType.HEAD;
     }
 

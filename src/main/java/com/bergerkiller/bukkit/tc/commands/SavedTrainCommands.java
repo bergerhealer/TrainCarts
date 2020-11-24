@@ -37,20 +37,16 @@ import cloud.commandframework.annotations.Flag;
  * Commands to modify an existing saved train
  */
 public class SavedTrainCommands {
-    private TrainCarts plugin;
-
-    public void setPlugin(TrainCarts plugin) {
-        this.plugin = plugin;
-    }
 
     @CommandMethod("savedtrain")
     @CommandDescription("Shows command usage of /savedtrain, lists saved trains")
     private void commandUsage(
-            final CommandSender sender
+            final CommandSender sender,
+            final TrainCarts plugin
     ) {
         sender.sendMessage(ChatColor.YELLOW + "Use /savedtrain <trainname> [command] to modify saved trains");
         sender.sendMessage(ChatColor.YELLOW + "Use /savedtrain list to list all trains");
-        this.commandShowInfo(sender, false, null);
+        this.commandShowInfo(sender, plugin, false, null);
     }
 
     @CommandMethod("savedtrain <savedtrainname> info")
@@ -79,6 +75,7 @@ public class SavedTrainCommands {
     @CommandDescription("Moves a saved train to the default module")
     private void commandSetDefaultModule(
             final CommandSender sender,
+            final TrainCarts plugin,
             final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain
     ) {
         if (savedTrain.getModule().isDefault()) {
@@ -93,11 +90,12 @@ public class SavedTrainCommands {
     @CommandDescription("Moves a saved train to a new or existing module")
     private void commandSetModule(
             final CommandSender sender,
+            final TrainCarts plugin,
             final @SavedTrainRequiresAccess  @Argument("savedtrainname") SavedTrainProperties savedTrain,
             final @Argument(value="newmodulename", suggestions="savedtrainmodules") String newModuleName
     ) {
         if (newModuleName.isEmpty()) {
-            commandSetDefaultModule(sender, savedTrain);
+            commandSetDefaultModule(sender, plugin, savedTrain);
         } else if (newModuleName.equals(savedTrain.getModule().getName())) {
             sender.sendMessage(ChatColor.YELLOW + "Train '" + savedTrain.getName() + "' is already stored module '" + newModuleName + "'");
         } else {
@@ -133,6 +131,7 @@ public class SavedTrainCommands {
     @CommandDescription("Renames a saved train")
     private void commandRename(
             final CommandSender sender,
+            final TrainCarts plugin,
             final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain,
             final @Argument("newsavedtrainname") String newSavedTrainName,
             final @Flag("force") boolean force
@@ -169,6 +168,7 @@ public class SavedTrainCommands {
     @CommandDescription("Deletes a saved train permanently")
     private void commandDelete(
             final CommandSender sender,
+            final TrainCarts plugin,
             final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain,
             final @Flag("force") boolean force
     ) {
@@ -274,6 +274,7 @@ public class SavedTrainCommands {
     @CommandDescription("Imports a saved train from an online hastebin server by url")
     private void commandImport(
             final CommandSender sender,
+            final TrainCarts plugin,
             final @Argument(value="savedtrainname") String savedTrainName,
             final @Argument(value="url", description="The URL to a Hastebin-hosted paste to download from") String url,
             final @Flag("force") boolean force
@@ -331,6 +332,7 @@ public class SavedTrainCommands {
     @CommandDescription("Lists all the train that exist on the server that a player can modify")
     private void commandShowInfo(
             final CommandSender sender,
+            final TrainCarts plugin,
             final @Flag(value="all", description="Show all trains on this server, not just those owned by the player") boolean showAll,
             final @Flag(value="module", suggestions="savedtrainmodules", description="Selects a module to list the saved trains of") String moduleName
     ) {
@@ -362,7 +364,10 @@ public class SavedTrainCommands {
 
     @CommandMethod("savedtrain list modules")
     @CommandDescription("Lists all modules in which saved trains are saved")
-    private void commandListModules(final CommandSender sender) {
+    private void commandListModules(
+            final CommandSender sender,
+            final TrainCarts plugin
+    ) {
         MessageBuilder builder = new MessageBuilder();
         builder.newLine();
         builder.blue("The following modules are available:");

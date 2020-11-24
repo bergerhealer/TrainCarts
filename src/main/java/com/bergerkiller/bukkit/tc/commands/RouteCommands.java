@@ -4,18 +4,47 @@ import java.util.List;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+
+import cloud.commandframework.annotations.Argument;
+import cloud.commandframework.annotations.CommandDescription;
+import cloud.commandframework.annotations.CommandMethod;
 
 /**
  * Commands to alter the route of a train, load a route from routes.yml, or save one to it
  */
 public class RouteCommands {
     private static final String ROUTE_SEP = " \u2192 "; // " > "
+
+    @CommandMethod("train route [args]")
+    @CommandDescription("Lists all the destination names that exist on the server")
+    private void commandTrainRoute(
+            final Player player,
+            final TrainProperties properties,
+            final @Argument("args") String[] args
+    ) {
+        Permission.COMMAND_PROPERTIES.handle(player);
+        execute(player, properties, args);
+    }
+
+    @CommandMethod("cart route [args]")
+    @CommandDescription("Lists all the destination names that exist on the server")
+    private void commandCartRoute(
+            final Player player,
+            final CartProperties properties,
+            final @Argument("args") String[] args
+    ) {
+        Permission.COMMAND_PROPERTIES.handle(player);
+        execute(player, properties, args);
+    }
 
     public static void execute(CommandSender sender, IProperties properties, String[] args) throws NoPermissionException {
         String cmd_prefix = ChatColor.YELLOW + ((properties instanceof TrainProperties) ? "/train route " : "/cart route ");

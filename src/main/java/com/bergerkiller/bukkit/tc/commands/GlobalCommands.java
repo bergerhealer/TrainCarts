@@ -7,10 +7,8 @@ import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
-import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
@@ -27,6 +25,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.debug.DebugTool;
 import com.bergerkiller.bukkit.tc.editor.TCMapControl;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.exception.command.NoTrainStorageChestItemException;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathWorld;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -39,7 +38,10 @@ import com.bergerkiller.bukkit.tc.utils.StoredTrainItemUtil;
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.annotations.Flag;
+import cloud.commandframework.annotations.Hidden;
 import cloud.commandframework.annotations.specifier.Greedy;
+import cloud.commandframework.annotations.specifier.Range;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -57,12 +59,20 @@ import org.bukkit.util.Vector;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Locale;
+import java.util.function.Consumer;
 
 public class GlobalCommands {
+
+    @CommandMethod("train version")
+    @CommandDescription("Shows installed version of TrainCarts and BKCommonLib")
+    private void commandShowVersion(
+            final CommandSender sender,
+            final TrainCarts plugin
+    ) {
+        plugin.onVersionCommand("version", sender);
+    }
 
     @CommandMethod("train list destinations")
     @CommandDescription("Lists all the destination names that exist on the server")
@@ -91,7 +101,7 @@ public class GlobalCommands {
 
     @CommandMethod("train list [statement]")
     @CommandDescription("Lists all the destination names that exist on the server")
-    private void commandListDestinations(
+    private void commandListTrains(
             final CommandSender sender,
             final @Argument("statement") @Greedy String statementText
     ) {
@@ -123,530 +133,712 @@ public class GlobalCommands {
         listTrains(sender, statementText == null ? "" : statementText);
     }
 
-    public static boolean execute(CommandSender sender, String[] args) throws NoPermissionException {
-        if (args[0].equals("msg") || args[0].equals("message")) {
-            Permission.COMMAND_MESSAGE.handle(sender);
-            if (args.length == 1) {
-                sender.sendMessage(ChatColor.YELLOW + "/train message [name] [text...]");
-            } else if (args.length == 2) {
-                String value = TCConfig.messageShortcuts.get(args[1]);
-                if (value == null) {
-                    sender.sendMessage(ChatColor.RED + "No shortcut is set for key '" + args[1] + "'");
-                } else {
-                    sender.sendMessage(ChatColor.GREEN + "Shortcut value of '" + args[1] + "' = " + ChatColor.WHITE + value);
-                }
-            } else {
-                StringBuilder valueBuilder = new StringBuilder(100);
-                for (int i = 2; i < args.length; i++) {
-                    if (i != 2) {
-                        valueBuilder.append(' ');
-                    }
-                    valueBuilder.append(args[i]);
-                }
-                String value = StringUtil.ampToColor(valueBuilder.toString());
-                TCConfig.messageShortcuts.remove(args[1]);
-                TCConfig.messageShortcuts.add(args[1], value);
-                TrainCarts.plugin.saveShortcuts();
-                sender.sendMessage(ChatColor.GREEN + "Shortcut '" + args[1] + "' set to: " + ChatColor.WHITE + value);
-            }
-            return true;
-        } else if (args[0].equals("removeall") || args[0].equals("destroyall")) {
-            Permission.COMMAND_DESTROYALL.handle(sender);
-            if (args.length == 1) {
-                // Destroy all trains on the entire server
-                int count = OfflineGroupManager.destroyAll();
-                sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");
-            } else {
-                // Destroy the trains on a single world
-                String cname = args[1].toLowerCase();
-                World w = Bukkit.getWorld(cname);
-                if (w == null) {
-                    for (World world : Bukkit.getServer().getWorlds()) {
-                        if (world.getName().toLowerCase().contains(cname)) {
-                            w = world;
-                            break;
-                        }
-                    }
-                }
-                if (w != null) {
-                    int count = OfflineGroupManager.destroyAll(w);
-                    sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");
-                } else {
-                    sender.sendMessage(ChatColor.RED + "World not found!");
-                }
-            }
-            return true;
-        } else if (args[0].equals("menu")) {
-            Permission.COMMAND_GIVE_EDITOR.handle(sender);
-            if (!(sender instanceof Player)) {
-                sender.sendMessage("This command is only for players");
-                return true;
-            }
-            if (args.length <= 2) {
-                sender.sendMessage(ChatColor.YELLOW + "/train menu set [value] - Set value of the current menu element");
-                return true;
-            }
+    @CommandMethod("train message <key>")
+    @CommandDescription("Checks what value is assigned to a given message key")
+    private void commandGetMessage(
+            final CommandSender sender,
+            final @Argument("key") String key
+    ) {
+        Permission.COMMAND_MESSAGE.handle(sender);
 
-            // Get editor instance
-            MapDisplay display = MapDisplay.getHeldDisplay((Player) sender, AttachmentEditor.class);
-            if (display == null) {
-                display = MapDisplay.getHeldDisplay((Player) sender);
-                if (display == null) {
-                    sender.sendMessage(ChatColor.RED + "You do not have an editor menu open");
-                    return true;
-                }
-            }
-
-            // Find focused widget
-            MapWidget focused = display.getFocusedWidget();
-            if (!(focused instanceof SetValueTarget)) {
-                focused = display.getActivatedWidget();
-            }
-            if (!(focused instanceof SetValueTarget)) {
-                sender.sendMessage(ChatColor.RED + "No suitable menu item is active!");
-                return true;
-            }
-
-            // Got a target, input the value into it
-            SetValueTarget target = (SetValueTarget) focused;
-            if (args[1].equals("set")) {
-                String fullValue = args[2];
-                for (int n = 3; n < args.length; n++) {
-                    fullValue += " " + args[n];
-                }
-
-                boolean success = target.acceptTextValue(fullValue);
-                String propname = target.getAcceptedPropertyName();
-                if (success) {
-                    sender.sendMessage(ChatColor.GREEN + propname + " has been updated");
-                } else {
-                    sender.sendMessage(ChatColor.RED + "Failed to update " + propname + "!");
-                }
-                return true;
-            }
-
-            sender.sendMessage(ChatColor.RED + "Unknown command! Try /train menu set [value]");
-            return true;
-        } else if (args[0].equals("reroute")) {
-            Permission.COMMAND_REROUTE.handle(sender);
-            if (args.length >= 2 && args[1].equalsIgnoreCase("lazy")) {
-                PathNode.clearAll();
-                sender.sendMessage(ChatColor.YELLOW + "All train routings will be recalculated when needed");
-            } else {
-                PathNode.reroute();
-                sender.sendMessage(ChatColor.YELLOW + "All train routings will be recalculated");
-            }
-            return true;
-        } else if (args[0].equals("reload")) {
-            Permission.COMMAND_RELOAD.handle(sender);
-            TrainProperties.loadDefaults();
-            TrainCarts.plugin.loadConfig();
-            sender.sendMessage(ChatColor.YELLOW + "Configuration has been reloaded.");
-            return true;
-        } else if (args[0].equals("reloadsavedtrains")) {
-            Permission.COMMAND_RELOAD.handle(sender);
-            TrainCarts.plugin.save(false);
-            TrainCarts.plugin.loadSavedTrains();
-            sender.sendMessage(ChatColor.YELLOW + "Reloaded saved trains and modules");
-            return true;
-        } else if (args[0].equals("reloadroutes")) {
-            Permission.COMMAND_RELOAD.handle(sender);
-            TrainCarts.plugin.getRouteManager().load();
-            sender.sendMessage(ChatColor.YELLOW + "Reloaded saved routes");
-            return true;
-        } else if (args[0].equals("saveall")) {
-            Permission.COMMAND_SAVEALL.handle(sender);
-            TrainCarts.plugin.save(false);
-            sender.sendMessage(ChatColor.YELLOW + "TrainCarts' information has been saved to file.");
-            return true;
-        } else if (args[0].equals("upgradesavedtrains")) {
-            Permission.COMMAND_UPGRADESAVED.handle(sender);
-            boolean undo = (args.length >= 2 && args[1].equalsIgnoreCase("undo"));
-            TrainCarts.plugin.getSavedTrains().upgradeSavedTrains(undo);
-            if (undo) {
-                sender.sendMessage(ChatColor.YELLOW + "All saved trains have been restored to use the old position calibration of Traincarts v1.12.2-v2 (UNDO)");
-            } else {
-                sender.sendMessage(ChatColor.YELLOW + "All saved trains have been upgraded to use the new position calibration of Traincarts v1.12.2-v3");
-            }
-            return true;
-        } else if (args[0].equals("fixbugged")) {
-            Permission.COMMAND_FIXBUGGED.handle(sender);
-            for (World world : WorldUtil.getWorlds()) {
-                OfflineGroupManager.removeBuggedMinecarts(world);
-            }
-            sender.sendMessage(ChatColor.YELLOW + "Bugged minecarts have been forcibly removed.");
-            return true;
-        } else if (args[0].equals("edit")) {
-            if (!(sender instanceof Player)) {
-                sender.sendMessage("Can not edit a train through the console!");
-                return true;
-            }
-            if (args.length == 2) {
-                String name = args[1];
-                TrainProperties prop = TrainProperties.exists(name) ? TrainProperties.get(name) : null;
-                if (prop != null && !prop.isEmpty()) {
-                    if (prop.hasOwnership((Player) sender)) {
-                        CartPropertiesStore.setEditing((Player) sender, prop.get(0));
-                        sender.sendMessage(ChatColor.GREEN + "You are now editing train '" + prop.getTrainName() + "'!");
-                    } else {
-                        sender.sendMessage(ChatColor.RED + "You do not own this train and can not edit it!");
-                    }
-                    return true;
-                } else {
-                    sender.sendMessage(ChatColor.RED + "Could not find a valid train named '" + name + "'!");
-                }
-            } else {
-                // Create an inverted camera transformation of the player's view direction
-                final Player player = (Player) sender;
-                World playerWorld = player.getWorld();
-                Matrix4x4 cameraTransform = new Matrix4x4();
-                cameraTransform.translateRotate(player.getEyeLocation());
-                cameraTransform.invert();
-
-                // Go by all minecarts on the server, and pick those close in view on the same world
-                // The transformed point is a projective view of the Minecart in the player's vision
-                // X/Y is left-right/up-down and Z is depth after the transformation is applied
-                MinecartMember<?> bestMember = null;
-                Vector bestPos = null;
-                double bestDistance = Double.MAX_VALUE;
-                for (MinecartGroup group : MinecartGroup.getGroups().cloneAsIterable()) {
-                    if (group.getWorld() != playerWorld) continue;
-                    for (MinecartMember<?> member : group) {
-                        Vector pos = member.getEntity().loc.vector();
-                        cameraTransform.transformPoint(pos);
-
-                        // Behind the player
-                        if (pos.getZ() < 0.0) {
-                            continue;
-                        }
-
-                        // Check if position is allowed
-                        double lim = Math.max(1.0, MathUtil.HALFROOTOFTWO * pos.getZ());
-                        if (Math.abs(pos.getX()) > lim || Math.abs(pos.getY()) > lim) {
-                            continue;
-                        }
-
-                        // Pick lowest distance
-                        double distance = Math.sqrt(pos.getX() * pos.getX() + pos.getY() * pos.getY()) / lim;
-                        if (bestPos == null || distance < bestDistance) {
-                            bestPos = pos;
-                            bestDistance = distance;
-                            bestMember = member;
-                        }
-                    }
-                }
-
-                if (bestMember != null && !bestMember.getProperties().hasOwnership(player)) {
-                    sender.sendMessage(ChatColor.RED + "You do not own this train and can not edit it!");
-                } else if (bestMember != null) {
-                    // Play a particle effect shooting upwards from the Minecart
-                    final Entity memberEntity = bestMember.getEntity().getEntity();
-                    new Task(TrainCarts.plugin) {
-                        final int batch_ctr = 5;
-                        double dy = 0.0;
-
-                        @Override
-                        public void run() {
-                            for (int i = 0; i < batch_ctr; i++) {
-                                if (dy > 50.0 || !player.isOnline() || memberEntity.isDead()) {
-                                    stop();
-                                    return;
-                                }
-                                Location loc = memberEntity.getLocation();
-                                loc.add(0.0, dy, 0.0);
-                                player.playEffect(loc, Effect.SMOKE, 4);
-                                dy += 1.0;
-                            }
-                        }
-                    }.start(1, 1);
-
-                    // Mark minecart as editing
-                    CartProperties.setEditing(player, bestMember.getProperties());
-                    sender.sendMessage(ChatColor.GREEN + "You are now editing train '" + bestMember.getGroup().getProperties().getTrainName() + "'!");
-                    return true;
-                } else {
-                    sender.sendMessage(ChatColor.RED + "You are not looking at any Minecart right now");
-                    sender.sendMessage(ChatColor.RED + "Please enter the exact name of the train to edit");
-                }
-            }
-            listTrains((Player) sender, "");
-            return true;
-        } else if (args[0].equals("tick")) {
-            Permission.COMMAND_CHANGETICK.handle(sender);
-            boolean disableTicks = false;
-            boolean enableTicks = false;
-            for (int i = 1; i <  args.length; i++) {
-                String arg = args[i];
-                if (arg.equals("disable") || arg.equals("stop")) {
-                    disableTicks = true;
-                } else if (arg.equals("enable") || arg.equals("start") || arg.equals("resume")) {
-                    enableTicks = true;
-                }
-            }
-
-            if (disableTicks) {
-                TCConfig.tickUpdateDivider = Integer.MAX_VALUE;
-                sender.sendMessage(ChatColor.YELLOW + "Train tick updates have been globally " + ChatColor.RED + "disabled");
-                return true;
-            }
-            if (enableTicks) {
-                TCConfig.tickUpdateDivider = 1;
-                sender.sendMessage(ChatColor.YELLOW + "Train tick updates have been globally " + ChatColor.GREEN + "enabled");
-                return true;
-            }
-
-            if (args.length >= 2 && args[1].equals("div")) {
-                // Set a tick divider value
-                if (args.length == 3) {
-                    try {
-                        TCConfig.tickUpdateDivider = Integer.parseInt(args[2]);
-                        sender.sendMessage(ChatColor.GREEN + "The tick rate divider has been set to " + ChatColor.YELLOW + TCConfig.tickUpdateDivider);
-                    } catch (NumberFormatException ex) {
-                        TCConfig.tickUpdateDivider = 1;
-                        sender.sendMessage(ChatColor.GREEN + "The tick rate divider has been reset to the default");
-                    }
-                } else {
-                    if (TCConfig.tickUpdateDivider == Integer.MAX_VALUE) {
-                        sender.sendMessage(ChatColor.YELLOW + "Automatic train tick updates are globally disabled");
-                    } else {
-                        sender.sendMessage(ChatColor.GREEN + "The tick rate divider is currently set to " + ChatColor.YELLOW + TCConfig.tickUpdateDivider);
-                    }
-                }
-            } else {
-                TCConfig.tickUpdateNow = 1;
-                try {
-                    if (args.length >= 2) {
-                        TCConfig.tickUpdateNow = Integer.parseInt(args[1]);
-                    }
-                } catch (NumberFormatException ex) {}
-
-                if (TCConfig.tickUpdateNow <= 1) {
-                    sender.sendMessage(ChatColor.GREEN + "Trains ticked once");
-                } else {
-                    sender.sendMessage(ChatColor.GREEN + "Trains ticked " + TCConfig.tickUpdateNow + " times");
-                }
-            }
-            return true;
-        } else if (args[0].equals("issue")) {
-            Permission.COMMAND_ISSUE.handle(sender);
-            if(sender instanceof Player){
-                Player player = (Player)sender;
-    
-                ChatText chatText = ChatText.fromMessage(ChatColor.YELLOW.toString() + "Click one of the below options to open an issue on GitHub:");
-                chatText.sendTo(player);
-                try{
-                    String bugReport = "## Info" +
-                            "\nPlease provide the following information:" +
-                            "\n" +
-                            "\n- BKCommonLib Version: " + CommonPlugin.getInstance().getDebugVersion() +
-                            "\n- TrainCarts Version: " + TrainCarts.plugin.getDebugVersion() +
-                            "\n- Server Type and Version: " + Bukkit.getVersion() +
-                            "\n" +
-                            "\n----" +
-                            "\n## Bug" +
-                            "\n" +
-                            "\n### Description" +
-                            "\n" +
-                            "\n### Expected Behaviour" +
-                            "\n" +
-                            "\n### Actual Behaviour" +
-                            "\n" +
-                            "\n### Steps to reproduce" +
-                            "\n" +
-                            "\n### Additional Information" +
-                            "\n*This issue was created using the `/train issue` command!*";
-                    
-                    String featureRequest = "## Feature Request" +
-                            "\n" +
-                            "\n### Description" +
-                            "\n" +
-                            "\n### Examples";
-                    
-                    chatText = ChatText.empty().appendClickableURL(ChatColor.RED.toString() + ChatColor.UNDERLINE.toString() + "Bug Report", 
-                            "https://github.com/bergerhealer/TrainCarts/issues/new?body=" + URLEncoder.encode(bugReport, "UTF-8"),
-                            "Click to open a Bug Report");
-                    chatText.sendTo(player);
-                    
-                    chatText = ChatText.empty().appendClickableURL(ChatColor.GREEN.toString() + ChatColor.UNDERLINE.toString() + "Feature Request",
-                            "https://github.com/bergerhealer/TrainCarts/issues/new?body=" + URLEncoder.encode(featureRequest, "UTF-8"),
-                            "Click to open a Feature Request");
-                    chatText.sendTo(player);
-                }catch(UnsupportedEncodingException ex){
-                    chatText = ChatText.empty().appendClickableURL(ChatColor.RED.toString() + ChatColor.UNDERLINE.toString() + "Bug Report",
-                            "https://github.com/bergerhealer/TrainCarts/issues/new?template=bug_report.md",
-                            "Click to open a Bug Report");
-                    chatText.sendTo(player);
-                    
-                    chatText = ChatText.empty().appendClickableURL(ChatColor.GREEN.toString() + ChatColor.UNDERLINE.toString() + "Feature Request",
-                            "https://github.com/bergerhealer/TrainCarts/issues/new?template=feature_request.md",
-                            "Click to open a Feature Request");
-                    chatText.sendTo(player);
-                }
-            }else{
-                MessageBuilder builder = new MessageBuilder();
-                builder.white("Click one of the below URLs to open an issue on GitHub:");
-                
-                try{
-                    String bugReport = "## Info" +
-                            "\nPlease provide the following information:" +
-                            "\n" +
-                            "\n- BKCommonLib Version: " + CommonPlugin.getInstance().getDebugVersion() +
-                            "\n- TrainCarts Version: " + TrainCarts.plugin.getDebugVersion() +
-                            "\n- Server Type and Version: " + Bukkit.getVersion() +
-                            "\n" +
-                            "\n----" +
-                            "\n## Bug" +
-                            "\n" +
-                            "\n### Description" +
-                            "\n" +
-                            "\n### Expected Behaviour" +
-                            "\n" +
-                            "\n### Actual Behaviour" +
-                            "\n" +
-                            "\n### Steps to reproduce" +
-                            "\n" +
-                            "\n### Additional Information" +
-                            "\n*This issue was created using the `/train issue` command!*";
-    
-                    String featureRequest = "## Feature Request" +
-                            "\n" +
-                            "\n### Description" +
-                            "\n" +
-                            "\n### Examples";
-                    
-                    builder.white("Bug Report: https://github.com/bergerhealer/TrainCarts/issues/new?body=" + URLEncoder.encode(bugReport, "UTF-8"))
-                           .append("Feature Request: https://github.com/bergerhealer/TrainCarts/issues/new?body=" + URLEncoder.encode(featureRequest, "UTF-8"));
-                }catch(UnsupportedEncodingException ex){
-                    builder.white("Bug Report: https://github.com/bergerhealer/TrainCarts/issues/new?template=bug_report.md")
-                           .append("Feature Request: https://github.com/bergerhealer/TrainCarts/issues/new?template=feature_request.md");
-                }
-                builder.send(sender);
-            }
-            return true;
-        } else if (args[0].equals("editor")) {
-            Permission.COMMAND_GIVE_EDITOR.handle(sender);
-            if (sender instanceof Player) {
-                Player p = (Player) sender;
-                p.getInventory().addItem(TCMapControl.createTCMapItem());
-            } else {
-                throw new NoPermissionException();
-            }
-            return true;
-        } else if (args[0].equals("attachments")) {
-            if (sender instanceof Player) {
-                Permission.COMMAND_GIVE_EDITOR.handle(sender);
-                ItemStack item = MapDisplay.createMapItem(AttachmentEditor.class);
-                ItemUtil.setDisplayName(item, "Traincarts Attachments Editor");
-                CommonTagCompound tag = ItemUtil.getMetaTag(item, true);
-                CommonTagCompound display = tag.createCompound("display");
-                display.putValue("MapColor", 0xFF0000);
-                ((Player) sender).getInventory().addItem(item);
-                sender.sendMessage(ChatColor.GREEN + "Given a Traincarts attachments editor");
-            } else {
-                throw new NoPermissionException();
-            }
-            return true;
-        } else if (args[0].equals("chest")) {
-            Permission.COMMAND_USE_STORAGE_CHEST.handle(sender);
-
-            Player player = (Player) sender;
-
-            ItemStack item = null;
-
-            String instruction = (args.length > 1) ? args[1].toLowerCase(Locale.ENGLISH) : "";
-            String parameters = "";
-            if (args.length > 2) {
-                parameters = StringUtil.join(" ", Arrays.asList(args).subList(2, args.length));
-            }
-            if (!instruction.isEmpty()) {
-                item = HumanHand.getItemInMainHand(player);
-                if (StoredTrainItemUtil.isItem(item)) {
-                    item = ItemUtil.cloneItem(item);
-                } else {
-                    item = null;
-                    instruction = "";
-                }
-            }
-
-            if (instruction.equals("set")) {
-                StoredTrainItemUtil.store(item, parameters);
-            } else if (instruction.equals("clear")) {
-                StoredTrainItemUtil.clear(item);
-            } else if (instruction.equals("lock")) {
-                StoredTrainItemUtil.setLocked(item, true);
-            } else if (instruction.equals("unlock")) {
-                StoredTrainItemUtil.setLocked(item, false);
-            } else if (instruction.equals("name")) {
-                StoredTrainItemUtil.setName(item, parameters);
-            } else {
-                // Invalid
-                instruction = "";
-                item = null;
-            }
-
-            if (item == null) {
-                // No item, create a new one and give it to the player
-                item = StoredTrainItemUtil.createItem();
-                if (args.length > 1) {
-                    String typesStr = StringUtil.join(" ", Arrays.asList(args).subList(1, args.length));
-                    StoredTrainItemUtil.store(item, typesStr);
-                }
-                player.getInventory().addItem(item);
-                Localization.CHEST_GIVE.message(sender);
-            } else {
-                // Existing item. Update it in the player's currently selected slot
-                HumanHand.setItemInMainHand(player, item);
-                Localization.CHEST_UPDATE.message(sender);
-            }
-
-            return true;
-        } else if (args[0].equals("debug")) {
-            Permission.DEBUG_COMMAND_DEBUG.handle(sender);
-            if (!(sender instanceof Player)) {
-                sender.sendMessage("This command is only for players");
-                return true;
-            }
-            Player player = (Player) sender;
-            String cmd = (args.length >= 2) ? args[1] : "";
-            if (cmd.equalsIgnoreCase("rails")) {
-                giveDebugItem(player, "Rails", "TrainCarts Rails Debugger");
-                player.sendMessage(ChatColor.GREEN + "Given a rails debug item. Right-click rails and see where a train would go.");
-            } else if (cmd.equalsIgnoreCase("destination")) {
-                if (args.length >= 3) {
-                    giveDebugItem(player, "Destination " + args[2], "TrainCarts Destination Debugger [" + args[2] + "]");
-                    player.sendMessage(ChatColor.GREEN + "Given a destination debug item. " +
-                            "Right-click rails to see whether and how a train would travel to " + args[2] + ".");
-                } else {
-                    giveDebugItem(player, "Destinations", "TrainCarts Destination Debugger");
-                    player.sendMessage(ChatColor.GREEN + "Given a destination debug item. " +
-                            "Right-click rails to see what destinations can be reached from there.");
-                }
-            } else if (cmd.equalsIgnoreCase("mutex")) {
-                DebugTool.showMutexZones(player);
-                player.sendMessage(ChatColor.GREEN + "Displaying mutex zones near your position");
-            } else if (cmd.equals("railtracker")) {
-                if (args.length >= 3) {
-                    TCConfig.railTrackerDebugEnabled = ParseUtil.parseBool(args[2]);
-                }
-                player.sendMessage(ChatColor.GREEN + "Displaying tracked rail positions: " +
-                        (TCConfig.railTrackerDebugEnabled ? "ENABLED" : (ChatColor.RED + "DISABLED")));
-            } else if (cmd.equals("wheeltracker")) {
-                if (args.length >= 3) {
-                    TCConfig.wheelTrackerDebugEnabled = ParseUtil.parseBool(args[2]);
-                }
-                player.sendMessage(ChatColor.GREEN + "Displaying tracked wheel positions: " +
-                        (TCConfig.wheelTrackerDebugEnabled ? "ENABLED" : (ChatColor.RED + "DISABLED")));
-            } else {
-                player.sendMessage(ChatColor.RED + "Specify the type of debug to perform!");
-                player.sendMessage(ChatColor.RED + "/train debug rails - debug rails");
-                player.sendMessage(ChatColor.RED + "/train debug destination [destination] - debug destination pathfinding");
-                player.sendMessage(ChatColor.RED + "/train debug mutex - display mutex zones near you");
-                player.sendMessage(ChatColor.RED + "/train debug railtracker [boolean] - debug tracked rail positions");
-                player.sendMessage(ChatColor.RED + "/train debug wheeltracker [boolean] - debug tracked wheel positions");
-            }
-            return true;
+        String value = TCConfig.messageShortcuts.get(key);
+        if (value == null) {
+            sender.sendMessage(ChatColor.RED + "No shortcut is set for key '" + key + "'");
+        } else {
+            sender.sendMessage(ChatColor.GREEN + "Shortcut value of '" + key + "' = " + ChatColor.WHITE + value);
         }
-        return false;
+    }
+
+    @CommandMethod("train message <key> <value>")
+    @CommandDescription("Checks what value is assigned to a given message key")
+    private void commandSetMessage(
+            final CommandSender sender,
+            final @Argument("key") String key,
+            final @Argument("value") @Greedy String value
+    ) {
+        Permission.COMMAND_MESSAGE.handle(sender);
+
+        String conv_value = StringUtil.ampToColor(value);
+        TCConfig.messageShortcuts.remove(key);
+        TCConfig.messageShortcuts.add(key, conv_value);
+        TrainCarts.plugin.saveShortcuts();
+        sender.sendMessage(ChatColor.GREEN + "Shortcut '" + key + "' set to: " + ChatColor.WHITE + conv_value);
+    }
+
+    @CommandMethod("train destroyall|removeall")
+    @CommandDescription("Destroys all trains server-wide")
+    private void commandDestroyAll(
+            final CommandSender sender
+    ) {
+        Permission.COMMAND_DESTROYALL.handle(sender);
+
+        // Destroy all trains on the entire server
+        int count = OfflineGroupManager.destroyAll();
+        sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");
+    }
+
+    @CommandMethod("train destroyall|removeall <worldname>")
+    @CommandDescription("Destroys all trains on a single world")
+    private void commandDestroyAllOnWorld(
+            final CommandSender sender,
+            final @Argument("worldname") String worldName
+    ) {
+        Permission.COMMAND_DESTROYALL.handle(sender);
+
+        // Destroy the trains on a single world
+        String cname = worldName.toLowerCase();
+        World w = Bukkit.getWorld(worldName);
+        if (w == null) {
+            Bukkit.getWorld(cname);
+        }
+        if (w == null) {
+            for (World world : Bukkit.getServer().getWorlds()) {
+                if (world.getName().toLowerCase().contains(cname)) {
+                    w = world;
+                    break;
+                }
+            }
+        }
+        if (w != null) {
+            int count = OfflineGroupManager.destroyAll(w);
+            sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");
+        } else {
+            sender.sendMessage(ChatColor.RED + "World not found!");
+        }
+    }
+
+    @CommandMethod("train menu set <value>")
+    @CommandDescription("Updates a menu item in a TrainCarts editor map using commands")
+    private void commandMenuSet(
+            final Player sender,
+            final @Argument("value") @Greedy String value
+    ) {
+        Permission.COMMAND_GIVE_EDITOR.handle(sender);
+
+        // Get editor instance
+        MapDisplay display = MapDisplay.getHeldDisplay((Player) sender, AttachmentEditor.class);
+        if (display == null) {
+            display = MapDisplay.getHeldDisplay((Player) sender);
+            if (display == null) {
+                sender.sendMessage(ChatColor.RED + "You do not have an editor menu open");
+                return;
+            }
+        }
+
+        // Find focused widget
+        MapWidget focused = display.getFocusedWidget();
+        if (!(focused instanceof SetValueTarget)) {
+            focused = display.getActivatedWidget();
+        }
+        if (!(focused instanceof SetValueTarget)) {
+            sender.sendMessage(ChatColor.RED + "No suitable menu item is active!");
+            return;
+        }
+
+        // Got a target, input the value into it
+        SetValueTarget target = (SetValueTarget) focused;
+        boolean success = target.acceptTextValue(value);
+        String propname = target.getAcceptedPropertyName();
+        if (success) {
+            sender.sendMessage(ChatColor.GREEN + propname + " has been updated");
+        } else {
+            sender.sendMessage(ChatColor.RED + "Failed to update " + propname + "!");
+        }
+    }
+
+    @CommandMethod("train reroute")
+    @CommandDescription("Recalculates all path finding information on the server")
+    private void commandReroute(
+            final CommandSender sender,
+            final @Flag(value="lazy", description="Delays recalculating routes until a train needs it") boolean lazy
+    ) {
+        Permission.COMMAND_REROUTE.handle(sender);
+
+        if (lazy) {
+            PathNode.clearAll();
+            sender.sendMessage(ChatColor.YELLOW + "All train routings will be recalculated when needed");
+        } else {
+            PathNode.reroute();
+            sender.sendMessage(ChatColor.YELLOW + "All train routings will be recalculated");
+        }
+    }
+
+    @CommandMethod("train globalconfig reload|load")
+    @CommandDescription("Reloads one or more global TrainCarts configuration files from disk")
+    private void commandReloadConfig(
+            final CommandSender sender,
+            final @Flag(value="config", description="Reload config.yml") boolean config,
+            final @Flag(value="routes", description="Reload routes.yml") boolean routes,
+            final @Flag(value="defaulttrainproperties", description="Reload DefaultTrainProperties.yml") boolean defaultTrainproperties,
+            final @Flag(value="savedtrainproperties", description="Reload SavedTrainProperties.yml and modules") boolean savedTrainproperties
+    ) {
+        Permission.COMMAND_RELOAD.handle(sender);
+
+        if (!config &&
+            !routes &&
+            !defaultTrainproperties &&
+            !savedTrainproperties
+        ) {
+            sender.sendMessage(ChatColor.RED + "Please specify one or more configuration file to reload:");
+            sender.sendMessage(ChatColor.RED + "/train globalconfig reload --config");
+            sender.sendMessage(ChatColor.RED + "/train globalconfig reload --routes");
+            sender.sendMessage(ChatColor.RED + "/train globalconfig reload --defaulttrainproperties");
+            sender.sendMessage(ChatColor.RED + "/train globalconfig reload --savedtrainproperties");
+            return;
+        }
+
+        if (config) {
+            TrainCarts.plugin.loadConfig();
+        }
+        if (routes) {
+            TrainCarts.plugin.getRouteManager().load();
+        }
+        if (defaultTrainproperties) {
+            TrainProperties.loadDefaults();
+        }
+        if (savedTrainproperties) {
+            TrainCarts.plugin.loadSavedTrains();
+        }
+        sender.sendMessage(ChatColor.YELLOW + "Configuration has been reloaded!");
+    }
+
+    @CommandMethod("train globalconfig save")
+    @CommandDescription("Forces a save of all configuration to disk")
+    private void commandReloadConfig(
+            final CommandSender sender
+    ) {
+        Permission.COMMAND_SAVEALL.handle(sender);
+        TrainCarts.plugin.save(false);
+        sender.sendMessage(ChatColor.YELLOW + "TrainCarts' information has been saved to file.");
+    }
+
+    @Hidden
+    @CommandMethod("train upgradesavedtrains")
+    @CommandDescription("Upgrades all saved train properties to correct for position changes during v1.12.2")
+    private void commandUpgradeSavedTrains(
+            final CommandSender sender,
+            final @Flag("undo") boolean undo
+    ) {
+        Permission.COMMAND_UPGRADESAVED.handle(sender);
+        TrainCarts.plugin.getSavedTrains().upgradeSavedTrains(undo);
+        if (undo) {
+            sender.sendMessage(ChatColor.YELLOW + "All saved trains have been restored to use the old position calibration of Traincarts v1.12.2-v2 (UNDO)");
+        } else {
+            sender.sendMessage(ChatColor.YELLOW + "All saved trains have been upgraded to use the new position calibration of Traincarts v1.12.2-v3");
+        }
+    }
+
+    @CommandMethod("train fixbugged")
+    @CommandDescription("Forcibly removes minecarts and trackers that have glitched out")
+    private void commandFixBugged(
+            final CommandSender sender
+    ) {
+        Permission.COMMAND_FIXBUGGED.handle(sender);
+        for (World world : WorldUtil.getWorlds()) {
+            OfflineGroupManager.removeBuggedMinecarts(world);
+        }
+        sender.sendMessage(ChatColor.YELLOW + "Bugged minecarts have been forcibly removed.");
+    }
+
+    @CommandMethod("train edit")
+    @CommandDescription("Selects a train the player is looking at for editing")
+    private void commandEditLookingAt(
+            final Player player
+    ) {
+        // Create an inverted camera transformation of the player's view direction
+        World playerWorld = player.getWorld();
+        Matrix4x4 cameraTransform = new Matrix4x4();
+        cameraTransform.translateRotate(player.getEyeLocation());
+        cameraTransform.invert();
+
+        // Go by all minecarts on the server, and pick those close in view on the same world
+        // The transformed point is a projective view of the Minecart in the player's vision
+        // X/Y is left-right/up-down and Z is depth after the transformation is applied
+        MinecartMember<?> bestMember = null;
+        Vector bestPos = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (MinecartGroup group : MinecartGroup.getGroups().cloneAsIterable()) {
+            if (group.getWorld() != playerWorld) continue;
+            for (MinecartMember<?> member : group) {
+                Vector pos = member.getEntity().loc.vector();
+                cameraTransform.transformPoint(pos);
+
+                // Behind the player
+                if (pos.getZ() < 0.0) {
+                    continue;
+                }
+
+                // Check if position is allowed
+                double lim = Math.max(1.0, MathUtil.HALFROOTOFTWO * pos.getZ());
+                if (Math.abs(pos.getX()) > lim || Math.abs(pos.getY()) > lim) {
+                    continue;
+                }
+
+                // Pick lowest distance
+                double distance = Math.sqrt(pos.getX() * pos.getX() + pos.getY() * pos.getY()) / lim;
+                if (bestPos == null || distance < bestDistance) {
+                    bestPos = pos;
+                    bestDistance = distance;
+                    bestMember = member;
+                }
+            }
+        }
+
+        if (bestMember != null && !bestMember.getProperties().hasOwnership(player)) {
+            player.sendMessage(ChatColor.RED + "You do not own this train and can not edit it!");
+        } else if (bestMember != null) {
+            // Play a particle effect shooting upwards from the Minecart
+            final Entity memberEntity = bestMember.getEntity().getEntity();
+            new Task(TrainCarts.plugin) {
+                final int batch_ctr = 5;
+                double dy = 0.0;
+
+                @Override
+                public void run() {
+                    for (int i = 0; i < batch_ctr; i++) {
+                        if (dy > 50.0 || !player.isOnline() || memberEntity.isDead()) {
+                            stop();
+                            return;
+                        }
+                        Location loc = memberEntity.getLocation();
+                        loc.add(0.0, dy, 0.0);
+                        player.playEffect(loc, Effect.SMOKE, 4);
+                        dy += 1.0;
+                    }
+                }
+            }.start(1, 1);
+
+            // Mark minecart as editing
+            CartProperties.setEditing(player, bestMember.getProperties());
+            player.sendMessage(ChatColor.GREEN + "You are now editing train '" + bestMember.getGroup().getProperties().getTrainName() + "'!");
+        } else {
+            player.sendMessage(ChatColor.RED + "You are not looking at any Minecart right now");
+            player.sendMessage(ChatColor.RED + "Please enter the exact name of the train to edit");
+            commandListTrains(player, null);
+        }
+    }
+
+    @CommandMethod("train edit <trainname>")
+    @CommandDescription("Forcibly removes minecarts and trackers that have glitched out")
+    private void commandEditByName(
+            final Player sender,
+            final @Argument(value="trainname", suggestions="trainnames") String trainName
+    ) {
+        TrainProperties prop = TrainProperties.exists(trainName) ? TrainProperties.get(trainName) : null;
+        if (prop != null && !prop.isEmpty()) {
+            if (prop.hasOwnership((Player) sender)) {
+                CartPropertiesStore.setEditing((Player) sender, prop.get(0));
+                sender.sendMessage(ChatColor.GREEN + "You are now editing train '" + prop.getTrainName() + "'!");
+            } else {
+                sender.sendMessage(ChatColor.RED + "You do not own this train and can not edit it!");
+            }
+        } else {
+            sender.sendMessage(ChatColor.RED + "Could not find a valid train named '" + trainName + "'!");
+            commandListTrains(sender, null);
+        }
+    }
+
+    @CommandMethod("train tick disable")
+    @CommandDescription("Disables ticking of all trains, causing all physics to pause")
+    private void commandTickDisable(
+            final CommandSender sender
+    ) {
+        Permission.COMMAND_CHANGETICK.handle(sender);
+
+        TCConfig.tickUpdateDivider = Integer.MAX_VALUE;
+        sender.sendMessage(ChatColor.YELLOW + "Train tick updates have been globally " + ChatColor.RED + "disabled");
+    }
+
+    @CommandMethod("train tick enable")
+    @CommandDescription("Enables ticking of all trains, causing all physics to resume")
+    private void commandTickEnable(
+            final CommandSender sender
+    ) {
+        Permission.COMMAND_CHANGETICK.handle(sender);
+
+        TCConfig.tickUpdateDivider = 1;
+        sender.sendMessage(ChatColor.YELLOW + "Train tick updates have been globally " + ChatColor.GREEN + "enabled");
+    }
+    
+    @CommandMethod("train tick div")
+    @CommandDescription("Checks what kind of tick divider configuration is configured")
+    private void commandGetTickDivider(
+            final CommandSender sender
+    ) {
+        Permission.COMMAND_CHANGETICK.handle(sender);
+
+        if (TCConfig.tickUpdateDivider == Integer.MAX_VALUE) {
+            sender.sendMessage(ChatColor.YELLOW + "Automatic train tick updates are globally disabled");
+        } else {
+            sender.sendMessage(ChatColor.GREEN + "The tick rate divider is currently set to " + ChatColor.YELLOW + TCConfig.tickUpdateDivider);
+        }
+    }
+
+    @CommandMethod("train tick div reset")
+    @CommandDescription("Resets any previous global tick divider, resuming physics as normal")
+    private void commandResetTickDivider(
+            final CommandSender sender
+    ) {
+        commandSetTickDivider(sender, 1);
+    }
+
+    @CommandMethod("train tick div <divider>")
+    @CommandDescription("Configures a global tick divider, causing all physics to run more slowly")
+    private void commandSetTickDivider(
+            final CommandSender sender,
+            final @Argument("divider") int divider
+    ) {
+        Permission.COMMAND_CHANGETICK.handle(sender);
+
+        if (divider > 1) {
+            TCConfig.tickUpdateDivider = divider;
+            sender.sendMessage(ChatColor.GREEN + "The tick rate divider has been set to " + ChatColor.YELLOW + TCConfig.tickUpdateDivider);
+        } else {
+            TCConfig.tickUpdateDivider = 1;
+            sender.sendMessage(ChatColor.GREEN + "The tick rate divider has been reset to the default");
+        }
+    }
+
+    @CommandMethod("train tick")
+    @CommandDescription("Performs a single update tick. Useful when automatic ticking is disabled or slowed down.")
+    private void commandPerformTick(
+            final CommandSender sender
+    ) {
+        commandPerformTick(sender, 1);
+    }
+
+    @CommandMethod("train tick <times>")
+    @CommandDescription("Performs a burst of update ticks. Useful when automatic ticking is disabled or slowed down.")
+    private void commandPerformTick(
+            final CommandSender sender,
+            final @Argument("times") @Range(min="1") int number
+    ) {
+        Permission.COMMAND_CHANGETICK.handle(sender);
+
+        TCConfig.tickUpdateNow = number;
+        if (number <= 1) {
+            sender.sendMessage(ChatColor.GREEN + "Trains ticked once");
+        } else {
+            sender.sendMessage(ChatColor.GREEN + "Trains ticked " + TCConfig.tickUpdateNow + " times");
+        }
+    }
+
+    @CommandMethod("train issue")
+    @CommandDescription("Shows helpful information for posting an issue ticket on our Github")
+    private void commandIssueTicket(
+            final CommandSender sender
+    ) {
+        Permission.COMMAND_ISSUE.handle(sender);
+
+        if(sender instanceof Player){
+            Player player = (Player)sender;
+
+            ChatText chatText = ChatText.fromMessage(ChatColor.YELLOW.toString() + "Click one of the below options to open an issue on GitHub:");
+            chatText.sendTo(player);
+            try{
+                String bugReport = "## Info" +
+                        "\nPlease provide the following information:" +
+                        "\n" +
+                        "\n- BKCommonLib Version: " + CommonPlugin.getInstance().getDebugVersion() +
+                        "\n- TrainCarts Version: " + TrainCarts.plugin.getDebugVersion() +
+                        "\n- Server Type and Version: " + Bukkit.getVersion() +
+                        "\n" +
+                        "\n----" +
+                        "\n## Bug" +
+                        "\n" +
+                        "\n### Description" +
+                        "\n" +
+                        "\n### Expected Behaviour" +
+                        "\n" +
+                        "\n### Actual Behaviour" +
+                        "\n" +
+                        "\n### Steps to reproduce" +
+                        "\n" +
+                        "\n### Additional Information" +
+                        "\n*This issue was created using the `/train issue` command!*";
+                
+                String featureRequest = "## Feature Request" +
+                        "\n" +
+                        "\n### Description" +
+                        "\n" +
+                        "\n### Examples";
+                
+                chatText = ChatText.empty().appendClickableURL(ChatColor.RED.toString() + ChatColor.UNDERLINE.toString() + "Bug Report", 
+                        "https://github.com/bergerhealer/TrainCarts/issues/new?body=" + URLEncoder.encode(bugReport, "UTF-8"),
+                        "Click to open a Bug Report");
+                chatText.sendTo(player);
+                
+                chatText = ChatText.empty().appendClickableURL(ChatColor.GREEN.toString() + ChatColor.UNDERLINE.toString() + "Feature Request",
+                        "https://github.com/bergerhealer/TrainCarts/issues/new?body=" + URLEncoder.encode(featureRequest, "UTF-8"),
+                        "Click to open a Feature Request");
+                chatText.sendTo(player);
+            }catch(UnsupportedEncodingException ex){
+                chatText = ChatText.empty().appendClickableURL(ChatColor.RED.toString() + ChatColor.UNDERLINE.toString() + "Bug Report",
+                        "https://github.com/bergerhealer/TrainCarts/issues/new?template=bug_report.md",
+                        "Click to open a Bug Report");
+                chatText.sendTo(player);
+                
+                chatText = ChatText.empty().appendClickableURL(ChatColor.GREEN.toString() + ChatColor.UNDERLINE.toString() + "Feature Request",
+                        "https://github.com/bergerhealer/TrainCarts/issues/new?template=feature_request.md",
+                        "Click to open a Feature Request");
+                chatText.sendTo(player);
+            }
+        }else{
+            MessageBuilder builder = new MessageBuilder();
+            builder.white("Click one of the below URLs to open an issue on GitHub:");
+            
+            try{
+                String bugReport = "## Info" +
+                        "\nPlease provide the following information:" +
+                        "\n" +
+                        "\n- BKCommonLib Version: " + CommonPlugin.getInstance().getDebugVersion() +
+                        "\n- TrainCarts Version: " + TrainCarts.plugin.getDebugVersion() +
+                        "\n- Server Type and Version: " + Bukkit.getVersion() +
+                        "\n" +
+                        "\n----" +
+                        "\n## Bug" +
+                        "\n" +
+                        "\n### Description" +
+                        "\n" +
+                        "\n### Expected Behaviour" +
+                        "\n" +
+                        "\n### Actual Behaviour" +
+                        "\n" +
+                        "\n### Steps to reproduce" +
+                        "\n" +
+                        "\n### Additional Information" +
+                        "\n*This issue was created using the `/train issue` command!*";
+
+                String featureRequest = "## Feature Request" +
+                        "\n" +
+                        "\n### Description" +
+                        "\n" +
+                        "\n### Examples";
+                
+                builder.white("Bug Report: https://github.com/bergerhealer/TrainCarts/issues/new?body=" + URLEncoder.encode(bugReport, "UTF-8"))
+                       .append("Feature Request: https://github.com/bergerhealer/TrainCarts/issues/new?body=" + URLEncoder.encode(featureRequest, "UTF-8"));
+            }catch(UnsupportedEncodingException ex){
+                builder.white("Bug Report: https://github.com/bergerhealer/TrainCarts/issues/new?template=bug_report.md")
+                       .append("Feature Request: https://github.com/bergerhealer/TrainCarts/issues/new?template=feature_request.md");
+            }
+            builder.send(sender);
+        }
+    }
+
+    @Hidden
+    @CommandMethod("train editor")
+    @CommandDescription("Gives a legacy editor map item (broken)")
+    private void commandGiveEditor(
+            final Player sender
+    ) {
+        Permission.COMMAND_GIVE_EDITOR.handle(sender);
+        sender.getInventory().addItem(TCMapControl.createTCMapItem());
+        sender.sendMessage("Given editor map item (note: broken)");
+    }
+
+    @CommandMethod("train attachments")
+    @CommandDescription("Gives an attachment editor map item to the player")
+    private void commandGiveAttachmentEditor(
+            final Player sender
+    ) {
+        Permission.COMMAND_GIVE_EDITOR.handle(sender);
+        ItemStack item = MapDisplay.createMapItem(AttachmentEditor.class);
+        ItemUtil.setDisplayName(item, "Traincarts Attachments Editor");
+        CommonTagCompound tag = ItemUtil.getMetaTag(item, true);
+        CommonTagCompound display = tag.createCompound("display");
+        display.putValue("MapColor", 0xFF0000);
+        sender.getInventory().addItem(item);
+        sender.sendMessage(ChatColor.GREEN + "Given a Traincarts attachments editor");
+    }
+
+    @CommandMethod("train chest [spawnconfig]")
+    @CommandDescription("Gives a new train-storing chest item, train information to store can be specified")
+    private void commandGiveChestItem(
+            final Player sender,
+            final @Argument("spawnconfig") @Greedy String spawnConfig
+    ) {
+        Permission.COMMAND_USE_STORAGE_CHEST.handle(sender);
+
+        // Create a new item and give it to the player
+        ItemStack item = StoredTrainItemUtil.createItem();
+        if (spawnConfig != null && !spawnConfig.isEmpty()) {
+            StoredTrainItemUtil.store(item, spawnConfig);
+        }
+        sender.getInventory().addItem(item);
+        Localization.CHEST_GIVE.message(sender);
+    }
+
+    /**
+     * Updates the train storage chest item in the player's main hand. Throws
+     * exceptions if this operation fails.
+     * 
+     * @param player
+     * @param consumer Modifying function
+     */
+    private void updateChestItemInInventory(Player player, Consumer<ItemStack> consumer) {
+        Permission.COMMAND_USE_STORAGE_CHEST.handle(player);
+
+        ItemStack item = HumanHand.getItemInMainHand(player);
+        if (!StoredTrainItemUtil.isItem(item)) {
+            throw new NoTrainStorageChestItemException();
+        }
+
+        item = ItemUtil.cloneItem(item);
+        consumer.accept(item);
+        HumanHand.setItemInMainHand(player, item);
+        Localization.CHEST_UPDATE.message(player);
+    }
+
+    @CommandMethod("train chest set [spawnconfig]")
+    @CommandDescription("Clears the train-storing chest item the player is currently holding")
+    private void commandSetChestItem(
+            final Player player,
+            final @Argument("spawnconfig") @Greedy String spawnConfig
+    ) {
+        updateChestItemInInventory(player, item -> {
+            StoredTrainItemUtil.store(item, spawnConfig==null ? "" : spawnConfig);
+        });
+    }
+
+    @CommandMethod("train chest clear")
+    @CommandDescription("Clears the train-storing chest item the player is currently holding")
+    private void commandClearChestItem(
+            final Player player
+    ) {
+        updateChestItemInInventory(player, StoredTrainItemUtil::clear);
+    }
+
+    @CommandMethod("train chest lock")
+    @CommandDescription("Locks the train-storing chest item so it can not pick up trains by right-clicking")
+    private void commandLockChestItem(
+            final Player player
+    ) {
+        updateChestItemInInventory(player, item -> StoredTrainItemUtil.setLocked(item, true));
+    }
+
+    @CommandMethod("train chest unlock")
+    @CommandDescription("Unlocks the train-storing chest item so it can pick up trains by right-clicking again")
+    private void commandUnlockChestItem(
+            final Player player
+    ) {
+        updateChestItemInInventory(player, item -> StoredTrainItemUtil.setLocked(item, false));
+    }
+
+    @CommandMethod("train chest name <name>")
+    @CommandDescription("Sets a descriptive name for the train-storing chest item")
+    private void commandNameChestItem(
+            final Player player,
+            final @Argument("name") String name
+    ) {
+        updateChestItemInInventory(player, item -> StoredTrainItemUtil.setName(item, name));
+    }
+
+    @CommandMethod("train debug rails")
+    @CommandDescription("Get a debug stick item to visually display what path tracks use")
+    private void commandDebugRails(
+            final Player player
+    ) {
+        Permission.DEBUG_COMMAND_DEBUG.handle(player);
+
+        giveDebugItem(player, "Rails", "TrainCarts Rails Debugger");
+        player.sendMessage(ChatColor.GREEN + "Given a rails debug item. Right-click rails and see where a train would go.");
+    }
+
+    @CommandMethod("train debug destination")
+    @CommandDescription("Get a debug stick item to visually display the possible path finding routes")
+    private void commandDebugDestinationAll(
+            final Player player
+    ) {
+        Permission.DEBUG_COMMAND_DEBUG.handle(player);
+
+        giveDebugItem(player, "Destinations", "TrainCarts Destination Debugger");
+        player.sendMessage(ChatColor.GREEN + "Given a destination debug item. " +
+                "Right-click rails to see what destinations can be reached from there.");
+    }
+
+    @CommandMethod("train debug destination <destination>")
+    @CommandDescription("Get a debug stick item to visually display the route towards a destination")
+    private void commandDebugDestinationName(
+            final Player player,
+            final @Argument("destination") String destination
+    ) {
+        Permission.DEBUG_COMMAND_DEBUG.handle(player);
+
+        giveDebugItem(player, "Destination " + destination, "TrainCarts Destination Debugger [" + destination + "]");
+        player.sendMessage(ChatColor.GREEN + "Given a destination debug item. " +
+                "Right-click rails to see whether and how a train would travel to " + destination + ".");
+    }
+
+    @CommandMethod("train debug mutex")
+    @CommandDescription("Displays the area of effect of all nearby mutex signs")
+    private void commandDebugMutex(
+            final Player player
+    ) {
+        Permission.DEBUG_COMMAND_DEBUG.handle(player);
+
+        DebugTool.showMutexZones(player);
+        player.sendMessage(ChatColor.GREEN + "Displaying mutex zones near your position");
+    }
+
+    @CommandMethod("train debug railtracker <enabled>")
+    @CommandDescription("Sets whether the rail tracker debugging is currently enabled")
+    private void commandDebugSetRailTracker(
+            final CommandSender sender,
+            final @Argument("enabled") boolean enabled
+    ) {
+        Permission.DEBUG_COMMAND_DEBUG.handle(sender);
+
+        TCConfig.railTrackerDebugEnabled = enabled;
+        commandDebugCheckRailTracker(sender);
+    }
+
+    @CommandMethod("train debug railtracker")
+    @CommandDescription("Checks whether the rail tracker debugging is currently enabled")
+    private void commandDebugCheckRailTracker(
+            final CommandSender sender
+    ) {
+        Permission.DEBUG_COMMAND_DEBUG.handle(sender);
+
+        sender.sendMessage(ChatColor.GREEN + "Displaying tracked rail positions: " +
+                (TCConfig.railTrackerDebugEnabled ? "ENABLED" : (ChatColor.RED + "DISABLED")));
+    }
+
+    @CommandMethod("train debug wheeltracker <enabled>")
+    @CommandDescription("Sets whether the rail tracker debugging is currently enabled")
+    private void commandDebugSetWheelTracker(
+            final CommandSender sender,
+            final @Argument("enabled") boolean enabled
+    ) {
+        Permission.DEBUG_COMMAND_DEBUG.handle(sender);
+
+        TCConfig.wheelTrackerDebugEnabled = enabled;
+        commandDebugCheckWheelTracker(sender);
+    }
+
+    @CommandMethod("train debug wheeltracker")
+    @CommandDescription("Checks whether the wheel tracker debugging is currently enabled")
+    private void commandDebugCheckWheelTracker(
+            final CommandSender sender
+    ) {
+        Permission.DEBUG_COMMAND_DEBUG.handle(sender);
+
+        sender.sendMessage(ChatColor.GREEN + "Displaying tracked wheel positions: " +
+                (TCConfig.wheelTrackerDebugEnabled ? "ENABLED" : (ChatColor.RED + "DISABLED")));
+    }
+
+    @CommandMethod("train debug")
+    @CommandDescription("Provides helpful information about all debugging modes")
+    private void commandDebugShowInfo(
+            final CommandSender sender
+    ) {
+        Permission.DEBUG_COMMAND_DEBUG.handle(sender);
+
+        sender.sendMessage(ChatColor.RED + "Specify the type of debug to perform!");
+        sender.sendMessage(ChatColor.RED + "/train debug rails - debug rails");
+        sender.sendMessage(ChatColor.RED + "/train debug destination [destination] - debug destination pathfinding");
+        sender.sendMessage(ChatColor.RED + "/train debug mutex - display mutex zones near you");
+        sender.sendMessage(ChatColor.RED + "/train debug railtracker [boolean] - debug tracked rail positions");
+        sender.sendMessage(ChatColor.RED + "/train debug wheeltracker [boolean] - debug tracked wheel positions");
     }
 
     public static void giveDebugItem(Player player, String debugMode, String debugTitle) {

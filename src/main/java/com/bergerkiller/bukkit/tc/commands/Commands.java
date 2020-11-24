@@ -6,14 +6,13 @@ import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Localization;
-import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.annotations.SavedTrainRequiresAccess;
-import com.bergerkiller.bukkit.tc.commands.cloud.ArgumentList;
 import com.bergerkiller.bukkit.tc.commands.cloud.CloudHandler;
 import com.bergerkiller.bukkit.tc.commands.parsers.SavedTrainPropertiesParser;
 import com.bergerkiller.bukkit.tc.exception.command.InvalidClaimPlayerNameException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainSelectedException;
+import com.bergerkiller.bukkit.tc.exception.command.NoTrainStorageChestItemException;
 import com.bergerkiller.bukkit.tc.exception.command.SelectedTrainNotOwnedException;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
@@ -25,13 +24,12 @@ import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
-import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
-import cloud.commandframework.annotations.specifier.Greedy;
 import cloud.commandframework.services.types.ConsumerService;
 
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -53,6 +51,9 @@ public class Commands {
 
         // Localization
         cloud.captionFromLocalization(Localization.class);
+
+        // Plugin instance
+        cloud.inject(TrainCarts.class, plugin);
 
         // Handle train not found exception
         cloud.injector(CartProperties.class, (context, annotations) -> {
@@ -133,6 +134,7 @@ public class Commands {
         cloud.handleMessage(NoPermissionException.class, Localization.COMMAND_NOPERM.getName());
         cloud.handleMessage(NoTrainSelectedException.class, Localization.EDIT_NOSELECT.getName());
         cloud.handleMessage(SelectedTrainNotOwnedException.class, Localization.EDIT_NOTOWNED.getName());
+        cloud.handleMessage(NoTrainStorageChestItemException.class, Localization.CHEST_NOITEM.getName());
 
         cloud.handle(InvalidClaimPlayerNameException.class, (sender, exception) -> {
             Localization.COMMAND_SAVEDTRAIN_CLAIM_INVALID.message(sender, exception.getArgument());
@@ -143,8 +145,16 @@ public class Commands {
             return new ArrayList<String>(plugin.getSavedTrains().getModuleNames());
         });
 
+        // Register provider for train names a player can edit
+        cloud.suggest("trainnames", (context, input) -> {
+            final CommandSender sender = context.getSender();
+            return TrainProperties.getAll().stream()
+                .filter(p -> !(sender instanceof Player) || p.hasOwnership((Player) sender))
+                .map(TrainProperties::getTrainName)
+                .collect(Collectors.toList());
+        });
+
         // Register all the commands
-        commands_savedtrain.setPlugin(plugin);
         cloud.annotations(commands_cart);
         cloud.annotations(commands_train);
         cloud.annotations(commands_train_global);
@@ -159,46 +169,6 @@ public class Commands {
     @CommandDescription("Displays the TrainCarts plugin about message, with version information")
     private void commandShowAbout(final CommandSender sender) {
         Localization.COMMAND_ABOUT.message(sender, TrainCarts.plugin.getDebugVersion());
-    }
-
-    @CommandMethod("train <arguments>")
-    @CommandDescription("Performs commands that operate on trains, or TrainCarts in general")
-    private void commandTrain(
-              final CommandSender sender,
-              final ArgumentList arguments,
-              final @Argument("arguments") @Greedy String unused_arguments
-    ) {
-        if (GlobalCommands.execute(sender, arguments.range(1).array())) {
-            // Good.
-        } else if (sender instanceof Player) {
-            Player player = (Player) sender;
-
-            Permission.COMMAND_PROPERTIES.handle(sender);
-
-            CartProperties cprop = CartProperties.getEditing(player);
-            if (cprop == null) {
-                throw new NoTrainSelectedException();
-            }
-
-            // Only cart/train works here. Get appropriate properties
-            TrainProperties properties = cprop.getTrainProperties();
-
-            // Check ownership
-            if (!properties.hasOwnership(player)) {
-                throw new SelectedTrainNotOwnedException();
-            }
-
-            // Execute the /train route and /cart route set of commands
-            if (arguments.get(1).equalsIgnoreCase("route")) {
-                RouteCommands.execute(sender, properties, arguments.range(1).array());
-                return;
-            }
-
-            // Execute commands for the appropriate properties
-            TrainCommands.execute(player, properties, arguments.get(1), arguments.range(2).array());
-        } else {
-            sender.sendMessage("This command is only for players or does not exist");
-        }
     }
 
     public static void showPathInfo(Player p, IProperties prop) {

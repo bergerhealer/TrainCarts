@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
+import com.bergerkiller.bukkit.tc.commands.cloud.ArgumentList;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
@@ -27,6 +28,11 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
+import cloud.commandframework.annotations.Argument;
+import cloud.commandframework.annotations.CommandDescription;
+import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.annotations.specifier.Greedy;
+
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -37,6 +43,18 @@ import org.bukkit.entity.Player;
 import java.util.*;
 
 public class TrainCommands {
+
+    @CommandMethod("train <arguments>")
+    @CommandDescription("Performs commands that operate on the train currently being edited")
+    private void commandTrain(
+              final Player player,
+              final TrainProperties properties,
+              final ArgumentList arguments,
+              final @Argument("arguments") @Greedy String unused_arguments
+    ) {
+        Permission.COMMAND_PROPERTIES.handle(player);
+        execute(player, properties, arguments.get(1), arguments.range(2).array());
+    }
 
     public static boolean execute(Player p, TrainProperties prop, String cmd, String[] args) throws NoPermissionException {
         TrainPropertiesStore.markForAutosave();

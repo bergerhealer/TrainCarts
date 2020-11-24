@@ -49,6 +49,7 @@ public class Localization extends LocalizationEnum {
 
     // train storing chest
     public static final Localization CHEST_NOPERM = new Localization("chest.noperm", ChatColor.RED + "You do not have permission to use the train storage chest!");
+    public static final Localization CHEST_NOITEM = new Localization("chest.noitem", ChatColor.RED + "You are not currently holding a train storage chest item!");
     public static final Localization CHEST_GIVE = new Localization("chest.give", ChatColor.GREEN + "You have been given a train storage chest item. Use it to store and spawn trains");
     public static final Localization CHEST_UPDATE = new Localization("chest.update", ChatColor.GREEN + "Your train storage chest item has been updated");
     public static final Localization CHEST_LOCKED = new Localization("chest.locked", ChatColor.RED + "Your train storage chest item is locked and can not pick up the train");

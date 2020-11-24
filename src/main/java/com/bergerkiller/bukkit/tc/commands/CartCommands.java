@@ -41,11 +41,12 @@ public class CartCommands {
     @CommandDescription("Performs commands that operate individual carts of a train")
     private void commandCart(
               final Player player,
-              final CartProperties prop,
+              final CartProperties properties,
               final ArgumentList arguments,
               final @Argument("arguments") @Greedy String unused_arguments
     ) {
-        execute(player, prop, arguments.get(1), arguments.range(2).array());
+        Permission.COMMAND_PROPERTIES.handle(player);
+        execute(player, properties, arguments.get(1), arguments.range(2).array());
     }
 
     public static void execute(Player p, CartProperties prop, String cmd, String[] args) throws NoPermissionException {
