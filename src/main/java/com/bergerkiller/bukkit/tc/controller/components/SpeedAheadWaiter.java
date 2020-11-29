@@ -55,11 +55,11 @@ public class SpeedAheadWaiter {
         TrainProperties properties = group.getProperties();
         double oldSpeedLimit = (this.waitDistanceLastSpeedLimit == Double.MAX_VALUE) ?
                 properties.getSpeedLimit() : this.waitDistanceLastSpeedLimit;
-        double newSpeedLimit = getDesiredSpeedLimit(oldSpeedLimit);
+        DesiredSpeed newDesiredSpeed = getDesiredSpeedLimit(oldSpeedLimit);
 
         // Every time the speed drops to 0 consistently, reset the wait tick timer to 0
         // This causes it to wait until the remaining ticks reaches the configured delay
-        if (oldSpeedLimit <= 0.0 && newSpeedLimit <= 0.0) {
+        if (oldSpeedLimit <= 0.0 && newDesiredSpeed.speed <= 0.0) {
             this.waitRemainingTicks = 0;
             this.waitDistanceLastSpeedLimit = 0.0;
             return;
@@ -81,8 +81,8 @@ public class SpeedAheadWaiter {
 
         // Unlimited speed, speed up the train and stop once speed limit is reached
         // Speed up based on configured acceleration
-        if (newSpeedLimit >= properties.getSpeedLimit()) {
-            if (this.waitDistanceLastSpeedLimit >= newSpeedLimit) {
+        if (newDesiredSpeed.speed >= properties.getSpeedLimit()) {
+            if (this.waitDistanceLastSpeedLimit >= newDesiredSpeed.speed) {
                 this.waitDistanceLastSpeedLimit = Double.MAX_VALUE;
             }
             if (this.waitDistanceLastSpeedLimit != Double.MAX_VALUE) {
@@ -104,12 +104,12 @@ public class SpeedAheadWaiter {
             this.waitDistanceLastSpeedLimit = properties.getSpeedLimit();
         }
 
-        double speedDiff = (newSpeedLimit - this.waitDistanceLastSpeedLimit);
+        double speedDiff = (newDesiredSpeed.speed - this.waitDistanceLastSpeedLimit);
         if (speedDiff >= 0.0) {
             // Speed up
             double acceleration = properties.getWaitAcceleration();
             if (acceleration <= 0.0 || acceleration >= speedDiff) {
-                this.waitDistanceLastSpeedLimit = newSpeedLimit;
+                this.waitDistanceLastSpeedLimit = newDesiredSpeed.speed;
             } else {
                 this.waitDistanceLastSpeedLimit += group.getUpdateSpeedFactor() * acceleration;
             }
@@ -117,9 +117,16 @@ public class SpeedAheadWaiter {
             // Slow down
             double deceleration = properties.getWaitDeceleration();
             if (deceleration <= 0.0 || deceleration >= (-speedDiff)) {
-                this.waitDistanceLastSpeedLimit = newSpeedLimit;
+                this.waitDistanceLastSpeedLimit = newDesiredSpeed.speed;
             } else {
                 this.waitDistanceLastSpeedLimit -= group.getUpdateSpeedFactor() * deceleration;
+            }
+
+            // Make sure that the amount we move in a single tick never exceeds remaining distance
+            // This is as if the train 'crashes' into another train or mutex zone
+            // When this happens, use the desired speed instantly
+            if (newDesiredSpeed.remaining <= this.waitDistanceLastSpeedLimit) {
+                this.waitDistanceLastSpeedLimit = newDesiredSpeed.speed;
             }
         }
     }
@@ -132,7 +139,7 @@ public class SpeedAheadWaiter {
      * @param oldSpeedLimit The currently configured speed limit
      * @return desired speed limit
      */
-    private double getDesiredSpeedLimit(double oldSpeedLimit) {
+    private DesiredSpeed getDesiredSpeedLimit(double oldSpeedLimit) {
         TrainProperties properties = group.getProperties();
 
         // At the current speed, how much extra distance does it take to slow the train down to 0?
@@ -157,17 +164,18 @@ public class SpeedAheadWaiter {
 
         // No obstacle means full steam ahead!
         if (obstacle == null) {
-            return Double.MAX_VALUE;
+            return new DesiredSpeed(Double.MAX_VALUE, Double.MAX_VALUE);
         }
 
         // If obstacle is closer than the safe distance, we must slow down at the maximum rate
         // This is basically an emergency stop
         double remaining = (obstacle.distance - this.safeDistance);
         if (remaining <= -1e-5) {
-            return 0.0;
+            return new DesiredSpeed(0.0, remaining);
         }
 
-        return Math.max(0.0, obstacle.speed + remaining / group.getUpdateSpeedFactor());
+        return new DesiredSpeed(Math.max(0.0, obstacle.speed + remaining / group.getUpdateSpeedFactor()),
+                obstacle.distance - properties.getWaitDistance());
     }
 
     /**
@@ -316,6 +324,16 @@ public class SpeedAheadWaiter {
         public Obstacle(double distance, double speed) {
             this.distance = distance;
             this.speed = speed;
+        }
+    }
+
+    private static class DesiredSpeed {
+        public final double speed;
+        public final double remaining;
+
+        public DesiredSpeed(double speed, double remaining) {
+            this.speed = speed;
+            this.remaining = remaining;
         }
     }
 }
