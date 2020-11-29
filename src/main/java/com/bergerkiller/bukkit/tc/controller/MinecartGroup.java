@@ -96,7 +96,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
             this.prop = TrainPropertiesStore.create();
             for (MinecartMember<?> member : this) {
-                this.prop.add(member);
+                this.prop.add(member.getProperties());
             }
         }
         return this.prop;
@@ -122,30 +122,30 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      * @return configuration useful for saving as a train
      */
     public ConfigurationNode saveConfig() {
-        ConfigurationNode config = new ConfigurationNode();
-
-        this.getProperties().save(config);
-        config.remove("carts");
+        // Save train properties getConfig() to a new configuration node copy
+        // Omit cart details
+        ConfigurationNode savedConfig = this.getProperties().saveToConfig().clone();
+        savedConfig.remove("carts");
 
         List<ConfigurationNode> cartConfigList = new ArrayList<ConfigurationNode>();
         for (MinecartMember<?> member : this) {
-            ConfigurationNode cartConfig = new ConfigurationNode();
-            member.getProperties().save(cartConfig);
-            cartConfig.set("entityType", member.getEntity().getType());
-            cartConfig.set("flipped", member.getOrientationForward().dot(FaceUtil.faceToVector(member.getDirection())) < 0.0);
-            cartConfig.remove("owners");
+            ConfigurationNode savedCartConfig = member.getProperties().saveToConfig().clone();
+
+            savedCartConfig.set("entityType", member.getEntity().getType());
+            savedCartConfig.set("flipped", member.getOrientationForward().dot(FaceUtil.faceToVector(member.getDirection())) < 0.0);
+            savedCartConfig.remove("owners");
 
             ConfigurationNode data = new ConfigurationNode();
             member.onTrainSaved(data);
             if (!data.isEmpty()) {
-                cartConfig.set("data", data);
+                savedCartConfig.set("data", data);
             }
 
-            cartConfigList.add(cartConfig);
+            cartConfigList.add(savedCartConfig);
         }
-        config.setNodeList("carts", cartConfigList);
+        savedConfig.setNodeList("carts", cartConfigList);
 
-        return config;
+        return savedConfig;
     }
 
     public SignTrackerGroup getSignTracker() {
@@ -251,7 +251,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         notifyPhysicsChange();
         member.setGroup(this);
         this.getSignTracker().updatePosition();
-        this.getProperties().add(member);
+        this.getProperties().add(member.getProperties());
     }
 
     public void add(int index, MinecartMember<?> member) {
@@ -431,13 +431,22 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     public void clear() {
         this.getSignTracker().clear();
         this.getActions().clear();
+
+        final TrainProperties properties = this.getProperties();
         for (MinecartMember<?> mm : this.toArray()) {
-            this.getProperties().remove(mm.getProperties());
+            properties.remove(mm.getProperties());
             if (mm.getEntity().isDead()) {
                 mm.onDie();
             } else {
+                // Create unique new train name and properties for this single cart
+                // Original properties of this old group are copied
+                String newTrainName = TrainPropertiesStore.createSplitFrom(properties).getTrainName();
+
+                // Unassign member from previous group
                 mm.group = null;
-                mm.getGroup().getProperties().load(this.getProperties());
+
+                // Create and assign a new group to this member with the properties already created earlier
+                mm.group = MinecartGroupStore.create(newTrainName, mm);
             }
         }
         super.clear();

@@ -20,29 +20,27 @@ public enum CollisionConfig {
      * Short Name, Plural Name, EntityCategory or method name, Legacy Mob, Display String, Default Collision Mode
      * Legacy Mob = In versions of TrainCarts for Minecraft <= 1.7
      */
-    PETS("pet", "pets", EntityCategory.TAMED.getEntityClasses(), false, "Pets", null),
-    JOCKEYS("jockey", "jockeys", EntityCategory.JOCKEY.getEntityClasses(), false, "Jockeys", null),
-    KILLER_BUNNIES("killer_bunny", "killer_bunnies", EntityCategory.KILLER_BUNNY.getEntityClasses(), false, "Killer Bunnies", null),
-    NPCS("npc", "npcs", EntityCategory.NPC.getEntityClasses(), false, "NPCs", null),
-    ANIMALS("animal", "animals", EntityCategory.ANIMAL.getEntityClasses(), false, "Animals", null),
-    MONSTERS("monster", "monsters", EntityCategory.MONSTER.getEntityClasses(), false, "Monsters", null),
-    PASSIVE_MOBS("passive", "passives", EntityCategory.PASSIVE.getEntityClasses(), true, "Passive Mobs", CollisionMode.DEFAULT),
-    NEUTRAL_MOBS("neutral", "neutrals", EntityCategory.NEUTRAL.getEntityClasses(), true, "Neutral Mobs", CollisionMode.DEFAULT),
-    HOSTILE_MOBS("hostile", "hostiles", EntityCategory.HOSTILE.getEntityClasses(), true, "Hostile Mobs", CollisionMode.DEFAULT),
-    TAMEABLE_MOBS("tameable", "tameables", EntityCategory.TAMEABLE.getEntityClasses(), true, "Tameable Mobs", CollisionMode.DEFAULT),
-    UTILITY_MOBS("utility", "utilities", EntityCategory.UTILITY.getEntityClasses(), true, "Utility Mobs", CollisionMode.DEFAULT),
-    BOSS_MOBS("boss", "bosses", EntityCategory.BOSS.getEntityClasses(), true, "Boss Mobs", CollisionMode.DEFAULT);
+    PETS("pet", "pets", EntityCategory.TAMED.getEntityClasses(), "Pets", null),
+    JOCKEYS("jockey", "jockeys", EntityCategory.JOCKEY.getEntityClasses(), "Jockeys", null),
+    KILLER_BUNNIES("killer_bunny", "killer_bunnies", EntityCategory.KILLER_BUNNY.getEntityClasses(), "Killer Bunnies", null),
+    NPCS("npc", "npcs", EntityCategory.NPC.getEntityClasses(), "NPCs", null),
+    ANIMALS("animal", "animals", EntityCategory.ANIMAL.getEntityClasses(), "Animals", null),
+    MONSTERS("monster", "monsters", EntityCategory.MONSTER.getEntityClasses(), "Monsters", null),
+    PASSIVE_MOBS("passive", "passives", EntityCategory.PASSIVE.getEntityClasses(), "Passive Mobs", CollisionMode.DEFAULT),
+    NEUTRAL_MOBS("neutral", "neutrals", EntityCategory.NEUTRAL.getEntityClasses(), "Neutral Mobs", CollisionMode.DEFAULT),
+    HOSTILE_MOBS("hostile", "hostiles", EntityCategory.HOSTILE.getEntityClasses(), "Hostile Mobs", CollisionMode.DEFAULT),
+    TAMEABLE_MOBS("tameable", "tameables", EntityCategory.TAMEABLE.getEntityClasses(), "Tameable Mobs", CollisionMode.DEFAULT),
+    UTILITY_MOBS("utility", "utilities", EntityCategory.UTILITY.getEntityClasses(), "Utility Mobs", CollisionMode.DEFAULT),
+    BOSS_MOBS("boss", "bosses", EntityCategory.BOSS.getEntityClasses(), "Boss Mobs", CollisionMode.DEFAULT);
 
     private String mobType;
-    private boolean addToConfigFile;
     private String friendlyMobName;
     private String pluralMobType;
     private CollisionMode defaultCollisionMode;
     private Set<Class<?>> entityClasses;
 
-    CollisionConfig(String mobType, String pluralMobType, Set<Class<?>> entityClasses, boolean addToConfigFile, String friendlyMobName, CollisionMode defaultCollisionMode) {
+    CollisionConfig(String mobType, String pluralMobType, Set<Class<?>> entityClasses, String friendlyMobName, CollisionMode defaultCollisionMode) {
         this.setMobType(mobType);
-        this.setAddToConfigFile(addToConfigFile);
         this.setFriendlyMobName(friendlyMobName);
         this.setDefaultCollisionMode(defaultCollisionMode);
         this.setEntityClasses(entityClasses);
@@ -63,19 +61,6 @@ public enum CollisionConfig {
 
     public void setMobType(String mobType) {
         this.mobType = mobType;
-    }
-
-    /**
-     * Whether to add this collision config enum to configurations as a default
-     * 
-     * @return property
-     */
-    public boolean isAddToConfigFile() {
-        return addToConfigFile;
-    }
-
-    public void setAddToConfigFile(boolean addToConfigFile) {
-        this.addToConfigFile = addToConfigFile;
     }
 
     /**

@@ -30,6 +30,9 @@ import com.bergerkiller.bukkit.tc.pathfinding.RouteManager;
 import com.bergerkiller.bukkit.tc.portals.TCPortalManager;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
+import com.bergerkiller.bukkit.tc.properties.registry.TCPropertyRegistry;
+import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
@@ -67,6 +70,7 @@ public class TrainCarts extends PluginBase {
     private Task autosaveTask;
     private Task cacheCleanupTask;
     private Task mutexZoneUpdateTask;
+    private TCPropertyRegistry propertyRegistry;
     private TCPacketListener packetListener;
     private TCInteractionPacketListener interactionPacketListener;
     private FileConfiguration config;
@@ -81,6 +85,16 @@ public class TrainCarts extends PluginBase {
     private Economy econ = null;
     private SmoothCoastersAPI smoothCoastersAPI;
     private Commands commands;
+
+    /**
+     * Gets the property registry which tracks all train and cart properties
+     * that have been registered.
+     * 
+     * @return property registry
+     */
+    public IPropertyRegistry getPropertyRegistry() {
+        return propertyRegistry;
+    }
 
     /**
      * Gets a helper class for assigning (fake) entities to teams to change their glowing effect
@@ -356,6 +370,16 @@ public class TrainCarts extends PluginBase {
         // Do this first
         Conversion.registerConverters(MinecartMemberStore.class);
 
+        // Initialize commands (Cloud command framework)
+        // Must make sure no TrainCarts state is instantly accessed while initializing
+        commands = new Commands();
+        commands.enable(this);
+
+        // Core properties need to be there before defaults/cart/train properties are loaded
+        // Will register commands that properties may define using annotations
+        propertyRegistry = new TCPropertyRegistry(commands);
+        propertyRegistry.registerAll(StandardProperties.class);
+
         // And this
         CartAttachment.registerDefaultAttachments();
         {
@@ -467,10 +491,6 @@ public class TrainCarts extends PluginBase {
                 }
             }
         });
-
-        // Initialize commands (Cloud command framework)
-        commands = new Commands();
-        commands.enable(this);
 
         // Register listeners and commands
         this.register(packetListener = new TCPacketListener(), TCPacketListener.LISTENED_TYPES);

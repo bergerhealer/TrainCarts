@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -13,6 +14,9 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.properties.api.IProperty;
+import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
+import com.bergerkiller.bukkit.tc.properties.standard.FieldBackedStandardCartPropertiesHolder;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.storage.OfflineMember;
 import com.bergerkiller.bukkit.tc.utils.SignSkipOptions;
@@ -29,9 +33,9 @@ import org.bukkit.util.Vector;
 import java.util.*;
 
 public class CartProperties extends CartPropertiesStore implements IProperties {
-    public static final CartProperties EMPTY = new CartProperties(UUID.randomUUID(), null);
-
     private final UUID uuid;
+    private final ConfigurationNode config;
+    private final FieldBackedStandardCartPropertiesHolder standardProperties = new FieldBackedStandardCartPropertiesHolder();
     private final Set<String> owners = new HashSet<>();
     private final Set<String> ownerPermissions = new HashSet<>();
     private final Set<String> tags = new HashSet<>();
@@ -55,9 +59,10 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     private AttachmentModel model = null;
     private String driveSound = "";
 
-    protected CartProperties(UUID uuid, TrainProperties group) {
+    protected CartProperties(TrainProperties group, ConfigurationNode config, UUID uuid) {
         this.uuid = uuid;
         this.group = group;
+        this.config = config;
     }
 
     public static boolean hasGlobalOwnership(Player player) {
@@ -71,6 +76,28 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     @Override
     public String getTypeName() {
         return "cart";
+    }
+
+    @Override
+    public final ConfigurationNode getConfig() {
+        return this.config;
+    }
+
+    @Override
+    public final <T> T get(IProperty<T> property) {
+        return property.get(this);
+    }
+
+    @Override
+    public final <T> void set(IProperty<T> property, T value) {
+        property.set(this, value);
+    }
+
+    /**
+     * Internal use only
+     */
+    public FieldBackedStandardCartPropertiesHolder getStandardPropertiesHolder() {
+        return standardProperties;
     }
 
     /**
@@ -672,38 +699,11 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     }
 
     /**
-     * Loads the information from the properties specified
-     *
-     * @param from to load from
+     * Applies configuration. Will be replaced by IProperties eventually.
+     * 
+     * @param node
      */
-    public void load(CartProperties from) {
-        this.destination = from.destination;
-        this.destinationRoute = (from.destinationRoute.isEmpty()) ?
-                Collections.emptyList() : new ArrayList<String>(from.destinationRoute);
-        this.destinationRouteIndex = from.destinationRouteIndex;
-        this.owners.clear();
-        this.owners.addAll(from.owners);
-        this.ownerPermissions.clear();
-        this.ownerPermissions.addAll(from.ownerPermissions);
-        this.tags.clear();
-        this.tags.addAll(from.tags);
-        this.blockBreakTypes.clear();
-        this.blockBreakTypes.addAll(from.blockBreakTypes);
-        this.enterMessage = from.enterMessage;
-        this.skipOptions.load(from.skipOptions, true);
-        this.allowPlayerEnter = from.allowPlayerEnter;
-        this.allowPlayerExit = from.allowPlayerExit;
-        this.invincible = from.invincible;
-        this.exitOffset = from.exitOffset.clone();
-        this.exitYaw = from.exitYaw;
-        this.exitPitch = from.exitPitch;
-        this.spawnItemDrops = from.spawnItemDrops;
-        this.driveSound = from.driveSound;
-        this.model = (from.model == null) ? null : from.model.clone();
-    }
-
-    @Override
-    public void load(ConfigurationNode node) {
+    protected void applyConfig(ConfigurationNode node) {
         this.destination = node.get("destination", this.destination);
         this.lastPathNode = node.get("lastPathNode", this.lastPathNode);
         this.allowPlayerEnter = node.get("allowPlayerEnter", this.allowPlayerEnter);
@@ -763,84 +763,186 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         }
     }
 
-    @Override
-    public void saveAsDefault(ConfigurationNode node) {
-        node.set("owners", new ArrayList<>(this.owners));
-        node.set("ownerPermissions", new ArrayList<>(this.ownerPermissions));
-        node.set("tags", new ArrayList<>(this.tags));
-        node.set("allowPlayerEnter", this.allowPlayerEnter);
-        node.set("allowPlayerExit", this.allowPlayerExit);
-        node.set("invincible", this.invincible);
-        node.set("isPublic", this.isPublic);
-        node.set("pickUp", this.pickUp);
-        node.set("exitOffset", this.exitOffset);
-        node.set("exitYaw", this.exitYaw);
-        node.set("exitPitch", this.exitPitch);
-        node.set("driveSound", this.driveSound);
-        List<String> items = node.getList("blockBreakTypes", String.class);
-        items.clear();
-        for (Material mat : this.blockBreakTypes) {
-            items.add(mat.toString());
-        }
-        node.set("destination", this.hasDestination() ? this.destination : "");
-        node.set("route", Collections.emptyList());
-        node.set("enterMessage", this.hasEnterMessage() ? this.enterMessage : "");
-        node.set("spawnItemDrops", this.spawnItemDrops);
+    /**
+     * Loads the properties from the CartProperties source specified<br>
+     * This is used when duplicating a cart to a new unique entity.
+     *
+     * @param source to load from
+     * @see #load(ConfigurationNode)
+     */
+    public void load(CartProperties source) {
+        this.load(source.saveToConfig());
+    }
 
-        if (this.model != null && !this.model.isDefault()) {
-            node.set("model", this.model.getConfig());
-        } else {
-            node.remove("model");
-        }
+    @Override
+    public void load(ConfigurationNode node) {
+        // Wipe all previous configuration
+        this.config.clear();
+
+        // Deep-copy input cart configuration to self cart configuration
+        Util.copyTo(node, this.config, (s) -> true);
+
+        // Reload properties from YAML
+        onConfigurationChanged();
     }
 
     @Override
     public void save(ConfigurationNode node) {
-        node.set("owners", this.owners.isEmpty() ? null : new ArrayList<>(this.owners));
-        node.set("ownerPermissions", this.ownerPermissions.isEmpty() ? null : new ArrayList<>(this.ownerPermissions));
-        node.set("tags", this.tags.isEmpty() ? null : new ArrayList<>(this.tags));
-        node.set("allowPlayerEnter", this.allowPlayerEnter ? null : false);
-        node.set("allowPlayerExit", this.allowPlayerExit ? null : false);
-        node.set("invincible", this.invincible ? true : null);
-        node.set("isPublic", this.isPublic ? null : false);
-        node.set("pickUp", this.pickUp ? true : null);
-        node.set("exitOffset", this.exitOffset.lengthSquared() == 0.0 ? null : this.exitOffset);
-        node.set("exitYaw", this.exitYaw == 0.0f ? null : this.exitYaw);
-        node.set("exitPitch", this.exitPitch == 0.0f ? null : this.exitPitch);
-        node.set("driveSound", this.driveSound == "" ? null : this.driveSound);
+        Util.copyTo(saveToConfig(), node, (s) -> true);
+    }
+
+    // Temporary while loading is done here
+    private <T> T getConfigValue(String key, T defaultValue) {
+        return config.contains(key) ? config.get(key, defaultValue) : defaultValue;
+    }
+
+    protected void onConfigurationChanged() {
+        // Refresh registered IProperties
+        // All below should eventually become IProperties, which is when this function
+        // can be removed!
+        for (IProperty<?> property : IPropertyRegistry.instance().all()) {
+            property.onConfigurationChanged(this);
+        }
+
+        // TODO: Replace all below with IProperty objects
+        // Note: completely disregards all previous configuration!
+        this.destination = getConfigValue("destination", "");
+        this.lastPathNode = getConfigValue("lastPathNode", "");
+        this.allowPlayerEnter = getConfigValue("allowPlayerEnter", true);
+        this.allowPlayerExit = getConfigValue("allowPlayerExit", true);
+        this.invincible = getConfigValue("invincible", false);
+        this.isPublic = getConfigValue("isPublic", this.isPublic);
+        this.pickUp = getConfigValue("pickUp", false);
+        this.spawnItemDrops = getConfigValue("spawnItemDrops", true);
+        this.exitOffset = getConfigValue("exitOffset", new Vector(0.0, 0.0, 0.0));
+        this.exitYaw = getConfigValue("exitYaw", 0.0f);
+        this.exitPitch = getConfigValue("exitPitch", 0.0f);
+        this.driveSound = getConfigValue("driveSound", "");
+
+        this.destinationRouteIndex = getConfigValue("routeIndex", 0);
+        this.destinationRoute = Collections.emptyList();
+        if (config.contains("route")) {
+            List<String> route = config.getList("route", String.class);
+            if (!route.isEmpty()) {
+                this.destinationRoute = new ArrayList<String>(route);
+            }
+        }
+
+        this.owners.clear();
+        if (config.contains("owners")) {
+            for (String owner : config.getList("owners", String.class)) {
+                this.owners.add(owner.toLowerCase());
+            }
+        }
+        this.ownerPermissions.clear();
+        if (config.contains("ownerPermissions")) {
+            this.ownerPermissions.addAll(config.getList("ownerPermissions", String.class));
+        }
+        this.tags.clear();
+        if (config.contains("tags")) {
+            this.tags.addAll(config.getList("tags", String.class));
+        }
+        this.blockBreakTypes.clear();
+        if (config.contains("blockBreakTypes")) {
+            for (String blocktype : config.getList("blockBreakTypes", String.class)) {
+                Material mat = ParseUtil.parseMaterial(blocktype, null);
+                if (mat != null) {
+                    this.blockBreakTypes.add(mat);
+                }
+            }
+        }
+
+        this.skipOptions = new SignSkipOptions();
+        if (config.isNode("skipOptions")) {
+            this.skipOptions.load(config.getNode("skipOptions"));
+        }
+
+        if (config.isNode("model")) {
+            if (this.model != null) {
+                this.model.update(config.getNode("model").clone(), true);
+            } else {
+                this.model = new AttachmentModel(config.getNode("model").clone());
+            }
+        }
+    }
+
+    /**
+     * Forces all properties to be saved to the {@link #getConfig()}.
+     * Note: this will be removed once all properties are
+     * part of IProperties! Then they are all live-updated and this
+     * method is no longer needed.
+     * 
+     * @return saved {@link #getConfig()}
+     */
+    public ConfigurationNode saveToConfig() {
+        config.set("owners", this.owners.isEmpty() ? null : new ArrayList<>(this.owners));
+        config.set("ownerPermissions", this.ownerPermissions.isEmpty() ? null : new ArrayList<>(this.ownerPermissions));
+        config.set("tags", this.tags.isEmpty() ? null : new ArrayList<>(this.tags));
+        config.set("allowPlayerEnter", this.allowPlayerEnter ? null : false);
+        config.set("allowPlayerExit", this.allowPlayerExit ? null : false);
+        config.set("invincible", this.invincible ? true : null);
+        config.set("isPublic", this.isPublic ? null : false);
+        config.set("pickUp", this.pickUp ? true : null);
+        config.set("exitOffset", this.exitOffset.lengthSquared() == 0.0 ? null : this.exitOffset);
+        config.set("exitYaw", this.exitYaw == 0.0f ? null : this.exitYaw);
+        config.set("exitPitch", this.exitPitch == 0.0f ? null : this.exitPitch);
+        config.set("driveSound", this.driveSound == "" ? null : this.driveSound);
         if (this.blockBreakTypes.isEmpty()) {
-            node.remove("blockBreakTypes");
+            config.remove("blockBreakTypes");
         } else {
-            List<String> items = node.getList("blockBreakTypes", String.class);
+            List<String> items = config.getList("blockBreakTypes", String.class);
             items.clear();
             for (Material mat : this.blockBreakTypes) {
                 items.add(mat.toString());
             }
         }
-        node.set("destination", this.hasDestination() ? this.destination : null);
-        node.set("lastPathNode", LogicUtil.nullOrEmpty(this.lastPathNode) ? null : this.lastPathNode);
-        node.set("enterMessage", this.hasEnterMessage() ? this.enterMessage : null);
-        node.set("spawnItemDrops", this.spawnItemDrops ? null : false);
+        config.set("destination", this.hasDestination() ? this.destination : null);
+        config.set("lastPathNode", LogicUtil.nullOrEmpty(this.lastPathNode) ? null : this.lastPathNode);
+        config.set("enterMessage", this.hasEnterMessage() ? this.enterMessage : null);
+        config.set("spawnItemDrops", this.spawnItemDrops ? null : false);
 
         if (this.destinationRoute.isEmpty()) {
-            node.remove("routeIndex");
-            node.remove("route");
+            config.remove("routeIndex");
+            config.remove("route");
         } else {
-            node.set("routeIndex", this.destinationRouteIndex == 0 ? null : this.destinationRouteIndex);
-            node.set("route", this.destinationRoute);
+            config.set("routeIndex", this.destinationRouteIndex == 0 ? null : this.destinationRouteIndex);
+            config.set("route", this.destinationRoute);
         }
 
         if (this.skipOptions.isActive()) {
-            this.skipOptions.save(node.getNode("skipOptions"));
-        } else if (node.contains("skipOptions")) {
-            node.remove("skipOptions");
+            this.skipOptions.save(config.getNode("skipOptions"));
+        } else if (config.contains("skipOptions")) {
+            config.remove("skipOptions");
         }
 
         if (this.model != null) {
-            node.set("model", this.model.getConfig());
+            config.set("model", this.model.getConfig());
         } else {
-            node.remove("model");
+            config.remove("model");
         }
+
+        return this.config;
+    }
+
+    // Stores all the default property values not already covered by IProperty
+    protected static void generateDefaults(ConfigurationNode node) {
+        node.set("owners", StringUtil.EMPTY_ARRAY);
+        node.set("ownerPermissions", StringUtil.EMPTY_ARRAY);
+        node.set("tags", StringUtil.EMPTY_ARRAY);
+        node.set("allowPlayerEnter", true);
+        node.set("allowPlayerExit", true);
+        node.set("invincible", false);
+        node.set("isPublic", true);
+        node.set("pickUp", false);
+        node.set("exitOffset", new Vector(0.0, 0.0, 0.0));
+        node.set("exitYaw", 0.0f);
+        node.set("exitPitch", 0.0f);
+        node.set("driveSound", "");
+        node.set("blockBreakTypes", StringUtil.EMPTY_ARRAY);
+        node.set("destination", "");
+        node.set("route", Collections.emptyList());
+        node.set("enterMessage", "");
+        node.set("spawnItemDrops", true);
     }
 
     /**

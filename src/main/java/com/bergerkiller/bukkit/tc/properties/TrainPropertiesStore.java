@@ -6,11 +6,15 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.properties.api.IProperty;
+import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import org.bukkit.entity.Player;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.logging.Level;
 
 /**
  * Stores all the Train Properties available by name
@@ -61,18 +65,18 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
      * @param newTrainName to set to
      */
     public static void rename(TrainProperties properties, String newTrainName) {
-        // Whether to also update the display name
-        boolean displayNameSame = properties.getTrainName().equals(properties.getDisplayName());
         // Rename the offline group
         OfflineGroupManager.rename(properties.getTrainName(), newTrainName);
-        // Rename the properties
+
+        // Keep for later
+        ConfigurationNode oldConfig = properties.getConfig();
+
+        // Delete previous registration
         trainProperties.remove(properties.getTrainName());
-        ConfigurationNode oldConfig = config.getNode(properties.getTrainName());
         config.remove(properties.getTrainName());
+
+        // Store under a new name
         properties.trainname = newTrainName;
-        if (displayNameSame) {
-            properties.setDisplayName(newTrainName);
-        }
         trainProperties.put(newTrainName, properties);
         config.set(newTrainName, oldConfig);
         hasChanges = true;
@@ -90,12 +94,24 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         }
         hasChanges = true;
         config.remove(trainName);
+
+        // Make sure to break any reference with existing carts
+        // If still assigned to a cart, remove from properties store also
         if (!prop.isEmpty()) {
-            Iterator<CartProperties> iter = prop.iterator();
-            while (iter.hasNext()) {
-                CartProperties cprop = iter.next();
-                iter.remove();
-                CartPropertiesStore.remove(cprop.getUUID());
+            for (CartProperties cProp : new ArrayList<CartProperties>(prop)) {
+                // Remove from properties and removed train configuration
+                prop.remove(cProp);
+
+                // If not a loaded minecart, erase it from the by-uuid store also
+                // If part of the train properties, it means no other train properties
+                // have assigned the cart properties to itself. Assigning cart properties
+                // un-assigns it from the previous train properties!
+                if (cProp.getHolder() == null
+                        || cProp.getHolder().getEntity() == null
+                        || cProp.getHolder().getEntity().isDead())
+                {
+                    CartPropertiesStore.remove(cProp.getUUID());
+                }
             }
         }
     }
@@ -109,12 +125,9 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
      */
     public static TrainProperties get(String trainname) {
         if (trainname == null) return null;
-        return trainProperties.computeIfAbsent(trainname, key -> {
-            TrainProperties newProperties = new TrainProperties(key);
-            newProperties.setDefault();
-            hasChanges = true;
-            return newProperties;
-        });
+
+        TrainProperties prop = trainProperties.get(trainname);
+        return (prop != null) ? prop : createDefaultWithName(trainname);
     }
 
     /**
@@ -220,26 +233,40 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
      * @return new Train Properties
      */
     public static TrainProperties create() {
-        String name = generateTrainName();
-        TrainProperties prop = new TrainProperties(name);
+        return createDefaultWithName(generateTrainName());
+    }
+
+    private static TrainProperties createDefaultWithName(String newTrainName) {
+        ConfigurationNode newTrainConfig = config.getNode(newTrainName);
+        TrainProperties prop = new TrainProperties(newTrainName, newTrainConfig);
+        trainProperties.put(newTrainName, prop);
+        prop.onConfigurationChanged();
         prop.setDefault();
-        trainProperties.put(name, prop);
         hasChanges = true;
         return prop;
     }
 
     /**
      * Creates a new TrainProperties value based off of another train's properties,
-     * for when a train is split in two.
+     * for when a train is split in two. Cart properties are not copied.
      * 
      * @param fromTrainProperties The properties of the train from which is split
      * @return new Train Properties
      */
     public static TrainProperties createSplitFrom(TrainProperties fromTrainProperties) {
         String name = generateSplitTrainName(fromTrainProperties.getTrainName());
-        TrainProperties prop = new TrainProperties(name);
-        prop.load(fromTrainProperties);
+        ConfigurationNode newTrainConfig = config.getNode(name);
+
+        // Deep-copy old train configuration to the new one, skip 'carts'
+        Util.copyTo(fromTrainProperties.saveToConfig(), newTrainConfig, s -> !s.equals("carts"));
+
+        // Create new properties with this configuration
+        TrainProperties prop = new TrainProperties(name, newTrainConfig);
         trainProperties.put(name, prop);
+
+        // Reload all registered properties (Standard properties sync to a field)
+        prop.onConfigurationChanged();
+
         hasChanges = true;
         return prop;
     }
@@ -276,9 +303,23 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
             config.save();
         }
         for (ConfigurationNode node : config.getNodes()) {
-            TrainProperties prop = new TrainProperties(node.getName());
-            prop.load(node);
+            TrainProperties prop = new TrainProperties(node.getName(), node);
+            if (prop.isEmpty()) {
+                // Carts could not be decoded, invalid properties
+                // Get rid of it
+                config.remove(node.getName());
+                TrainCarts.plugin.log(Level.WARNING, "Train properties with name " + node.getName() + " has no carts!");
+                continue;
+            }
+
+            // Store in by-name mapping
             trainProperties.put(prop.getTrainName(), prop);
+
+            // Initialize properties by reading the YAML
+            prop.onConfigurationChanged();
+            for (CartProperties cartProp : prop) {
+                cartProp.onConfigurationChanged();
+            }
         }
         hasChanges = false;
     }
@@ -358,7 +399,18 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         boolean changed = false;
         if (!defconfig.contains("default")) {
             ConfigurationNode node = defconfig.getNode("default");
-            TrainProperties.EMPTY.saveAsDefault(node);
+
+            // Store all default properties, if they exist
+            for (IProperty<Object> property : IPropertyRegistry.instance().all()) {
+                Object value = property.getDefault();
+                if (value != null) {
+                    property.writeToConfig(node, Optional.of(value));
+                }
+            }
+
+            // Store all properties not already covered by IProperty
+            TrainProperties.generateDefaults(node);
+            CartProperties.generateDefaults(node);
             changed = true;
         }
         if (!defconfig.contains("admin")) {
@@ -398,12 +450,15 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
             return;
         }
         for (TrainProperties prop : trainProperties.values()) {
-            //does this train even exist?!
-            if (prop.hasHolder() || OfflineGroupManager.contains(prop.getTrainName())) {
-                prop.save(config.getNode(prop.getTrainName()));
-            } else {
+            // Does this train even exist?!
+            if (!prop.hasHolder() && !OfflineGroupManager.contains(prop.getTrainName())) {
                 config.remove(prop.getTrainName());
+                continue;
             }
+
+            // Do .saveToConfig() to refresh everything
+            // Becomes obsolete once all properties are IProperties
+            prop.saveToConfig();
         }
         config.save();
         hasChanges = false;

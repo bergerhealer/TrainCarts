@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.properties;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -87,7 +88,7 @@ public class CartPropertiesStore {
                 }
             }
             TrainProperties tprop = prop.getTrainProperties();
-            if (tprop != null && tprop.contains(prop)) {
+            if (tprop != null) {
                 tprop.remove(prop);
             }
 
@@ -114,6 +115,21 @@ public class CartPropertiesStore {
     }
 
     /**
+     * Creates and initializes new cart properties. If existing properties
+     * exist for the same UUID, it is overwritten.
+     * 
+     * @param train Train properties that this cart is part of
+     * @param config Cart configuration
+     * @param uuid The UUID of the Minecart
+     * @return new cart properties
+     */
+    protected static CartProperties createNew(TrainProperties train, ConfigurationNode config, UUID uuid) {
+        CartProperties prop = new CartProperties(train, config, uuid);
+        properties.put(uuid, prop);
+        return prop;
+    }
+
+    /**
      * Gets the Cart Properties of the Minecart specified<br>
      * Constructs a new entry if none is contained.
      *
@@ -122,7 +138,7 @@ public class CartPropertiesStore {
      * @return The CartProperties for the Minecart
      */
     public static CartProperties get(UUID uuid, TrainProperties train) {
-        return properties.computeIfAbsent(uuid, key -> new CartProperties(key, train));
+        return properties.computeIfAbsent(uuid, key -> new CartProperties(train, new ConfigurationNode(), key));
     }
 
     /**

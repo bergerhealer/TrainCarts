@@ -2,6 +2,8 @@ package com.bergerkiller.bukkit.tc.properties;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.tc.properties.api.IProperty;
+
 import org.bukkit.entity.Player;
 
 import java.util.Collection;
@@ -12,6 +14,53 @@ import java.util.Set;
  * Contains train or cart property getters and setters
  */
 public interface IProperties extends IParsable {
+
+    /**
+     * Gets a single property stored in this collection of properties
+     * 
+     * @param <T> Type of value the property has
+     * @param property The property to read
+     * @return Value of the property
+     */
+    <T> T get(IProperty<T> property);
+
+    /**
+     * Updates a single property stored in this collection of properties
+     * 
+     * @param <T> Type of value the property has
+     * @param property The property to update
+     * @param value The new value to assign for this property
+     */
+    <T> void set(IProperty<T> property, T value);
+
+    /**
+     * Gets the YAML configuration that stores all these
+     * properties. The returned value can be directly modified,
+     * and any changes will be reflected in the train.<br>
+     * <br>
+     * To prevent de-synchronization, please use {@link #set(IProperty, Object)}
+     * or other setters to make modifications.
+     * 
+     * @return configuration
+     */
+    ConfigurationNode getConfig();
+
+    /**
+     * Loads the information from the Configuration Node specified.
+     * All previous properties are lost, and everything is reloaded.
+     *
+     * @param node Configuration node to load from
+     */
+    void load(ConfigurationNode node);
+
+    /**
+     * Copies the up-to-date configuration of {@link #getConfig()}
+     * to the configuration node specified. This configuration
+     * only stores the changed properties.
+     *
+     * @param node The configuration to save to
+     */
+    void save(ConfigurationNode node);
 
     /**
      * Gets the type name (train/cart) of these properties
@@ -316,29 +365,6 @@ public interface IProperties extends IParsable {
      * @return Block location of the minecart
      */
     BlockLocation getLocation();
-
-    /**
-     * Loads the information from the Configuration Node specified
-     *
-     * @param node to use
-     */
-    void load(ConfigurationNode node);
-
-    /**
-     * Saves the information to the Configuration Node specified as a means of default<br>
-     * The full information is written
-     *
-     * @param node to save to
-     */
-    void saveAsDefault(ConfigurationNode node);
-
-    /**
-     * Saves the information to the Configuration Node specified as a means of state saving<br>
-     * Only changed information is written
-     *
-     * @param node to save to
-     */
-    void save(ConfigurationNode node);
 
     /**
      * Gets the owner of these properties

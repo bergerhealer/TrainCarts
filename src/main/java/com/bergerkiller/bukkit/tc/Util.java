@@ -6,6 +6,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 
 import org.bukkit.Chunk;
@@ -32,6 +35,8 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.config.yaml.YamlListNode;
+import com.bergerkiller.bukkit.common.config.yaml.YamlNodeAbstract;
 import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
@@ -1593,5 +1598,76 @@ public class Util {
         }
 
         return false;
+    }
+
+    /**
+     * Uses {@link ConfigurationNode#get(String, Class)} when the value is contained in the
+     * configuration node, otherwise returns empty if the value does not exist or is of an
+     * incompatible type.
+     * 
+     * @param <T> Value type
+     * @param config Configuration to read from
+     * @param key Key to read from
+     * @param type Type of value to get
+     * @return read value as an optional, or {@link Optional#empty()}
+     */
+    public static <T> Optional<T> getConfigOptional(ConfigurationNode config, String key, Class<T> type) {
+        if (config.contains(key)) {
+            return Optional.ofNullable(config.get(key, type, null));
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Uses {@link ConfigurationNode#set(String, Object)} when the value {@link Optional#isPresent()},
+     * otherwise uses {@link ConfigurationNode#remove(String)} to remove the key.
+     * 
+     * @param config Configuration to update
+     * @param key Key to update
+     * @param value New value to set
+     */
+    public static void setConfigOptional(ConfigurationNode config, String key, Optional<?> value) {
+        if (value.isPresent()) {
+            config.set(key, value.get());
+        } else {
+            config.remove(key);
+        }
+    }
+
+    /**
+     * Deep-clones one configuration node into another.
+     * Original keys in from that are not in to are preserved.
+     * Original keys in to that are not in from are added.<br>
+     * <br>
+     * TODO: Move to BKCommonLib
+     * 
+     * @param from
+     * @param to
+     * @param filter Every (nested) property can be tested for whether it should be copied
+     */
+    public static void copyTo(YamlNodeAbstract<?> from, YamlNodeAbstract<?> to, Predicate<String> filter) {
+        // Deep-copy old train configuration to the new one
+        for (Map.Entry<String, Object> property : from.getValues().entrySet()) {
+            String key = property.getKey();
+            if (!filter.test(key)) {
+                continue;
+            }
+
+            Object value = property.getValue();
+            if (value instanceof YamlListNode) {
+                // Simply overwrite lists
+                to.set(key, ((YamlListNode) value).clone());
+            } else if (value instanceof YamlNodeAbstract) {
+                // Recursively copy the key-values of this node
+                YamlNodeAbstract<?> nodeFrom = (YamlNodeAbstract<?>) value;
+                YamlNodeAbstract<?> nodeTo = to.getNode(key);
+                final String prefix = (key + ".");
+                copyTo(nodeFrom, nodeTo, (s) -> filter.test(prefix + s));
+            } else {
+                // Other types of values aren't cloned
+                to.set(property.getKey(), value);
+            }
+        }
     }
 }

@@ -409,13 +409,8 @@ public class TicketStore {
             ConfigurationNode ticketTrainProperties = ticket.getProperties().clone();
             ticketTrainProperties.remove("carts"); // this would break a LOT
 
-            // Load train-level properties from ticket defined properties
-            trainProperties.load(ticketTrainProperties);
-
-            // Load cart-level properties, like destination, from ticket defined properties
-            for (CartProperties cart : trainProperties) {
-                cart.load(ticketTrainProperties);
-            }
+            // Load train-level and cart-level properties from ticket defined properties
+            trainProperties.apply(ticketTrainProperties);
 
             // Notify the train of these changes (triggers signs)
             MinecartGroup group = trainProperties.getHolder();
