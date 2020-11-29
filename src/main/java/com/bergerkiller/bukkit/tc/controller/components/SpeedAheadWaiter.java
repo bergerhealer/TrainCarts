@@ -169,13 +169,14 @@ public class SpeedAheadWaiter {
 
         // If obstacle is closer than the safe distance, we must slow down at the maximum rate
         // This is basically an emergency stop
+        double remainingActual = (obstacle.distance - properties.getWaitDistance());
         double remaining = (obstacle.distance - this.safeDistance);
         if (remaining <= -1e-5) {
-            return new DesiredSpeed(0.0, remaining);
+            return new DesiredSpeed(0.0, remainingActual);
         }
 
         return new DesiredSpeed(Math.max(0.0, obstacle.speed + remaining / group.getUpdateSpeedFactor()),
-                obstacle.distance - properties.getWaitDistance());
+                remainingActual);
     }
 
     /**
