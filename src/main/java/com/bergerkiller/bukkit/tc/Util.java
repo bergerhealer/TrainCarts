@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Predicate;
 import java.util.logging.Level;
 
 import org.bukkit.Chunk;
@@ -1640,17 +1639,30 @@ public class Util {
      * Original keys in from that are not in to are preserved.
      * Original keys in to that are not in from are added.<br>
      * <br>
-     * TODO: Move to BKCommonLib
+     * TODO: This is a new function in BKCommonLib, can remove this once that one is
+     * a hard dependency.
      * 
      * @param from
      * @param to
-     * @param filter Every (nested) property can be tested for whether it should be copied
+     * @param pathsToExclude
      */
-    public static void copyTo(YamlNodeAbstract<?> from, YamlNodeAbstract<?> to, Predicate<String> filter) {
+    public static void cloneInto(ConfigurationNode from, ConfigurationNode to, Collection<String> excludedPaths) {
+        if (Common.hasCapability("Common:Yaml:CloneInto")) {
+            from.cloneIntoExcept(to, excludedPaths);
+        } else {
+            cloneIntoFallback(from, to, excludedPaths);
+        }
+    }
+
+    private static void cloneIntoFallback(YamlNodeAbstract<?> from, YamlNodeAbstract<?> to, Collection<String> excludedPaths) {
         // Deep-copy old train configuration to the new one
+        // Note: is slower than BKCommonLib's implementation :(
         for (Map.Entry<String, Object> property : from.getValues().entrySet()) {
             String key = property.getKey();
-            if (!filter.test(key)) {
+            if (from.hasParent()) {
+                key = from.getYamlPath().child(key).toString();
+            }
+            if (excludedPaths.contains(key)) {
                 continue;
             }
 
@@ -1662,8 +1674,7 @@ public class Util {
                 // Recursively copy the key-values of this node
                 YamlNodeAbstract<?> nodeFrom = (YamlNodeAbstract<?>) value;
                 YamlNodeAbstract<?> nodeTo = to.getNode(key);
-                final String prefix = (key + ".");
-                copyTo(nodeFrom, nodeTo, (s) -> filter.test(prefix + s));
+                cloneIntoFallback(nodeFrom, nodeTo, excludedPaths);
             } else {
                 // Other types of values aren't cloned
                 to.set(property.getKey(), value);

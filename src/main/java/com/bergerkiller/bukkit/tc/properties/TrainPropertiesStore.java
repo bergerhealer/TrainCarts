@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.properties;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
@@ -258,7 +259,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         ConfigurationNode newTrainConfig = config.getNode(name);
 
         // Deep-copy old train configuration to the new one, skip 'carts'
-        Util.copyTo(fromTrainProperties.saveToConfig(), newTrainConfig, s -> !s.equals("carts"));
+        Util.cloneInto(fromTrainProperties.saveToConfig(), newTrainConfig, Collections.singleton("carts"));
 
         // Create new properties with this configuration
         TrainProperties prop = new TrainProperties(name, newTrainConfig);
@@ -322,6 +323,13 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
             }
         }
         hasChanges = false;
+
+        // Add a change listener which will set hasChanges to true
+        // Note: new in BKCommonLib 1.16.4-v3, so this is allowed to fail for now
+        // Once this is a hard dependency, all other places where hasChanges is set to true can be removed
+        if (Common.hasCapability("Common:Yaml:ChangeListeners")) {
+            config.addChangeListener((path) -> hasChanges = true);
+        }
     }
 
     /**

@@ -4,6 +4,7 @@ import java.util.Optional;
 
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 
 /**
  * {@link IProperty} specifically for properties stored per cart.
@@ -39,5 +40,6 @@ public interface ICartProperty<T> extends IProperty<T> {
         } else {
             this.writeToConfig(properties.getConfig(), Optional.of(value));
         }
+        TrainPropertiesStore.markForAutosave(); //TODO: Can be removed, there's change listeners now
     }
 }

@@ -1459,7 +1459,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         }
 
         // Deep-copy input train configuration to train configuration, skip 'carts'
-        Util.copyTo(node, this.config, s -> !s.equals("carts"));
+        Util.cloneInto(node, this.config, Collections.singleton("carts"));
 
         // Reload properties
         onConfigurationChanged();
@@ -1467,7 +1467,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
     @Override
     public void save(ConfigurationNode node) {
-        Util.copyTo(saveToConfig(), node, (s) -> true);
+        Util.cloneInto(saveToConfig(), node, Collections.emptySet());
     }
 
     // Temporary while loading is done here

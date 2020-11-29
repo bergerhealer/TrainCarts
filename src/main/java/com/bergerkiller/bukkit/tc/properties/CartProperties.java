@@ -780,7 +780,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         this.config.clear();
 
         // Deep-copy input cart configuration to self cart configuration
-        Util.copyTo(node, this.config, (s) -> true);
+        Util.cloneInto(node, this.config, Collections.emptySet());
 
         // Reload properties from YAML
         onConfigurationChanged();
@@ -788,7 +788,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
     @Override
     public void save(ConfigurationNode node) {
-        Util.copyTo(saveToConfig(), node, (s) -> true);
+        Util.cloneInto(saveToConfig(), node, Collections.emptySet());
     }
 
     // Temporary while loading is done here
