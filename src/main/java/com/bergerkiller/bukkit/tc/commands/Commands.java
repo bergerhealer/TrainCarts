@@ -99,7 +99,7 @@ public class Commands {
 
         cloud.postProcess(context -> {
             // Check if command uses saved train properties
-            Object raw_arg = context.getCommandContext().getOrDefault("savedtrainname", null);
+            Object raw_arg = context.getCommandContext().getOrDefault("savedtrainname", (Object) null);
             if (!(raw_arg instanceof SavedTrainProperties)) {
                 return;
             }
