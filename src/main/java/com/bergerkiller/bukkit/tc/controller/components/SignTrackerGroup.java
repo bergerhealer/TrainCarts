@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.controller.components;
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.common.collections.List2D;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -14,9 +13,13 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.utils.modlist.ModificationTrackedEmptyList;
+import com.bergerkiller.bukkit.tc.utils.modlist.ModificationTrackedList2D;
+
 import org.bukkit.block.Block;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Keeps track of the active rails, signs and detector regions below a
@@ -25,6 +28,7 @@ import java.util.*;
 public class SignTrackerGroup extends SignTracker {
     private final MinecartGroup owner;
     private final ToggledState needsPositionUpdate = new ToggledState(true);
+    private final ModificationTrackedList2D<TrackedSign> liveActiveSigns = new ModificationTrackedList2D<>();
 
     public SignTrackerGroup(MinecartGroup owner) {
         this.owner = owner;
@@ -124,21 +128,6 @@ public class SignTrackerGroup extends SignTracker {
         }
     }
 
-    private List<TrackedSign> getSignList() {
-        ArrayList<List<TrackedSign>> signsList = new ArrayList<List<TrackedSign>>(owner.size());
-        for (MinecartMember<?> member : owner) {
-            List<TrackedSign> memberList = member.getSignTracker().liveActiveSigns;
-            if (!memberList.isEmpty()) {
-                signsList.add(memberList); // optimization
-            }
-        }
-        if (signsList.isEmpty()) {
-            return Collections.emptyList();
-        } else {
-            return new List2D<TrackedSign>(signsList);
-        }
-    }
-
     /**
      * Refreshes the block space and active signs if required
      */
@@ -173,18 +162,33 @@ public class SignTrackerGroup extends SignTracker {
                     member.getProperties().getSkipOptions().filterSigns(member.getSignTracker().liveActiveSigns);
                 }
 
-                // Combine all signs into one list and filter based on train options
-                List<TrackedSign> groupSignList = getSignList();
-                owner.getProperties().getSkipOptions().filterSigns(groupSignList);
+                // Synchronize the list of active signs using the liveActiveSigns of the members
+                this.liveActiveSigns.setLists(owner.stream()
+                    .map(m -> m.getSignTracker().liveActiveSigns)
+                    .filter(list -> !list.isEmpty())
+                    .collect(Collectors.toList()));
+
+                // Filter the list based on sign skip options before returning
+                // This will remove elements from the lists in the member sign tracker!
+                // That way, telling a train to skip signs will make it skip [cart] signs just the same
+                owner.getProperties().getSkipOptions().filterSigns(this.liveActiveSigns);
 
                 // Update cart signs
-                for (MinecartMember<?> member : owner) {
-                    SignTrackerMember tracker = member.getSignTracker();
-                    tracker.updateActiveSigns(tracker.liveActiveSigns);
+                // Activating a sign might cause a change to this train, make a defensive copy
+                for (MinecartMember<?> member : owner.toArray()) {
+                    if (!member.isUnloaded() && member.getGroup() == owner) {
+                        final SignTrackerMember tracker = member.getSignTracker();
+                        tracker.updateActiveSigns(() -> {
+                            return tracker.getOwner().isUnloaded() ?
+                                    ModificationTrackedEmptyList.emptyList() : tracker.liveActiveSigns;
+                        });
+                    }
                 }
 
                 // Update the active signs for this Group
-                updateActiveSigns(groupSignList);
+                updateActiveSigns(() -> {
+                    return owner.isUnloaded() ? ModificationTrackedEmptyList.emptyList() : liveActiveSigns;
+                });
 
                 // Update existing detector regions that are in use.
                 // Here we add members to regions other members were on, and

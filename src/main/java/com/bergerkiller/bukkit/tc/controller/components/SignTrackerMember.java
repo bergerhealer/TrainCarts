@@ -7,9 +7,11 @@ import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.utils.modlist.ModificationTrackedArrayList;
+import com.bergerkiller.bukkit.tc.utils.modlist.ModificationTrackedList;
+
 import org.bukkit.block.Block;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -18,7 +20,7 @@ import java.util.List;
  */
 public class SignTrackerMember extends SignTracker {
     private final MinecartMember<?> owner;
-    protected List<TrackedSign> liveActiveSigns = new ArrayList<TrackedSign>();
+    protected final ModificationTrackedList<TrackedSign> liveActiveSigns = new ModificationTrackedArrayList<>();
 
     public SignTrackerMember(MinecartMember<?> owner) {
         this.owner = owner;
@@ -90,5 +92,4 @@ public class SignTrackerMember extends SignTracker {
             }
         }
     }
-
 }

@@ -4,10 +4,12 @@ import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
+import com.bergerkiller.bukkit.tc.utils.modlist.ModificationTrackedList;
 
 import org.bukkit.block.Block;
 
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 
 /**
@@ -102,37 +104,81 @@ public abstract class SignTracker {
 
     protected abstract void onSignChange(TrackedSign signblock, boolean active);
 
-    protected void updateActiveSigns(Collection<TrackedSign> newActiveSigns) {
-        if (newActiveSigns.isEmpty()) {
-            // Only remove old signs
-            if (!activeSigns.isEmpty()) {
-                for (TrackedSign oldActiveSign : activeSigns.values()) {
-                    onSignChange(oldActiveSign, false);
-                }
-                activeSigns.clear();
-            }
-        } else {
-            final boolean hadSigns = !activeSigns.isEmpty();
-
-            // Add all the new signs
-            for (TrackedSign newActiveSign : newActiveSigns) {
-                if (activeSigns.put(newActiveSign.signBlock, newActiveSign) == null) {
-                    onSignChange(newActiveSign, true);
-                }
-            }
-            if (hadSigns) {
-                // Calculate all the signs that are now missing
-                blockBuffer.clear();
-                blockBuffer.addAll(activeSigns.values());
-                blockBuffer.removeAll(newActiveSigns);
-
-                // Remove all the signs that are now inactive
-                for (TrackedSign old : blockBuffer) {
-                    activeSigns.remove(old.signBlock);
-                    onSignChange(old, false);
-                }
+    protected void updateActiveSigns(Supplier<ModificationTrackedList<TrackedSign>> activeSignListSupplier) {
+        int limit = 1000;
+        while (!tryUpdateActiveSigns(activeSignListSupplier.get())) {
+            // Check for infinite loops, just in case, you know?
+            if (--limit == 0) {
+                TrainCarts.plugin.getLogger().log(Level.SEVERE, "Reached limit of loops updating active signs");
+                break;
             }
         }
     }
 
+    // Tries to update the active sign list, returns false if the list was modified during it
+    private boolean tryUpdateActiveSigns(final ModificationTrackedList<TrackedSign> list) {
+        // Retrieve the list and modification counter
+        final int mod_start = list.getModCount();
+        final boolean hadSigns = !activeSigns.isEmpty();
+
+        // Perform all operations, for those that could leak into executing code
+        // that could modify it, track the mod counter. If changed, restart from
+        // the beginning.
+
+        // When there are no signs, only remove previously detected signs
+        if (list.isEmpty()) {
+            if (hadSigns) {
+                Iterator<TrackedSign> iter = activeSigns.values().iterator();
+                while (iter.hasNext()) {
+                    onSignChange(iter.next(), false);
+                    iter.remove();
+
+                    // If list changed, restart from the beginning
+                    if (list.getModCount() != mod_start) {
+                        return false;
+                    }
+                }
+            }
+
+            // All good!
+            return true;
+        }
+
+        // Go by all detected signs and try to add it to the map
+        // If this succeeds, fire an 'enter' event
+        // This enter event might modify the list, if so, restart from the beginning
+        for (TrackedSign newActiveSign : list) {
+            if (activeSigns.put(newActiveSign.signBlock, newActiveSign) == null) {
+                onSignChange(newActiveSign, true);
+
+                // If list changed, restart from the beginning
+                if (list.getModCount() != mod_start) {
+                    return false;
+                }
+            }
+        }
+
+        // Check if any previously detected signs are no longer in the active sign list
+        if (hadSigns) {
+            // Calculate all the signs that are now missing
+            blockBuffer.clear();
+            blockBuffer.addAll(activeSigns.values());
+            blockBuffer.removeAll(list);
+
+            // Remove all the signs that are now inactive
+            // This leave event might cause the list to change, if so, restart from the beginning
+            for (TrackedSign old : blockBuffer) {
+                activeSigns.remove(old.signBlock);
+                onSignChange(old, false);
+
+                // If list changed, restart from the beginning
+                if (list.getModCount() != mod_start) {
+                    return false;
+                }
+            }
+        }
+
+        // Done!
+        return true;
+    }
 }
