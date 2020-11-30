@@ -6,8 +6,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
-import com.bergerkiller.bukkit.tc.properties.CollisionConfig;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.collision.CollisionMobCategory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -66,11 +66,11 @@ public class StatementProperty extends Statement {
         } else if (match(playerExit, lower)) {
             return prop.getPlayersExit();
         } else if (match(mobEnter, lower)) {
-            return prop.getAllCollisionModes().contains(CollisionMode.ENTER);
+            return prop.getCollision().mobModes().values().contains(CollisionMode.ENTER);
         } else {
-            CollisionConfig result = CollisionConfig.findMobType(lower, null, "enter");
-            if (prop.getCollisionMode(result) != null) {
-                return prop.getCollisionMode(result) == CollisionMode.ENTER;
+            CollisionMobCategory category = CollisionMobCategory.findMobType(lower, null, "enter");
+            if (category != null) {
+                return prop.getCollision().mobMode(category) == CollisionMode.ENTER;
             }
         }
 

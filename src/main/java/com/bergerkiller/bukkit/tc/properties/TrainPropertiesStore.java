@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
+import com.bergerkiller.bukkit.tc.properties.collision.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import org.bukkit.entity.Player;
 
@@ -347,7 +348,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
                 changed = true;
             }
             if (node.contains("collision.mobs")) {
-                for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
+                for (CollisionMobCategory collisionConfigObject : CollisionMobCategory.values()) {
                     if (collisionConfigObject.isMobCategory()) {
                         node.set("collision." + collisionConfigObject.getMobType(), node.get("collision.mobs", CollisionMode.DEFAULT).toString());
                     }
@@ -356,7 +357,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
                 changed = true;
             }
             if (node.contains("pushAway")) {
-                for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
+                for (CollisionMobCategory collisionConfigObject : CollisionMobCategory.values()) {
                     if (collisionConfigObject.isMobCategory()) {
                         String mobType = collisionConfigObject.getMobType();
                         node.set("collision." + mobType, CollisionMode.fromPushing(node.get("pushAway." + mobType, false)).toString());
@@ -369,7 +370,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
             }
             if (node.contains("allowMobsEnter")) {
                 if (node.get("allowMobsEnter", false)) {
-                    for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
+                    for (CollisionMobCategory collisionConfigObject : CollisionMobCategory.values()) {
                         if (collisionConfigObject.isMobCategory()) {
                             String mobType = collisionConfigObject.getMobType();
                             node.set("collision." + mobType, CollisionMode.ENTER.toString());
@@ -382,7 +383,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
             if (node.contains("mobenter") || node.contains("mobsenter")) {
                 if (node.get("mobenter", false) || node.get("mobsenter", false)) {
                     if (node.get("allowMobsEnter", false)) {
-                        for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
+                        for (CollisionMobCategory collisionConfigObject : CollisionMobCategory.values()) {
                             if (collisionConfigObject.isMobCategory()) {
                                 String mobType = collisionConfigObject.getMobType();
                                 node.set("collision." + mobType, CollisionMode.ENTER.toString());

@@ -4,11 +4,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -38,6 +36,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
+import com.bergerkiller.bukkit.tc.properties.collision.CollisionConfig;
+import com.bergerkiller.bukkit.tc.properties.collision.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.FieldBackedStandardTrainPropertiesHolder;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
@@ -53,14 +53,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private final SoftReference<MinecartGroup> group = new SoftReference<>();
     private final FieldBackedStandardTrainPropertiesHolder standardProperties = new FieldBackedStandardTrainPropertiesHolder();
     private final ConfigurationNode config;
-    private Map<CollisionConfig, CollisionMode> collisionModes = new HashMap<>();
-    public CollisionMode playerCollision = CollisionMode.DEFAULT;
-    public CollisionMode miscCollision = CollisionMode.PUSH;
-    public CollisionMode trainCollision = CollisionMode.LINK;
-    public CollisionMode blockCollision = CollisionMode.DEFAULT;
     public boolean requirePoweredMinecart = false;
     protected String trainname;
-    private boolean collision = true;
     private final EnumSet<SlowdownMode> slowDownOptions = EnumSet.allOf(SlowdownMode.class);
     private double collisionDamage = 1.0D;
     private boolean keepChunksLoaded = false;
@@ -356,24 +350,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     public void setSlowingDown(SlowdownMode mode, boolean slowingDown) {
         LogicUtil.addOrRemove(this.slowDownOptions, mode, slowingDown);
-    }
-
-    /**
-     * Gets whether this Train can collide with other Entities and Trains
-     *
-     * @return True if it can collide, False if not
-     */
-    public boolean getColliding() {
-        return this.collision;
-    }
-
-    /**
-     * Sets whether this Train can collide with other Entities and Trains
-     *
-     * @param state to set to
-     */
-    public void setColliding(boolean state) {
-        this.collision = state;
     }
 
     /**
@@ -865,37 +841,28 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         }
     }
 
-    /**
-     * Gets the Collision Mode for colliding with the Entity specified
-     *
-     * @param entity to collide with
-     * @return Collision Mode
-     */
-    public Set<CollisionMode> getAllCollisionModes() {
-        return (Set<CollisionMode>) this.collisionModes.values();
-    }
-
     public CollisionMode getCollisionMode(Entity entity) {
-        if (!this.getColliding() || entity.isDead()) {
+        if (entity.isDead()) {
             return CollisionMode.CANCEL;
         }
         MinecartMember<?> member = MinecartMemberStore.getFromEntity(entity);
+        CollisionConfig collision = this.getCollision();
         if (member != null) {
-            if (this.trainCollision == CollisionMode.LINK) {
-                if (member.getGroup().getProperties().trainCollision == CollisionMode.LINK) {
+            if (collision.trainMode() == CollisionMode.LINK) {
+                if (member.getGroup().getProperties().getCollision().trainMode() == CollisionMode.LINK) {
                     return CollisionMode.LINK;
                 } else {
                     return CollisionMode.CANCEL;
                 }
             } else {
-                return this.trainCollision;
+                return collision.trainMode();
             }
         } else if (entity instanceof Player) {
             GameMode playerGameMode = ((Player) entity).getGameMode();
             if (playerGameMode == GameMode.SPECTATOR) {
                 return CollisionMode.CANCEL;
             }
-            if (TCConfig.collisionIgnoreOwners && this.playerCollision != CollisionMode.DEFAULT) {
+            if (TCConfig.collisionIgnoreOwners && collision.playerMode() != CollisionMode.DEFAULT) {
                 if (TCConfig.collisionIgnoreGlobalOwners) {
                     if (CartProperties.hasGlobalOwnership((Player) entity)) {
                         return CollisionMode.DEFAULT;
@@ -907,20 +874,17 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
             // Don't kill or damage players in creative
             if (playerGameMode == GameMode.CREATIVE) {
-                if (this.playerCollision == CollisionMode.KILL || this.playerCollision == CollisionMode.KILLNODROPS || this.playerCollision == CollisionMode.DAMAGE
-                        || this.playerCollision == CollisionMode.DAMAGENODROPS) {
+                if (collision.playerMode() == CollisionMode.KILL ||
+                    collision.playerMode() == CollisionMode.KILLNODROPS ||
+                    collision.playerMode() == CollisionMode.DAMAGE ||
+                    collision.playerMode() == CollisionMode.DAMAGENODROPS)
+                {
                     return CollisionMode.PUSH;
                 }
             }
-            return this.playerCollision;
+            return collision.playerMode();
         } else {
-            for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-                CollisionMode collisionMode = this.collisionModes.get(collisionConfigObject);
-                if (collisionMode != null && collisionConfigObject.isMobType(entity)) {
-                    return collisionMode;
-                }
-            }
-            return this.miscCollision;
+            return collision.forEntity(entity);
         }
     }
 
@@ -1151,19 +1115,19 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (key.equalsIgnoreCase("playercollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
             if (mode == null) return false;
-            this.playerCollision = mode;
+            setCollision(getCollision().setPlayerMode(mode));
         } else if (key.equalsIgnoreCase("misccollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
             if (mode == null) return false;
-            this.miscCollision = mode;
+            setCollision(getCollision().setMiscMode(mode));
         } else if (key.equalsIgnoreCase("traincollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
             if (mode == null) return false;
-            this.trainCollision = mode;
+            setCollision(getCollision().setTrainMode(mode));
         } else if (key.equalsIgnoreCase("blockcollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
             if (mode == null) return false;
-            this.blockCollision = mode;
+            setCollision(getCollision().setBlockMode(mode));
         } else if (key.equalsIgnoreCase("collisiondamage")) {
             this.setCollisionDamage(Double.parseDouble(arg));
         } else if (key.equalsIgnoreCase("suffocation")) {
@@ -1171,7 +1135,14 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (this.setCollisionMode(key, arg)) {
             return true;
         } else if (LogicUtil.containsIgnoreCase(key, "collision", "collide")) {
-            this.setColliding(ParseUtil.parseBool(arg));
+            if (ParseUtil.parseBool(arg)) {
+                // Legacy support: just reset to defaults
+                // Preserve mob collision rules
+                setCollision(CollisionConfig.DEFAULT);
+            } else {
+                // Disable all collision
+                setCollision(CollisionConfig.CANCEL);
+            }
         } else if (LogicUtil.containsIgnoreCase(key, "linking", "link")) {
             this.setLinking(ParseUtil.parseBool(arg));
         } else if (key.toLowerCase(Locale.ENGLISH).startsWith("slow")) {
@@ -1190,12 +1161,14 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (LogicUtil.containsIgnoreCase(key, "setdefault", "default")) {
             this.setDefault(arg);
         } else if (key.equalsIgnoreCase("pushplayers")) {
-            this.playerCollision = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
+            CollisionMode mode = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
+            setCollision(getCollision().setPlayerMode(mode));
         } else if (key.equalsIgnoreCase("pushmisc")) {
-            this.miscCollision = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
+            CollisionMode mode = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
+            setCollision(getCollision().setMiscMode(mode));
         } else if (LogicUtil.containsIgnoreCase(key, "push", "pushing")) {
             CollisionMode mode = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
-            this.playerCollision = this.miscCollision = mode;
+            setCollision(getCollision().setPlayerMode(mode).setMiscMode(mode));
             this.setCollisionModeForMobs(mode);
         } else if (LogicUtil.containsIgnoreCase(key, "speedlimit", "maxspeed")) {
             this.setSpeedLimit(Util.parseVelocity(arg, this.getSpeedLimit()));
@@ -1319,23 +1292,34 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Gets the collision mode configured for a collision config category
+     * Gets the collision configuration of the train. This stores all the collision rules
+     * to follow when colliding with entities and blocks.
      * 
-     * @param collisionConfigObject
-     * @return mode
+     * @return collision configuration
      */
-    public CollisionMode getCollisionMode(CollisionConfig collisionConfigObject) {
-        return this.collisionModes.get(collisionConfigObject);
+    public CollisionConfig getCollision() {
+        return get(StandardProperties.collision);
     }
 
     /**
-     * Sets the collision mode configured for a collision config category
+     * Sets the collision configuration of the train. This stores all the collision rules
+     * to follow when colliding with entities and blocks. Use the static methods
+     * of {@link CollisionConfig} to change individual modes.
      * 
-     * @param collisionConfigObject
-     * @param mode to set to
+     * @param collisionConfig New collision configuration to set to
      */
-    public void setCollisionMode(CollisionConfig collisionConfigObject, CollisionMode mode) {
-        this.collisionModes.put(collisionConfigObject, mode);
+    public void setCollision(CollisionConfig collisionConfig) {
+        set(StandardProperties.collision, collisionConfig);
+    }
+
+    /**
+     * Sets the collision mode configured for a collision mob category
+     * 
+     * @param mobCategory Category of mob
+     * @param mode to set to, null to reset to defaults
+     */
+    public void setCollisionMode(CollisionMobCategory mobCategory, CollisionMode mode) {
+        setCollision(getCollision().setMobMode(mobCategory, mode));
     }
 
     /**
@@ -1371,9 +1355,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.setCollisionModeForMobs(mode);
             return true;
         } else {
-            for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-                if (mobType.equals(collisionConfigObject.getMobType()) || mobType.equals(collisionConfigObject.getPluralMobType())) {
-                    this.setCollisionMode(collisionConfigObject, mode);
+            for (CollisionMobCategory mobCategory : CollisionMobCategory.values()) {
+                if (mobType.equals(mobCategory.getMobType()) || mobType.equals(mobCategory.getPluralMobType())) {
+                    this.setCollisionMode(mobCategory, mode);
                     return true;
                 }
             }
@@ -1387,7 +1371,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param mode
      */
     public void setCollisionModeForMobs(CollisionMode mode) {
-        for (CollisionConfig collision : CollisionConfig.values()) {
+        for (CollisionMobCategory collision : CollisionMobCategory.values()) {
             if (collision.isMobCategory()) {
                 setCollisionMode(collision, mode);
             }
@@ -1402,8 +1386,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param mode
      */
     public void setCollisionModeIfModeForMobs(CollisionMode expected, CollisionMode mode) {
-        for (CollisionConfig collision : CollisionConfig.values()) {
-            if (collision.isMobCategory() && getCollisionMode(collision) == expected) {
+        for (CollisionMobCategory collision : CollisionMobCategory.values()) {
+            if (collision.isMobCategory() && getCollision().mobMode(collision) == expected) {
                 setCollisionMode(collision, mode);
             }
         }
@@ -1417,9 +1401,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     public void setLinking(boolean linking) {
         if (linking) {
-            this.trainCollision = CollisionMode.LINK;
-        } else if (this.trainCollision == CollisionMode.LINK) {
-            this.trainCollision = CollisionMode.DEFAULT;
+            setCollision(getCollision().setTrainMode(CollisionMode.LINK));
+        } else if (this.getCollision().trainMode() == CollisionMode.LINK) {
+            setCollision(getCollision().setTrainMode(CollisionMode.DEFAULT));
         }
     }
 
@@ -1486,7 +1470,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         // TODO: Replace all below with IProperty objects
         // Note: completely disregards all previous configuration!
         this.allowPlayerTake = getConfigValue("allowPlayerTake", false);
-        this.collision = getConfigValue("trainCollision", true);
         this.collisionDamage = getConfigValue("collisionDamage", 1.0);
         this.soundEnabled = getConfigValue("soundEnabled", true);
         this.gravity = getConfigValue("gravity", 1.0);
@@ -1529,29 +1512,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         // Banking
         this.bankingStrength = getConfigValue("banking.strength", 0.0);
         this.bankingSmoothness = getConfigValue("banking.smoothness", 10.0);
-
-        // Collision options. If specified, remove per-mob collision rules and read from the node
-        this.collisionModes.clear();
-        if (config.contains("collision")) {
-            for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-                String key = "collision." + collisionConfigObject.getMobType();
-                if (config.contains(key)) {
-                    CollisionMode mode = config.get(key, CollisionMode.class, null);
-                    if (mode != null) {
-                        this.collisionModes.put(collisionConfigObject, mode);
-                    }
-                }
-            }
-            this.playerCollision = getConfigValue("collision.players", CollisionMode.DEFAULT);
-            this.miscCollision = getConfigValue("collision.misc", CollisionMode.PUSH);
-            this.trainCollision = getConfigValue("collision.train", CollisionMode.LINK);
-            this.blockCollision = getConfigValue("collision.block", CollisionMode.DEFAULT);
-        } else {
-            this.playerCollision =  CollisionMode.DEFAULT;
-            this.miscCollision = CollisionMode.PUSH;
-            this.trainCollision = CollisionMode.LINK;
-            this.blockCollision = CollisionMode.DEFAULT;
-        }
 
         // Tickets that can be used for this train
         this.tickets.clear();
@@ -1601,7 +1561,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         config.set("soundEnabled", this.soundEnabled ? null : false);
         config.set("allowPlayerTake", this.allowPlayerTake ? true : null);
         config.set("requirePoweredMinecart", this.requirePoweredMinecart ? true : null);
-        config.set("trainCollision", this.collision ? null : false);
         config.set("collisionDamage", (this.collisionDamage == 1.0) ? null : this.collisionDamage == 1.0);
         config.set("keepChunksLoaded", this.keepChunksLoaded ? true : null);
         config.set("gravity", this.gravity != 1.0 ? this.gravity : null);
@@ -1641,28 +1600,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         config.set("allowManualMovement", this.isManualMovementAllowed() ? true : null);
         config.set("allowMobManualMovement", this.isMobManualMovementAllowed() ? true : null);
         config.set("tickets", this.tickets.isEmpty() ? null : LogicUtil.toArray(this.tickets, String.class));
-
-        // Remove any previous collision configuration before saving
-        // Then save all modes that are set / aren't the defaults
-        config.remove("collision");
-        for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-            CollisionMode value = this.collisionModes.get(collisionConfigObject);
-            if (value != null) {
-                config.set("collision." + collisionConfigObject.getMobType(), value);
-            }
-        }
-        if (this.playerCollision != CollisionMode.DEFAULT) {
-            config.set("collision.players", this.playerCollision);
-        }
-        if (this.miscCollision != CollisionMode.PUSH) {
-            config.set("collision.misc", this.miscCollision);
-        }
-        if (this.trainCollision != CollisionMode.LINK) {
-            config.set("collision.train", this.trainCollision);
-        }
-        if (this.blockCollision != CollisionMode.DEFAULT) {
-            config.set("collision.block", this.blockCollision);
-        }
 
         if (this.skipOptions.isActive()) {
             this.skipOptions.save(config.getNode("skipOptions"));
@@ -1722,7 +1659,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     protected void applyConfig(ConfigurationNode node) {
         // TODO: Replace all below with IProperty objects
         this.allowPlayerTake = node.get("allowPlayerTake", this.allowPlayerTake);
-        this.collision = node.get("trainCollision", this.collision);
         this.setCollisionDamage(node.get("collisionDamage", this.getCollisionDamage()));
         this.soundEnabled = node.get("soundEnabled", this.soundEnabled);
         this.gravity = node.get("gravity", this.gravity);
@@ -1760,21 +1696,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             ConfigurationNode banking = node.getNode("banking");
             this.bankingStrength = banking.get("strength", this.bankingStrength);
             this.bankingSmoothness = banking.get("smoothness", this.bankingSmoothness);
-        }
-
-        // Collision options. If specified, remove per-mob collision rules and read from the node
-        if (node.contains("collision")) {
-            this.collisionModes.clear();
-            for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
-                CollisionMode mode = node.get("collision." + collisionConfigObject.getMobType(), CollisionMode.class, null);
-                if (mode != null) {
-                    this.collisionModes.put(collisionConfigObject, mode);
-                }
-            }
-            this.playerCollision = node.get("collision.players", this.playerCollision);
-            this.miscCollision = node.get("collision.misc", this.miscCollision);
-            this.trainCollision = node.get("collision.train", this.trainCollision);
-            this.blockCollision = node.get("collision.block", this.blockCollision);
         }
 
         // Tickets that can be used for this train

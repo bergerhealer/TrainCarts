@@ -77,6 +77,7 @@ import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
+import com.bergerkiller.bukkit.tc.properties.collision.CollisionConfig;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVertical;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -1672,8 +1673,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // Enable/disable collision handling to improve performance
         if (this.group != null) {
-            setEntityCollisionEnabled(this.group.getProperties().getColliding());
-            setBlockCollisionEnabled(this.group.getProperties().blockCollision == CollisionMode.DEFAULT);
+            CollisionConfig collision = this.group.getProperties().getCollision();
+            setEntityCollisionEnabled(collision.collidesWithEntities());
+            setBlockCollisionEnabled(collision.blockMode() == CollisionMode.DEFAULT);
         }
     }
 

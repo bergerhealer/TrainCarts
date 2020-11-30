@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.properties;
+package com.bergerkiller.bukkit.tc.properties.collision;
 
 import java.util.Set;
 
@@ -15,7 +15,7 @@ import com.bergerkiller.bukkit.tc.CollisionMode;
  * (http://minecraft.gamepedia.com/Mobs#List_of_mobs) and in
  * com.bergerkiller.bukkit.common.utils.EntityGroupingUtil.
  */
-public enum CollisionConfig {
+public enum CollisionMobCategory {
     /*
      * Short Name, Plural Name, EntityCategory or method name, Legacy Mob, Display String, Default Collision Mode
      * Legacy Mob = In versions of TrainCarts for Minecraft <= 1.7
@@ -39,7 +39,7 @@ public enum CollisionConfig {
     private CollisionMode defaultCollisionMode;
     private Set<Class<?>> entityClasses;
 
-    CollisionConfig(String mobType, String pluralMobType, Set<Class<?>> entityClasses, String friendlyMobName, CollisionMode defaultCollisionMode) {
+    CollisionMobCategory(String mobType, String pluralMobType, Set<Class<?>> entityClasses, String friendlyMobName, CollisionMode defaultCollisionMode) {
         this.setMobType(mobType);
         this.setFriendlyMobName(friendlyMobName);
         this.setDefaultCollisionMode(defaultCollisionMode);
@@ -72,8 +72,8 @@ public enum CollisionConfig {
         return this.name().endsWith("_MOBS");
     }
 
-    public static CollisionConfig findMobType(Entity entity) {
-        for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
+    public static CollisionMobCategory findMobType(Entity entity) {
+        for (CollisionMobCategory collisionConfigObject : CollisionMobCategory.values()) {
             if (collisionConfigObject.isMobType(entity)) {
                 return collisionConfigObject;
             }
@@ -81,8 +81,8 @@ public enum CollisionConfig {
         return null;
     }
 
-    public static CollisionConfig findMobType(String entityType) {
-        for (CollisionConfig collisionConfigObject : CollisionConfig.values()) {
+    public static CollisionMobCategory findMobType(String entityType) {
+        for (CollisionMobCategory collisionConfigObject : CollisionMobCategory.values()) {
             if (collisionConfigObject.getMobType().equals(entityType)) {
                 return collisionConfigObject;
             }
@@ -90,7 +90,7 @@ public enum CollisionConfig {
         return null;
     }
 
-    public static CollisionConfig findMobType(String entityType, String prefix) {
+    public static CollisionMobCategory findMobType(String entityType, String prefix) {
         if (prefix == null) {
             return findMobType(entityType);
         } else {
@@ -98,7 +98,7 @@ public enum CollisionConfig {
         }
     }
 
-    public static CollisionConfig findMobType(String entityType, String prefix, String suffix) {
+    public static CollisionMobCategory findMobType(String entityType, String prefix, String suffix) {
         if (prefix == null && suffix == null) {
             return findMobType(entityType);
         } else if (suffix == null) {

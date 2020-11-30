@@ -5,10 +5,12 @@ import java.util.List;
 import java.util.Optional;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
+import com.bergerkiller.bukkit.tc.properties.collision.CollisionConfig;
 
 /**
  * All standard TrainCarts built-in train and cart properties
@@ -34,6 +36,68 @@ public class StandardProperties {
         @Override
         public void writeToConfig(ConfigurationNode config, Optional<String> value) {
             Util.setConfigOptional(config, "displayName", value);
+        }
+    };
+
+    public static final FieldBackedStandardTrainProperty<CollisionConfig> collision = new FieldBackedStandardTrainProperty<CollisionConfig>() {
+
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList(
+                    "playercollision",
+                    "misccollision",
+                    "traincollision",
+                    "blockcollision",
+                    "collision", "collide",
+                    "linking", "link",
+                    "pushplayers",
+                    "pushmisc",
+                    "push", "pushing"
+            );
+        }
+
+        @Override
+        public CollisionConfig getDefault() {
+            return CollisionConfig.DEFAULT;
+        }
+
+        @Override
+        public CollisionConfig getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
+            return holder.collision;
+        }
+
+        @Override
+        public void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, CollisionConfig value) {
+            holder.collision = value;
+        }
+
+        @Override
+        public Optional<CollisionConfig> readFromConfig(ConfigurationNode config) {
+            if (config.contains("trainCollision") && !config.get("trainCollision", true)) {
+                // Collision is completely disabled, except for blocks
+                // This is a legacy property, we no longer save it.
+                CollisionConfig collision = CollisionConfig.CANCEL;
+                if (config.contains("collision.block")) {
+                    collision = collision.setBlockMode(config.get("collision.block", CollisionMode.DEFAULT));
+                }
+                return Optional.of(collision);
+            } else if (config.isNode("collision")) {
+                return Optional.of(CollisionConfig.fromConfig(config.getNode("collision")));
+            } else {
+                return Optional.empty();
+            }
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<CollisionConfig> value) {
+            // Get rid of legacy trainCollision property (legacy)
+            config.remove("trainCollision");
+
+            if (value.isPresent()) {
+                config.set("collision", value.get().toConfig());
+            } else {
+                config.remove("collision");
+            }
         }
     };
 

@@ -36,6 +36,7 @@ import com.bergerkiller.bukkit.common.MaterialTypeProperty;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.yaml.YamlListNode;
 import com.bergerkiller.bukkit.common.config.yaml.YamlNodeAbstract;
+import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
 import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
@@ -1620,7 +1621,8 @@ public class Util {
 
     /**
      * Uses {@link ConfigurationNode#set(String, Object)} when the value {@link Optional#isPresent()},
-     * otherwise uses {@link ConfigurationNode#remove(String)} to remove the key.
+     * otherwise uses {@link ConfigurationNode#remove(String)} to remove the key. Automatically
+     * removes empty nodes that result from removing.
      * 
      * @param config Configuration to update
      * @param key Key to update
@@ -1629,8 +1631,25 @@ public class Util {
     public static void setConfigOptional(ConfigurationNode config, String key, Optional<?> value) {
         if (value.isPresent()) {
             config.set(key, value.get());
-        } else {
+        } else if (config.contains(key)) {
             config.remove(key);
+
+            // Clean up parent nodes part of the key that have no children
+            YamlPath parentYamlPath = YamlPath.create(key).parent();
+            while (parentYamlPath != YamlPath.ROOT) {
+                String parentPath = parentYamlPath.toString();
+                if (!config.isNode(parentPath)) {
+                    break;
+                }
+
+                ConfigurationNode parent = config.getNode(parentPath);
+                if (!parent.isEmpty()) {
+                    break;
+                }
+
+                parent.remove();
+                parentYamlPath = parentYamlPath.parent();
+            }
         }
     }
 
