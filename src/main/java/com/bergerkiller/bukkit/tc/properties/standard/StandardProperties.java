@@ -1,8 +1,11 @@
 package com.bergerkiller.bukkit.tc.properties.standard;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.CollisionMode;
@@ -11,11 +14,81 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
 import com.bergerkiller.bukkit.tc.properties.collision.CollisionConfig;
+import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
 /**
  * All standard TrainCarts built-in train and cart properties
  */
 public class StandardProperties {
+
+    public static final FieldBackedStandardTrainProperty<Set<SlowdownMode>> slowDown = new FieldBackedStandardTrainProperty<Set<SlowdownMode>>() {
+        private final Set<SlowdownMode> ALL = Collections.unmodifiableSet(EnumSet.allOf(SlowdownMode.class));
+        private final Set<SlowdownMode> NONE = Collections.unmodifiableSet(EnumSet.allOf(SlowdownMode.class));
+
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("slowdown", "slowfriction", "slowgravity");
+        }
+
+        @Override
+        public Set<SlowdownMode> getDefault() {
+            return ALL;
+        }
+
+        @Override
+        public Set<SlowdownMode> getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
+            return Collections.unmodifiableSet(holder.slowdown);
+        }
+
+        @Override
+        public void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, Set<SlowdownMode> value) {
+            holder.slowdown.clear();
+            holder.slowdown.addAll(value);
+        }
+
+        @Override
+        public Optional<Set<SlowdownMode>> readFromConfig(ConfigurationNode config) {
+            if (!config.contains("slowDown")) {
+                // Not set
+                return Optional.empty();
+            } else if (!config.isNode("slowDown")) {
+                // Boolean all defaults / none
+                return Optional.of(config.get("slowDown", true) ? ALL : NONE);
+            } else {
+                // Node with [name]: true/false options
+                final EnumSet<SlowdownMode> modes = EnumSet.noneOf(SlowdownMode.class);
+                ConfigurationNode slowDownNode = config.getNode("slowDown");
+                for (SlowdownMode mode : SlowdownMode.values()) {
+                    if (slowDownNode.contains(mode.getKey()) &&
+                        slowDownNode.get(mode.getKey(), true))
+                    {
+                        modes.add(mode);
+                    }
+                }
+                return Optional.of(Collections.unmodifiableSet(modes));
+            }
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Set<SlowdownMode>> value) {
+            if (value.isPresent()) {
+                Set<SlowdownMode> modes = value.get();
+                if (modes.isEmpty()) {
+                    config.set("slowDown", false);
+                } else if (modes.equals(ALL)) {
+                    config.set("slowDown", true);
+                } else {
+                    ConfigurationNode slowDownNode = config.getNode("slowDown");
+                    slowDownNode.clear();
+                    for (SlowdownMode mode : SlowdownMode.values()) {
+                        slowDownNode.set(mode.getKey(), modes.contains(mode));
+                    }
+                }
+            } else {
+                config.remove("slowDown");
+            }
+        }
+    };
 
     public static final ITrainProperty<String> displayName = new ITrainProperty<String>() {
         @Override

@@ -55,7 +55,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private final ConfigurationNode config;
     public boolean requirePoweredMinecart = false;
     protected String trainname;
-    private final EnumSet<SlowdownMode> slowDownOptions = EnumSet.allOf(SlowdownMode.class);
     private double collisionDamage = 1.0D;
     private boolean keepChunksLoaded = false;
     private boolean allowPlayerManualMovement = false;
@@ -295,7 +294,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     @Deprecated
     public boolean isSlowingDown() {
-        return !this.slowDownOptions.isEmpty();
+        return !get(StandardProperties.slowDown).isEmpty();
     }
 
     /**
@@ -304,7 +303,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if all modes are active (legacy slowdown = true set)
      */
     public boolean isSlowingDownAll() {
-        return this.slowDownOptions.size() == SlowdownMode.values().length;
+        return get(StandardProperties.slowDown).equals(EnumSet.allOf(SlowdownMode.class));
     }
 
     /**
@@ -313,7 +312,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if all slowdown is disabled (legacy slowdown = false set)
      */
     public boolean isSlowingDownNone() {
-        return this.slowDownOptions.isEmpty();
+        return get(StandardProperties.slowDown).isEmpty();
     }
 
     /**
@@ -324,11 +323,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     public void setSlowingDown(boolean slowingDown) {
         if (slowingDown) {
-            for (SlowdownMode mode : SlowdownMode.values()) {
-                this.slowDownOptions.add(mode);
-            }
+            set(StandardProperties.slowDown, EnumSet.allOf(SlowdownMode.class));
         } else {
-            this.slowDownOptions.clear();
+            set(StandardProperties.slowDown, Collections.emptySet());
         }
     }
 
@@ -339,7 +336,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if the slowdown mode is activated
      */
     public boolean isSlowingDown(SlowdownMode mode) {
-        return this.slowDownOptions.contains(mode);
+        return get(StandardProperties.slowDown).contains(mode);
     }
 
     /**
@@ -349,7 +346,13 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param slowingDown option to set that mode to
      */
     public void setSlowingDown(SlowdownMode mode, boolean slowingDown) {
-        LogicUtil.addOrRemove(this.slowDownOptions, mode, slowingDown);
+        Set<SlowdownMode> modes = get(StandardProperties.slowDown);
+        if (slowingDown != modes.contains(mode)) {
+            EnumSet<SlowdownMode> new_modes = EnumSet.noneOf(SlowdownMode.class);
+            new_modes.addAll(modes);
+            LogicUtil.addOrRemove(new_modes, mode, slowingDown);
+            set(StandardProperties.slowDown, new_modes);
+        }
     }
 
     /**

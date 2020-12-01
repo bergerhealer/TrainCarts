@@ -1,6 +1,9 @@
 package com.bergerkiller.bukkit.tc.properties.standard;
 
+import java.util.EnumSet;
+
 import com.bergerkiller.bukkit.tc.properties.collision.CollisionConfig;
+import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
 /**
  * Holds a <b>copy</b> of the train properties stored in YAML configuration
@@ -9,5 +12,6 @@ import com.bergerkiller.bukkit.tc.properties.collision.CollisionConfig;
  */
 public class FieldBackedStandardTrainPropertiesHolder {
     double speedLimit;
-    CollisionConfig collision = CollisionConfig.DEFAULT;
+    CollisionConfig collision;
+    final EnumSet<SlowdownMode> slowdown = EnumSet.allOf(SlowdownMode.class);
 }
