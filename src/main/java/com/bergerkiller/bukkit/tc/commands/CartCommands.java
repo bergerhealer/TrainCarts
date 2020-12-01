@@ -37,6 +37,69 @@ import java.util.Set;
 
 public class CartCommands {
 
+    @CommandMethod("cart destroy|remove")
+    @CommandDescription("Destroys the single cart that is selected")
+    private void commandDestroy(
+            final Player player,
+            final CartProperties properties
+    ) {
+        Permission.COMMAND_DESTROY.handle(player);
+
+        MinecartMember<?> member = properties.getHolder();
+        if (member == null) {
+            CartPropertiesStore.remove(properties.getUUID());
+            OfflineGroupManager.removeMember(properties.getUUID());
+        } else {
+            member.onDie();
+        }
+        player.sendMessage(ChatColor.YELLOW + "The selected cart has been destroyed!");
+    }
+
+    @CommandMethod("cart teleport|tp")
+    @CommandDescription("Teleports the player to where the cart is")
+    private void commandTeleport(
+            final Player player,
+            final CartProperties properties
+    ) {
+        Permission.COMMAND_TELEPORT.handle(player);
+
+        if (!properties.restore()) {
+            player.sendMessage(ChatColor.RED + "Cart location could not be found: Train is lost");
+        } else {
+            BlockLocation bloc = properties.getLocation();
+            World world = bloc.getWorld();
+            if (world == null) {
+                player.sendMessage(ChatColor.RED + "Train is on a world that is not loaded (" + bloc.world + ")");
+            } else {
+                EntityUtil.teleport(player, new Location(world, bloc.x + 0.5, bloc.y + 0.5, bloc.z + 0.5));
+                player.sendMessage(ChatColor.YELLOW + "Teleported to cart of '" + properties.getTrainProperties().getTrainName() + "'");
+            }
+        }
+    }
+
+    @CommandMethod("cart animate [options]")
+    @CommandDescription("Plays an animation for a single cart")
+    private void commandAnimate(
+            final Player player,
+            final CartProperties properties,
+            final @Argument("options") String[] options
+    ) {
+        Permission.COMMAND_ANIMATE.handle(player);
+
+        if (!properties.hasHolder()) {
+            player.sendMessage(ChatColor.RED + "Can not animate the minecart: it is not loaded");
+            return;
+        }
+
+        AnimationOptions opt = new AnimationOptions();
+        opt.loadCommandArgs((options==null) ? StringUtil.EMPTY_ARRAY : options);
+        if (properties.getHolder().playNamedAnimation(opt)) {
+            player.sendMessage(opt.getCommandSuccessMessage());
+        } else {
+            player.sendMessage(opt.getCommandFailureMessage());
+        }
+    }
+
     @CommandMethod("cart <arguments>")
     @CommandDescription("Performs commands that operate individual carts of a train")
     private void commandCart(
@@ -140,16 +203,6 @@ public class CartCommands {
                 prop.setDestination(StringUtil.join(" ", args[0]));
                 p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + args[0] + ChatColor.YELLOW + " as destination for this minecart!");
             }
-        } else if (LogicUtil.containsIgnoreCase(cmd, "remove", "destroy")) {
-            Permission.COMMAND_DESTROY.handle(p);
-            MinecartMember<?> mm = prop.getHolder();
-            if (mm == null) {
-                CartPropertiesStore.remove(prop.getUUID());
-                OfflineGroupManager.removeMember(prop.getUUID());
-            } else {
-                mm.onDie();
-            }
-            p.sendMessage(ChatColor.YELLOW + "The selected minecart has been destroyed!");
         } else if (cmd.equalsIgnoreCase("public")) {
             Permission.COMMAND_SETPUBLIC.handle(p);
             if (args.length == 0) {
@@ -211,22 +264,6 @@ public class CartCommands {
                     }
                 }
             }
-        } else if (LogicUtil.containsIgnoreCase(cmd, "path", "route", "pathinfo")) {
-            Permission.COMMAND_PATHINFO.handle(p);
-            Commands.showPathInfo(p, prop);
-        } else if (LogicUtil.containsIgnoreCase(cmd, "teleport", "tp")) {
-            Permission.COMMAND_TELEPORT.handle(p);
-            if (!prop.restore()) {
-                p.sendMessage(ChatColor.RED + "Cart location could not be found: Cart is lost");
-            } else {
-                BlockLocation bloc = prop.getLocation();
-                World world = bloc.getWorld();
-                if (world == null) {
-                    p.sendMessage(ChatColor.RED + "Cart is on a world that is not loaded (" + bloc.world + ")");
-                } else {
-                    EntityUtil.teleport(p, new Location(world, bloc.x + 0.5, bloc.y + 0.5, bloc.z + 0.5));
-                }
-            }
         } else if (LogicUtil.containsIgnoreCase(cmd, "setblock", "setblocks", "changeblock", "changeblocks", "blockchanger")) {
             Permission.COMMAND_CHANGEBLOCK.handle(p);
             MinecartMember<?> member = prop.getHolder();
@@ -253,19 +290,6 @@ public class CartCommands {
                 int offset = ParseUtil.parseInt(args[0], 9);
                 member.getEntity().setBlockOffset(offset);
                 p.sendMessage(ChatColor.YELLOW + "The selected minecart has its displayed block offset updated!");
-            }
-        } else if (LogicUtil.containsIgnoreCase(cmd, "anim", "animate", "playanimation")) {
-            Permission.COMMAND_ANIMATE.handle(p);
-            if (prop.hasHolder()) {
-                AnimationOptions opt = new AnimationOptions();
-                opt.loadCommandArgs(args);
-                if (prop.getHolder().playNamedAnimation(opt)) {
-                    p.sendMessage(opt.getCommandSuccessMessage());
-                } else {
-                    p.sendMessage(opt.getCommandFailureMessage());
-                }
-            } else {
-                p.sendMessage(ChatColor.RED + "Can not animate the minecart: it is not loaded");
             }
         } else if (args.length == 1 && Util.parseProperties(prop, cmd, args[0])) {
             p.sendMessage(ChatColor.GREEN + "Property has been updated!");

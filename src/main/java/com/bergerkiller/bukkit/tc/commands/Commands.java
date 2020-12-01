@@ -171,7 +171,7 @@ public class Commands {
         Localization.COMMAND_ABOUT.message(sender, TrainCarts.plugin.getDebugVersion());
     }
 
-    public static void showPathInfo(Player p, IProperties prop) {
+    public static void showPathInfo(CommandSender sender, IProperties prop) {
         MessageBuilder msg = new MessageBuilder();
         msg.yellow("This ").append(prop.getTypeName());
         final String lastName = prop.getDestination();
@@ -206,7 +206,7 @@ public class Commands {
                 }
             }
         }
-        msg.send(p);
+        msg.send(sender);
     }
 
     public static void info(MessageBuilder message, IProperties prop) {

@@ -69,6 +69,11 @@ public class RouteCommands {
                 }
                 builder.send(sender);
             }
+
+            // Show the current route taken to the next destination
+            if (Permission.COMMAND_PATHINFO.has(sender)) {
+                Commands.showPathInfo(sender, properties);
+            }
         } else if (args[0].equalsIgnoreCase("add") && args.length > 1) {
             MessageBuilder builder = new MessageBuilder();
             builder.yellow("Added the destinations to the end of the route:");
