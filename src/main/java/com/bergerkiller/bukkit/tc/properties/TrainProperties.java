@@ -1495,23 +1495,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.waitAcceleration = getConfigValue("wait.acceleration", 0.0);
         this.waitDeceleration = getConfigValue("wait.deceleration", 0.0);
 
-        // Slowdown options for friction and gravity (and others?)
-        if (config.isNode("slowDown")) {
-            ConfigurationNode slowDownNode = config.getNode("slowDown");
-
-            for (SlowdownMode mode : SlowdownMode.values()) {
-                if (slowDownNode.contains(mode.getKey())) {
-                    this.setSlowingDown(mode, slowDownNode.get(mode.getKey(), true));
-                } else {
-                    this.setSlowingDown(mode, true);
-                }
-            }
-        } else if (config.contains("slowDown")) {
-            this.setSlowingDown(getConfigValue("slowDown", true));
-        } else {
-            this.setSlowingDown(true);
-        }
-
         // Banking
         this.bankingStrength = getConfigValue("banking.strength", 0.0);
         this.bankingSmoothness = getConfigValue("banking.smoothness", 10.0);
@@ -1587,17 +1570,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             banking.set("smoothness", this.bankingSmoothness != 10.0 ? this.bankingSmoothness : null);
         } else {
             config.remove("banking");
-        }
-
-        if (this.isSlowingDownAll()) {
-            config.remove("slowDown");
-        } else if (this.isSlowingDownNone()) {
-            config.set("slowDown", false);
-        } else {
-            ConfigurationNode slowdownNode = config.getNode("slowDown");
-            for (SlowdownMode mode : SlowdownMode.values()) {
-                slowdownNode.set(mode.getKey(), this.isSlowingDown(mode));
-            }
         }
 
         config.set("allowManualMovement", this.isManualMovementAllowed() ? true : null);
@@ -1684,16 +1656,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.waitDeceleration = wait.get("deceleration", this.waitDeceleration);
         }
 
-        // Slowdown options for friction and gravity (and others?)
-        if (node.isNode("slowDown")) {
-            ConfigurationNode slowDownNode = node.getNode("slowDown");
-            for (SlowdownMode mode : SlowdownMode.values()) {
-                this.setSlowingDown(mode, slowDownNode.get(mode.getKey(), this.isSlowingDown(mode)));
-            }
-        } else if (node.contains("slowDown")) {
-            this.setSlowingDown(node.get("slowDown", true));
-        }
-
         // Banking
         if (node.isNode("banking")) {
             ConfigurationNode banking = node.getNode("banking");
@@ -1755,11 +1717,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         ConfigurationNode banking = node.getNode("banking");
         banking.set("strength", 0.0);
         banking.set("smoothness", 10.0);
-
-        ConfigurationNode slowdownNode = node.getNode("slowDown");
-        for (SlowdownMode mode : SlowdownMode.values()) {
-            slowdownNode.set(mode.getKey(), true);
-        }
 
         node.set("allowManualMovement", false);
         node.set("allowMobManualMovement", false);

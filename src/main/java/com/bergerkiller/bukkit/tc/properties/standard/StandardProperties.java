@@ -23,7 +23,7 @@ public class StandardProperties {
 
     public static final FieldBackedStandardTrainProperty<Set<SlowdownMode>> SLOWDOWN = new FieldBackedStandardTrainProperty<Set<SlowdownMode>>() {
         private final Set<SlowdownMode> ALL = Collections.unmodifiableSet(EnumSet.allOf(SlowdownMode.class));
-        private final Set<SlowdownMode> NONE = Collections.unmodifiableSet(EnumSet.allOf(SlowdownMode.class));
+        private final Set<SlowdownMode> NONE = Collections.unmodifiableSet(EnumSet.noneOf(SlowdownMode.class));
 
         @Override
         public List<String> getNames() {
