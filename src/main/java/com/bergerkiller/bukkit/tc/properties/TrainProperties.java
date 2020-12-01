@@ -255,7 +255,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return max speed in blocks/tick
      */
     public double getSpeedLimit() {
-        return StandardProperties.speedLimit.getHolderDoubleValue(this.standardProperties);
+        return StandardProperties.SPEEDLIMIT.getHolderDoubleValue(this.standardProperties);
     }
 
     /**
@@ -265,7 +265,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param limit in blocks/tick
      */
     public void setSpeedLimit(double limit) {
-        StandardProperties.speedLimit.set(this, limit);
+        StandardProperties.SPEEDLIMIT.set(this, limit);
     }
 
     /**
@@ -294,7 +294,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     @Deprecated
     public boolean isSlowingDown() {
-        return !get(StandardProperties.slowDown).isEmpty();
+        return !get(StandardProperties.SLOWDOWN).isEmpty();
     }
 
     /**
@@ -303,7 +303,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if all modes are active (legacy slowdown = true set)
      */
     public boolean isSlowingDownAll() {
-        return get(StandardProperties.slowDown).equals(EnumSet.allOf(SlowdownMode.class));
+        return get(StandardProperties.SLOWDOWN).equals(EnumSet.allOf(SlowdownMode.class));
     }
 
     /**
@@ -312,7 +312,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if all slowdown is disabled (legacy slowdown = false set)
      */
     public boolean isSlowingDownNone() {
-        return get(StandardProperties.slowDown).isEmpty();
+        return get(StandardProperties.SLOWDOWN).isEmpty();
     }
 
     /**
@@ -323,9 +323,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     public void setSlowingDown(boolean slowingDown) {
         if (slowingDown) {
-            set(StandardProperties.slowDown, EnumSet.allOf(SlowdownMode.class));
+            set(StandardProperties.SLOWDOWN, EnumSet.allOf(SlowdownMode.class));
         } else {
-            set(StandardProperties.slowDown, Collections.emptySet());
+            set(StandardProperties.SLOWDOWN, Collections.emptySet());
         }
     }
 
@@ -336,7 +336,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if the slowdown mode is activated
      */
     public boolean isSlowingDown(SlowdownMode mode) {
-        return get(StandardProperties.slowDown).contains(mode);
+        return get(StandardProperties.SLOWDOWN).contains(mode);
     }
 
     /**
@@ -346,12 +346,12 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param slowingDown option to set that mode to
      */
     public void setSlowingDown(SlowdownMode mode, boolean slowingDown) {
-        Set<SlowdownMode> modes = get(StandardProperties.slowDown);
+        Set<SlowdownMode> modes = get(StandardProperties.SLOWDOWN);
         if (slowingDown != modes.contains(mode)) {
             EnumSet<SlowdownMode> new_modes = EnumSet.noneOf(SlowdownMode.class);
             new_modes.addAll(modes);
             LogicUtil.addOrRemove(new_modes, mode, slowingDown);
-            set(StandardProperties.slowDown, new_modes);
+            set(StandardProperties.SLOWDOWN, new_modes);
         }
     }
 
@@ -363,7 +363,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return display name
      */
     public String getDisplayName() {
-        String name = get(StandardProperties.displayName);
+        String name = get(StandardProperties.DISPLAYNAME);
         return name.isEmpty() ? this.getTrainName() : name;
     }
 
@@ -374,7 +374,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return display name, or empty if none is set
      */
     public String getDisplayNameOrEmpty() {
-        return get(StandardProperties.displayName);
+        return get(StandardProperties.DISPLAYNAME);
     }
 
     /**
@@ -384,7 +384,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param displayName to set to
      */
     public void setDisplayName(String displayName) {
-        set(StandardProperties.displayName, displayName);
+        set(StandardProperties.DISPLAYNAME, displayName);
     }
 
     /**
@@ -1301,7 +1301,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return collision configuration
      */
     public CollisionConfig getCollision() {
-        return get(StandardProperties.collision);
+        return get(StandardProperties.COLLISION);
     }
 
     /**
@@ -1312,7 +1312,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param collisionConfig New collision configuration to set to
      */
     public void setCollision(CollisionConfig collisionConfig) {
-        set(StandardProperties.collision, collisionConfig);
+        set(StandardProperties.COLLISION, collisionConfig);
     }
 
     /**

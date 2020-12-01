@@ -21,7 +21,7 @@ import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
  */
 public class StandardProperties {
 
-    public static final FieldBackedStandardTrainProperty<Set<SlowdownMode>> slowDown = new FieldBackedStandardTrainProperty<Set<SlowdownMode>>() {
+    public static final FieldBackedStandardTrainProperty<Set<SlowdownMode>> SLOWDOWN = new FieldBackedStandardTrainProperty<Set<SlowdownMode>>() {
         private final Set<SlowdownMode> ALL = Collections.unmodifiableSet(EnumSet.allOf(SlowdownMode.class));
         private final Set<SlowdownMode> NONE = Collections.unmodifiableSet(EnumSet.allOf(SlowdownMode.class));
 
@@ -90,7 +90,7 @@ public class StandardProperties {
         }
     };
 
-    public static final ITrainProperty<String> displayName = new ITrainProperty<String>() {
+    public static final ITrainProperty<String> DISPLAYNAME = new ITrainProperty<String>() {
         @Override
         public List<String> getNames() {
             return Arrays.asList("displayname", "dname", "setdisplayname", "setdname");
@@ -112,7 +112,7 @@ public class StandardProperties {
         }
     };
 
-    public static final FieldBackedStandardTrainProperty<CollisionConfig> collision = new FieldBackedStandardTrainProperty<CollisionConfig>() {
+    public static final FieldBackedStandardTrainProperty<CollisionConfig> COLLISION = new FieldBackedStandardTrainProperty<CollisionConfig>() {
 
         @Override
         public List<String> getNames() {
@@ -174,7 +174,7 @@ public class StandardProperties {
         }
     };
 
-    public static final FieldBackedStandardTrainProperty.StandardDouble speedLimit = new FieldBackedStandardTrainProperty.StandardDouble() {
+    public static final FieldBackedStandardTrainProperty.StandardDouble SPEEDLIMIT = new FieldBackedStandardTrainProperty.StandardDouble() {
         @Override
         public List<String> getNames() {
             return Arrays.asList("maxspeed", "speedlimit");
