@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
+import com.bergerkiller.bukkit.tc.properties.standard.type.BankingOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.WaitOptions;
@@ -29,7 +30,58 @@ import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 public class StandardProperties {
 
     /**
-     * Configured train behavior for waiting on obstacles on the track ahead
+     * Configures how trains roll inwards when turning
+     */
+    public static final FieldBackedStandardTrainProperty<BankingOptions> BANKING_OPTIONS = new FieldBackedStandardTrainProperty<BankingOptions>() {
+
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("banking");
+        }
+
+        @Override
+        public BankingOptions getDefault() {
+            return BankingOptions.DEFAULT;
+        }
+
+        @Override
+        public BankingOptions getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
+            return holder.bankingOptionsData;
+        }
+
+        @Override
+        public void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, BankingOptions value) {
+            holder.bankingOptionsData = value;
+        }
+
+        @Override
+        public Optional<BankingOptions> readFromConfig(ConfigurationNode config) {
+            if (!config.isNode("banking")) {
+                return Optional.empty();
+            }
+
+            ConfigurationNode banking = config.getNode("banking");
+            return Optional.of(BankingOptions.create(
+                    banking.get("strength", 0.0),
+                    banking.get("smoothness", 0.0)
+            ));
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<BankingOptions> value) {
+            if (value.isPresent()) {
+                BankingOptions data = value.get();
+                ConfigurationNode banking = config.getNode("banking");
+                banking.set("strength", data.strength());
+                banking.set("smoothness", data.smoothness());
+            } else {
+                config.remove("banking");
+            }
+        }
+    };
+
+    /**
+     * Configures train behavior for waiting on obstacles on the track ahead
      */
     public static final FieldBackedStandardTrainProperty<WaitOptions> WAIT_OPTIONS = new FieldBackedStandardTrainProperty<WaitOptions>() {
 

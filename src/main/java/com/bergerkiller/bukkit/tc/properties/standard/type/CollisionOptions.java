@@ -305,6 +305,11 @@ public final class CollisionOptions {
     }
 
     @Override
+    public int hashCode() {
+        return this.playerMode.ordinal();
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (o == this) {
             return true;
@@ -318,11 +323,6 @@ public final class CollisionOptions {
         } else {
             return false;
         }
-    }
-
-    @Override
-    public int hashCode() {
-        return 0; // Just to prevent failure
     }
 
     @Override

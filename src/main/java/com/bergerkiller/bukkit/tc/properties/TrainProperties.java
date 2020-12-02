@@ -38,6 +38,7 @@ import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
+import com.bergerkiller.bukkit.tc.properties.standard.type.BankingOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.WaitOptions;
@@ -65,8 +66,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private List<String> tickets = new ArrayList<>();
     private String blockTypes = "";
     private int blockOffset = SignActionBlockChanger.BLOCK_OFFSET_NONE;
-    private double bankingStrength = 0.0;
-    private double bankingSmoothness = 10.0;
     private boolean suffocation = true;
     private double gravity = 1.0;
     private String killMessage = "";
@@ -593,19 +592,27 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     public double getBankingStrength() {
-        return this.bankingStrength;
+        return get(StandardProperties.BANKING_OPTIONS).strength();
     }
 
     public double getBankingSmoothness() {
-        return this.bankingSmoothness;
+        return get(StandardProperties.BANKING_OPTIONS).smoothness();
     }
 
-    public void setBankingStrength(double strength) {
-        this.bankingStrength = strength;
+    public void setBanking(double strength, double smoothness) {
+        set(StandardProperties.BANKING_OPTIONS, BankingOptions.create(strength, smoothness));
     }
 
-    public void setBankingSmoothness(double smoothness) {
-        this.bankingSmoothness = smoothness;
+    public void setBankingStrength(final double strength) {
+        update(StandardProperties.BANKING_OPTIONS, opt -> BankingOptions.create(
+                strength, opt.smoothness()
+        ));
+    }
+
+    public void setBankingSmoothness(final double smoothness) {
+        update(StandardProperties.BANKING_OPTIONS, opt -> BankingOptions.create(
+                opt.strength(), smoothness
+        ));
     }
 
     @Override
@@ -1247,9 +1254,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.setInvincible(ParseUtil.parseBool(arg));
         } else if (LogicUtil.containsIgnoreCase(key, "banking")) {
             String[] args = arg.split(" ");
-            this.setBankingStrength(ParseUtil.parseDouble(args[0], this.bankingStrength));
+            this.setBankingStrength(ParseUtil.parseDouble(args[0], this.getBankingStrength()));
             if (args.length >= 2) {
-                this.setBankingSmoothness(ParseUtil.parseDouble(args[1], this.bankingSmoothness));
+                this.setBankingSmoothness(ParseUtil.parseDouble(args[1], this.getBankingSmoothness()));
             }
         } else if (key.equalsIgnoreCase("setownerperm")) {
             for (CartProperties prop : this) {
@@ -1503,10 +1510,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.suffocation = getConfigValue("suffocation", true);
         this.killMessage = getConfigValue("killMessage", "");
 
-        // Banking
-        this.bankingStrength = getConfigValue("banking.strength", 0.0);
-        this.bankingSmoothness = getConfigValue("banking.smoothness", 10.0);
-
         // Tickets that can be used for this train
         this.tickets.clear();
         if (config.contains("tickets")) {
@@ -1561,15 +1564,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         config.set("gravity", this.gravity != 1.0 ? this.gravity : null);
         config.set("suffocation", this.suffocation ? null : false);
         config.set("killMessage", this.killMessage.isEmpty() ? null : this.killMessage);
-
-        if (this.bankingStrength != 0.0 || this.bankingSmoothness != 10.0) {
-            ConfigurationNode banking = config.getNode("banking");
-            banking.set("strength", this.bankingStrength != 0.0 ? this.bankingStrength : null);
-            banking.set("smoothness", this.bankingSmoothness != 10.0 ? this.bankingSmoothness : null);
-        } else {
-            config.remove("banking");
-        }
-
         config.set("allowManualMovement", this.isManualMovementAllowed() ? true : null);
         config.set("allowMobManualMovement", this.isMobManualMovementAllowed() ? true : null);
         config.set("tickets", this.tickets.isEmpty() ? null : LogicUtil.toArray(this.tickets, String.class));
@@ -1636,13 +1630,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.suffocation = node.get("suffocation", this.suffocation);
         this.killMessage = node.get("killMessage", this.killMessage);
 
-        // Banking
-        if (node.isNode("banking")) {
-            ConfigurationNode banking = node.getNode("banking");
-            this.bankingStrength = banking.get("strength", this.bankingStrength);
-            this.bankingSmoothness = banking.get("smoothness", this.bankingSmoothness);
-        }
-
         // Tickets that can be used for this train
         if (node.contains("tickets")) {
             this.tickets.clear();
@@ -1682,15 +1669,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("gravity", 1.0);
         node.set("suffocation", true);
         node.set("killMessage", "");
-
-        ConfigurationNode banking = node.getNode("banking");
-        banking.set("strength", 0.0);
-        banking.set("smoothness", 10.0);
-
         node.set("allowManualMovement", false);
         node.set("allowMobManualMovement", false);
         node.set("tickets", StringUtil.EMPTY_ARRAY);
-
         node.set("blockTypes", "");
         node.set("blockOffset", "unset");
     }

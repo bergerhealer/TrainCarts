@@ -63,6 +63,11 @@ public final class WaitOptions {
     }
 
     @Override
+    public int hashCode() {
+        return Double.hashCode(this.distance);
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (o == this) {
             return true;

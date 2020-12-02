@@ -34,21 +34,6 @@ public final class SignSkipOptions {
         this.skippedSigns = signs;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof SignSkipOptions) {
-            SignSkipOptions other = (SignSkipOptions) o;
-            return this.ignoreCounter == other.ignoreCounter &&
-                   this.skipCounter == other.skipCounter &&
-                   this.filter.equals(other.filter) &&
-                   this.skippedSigns.equals(other.skippedSigns);
-        } else {
-            return false;
-        }
-    }
-
     /**
      * Gets the number of signs to ignore and allow anyway before the
      * {@link #skipCounter()} becomes active.
@@ -118,6 +103,26 @@ public final class SignSkipOptions {
      */
     public boolean isActive() {
         return this.ignoreCounter != 0 || this.skipCounter != 0;
+    }
+
+    @Override
+    public int hashCode() {
+        return this.skipCounter;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        } else if (o instanceof SignSkipOptions) {
+            SignSkipOptions other = (SignSkipOptions) o;
+            return this.ignoreCounter == other.ignoreCounter &&
+                   this.skipCounter == other.skipCounter &&
+                   this.filter.equals(other.filter) &&
+                   this.skippedSigns.equals(other.skippedSigns);
+        } else {
+            return false;
+        }
     }
 
     /**
