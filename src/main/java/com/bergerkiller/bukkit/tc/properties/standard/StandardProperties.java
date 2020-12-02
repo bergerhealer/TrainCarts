@@ -6,14 +6,18 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil.ItemSynchronizer;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
@@ -28,6 +32,327 @@ import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
  * All standard TrainCarts built-in train and cart properties
  */
 public class StandardProperties {
+
+    public static final ITrainProperty<List<String>> TICKETS = new ITrainProperty<List<String>>() {
+        @Override
+        public List<String> getNames() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public List<String> getDefault() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        @SuppressWarnings({ "unchecked", "rawtypes" })
+        public Optional<List<String>> readFromConfig(ConfigurationNode config) {
+            if (config.contains("tickets")) {
+                Object[] values = config.getList("tickets", String.class).toArray();
+                return Optional.of((List) Collections.unmodifiableList(Arrays.asList(values)));
+            } else {
+                return Optional.empty();
+            }
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<List<String>> value) {
+            if (value.isPresent()) {
+                //TODO: Use ItemSynchronizer.identity()
+                LogicUtil.synchronizeList(
+                        config.getList("tickets", String.class),
+                        value.get(),
+                        new ItemSynchronizer<String, String>() {
+                    @Override
+                    public boolean isItem(String item, String value) {
+                        return Objects.equals(item, value);
+                    }
+
+                    @Override
+                    public String onAdded(String value) {
+                        return value;
+                    }
+
+                    @Override
+                    public void onRemoved(String item) {
+                    }
+                });
+            } else {
+                config.remove("tickets");
+            }
+        }
+    };
+
+    public static final ITrainProperty<String> KILL_MESSAGE = new ITrainProperty<String>() {
+
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("killmessage");
+        }
+
+        @Override
+        public String getDefault() {
+            return "";
+        }
+
+        @Override
+        public Optional<String> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "killMessage", String.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<String> value) {
+            Util.setConfigOptional(config, "killMessage", value);
+        }
+    };
+
+    public static final ITrainProperty<Boolean> SUFFOCATION = new ITrainProperty<Boolean>() {
+
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("suffocation");
+        }
+
+        @Override
+        public Boolean getDefault() {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "suffocation", boolean.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
+            Util.setConfigOptional(config, "suffocation", value);
+        }
+    };
+
+    public static final ITrainProperty<Boolean> REQUIRE_POWERED_MINECART = new ITrainProperty<Boolean>() {
+
+        @Override
+        public List<String> getNames() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public Boolean getDefault() {
+            return Boolean.FALSE;
+        }
+
+        @Override
+        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "requirePoweredMinecart", boolean.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
+            Util.setConfigOptional(config, "requirePoweredMinecart", value);
+        }
+    };
+
+    public static final FieldBackedStandardTrainProperty<Boolean> ALLOW_MOB_MANUAL_MOVEMENT = new FieldBackedStandardTrainProperty<Boolean>() {
+
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("allowmobmanual", "mobmanualmove", "mobmanual");
+        }
+
+        @Override
+        public Boolean getDefault() {
+            return Boolean.FALSE;
+        }
+
+        @Override
+        public Boolean getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
+            return holder.allowMobManualMovement;
+        }
+
+        @Override
+        public void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, Boolean value) {
+            holder.allowMobManualMovement = value.booleanValue();
+        }
+
+        @Override
+        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "allowMobManualMovement", boolean.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
+            Util.setConfigOptional(config, "allowMobManualMovement", value);
+        }
+    };
+
+    public static final FieldBackedStandardTrainProperty<Boolean> ALLOW_PLAYER_MANUAL_MOVEMENT = new FieldBackedStandardTrainProperty<Boolean>() {
+
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("allowmanual", "manualmove", "manual");
+        }
+
+        @Override
+        public Boolean getDefault() {
+            return Boolean.FALSE;
+        }
+
+        @Override
+        public Boolean getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
+            return holder.allowPlayerManualMovement;
+        }
+
+        @Override
+        public void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, Boolean value) {
+            holder.allowPlayerManualMovement = value.booleanValue();
+        }
+
+        @Override
+        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "allowManualMovement", boolean.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
+            Util.setConfigOptional(config, "allowManualMovement", value);
+        }
+    };
+
+    public static final FieldBackedStandardTrainProperty<Boolean> KEEP_CHUNKS_LOADED = new FieldBackedStandardTrainProperty<Boolean>() {
+
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("keeploaded", "keepcloaded", "loadchunks");
+        }
+
+        @Override
+        public Boolean getDefault() {
+            return Boolean.FALSE;
+        }
+
+        @Override
+        public Boolean getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
+            return holder.keepChunksLoaded;
+        }
+
+        @Override
+        public void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, Boolean value) {
+            holder.keepChunksLoaded = value.booleanValue();
+        }
+
+        @Override
+        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "keepChunksLoaded", boolean.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
+            Util.setConfigOptional(config, "keepChunksLoaded", value);
+        }
+
+        @Override
+        public void onConfigurationChanged(TrainProperties properties) {
+            FieldBackedStandardTrainProperty.super.onConfigurationChanged(properties);
+            updateState(properties, properties.getStandardPropertiesHolder().keepChunksLoaded);
+        }
+
+        @Override
+        public void set(TrainProperties properties, Boolean value) {
+            FieldBackedStandardTrainProperty.super.set(properties, value);
+            updateState(properties, value.booleanValue());
+        }
+
+        private void updateState(TrainProperties properties, boolean keepLoaded) {
+            if (keepLoaded) {
+                properties.restore();
+            }
+
+            MinecartGroup group = properties.getHolder();
+            if (group != null) {
+                group.keepChunksLoaded(keepLoaded);
+            }
+        }
+    };
+
+    public static final ITrainProperty<Double> COLLISION_DAMAGE = new ITrainProperty<Double>() {
+        private final Double DEFAULT = 1.0;
+
+        @Override
+        public List<String> getNames() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public Double getDefault() {
+            return DEFAULT;
+        }
+
+        @Override
+        public Optional<Double> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "collisionDamage", double.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Double> value) {
+            Util.setConfigOptional(config, "collisionDamage", value);
+        }
+    };
+
+    public static final ITrainProperty<Boolean> ALLOW_PLAYER_TAKE = new ITrainProperty<Boolean>() {
+
+        @Override
+        public List<String> getNames() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public Boolean getDefault() {
+            return Boolean.FALSE;
+        }
+
+        @Override
+        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "allowPlayerTake", boolean.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
+            Util.setConfigOptional(config, "allowPlayerTake", value);
+        }
+    };
+
+    public static final FieldBackedStandardTrainProperty<Boolean> SOUND_ENABLED = new FieldBackedStandardTrainProperty<Boolean>() {
+
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("sound", "minecartsound");
+        }
+
+        @Override
+        public Boolean getDefault() {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Boolean getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
+            return holder.soundEnabled;
+        }
+
+        @Override
+        public void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, Boolean value) {
+            holder.soundEnabled = value.booleanValue();
+        }
+
+        @Override
+        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "soundEnabled", boolean.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
+            Util.setConfigOptional(config, "soundEnabled", value);
+        }
+    };
 
     /**
      * Configures how trains roll inwards when turning
@@ -116,10 +441,10 @@ public class StandardProperties {
             }
 
             ConfigurationNode waitConfig = config.getNode("wait");
-            double distance = waitConfig.contains("distance")     ? waitConfig.get("distance",     0.0) : 0.0;
-            double delay =    waitConfig.contains("delay")        ? waitConfig.get("delay",        0.0) : 0.0;
-            double accel =    waitConfig.contains("acceleration") ? waitConfig.get("acceleration", 0.0) : 0.0;
-            double decel =    waitConfig.contains("deceleration") ? waitConfig.get("deceleration", 0.0) : 0.0;
+            double distance = waitConfig.get("distance", 0.0);
+            double delay = waitConfig.get("delay", 0.0);
+            double accel = waitConfig.get("acceleration", 0.0);
+            double decel = waitConfig.get("deceleration", 0.0);
             return Optional.of(WaitOptions.create(distance, delay, accel, decel));
         }
 
@@ -129,10 +454,10 @@ public class StandardProperties {
             if (value.isPresent()) {
                 WaitOptions data = value.get();
                 ConfigurationNode node = config.getNode("wait");
-                node.set("distance",         (data.distance() == 0.0) ? null : data.distance());
-                node.set("delay",               (data.delay() == 0.0) ? null : data.delay());
-                node.set("acceleration", (data.acceleration() == 0.0) ? null : data.acceleration());
-                node.set("deceleration", (data.deceleration() == 0.0) ? null : data.deceleration());
+                node.set("distance", data.distance());
+                node.set("delay", data.delay());
+                node.set("acceleration", data.acceleration());
+                node.set("deceleration", data.deceleration());
             } else {
                 config.remove("wait");
             }
@@ -415,6 +740,38 @@ public class StandardProperties {
         }
     };
 
+    public static final FieldBackedStandardTrainProperty.StandardDouble GRAVITY = new FieldBackedStandardTrainProperty.StandardDouble() {
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("gravity");
+        }
+
+        @Override
+        public double getDoubleDefault() {
+            return 1.0;
+        }
+
+        @Override
+        public double getHolderDoubleValue(FieldBackedStandardTrainPropertiesHolder holder) {
+            return holder.gravity;
+        }
+
+        @Override
+        public void setHolderDoubleValue(FieldBackedStandardTrainPropertiesHolder holder, double value) {
+            holder.gravity = value;
+        }
+
+        @Override
+        public Optional<Double> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "gravity", double.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Double> value) {
+            Util.setConfigOptional(config, "gravity", value);
+        }
+    };
+
     public static final FieldBackedStandardTrainProperty.StandardDouble SPEEDLIMIT = new FieldBackedStandardTrainProperty.StandardDouble() {
         @Override
         public List<String> getNames() {
@@ -438,7 +795,7 @@ public class StandardProperties {
 
         @Override
         public Optional<Double> readFromConfig(ConfigurationNode config) {
-            return Util.getConfigOptional(config, "speedLimit", Double.class);
+            return Util.getConfigOptional(config, "speedLimit", double.class);
         }
 
         @Override

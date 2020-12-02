@@ -323,7 +323,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public boolean isValid() {
-        return !this.isEmpty() && (this.size() == 1 || !this.getProperties().requirePoweredMinecart || this.size(EntityType.MINECART_FURNACE) > 0);
+        return !this.isEmpty() && (this.size() == 1 || !this.getProperties().isPoweredMinecartRequired() || this.size(EntityType.MINECART_FURNACE) > 0);
     }
 
     /**

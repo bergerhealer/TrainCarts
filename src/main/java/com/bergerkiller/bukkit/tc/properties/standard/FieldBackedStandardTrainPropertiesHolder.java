@@ -15,9 +15,14 @@ import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
  */
 public class FieldBackedStandardTrainPropertiesHolder {
     double speedLimit;
+    double gravity;
     CollisionOptions collision;
     final EnumSet<SlowdownMode> slowdown = EnumSet.allOf(SlowdownMode.class);
     SignSkipOptions signSkipOptionsData;
     WaitOptions waitOptionsData;
     BankingOptions bankingOptionsData;
+    boolean soundEnabled;
+    boolean keepChunksLoaded;
+    boolean allowPlayerManualMovement;
+    boolean allowMobManualMovement;
 }

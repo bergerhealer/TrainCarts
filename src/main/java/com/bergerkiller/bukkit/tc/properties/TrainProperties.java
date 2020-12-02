@@ -25,7 +25,6 @@ import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
-import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -42,8 +41,8 @@ import com.bergerkiller.bukkit.tc.properties.standard.type.BankingOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.WaitOptions;
-import com.bergerkiller.bukkit.tc.properties.standard.FieldBackedStandardTrainPropertiesHolder;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
+import com.bergerkiller.bukkit.tc.properties.standard.FieldBackedStandardTrainPropertiesHolder;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
@@ -55,20 +54,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private final SoftReference<MinecartGroup> group = new SoftReference<>();
     private final FieldBackedStandardTrainPropertiesHolder standardProperties = new FieldBackedStandardTrainPropertiesHolder();
     private final ConfigurationNode config;
-    public boolean requirePoweredMinecart = false;
     protected String trainname;
-    private double collisionDamage = 1.0D;
-    private boolean keepChunksLoaded = false;
-    private boolean allowPlayerManualMovement = false;
-    private boolean allowMobManualMovement = false;
-    private boolean allowPlayerTake = false;
-    private boolean soundEnabled = true;
-    private List<String> tickets = new ArrayList<>();
-    private String blockTypes = "";
-    private int blockOffset = SignActionBlockChanger.BLOCK_OFFSET_NONE;
-    private boolean suffocation = true;
-    private double gravity = 1.0;
-    private String killMessage = "";
 
     /**
      * Creates new TrainProperties<br>
@@ -282,7 +268,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return gravity factor
      */
     public double getGravity() {
-        return this.gravity;
+        return StandardProperties.GRAVITY.getHolderDoubleValue(this.standardProperties);
     }
 
     /**
@@ -291,7 +277,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param gravity
      */
     public void setGravity(double gravity) {
-        this.gravity = gravity;
+        set(StandardProperties.GRAVITY, gravity);
     }
 
     /**
@@ -404,7 +390,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True or False
      */
     public boolean isKeepingChunksLoaded() {
-        return this.keepChunksLoaded;
+        return get(StandardProperties.KEEP_CHUNKS_LOADED);
     }
 
     /**
@@ -413,16 +399,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param state to set to
      */
     public void setKeepChunksLoaded(boolean state) {
-        if (state && !this.keepChunksLoaded) {
-            this.restore();
-        }
-        if (state != this.keepChunksLoaded) {
-            this.keepChunksLoaded = state;
-            MinecartGroup group = this.getHolder();
-            if (group != null) {
-                group.keepChunksLoaded(state);
-            }
-        }
+        set(StandardProperties.KEEP_CHUNKS_LOADED, state);
     }
 
     /**
@@ -431,7 +408,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if enabled, False if not
      */
     public boolean isSoundEnabled() {
-        return this.soundEnabled;
+        return get(StandardProperties.SOUND_ENABLED);
     }
 
     /**
@@ -440,7 +417,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param enabled state to set to
      */
     public void setSoundEnabled(boolean enabled) {
-        this.soundEnabled = enabled;
+        set(StandardProperties.SOUND_ENABLED, enabled);
     }
 
     @Override
@@ -578,7 +555,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if players can take Minecarts with them, False if not.
      */
     public boolean isPlayerTakeable() {
-        return this.allowPlayerTake;
+        return get(StandardProperties.ALLOW_PLAYER_TAKE);
     }
 
     /**
@@ -588,7 +565,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param takeable state to set to
      */
     public void setPlayerTakeable(boolean takeable) {
-        this.allowPlayerTake = takeable;
+        set(StandardProperties.ALLOW_PLAYER_TAKE, takeable);
     }
 
     public double getBankingStrength() {
@@ -863,6 +840,22 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         }
     }
 
+    public boolean isPoweredMinecartRequired() {
+        return get(StandardProperties.REQUIRE_POWERED_MINECART);
+    }
+
+    public void setPoweredMinecartRequired(boolean required) {
+        set(StandardProperties.REQUIRE_POWERED_MINECART, required);
+    }
+
+    public double getCollisionDamage() {
+        return get(StandardProperties.COLLISION_DAMAGE);
+    }
+
+    public void setCollisionDamage(double collisionDamage) {
+        set(StandardProperties.COLLISION_DAMAGE, collisionDamage);
+    }
+
     public CollisionMode getCollisionMode(Entity entity) {
         if (entity.isDead()) {
             return CollisionMode.CANCEL;
@@ -943,7 +936,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if suffocation damage is enabled
      */
     public boolean hasSuffocation() {
-        return this.suffocation;
+        return get(StandardProperties.SUFFOCATION);
     }
 
     /**
@@ -952,7 +945,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param suffocation option
      */
     public void setSuffocation(boolean suffocation) {
-        this.suffocation = suffocation;
+        set(StandardProperties.SUFFOCATION, suffocation);
     }
 
     /**
@@ -961,7 +954,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if manual movement is allowed, False if not
      */
     public boolean isManualMovementAllowed() {
-        return this.allowPlayerManualMovement;
+        return get(StandardProperties.ALLOW_PLAYER_MANUAL_MOVEMENT);
     }
 
     /**
@@ -970,7 +963,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param allow state to set to
      */
     public void setManualMovementAllowed(boolean allow) {
-        this.allowPlayerManualMovement = allow;
+        set(StandardProperties.ALLOW_PLAYER_MANUAL_MOVEMENT, allow);
     }
 
     /**
@@ -979,7 +972,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return True if manual movement is allowed, False if not
      */
     public boolean isMobManualMovementAllowed() {
-        return this.allowMobManualMovement;
+        return get(StandardProperties.ALLOW_MOB_MANUAL_MOVEMENT);
     }
 
     /**
@@ -988,7 +981,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param allow state to set to
      */
     public void setMobManualMovementAllowed(boolean allow) {
-        this.allowMobManualMovement = allow;
+        set(StandardProperties.ALLOW_MOB_MANUAL_MOVEMENT, allow);
     }
 
     /**
@@ -997,7 +990,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return tickets
      */
     public List<String> getTickets() {
-        return Collections.unmodifiableList(this.tickets);
+        return get(StandardProperties.TICKETS);
     }
 
     /**
@@ -1006,7 +999,15 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param ticketName to add
      */
     public void addTicket(String ticketName) {
-        this.tickets.add(ticketName);
+        update(StandardProperties.TICKETS, tickets -> {
+            if (tickets.contains(ticketName)) {
+                return tickets;
+            } else {
+                ArrayList<String> new_tickets = new ArrayList<>(tickets);
+                new_tickets.add(ticketName);
+                return new_tickets;
+            }
+        });
     }
 
     /**
@@ -1015,11 +1016,20 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param ticketName to remove
      */
     public void removeTicket(String ticketName) {
-        this.tickets.remove(ticketName);
+        update(StandardProperties.TICKETS, tickets -> {
+            int index = tickets.indexOf(ticketName);
+            if (index == -1) {
+                return tickets;
+            } else {
+                ArrayList<String> new_tickets = new ArrayList<>(tickets);
+                new_tickets.remove(index);
+                return new_tickets;
+            }
+        });
     }
 
     public void clearTickets() {
-        this.tickets.clear();
+        set(StandardProperties.TICKETS, Collections.emptyList());
     }
 
     public SignSkipOptions getSkipOptions() {
@@ -1031,11 +1041,11 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     public String getKillMessage() {
-        return this.killMessage;
+        return get(StandardProperties.KILL_MESSAGE);
     }
 
     public void setKillMessage(String killMessage) {
-        this.killMessage = killMessage;
+        set(StandardProperties.KILL_MESSAGE, killMessage);
     }
 
     public boolean isTrainRenamed() {
@@ -1131,9 +1141,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                 prop.exitPitch = pitch;
             }
         } else if (key.equalsIgnoreCase("killmessage")) {
-            this.killMessage = arg;
+            this.setKillMessage(arg);
         } else if (key.equalsIgnoreCase("sound") || key.equalsIgnoreCase("minecartsound")) {
-            this.soundEnabled = ParseUtil.parseBool(arg);
+            this.setSoundEnabled(ParseUtil.parseBool(arg));
         } else if (key.equalsIgnoreCase("playercollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
             if (mode == null) return false;
@@ -1153,7 +1163,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (key.equalsIgnoreCase("collisiondamage")) {
             this.setCollisionDamage(Double.parseDouble(arg));
         } else if (key.equalsIgnoreCase("suffocation")) {
-            this.suffocation = ParseUtil.parseBool(arg);
+            this.setSuffocation(ParseUtil.parseBool(arg));
         } else if (this.setCollisionMode(key, arg)) {
             return true;
         } else if (LogicUtil.containsIgnoreCase(key, "collision", "collide")) {
@@ -1499,45 +1509,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
         // TODO: Replace all below with IProperty objects
         // Note: completely disregards all previous configuration!
-        this.allowPlayerTake = getConfigValue("allowPlayerTake", false);
-        this.collisionDamage = getConfigValue("collisionDamage", 1.0);
-        this.soundEnabled = getConfigValue("soundEnabled", true);
-        this.gravity = getConfigValue("gravity", 1.0);
-        this.requirePoweredMinecart = getConfigValue("requirePoweredMinecart", false);
-        this.setKeepChunksLoaded(getConfigValue("keepChunksLoaded", false));
-        this.allowPlayerManualMovement = getConfigValue("allowManualMovement", false);
-        this.allowMobManualMovement = getConfigValue("allowMobManualMovement", false);
-        this.suffocation = getConfigValue("suffocation", true);
-        this.killMessage = getConfigValue("killMessage", "");
-
-        // Tickets that can be used for this train
-        this.tickets.clear();
-        if (config.contains("tickets")) {
-            this.tickets.addAll(config.getList("tickets", String.class));
-        }
-
-        // These properties are purely saved so they are written correctly when saving defaults
-        // There are not meant to be read anywhere, because these exist as part of minecart metadata
-        // Only read these when actually set, don't add them using get's default if not so
-        // We don't want
-        this.blockTypes = "";
-        this.blockOffset = SignActionBlockChanger.BLOCK_OFFSET_NONE;
-        if (config.contains("blockTypes") || config.contains("blockOffset")) {
-            this.blockTypes = getConfigValue("blockTypes", "");
-            this.blockOffset = getConfigValue("blockOffset", SignActionBlockChanger.BLOCK_OFFSET_NONE);
-
-            // Apply block types / block height to the actual minecart, if set
-            if (!this.blockTypes.isEmpty() || this.blockOffset != SignActionBlockChanger.BLOCK_OFFSET_NONE) {
-                MinecartGroup group = this.getHolder();
-                if (group != null) {
-                    if (this.blockTypes.isEmpty()) {
-                        SignActionBlockChanger.setBlocks(group, new ItemParser[0], this.blockOffset);
-                    } else {
-                        SignActionBlockChanger.setBlocks(group, this.blockTypes, this.blockOffset);
-                    }
-                }
-            }
-        }
 
         // Also refresh carts
         if (cartsChanged) {
@@ -1556,18 +1527,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return saved {@link #getConfig()}
      */
     public ConfigurationNode saveToConfig() {
-        config.set("soundEnabled", this.soundEnabled ? null : false);
-        config.set("allowPlayerTake", this.allowPlayerTake ? true : null);
-        config.set("requirePoweredMinecart", this.requirePoweredMinecart ? true : null);
-        config.set("collisionDamage", (this.collisionDamage == 1.0) ? null : this.collisionDamage == 1.0);
-        config.set("keepChunksLoaded", this.keepChunksLoaded ? true : null);
-        config.set("gravity", this.gravity != 1.0 ? this.gravity : null);
-        config.set("suffocation", this.suffocation ? null : false);
-        config.set("killMessage", this.killMessage.isEmpty() ? null : this.killMessage);
-        config.set("allowManualMovement", this.isManualMovementAllowed() ? true : null);
-        config.set("allowMobManualMovement", this.isMobManualMovementAllowed() ? true : null);
-        config.set("tickets", this.tickets.isEmpty() ? null : LogicUtil.toArray(this.tickets, String.class));
-
         // Save carts too!
         for (CartProperties cProp : this) {
             cProp.saveToConfig();
@@ -1599,8 +1558,29 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         }
 
+        // These are legacy so that block offset / displayed blocks can be set using defaults
+        // These properties are purely saved so they are written correctly when saving defaults
+        // There are not meant to be read anywhere, because these exist as part of minecart metadata
+        // Only read these when actually set, don't add them using get's default if not so
+        // We don't want
+        if (node.contains("blockTypes") || node.contains("blockOffset")) {
+            String blockTypes = node.get("blockTypes", "");
+            int blockOffset = node.get("blockOffset", SignActionBlockChanger.BLOCK_OFFSET_NONE);
+
+            // Apply block types / block height to the actual minecart, if set
+            if (!blockTypes.isEmpty() || blockOffset != SignActionBlockChanger.BLOCK_OFFSET_NONE) {
+                MinecartGroup group = this.getHolder();
+                if (group != null) {
+                    if (blockTypes.isEmpty()) {
+                        SignActionBlockChanger.setBlocks(group, new ItemParser[0], blockOffset);
+                    } else {
+                        SignActionBlockChanger.setBlocks(group, blockTypes, blockOffset);
+                    }
+                }
+            }
+        }
+
         //TODO: These properties need to be transferred to IProperties!
-        this.applyConfig(node);
         for (CartProperties prop : this) {
             prop.applyConfig(node);
         }
@@ -1610,77 +1590,5 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         for (CartProperties prop : this) {
             prop.tryUpdate();
         }
-    }
-
-    /**
-     * Applies configuration. Will be replaced by IProperties eventually.
-     * 
-     * @param node
-     */
-    protected void applyConfig(ConfigurationNode node) {
-        // TODO: Replace all below with IProperty objects
-        this.allowPlayerTake = node.get("allowPlayerTake", this.allowPlayerTake);
-        this.setCollisionDamage(node.get("collisionDamage", this.getCollisionDamage()));
-        this.soundEnabled = node.get("soundEnabled", this.soundEnabled);
-        this.gravity = node.get("gravity", this.gravity);
-        this.requirePoweredMinecart = node.get("requirePoweredMinecart", this.requirePoweredMinecart);
-        this.setKeepChunksLoaded(node.get("keepChunksLoaded", this.keepChunksLoaded));
-        this.setManualMovementAllowed(node.get("allowManualMovement", this.isManualMovementAllowed()));
-        this.setMobManualMovementAllowed(node.get("allowMobManualMovement", this.isMobManualMovementAllowed()));
-        this.suffocation = node.get("suffocation", this.suffocation);
-        this.killMessage = node.get("killMessage", this.killMessage);
-
-        // Tickets that can be used for this train
-        if (node.contains("tickets")) {
-            this.tickets.clear();
-            this.tickets.addAll(node.getList("tickets", String.class));
-        }
-
-        // These properties are purely saved so they are written correctly when saving defaults
-        // There are not meant to be read anywhere, because these exist as part of minecart metadata
-        // Only read these when actually set, don't add them using get's default if not so
-        // We don't want
-        if (node.contains("blockTypes") || node.contains("blockOffset")) {
-            this.blockTypes = node.get("blockTypes", this.blockTypes);
-            this.blockOffset = node.get("blockOffset", this.blockOffset);
-
-            // Apply block types / block height to the actual minecart, if set
-            if (!this.blockTypes.isEmpty() || this.blockOffset != SignActionBlockChanger.BLOCK_OFFSET_NONE) {
-                MinecartGroup group = this.getHolder();
-                if (group != null) {
-                    if (this.blockTypes.isEmpty()) {
-                        SignActionBlockChanger.setBlocks(group, new ItemParser[0], this.blockOffset);
-                    } else {
-                        SignActionBlockChanger.setBlocks(group, this.blockTypes, this.blockOffset);
-                    }
-                }
-            }
-        }
-    }
-
-    // Stores all the default property values not already covered by IProperty
-    protected static void generateDefaults(ConfigurationNode node) {
-        node.set("soundEnabled", true);
-        node.set("allowPlayerTake", false);
-        node.set("requirePoweredMinecart", false);
-        node.set("trainCollision", true);
-        node.set("collisionDamage", 1.0);
-        node.set("keepChunksLoaded", false);
-        node.set("gravity", 1.0);
-        node.set("suffocation", true);
-        node.set("killMessage", "");
-        node.set("allowManualMovement", false);
-        node.set("allowMobManualMovement", false);
-        node.set("tickets", StringUtil.EMPTY_ARRAY);
-        node.set("blockTypes", "");
-        node.set("blockOffset", "unset");
-    }
-
-    public double getCollisionDamage() {
-        return this.collisionDamage;
-    }
-
-    public void setCollisionDamage(double collisionDamage) {
-        this.collisionDamage = collisionDamage;
     }
 }

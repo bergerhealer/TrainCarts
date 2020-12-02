@@ -413,7 +413,6 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
             }
 
             // Store all properties not already covered by IProperty
-            TrainProperties.generateDefaults(node);
             CartProperties.generateDefaults(node);
             changed = true;
         }

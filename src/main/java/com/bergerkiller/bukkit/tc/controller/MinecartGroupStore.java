@@ -210,7 +210,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
             TrainProperties prop2 = g2.getProperties();
 
             //Is a powered minecart required?
-            if (prop1.requirePoweredMinecart || prop2.requirePoweredMinecart) {
+            if (prop1.isPoweredMinecartRequired() || prop2.isPoweredMinecartRequired()) {
                 if (g1.size(EntityType.MINECART_FURNACE) == 0 && g2.size(EntityType.MINECART_FURNACE) == 0) {
                     return false;
                 }

@@ -625,9 +625,9 @@ public class TrainCommands {
         } else if (LogicUtil.containsIgnoreCase(cmd, "requirepoweredminecart", "requirepowered")) {
             Permission.COMMAND_SETPOWERCARTREQ.handle(p);
             if (args.length == 1) {
-                prop.requirePoweredMinecart = ParseUtil.parseBool(args[0]);
+                prop.setPoweredMinecartRequired(ParseUtil.parseBool(args[0]));
             }
-            p.sendMessage(ChatColor.YELLOW + "Requires powered minecart to stay alive: " + ChatColor.WHITE + prop.requirePoweredMinecart);
+            p.sendMessage(ChatColor.YELLOW + "Requires powered minecart to stay alive: " + ChatColor.WHITE + prop.isPoweredMinecartRequired());
         } else if (LogicUtil.containsIgnoreCase(cmd, "rename", "setname", "name")) {
             Permission.COMMAND_RENAME.handle(p);
             if (args.length == 0) {
