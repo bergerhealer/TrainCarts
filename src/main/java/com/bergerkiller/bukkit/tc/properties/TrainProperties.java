@@ -1683,12 +1683,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("suffocation", true);
         node.set("killMessage", "");
 
-        ConfigurationNode wait = node.getNode("wait");
-        wait.set("distance", 0.0);
-        wait.set("delay", 0.0);
-        wait.set("acceleration", 0.0);
-        wait.set("deceleration", 0.0);
-
         ConfigurationNode banking = node.getNode("banking");
         banking.set("strength", 0.0);
         banking.set("smoothness", 10.0);
@@ -1696,11 +1690,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         node.set("allowManualMovement", false);
         node.set("allowMobManualMovement", false);
         node.set("tickets", StringUtil.EMPTY_ARRAY);
-
-        node.set("collision.players", CollisionMode.DEFAULT);
-        node.set("collision.misc", CollisionMode.PUSH);
-        node.set("collision.train", CollisionMode.LINK);
-        node.set("collision.block", CollisionMode.DEFAULT);
 
         node.set("blockTypes", "");
         node.set("blockOffset", "unset");
