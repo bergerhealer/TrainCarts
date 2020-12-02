@@ -32,7 +32,7 @@ public class StandardProperties {
     /**
      * Configures how trains roll inwards when turning
      */
-    public static final FieldBackedStandardTrainProperty<BankingOptions> BANKING_OPTIONS = new FieldBackedStandardTrainProperty<BankingOptions>() {
+    public static final FieldBackedStandardTrainProperty<BankingOptions> BANKING = new FieldBackedStandardTrainProperty<BankingOptions>() {
 
         @Override
         public List<String> getNames() {
@@ -83,7 +83,7 @@ public class StandardProperties {
     /**
      * Configures train behavior for waiting on obstacles on the track ahead
      */
-    public static final FieldBackedStandardTrainProperty<WaitOptions> WAIT_OPTIONS = new FieldBackedStandardTrainProperty<WaitOptions>() {
+    public static final FieldBackedStandardTrainProperty<WaitOptions> WAIT = new FieldBackedStandardTrainProperty<WaitOptions>() {
 
         @Override
         public List<String> getNames() {
@@ -143,7 +143,7 @@ public class StandardProperties {
      * The persistent data stored for the sign skip feature of carts and trains.
      * This property is used internally by the SignSkipOptions class.
      */
-    public static final IProperty<SignSkipOptions> SIGN_SKIP_OPTIONS = new IProperty<SignSkipOptions>() {
+    public static final IProperty<SignSkipOptions> SIGN_SKIP = new IProperty<SignSkipOptions>() {
 
         @Override
         public List<String> getNames() {

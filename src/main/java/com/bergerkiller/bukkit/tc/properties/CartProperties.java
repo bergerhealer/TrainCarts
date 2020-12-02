@@ -970,16 +970,16 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     }
 
     public SignSkipOptions getSkipOptions() {
-        return get(StandardProperties.SIGN_SKIP_OPTIONS);
+        return get(StandardProperties.SIGN_SKIP);
     }
 
     public void setSkipOptions(SignSkipOptions options) {
         // Must preserve the signs!
-        Set<BlockLocation> old_skipped_signs = get(StandardProperties.SIGN_SKIP_OPTIONS).skippedSigns();
+        Set<BlockLocation> old_skipped_signs = get(StandardProperties.SIGN_SKIP).skippedSigns();
         if (old_skipped_signs.equals(options.skippedSigns())) {
-            set(StandardProperties.SIGN_SKIP_OPTIONS, options);
+            set(StandardProperties.SIGN_SKIP, options);
         } else {
-            set(StandardProperties.SIGN_SKIP_OPTIONS, SignSkipOptions.create(
+            set(StandardProperties.SIGN_SKIP, SignSkipOptions.create(
                     options.ignoreCounter(),
                     options.skipCounter(),
                     options.filter(),

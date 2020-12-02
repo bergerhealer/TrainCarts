@@ -48,7 +48,7 @@ public class SignSkipTracker {
 
             // First store all entries in history that have state=true (stored in properties)
             // Then, add all other signs that exist
-            SignSkipOptions options = owner.getProperties().get(StandardProperties.SIGN_SKIP_OPTIONS);
+            SignSkipOptions options = owner.getProperties().get(StandardProperties.SIGN_SKIP);
             if (options.hasSkippedSigns()) {
                 // Signs were set to be skipped, more complicated initialization
                 for (BlockLocation signPos : options.skippedSigns()) {
@@ -103,7 +103,7 @@ public class SignSkipTracker {
 
         // Read settings
         IProperties properties = this.owner.getProperties();
-        final SignSkipOptions options = properties.get(StandardProperties.SIGN_SKIP_OPTIONS);
+        final SignSkipOptions options = properties.get(StandardProperties.SIGN_SKIP);
 
         // Not active; simplified logic to minimize wasted CPU
         if (!options.isActive() && !this.hasSkippedSigns) {
@@ -165,7 +165,7 @@ public class SignSkipTracker {
                     .collect(Collectors.toCollection(LinkedHashSet::new));
 
                 // Store updated options
-                properties.set(StandardProperties.SIGN_SKIP_OPTIONS, SignSkipOptions.create(
+                properties.set(StandardProperties.SIGN_SKIP, SignSkipOptions.create(
                         changes.ignoreCounter,
                         changes.skipCounter,
                         options.filter(),
@@ -173,7 +173,7 @@ public class SignSkipTracker {
                 ));
             } else {
                 // Had signs, clear them
-                properties.set(StandardProperties.SIGN_SKIP_OPTIONS, SignSkipOptions.create(
+                properties.set(StandardProperties.SIGN_SKIP, SignSkipOptions.create(
                         changes.ignoreCounter,
                         changes.skipCounter,
                         options.filter(),
@@ -182,7 +182,7 @@ public class SignSkipTracker {
             }
         } else if (changes.countersChanged) {
             // Only update counters
-            properties.set(StandardProperties.SIGN_SKIP_OPTIONS, SignSkipOptions.create(
+            properties.set(StandardProperties.SIGN_SKIP, SignSkipOptions.create(
                     changes.ignoreCounter,
                     changes.skipCounter,
                     options.filter(),

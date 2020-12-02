@@ -172,7 +172,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return waitDistance
      */
     public double getWaitDistance() {
-        return get(StandardProperties.WAIT_OPTIONS).distance();
+        return get(StandardProperties.WAIT).distance();
     }
 
     /**
@@ -182,7 +182,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param waitDistance
      */
     public void setWaitDistance(final double waitDistance) {
-        this.update(StandardProperties.WAIT_OPTIONS, opt -> WaitOptions.create(
+        this.update(StandardProperties.WAIT, opt -> WaitOptions.create(
                 waitDistance, opt.delay(), opt.acceleration(), opt.deceleration()
         ));
     }
@@ -194,7 +194,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return wait delay in seconds, used after waiting for a train
      */
     public double getWaitDelay() {
-        return get(StandardProperties.WAIT_OPTIONS).delay();
+        return get(StandardProperties.WAIT).delay();
     }
 
     /**
@@ -204,7 +204,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param delay Delay to set to in seconds
      */
     public void setWaitDelay(final double delay) {
-        this.update(StandardProperties.WAIT_OPTIONS, opt -> WaitOptions.create(
+        this.update(StandardProperties.WAIT, opt -> WaitOptions.create(
                 opt.distance(), delay, opt.acceleration(), opt.deceleration()
         ));
     }
@@ -216,7 +216,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return acceleration of the train when speeding up after waiting
      */
     public double getWaitAcceleration() {
-        return get(StandardProperties.WAIT_OPTIONS).acceleration();
+        return get(StandardProperties.WAIT).acceleration();
     }
 
     /**
@@ -227,7 +227,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return deceleration of the train when slowing down to wait for another train
      */
     public double getWaitDeceleration() {
-        return get(StandardProperties.WAIT_OPTIONS).deceleration();
+        return get(StandardProperties.WAIT).deceleration();
     }
 
     /**
@@ -251,7 +251,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @see {@link #getWaitAcceleration()}
      */
     public void setWaitAcceleration(final double acceleration, final double deceleration) {
-        this.update(StandardProperties.WAIT_OPTIONS, opt -> WaitOptions.create(
+        this.update(StandardProperties.WAIT, opt -> WaitOptions.create(
                 opt.distance(), opt.delay(), acceleration, deceleration
         ));
     }
@@ -592,25 +592,25 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     public double getBankingStrength() {
-        return get(StandardProperties.BANKING_OPTIONS).strength();
+        return get(StandardProperties.BANKING).strength();
     }
 
     public double getBankingSmoothness() {
-        return get(StandardProperties.BANKING_OPTIONS).smoothness();
+        return get(StandardProperties.BANKING).smoothness();
     }
 
     public void setBanking(double strength, double smoothness) {
-        set(StandardProperties.BANKING_OPTIONS, BankingOptions.create(strength, smoothness));
+        set(StandardProperties.BANKING, BankingOptions.create(strength, smoothness));
     }
 
     public void setBankingStrength(final double strength) {
-        update(StandardProperties.BANKING_OPTIONS, opt -> BankingOptions.create(
+        update(StandardProperties.BANKING, opt -> BankingOptions.create(
                 strength, opt.smoothness()
         ));
     }
 
     public void setBankingSmoothness(final double smoothness) {
-        update(StandardProperties.BANKING_OPTIONS, opt -> BankingOptions.create(
+        update(StandardProperties.BANKING, opt -> BankingOptions.create(
                 opt.strength(), smoothness
         ));
     }
@@ -1023,11 +1023,11 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     public SignSkipOptions getSkipOptions() {
-        return get(StandardProperties.SIGN_SKIP_OPTIONS);
+        return get(StandardProperties.SIGN_SKIP);
     }
 
     public void setSkipOptions(SignSkipOptions options) {
-        set(StandardProperties.SIGN_SKIP_OPTIONS, options);
+        set(StandardProperties.SIGN_SKIP, options);
     }
 
     public String getKillMessage() {
