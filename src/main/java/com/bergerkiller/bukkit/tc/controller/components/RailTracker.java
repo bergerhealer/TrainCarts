@@ -20,7 +20,6 @@ public abstract class RailTracker {
      */
     public abstract boolean isOnRails(Block railsBlock);
 
-
     /**
      * Represents a single Rails block that is tracked by the Rail Tracker.
      * Rail state information can be retrieved in relation to the minecarts on them.

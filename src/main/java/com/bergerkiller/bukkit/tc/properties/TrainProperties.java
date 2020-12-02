@@ -62,7 +62,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private boolean allowPlayerTake = false;
     private boolean soundEnabled = true;
     private List<String> tickets = new ArrayList<>();
-    private SignSkipOptions skipOptions = new SignSkipOptions();
     private String blockTypes = "";
     private int blockOffset = SignActionBlockChanger.BLOCK_OFFSET_NONE;
     private double waitDistance = 0.0;
@@ -75,6 +74,14 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private double gravity = 1.0;
     private String killMessage = "";
 
+    /**
+     * Creates new TrainProperties<br>
+     * <br>
+     * <b>Warning: must call onConfigurationChanged(true) on it or things break!</b>
+     * 
+     * @param trainname
+     * @param config
+     */
     protected TrainProperties(String trainname, ConfigurationNode config) {
         this.trainname = trainname;
         this.config = config;
@@ -1004,11 +1011,11 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     public SignSkipOptions getSkipOptions() {
-        return this.skipOptions;
+        return get(StandardProperties.SIGN_SKIP_OPTIONS);
     }
 
     public void setSkipOptions(SignSkipOptions options) {
-        this.skipOptions.load(options, false);
+        set(StandardProperties.SIGN_SKIP_OPTIONS, options);
     }
 
     public String getKillMessage() {
@@ -1449,7 +1456,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         Util.cloneInto(node, this.config, Collections.singleton("carts"));
 
         // Reload properties
-        onConfigurationChanged();
+        onConfigurationChanged(false);
     }
 
     @Override
@@ -1462,7 +1469,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         return config.contains(key) ? config.get(key, defaultValue) : defaultValue;
     }
 
-    protected void onConfigurationChanged() {
+    protected void onConfigurationChanged(boolean cartsChanged) {
         // Refresh registered IProperties
         // All below should eventually become IProperties, which is when this function
         // can be removed!
@@ -1505,12 +1512,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.tickets.addAll(config.getList("tickets", String.class));
         }
 
-        // Load train skip options, if it exists
-        this.skipOptions = new SignSkipOptions();
-        if (config.isNode("skipOptions")) {
-            this.skipOptions.load(config.getNode("skipOptions"));
-        }
-
         // These properties are purely saved so they are written correctly when saving defaults
         // There are not meant to be read anywhere, because these exist as part of minecart metadata
         // Only read these when actually set, don't add them using get's default if not so
@@ -1531,6 +1532,13 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                         SignActionBlockChanger.setBlocks(group, this.blockTypes, this.blockOffset);
                     }
                 }
+            }
+        }
+
+        // Also refresh carts
+        if (cartsChanged) {
+            for (CartProperties cart : this) {
+                cart.onConfigurationChanged();
             }
         }
     }
@@ -1575,12 +1583,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         config.set("allowManualMovement", this.isManualMovementAllowed() ? true : null);
         config.set("allowMobManualMovement", this.isMobManualMovementAllowed() ? true : null);
         config.set("tickets", this.tickets.isEmpty() ? null : LogicUtil.toArray(this.tickets, String.class));
-
-        if (this.skipOptions.isActive()) {
-            this.skipOptions.save(config.getNode("skipOptions"));
-        } else if (config.contains("skipOptions")) {
-            config.remove("skipOptions");
-        }
 
         // Save carts too!
         for (CartProperties cProp : this) {
@@ -1667,11 +1669,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         if (node.contains("tickets")) {
             this.tickets.clear();
             this.tickets.addAll(node.getList("tickets", String.class));
-        }
-
-        // Load train skip options, if it exists
-        if (node.isNode("skipOptions")) {
-            this.skipOptions.load(node.getNode("skipOptions"));
         }
 
         // These properties are purely saved so they are written correctly when saving defaults

@@ -75,30 +75,33 @@ public class SignActionSkip extends SignAction {
         String[] args = info.getLine(1).toLowerCase(Locale.ENGLISH).split(" ");
         args = StringUtil.remove(args, 0); // remove 'skip'
 
-        SignSkipOptions options = new SignSkipOptions();
-        options.skipCtr = 1; // no-args: skip next sign
+        int skipCtr = 1;
+        int ignoreCtr = 0;
+        String filter = "";
+
+        skipCtr = 1; // no-args: skip next sign
         if (args.length >= 1) {
             if (args[0].equals("none") || args[0].equals("disable")) {
-                options.skipCtr = 0; // disable skipping
+                skipCtr = 0; // disable skipping
             } else {
                 // Check for a filter argument, which is not numeric
                 if (!ParseUtil.isNumeric(args[0])) {
-                    options.filter = args[0];
+                    filter = args[0];
                     args = StringUtil.remove(args, 0); // remove filter
                 }
 
                 // Check for an 'ignore' counter argument
                 if (args.length >= 2) {
-                    options.ignoreCtr = ParseUtil.parseInt(args[0], 0);
+                    ignoreCtr = ParseUtil.parseInt(args[0], 0);
                 }
 
                 // Last argument is the number of times to skip
                 if (args.length >= 1) {
-                    options.skipCtr = ParseUtil.parseInt(args[args.length - 1], 1);
+                    skipCtr = ParseUtil.parseInt(args[args.length - 1], 1);
                 }
             }
         }
 
-        return options;
+        return SignSkipOptions.create(ignoreCtr, skipCtr, filter);
     }
 }

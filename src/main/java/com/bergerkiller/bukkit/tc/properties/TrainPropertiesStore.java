@@ -242,7 +242,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         ConfigurationNode newTrainConfig = config.getNode(newTrainName);
         TrainProperties prop = new TrainProperties(newTrainName, newTrainConfig);
         trainProperties.put(newTrainName, prop);
-        prop.onConfigurationChanged();
+        prop.onConfigurationChanged(true);
         prop.setDefault();
         hasChanges = true;
         return prop;
@@ -265,9 +265,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         // Create new properties with this configuration
         TrainProperties prop = new TrainProperties(name, newTrainConfig);
         trainProperties.put(name, prop);
-
-        // Reload all registered properties (Standard properties sync to a field)
-        prop.onConfigurationChanged();
+        prop.onConfigurationChanged(true);
 
         hasChanges = true;
         return prop;
@@ -318,10 +316,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
             trainProperties.put(prop.getTrainName(), prop);
 
             // Initialize properties by reading the YAML
-            prop.onConfigurationChanged();
-            for (CartProperties cartProp : prop) {
-                cartProp.onConfigurationChanged();
-            }
+            prop.onConfigurationChanged(true);
         }
         hasChanges = false;
 

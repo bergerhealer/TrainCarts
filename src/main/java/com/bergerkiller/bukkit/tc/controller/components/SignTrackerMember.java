@@ -23,6 +23,7 @@ public class SignTrackerMember extends SignTracker {
     protected final ModificationTrackedList<TrackedSign> liveActiveSigns = new ModificationTrackedArrayList<>();
 
     public SignTrackerMember(MinecartMember<?> owner) {
+        super(owner);
         this.owner = owner;
     }
 

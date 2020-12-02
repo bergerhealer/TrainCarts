@@ -517,12 +517,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         // Store the group offline
         OfflineGroupManager.storeGroup(this);
 
-        // Free memory cached in train properties
-        getProperties().getSkipOptions().unloadSigns();
-        for (MinecartMember<?> member : this) {
-            member.getProperties().getSkipOptions().unloadSigns();
-        }
-
         // Unload
         this.stop(true);
         groups.remove(this);

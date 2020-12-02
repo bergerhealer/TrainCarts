@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.properties.standard;
 import java.util.EnumSet;
 
 import com.bergerkiller.bukkit.tc.properties.collision.CollisionConfig;
+import com.bergerkiller.bukkit.tc.utils.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
 /**
@@ -14,4 +15,5 @@ public class FieldBackedStandardTrainPropertiesHolder {
     double speedLimit;
     CollisionConfig collision;
     final EnumSet<SlowdownMode> slowdown = EnumSet.allOf(SlowdownMode.class);
+    SignSkipOptions signSkipOptionsData;
 }

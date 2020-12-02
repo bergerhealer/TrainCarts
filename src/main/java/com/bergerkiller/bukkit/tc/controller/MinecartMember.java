@@ -192,7 +192,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     @Override
     public CartProperties getProperties() {
         if (this.properties == null) {
-            this.properties = CartPropertiesStore.get(this);
+            this.properties = CartPropertiesStore.createForMember(this);
             this.properties.getModel().addOwner(this);
         }
         return this.properties;

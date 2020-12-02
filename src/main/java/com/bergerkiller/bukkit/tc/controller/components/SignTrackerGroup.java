@@ -31,6 +31,7 @@ public class SignTrackerGroup extends SignTracker {
     private final ModificationTrackedList2D<TrackedSign> liveActiveSigns = new ModificationTrackedList2D<>();
 
     public SignTrackerGroup(MinecartGroup owner) {
+        super(owner);
         this.owner = owner;
     }
 
@@ -101,6 +102,12 @@ public class SignTrackerGroup extends SignTracker {
 
         // Send leave events to all signs
         this.clear();
+
+        // Clear skip tracking data
+        this.signSkipTracker.unloadSigns();
+        for (MinecartMember<?> member : owner) {
+            member.getSignTracker().signSkipTracker.unloadSigns();
+        }
     }
 
     @Override
@@ -159,7 +166,7 @@ public class SignTrackerGroup extends SignTracker {
 
                 // Filter based on cart skip options
                 for (MinecartMember<?> member : owner) {
-                    member.getProperties().getSkipOptions().filterSigns(member.getSignTracker().liveActiveSigns);
+                    member.getSignTracker().signSkipTracker.filterSigns(member.getSignTracker().liveActiveSigns);
                 }
 
                 // Synchronize the list of active signs using the liveActiveSigns of the members
@@ -171,7 +178,7 @@ public class SignTrackerGroup extends SignTracker {
                 // Filter the list based on sign skip options before returning
                 // This will remove elements from the lists in the member sign tracker!
                 // That way, telling a train to skip signs will make it skip [cart] signs just the same
-                owner.getProperties().getSkipOptions().filterSigns(this.liveActiveSigns);
+                this.signSkipTracker.filterSigns(this.liveActiveSigns);
 
                 // Update cart signs
                 // Activating a sign might cause a change to this train, make a defensive copy

@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
+import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.utils.modlist.ModificationTrackedList;
 
 import org.bukkit.block.Block;
@@ -20,6 +21,11 @@ public abstract class SignTracker {
     protected final Map<Block, TrackedSign> activeSigns = new LinkedHashMap<Block, TrackedSign>();
     protected final List<DetectorRegion> detectorRegions = new ArrayList<>(0);
     protected final ToggledState needsUpdate = new ToggledState();
+    protected final SignSkipTracker signSkipTracker;
+
+    protected SignTracker(IPropertiesHolder owner) {
+        this.signSkipTracker = new SignSkipTracker(owner);
+    }
 
     public Collection<TrackedSign> getActiveTrackedSigns() {
         return Collections.unmodifiableCollection(activeSigns.values());

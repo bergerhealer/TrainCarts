@@ -17,6 +17,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.standard.FieldBackedStandardCartPropertiesHolder;
+import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.storage.OfflineMember;
 import com.bergerkiller.bukkit.tc.utils.SignSkipOptions;
@@ -55,7 +56,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     private boolean pickUp = false;
     private boolean spawnItemDrops = true;
     private SoftReference<MinecartMember<?>> member = new SoftReference<>();
-    private SignSkipOptions skipOptions = new SignSkipOptions();
     private AttachmentModel model = null;
     private String driveSound = "";
 
@@ -751,9 +751,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
                 }
             }
         }
-        if (node.isNode("skipOptions")) {
-            this.skipOptions.load(node.getNode("skipOptions"));
-        }
         if (node.isNode("model")) {
             if (this.model != null) {
                 this.model.update(node.getNode("model").clone(), true);
@@ -852,11 +849,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
             }
         }
 
-        this.skipOptions = new SignSkipOptions();
-        if (config.isNode("skipOptions")) {
-            this.skipOptions.load(config.getNode("skipOptions"));
-        }
-
         if (config.isNode("model")) {
             if (this.model != null) {
                 this.model.update(config.getNode("model").clone(), true);
@@ -907,12 +899,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         } else {
             config.set("routeIndex", this.destinationRouteIndex == 0 ? null : this.destinationRouteIndex);
             config.set("route", this.destinationRoute);
-        }
-
-        if (this.skipOptions.isActive()) {
-            this.skipOptions.save(config.getNode("skipOptions"));
-        } else if (config.contains("skipOptions")) {
-            config.remove("skipOptions");
         }
 
         if (this.model != null) {
@@ -984,11 +970,21 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     }
 
     public SignSkipOptions getSkipOptions() {
-        return this.skipOptions;
+        return get(StandardProperties.SIGN_SKIP_OPTIONS);
     }
 
     public void setSkipOptions(SignSkipOptions options) {
-        this.skipOptions.load(options, false);
+        // Must preserve the signs!
+        Set<BlockLocation> old_skipped_signs = get(StandardProperties.SIGN_SKIP_OPTIONS).skippedSigns;
+        if (old_skipped_signs.equals(options.skippedSigns)) {
+            set(StandardProperties.SIGN_SKIP_OPTIONS, options);
+        } else {
+            set(StandardProperties.SIGN_SKIP_OPTIONS, SignSkipOptions.create(
+                    options.ignoreCounter,
+                    options.skipCounter,
+                    options.filter,
+                    old_skipped_signs));
+        }
     }
 
     public String getDriveSound() {

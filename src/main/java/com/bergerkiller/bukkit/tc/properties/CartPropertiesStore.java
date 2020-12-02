@@ -116,7 +116,9 @@ public class CartPropertiesStore {
 
     /**
      * Creates and initializes new cart properties. If existing properties
-     * exist for the same UUID, it is overwritten.
+     * exist for the same UUID, it is overwritten.<br>
+     * <br>
+     * <b>Warning: must call onConfigurationChanged() on it at some point, or things break!</b>
      * 
      * @param train Train properties that this cart is part of
      * @param config Cart configuration
@@ -130,26 +132,27 @@ public class CartPropertiesStore {
     }
 
     /**
-     * Gets the Cart Properties of the Minecart specified<br>
-     * Constructs a new entry if none is contained.
-     *
-     * @param uuid  of the Minecart
-     * @param train to link the Minecart to if not contained
-     * @return The CartProperties for the Minecart
-     */
-    public static CartProperties get(UUID uuid, TrainProperties train) {
-        return properties.computeIfAbsent(uuid, key -> new CartProperties(train, new ConfigurationNode(), key));
-    }
-
-    /**
-     * Gets the Cart Properties of the Minecart specified
+     * Creates the Cart Properties for the Minecart specified.
+     * If by this UUID some are known, these are returned, otherwise new
+     * properties with default initial values are created.
      *
      * @param member the properties belong to
      * @return the Cart Properties for the Minecart
      */
-    public static CartProperties get(MinecartMember<?> member) {
-        CartProperties props = get(member.getEntity().getUniqueId(), member.isUnloaded() ? null : member.getGroup().getProperties());
-        props.setHolder(member);
-        return props;
+    public static CartProperties createForMember(MinecartMember<?> member) {
+        UUID uuid = member.getEntity().getUniqueId();
+        CartProperties prop = properties.get(uuid);
+        if (prop != null) {
+            prop.setHolder(member);
+            return prop;
+        }
+
+        TrainProperties trainProperties = member.isUnloaded()
+                ? null : member.getGroup().getProperties();
+
+        prop = new CartProperties(trainProperties, new ConfigurationNode(), uuid);
+        prop.setHolder(member);
+        prop.onConfigurationChanged();
+        return prop;
     }
 }
