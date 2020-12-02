@@ -20,12 +20,72 @@ import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
+import com.bergerkiller.bukkit.tc.properties.standard.type.WaitOptions;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
 /**
  * All standard TrainCarts built-in train and cart properties
  */
 public class StandardProperties {
+
+    /**
+     * Configured train behavior for waiting on obstacles on the track ahead
+     */
+    public static final FieldBackedStandardTrainProperty<WaitOptions> WAIT_OPTIONS = new FieldBackedStandardTrainProperty<WaitOptions>() {
+
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("waitdistance", "waitdelay", "waitacceleration", "waitdeceleration");
+        }
+
+        @Override
+        public WaitOptions getDefault() {
+            return WaitOptions.DEFAULT;
+        }
+
+        @Override
+        public WaitOptions getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
+            return holder.waitOptionsData;
+        }
+
+        @Override
+        public void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, WaitOptions value) {
+            holder.waitOptionsData = value;
+        }
+
+        @Override
+        public Optional<WaitOptions> readFromConfig(ConfigurationNode config) {
+            if (!config.isNode("wait")) {
+                if (config.contains("waitDistance")) {
+                    return Optional.of(WaitOptions.create(config.get("waitDistance", 0.0)));
+                } else {
+                    return Optional.empty();
+                }
+            }
+
+            ConfigurationNode waitConfig = config.getNode("wait");
+            double distance = waitConfig.contains("distance")     ? waitConfig.get("distance",     0.0) : 0.0;
+            double delay =    waitConfig.contains("delay")        ? waitConfig.get("delay",        0.0) : 0.0;
+            double accel =    waitConfig.contains("acceleration") ? waitConfig.get("acceleration", 0.0) : 0.0;
+            double decel =    waitConfig.contains("deceleration") ? waitConfig.get("deceleration", 0.0) : 0.0;
+            return Optional.of(WaitOptions.create(distance, delay, accel, decel));
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<WaitOptions> value) {
+            config.remove("waitDistance");
+            if (value.isPresent()) {
+                WaitOptions data = value.get();
+                ConfigurationNode node = config.getNode("wait");
+                node.set("distance",         (data.distance() == 0.0) ? null : data.distance());
+                node.set("delay",               (data.delay() == 0.0) ? null : data.delay());
+                node.set("acceleration", (data.acceleration() == 0.0) ? null : data.acceleration());
+                node.set("deceleration", (data.deceleration() == 0.0) ? null : data.deceleration());
+            } else {
+                config.remove("wait");
+            }
+        }
+    };
 
     /**
      * The persistent data stored for the sign skip feature of carts and trains.

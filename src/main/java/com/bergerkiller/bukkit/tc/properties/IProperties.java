@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Contains train or cart property getters and setters
@@ -32,6 +33,24 @@ public interface IProperties extends IParsable {
      * @param value The new value to assign for this property
      */
     <T> void set(IProperty<T> property, T value);
+
+    /**
+     * Uses a function to modify the value of a property in this
+     * collection of properties
+     * 
+     * @param <T> Type of value the property has
+     * @param property The property to update
+     * @param operation The operation to perform on the current value
+     * @return updated value, result of calling the operation function
+     */
+    default <T> T update(IProperty<T> property, Function<T, T> operation) {
+        T old_value = get(property);
+        T new_value = operation.apply(old_value);
+        if (old_value != new_value) {
+            set(property, new_value);
+        }
+        return new_value;
+    }
 
     /**
      * Gets the YAML configuration that stores all these

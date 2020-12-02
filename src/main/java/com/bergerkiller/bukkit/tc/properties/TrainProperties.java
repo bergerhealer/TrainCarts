@@ -40,6 +40,7 @@ import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
+import com.bergerkiller.bukkit.tc.properties.standard.type.WaitOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.FieldBackedStandardTrainPropertiesHolder;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
@@ -64,10 +65,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private List<String> tickets = new ArrayList<>();
     private String blockTypes = "";
     private int blockOffset = SignActionBlockChanger.BLOCK_OFFSET_NONE;
-    private double waitDistance = 0.0;
-    private double waitDelay = 0.0;
-    private double waitDeceleration = 0.0;
-    private double waitAcceleration = 0.0;
     private double bankingStrength = 0.0;
     private double bankingSmoothness = 10.0;
     private boolean suffocation = true;
@@ -176,7 +173,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return waitDistance
      */
     public double getWaitDistance() {
-        return this.waitDistance;
+        return get(StandardProperties.WAIT_OPTIONS).distance();
     }
 
     /**
@@ -185,8 +182,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * 
      * @param waitDistance
      */
-    public void setWaitDistance(double waitDistance) {
-        this.waitDistance = waitDistance;
+    public void setWaitDistance(final double waitDistance) {
+        this.update(StandardProperties.WAIT_OPTIONS, opt -> WaitOptions.create(
+                waitDistance, opt.delay(), opt.acceleration(), opt.deceleration()
+        ));
     }
 
     /**
@@ -196,7 +195,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return wait delay in seconds, used after waiting for a train
      */
     public double getWaitDelay() {
-        return this.waitDelay;
+        return get(StandardProperties.WAIT_OPTIONS).delay();
     }
 
     /**
@@ -205,8 +204,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * 
      * @param delay Delay to set to in seconds
      */
-    public void setWaitDelay(double delay) {
-        this.waitDelay = delay;
+    public void setWaitDelay(final double delay) {
+        this.update(StandardProperties.WAIT_OPTIONS, opt -> WaitOptions.create(
+                opt.distance(), delay, opt.acceleration(), opt.deceleration()
+        ));
     }
 
     /**
@@ -216,7 +217,18 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return acceleration of the train when speeding up after waiting
      */
     public double getWaitAcceleration() {
-        return this.waitAcceleration;
+        return get(StandardProperties.WAIT_OPTIONS).acceleration();
+    }
+
+    /**
+     * Gets the deceleration inblocks/tick^2 of the train when slowing down, when the train has to wait
+     * for another train. Speed of the train goes down by this amount every tick. If 0, the deceleration
+     * is instant.
+     * 
+     * @return deceleration of the train when slowing down to wait for another train
+     */
+    public double getWaitDeceleration() {
+        return get(StandardProperties.WAIT_OPTIONS).deceleration();
     }
 
     /**
@@ -239,20 +251,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param deceleration Acceleration at which to slow down
      * @see {@link #getWaitAcceleration()}
      */
-    public void setWaitAcceleration(double acceleration, double deceleration) {
-        this.waitAcceleration = acceleration;
-        this.waitDeceleration = deceleration;
-    }
-
-    /**
-     * Gets the deceleration inblocks/tick^2 of the train when slowing down, when the train has to wait
-     * for another train. Speed of the train goes down by this amount every tick. If 0, the deceleration
-     * is instant.
-     * 
-     * @return deceleration of the train when slowing down to wait for another train
-     */
-    public double getWaitDeceleration() {
-        return this.waitDeceleration;
+    public void setWaitAcceleration(final double acceleration, final double deceleration) {
+        this.update(StandardProperties.WAIT_OPTIONS, opt -> WaitOptions.create(
+                opt.distance(), opt.delay(), acceleration, deceleration
+        ));
     }
 
     /**
@@ -272,7 +274,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param limit in blocks/tick
      */
     public void setSpeedLimit(double limit) {
-        StandardProperties.SPEEDLIMIT.set(this, limit);
+        set(StandardProperties.SPEEDLIMIT, limit);
     }
 
     /**
@@ -352,14 +354,17 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param mode        to set
      * @param slowingDown option to set that mode to
      */
-    public void setSlowingDown(SlowdownMode mode, boolean slowingDown) {
-        Set<SlowdownMode> modes = get(StandardProperties.SLOWDOWN);
-        if (slowingDown != modes.contains(mode)) {
-            EnumSet<SlowdownMode> new_modes = EnumSet.noneOf(SlowdownMode.class);
-            new_modes.addAll(modes);
-            LogicUtil.addOrRemove(new_modes, mode, slowingDown);
-            set(StandardProperties.SLOWDOWN, new_modes);
-        }
+    public void setSlowingDown(final SlowdownMode mode, final boolean slowingDown) {
+        update(StandardProperties.SLOWDOWN, curr_modes -> {
+            if (slowingDown == curr_modes.contains(mode)) {
+                return curr_modes;
+            } else {
+                EnumSet<SlowdownMode> new_modes = EnumSet.noneOf(SlowdownMode.class);
+                new_modes.addAll(curr_modes);
+                LogicUtil.addOrRemove(new_modes, mode, slowingDown);
+                return new_modes;
+            }
+        });
     }
 
     /**
@@ -1220,14 +1225,14 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                 this.setCollisionModeIfModeForMobs(CollisionMode.ENTER, CollisionMode.DEFAULT);
             }
         } else if (key.equalsIgnoreCase("waitdistance")) {
-            this.setWaitDistance(ParseUtil.parseDouble(arg, this.waitDistance));
+            this.setWaitDistance(ParseUtil.parseDouble(arg, this.getWaitDistance()));
         } else if (key.equalsIgnoreCase("waitdelay")) {
-            this.setWaitDelay(ParseUtil.parseDouble(arg, this.waitDelay));
+            this.setWaitDelay(ParseUtil.parseDouble(arg, this.getWaitDelay()));
         } else if (LogicUtil.containsIgnoreCase(key, "waitacceleration", "waitaccel", "waitacc")) {
             String[] args = arg.trim().split(" ");
             if (args.length >= 2) {
-                this.setWaitAcceleration(Util.parseAcceleration(args[0], this.waitAcceleration),
-                                         Util.parseAcceleration(args[1], this.waitDeceleration));
+                this.setWaitAcceleration(Util.parseAcceleration(args[0], this.getWaitAcceleration()),
+                                         Util.parseAcceleration(args[1], this.getWaitDeceleration()));
             } else {
                 double accel = Util.parseAcceleration(arg, Double.NaN);
                 if (!Double.isNaN(accel)) {
@@ -1328,8 +1333,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param mobCategory Category of mob
      * @param mode to set to, null to reset to defaults
      */
-    public void setCollisionMode(CollisionMobCategory mobCategory, CollisionMode mode) {
-        setCollision(getCollision().setMobMode(mobCategory, mode));
+    public void setCollisionMode(final CollisionMobCategory mobCategory, final CollisionMode mode) {
+        update(StandardProperties.COLLISION, opt -> opt.setMobMode(mobCategory, mode));
     }
 
     /**
@@ -1395,12 +1400,16 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param expected
      * @param mode
      */
-    public void setCollisionModeIfModeForMobs(CollisionMode expected, CollisionMode mode) {
-        for (CollisionMobCategory collision : CollisionMobCategory.values()) {
-            if (collision.isMobCategory() && getCollision().mobMode(collision) == expected) {
-                setCollisionMode(collision, mode);
+    public void setCollisionModeIfModeForMobs(final CollisionMode expected, final CollisionMode mode) {
+        update(StandardProperties.COLLISION, curr_options -> {
+            CollisionOptions new_options = curr_options;
+            for (CollisionMobCategory category : CollisionMobCategory.values()) {
+                if (category.isMobCategory() && curr_options.mobMode(category) == expected) {
+                    new_options = curr_options.setMobMode(category, mode);
+                }
             }
-        }
+            return new_options;
+        });
     }
 
     /**
@@ -1409,12 +1418,16 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * 
      * @param linking
      */
-    public void setLinking(boolean linking) {
-        if (linking) {
-            setCollision(getCollision().setTrainMode(CollisionMode.LINK));
-        } else if (this.getCollision().trainMode() == CollisionMode.LINK) {
-            setCollision(getCollision().setTrainMode(CollisionMode.DEFAULT));
-        }
+    public void setLinking(final boolean linking) {
+        update(StandardProperties.COLLISION, opt -> {
+            if (linking) {
+                return opt.setTrainMode(CollisionMode.LINK);
+            } else if (opt.trainMode() == CollisionMode.LINK) {
+                return opt.setTrainMode(CollisionMode.DEFAULT);
+            } else {
+                return opt;
+            }
+        });
     }
 
     /**
@@ -1490,18 +1503,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.suffocation = getConfigValue("suffocation", true);
         this.killMessage = getConfigValue("killMessage", "");
 
-        // Wait distance legacy, and the new wait properties
-        if (config.contains("wait.distance")) {
-            this.waitDistance = config.get("wait.distance", 0.0);
-        } else if (config.contains("waitDistance")) {
-            this.waitDistance = config.get("waitDistance", 0.0);
-        } else {
-            this.waitDistance = 0.0;
-        }
-        this.waitDelay = getConfigValue("wait.delay", 0.0);
-        this.waitAcceleration = getConfigValue("wait.acceleration", 0.0);
-        this.waitDeceleration = getConfigValue("wait.deceleration", 0.0);
-
         // Banking
         this.bankingStrength = getConfigValue("banking.strength", 0.0);
         this.bankingSmoothness = getConfigValue("banking.smoothness", 10.0);
@@ -1560,17 +1561,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         config.set("gravity", this.gravity != 1.0 ? this.gravity : null);
         config.set("suffocation", this.suffocation ? null : false);
         config.set("killMessage", this.killMessage.isEmpty() ? null : this.killMessage);
-
-        config.remove("waitDistance"); // cleanup legacy
-        if (this.waitDistance > 0 || this.waitDelay > 0.0 || this.waitAcceleration != 0.0 || this.waitDeceleration != 0.0) {
-            ConfigurationNode wait = config.getNode("wait");
-            wait.set("distance", (this.waitDistance > 0) ? this.waitDistance : null);
-            wait.set("delay", (this.waitDelay > 0.0) ? this.waitDelay : null);
-            wait.set("acceleration", (this.waitAcceleration > 0.0) ? this.waitAcceleration : null);
-            wait.set("deceleration", (this.waitDeceleration > 0.0) ? this.waitDeceleration : null);
-        } else {
-            config.remove("wait");
-        }
 
         if (this.bankingStrength != 0.0 || this.bankingSmoothness != 10.0) {
             ConfigurationNode banking = config.getNode("banking");
@@ -1645,18 +1635,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.setMobManualMovementAllowed(node.get("allowMobManualMovement", this.isMobManualMovementAllowed()));
         this.suffocation = node.get("suffocation", this.suffocation);
         this.killMessage = node.get("killMessage", this.killMessage);
-
-        // Wait distance legacy, and the new wait properties
-        if (node.contains("waitDistance")) {
-            node.set("wait.distance", node.get("waitDistance"));
-        }
-        if (node.isNode("wait")) {
-            ConfigurationNode wait = node.getNode("wait");
-            this.waitDistance = wait.get("distance", this.waitDistance);
-            this.waitDelay = wait.get("delay", this.waitDelay);
-            this.waitAcceleration = wait.get("acceleration", this.waitAcceleration);
-            this.waitDeceleration = wait.get("deceleration", this.waitDeceleration);
-        }
 
         // Banking
         if (node.isNode("banking")) {
