@@ -10,7 +10,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
-import com.bergerkiller.bukkit.tc.properties.collision.CollisionMobCategory;
+import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import org.bukkit.entity.Player;
 

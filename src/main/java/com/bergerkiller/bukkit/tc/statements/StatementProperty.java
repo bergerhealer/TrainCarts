@@ -7,7 +7,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
-import com.bergerkiller.bukkit.tc.properties.collision.CollisionMobCategory;
+import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 
 import java.util.ArrayList;
 import java.util.Collections;

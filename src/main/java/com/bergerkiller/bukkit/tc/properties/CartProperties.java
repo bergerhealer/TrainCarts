@@ -18,9 +18,9 @@ import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.standard.FieldBackedStandardCartPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
+import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.storage.OfflineMember;
-import com.bergerkiller.bukkit.tc.utils.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -975,14 +975,14 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
     public void setSkipOptions(SignSkipOptions options) {
         // Must preserve the signs!
-        Set<BlockLocation> old_skipped_signs = get(StandardProperties.SIGN_SKIP_OPTIONS).skippedSigns;
-        if (old_skipped_signs.equals(options.skippedSigns)) {
+        Set<BlockLocation> old_skipped_signs = get(StandardProperties.SIGN_SKIP_OPTIONS).skippedSigns();
+        if (old_skipped_signs.equals(options.skippedSigns())) {
             set(StandardProperties.SIGN_SKIP_OPTIONS, options);
         } else {
             set(StandardProperties.SIGN_SKIP_OPTIONS, SignSkipOptions.create(
-                    options.ignoreCounter,
-                    options.skipCounter,
-                    options.filter,
+                    options.ignoreCounter(),
+                    options.skipCounter(),
+                    options.filter(),
                     old_skipped_signs));
         }
     }

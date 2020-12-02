@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.utils;
+package com.bergerkiller.bukkit.tc.properties.standard.type;
 
 import java.util.Collections;
 import java.util.Set;
@@ -10,17 +10,17 @@ import com.bergerkiller.bukkit.common.BlockLocation;
  * This allows trains to skip a number of signs.
  * The {@link com.bergerkiller.bukkit.tc.controller.components.SignSkipTracker SignSkipTracker} enforces these options.
  */
-public class SignSkipOptions {
+public final class SignSkipOptions {
     /**
      * Constant storing persistent data that is the default.
      * No skip signs were/are in use.
      */
     public static final SignSkipOptions NONE = new SignSkipOptions(0, 0, "", Collections.emptySet());
 
-    public final int ignoreCounter;
-    public final int skipCounter;
-    public final String filter;
-    public final Set<BlockLocation> skippedSigns;
+    private final int ignoreCounter;
+    private final int skipCounter;
+    private final String filter;
+    private final Set<BlockLocation> skippedSigns;
 
     private SignSkipOptions(
             int ignoreCounter,
@@ -47,6 +47,68 @@ public class SignSkipOptions {
         } else {
             return false;
         }
+    }
+
+    /**
+     * Gets the number of signs to ignore and allow anyway before the
+     * {@link #skipCounter()} becomes active.
+     * 
+     * @return number of signs to ignore
+     */
+    public int ignoreCounter() {
+        return this.ignoreCounter;
+    }
+
+    /**
+     * Gets the number of signs to skip. Signs that are ignored
+     * using the {@link #ignoreCounter()} are not skipped.
+     * 
+     * @return number of signs to skip
+     */
+    public int skipCounter() {
+        return this.skipCounter;
+    }
+
+    /**
+     * Gets whether a {@link #filter()} is currently used or not.
+     * 
+     * @return True if a filter is used
+     */
+    public boolean hasFilter() {
+        return !this.filter.isEmpty();
+    }
+
+    /**
+     * Gets the sign type filter applied as a filtering rule for
+     * signs to ignore and skip. Only signs that start with this filter
+     * text on the second line of the sign are ignored/skipped.
+     * If empty, all signs apply.
+     * 
+     * @return filter rule
+     */
+    public String filter() {
+        return this.filter;
+    }
+
+    /**
+     * Gets whether there are any signs currently being skipped
+     * by the train.
+     * 
+     * @return True if there are skipped signs
+     */
+    public boolean hasSkippedSigns() {
+        return !this.skippedSigns.isEmpty();
+    }
+
+    /**
+     * Gets the block locations where signs are located that are
+     * currently suppressed by the skip behavior logic. When the train
+     * spawns, these signs will not be triggered.
+     * 
+     * @return set of block locations of signs currently skipped
+     */
+    public Set<BlockLocation> skippedSigns() {
+        return this.skippedSigns;
     }
 
     /**

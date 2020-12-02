@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.properties.collision;
+package com.bergerkiller.bukkit.tc.properties.standard.type;
 
 import java.util.Collections;
 import java.util.EnumMap;
@@ -11,15 +11,16 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 
 /**
- * Immutable representation of all the collision settings of a train
+ * Immutable representation of all the collision settings of a train.
+ * This defines how trains behave when colliding with entities and blocks.
  */
-public final class CollisionConfig {
+public final class CollisionOptions {
     private static final EnumMap<CollisionMobCategory, CollisionMode> NO_MOB_MODES = new EnumMap<>(CollisionMobCategory.class);
 
     /**
      * Default collision configuration of TrainCarts trains
      */
-    public static final CollisionConfig DEFAULT = new CollisionConfig(
+    public static final CollisionOptions DEFAULT = new CollisionOptions(
             NO_MOB_MODES, /* Mob modes */
             CollisionMode.DEFAULT, /* Players */
             CollisionMode.PUSH, /* Misc */
@@ -32,7 +33,7 @@ public final class CollisionConfig {
      * {@link CollisionMode#CANCEL}. When this configuration is used,
      * trains will go through everything, not doing any collision hit detection.
      */
-    public static final CollisionConfig CANCEL = new CollisionConfig(
+    public static final CollisionOptions CANCEL = new CollisionOptions(
             NO_MOB_MODES, /* Mob modes */
             CollisionMode.CANCEL, /* Players */
             CollisionMode.CANCEL, /* Misc */
@@ -46,7 +47,7 @@ public final class CollisionConfig {
     private final CollisionMode trainMode;
     private final CollisionMode blockMode;
 
-    private CollisionConfig(
+    private CollisionOptions(
             EnumMap<CollisionMobCategory, CollisionMode> mobModes,
             CollisionMode playerMode,
             CollisionMode miscMode,
@@ -165,59 +166,59 @@ public final class CollisionConfig {
         return false;
     }
 
-    public CollisionConfig setPlayerMode(CollisionMode mode) {
+    public CollisionOptions setPlayerMode(CollisionMode mode) {
         // Check unchanged
         if (this.playerMode == mode) {
             return this;
         }
 
-        return new CollisionConfig(this.mobModes,
+        return new CollisionOptions(this.mobModes,
                                    mode,
                                    this.miscMode,
                                    this.trainMode,
                                    this.blockMode);
     }
 
-    public CollisionConfig setMiscMode(CollisionMode mode) {
+    public CollisionOptions setMiscMode(CollisionMode mode) {
         // Check unchanged
         if (this.miscMode == mode) {
             return this;
         }
 
-        return new CollisionConfig(this.mobModes,
+        return new CollisionOptions(this.mobModes,
                                    this.playerMode,
                                    mode,
                                    this.trainMode,
                                    this.blockMode);
     }
 
-    public CollisionConfig setTrainMode(CollisionMode mode) {
+    public CollisionOptions setTrainMode(CollisionMode mode) {
         // Check unchanged
         if (this.trainMode == mode) {
             return this;
         }
 
-        return new CollisionConfig(this.mobModes,
+        return new CollisionOptions(this.mobModes,
                                    this.playerMode,
                                    this.miscMode,
                                    mode,
                                    this.blockMode);
     }
 
-    public CollisionConfig setBlockMode(CollisionMode mode) {
+    public CollisionOptions setBlockMode(CollisionMode mode) {
         // Check unchanged
         if (this.blockMode == mode) {
             return this;
         }
 
-        return new CollisionConfig(this.mobModes,
+        return new CollisionOptions(this.mobModes,
                                    this.playerMode,
                                    this.miscMode,
                                    this.trainMode,
                                    mode);
     }
 
-    public CollisionConfig setMobMode(CollisionMobCategory category, CollisionMode mode) {
+    public CollisionOptions setMobMode(CollisionMobCategory category, CollisionMode mode) {
         // Check unchanged
         if (this.mobModes.get(category) == mode) {
             return this;
@@ -236,7 +237,7 @@ public final class CollisionConfig {
             }
         }
 
-        return new CollisionConfig(modes,
+        return new CollisionOptions(modes,
                                    this.playerMode,
                                    this.miscMode,
                                    this.trainMode,
@@ -266,7 +267,7 @@ public final class CollisionConfig {
         return collisionConfig;
     }
 
-    public static CollisionConfig fromConfig(ConfigurationNode collisionConfig) {
+    public static CollisionOptions fromConfig(ConfigurationNode collisionConfig) {
         EnumMap<CollisionMobCategory, CollisionMode> mobModes = new EnumMap<>(CollisionMobCategory.class);
         CollisionMode playerMode = DEFAULT.playerMode;
         CollisionMode miscMode = DEFAULT.miscMode;
@@ -300,15 +301,15 @@ public final class CollisionConfig {
             mobModes = DEFAULT.mobModes;
         }
 
-        return new CollisionConfig(mobModes, playerMode, miscMode, trainMode, blockMode);
+        return new CollisionOptions(mobModes, playerMode, miscMode, trainMode, blockMode);
     }
 
     @Override
     public boolean equals(Object o) {
         if (o == this) {
             return true;
-        } else if (o instanceof CollisionConfig) {
-            CollisionConfig other = (CollisionConfig) o;
+        } else if (o instanceof CollisionOptions) {
+            CollisionOptions other = (CollisionOptions) o;
             return this.playerMode == other.playerMode &&
                    this.miscMode == other.miscMode &&
                    this.trainMode == other.trainMode &&

@@ -22,8 +22,8 @@ import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
-import com.bergerkiller.bukkit.tc.properties.collision.CollisionConfig;
-import com.bergerkiller.bukkit.tc.properties.collision.CollisionMobCategory;
+import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
+import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
@@ -66,14 +66,14 @@ public class TrainCommands {
 
         // Collision states
         message.newLine().yellow("When colliding this train ");
-        if (properties.getCollision().equals(CollisionConfig.CANCEL)) {
+        if (properties.getCollision().equals(CollisionOptions.CANCEL)) {
             message.red("ignores ").yellow("all entities").red(" and ").yellow("blocks");
         } else if (!properties.getCollision().collidesWithEntities()) {
             message.red("ignores ").yellow("all entities").red(" and ");
             message.red(properties.getCollision().blockMode().getOperationName());
             message.yellow(" blocks");
         } else {
-            CollisionConfig collisions = properties.getCollision();
+            CollisionOptions collisions = properties.getCollision();
             for (CollisionMobCategory collisionConfigObject : CollisionMobCategory.values()) {
                 if (collisions.mobMode(collisionConfigObject) != null) {
                     message.red(collisions.mobMode(collisionConfigObject).getOperationName()).yellow(" " +
@@ -595,7 +595,7 @@ public class TrainCommands {
                 if (args.length == 1) {
                     if (ParseUtil.isBool(args[0])) {
                         boolean opt = ParseUtil.parseBool(args[0]);
-                        prop.setCollision(opt ? CollisionConfig.DEFAULT : CollisionConfig.CANCEL);
+                        prop.setCollision(opt ? CollisionOptions.DEFAULT : CollisionOptions.CANCEL);
                         if (opt) {
                             p.sendMessage(ChatColor.YELLOW + "Collision configuration reset to collide with entities and blocks");
                         } else {

@@ -36,14 +36,14 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
-import com.bergerkiller.bukkit.tc.properties.collision.CollisionConfig;
-import com.bergerkiller.bukkit.tc.properties.collision.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
+import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
+import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
+import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.FieldBackedStandardTrainPropertiesHolder;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
-import com.bergerkiller.bukkit.tc.utils.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
 
@@ -856,7 +856,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             return CollisionMode.CANCEL;
         }
         MinecartMember<?> member = MinecartMemberStore.getFromEntity(entity);
-        CollisionConfig collision = this.getCollision();
+        CollisionOptions collision = this.getCollision();
         if (member != null) {
             if (collision.trainMode() == CollisionMode.LINK) {
                 if (member.getGroup().getProperties().getCollision().trainMode() == CollisionMode.LINK) {
@@ -1148,10 +1148,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             if (ParseUtil.parseBool(arg)) {
                 // Legacy support: just reset to defaults
                 // Preserve mob collision rules
-                setCollision(CollisionConfig.DEFAULT);
+                setCollision(CollisionOptions.DEFAULT);
             } else {
                 // Disable all collision
-                setCollision(CollisionConfig.CANCEL);
+                setCollision(CollisionOptions.CANCEL);
             }
         } else if (LogicUtil.containsIgnoreCase(key, "linking", "link")) {
             this.setLinking(ParseUtil.parseBool(arg));
@@ -1307,18 +1307,18 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * 
      * @return collision configuration
      */
-    public CollisionConfig getCollision() {
+    public CollisionOptions getCollision() {
         return get(StandardProperties.COLLISION);
     }
 
     /**
      * Sets the collision configuration of the train. This stores all the collision rules
      * to follow when colliding with entities and blocks. Use the static methods
-     * of {@link CollisionConfig} to change individual modes.
+     * of {@link CollisionOptions} to change individual modes.
      * 
      * @param collisionConfig New collision configuration to set to
      */
-    public void setCollision(CollisionConfig collisionConfig) {
+    public void setCollision(CollisionOptions collisionConfig) {
         set(StandardProperties.COLLISION, collisionConfig);
     }
 

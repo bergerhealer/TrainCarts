@@ -18,7 +18,7 @@ import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
-import com.bergerkiller.bukkit.tc.utils.SignSkipOptions;
+import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 
 /**
  * Tracks the signs passed by a train or cart and applies {@link SignSkipOptions}
@@ -49,9 +49,9 @@ public class SignSkipTracker {
             // First store all entries in history that have state=true (stored in properties)
             // Then, add all other signs that exist
             SignSkipOptions options = owner.getProperties().get(StandardProperties.SIGN_SKIP_OPTIONS);
-            if (!options.skippedSigns.isEmpty()) {
+            if (options.hasSkippedSigns()) {
                 // Signs were set to be skipped, more complicated initialization
-                for (BlockLocation signPos : options.skippedSigns) {
+                for (BlockLocation signPos : options.skippedSigns()) {
                     for (TrackedSign sign : signs) {
                         Block signBlock = sign.signBlock;
                         if (signPos.x == signBlock.getX() &&
@@ -137,11 +137,11 @@ public class SignSkipTracker {
         while (iter.hasNext()) {
             Boolean historyState = this.history.computeIfAbsent(iter.next(), sign -> {
                 boolean passFilter = true;
-                if (options.filter.length() > 0) {
+                if (options.hasFilter()) {
                     if (sign.sign == null) {
                         passFilter = false; // should never happen, but just in case
                     } else {
-                        passFilter = Util.getCleanLine(sign.sign, 1).toLowerCase(Locale.ENGLISH).startsWith(options.filter);
+                        passFilter = Util.getCleanLine(sign.sign, 1).toLowerCase(Locale.ENGLISH).startsWith(options.filter());
                     }
                 }
                 return passFilter ? changes.handleSkip() : Boolean.FALSE;
@@ -168,7 +168,7 @@ public class SignSkipTracker {
                 properties.set(StandardProperties.SIGN_SKIP_OPTIONS, SignSkipOptions.create(
                         changes.ignoreCounter,
                         changes.skipCounter,
-                        options.filter,
+                        options.filter(),
                         Collections.unmodifiableSet(skippedSigns)
                 ));
             } else {
@@ -176,7 +176,7 @@ public class SignSkipTracker {
                 properties.set(StandardProperties.SIGN_SKIP_OPTIONS, SignSkipOptions.create(
                         changes.ignoreCounter,
                         changes.skipCounter,
-                        options.filter,
+                        options.filter(),
                         Collections.emptySet()
                 ));
             }
@@ -185,8 +185,8 @@ public class SignSkipTracker {
             properties.set(StandardProperties.SIGN_SKIP_OPTIONS, SignSkipOptions.create(
                     changes.ignoreCounter,
                     changes.skipCounter,
-                    options.filter,
-                    options.skippedSigns
+                    options.filter(),
+                    options.skippedSigns()
             ));
         }
     }
@@ -198,8 +198,8 @@ public class SignSkipTracker {
         public boolean skippedSignsChanged;
 
         public SkipOptionChanges(SignSkipOptions options) {
-            this.ignoreCounter = options.ignoreCounter;
-            this.skipCounter = options.skipCounter;
+            this.ignoreCounter = options.ignoreCounter();
+            this.skipCounter = options.skipCounter();
             this.countersChanged = false;
             this.skippedSignsChanged = false;
         }

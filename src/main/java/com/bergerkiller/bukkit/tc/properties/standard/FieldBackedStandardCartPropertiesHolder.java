@@ -1,6 +1,6 @@
 package com.bergerkiller.bukkit.tc.properties.standard;
 
-import com.bergerkiller.bukkit.tc.utils.SignSkipOptions;
+import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 
 /**
  * Holds a <b>copy</b> of the cart properties stored in YAML configuration

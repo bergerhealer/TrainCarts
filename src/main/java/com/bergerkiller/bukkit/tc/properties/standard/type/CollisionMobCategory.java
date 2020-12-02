@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.properties.collision;
+package com.bergerkiller.bukkit.tc.properties.standard.type;
 
 import java.util.Set;
 

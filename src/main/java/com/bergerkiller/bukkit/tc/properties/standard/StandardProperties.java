@@ -18,8 +18,8 @@ import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
-import com.bergerkiller.bukkit.tc.properties.collision.CollisionConfig;
-import com.bergerkiller.bukkit.tc.utils.SignSkipOptions;
+import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
+import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
 /**
@@ -76,14 +76,14 @@ public class StandardProperties {
             if (value.isPresent()) {
                 SignSkipOptions data = value.get();
                 ConfigurationNode skipOptions = config.getNode("skipOptions");
-                skipOptions.set("ignoreCtr", data.ignoreCounter);
-                skipOptions.set("skipCtr", data.skipCounter);
-                skipOptions.set("filter", data.filter);
+                skipOptions.set("ignoreCtr", data.ignoreCounter());
+                skipOptions.set("skipCtr", data.skipCounter());
+                skipOptions.set("filter", data.filter());
 
                 // Save signs in an offline friendly format
-                if (!data.skippedSigns.isEmpty()) {
+                if (data.hasSkippedSigns()) {
                     List<String> signs = skipOptions.getList("signs", String.class);
-                    Iterator<BlockLocation> signBlockIter = data.skippedSigns.iterator();
+                    Iterator<BlockLocation> signBlockIter = data.skippedSigns().iterator();
 
                     int num_signs = 0;
                     while (signBlockIter.hasNext()) {
@@ -241,7 +241,7 @@ public class StandardProperties {
         }
     };
 
-    public static final FieldBackedStandardTrainProperty<CollisionConfig> COLLISION = new FieldBackedStandardTrainProperty<CollisionConfig>() {
+    public static final FieldBackedStandardTrainProperty<CollisionOptions> COLLISION = new FieldBackedStandardTrainProperty<CollisionOptions>() {
 
         @Override
         public List<String> getNames() {
@@ -259,39 +259,39 @@ public class StandardProperties {
         }
 
         @Override
-        public CollisionConfig getDefault() {
-            return CollisionConfig.DEFAULT;
+        public CollisionOptions getDefault() {
+            return CollisionOptions.DEFAULT;
         }
 
         @Override
-        public CollisionConfig getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
+        public CollisionOptions getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
             return holder.collision;
         }
 
         @Override
-        public void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, CollisionConfig value) {
+        public void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, CollisionOptions value) {
             holder.collision = value;
         }
 
         @Override
-        public Optional<CollisionConfig> readFromConfig(ConfigurationNode config) {
+        public Optional<CollisionOptions> readFromConfig(ConfigurationNode config) {
             if (config.contains("trainCollision") && !config.get("trainCollision", true)) {
                 // Collision is completely disabled, except for blocks
                 // This is a legacy property, we no longer save it.
-                CollisionConfig collision = CollisionConfig.CANCEL;
+                CollisionOptions collision = CollisionOptions.CANCEL;
                 if (config.contains("collision.block")) {
                     collision = collision.setBlockMode(config.get("collision.block", CollisionMode.DEFAULT));
                 }
                 return Optional.of(collision);
             } else if (config.isNode("collision")) {
-                return Optional.of(CollisionConfig.fromConfig(config.getNode("collision")));
+                return Optional.of(CollisionOptions.fromConfig(config.getNode("collision")));
             } else {
                 return Optional.empty();
             }
         }
 
         @Override
-        public void writeToConfig(ConfigurationNode config, Optional<CollisionConfig> value) {
+        public void writeToConfig(ConfigurationNode config, Optional<CollisionOptions> value) {
             // Get rid of legacy trainCollision property (legacy)
             config.remove("trainCollision");
 
