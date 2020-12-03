@@ -2,6 +2,8 @@ package com.bergerkiller.bukkit.tc.properties.standard;
 
 import java.util.Set;
 
+import org.bukkit.Material;
+
 import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 
 /**
@@ -14,4 +16,5 @@ public class FieldBackedStandardCartPropertiesHolder {
     Set<String> tags;
     Set<String> owners;
     Set<String> ownerPermissions;
+    Set<Material> blockBreakTypes;
 }

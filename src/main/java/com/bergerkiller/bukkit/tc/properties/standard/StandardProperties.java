@@ -9,11 +9,14 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.bukkit.Material;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
@@ -34,6 +37,51 @@ import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
  * All standard TrainCarts built-in train and cart properties
  */
 public class StandardProperties {
+
+    public static final FieldBackedStandardCartProperty<Set<Material>> BLOCK_BREAK_TYPES = new FieldBackedStandardCartProperty<Set<Material>>() {
+        @Override
+        public List<String> getNames() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public Set<Material> getDefault() {
+            return Collections.emptySet();
+        }
+
+        @Override
+        public Set<Material> getHolderValue(FieldBackedStandardCartPropertiesHolder holder) {
+            return holder.blockBreakTypes;
+        }
+
+        @Override
+        public void setHolderValue(FieldBackedStandardCartPropertiesHolder holder, Set<Material> value) {
+            holder.blockBreakTypes = value;
+        }
+
+        @Override
+        public Optional<Set<Material>> readFromConfig(ConfigurationNode config) {
+            if (config.contains("blockBreakTypes")) {
+                return Optional.of(Collections.unmodifiableSet(
+                        config.getList("blockBreakTypes", String.class).stream()
+                            .map(name -> ParseUtil.parseMaterial(name, null))
+                            .filter(m -> m != null)
+                            .collect(Collectors.toSet())));
+            } else {
+                return Optional.empty();
+            }
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Set<Material>> value) {
+            if (value.isPresent()) {
+                config.set("blockBreakTypes", value.get().stream().map(Material::toString)
+                        .collect(Collectors.toList()));
+            } else {
+                config.remove("blockBreakTypes");
+            }
+        }
+    };
 
     public static final ICartProperty<String> DESTINATION_LAST_PATH_NODE = new ICartProperty<String>() {
         @Override

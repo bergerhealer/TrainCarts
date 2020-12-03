@@ -5,7 +5,6 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
-import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -40,7 +39,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     private final ConfigurationNode config;
     private final UUID uuid;
 
-    private final Set<Material> blockBreakTypes = new HashSet<>();
     protected TrainProperties group = null;
     private boolean allowPlayerExit = true;
     private boolean allowPlayerEnter = true;
@@ -176,7 +174,8 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * Block obtaining
      */
     public boolean canBreak(Block block) {
-        return !this.blockBreakTypes.isEmpty() && this.blockBreakTypes.contains(block.getType());
+        Set<Material> types = get(StandardProperties.BLOCK_BREAK_TYPES);
+        return !types.isEmpty() && types.contains(block.getType());
     }
 
     /*
@@ -415,14 +414,14 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * @return True if materials are contained, False if not
      */
     public boolean hasBlockBreakTypes() {
-        return !this.blockBreakTypes.isEmpty();
+        return !get(StandardProperties.BLOCK_BREAK_TYPES).isEmpty();
     }
 
     /**
      * Clears all the materials this Minecart can break
      */
     public void clearBlockBreakTypes() {
-        this.blockBreakTypes.clear();
+        set(StandardProperties.BLOCK_BREAK_TYPES, Collections.emptySet());
     }
 
     /**
@@ -431,7 +430,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * @return a Collection of blocks that are broken
      */
     public Collection<Material> getBlockBreakTypes() {
-        return this.blockBreakTypes;
+        return get(StandardProperties.BLOCK_BREAK_TYPES);
     }
 
     /**
@@ -743,15 +742,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         this.spawnItemDrops = node.get("spawnItemDrops", this.spawnItemDrops);
         this.driveSound = node.get("driveSound", this.driveSound);
 
-        if (node.contains("blockBreakTypes")) {
-            this.blockBreakTypes.clear();
-            for (String blocktype : node.getList("blockBreakTypes", String.class)) {
-                Material mat = ParseUtil.parseMaterial(blocktype, null);
-                if (mat != null) {
-                    this.blockBreakTypes.add(mat);
-                }
-            }
-        }
         if (node.isNode("model")) {
             if (this.model != null) {
                 this.model.update(node.getNode("model").clone(), true);
@@ -812,16 +802,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         this.spawnItemDrops = getConfigValue("spawnItemDrops", true);
         this.driveSound = getConfigValue("driveSound", "");
 
-        this.blockBreakTypes.clear();
-        if (config.contains("blockBreakTypes")) {
-            for (String blocktype : config.getList("blockBreakTypes", String.class)) {
-                Material mat = ParseUtil.parseMaterial(blocktype, null);
-                if (mat != null) {
-                    this.blockBreakTypes.add(mat);
-                }
-            }
-        }
-
         if (config.isNode("model")) {
             if (this.model != null) {
                 this.model.update(config.getNode("model").clone(), true);
@@ -846,15 +826,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         config.set("isPublic", this.isPublic ? null : false);
         config.set("pickUp", this.pickUp ? true : null);
         config.set("driveSound", this.driveSound == "" ? null : this.driveSound);
-        if (this.blockBreakTypes.isEmpty()) {
-            config.remove("blockBreakTypes");
-        } else {
-            List<String> items = config.getList("blockBreakTypes", String.class);
-            items.clear();
-            for (Material mat : this.blockBreakTypes) {
-                items.add(mat.toString());
-            }
-        }
+
         config.set("enterMessage", this.hasEnterMessage() ? this.enterMessage : null);
         config.set("spawnItemDrops", this.spawnItemDrops ? null : false);
 
@@ -875,7 +847,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         node.set("isPublic", true);
         node.set("pickUp", false);
         node.set("driveSound", "");
-        node.set("blockBreakTypes", StringUtil.EMPTY_ARRAY);
         node.set("enterMessage", "");
         node.set("spawnItemDrops", true);
     }
