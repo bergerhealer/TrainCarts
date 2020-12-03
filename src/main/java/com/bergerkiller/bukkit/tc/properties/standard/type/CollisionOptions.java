@@ -7,7 +7,6 @@ import java.util.Map;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 
 /**
@@ -242,66 +241,6 @@ public final class CollisionOptions {
                                    this.miscMode,
                                    this.trainMode,
                                    this.blockMode);
-    }
-
-    public ConfigurationNode toConfig() {
-        ConfigurationNode collisionConfig = new ConfigurationNode();
-
-        for (Map.Entry<CollisionMobCategory, CollisionMode> entry : this.mobModes.entrySet()) {
-            collisionConfig.set(entry.getKey().getMobType(), entry.getValue());
-        }
-
-        if (this.playerMode != DEFAULT.playerMode) {
-            collisionConfig.set("players", this.playerMode);
-        }
-        if (this.miscMode != DEFAULT.miscMode) {
-            collisionConfig.set("misc", this.miscMode);
-        }
-        if (this.trainMode != DEFAULT.trainMode) {
-            collisionConfig.set("train", this.trainMode);
-        }
-        if (this.blockMode != DEFAULT.blockMode) {
-            collisionConfig.set("block", this.blockMode);
-        }
-
-        return collisionConfig;
-    }
-
-    public static CollisionOptions fromConfig(ConfigurationNode collisionConfig) {
-        EnumMap<CollisionMobCategory, CollisionMode> mobModes = new EnumMap<>(CollisionMobCategory.class);
-        CollisionMode playerMode = DEFAULT.playerMode;
-        CollisionMode miscMode = DEFAULT.miscMode;
-        CollisionMode trainMode = DEFAULT.trainMode;
-        CollisionMode blockMode = DEFAULT.blockMode;
-
-        for (CollisionMobCategory category : CollisionMobCategory.values()) {
-            if (collisionConfig.contains(category.getMobType())) {
-                CollisionMode mode = collisionConfig.get(category.getMobType(), CollisionMode.class, null);
-                if (mode != null) {
-                    mobModes.put(category, mode);
-                }
-            }
-        }
-
-        if (collisionConfig.contains("players")) {
-            playerMode = collisionConfig.get("players", playerMode);
-        }
-        if (collisionConfig.contains("misc")) {
-            miscMode = collisionConfig.get("misc", miscMode);
-        }
-        if (collisionConfig.contains("train")) {
-            trainMode = collisionConfig.get("train", trainMode);
-        }
-        if (collisionConfig.contains("block")) {
-            blockMode = collisionConfig.get("block", blockMode);
-        }
-
-        // Optimization (avoid needless empty enum maps)
-        if (mobModes.isEmpty()) {
-            mobModes = DEFAULT.mobModes;
-        }
-
-        return new CollisionOptions(mobModes, playerMode, miscMode, trainMode, blockMode);
     }
 
     @Override

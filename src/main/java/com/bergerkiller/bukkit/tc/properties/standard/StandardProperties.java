@@ -30,6 +30,7 @@ import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
 import com.bergerkiller.bukkit.tc.properties.standard.type.BankingOptions;
+import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
@@ -1345,7 +1346,34 @@ public class StandardProperties {
                 }
                 return Optional.of(collision);
             } else if (config.isNode("collision")) {
-                return Optional.of(CollisionOptions.fromConfig(config.getNode("collision")));
+                ConfigurationNode collisionConfig = config.getNode("collision");
+                CollisionOptions.Builder builder = CollisionOptions.builder();
+
+                // Standard modes
+                if (collisionConfig.contains("players")) {
+                    builder.setPlayerMode(collisionConfig.get("players", CollisionOptions.DEFAULT.playerMode()));
+                }
+                if (collisionConfig.contains("misc")) {
+                    builder.setMiscMode(collisionConfig.get("misc", CollisionOptions.DEFAULT.miscMode()));
+                }
+                if (collisionConfig.contains("train")) {
+                    builder.setTrainMode(collisionConfig.get("train", CollisionOptions.DEFAULT.trainMode()));
+                }
+                if (collisionConfig.contains("block")) {
+                    builder.setBlockMode(collisionConfig.get("block", CollisionOptions.DEFAULT.blockMode()));
+                }
+
+                // Mob collision modes
+                for (CollisionMobCategory category : CollisionMobCategory.values()) {
+                    if (collisionConfig.contains(category.getMobType())) {
+                        CollisionMode mode = collisionConfig.get(category.getMobType(), CollisionMode.class, null);
+                        if (mode != null) {
+                            builder.setMobMode(category, mode);
+                        }
+                    }
+                }
+
+                return Optional.of(builder.build());
             } else {
                 return Optional.empty();
             }
@@ -1357,7 +1385,22 @@ public class StandardProperties {
             config.remove("trainCollision");
 
             if (value.isPresent()) {
-                config.set("collision", value.get().toConfig());
+                ConfigurationNode collisionConfig = config.getNode("collision");
+                CollisionOptions data = value.get();
+
+                for (CollisionMobCategory category : CollisionMobCategory.values()) {
+                    CollisionMode mode = data.mobMode(category);
+                    if (mode != null) {
+                        collisionConfig.set(category.getMobType(), mode);
+                    } else {
+                        collisionConfig.remove(category.getMobType());
+                    }
+                }
+
+                collisionConfig.set("players", data.playerMode());
+                collisionConfig.set("misc", data.miscMode());
+                collisionConfig.set("train", data.trainMode());
+                collisionConfig.set("block", data.blockMode());
             } else {
                 config.remove("collision");
             }
