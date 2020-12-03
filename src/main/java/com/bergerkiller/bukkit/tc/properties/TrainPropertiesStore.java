@@ -414,6 +414,11 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
 
             // Store all properties not already covered by IProperty
             CartProperties.generateDefaults(node);
+
+            // These defaults are only read, never written
+            node.set("blockTypes", "");
+            node.set("blockOffset", "unset");
+
             changed = true;
         }
         if (!defconfig.contains("admin")) {

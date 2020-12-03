@@ -37,6 +37,7 @@ import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
+import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
 import com.bergerkiller.bukkit.tc.properties.standard.type.BankingOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
@@ -1107,38 +1108,52 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     public boolean parseSet(String key, String arg) {
         TrainPropertiesStore.markForAutosave();
         if (key.equalsIgnoreCase("exitoffset")) {
-            Vector vec = Util.parseVector(arg, null);
+            final Vector vec = Util.parseVector(arg, null);
             if (vec != null) {
                 if (vec.length() > TCConfig.maxEjectDistance) {
                     vec.normalize().multiply(TCConfig.maxEjectDistance);
                 }
                 for (CartProperties prop : this) {
-                    prop.exitOffset = vec;
+                    prop.update(StandardProperties.EXIT_OFFSET, curr_off -> ExitOffset.create(
+                            vec, curr_off.getYaw(), curr_off.getPitch()
+                    ));
                 }
             }
         } else if (key.equalsIgnoreCase("exityaw")) {
-            float yaw = ParseUtil.parseFloat(arg, 0.0f);
+            final float new_yaw = ParseUtil.parseFloat(arg, 0.0f);
             for (CartProperties prop : this) {
-                prop.exitYaw = yaw;
+                prop.update(StandardProperties.EXIT_OFFSET, curr_off -> ExitOffset.create(
+                        curr_off.getRelativeX(), curr_off.getRelativeY(), curr_off.getRelativeZ(),
+                        new_yaw, curr_off.getPitch()
+                ));
             }
         } else if (key.equalsIgnoreCase("exitpitch")) {
-            float pitch = ParseUtil.parseFloat(arg, 0.0f);
+            final float new_pitch = ParseUtil.parseFloat(arg, 0.0f);
             for (CartProperties prop : this) {
-                prop.exitPitch = pitch;
+                prop.update(StandardProperties.EXIT_OFFSET, curr_off -> ExitOffset.create(
+                        curr_off.getRelativeX(), curr_off.getRelativeY(), curr_off.getRelativeZ(),
+                        curr_off.getYaw(), new_pitch
+                ));
             }
         } else if (LogicUtil.containsIgnoreCase(key, "exitrot", "exitrotation")) {
             String[] angletext = Util.splitBySeparator(arg);
-            float yaw = 0.0f;
-            float pitch = 0.0f;
+            final float new_yaw;
+            final float new_pitch;
             if (angletext.length == 2) {
-                yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
-                pitch = ParseUtil.parseFloat(angletext[1], 0.0f);
+                new_yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
+                new_pitch = ParseUtil.parseFloat(angletext[1], 0.0f);
             } else if (angletext.length == 1) {
-                yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
+                new_yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
+                new_pitch = 0.0f;
+            } else {
+                new_yaw = 0.0f;
+                new_pitch = 0.0f;
             }
             for (CartProperties prop : this) {
-                prop.exitYaw = yaw;
-                prop.exitPitch = pitch;
+                prop.update(StandardProperties.EXIT_OFFSET, curr_off -> ExitOffset.create(
+                        curr_off.getRelativeX(), curr_off.getRelativeY(), curr_off.getRelativeZ(),
+                        new_yaw, new_pitch
+                ));
             }
         } else if (key.equalsIgnoreCase("killmessage")) {
             this.setKillMessage(arg);
@@ -1492,11 +1507,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     @Override
     public void save(ConfigurationNode node) {
         Util.cloneInto(saveToConfig(), node, Collections.emptySet());
-    }
-
-    // Temporary while loading is done here
-    private <T> T getConfigValue(String key, T defaultValue) {
-        return config.contains(key) ? config.get(key, defaultValue) : defaultValue;
     }
 
     protected void onConfigurationChanged(boolean cartsChanged) {

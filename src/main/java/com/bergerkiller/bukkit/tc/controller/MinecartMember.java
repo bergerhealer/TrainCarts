@@ -583,7 +583,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             Location mloc = entity.getLocation();
             mloc.setYaw(FaceUtil.faceToYaw(getDirection()));
             mloc.setPitch(0.0f);
-            return MathUtil.move(mloc, getProperties().exitOffset);
+            return MathUtil.move(mloc, getProperties().getExitOffset().getRelativePosition());
         } else {
             // Use seat
             return seat.getEjectPosition(passenger);

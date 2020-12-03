@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.standard.FieldBackedStandardCartPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
+import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.storage.OfflineMember;
@@ -41,8 +42,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     private final Set<String> ownerPermissions = new HashSet<>();
     private final Set<String> tags = new HashSet<>();
     private final Set<Material> blockBreakTypes = new HashSet<>();
-    public Vector exitOffset = new Vector(0.0, 0.0, 0.0);
-    public float exitYaw = 0.0f, exitPitch = 0.0f;
     protected TrainProperties group = null;
     private boolean allowPlayerExit = true;
     private boolean allowPlayerEnter = true;
@@ -276,6 +275,26 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
             if (properties.isOwner(owner)) return true;
         }
         return false;
+    }
+
+    /**
+     * Gets the relative exit offset players are ejected at when
+     * seat attachments don't define one.
+     * 
+     * @return relative exit offset
+     */
+    public ExitOffset getExitOffset() {
+        return get(StandardProperties.EXIT_OFFSET);
+    }
+
+    /**
+     * Sets the relative exit offset players are ejected at when
+     * seat attachments don't define one.
+     * 
+     * @param new_offset New offset to set to
+     */
+    public void setExitOffset(ExitOffset new_offset) {
+        set(StandardProperties.EXIT_OFFSET, new_offset);
     }
 
     /**
@@ -617,29 +636,45 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     public boolean parseSet(String key, String arg) {
         TrainPropertiesStore.markForAutosave();
         if (key.equalsIgnoreCase("exitoffset")) {
-            Vector vec = Util.parseVector(arg, null);
+            final Vector vec = Util.parseVector(arg, null);
             if (vec != null) {
                 if (vec.length() > TCConfig.maxEjectDistance) {
                     vec.normalize().multiply(TCConfig.maxEjectDistance);
                 }
-                exitOffset = vec;
+                update(StandardProperties.EXIT_OFFSET, curr_off -> ExitOffset.create(
+                        vec, curr_off.getYaw(), curr_off.getPitch()
+                ));
             }
         } else if (key.equalsIgnoreCase("exityaw")) {
-            exitYaw = ParseUtil.parseFloat(arg, 0.0f);
+            final float new_yaw = ParseUtil.parseFloat(arg, 0.0f);
+            update(StandardProperties.EXIT_OFFSET, curr_off -> ExitOffset.create(
+                    curr_off.getRelativeX(), curr_off.getRelativeY(), curr_off.getRelativeZ(),
+                    new_yaw, curr_off.getPitch()
+            ));
         } else if (key.equalsIgnoreCase("exitpitch")) {
-            exitPitch = ParseUtil.parseFloat(arg, 0.0f);
+            final float new_pitch = ParseUtil.parseFloat(arg, 0.0f);
+            update(StandardProperties.EXIT_OFFSET, curr_off -> ExitOffset.create(
+                    curr_off.getRelativeX(), curr_off.getRelativeY(), curr_off.getRelativeZ(),
+                    curr_off.getYaw(), new_pitch
+            ));
         } else if (LogicUtil.containsIgnoreCase(key, "exitrot", "exitrotation")) {
             String[] angletext = Util.splitBySeparator(arg);
-            float yaw = 0.0f;
-            float pitch = 0.0f;
+            final float new_yaw;
+            final float new_pitch;
             if (angletext.length == 2) {
-                yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
-                pitch = ParseUtil.parseFloat(angletext[1], 0.0f);
+                new_yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
+                new_pitch = ParseUtil.parseFloat(angletext[1], 0.0f);
             } else if (angletext.length == 1) {
-                yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
+                new_yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
+                new_pitch = 0.0f;
+            } else {
+                new_yaw = 0.0f;
+                new_pitch = 0.0f;
             }
-            exitYaw = yaw;
-            exitPitch = pitch;
+            update(StandardProperties.EXIT_OFFSET, curr_off -> ExitOffset.create(
+                    curr_off.getRelativeX(), curr_off.getRelativeY(), curr_off.getRelativeZ(),
+                    new_yaw, new_pitch
+            ));
         } else if (key.equalsIgnoreCase("addtag")) {
             this.addTags(arg);
         } else if (key.equalsIgnoreCase("settag")) {
@@ -712,9 +747,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         this.isPublic = node.get("isPublic", this.isPublic);
         this.pickUp = node.get("pickUp", this.pickUp);
         this.spawnItemDrops = node.get("spawnItemDrops", this.spawnItemDrops);
-        this.exitOffset = node.get("exitOffset", this.exitOffset);
-        this.exitYaw = node.get("exitYaw", this.exitYaw);
-        this.exitPitch = node.get("exitPitch", this.exitPitch);
         this.driveSound = node.get("driveSound", this.driveSound);
 
         this.destinationRouteIndex = node.get("routeIndex", this.destinationRouteIndex);
@@ -811,9 +843,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         this.isPublic = getConfigValue("isPublic", this.isPublic);
         this.pickUp = getConfigValue("pickUp", false);
         this.spawnItemDrops = getConfigValue("spawnItemDrops", true);
-        this.exitOffset = getConfigValue("exitOffset", new Vector(0.0, 0.0, 0.0));
-        this.exitYaw = getConfigValue("exitYaw", 0.0f);
-        this.exitPitch = getConfigValue("exitPitch", 0.0f);
         this.driveSound = getConfigValue("driveSound", "");
 
         this.destinationRouteIndex = getConfigValue("routeIndex", 0);
@@ -875,9 +904,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         config.set("invincible", this.invincible ? true : null);
         config.set("isPublic", this.isPublic ? null : false);
         config.set("pickUp", this.pickUp ? true : null);
-        config.set("exitOffset", this.exitOffset.lengthSquared() == 0.0 ? null : this.exitOffset);
-        config.set("exitYaw", this.exitYaw == 0.0f ? null : this.exitYaw);
-        config.set("exitPitch", this.exitPitch == 0.0f ? null : this.exitPitch);
         config.set("driveSound", this.driveSound == "" ? null : this.driveSound);
         if (this.blockBreakTypes.isEmpty()) {
             config.remove("blockBreakTypes");
@@ -920,9 +946,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         node.set("invincible", false);
         node.set("isPublic", true);
         node.set("pickUp", false);
-        node.set("exitOffset", new Vector(0.0, 0.0, 0.0));
-        node.set("exitYaw", 0.0f);
-        node.set("exitPitch", 0.0f);
         node.set("driveSound", "");
         node.set("blockBreakTypes", StringUtil.EMPTY_ARRAY);
         node.set("destination", "");

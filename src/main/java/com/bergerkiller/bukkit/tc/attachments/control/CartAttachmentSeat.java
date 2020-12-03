@@ -37,6 +37,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetToggleButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositionMenu;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutPositionHandle;
 
 public class CartAttachmentSeat extends CartAttachment {
@@ -403,15 +404,16 @@ public class CartAttachmentSeat extends CartAttachment {
         // If this is inside a Minecart, check the exit offset / rotation properties
         if (this.getManager() instanceof MinecartMemberNetwork) {
             CartProperties cprop = ((MinecartMemberNetwork) this.getManager()).getMember().getProperties();
+            ExitOffset cprop_offset = cprop.getExitOffset();
 
             // Translate eject offset specified in the cart's properties
-            tmp.translate(cprop.exitOffset);
+            tmp.translate(cprop_offset.getRelativePosition());
 
             // Apply transformation of eject position (translation, then rotation)
             tmp.multiply(this._ejectPosition.transform);
 
             // Apply eject rotation specified in the cart's properties on top
-            tmp.rotateYawPitchRoll(cprop.exitPitch, cprop.exitYaw, 0.0f);
+            tmp.rotateYawPitchRoll(cprop_offset.getPitch(), cprop_offset.getYaw(), 0.0f);
         } else {
             // Only use the eject position transform
             tmp.multiply(this._ejectPosition.transform);

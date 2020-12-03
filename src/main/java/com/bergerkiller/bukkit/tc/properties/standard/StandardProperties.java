@@ -10,6 +10,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+import org.bukkit.util.Vector;
+
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
@@ -20,10 +22,12 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
 import com.bergerkiller.bukkit.tc.properties.standard.type.BankingOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
+import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.WaitOptions;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
@@ -32,6 +36,44 @@ import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
  * All standard TrainCarts built-in train and cart properties
  */
 public class StandardProperties {
+
+    public static final ICartProperty<ExitOffset> EXIT_OFFSET = new ICartProperty<ExitOffset>() {
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("exitoffset", "exityaw", "exitpitch", "exitrot", "exitrotation");
+        }
+
+        @Override
+        public ExitOffset getDefault() {
+            return ExitOffset.DEFAULT;
+        }
+
+        @Override
+        public Optional<ExitOffset> readFromConfig(ConfigurationNode config) {
+            if (config.contains("exitOffset") || config.contains("exitYaw") || config.contains("exitPitch")) {
+                Vector offset = config.get("exitOffset", new Vector());
+                float yaw = config.get("exitYaw", 0.0f);
+                float pitch = config.get("exitPitch", 0.0f);
+                return Optional.of(ExitOffset.create(offset, yaw, pitch));
+            } else {
+                return Optional.empty();
+            }
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<ExitOffset> value) {
+            if (value.isPresent()) {
+                ExitOffset data = value.get();
+                config.set("exitOffset", data.getRelativePosition());
+                config.set("exitYaw", data.getYaw());
+                config.set("exitPitch", data.getPitch());
+            } else {
+                config.remove("exitOffset");
+                config.remove("exitYaw");
+                config.remove("exitPitch");
+            }
+        }
+    };
 
     public static final ITrainProperty<List<String>> TICKETS = new ITrainProperty<List<String>>() {
         @Override
