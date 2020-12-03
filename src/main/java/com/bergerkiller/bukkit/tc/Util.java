@@ -4,10 +4,14 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.bukkit.Chunk;
@@ -53,6 +57,7 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil.ItemSynchronizer;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
@@ -1598,6 +1603,53 @@ public class Util {
         }
 
         return false;
+    }
+
+    public static Optional<Set<String>> getConfigStringSetOptional(ConfigurationNode config, String key) {
+        if (config.contains(key)) {
+            List<String> configList = config.getList(key, String.class);
+            Set<String> resultSet = new HashSet<String>(configList);
+            return Optional.of(Collections.unmodifiableSet(resultSet));
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    public static Optional<List<String>> getConfigStringListOptional(ConfigurationNode config, String key) {
+        if (config.contains(key)) {
+            List<String> configList = config.getList(key, String.class);
+            List<String> listCopy = new ArrayList<String>(configList);
+            return Optional.of(Collections.unmodifiableList(listCopy));
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    public static void setConfigStringCollectionOptional(ConfigurationNode config, String key, Optional<? extends Collection<String>> value) {
+        if (value.isPresent()) {
+            //TODO: Use ItemSynchronizer.identity()
+            LogicUtil.synchronizeList(
+                    config.getList(key, String.class),
+                    value.get(),
+                    new ItemSynchronizer<String, String>() {
+                        @Override
+                        public boolean isItem(String item, String value) {
+                            return Objects.equals(item, value);
+                        }
+
+                        @Override
+                        public String onAdded(String value) {
+                            return value;
+                        }
+
+                        @Override
+                        public void onRemoved(String item) {
+                        }
+                    }
+            );
+        } else {
+            config.remove(key);
+        }
     }
 
     /**

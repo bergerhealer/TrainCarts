@@ -6,7 +6,6 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -14,8 +13,6 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
-import com.bergerkiller.bukkit.common.utils.LogicUtil.ItemSynchronizer;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
@@ -36,6 +33,117 @@ import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
  * All standard TrainCarts built-in train and cart properties
  */
 public class StandardProperties {
+
+    public static final FieldBackedStandardCartProperty<Set<String>> OWNER_PERMISSIONS = new FieldBackedStandardCartProperty<Set<String>>() {
+        @Override
+        public List<String> getNames() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public Set<String> getDefault() {
+            return Collections.emptySet();
+        }
+
+        @Override
+        public Set<String> getHolderValue(FieldBackedStandardCartPropertiesHolder holder) {
+            return holder.ownerPermissions;
+        }
+
+        @Override
+        public void setHolderValue(FieldBackedStandardCartPropertiesHolder holder, Set<String> value) {
+            holder.ownerPermissions = value;
+        }
+
+        @Override
+        public Optional<Set<String>> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigStringSetOptional(config, "ownerPermissions");
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Set<String>> value) {
+            Util.setConfigStringCollectionOptional(config, "ownerPermissions", value);
+        }
+
+        @Override
+        public Set<String> get(TrainProperties properties) {
+            return FieldBackedStandardCartProperty.combineCartValues(properties, this);
+        }
+    };
+
+    public static final FieldBackedStandardCartProperty<Set<String>> OWNERS = new FieldBackedStandardCartProperty<Set<String>>() {
+        @Override
+        public List<String> getNames() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public Set<String> getDefault() {
+            return Collections.emptySet();
+        }
+
+        @Override
+        public Set<String> getHolderValue(FieldBackedStandardCartPropertiesHolder holder) {
+            return holder.owners;
+        }
+
+        @Override
+        public void setHolderValue(FieldBackedStandardCartPropertiesHolder holder, Set<String> value) {
+            holder.owners = value;
+        }
+
+        @Override
+        public Optional<Set<String>> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigStringSetOptional(config, "owners");
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Set<String>> value) {
+            Util.setConfigStringCollectionOptional(config, "owners", value);
+        }
+
+        @Override
+        public Set<String> get(TrainProperties properties) {
+            return FieldBackedStandardCartProperty.combineCartValues(properties, this);
+        }
+    };
+
+    public static final FieldBackedStandardCartProperty<Set<String>> TAGS = new FieldBackedStandardCartProperty<Set<String>>() {
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("addtag", "settag", "remtag", "removetag");
+        }
+
+        @Override
+        public Set<String> getDefault() {
+            return Collections.emptySet();
+        }
+
+        @Override
+        public Set<String> getHolderValue(FieldBackedStandardCartPropertiesHolder holder) {
+            return holder.tags;
+        }
+
+        @Override
+        public void setHolderValue(FieldBackedStandardCartPropertiesHolder holder, Set<String> value) {
+            holder.tags = value;
+        }
+
+        @Override
+        public Optional<Set<String>> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigStringSetOptional(config, "tags");
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Set<String>> value) {
+            Util.setConfigStringCollectionOptional(config, "tags", value);
+        }
+
+        @Override
+        public Set<String> get(TrainProperties properties) {
+            return FieldBackedStandardCartProperty.combineCartValues(properties, this);
+        }
+    };
 
     public static final ICartProperty<ExitOffset> EXIT_OFFSET = new ICartProperty<ExitOffset>() {
         @Override
@@ -75,53 +183,25 @@ public class StandardProperties {
         }
     };
 
-    public static final ITrainProperty<List<String>> TICKETS = new ITrainProperty<List<String>>() {
+    public static final ITrainProperty<Set<String>> TICKETS = new ITrainProperty<Set<String>>() {
         @Override
         public List<String> getNames() {
             return Collections.emptyList();
         }
 
         @Override
-        public List<String> getDefault() {
-            return Collections.emptyList();
+        public Set<String> getDefault() {
+            return Collections.emptySet();
         }
 
         @Override
-        @SuppressWarnings({ "unchecked", "rawtypes" })
-        public Optional<List<String>> readFromConfig(ConfigurationNode config) {
-            if (config.contains("tickets")) {
-                Object[] values = config.getList("tickets", String.class).toArray();
-                return Optional.of((List) Collections.unmodifiableList(Arrays.asList(values)));
-            } else {
-                return Optional.empty();
-            }
+        public Optional<Set<String>> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigStringSetOptional(config, "tickets");
         }
 
         @Override
-        public void writeToConfig(ConfigurationNode config, Optional<List<String>> value) {
-            if (value.isPresent()) {
-                //TODO: Use ItemSynchronizer.identity()
-                LogicUtil.synchronizeList(
-                        config.getList("tickets", String.class),
-                        value.get(),
-                        new ItemSynchronizer<String, String>() {
-                    @Override
-                    public boolean isItem(String item, String value) {
-                        return Objects.equals(item, value);
-                    }
-
-                    @Override
-                    public String onAdded(String value) {
-                        return value;
-                    }
-
-                    @Override
-                    public void onRemoved(String item) {
-                    }
-                });
-            } else {
-                config.remove("tickets");
-            }
+        public void writeToConfig(ConfigurationNode config, Optional<Set<String>> value) {
+            Util.setConfigStringCollectionOptional(config, "tickets", value);
         }
     };
 

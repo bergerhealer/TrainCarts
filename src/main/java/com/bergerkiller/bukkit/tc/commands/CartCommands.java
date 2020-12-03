@@ -161,7 +161,7 @@ public class CartCommands {
                 p.sendMessage(ChatColor.YELLOW + "All owner permissions for this minecart have been cleared!");
             } else {
                 for (String ownerPerm : args) {
-                    prop.getOwnerPermissions().add(ownerPerm);
+                    prop.addOwnerPermission(ownerPerm);
                 }
                 p.sendMessage(ChatColor.YELLOW + "You set the owner permissions " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " for this minecart");
                 p.sendMessage(ChatColor.YELLOW + "Players that have these permission nodes are considered owners of this Minecart");
@@ -172,7 +172,7 @@ public class CartCommands {
                 p.sendMessage(ChatColor.YELLOW + "Please specify the permission nodes to add!");
             } else {
                 for (String ownerPerm : args) {
-                    prop.getOwnerPermissions().add(ownerPerm);
+                    prop.removeOwnerPermission(ownerPerm);
                 }
                 p.sendMessage(ChatColor.YELLOW + "You added the owner permissions " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " to this minecart");
                 p.sendMessage(ChatColor.YELLOW + "Players that have these permission nodes are considered owners of this Minecart");

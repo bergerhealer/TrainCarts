@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.properties;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -528,18 +529,12 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
     @Override
     public Set<String> getOwners() {
-        Set<String> rval = new HashSet<>();
-        for (CartProperties cprop : this) {
-            rval.addAll(cprop.getOwners());
-        }
-        return rval;
+        return get(StandardProperties.OWNERS);
     }
 
     @Override
     public void clearOwners() {
-        for (CartProperties prop : this) {
-            prop.clearOwners();
-        }
+        set(StandardProperties.OWNERS, Collections.emptySet());
     }
 
     @Override
@@ -637,25 +632,17 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
     @Override
     public Collection<String> getTags() {
-        Set<String> tags = new HashSet<>();
-        for (CartProperties prop : this) {
-            tags.addAll(prop.getTags());
-        }
-        return tags;
+        return get(StandardProperties.TAGS);
     }
 
     @Override
     public void setTags(String... tags) {
-        for (CartProperties prop : this) {
-            prop.setTags(tags);
-        }
+        set(StandardProperties.TAGS, new HashSet<String>(Arrays.asList(tags)));
     }
 
     @Override
     public void clearTags() {
-        for (CartProperties prop : this) {
-            prop.clearTags();
-        }
+        set(StandardProperties.TAGS, Collections.emptySet());
     }
 
     @Override
@@ -990,7 +977,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * 
      * @return tickets
      */
-    public List<String> getTickets() {
+    public Set<String> getTickets() {
         return get(StandardProperties.TICKETS);
     }
 
@@ -1004,7 +991,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             if (tickets.contains(ticketName)) {
                 return tickets;
             } else {
-                ArrayList<String> new_tickets = new ArrayList<>(tickets);
+                HashSet<String> new_tickets = new HashSet<>(tickets);
                 new_tickets.add(ticketName);
                 return new_tickets;
             }
@@ -1018,19 +1005,18 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     public void removeTicket(String ticketName) {
         update(StandardProperties.TICKETS, tickets -> {
-            int index = tickets.indexOf(ticketName);
-            if (index == -1) {
+            if (!tickets.contains(ticketName)) {
                 return tickets;
             } else {
-                ArrayList<String> new_tickets = new ArrayList<>(tickets);
-                new_tickets.remove(index);
+                HashSet<String> new_tickets = new HashSet<>(tickets);
+                new_tickets.remove(ticketName);
                 return new_tickets;
             }
         });
     }
 
     public void clearTickets() {
-        set(StandardProperties.TICKETS, Collections.emptyList());
+        set(StandardProperties.TICKETS, Collections.emptySet());
     }
 
     public SignSkipOptions getSkipOptions() {
@@ -1297,20 +1283,17 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                 prop.getOwnerPermissions().remove(arg);
             }
         } else if (key.equalsIgnoreCase("setowner")) {
-            arg = arg.toLowerCase();
             for (CartProperties cprop : this) {
                 cprop.clearOwners();
-                cprop.getOwners().add(arg);
+                cprop.setOwner(arg, true);
             }
         } else if (key.equalsIgnoreCase("addowner")) {
-            arg = arg.toLowerCase();
             for (CartProperties cprop : this) {
-                cprop.getOwners().add(arg);
+                cprop.setOwner(arg, true);
             }
         } else if (key.equalsIgnoreCase("remowner")) {
-            arg = arg.toLowerCase();
             for (CartProperties cprop : this) {
-                cprop.getOwners().remove(arg);
+                cprop.setOwner(arg, false);
             }
         } else if (LogicUtil.containsIgnoreCase(key, "spawnitemdrops", "spawndrops", "killdrops")) {
             this.setSpawnItemDrops(ParseUtil.parseBool(arg));

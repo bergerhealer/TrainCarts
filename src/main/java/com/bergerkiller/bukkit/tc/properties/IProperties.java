@@ -141,7 +141,7 @@ public interface IProperties extends IParsable {
     /**
      * Gets a Set of all player owner names (lower cased)
      *
-     * @return owners
+     * @return owners (unmodifiable and immutable)
      */
     Set<String> getOwners();
 
@@ -155,7 +155,7 @@ public interface IProperties extends IParsable {
     /**
      * Gets a Set of all permission nodes granting players ownership
      *
-     * @return owner permissions
+     * @return owner permissions (unmodifiable and immutable)
      */
     Set<String> getOwnerPermissions();
 

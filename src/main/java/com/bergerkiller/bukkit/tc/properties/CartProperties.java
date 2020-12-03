@@ -38,9 +38,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     private final UUID uuid;
     private final ConfigurationNode config;
     private final FieldBackedStandardCartPropertiesHolder standardProperties = new FieldBackedStandardCartPropertiesHolder();
-    private final Set<String> owners = new HashSet<>();
-    private final Set<String> ownerPermissions = new HashSet<>();
-    private final Set<String> tags = new HashSet<>();
     private final Set<Material> blockBreakTypes = new HashSet<>();
     protected TrainProperties group = null;
     private boolean allowPlayerExit = true;
@@ -203,23 +200,28 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
     @Override
     public boolean isOwner(Player player) {
-        return this.isOwner(player.getName().toLowerCase());
+        return this.isOwner(player.getName());
     }
 
     public boolean isOwner(String player) {
-        return this.owners.contains(player.toLowerCase());
+        return get(StandardProperties.OWNERS).contains(player.toLowerCase());
     }
 
     public void setOwner(String player) {
         this.setOwner(player, true);
     }
 
-    public void setOwner(String player, boolean owner) {
-        if (owner) {
-            this.owners.add(player);
-        } else {
-            this.owners.remove(player);
-        }
+    public void setOwner(final String player, final boolean owner) {
+        update(StandardProperties.OWNERS, curr_owners -> {
+            String player_lc = player.toLowerCase();
+            if (curr_owners.contains(player_lc) == owner) {
+                return curr_owners;
+            } else {
+                HashSet<String> new_owners = new HashSet<>(curr_owners);
+                LogicUtil.addOrRemove(new_owners, player_lc, owner);
+                return new_owners;
+            }
+        });
     }
 
     public void setOwner(Player player) {
@@ -240,41 +242,56 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
     @Override
     public Set<String> getOwnerPermissions() {
-        return this.ownerPermissions;
+        return get(StandardProperties.OWNER_PERMISSIONS);
+    }
+
+    public void addOwnerPermission(final String permission) {
+        update(StandardProperties.OWNER_PERMISSIONS, curr_perms -> {
+            if (curr_perms.contains(permission)) {
+                return curr_perms;
+            } else {
+                HashSet<String> new_perms = new HashSet<>(curr_perms);
+                new_perms.add(permission);
+                return new_perms;
+            }
+        });
+    }
+
+    public void removeOwnerPermission(final String permission) {
+        update(StandardProperties.OWNER_PERMISSIONS, curr_perms -> {
+            if (!curr_perms.contains(permission)) {
+                return curr_perms;
+            } else {
+                HashSet<String> new_perms = new HashSet<>(curr_perms);
+                new_perms.remove(permission);
+                return new_perms;
+            }
+        });
     }
 
     @Override
     public void clearOwnerPermissions() {
-        this.ownerPermissions.clear();
+        set(StandardProperties.OWNER_PERMISSIONS, Collections.emptySet());
     }
 
     @Override
     public boolean hasOwnerPermissions() {
-        return !this.ownerPermissions.isEmpty();
+        return !get(StandardProperties.OWNER_PERMISSIONS).isEmpty();
     }
 
     @Override
     public Set<String> getOwners() {
-        return this.owners;
+        return get(StandardProperties.OWNERS);
     }
 
     @Override
     public void clearOwners() {
-        this.owners.clear();
+        set(StandardProperties.OWNERS, Collections.emptySet());
     }
 
     @Override
     public boolean hasOwners() {
-        return !this.owners.isEmpty();
-    }
-
-    public boolean sharesOwner(CartProperties properties) {
-        if (!this.hasOwners()) return true;
-        if (!properties.hasOwners()) return true;
-        for (String owner : properties.owners) {
-            if (properties.isOwner(owner)) return true;
-        }
-        return false;
+        return !get(StandardProperties.OWNERS).isEmpty();
     }
 
     /**
@@ -322,40 +339,45 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
     @Override
     public boolean matchTag(String tag) {
-        return Util.matchText(this.tags, tag);
+        return Util.matchText(this.getTags(), tag);
     }
 
     @Override
     public boolean hasTags() {
-        return !this.tags.isEmpty();
+        return !this.getTags().isEmpty();
     }
 
     @Override
     public void clearTags() {
-        this.tags.clear();
+        set(StandardProperties.TAGS, Collections.emptySet());
     }
 
     @Override
-    public void addTags(String... tags) {
-        Collections.addAll(this.tags, tags);
+    public void addTags(final String... tags) {
+        update(StandardProperties.TAGS, curr_tags -> {
+            HashSet<String> new_tags = new HashSet<String>(curr_tags);
+            new_tags.addAll(Arrays.asList(tags));
+            return new_tags;
+        });
     }
 
     @Override
-    public void removeTags(String... tags) {
-        for (String tag : tags) {
-            this.tags.remove(tag);
-        }
+    public void removeTags(final String... tags) {
+        update(StandardProperties.TAGS, curr_tags -> {
+            HashSet<String> new_tags = new HashSet<String>(curr_tags);
+            new_tags.removeAll(Arrays.asList(tags));
+            return new_tags;
+        });
     }
 
     @Override
     public Set<String> getTags() {
-        return this.tags;
+        return get(StandardProperties.TAGS);
     }
 
     @Override
     public void setTags(String... tags) {
-        this.tags.clear();
-        this.addTags(tags);
+        set(StandardProperties.TAGS, new HashSet<String>(Arrays.asList(tags)));
     }
 
     @Override
@@ -702,20 +724,18 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
             this.setInvincible(ParseUtil.parseBool(arg));
         } else if (key.equalsIgnoreCase("setownerperm")) {
             this.clearOwnerPermissions();
-            this.getOwnerPermissions().add(arg);
+            this.addOwnerPermission(arg);
         } else if (key.equalsIgnoreCase("addownerperm")) {
-            this.getOwnerPermissions().add(arg);
+            this.addOwnerPermission(arg);
         } else if (key.equalsIgnoreCase("remownerperm")) {
-            this.getOwnerPermissions().remove(arg);
+            this.removeOwnerPermission(arg);
         } else if (key.equalsIgnoreCase("setowner")) {
-            arg = arg.toLowerCase();
+            this.clearOwners();
             this.setOwner(arg);
         } else if (key.equalsIgnoreCase("addowner")) {
-            arg = arg.toLowerCase();
-            this.getOwners().add(arg);
+            this.setOwner(arg, true);
         } else if (key.equalsIgnoreCase("remowner")) {
-            arg = arg.toLowerCase();
-            this.getOwners().remove(arg);
+            this.setOwner(arg, false);
         } else if (key.equalsIgnoreCase("model")) {
             setModelName(arg);
         } else if (LogicUtil.containsIgnoreCase(key, "clearmodel", "resetmodel")) {
@@ -756,22 +776,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
                 this.destinationRoute = Collections.emptyList();
             } else {
                 this.destinationRoute = new ArrayList<String>(route);
-            }
-        }
-        if (node.contains("owners")) {
-            this.owners.clear();
-            for (String owner : node.getList("owners", String.class)) {
-                this.owners.add(owner.toLowerCase());
-            }
-        }
-        if (node.contains("ownerPermissions")) {
-            this.ownerPermissions.clear();
-            this.ownerPermissions.addAll(node.getList("ownerPermissions", String.class));
-        }
-        if (node.contains("tags")) {
-            this.tags.clear();
-            for (String tag : node.getList("tags", String.class)) {
-                this.tags.add(tag);
             }
         }
         if (node.contains("blockBreakTypes")) {
@@ -854,20 +858,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
             }
         }
 
-        this.owners.clear();
-        if (config.contains("owners")) {
-            for (String owner : config.getList("owners", String.class)) {
-                this.owners.add(owner.toLowerCase());
-            }
-        }
-        this.ownerPermissions.clear();
-        if (config.contains("ownerPermissions")) {
-            this.ownerPermissions.addAll(config.getList("ownerPermissions", String.class));
-        }
-        this.tags.clear();
-        if (config.contains("tags")) {
-            this.tags.addAll(config.getList("tags", String.class));
-        }
         this.blockBreakTypes.clear();
         if (config.contains("blockBreakTypes")) {
             for (String blocktype : config.getList("blockBreakTypes", String.class)) {
@@ -896,9 +886,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * @return saved {@link #getConfig()}
      */
     public ConfigurationNode saveToConfig() {
-        config.set("owners", this.owners.isEmpty() ? null : new ArrayList<>(this.owners));
-        config.set("ownerPermissions", this.ownerPermissions.isEmpty() ? null : new ArrayList<>(this.ownerPermissions));
-        config.set("tags", this.tags.isEmpty() ? null : new ArrayList<>(this.tags));
         config.set("allowPlayerEnter", this.allowPlayerEnter ? null : false);
         config.set("allowPlayerExit", this.allowPlayerExit ? null : false);
         config.set("invincible", this.invincible ? true : null);
@@ -938,9 +925,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
     // Stores all the default property values not already covered by IProperty
     protected static void generateDefaults(ConfigurationNode node) {
-        node.set("owners", StringUtil.EMPTY_ARRAY);
-        node.set("ownerPermissions", StringUtil.EMPTY_ARRAY);
-        node.set("tags", StringUtil.EMPTY_ARRAY);
         node.set("allowPlayerEnter", true);
         node.set("allowPlayerExit", true);
         node.set("invincible", false);

@@ -426,7 +426,9 @@ public class TrainCommands {
                 for (CartProperties cprop : prop) {
                     if (cprop.hasOwnership(p)) {
                         changed++;
-                        cprop.getOwnerPermissions().addAll(Arrays.asList(args));
+                        for (String perm : args) {
+                            cprop.addOwnerPermission(perm);
+                        }
                     }
                 }
                 if (changed == 0) {
@@ -448,7 +450,9 @@ public class TrainCommands {
                 for (CartProperties cprop : prop) {
                     if (cprop.hasOwnership(p)) {
                         changed++;
-                        cprop.getOwnerPermissions().addAll(Arrays.asList(args));
+                        for (String perm : args) {
+                            cprop.addOwnerPermission(perm);
+                        }
                     }
                 }
                 if (changed == 0) {

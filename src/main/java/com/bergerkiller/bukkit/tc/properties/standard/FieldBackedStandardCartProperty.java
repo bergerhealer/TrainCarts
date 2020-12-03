@@ -1,6 +1,11 @@
 package com.bergerkiller.bukkit.tc.properties.standard;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
 
 /**
@@ -42,6 +47,26 @@ public interface FieldBackedStandardCartProperty<T> extends ICartProperty<T> {
     default void set(CartProperties properties, T value) {
         ICartProperty.super.set(properties, value);
         setHolderValue(properties.getStandardPropertiesHolder(), value);
+    }
+
+    /**
+     * Utility function for implementing {@link #set(TrainProperties, Object)} that combines the values
+     * of all sets together
+     * 
+     * @param properties TrainProperties whose carts to combine
+     * @param property Property that returns a Set
+     * @return combined set (unmodifiable, immutable)
+     */
+    public static Set<String> combineCartValues(TrainProperties properties, FieldBackedStandardCartProperty<Set<String>> property) {
+        if (properties.size() == 1) {
+            return property.get(properties.get(0));
+        } else {
+            Set<String> result = new HashSet<String>();
+            for (CartProperties cprop : properties) {
+                result.addAll(property.get(cprop));
+            }
+            return Collections.unmodifiableSet(result);
+        }
     }
 
     /**
