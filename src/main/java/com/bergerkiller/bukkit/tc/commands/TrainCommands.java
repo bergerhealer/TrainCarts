@@ -517,13 +517,13 @@ public class TrainCommands {
             }
             if (cmd.equals("pushplayers")) {
                 if (newState != null) {
-                    prop.setCollision(prop.getCollision().setPlayerMode(newState));
+                    prop.setCollision(prop.getCollision().cloneAndSetPlayerMode(newState));
                 }
                 msg += "players: " + ChatColor.WHITE + " " + (prop.getCollision().playerMode() == CollisionMode.PUSH);
             }
             if (cmd.equals("pushmisc")) {
                 if (newState != null) {
-                    prop.setCollision(prop.getCollision().setMiscMode(newState));
+                    prop.setCollision(prop.getCollision().cloneAndSetMiscMode(newState));
                 }
                 msg += "misc. entities: " + ChatColor.WHITE + " " + (prop.getCollision().miscMode() == CollisionMode.PUSH);
             }
@@ -572,16 +572,16 @@ public class TrainCommands {
                     if (prop.updateCollisionProperties(typeName, mode)) {
                         p.sendMessage(ChatColor.YELLOW + "When colliding this train " + mode.getOperationName() + " " + typeName);
                     } else if (typeName.contains("player")) {
-                        prop.setCollision(prop.getCollision().setPlayerMode(mode));
+                        prop.setCollision(prop.getCollision().cloneAndSetPlayerMode(mode));
                         p.sendMessage(ChatColor.YELLOW + "When colliding this train " + prop.getCollision().playerMode().getOperationName() + " players");
                     } else if (typeName.contains("misc")) {
-                        prop.setCollision(prop.getCollision().setMiscMode(mode));
+                        prop.setCollision(prop.getCollision().cloneAndSetMiscMode(mode));
                         p.sendMessage(ChatColor.YELLOW + "When colliding this train " + prop.getCollision().miscMode().getOperationName() + " misc entities");
                     } else if (typeName.contains("train")) {
-                        prop.setCollision(prop.getCollision().setTrainMode(mode));
+                        prop.setCollision(prop.getCollision().cloneAndSetTrainMode(mode));
                         p.sendMessage(ChatColor.YELLOW + "When colliding this train " + prop.getCollision().trainMode().getOperationName() + " other trains");
                     } else if (typeName.contains("block")) {
-                        prop.setCollision(prop.getCollision().setBlockMode(mode));
+                        prop.setCollision(prop.getCollision().cloneAndSetBlockMode(mode));
                         p.sendMessage(ChatColor.YELLOW + "When colliding this train " + prop.getCollision().blockMode().getOperationName() + " blocks");
                     } else {
                         p.sendMessage(ChatColor.RED + "Unknown collidable type: " + args[0]);

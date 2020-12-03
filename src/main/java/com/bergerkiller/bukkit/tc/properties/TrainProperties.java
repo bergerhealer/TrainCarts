@@ -1130,19 +1130,19 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (key.equalsIgnoreCase("playercollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
             if (mode == null) return false;
-            setCollision(getCollision().setPlayerMode(mode));
+            setCollision(getCollision().cloneAndSetPlayerMode(mode));
         } else if (key.equalsIgnoreCase("misccollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
             if (mode == null) return false;
-            setCollision(getCollision().setMiscMode(mode));
+            setCollision(getCollision().cloneAndSetMiscMode(mode));
         } else if (key.equalsIgnoreCase("traincollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
             if (mode == null) return false;
-            setCollision(getCollision().setTrainMode(mode));
+            setCollision(getCollision().cloneAndSetTrainMode(mode));
         } else if (key.equalsIgnoreCase("blockcollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
             if (mode == null) return false;
-            setCollision(getCollision().setBlockMode(mode));
+            setCollision(getCollision().cloneAndSetBlockMode(mode));
         } else if (key.equalsIgnoreCase("collisiondamage")) {
             this.setCollisionDamage(Double.parseDouble(arg));
         } else if (key.equalsIgnoreCase("suffocation")) {
@@ -1177,13 +1177,13 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.setDefault(arg);
         } else if (key.equalsIgnoreCase("pushplayers")) {
             CollisionMode mode = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
-            setCollision(getCollision().setPlayerMode(mode));
+            setCollision(getCollision().cloneAndSetPlayerMode(mode));
         } else if (key.equalsIgnoreCase("pushmisc")) {
             CollisionMode mode = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
-            setCollision(getCollision().setMiscMode(mode));
+            setCollision(getCollision().cloneAndSetMiscMode(mode));
         } else if (LogicUtil.containsIgnoreCase(key, "push", "pushing")) {
             CollisionMode mode = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
-            setCollision(getCollision().setPlayerMode(mode).setMiscMode(mode));
+            setCollision(getCollision().cloneAndSetPlayerMode(mode).cloneAndSetMiscMode(mode));
             this.setCollisionModeForMobs(mode);
         } else if (LogicUtil.containsIgnoreCase(key, "speedlimit", "maxspeed")) {
             this.setSpeedLimit(Util.parseVelocity(arg, this.getSpeedLimit()));
@@ -1331,7 +1331,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param mode to set to, null to reset to defaults
      */
     public void setCollisionMode(final CollisionMobCategory mobCategory, final CollisionMode mode) {
-        update(StandardProperties.COLLISION, opt -> opt.setMobMode(mobCategory, mode));
+        update(StandardProperties.COLLISION, opt -> opt.cloneAndSetMobMode(mobCategory, mode));
     }
 
     /**
@@ -1402,7 +1402,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             CollisionOptions new_options = curr_options;
             for (CollisionMobCategory category : CollisionMobCategory.values()) {
                 if (category.isMobCategory() && curr_options.mobMode(category) == expected) {
-                    new_options = curr_options.setMobMode(category, mode);
+                    new_options = curr_options.cloneAndSetMobMode(category, mode);
                 }
             }
             return new_options;
@@ -1418,9 +1418,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     public void setLinking(final boolean linking) {
         update(StandardProperties.COLLISION, opt -> {
             if (linking) {
-                return opt.setTrainMode(CollisionMode.LINK);
+                return opt.cloneAndSetTrainMode(CollisionMode.LINK);
             } else if (opt.trainMode() == CollisionMode.LINK) {
-                return opt.setTrainMode(CollisionMode.DEFAULT);
+                return opt.cloneAndSetTrainMode(CollisionMode.DEFAULT);
             } else {
                 return opt;
             }

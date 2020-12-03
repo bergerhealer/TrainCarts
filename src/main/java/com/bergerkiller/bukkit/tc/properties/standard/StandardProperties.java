@@ -1341,7 +1341,7 @@ public class StandardProperties {
                 // This is a legacy property, we no longer save it.
                 CollisionOptions collision = CollisionOptions.CANCEL;
                 if (config.contains("collision.block")) {
-                    collision = collision.setBlockMode(config.get("collision.block", CollisionMode.DEFAULT));
+                    collision = collision.cloneAndSetBlockMode(config.get("collision.block", CollisionMode.DEFAULT));
                 }
                 return Optional.of(collision);
             } else if (config.isNode("collision")) {

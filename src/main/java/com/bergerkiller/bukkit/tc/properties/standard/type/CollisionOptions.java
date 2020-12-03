@@ -166,7 +166,7 @@ public final class CollisionOptions {
         return false;
     }
 
-    public CollisionOptions setPlayerMode(CollisionMode mode) {
+    public CollisionOptions cloneAndSetPlayerMode(CollisionMode mode) {
         // Check unchanged
         if (this.playerMode == mode) {
             return this;
@@ -179,7 +179,7 @@ public final class CollisionOptions {
                                    this.blockMode);
     }
 
-    public CollisionOptions setMiscMode(CollisionMode mode) {
+    public CollisionOptions cloneAndSetMiscMode(CollisionMode mode) {
         // Check unchanged
         if (this.miscMode == mode) {
             return this;
@@ -192,7 +192,7 @@ public final class CollisionOptions {
                                    this.blockMode);
     }
 
-    public CollisionOptions setTrainMode(CollisionMode mode) {
+    public CollisionOptions cloneAndSetTrainMode(CollisionMode mode) {
         // Check unchanged
         if (this.trainMode == mode) {
             return this;
@@ -205,7 +205,7 @@ public final class CollisionOptions {
                                    this.blockMode);
     }
 
-    public CollisionOptions setBlockMode(CollisionMode mode) {
+    public CollisionOptions cloneAndSetBlockMode(CollisionMode mode) {
         // Check unchanged
         if (this.blockMode == mode) {
             return this;
@@ -218,7 +218,7 @@ public final class CollisionOptions {
                                    mode);
     }
 
-    public CollisionOptions setMobMode(CollisionMobCategory category, CollisionMode mode) {
+    public CollisionOptions cloneAndSetMobMode(CollisionMobCategory category, CollisionMode mode) {
         // Check unchanged
         if (this.mobModes.get(category) == mode) {
             return this;
@@ -339,5 +339,130 @@ public final class CollisionOptions {
         }
         str.append('}');
         return str.toString();
+    }
+
+    /**
+     * Creates a new Builder object with the initial default collision configuration.
+     * 
+     * @return new builder
+     */
+    public static Builder builder() {
+        return new Builder(DEFAULT);
+    }
+
+    /**
+     * Creates a new Builder object with the initial collision configuration specified.
+     * 
+     * @return new builder
+     */
+    public static Builder builder(CollisionOptions initial) {
+        return new Builder(initial);
+    }
+
+    /**
+     * Builder helper class for setting many fields at once
+     */
+    public static final class Builder {
+        private final EnumMap<CollisionMobCategory, CollisionMode> mobModes;
+        private CollisionMode playerMode;
+        private CollisionMode miscMode;
+        private CollisionMode trainMode;
+        private CollisionMode blockMode;
+
+        private Builder(CollisionOptions initial) {
+            this.mobModes = new EnumMap<>(CollisionMobCategory.class);
+            this.mobModes.putAll(initial.mobModes());
+            this.playerMode = initial.playerMode();
+            this.miscMode = initial.miscMode();
+            this.trainMode = initial.trainMode();
+            this.blockMode = initial.blockMode();
+        }
+
+        /**
+         * Sets the collision mode to use when colliding with players
+         * 
+         * @param mode The CollisionMode to use
+         * @return this builder
+         */
+        public Builder setPlayerMode(CollisionMode mode) {
+            this.playerMode = mode;
+            return this;
+        }
+
+        /**
+         * Sets the collision mode to use when colliding with miscellaneous entities.
+         * These are all entities that are not players or trains and don't match
+         * any configured {@link #setMobMode(CollisionMobCategory, CollisionMode)}.
+         * 
+         * @param mode The CollisionMode to use
+         * @return this builder
+         */
+        public Builder setMiscMode(CollisionMode mode) {
+            this.miscMode = mode;
+            return this;
+        }
+
+        /**
+         * Sets the collision mode to use when colliding with other trains
+         * 
+         * @param mode The CollisionMode to use
+         * @return this builder
+         */
+        public Builder setTrainMode(CollisionMode mode) {
+            this.trainMode = mode;
+            return this;
+        }
+
+        /**
+         * Sets the collision mode to use when colliding with blocks
+         * 
+         * @param mode The CollisionMode to use
+         * @return this builder
+         */
+        public Builder setBlockMode(CollisionMode mode) {
+            this.blockMode = mode;
+            return this;
+        }
+
+        /**
+         * Sets the collision mode to use when colliding with a particular
+         * category of mob
+         * 
+         * @param category The mob category to configure
+         * @param mode The CollisionMode to use
+         * @return this builder
+         */
+        public Builder setMobMode(CollisionMobCategory category, CollisionMode mode) {
+            this.mobModes.put(category, mode);
+            return this;
+        }
+
+        /**
+         * Sets the collision mode to use for all categories of mob
+         * 
+         * @param mode The CollisionMode to use
+         * @return this builder
+         */
+        public Builder setModeForAllMobs(CollisionMode mode) {
+            for (CollisionMobCategory category : CollisionMobCategory.values()) {
+                setMobMode(category, mode);
+            }
+            return this;
+        }
+
+        /**
+         * Constructs a CollisionOptions instance using all currently configured options
+         * 
+         * @return built CollisionOptions
+         */
+        public CollisionOptions build() {
+            return new CollisionOptions(
+                    this.mobModes.isEmpty() ? NO_MOB_MODES : this.mobModes,
+                    this.playerMode,
+                    this.miscMode,
+                    this.trainMode,
+                    this.blockMode
+            );
+        }
     }
 }
