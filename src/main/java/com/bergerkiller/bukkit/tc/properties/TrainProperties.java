@@ -729,50 +729,32 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
     @Override
     public boolean hasDestination() {
-        for (CartProperties prop : this) {
-            if (prop.hasDestination()) return true;
-        }
-        return false;
+        return !get(StandardProperties.DESTINATION).isEmpty();
     }
 
     @Override
     public String getDestination() {
-        for (CartProperties prop : this) {
-            if (prop.hasDestination()) return prop.getDestination();
-        }
-        return "";
+        return get(StandardProperties.DESTINATION);
     }
 
     @Override
     public void setDestination(String destination) {
-        for (CartProperties prop : this) {
-            prop.setDestination(destination);
-        }
+        set(StandardProperties.DESTINATION, destination);
     }
 
     @Override
     public List<String> getDestinationRoute() {
-        for (CartProperties prop : this) {
-            List<String> route = prop.getDestinationRoute();
-            if (!route.isEmpty()) {
-                return route;
-            }
-        }
-        return Collections.emptyList();
+        return get(StandardProperties.DESTINATION_ROUTE);
     }
 
     @Override
     public void setDestinationRoute(List<String> route) {
-        for (CartProperties prop : this) {
-            prop.setDestinationRoute(route);
-        }
+        set(StandardProperties.DESTINATION_ROUTE, route);
     }
 
     @Override
     public void clearDestinationRoute() {
-        for (CartProperties prop : this) {
-            prop.clearDestinationRoute();
-        }
+        set(StandardProperties.DESTINATION_ROUTE, Collections.emptyList());
     }
 
     @Override

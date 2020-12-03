@@ -23,7 +23,11 @@ public interface ICartProperty<T> extends IProperty<T> {
 
     @Override
     default T get(TrainProperties properties) {
-        return get(properties.get(0));
+        if (properties.isEmpty()) {
+            return this.getDefault();
+        } else {
+            return get(properties.get(0));
+        }
     }
 
     @Override

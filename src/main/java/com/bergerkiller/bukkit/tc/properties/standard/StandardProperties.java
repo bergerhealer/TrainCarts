@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.properties.standard;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -33,6 +34,165 @@ import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
  * All standard TrainCarts built-in train and cart properties
  */
 public class StandardProperties {
+
+    public static final ICartProperty<String> DESTINATION_LAST_PATH_NODE = new ICartProperty<String>() {
+        @Override
+        public List<String> getNames() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public String getDefault() {
+            return "";
+        }
+
+        @Override
+        public Optional<String> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "lastPathNode", String.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<String> value) {
+            Util.setConfigOptional(config, "lastPathNode", value);
+        }
+    };
+
+    public static final ICartProperty<Integer> DESTINATION_ROUTE_INDEX = new ICartProperty<Integer>() {
+        private final Integer DEFAULT = 0;
+
+        @Override
+        public List<String> getNames() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public Integer getDefault() {
+            return DEFAULT;
+        }
+
+        @Override
+        public Optional<Integer> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "routeIndex", int.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Integer> value) {
+            Util.setConfigOptional(config, "routeIndex", value);
+        }
+    };
+
+    public static final ICartProperty<List<String>> DESTINATION_ROUTE = new ICartProperty<List<String>>() {
+        @Override
+        public List<String> getNames() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public List<String> getDefault() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public Optional<List<String>> readFromConfig(ConfigurationNode config) {
+            if (config.contains("route")) {
+                return Optional.of(Collections.unmodifiableList(new ArrayList<String>(
+                        config.getList("route", String.class)
+                )));
+            } else {
+                return Optional.empty();
+            }
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<List<String>> value) {
+            if (value.isPresent()) {
+                config.set("route", value.get());
+            } else {
+                config.remove("route");
+            }
+        }
+
+        @Override
+        public void set(CartProperties properties, List<String> value) {
+            // Update route itself
+            ICartProperty.super.set(properties, value);
+
+            // Keep routing towards the same destination
+            // This allows for a seamless transition between routes
+            if (!value.isEmpty() && properties.hasDestination()) {
+                int new_index = value.indexOf(properties.getDestination());
+                if (new_index == -1) {
+                    new_index = 0;
+                }
+                properties.set(DESTINATION_ROUTE_INDEX, new_index);
+            } else {
+                properties.set(DESTINATION_ROUTE_INDEX, 0);
+            }
+        }
+
+        @Override
+        public List<String> get(TrainProperties properties) {
+            for (CartProperties cprop : properties) {
+                List<String> route = get(cprop);
+                if (!route.isEmpty()) {
+                    return route;
+                }
+            }
+            return Collections.emptyList();
+        }
+    };
+
+    public static final ICartProperty<String> DESTINATION = new ICartProperty<String>() {
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("destination");
+        }
+
+        @Override
+        public String getDefault() {
+            return "";
+        }
+
+        @Override
+        public Optional<String> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "destination", String.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<String> value) {
+            Util.setConfigOptional(config, "destination", value);
+        }
+
+        @Override
+        public void set(CartProperties properties, String value) {
+            // Save current index before the destination was changed
+            int prior_route_index = properties.getCurrentRouteDestinationIndex();
+
+            // Update destination
+            ICartProperty.super.set(properties, value);
+
+            // If a destination is now set, increment the route index if it matches the next one in the list
+            if (!value.isEmpty() && prior_route_index != -1) {
+                List<String> route = StandardProperties.DESTINATION_ROUTE.get(properties);
+                int nextIndex = (prior_route_index + 1) % route.size();
+                if (value.equals(route.get(nextIndex))) {
+                    StandardProperties.DESTINATION_ROUTE_INDEX.set(properties, nextIndex);
+                }
+            }
+        }
+
+        @Override
+        public String get(TrainProperties properties) {
+            // Return first cart from index=0 that has a destination
+            for (CartProperties cprop : properties) {
+                String destination = get(cprop);
+                if (!destination.isEmpty()) {
+                    return destination;
+                }
+            }
+            return "";
+        }
+    };
 
     public static final FieldBackedStandardCartProperty<Set<String>> OWNER_PERMISSIONS = new FieldBackedStandardCartProperty<Set<String>>() {
         @Override
