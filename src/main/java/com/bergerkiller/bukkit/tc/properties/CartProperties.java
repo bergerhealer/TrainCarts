@@ -35,20 +35,12 @@ import java.util.*;
 
 public class CartProperties extends CartPropertiesStore implements IProperties {
     private SoftReference<MinecartMember<?>> member = new SoftReference<>();
+    protected TrainProperties group = null;
     private final FieldBackedStandardCartPropertiesHolder standardProperties = new FieldBackedStandardCartPropertiesHolder();
     private final ConfigurationNode config;
     private final UUID uuid;
 
-    protected TrainProperties group = null;
-    private boolean allowPlayerExit = true;
-    private boolean allowPlayerEnter = true;
-    private boolean invincible = false;
-    private String enterMessage = null;
-    private boolean isPublic = true;
-    private boolean pickUp = false;
-    private boolean spawnItemDrops = true;
     private AttachmentModel model = null;
-    private String driveSound = "";
 
     protected CartProperties(TrainProperties group, ConfigurationNode config, UUID uuid) {
         this.uuid = uuid;
@@ -316,21 +308,21 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * @return True if it can pick up items, False if not
      */
     public boolean canPickup() {
-        return this.pickUp;
+        return get(StandardProperties.PICK_UP_ITEMS);
     }
 
     public void setPickup(boolean pickup) {
-        this.pickUp = pickup;
+        set(StandardProperties.PICK_UP_ITEMS, pickup);
     }
 
     @Override
     public boolean isPublic() {
-        return this.isPublic;
+        return get(StandardProperties.PUBLIC_ACCESS);
     }
 
     @Override
     public void setPublic(boolean state) {
-        this.isPublic = state;
+        set(StandardProperties.PUBLIC_ACCESS, state);
     }
 
     @Override
@@ -378,12 +370,12 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
     @Override
     public boolean getSpawnItemDrops() {
-        return this.spawnItemDrops;
+        return get(StandardProperties.SPAWN_ITEM_DROPS);
     }
 
     @Override
     public void setSpawnItemDrops(boolean spawnDrops) {
-        this.spawnItemDrops = spawnDrops;
+        set(StandardProperties.SPAWN_ITEM_DROPS, spawnDrops);
     }
 
     @Override
@@ -439,12 +431,12 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * @return Enter message
      */
     public String getEnterMessage() {
-        return this.enterMessage;
+        return get(StandardProperties.ENTER_MESSAGE);
     }
 
     @Override
     public void setEnterMessage(String message) {
-        this.enterMessage = message;
+        set(StandardProperties.ENTER_MESSAGE, message);
     }
 
     /**
@@ -453,7 +445,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * @return True if a message is set, False if not
      */
     public boolean hasEnterMessage() {
-        return this.enterMessage != null && !this.enterMessage.equals("");
+        return !get(StandardProperties.ENTER_MESSAGE).isEmpty();
     }
 
     /**
@@ -462,8 +454,9 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * @param player to display the message to
      */
     public void showEnterMessage(Player player) {
-        if (this.hasEnterMessage()) {
-            TrainCarts.sendMessage(player, ChatColor.YELLOW + TrainCarts.getMessage(enterMessage));
+        String message = this.getEnterMessage();
+        if (!message.isEmpty()) {
+            TrainCarts.sendMessage(player, ChatColor.YELLOW + TrainCarts.getMessage(message));
         }
     }
 
@@ -734,14 +727,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * @param node
      */
     protected void applyConfig(ConfigurationNode node) {
-        this.allowPlayerEnter = node.get("allowPlayerEnter", this.allowPlayerEnter);
-        this.allowPlayerExit = node.get("allowPlayerExit", this.allowPlayerExit);
-        this.invincible = node.get("invincible", this.invincible);
-        this.isPublic = node.get("isPublic", this.isPublic);
-        this.pickUp = node.get("pickUp", this.pickUp);
-        this.spawnItemDrops = node.get("spawnItemDrops", this.spawnItemDrops);
-        this.driveSound = node.get("driveSound", this.driveSound);
-
         if (node.isNode("model")) {
             if (this.model != null) {
                 this.model.update(node.getNode("model").clone(), true);
@@ -779,11 +764,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         Util.cloneInto(saveToConfig(), node, Collections.emptySet());
     }
 
-    // Temporary while loading is done here
-    private <T> T getConfigValue(String key, T defaultValue) {
-        return config.contains(key) ? config.get(key, defaultValue) : defaultValue;
-    }
-
     protected void onConfigurationChanged() {
         // Refresh registered IProperties
         // All below should eventually become IProperties, which is when this function
@@ -793,15 +773,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         }
 
         // TODO: Replace all below with IProperty objects
-        // Note: completely disregards all previous configuration!
-        this.allowPlayerEnter = getConfigValue("allowPlayerEnter", true);
-        this.allowPlayerExit = getConfigValue("allowPlayerExit", true);
-        this.invincible = getConfigValue("invincible", false);
-        this.isPublic = getConfigValue("isPublic", this.isPublic);
-        this.pickUp = getConfigValue("pickUp", false);
-        this.spawnItemDrops = getConfigValue("spawnItemDrops", true);
-        this.driveSound = getConfigValue("driveSound", "");
-
         if (config.isNode("model")) {
             if (this.model != null) {
                 this.model.update(config.getNode("model").clone(), true);
@@ -820,16 +791,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * @return saved {@link #getConfig()}
      */
     public ConfigurationNode saveToConfig() {
-        config.set("allowPlayerEnter", this.allowPlayerEnter ? null : false);
-        config.set("allowPlayerExit", this.allowPlayerExit ? null : false);
-        config.set("invincible", this.invincible ? true : null);
-        config.set("isPublic", this.isPublic ? null : false);
-        config.set("pickUp", this.pickUp ? true : null);
-        config.set("driveSound", this.driveSound == "" ? null : this.driveSound);
-
-        config.set("enterMessage", this.hasEnterMessage() ? this.enterMessage : null);
-        config.set("spawnItemDrops", this.spawnItemDrops ? null : false);
-
         if (this.model != null) {
             config.set("model", this.model.getConfig());
         } else {
@@ -841,14 +802,8 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
     // Stores all the default property values not already covered by IProperty
     protected static void generateDefaults(ConfigurationNode node) {
-        node.set("allowPlayerEnter", true);
-        node.set("allowPlayerExit", true);
-        node.set("invincible", false);
         node.set("isPublic", true);
         node.set("pickUp", false);
-        node.set("driveSound", "");
-        node.set("enterMessage", "");
-        node.set("spawnItemDrops", true);
     }
 
     /**
@@ -857,36 +812,36 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * @return True if enabled, False if not
      */
     public boolean isInvincible() {
-        return this.invincible;
+        return get(StandardProperties.INVINCIBLE);
     }
 
     /**
      * Sets wether this Train can be damages
      *
-     * @param enabled state to set to
+     * @param invincible state to set to
      */
-    public void setInvincible(boolean enabled) {
-        this.invincible = enabled;
+    public void setInvincible(boolean invincible) {
+        set(StandardProperties.INVINCIBLE, invincible);
     }
 
     @Override
     public boolean getPlayersEnter() {
-        return this.allowPlayerEnter;
+        return get(StandardProperties.ALLOW_PLAYER_ENTER);
     }
 
     @Override
     public void setPlayersEnter(boolean state) {
-        this.allowPlayerEnter = state;
+        set(StandardProperties.ALLOW_PLAYER_ENTER, state);
     }
 
     @Override
     public boolean getPlayersExit() {
-        return this.allowPlayerExit;
+        return get(StandardProperties.ALLOW_PLAYER_EXIT);
     }
 
     @Override
     public void setPlayersExit(boolean state) {
-        this.allowPlayerExit = state;
+        set(StandardProperties.ALLOW_PLAYER_EXIT, state);
     }
 
     public SignSkipOptions getSkipOptions() {
@@ -908,10 +863,10 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     }
 
     public String getDriveSound() {
-        return driveSound;
+        return get(StandardProperties.DRIVE_SOUND);
     }
 
     public void setDriveSound(String driveSound) {
-        this.driveSound = driveSound;
+        set(StandardProperties.DRIVE_SOUND, driveSound);
     }
 }

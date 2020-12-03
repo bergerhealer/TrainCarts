@@ -38,6 +38,202 @@ import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
  */
 public class StandardProperties {
 
+    public static final FieldBackedStandardCartProperty<Boolean> PUBLIC_ACCESS = new FieldBackedStandardCartProperty<Boolean>() {
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("public");
+        }
+
+        @Override
+        public Boolean getDefault() {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Boolean getHolderValue(FieldBackedStandardCartPropertiesHolder holder) {
+            return holder.isPublic;
+        }
+
+        @Override
+        public void setHolderValue(FieldBackedStandardCartPropertiesHolder holder, Boolean value) {
+            holder.isPublic = value.booleanValue();
+        }
+
+        @Override
+        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "isPublic", boolean.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
+            Util.setConfigOptional(config, "isPublic", value);
+        }
+    };
+
+    public static final FieldBackedStandardCartProperty<Boolean> PICK_UP_ITEMS = new FieldBackedStandardCartProperty<Boolean>() {
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("pickup");
+        }
+
+        @Override
+        public Boolean getDefault() {
+            return Boolean.FALSE;
+        }
+
+        @Override
+        public Boolean getHolderValue(FieldBackedStandardCartPropertiesHolder holder) {
+            return holder.pickUpItems;
+        }
+
+        @Override
+        public void setHolderValue(FieldBackedStandardCartPropertiesHolder holder, Boolean value) {
+            holder.pickUpItems = value.booleanValue();
+        }
+
+        @Override
+        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "pickUp", boolean.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
+            Util.setConfigOptional(config, "pickUp", value);
+        }
+    };
+
+    public static final ICartProperty<Boolean> INVINCIBLE = new ICartProperty<Boolean>() {
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("invincible");
+        }
+
+        @Override
+        public Boolean getDefault() {
+            return Boolean.FALSE;
+        }
+
+        @Override
+        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "invincible", boolean.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
+            Util.setConfigOptional(config, "invincible", value);
+        }
+    };
+
+    public static final ICartProperty<Boolean> SPAWN_ITEM_DROPS = new ICartProperty<Boolean>() {
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("spawndrops");
+        }
+
+        @Override
+        public Boolean getDefault() {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "spawnItemDrops", boolean.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
+            Util.setConfigOptional(config, "spawnItemDrops", value);
+        }
+    };
+
+    public static final ICartProperty<Boolean> ALLOW_PLAYER_ENTER = new ICartProperty<Boolean>() {
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("playerenter");
+        }
+
+        @Override
+        public Boolean getDefault() {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "allowPlayerEnter", boolean.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
+            Util.setConfigOptional(config, "allowPlayerEnter", value);
+        }
+    };
+
+    public static final ICartProperty<Boolean> ALLOW_PLAYER_EXIT = new ICartProperty<Boolean>() {
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("playerexit");
+        }
+
+        @Override
+        public Boolean getDefault() {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "allowPlayerExit", boolean.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
+            Util.setConfigOptional(config, "allowPlayerExit", value);
+        }
+    };
+
+    public static final ICartProperty<String> ENTER_MESSAGE = new ICartProperty<String>() {
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("entermessage");
+        }
+
+        @Override
+        public String getDefault() {
+            return "";
+        }
+
+        @Override
+        public Optional<String> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "enterMessage", String.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<String> value) {
+            Util.setConfigOptional(config, "enterMessage", value);
+        }
+    };
+
+    public static final ICartProperty<String> DRIVE_SOUND = new ICartProperty<String>() {
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("drivesound");
+        }
+
+        @Override
+        public String getDefault() {
+            return "";
+        }
+
+        @Override
+        public Optional<String> readFromConfig(ConfigurationNode config) {
+            return Util.getConfigOptional(config, "driveSound", String.class);
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<String> value) {
+            Util.setConfigOptional(config, "driveSound", value);
+        }
+    };
+
     public static final FieldBackedStandardCartProperty<Set<Material>> BLOCK_BREAK_TYPES = new FieldBackedStandardCartProperty<Set<Material>>() {
         @Override
         public List<String> getNames() {

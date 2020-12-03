@@ -17,4 +17,6 @@ public class FieldBackedStandardCartPropertiesHolder {
     Set<String> owners;
     Set<String> ownerPermissions;
     Set<Material> blockBreakTypes;
+    boolean pickUpItems;
+    boolean isPublic;
 }
