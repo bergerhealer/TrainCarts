@@ -27,7 +27,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -37,13 +36,27 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     private SoftReference<MinecartMember<?>> member = new SoftReference<>();
     protected TrainProperties group = null;
     private final FieldBackedStandardCartPropertiesHolder standardProperties = new FieldBackedStandardCartPropertiesHolder();
-    private final ConfigurationNode config;
+    private ConfigurationNode config;
     private final UUID uuid;
-
-    private AttachmentModel model = null;
 
     protected CartProperties(TrainProperties group, ConfigurationNode config, UUID uuid) {
         this.uuid = uuid;
+        this.group = group;
+        this.config = config;
+    }
+
+    /**
+     * Called when the CartProperties were already created but need to be re-created.
+     * Expects the caller to eventually loadConfiguration() to refresh variables
+     * caching the configuration.
+     * 
+     * @param group
+     * @param config
+     */
+    protected void reassign(TrainProperties group, ConfigurationNode config) {
+        if (this.group != null && this.group != group) {
+            this.group.remove(this);
+        }
         this.group = group;
         this.config = config;
     }
@@ -589,23 +602,14 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * @return model set, null for Vanilla
      */
     public AttachmentModel getModel() {
-        if (this.model == null) {
-            // No model was set. Create a Vanilla model based on the Minecart information
-            MinecartMember<?> member = this.getHolder();
-            EntityType minecartType = (member == null) ? EntityType.MINECART : member.getEntity().getType();
-            this.model = AttachmentModel.getDefaultModel(minecartType);
-        }
-        return this.model;
+        return get(StandardProperties.MODEL);
     }
 
     /**
      * Resets any set model, restoring the Minecart to its Vanilla defaults.
      */
     public void resetModel() {
-        if (this.model != null) {
-            MinecartMember<?> member = this.getHolder();
-            this.model.resetToDefaults((member == null) ? EntityType.MINECART : member.getEntity().getType());
-        }
+        set(StandardProperties.MODEL, null);
     }
 
     /**
@@ -616,10 +620,9 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * @param modelName
      */
     public void setModelName(String modelName) {
-        if (this.model == null) {
-            this.model = new AttachmentModel();
-        }
-        this.model.resetToName(modelName);
+        AttachmentModel model = new AttachmentModel();
+        model.resetToName(modelName);
+        set(StandardProperties.MODEL, model);
     }
 
     @Override
@@ -722,21 +725,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     }
 
     /**
-     * Applies configuration. Will be replaced by IProperties eventually.
-     * 
-     * @param node
-     */
-    protected void applyConfig(ConfigurationNode node) {
-        if (node.isNode("model")) {
-            if (this.model != null) {
-                this.model.update(node.getNode("model").clone(), true);
-            } else {
-                this.model = new AttachmentModel(node.getNode("model").clone());
-            }
-        }
-    }
-
-    /**
      * Loads the properties from the CartProperties source specified<br>
      * This is used when duplicating a cart to a new unique entity.
      *
@@ -771,15 +759,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         for (IProperty<?> property : IPropertyRegistry.instance().all()) {
             property.onConfigurationChanged(this);
         }
-
-        // TODO: Replace all below with IProperty objects
-        if (config.isNode("model")) {
-            if (this.model != null) {
-                this.model.update(config.getNode("model").clone(), true);
-            } else {
-                this.model = new AttachmentModel(config.getNode("model").clone());
-            }
-        }
     }
 
     /**
@@ -791,19 +770,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * @return saved {@link #getConfig()}
      */
     public ConfigurationNode saveToConfig() {
-        if (this.model != null) {
-            config.set("model", this.model.getConfig());
-        } else {
-            config.remove("model");
-        }
-
         return this.config;
-    }
-
-    // Stores all the default property values not already covered by IProperty
-    protected static void generateDefaults(ConfigurationNode node) {
-        node.set("isPublic", true);
-        node.set("pickUp", false);
     }
 
     /**

@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.bukkit.Material;
+import org.bukkit.entity.EntityType;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
@@ -20,7 +21,9 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
@@ -37,6 +40,101 @@ import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
  * All standard TrainCarts built-in train and cart properties
  */
 public class StandardProperties {
+
+    /**
+     * The full attachment tree that a single cart of a train uses to display itself
+     * to players. Is lazily initialized the first time this property is read.
+     */
+    public static final ICartProperty<AttachmentModel> MODEL = new ICartProperty<AttachmentModel>() {
+        @Override
+        public List<String> getNames() {
+            return Arrays.asList("model");
+        }
+
+        @Override
+        public AttachmentModel getDefault() {
+            return null;
+        }
+
+        @Override
+        public void onConfigurationChanged(CartProperties properties) {
+            FieldBackedStandardCartPropertiesHolder holder = properties.getStandardPropertiesHolder();
+            if (holder.model != null) {
+                if (properties.getConfig().isNode("model")) {
+                    ConfigurationNode modelConfig = properties.getConfig().getNode("model");
+                    if (holder.model.isDefault()) {
+                        // Model property added, load from new configuration
+                        holder.model.update(modelConfig);
+                    } else if (modelConfig != holder.model.getConfig()) {
+                        // Node was completely swapped out, reload
+                        // Configuration has no equals() check we can use
+                        holder.model.update(modelConfig);
+                    }
+                } else if (!holder.model.isDefault()) {
+                    // Model property removed, reset to vanilla defaults
+                    resetToVanillaDefaults(properties);
+                }
+            }
+        }
+
+        @Override
+        public AttachmentModel get(CartProperties properties) {
+            FieldBackedStandardCartPropertiesHolder holder = properties.getStandardPropertiesHolder();
+            if (holder.model == null) {
+                if (properties.getConfig().isNode("model")) {
+                    // Decode model and initialize
+                    holder.model = new AttachmentModel(properties.getConfig().getNode("model"));
+                } else {
+                    // No model was set. Create a Vanilla model based on the Minecart information
+                    holder.model = new AttachmentModel();
+                    resetToVanillaDefaults(properties);
+                }
+            }
+            return holder.model;
+        }
+
+        @Override
+        public void set(CartProperties properties, AttachmentModel value) {
+            FieldBackedStandardCartPropertiesHolder holder = properties.getStandardPropertiesHolder();
+            if (value == null || value.isDefault()) {
+                // Reset model to vanilla defaults and wipe configuration
+                properties.getConfig().remove("model");
+                if (holder.model != null && !holder.model.isDefault()) {
+                    resetToVanillaDefaults(properties);
+                }
+            } else {
+                // Clone configuration and update/assign model if one was initialized
+                properties.getConfig().set("model", value.getConfig().clone());
+                if (holder.model != null) {
+                    holder.model.update(properties.getConfig().getNode("model"));
+                }
+            }
+        }
+
+        @Override
+        public Optional<AttachmentModel> readFromConfig(ConfigurationNode config) {
+            if (config.isNode("model")) {
+                return Optional.of(new AttachmentModel(config.getNode("model").clone()));
+            } else {
+                return Optional.empty();
+            }
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<AttachmentModel> value) {
+            if (value.isPresent()) {
+                config.set("model", value.get().getConfig().clone());
+            } else {
+                config.remove("model");
+            }
+        }
+
+        private void resetToVanillaDefaults(CartProperties properties) {
+            MinecartMember<?> member = properties.getHolder();
+            EntityType entityType = (member == null) ? EntityType.MINECART : member.getEntity().getType();
+            properties.getStandardPropertiesHolder().model.resetToDefaults(entityType);
+        }
+    };
 
     public static final FieldBackedStandardCartProperty<Boolean> PUBLIC_ACCESS = new FieldBackedStandardCartProperty<Boolean>() {
         @Override

@@ -156,6 +156,7 @@ public class AttachmentModel {
      */
     public void update(ConfigurationNode newConfig, boolean notify) {
         this.config = newConfig;
+        this._isDefault = false;
         this.onConfigChanged(notify);
 
         //TODO: Tell save scheduler we can re-save models.yml

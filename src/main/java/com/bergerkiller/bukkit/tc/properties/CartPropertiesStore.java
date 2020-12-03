@@ -126,8 +126,13 @@ public class CartPropertiesStore {
      * @return new cart properties
      */
     protected static CartProperties createNew(TrainProperties train, ConfigurationNode config, UUID uuid) {
-        CartProperties prop = new CartProperties(train, config, uuid);
-        properties.put(uuid, prop);
+        CartProperties prop = properties.get(uuid);
+        if (prop != null) {
+            prop.reassign(train, config);
+        } else {
+            prop = new CartProperties(train, config, uuid);
+            properties.put(uuid, prop);
+        }
         return prop;
     }
 

@@ -1555,11 +1555,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         }
 
-        //TODO: These properties need to be transferred to IProperties!
-        for (CartProperties prop : this) {
-            prop.applyConfig(node);
-        }
-
         // Fire onPropertiesChanged, if possible
         this.tryUpdate();
         for (CartProperties prop : this) {

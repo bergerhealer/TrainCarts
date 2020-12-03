@@ -4,6 +4,7 @@ import java.util.Set;
 
 import org.bukkit.Material;
 
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 
 /**
@@ -19,4 +20,5 @@ public class FieldBackedStandardCartPropertiesHolder {
     Set<Material> blockBreakTypes;
     boolean pickUpItems;
     boolean isPublic;
+    AttachmentModel model = null;
 }
