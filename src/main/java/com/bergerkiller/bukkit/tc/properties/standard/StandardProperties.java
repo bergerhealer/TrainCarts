@@ -29,6 +29,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
+import com.bergerkiller.bukkit.tc.properties.standard.type.AttachmentModelBoundToCart;
 import com.bergerkiller.bukkit.tc.properties.standard.type.BankingOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
@@ -84,11 +85,12 @@ public class StandardProperties {
             if (holder.model == null) {
                 if (properties.getConfig().isNode("model")) {
                     // Decode model and initialize
-                    holder.model = new AttachmentModel(properties.getConfig().getNode("model"));
+                    holder.model = new AttachmentModelBoundToCart(properties, properties.getConfig().getNode("model"));
                 } else {
                     // No model was set. Create a Vanilla model based on the Minecart information
-                    holder.model = new AttachmentModel();
+                    holder.model = new AttachmentModelBoundToCart(properties, new ConfigurationNode());
                     resetToVanillaDefaults(properties);
+                    holder.model.setBoundToOwner(false);
                 }
             }
             return holder.model;
@@ -100,14 +102,19 @@ public class StandardProperties {
             if (value == null || value.isDefault()) {
                 // Reset model to vanilla defaults and wipe configuration
                 properties.getConfig().remove("model");
+                if (holder.model != null) {
+                    holder.model.setBoundToOwner(false);
+                }
                 if (holder.model != null && !holder.model.isDefault()) {
                     resetToVanillaDefaults(properties);
                 }
             } else {
                 // Clone configuration and update/assign model if one was initialized
-                properties.getConfig().set("model", value.getConfig().clone());
+                // If the model was vanilla defaults, it will set the model during update()
                 if (holder.model != null) {
                     holder.model.update(properties.getConfig().getNode("model"));
+                } else {
+                    properties.getConfig().set("model", value.getConfig().clone());
                 }
             }
         }

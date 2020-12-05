@@ -158,7 +158,6 @@ public class AttachmentModel {
      */
     public void update(ConfigurationNode newConfig, boolean notify) {
         Util.setToExcept(this.config, newConfig, Collections.emptyList());
-        this._isDefault = false;
         this.onConfigChanged(notify);
 
         //TODO: Tell save scheduler we can re-save models.yml
@@ -228,7 +227,7 @@ public class AttachmentModel {
         this.wheelDistance = physical.get("wheelDistance", 0.0);
     }
 
-    private void onConfigChanged(boolean notify) {
+    protected void onConfigChanged(boolean notify) {
         this._isDefault = false; // Was changed; no longer default!
         this.computeProperties();
         TrainPropertiesStore.markForAutosave(); // hack!
@@ -239,7 +238,7 @@ public class AttachmentModel {
         }
     }
 
-    private void onConfigNodeChanged(int[] targetPath, ConfigurationNode config, boolean notify) {
+    protected void onConfigNodeChanged(int[] targetPath, ConfigurationNode config, boolean notify) {
         this._isDefault = false; // Was changed; no longer default!
         TrainPropertiesStore.markForAutosave(); // hack!
         if (notify) {
