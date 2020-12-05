@@ -169,9 +169,9 @@ public class TrainCommands {
             }
         }
 
-        boolean wasContained = TrainCarts.plugin.getSavedTrains().getConfig(name) != null;
+        boolean wasContained = plugin.getSavedTrains().getConfig(name) != null;
         try {
-            TrainCarts.plugin.getSavedTrains().saveGroup(name, group);
+            plugin.getSavedTrains().saveGroup(name, group);
             String moduleString = "";
             if (module != null && !module.isEmpty()) {
                 moduleString = " in module " + module;
@@ -183,7 +183,7 @@ public class TrainCommands {
             } else {
                 player.sendMessage(ChatColor.GREEN + "The train was saved as " + name + moduleString);
                 if (TCConfig.claimNewSavedTrains) {
-                    TrainCarts.plugin.getSavedTrains().setClaim(name, player);
+                    plugin.getSavedTrains().setClaim(name, player);
                 }
             }
         } catch (IllegalNameException ex) {

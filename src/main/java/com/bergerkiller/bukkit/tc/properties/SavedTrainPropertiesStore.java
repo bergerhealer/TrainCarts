@@ -331,7 +331,7 @@ public class SavedTrainPropertiesStore {
      * Sets the configuration for a saved train
      * 
      * @param name of the saved train
-     * @param config to set to
+     * @param config to set to, is cloned before storing
      * @throws IllegalNameException Thrown if the train name is of an invalid format
      */
     public void setConfig(String name, ConfigurationNode config) throws IllegalNameException {
@@ -362,7 +362,7 @@ public class SavedTrainPropertiesStore {
 
         // Store in mapping
         this.changed = true;
-        this.savedTrainsConfig.set(name, config);
+        this.savedTrainsConfig.set(name, newConfig);
         this.names.remove(name);
         this.names.add(name);
     }
@@ -383,7 +383,7 @@ public class SavedTrainPropertiesStore {
             }
             return null;
         }
-        return SavedTrainProperties.of(this, name, this.savedTrainsConfig.getNode(name));
+        return SavedTrainProperties.of(this, name, this.savedTrainsConfig.getNode(name).clone());
     }
 
     /**
