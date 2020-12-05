@@ -1718,16 +1718,35 @@ public class Util {
      * @param pathsToExclude
      */
     public static void cloneInto(ConfigurationNode from, ConfigurationNode to, Collection<String> excludedPaths) {
-        if (Common.hasCapability("Common:Yaml:CloneInto")) {
+        // Note: before SetTo was added the CloneInto capability was broken
+        if (Common.hasCapability("Common:Yaml:SetTo")) {
             from.cloneIntoExcept(to, excludedPaths);
         } else {
-            cloneIntoFallback(from, to, excludedPaths);
+            cloneIntoFallback(from, to, excludedPaths, false);
         }
     }
 
-    private static void cloneIntoFallback(YamlNodeAbstract<?> from, YamlNodeAbstract<?> to, Collection<String> excludedPaths) {
+    /**
+     * Assigns all the values of the source to the target node.<br>
+     * <br>
+     * TODO: This is a new function in BKCommonLib, can remove this once that one is
+     * a hard dependency.
+     * 
+     * @param target
+     * @param source
+     */
+    public static void setTo(ConfigurationNode target, ConfigurationNode source) {
+        if (Common.hasCapability("Common:Yaml:SetTo")) {
+            target.setTo(source);
+        } else {
+            cloneIntoFallback(source, target, Collections.emptySet(), true);
+        }
+    }
+
+    private static void cloneIntoFallback(YamlNodeAbstract<?> from, YamlNodeAbstract<?> to, Collection<String> excludedPaths, boolean removeOthers) {
         // Deep-copy old train configuration to the new one
         // Note: is slower than BKCommonLib's implementation :(
+        Set<String> keysToRemove = removeOthers ? new HashSet<>(to.getKeys()) : Collections.emptySet();
         for (Map.Entry<String, Object> property : from.getValues().entrySet()) {
             String key = property.getKey();
             if (from.hasParent()) {
@@ -1735,6 +1754,10 @@ public class Util {
             }
             if (excludedPaths.contains(key)) {
                 continue;
+            }
+
+            if (removeOthers) {
+                keysToRemove.remove(key);
             }
 
             Object value = property.getValue();
@@ -1745,11 +1768,14 @@ public class Util {
                 // Recursively copy the key-values of this node
                 YamlNodeAbstract<?> nodeFrom = (YamlNodeAbstract<?>) value;
                 YamlNodeAbstract<?> nodeTo = to.getNode(key);
-                cloneIntoFallback(nodeFrom, nodeTo, excludedPaths);
+                cloneIntoFallback(nodeFrom, nodeTo, excludedPaths, removeOthers);
             } else {
                 // Other types of values aren't cloned
                 to.set(property.getKey(), value);
             }
+        }
+        for (String key : keysToRemove) {
+            to.remove(key);
         }
     }
 }

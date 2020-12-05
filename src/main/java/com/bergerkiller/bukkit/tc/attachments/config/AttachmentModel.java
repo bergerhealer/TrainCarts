@@ -9,6 +9,7 @@ import org.bukkit.entity.EntityType;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentModel;
@@ -17,7 +18,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 
 public class AttachmentModel {
     private final AttachmentTypeRegistry registry;
-    private ConfigurationNode config;
+    private final ConfigurationNode config;
     private List<AttachmentModelOwner> owners = new ArrayList<AttachmentModelOwner>();
     private int seatCount;
     private float cartLength;
@@ -155,7 +156,7 @@ public class AttachmentModel {
      * @param notify True to not notify the changes, False for a silent update
      */
     public void update(ConfigurationNode newConfig, boolean notify) {
-        this.config = newConfig;
+        Util.setTo(this.config, newConfig);
         this._isDefault = false;
         this.onConfigChanged(notify);
 
