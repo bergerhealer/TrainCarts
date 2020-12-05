@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.config;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -156,7 +157,7 @@ public class AttachmentModel {
      * @param notify True to not notify the changes, False for a silent update
      */
     public void update(ConfigurationNode newConfig, boolean notify) {
-        Util.setTo(this.config, newConfig);
+        Util.setToExcept(this.config, newConfig, Collections.emptyList());
         this._isDefault = false;
         this.onConfigChanged(notify);
 
@@ -194,16 +195,8 @@ public class AttachmentModel {
                 return; // invalid path
             }
         }
-        for (String key : newConfig.getKeys()) {
-            if (!key.equals("attachments")) {
-                changedNode.set(key, newConfig.get(key));
-            }
-        }
-        for (String oldKey : new ArrayList<String>(changedNode.getKeys())) {
-            if (!newConfig.contains(oldKey) && !oldKey.equals("attachments")) {
-                changedNode.remove(oldKey);
-            }
-        }
+
+        Util.setToExcept(changedNode, newConfig, Collections.singletonList("attachments"));
         this.onConfigNodeChanged(targetPath, changedNode, notify);
     }
 

@@ -1718,11 +1718,10 @@ public class Util {
      * @param pathsToExclude
      */
     public static void cloneInto(ConfigurationNode from, ConfigurationNode to, Collection<String> excludedPaths) {
-        // Note: before SetTo was added the CloneInto capability was broken
-        if (Common.hasCapability("Common:Yaml:SetTo")) {
+        if (Common.hasCapability("Common:Yaml:CloneAndSetToWithFixes")) {
             from.cloneIntoExcept(to, excludedPaths);
         } else {
-            cloneIntoFallback(from, to, excludedPaths, false);
+            cloneIntoFallback(from, to, YamlPath.ROOT, excludedPaths, false);
         }
     }
 
@@ -1735,24 +1734,22 @@ public class Util {
      * @param target
      * @param source
      */
-    public static void setTo(ConfigurationNode target, ConfigurationNode source) {
-        if (Common.hasCapability("Common:Yaml:SetTo")) {
-            target.setTo(source);
+    public static void setToExcept(ConfigurationNode target, ConfigurationNode source, Collection<String> excludedPaths) {
+        if (Common.hasCapability("Common:Yaml:CloneAndSetToWithFixes")) {
+            target.setToExcept(source, excludedPaths);
         } else {
-            cloneIntoFallback(source, target, Collections.emptySet(), true);
+            cloneIntoFallback(source, target, YamlPath.ROOT, excludedPaths, true);
         }
     }
 
-    private static void cloneIntoFallback(YamlNodeAbstract<?> from, YamlNodeAbstract<?> to, Collection<String> excludedPaths, boolean removeOthers) {
+    private static void cloneIntoFallback(YamlNodeAbstract<?> from, YamlNodeAbstract<?> to, YamlPath filterRoot, Collection<String> excludedPaths, boolean removeOthers) {
         // Deep-copy old train configuration to the new one
         // Note: is slower than BKCommonLib's implementation :(
         Set<String> keysToRemove = removeOthers ? new HashSet<>(to.getKeys()) : Collections.emptySet();
         for (Map.Entry<String, Object> property : from.getValues().entrySet()) {
             String key = property.getKey();
-            if (from.hasParent()) {
-                key = from.getYamlPath().child(key).toString();
-            }
-            if (excludedPaths.contains(key)) {
+            YamlPath filterPath = filterRoot.child(key);
+            if (excludedPaths.contains(filterPath.toString())) {
                 continue;
             }
 
@@ -1768,14 +1765,16 @@ public class Util {
                 // Recursively copy the key-values of this node
                 YamlNodeAbstract<?> nodeFrom = (YamlNodeAbstract<?>) value;
                 YamlNodeAbstract<?> nodeTo = to.getNode(key);
-                cloneIntoFallback(nodeFrom, nodeTo, excludedPaths, removeOthers);
+                cloneIntoFallback(nodeFrom, nodeTo, filterPath, excludedPaths, removeOthers);
             } else {
                 // Other types of values aren't cloned
                 to.set(property.getKey(), value);
             }
         }
         for (String key : keysToRemove) {
-            to.remove(key);
+            if (!excludedPaths.contains(filterRoot.child(key).toString())) {
+                to.remove(key);
+            }
         }
     }
 }
