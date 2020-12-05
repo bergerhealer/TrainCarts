@@ -383,7 +383,7 @@ public class SavedTrainPropertiesStore {
             }
             return null;
         }
-        return SavedTrainProperties.of(this, name, this.savedTrainsConfig.getNode(name).clone());
+        return SavedTrainProperties.of(this, name, this.savedTrainsConfig.getNode(name));
     }
 
     /**
