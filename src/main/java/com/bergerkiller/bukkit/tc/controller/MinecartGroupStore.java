@@ -111,6 +111,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         MinecartGroup g = new MinecartGroup();
         g.setProperties(TrainPropertiesStore.createSplitFrom(properties));
         addMembersAndFinalize(g, members);
+        g.getSignTracker().refresh();
         return g;
     }
 
@@ -125,7 +126,6 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         group.getAverageForce();
         groups.add(group);
         GroupCreateEvent.call(group);
-        group.getSignTracker().refresh();
         group.onGroupCreated();
     }
 
