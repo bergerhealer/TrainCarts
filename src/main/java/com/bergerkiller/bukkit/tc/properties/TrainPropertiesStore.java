@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
@@ -505,5 +506,25 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         } else {
             return specialNodes.iterator().next();
         }
+    }
+
+    /**
+     * Used internally to bind the MinecartGroup to properties, please don't use
+     * 
+     * @param properties
+     * @param group
+     */
+    public static void bindGroupToProperties(TrainProperties properties, MinecartGroup group) {
+        properties.updateHolder(group, true);
+    }
+
+    /**
+     * Used internally to unbind the MinecartGroup from properties, please don't use
+     * 
+     * @param properties
+     * @param group
+     */
+    public static void unbindGroupFromProperties(TrainProperties properties, MinecartGroup group) {
+        properties.updateHolder(group, false);
     }
 }

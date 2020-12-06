@@ -9,6 +9,8 @@ import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableMember;
 import com.bergerkiller.bukkit.tc.events.GroupCreateEvent;
 import com.bergerkiller.bukkit.tc.events.GroupLinkEvent;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
+
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -87,20 +89,44 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         // There is not a group with this name already?
         MinecartGroup g = new MinecartGroup();
         if (name != null) {
-            g.setProperties(TrainProperties.get(name));
+            g.setProperties(TrainPropertiesStore.get(name));
         }
+        addMembersAndFinalize(g, members);
+        return g;
+    }
+
+    /**
+     * Creates a new group that recently split from another group. The properties of the
+     * original group are applied to the newly created group. The name is based off of
+     * the original group's. name.
+     * 
+     * @param properties The properties to clone and base a split name off of
+     * @param members The members of the new group
+     * @return new group
+     */
+    public static MinecartGroup createSplitFrom(TrainProperties properties, MinecartMember<?>... members) {
+        Util.checkMainThread("MinecartGroupStore::createSplitFrom(from, members)");
+
+        // Create new group and assign it the properties of a split group
+        MinecartGroup g = new MinecartGroup();
+        g.setProperties(TrainPropertiesStore.createSplitFrom(properties));
+        addMembersAndFinalize(g, members);
+        return g;
+    }
+
+    private static void addMembersAndFinalize(MinecartGroup group, MinecartMember<?>... members) {
         for (MinecartMember<?> member : members) {
             if (member != null && member.getEntity() != null && !member.getEntity().isDead()) {
                 member.setUnloaded(false);
-                g.add(member);
+                group.add(member);
             }
         }
-        g.updateDirection();
-        g.getAverageForce();
-        groups.add(g);
-        GroupCreateEvent.call(g);
-        g.onGroupCreated();
-        return g;
+        group.updateDirection();
+        group.getAverageForce();
+        groups.add(group);
+        GroupCreateEvent.call(group);
+        group.getSignTracker().refresh();
+        group.onGroupCreated();
     }
 
     public static MinecartGroup spawn(SpawnableGroup spawnableGroup, List<Location> spawnLocations) {
@@ -185,13 +211,6 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
     public static MinecartGroup get(Entity e) {
         final MinecartMember<?> mm = MinecartMemberStore.getFromEntity(e);
         return mm == null ? null : mm.getGroup();
-    }
-
-    public static MinecartGroup get(TrainProperties prop) {
-        for (MinecartGroup group : groups) {
-            if (group.isPropertiesEqual(prop)) return group;
-        }
-        return null;
     }
 
     public static boolean link(MinecartMember<?> m1, MinecartMember<?> m2) {

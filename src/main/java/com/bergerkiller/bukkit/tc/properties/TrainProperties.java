@@ -122,9 +122,22 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     public MinecartGroup getHolder() {
         MinecartGroup group = this.group.get();
         if (group == null || group.isRemoved()) {
-            return this.group.set(MinecartGroupStore.get(this));
+            return null;
         } else {
             return group;
+        }
+    }
+
+    protected void updateHolder(MinecartGroup holder, boolean set) {
+        if (set) {
+            if (this.group.get() != holder) {
+                this.group.set(holder);
+                this.onConfigurationChanged(true);
+            }
+        } else {
+            if (this.group.get() == holder) {
+                this.group.set(null);
+            }
         }
     }
 
@@ -141,7 +154,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         // Load all the chunks of this group to trigger a restore
         OfflineGroup group = OfflineGroupManager.findGroup(this.trainname);
         if (group == null) {
-            TrainPropertiesStore.remove(this.getTrainName());
             return false;
         }
         World world = Bukkit.getWorld(group.worldUUID);

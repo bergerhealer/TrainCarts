@@ -84,10 +84,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         this.ticked.set();
     }
 
-    public boolean isPropertiesEqual(TrainProperties prop) {
-        return this.prop == prop;
-    }
-
     @Override
     public TrainProperties getProperties() {
         if (this.prop == null) {
@@ -98,6 +94,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             for (MinecartMember<?> member : this) {
                 this.prop.add(member.getProperties());
             }
+            TrainPropertiesStore.bindGroupToProperties(this.prop, this);
         }
         return this.prop;
     }
@@ -109,10 +106,15 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         if (this.isUnloaded()) {
             throw new IllegalStateException("Group is unloaded");
         }
+        if (this.prop == properties) {
+            return;
+        }
         if (this.prop != null) {
             TrainPropertiesStore.remove(this.prop.getTrainName());
+            TrainPropertiesStore.unbindGroupFromProperties(this.prop, this);
         }
         this.prop = properties;
+        TrainPropertiesStore.bindGroupToProperties(this.prop, this);
     }
 
     /**
@@ -397,34 +399,25 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         Util.checkMainThread("MinecartGroup::split()");
         if (at <= 0) return this;
         if (at >= this.size()) return null;
-        //transfer the new removed carts
-        MinecartGroup gnew = new MinecartGroup();
-        gnew.setProperties(TrainPropertiesStore.createSplitFrom(this.getProperties()));
-        int count = this.size();
-        for (int i = at; i < count; i++) {
-            gnew.add(this.removeMember(this.size() - 1));
+
+        // Remove carts split off and create a new group using them
+        MinecartGroup gnew;
+        {
+            List<MinecartMember<?>> splitMembers = new ArrayList<>();
+            int count = this.size();
+            for (int i = at; i < count; i++) {
+                splitMembers.add(this.removeMember(this.size() - 1));
+            }
+            gnew = MinecartGroupStore.createSplitFrom(this.getProperties(),
+                    splitMembers.toArray(new MinecartMember[0]));
         }
+
         //Remove this train if now empty
         if (!this.isValid()) {
             this.remove();
         }
         //Remove if empty or not allowed, else add
-        if (gnew.isValid()) {
-            //Add the group
-            groups.add(gnew);
-            GroupCreateEvent.call(gnew);
-
-            //Initialize rails and signs
-            //This makes sure MEMBER_ENTER does not execute twice
-            gnew.updateDirection();
-            gnew.getSignTracker().refresh();
-            gnew.onGroupCreated();
-
-            return gnew;
-        } else {
-            gnew.clear();
-            return null;
-        }
+        return gnew;
     }
 
     @Override
@@ -438,15 +431,11 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             if (mm.getEntity().isDead()) {
                 mm.onDie();
             } else {
-                // Create unique new train name and properties for this single cart
-                // Original properties of this old group are copied
-                String newTrainName = TrainPropertiesStore.createSplitFrom(properties).getTrainName();
-
                 // Unassign member from previous group
                 mm.group = null;
 
                 // Create and assign a new group to this member with the properties already created earlier
-                mm.group = MinecartGroupStore.create(newTrainName, mm);
+                mm.group = MinecartGroupStore.createSplitFrom(properties, mm);
             }
         }
         super.clear();
@@ -464,6 +453,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         this.chunkArea.reset();
         if (this.prop != null) {
             TrainPropertiesStore.remove(this.prop.getTrainName());
+            TrainPropertiesStore.unbindGroupFromProperties(this.prop, this);
             this.prop = null;
         }
     }
@@ -531,6 +521,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
         // Clear group members and disable this group further
         super.clear();
+
+        if (this.prop != null) {
+            TrainPropertiesStore.unbindGroupFromProperties(this.prop, this);
+        }
         this.prop = null;
     }
 

@@ -233,7 +233,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         if (player == null) {
             return;
         }
-        this.setOwner(player.getName().toLowerCase(), owner);
+        this.setOwner(player.getName(), owner);
     }
 
     @Override

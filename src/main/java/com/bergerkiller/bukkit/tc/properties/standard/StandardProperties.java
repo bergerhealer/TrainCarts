@@ -895,6 +895,7 @@ public class StandardProperties {
         }
 
         private void updateState(TrainProperties properties, boolean keepLoaded) {
+            // When turning keep chunks loaded on, load the train if presently unloaded
             if (keepLoaded) {
                 properties.restore();
             }
