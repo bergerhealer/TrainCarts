@@ -24,10 +24,15 @@ public class Localization extends LocalizationEnum {
             ChatColor.RED + "You are not editing any tickets right now\n" +
             ChatColor.RED + "To create a new train ticket, use /train ticket create\n" +
             ChatColor.RED + "To edit an existing train ticket, use /train ticket edit [name]");
+
+    public static final Localization PROPERTY_NOTFOUND = new Localization("property.notfound", ChatColor.RED + "Property with name '%0%' does not exist");
+    public static final Localization PROPERTY_ERROR = new Localization("Property.error", ChatColor.RED + "An internal error occurred while parsing property '%0%'");
+
     public static final Localization EDIT_NOSELECT = new Localization("edit.noselect", ChatColor.YELLOW + "You haven't selected a train to edit yet!");
     public static final Localization EDIT_NOTALLOWED = new Localization("edit.notallowed", ChatColor.RED + "You are not allowed to own trains!");
     public static final Localization EDIT_NONEFOUND = new Localization("edit.nonefound", ChatColor.RED + "You do not own any trains you can edit.");
     public static final Localization EDIT_NOTOWNED = new Localization("edit.notowned", ChatColor.RED + "You do not own this train!");
+
     public static final Localization SELECT_DESTINATION = new Localization("select.destination", ChatColor.YELLOW + "You have selected " + ChatColor.WHITE + "%0%" + ChatColor.YELLOW + " as your destination!");
     public static final Localization TICKET_EXPIRED = new Localization("ticket.expired", ChatColor.RED + "Your ticket for %0% is expired");
     public static final Localization TICKET_REQUIRED = new Localization("ticket.required", ChatColor.RED + "You do not own a ticket for this train!");

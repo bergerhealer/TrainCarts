@@ -31,11 +31,12 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
-import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult.Reason;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
@@ -1085,7 +1086,16 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     @Override
-    public boolean parseSet(String key, String arg) {
+    public PropertyParseResult<?> parseAndSet(String key, String arg) {
+        // First try using IProperty API
+        {
+            PropertyParseResult<?> result = parseAndSetUsingIPropertiesAPI(key, arg);
+            if (result.getReason() != Reason.PROPERTY_NOT_FOUND) {
+                return result;
+            }
+        }
+
+        // These will all be removed
         TrainPropertiesStore.markForAutosave();
         if (key.equalsIgnoreCase("exitoffset")) {
             final Vector vec = Util.parseVector(arg, null);
@@ -1141,26 +1151,35 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.setSoundEnabled(ParseUtil.parseBool(arg));
         } else if (key.equalsIgnoreCase("playercollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
-            if (mode == null) return false;
+            if (mode == null) return PropertyParseResult.failInvalidInput(
+                    StandardProperties.COLLISION, "Not a valid collision mode");
+
             setCollision(getCollision().cloneAndSetPlayerMode(mode));
         } else if (key.equalsIgnoreCase("misccollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
-            if (mode == null) return false;
+            if (mode == null) return PropertyParseResult.failInvalidInput(
+                    StandardProperties.COLLISION, "Not a valid collision mode");
+
             setCollision(getCollision().cloneAndSetMiscMode(mode));
         } else if (key.equalsIgnoreCase("traincollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
-            if (mode == null) return false;
+            if (mode == null) return PropertyParseResult.failInvalidInput(
+                    StandardProperties.COLLISION, "Not a valid collision mode");
+
             setCollision(getCollision().cloneAndSetTrainMode(mode));
         } else if (key.equalsIgnoreCase("blockcollision")) {
             CollisionMode mode = CollisionMode.parse(arg);
-            if (mode == null) return false;
+            if (mode == null) return PropertyParseResult.failInvalidInput(
+                    StandardProperties.COLLISION, "Not a valid collision mode");
+
             setCollision(getCollision().cloneAndSetBlockMode(mode));
         } else if (key.equalsIgnoreCase("collisiondamage")) {
             this.setCollisionDamage(Double.parseDouble(arg));
         } else if (key.equalsIgnoreCase("suffocation")) {
             this.setSuffocation(ParseUtil.parseBool(arg));
         } else if (this.setCollisionMode(key, arg)) {
-            return true;
+            return PropertyParseResult.success(
+                    StandardProperties.COLLISION, this.getCollision());
         } else if (LogicUtil.containsIgnoreCase(key, "collision", "collide")) {
             if (ParseUtil.parseBool(arg)) {
                 // Legacy support: just reset to defaults
@@ -1197,8 +1216,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             CollisionMode mode = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
             setCollision(getCollision().cloneAndSetPlayerMode(mode).cloneAndSetMiscMode(mode));
             this.setCollisionModeForMobs(mode);
-        } else if (LogicUtil.containsIgnoreCase(key, "speedlimit", "maxspeed")) {
-            this.setSpeedLimit(Util.parseVelocity(arg, this.getSpeedLimit()));
         } else if (LogicUtil.containsIgnoreCase(key, "gravity")) {
             this.setGravity(ParseUtil.parseDouble(arg, 1.0));
         } else if (LogicUtil.containsIgnoreCase(key, "allowmanual", "manualmove", "manual")) {
@@ -1309,10 +1326,41 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (LogicUtil.containsIgnoreCase(key, "entermessage", "entermsg")) {
             this.setEnterMessage(arg);
         } else {
-            return false;
+            // Attempt parsing it for the group itself, or a member
+            // The only property done this way is the MobSpawner cart mob type/limit/etc.
+            MinecartGroup group = this.getHolder();
+            if (group != null) {
+                PropertyParseResult<?> result = group.parseAndSet(key, arg);
+                if (result.getReason() != PropertyParseResult.Reason.PROPERTY_NOT_FOUND) {
+                    return result;
+                }
+
+                PropertyParseResult<?> bestResult = result;
+                for (MinecartMember<?> member : group) {
+                    result = member.parseAndSet(key, arg);
+                    if (result.isSuccessful()) {
+                        member.onPropertiesChanged();
+                        bestResult = result;
+                    }
+                }
+                if (bestResult.isSuccessful()) {
+                    this.tryUpdate();
+                    return bestResult;
+                }
+            }
+
+            return PropertyParseResult.failPropertyNotFound(key);
         }
         this.tryUpdate();
-        return true;
+
+        //TODO: No property or value? Uh oh.
+        return PropertyParseResult.success(null, null);
+    }
+
+    @Override
+    public boolean parseSet(String key, String arg) {
+        // Legacy
+        return parseAndSet(key, arg).getReason() != PropertyParseResult.Reason.PROPERTY_NOT_FOUND;
     }
 
     /**

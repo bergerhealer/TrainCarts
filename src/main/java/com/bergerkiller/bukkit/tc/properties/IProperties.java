@@ -3,6 +3,8 @@ package com.bergerkiller.bukkit.tc.properties;
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
+import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 
 import org.bukkit.entity.Player;
 
@@ -50,6 +52,30 @@ public interface IProperties extends IParsable {
             set(property, new_value);
         }
         return new_value;
+    }
+
+    /**
+     * Parses the property by name and attempts to parse the property. If successful,
+     * applies the parsed value to these properties.
+     * 
+     * @param <T> Type of value the property has
+     * @param name Name of the property to parse
+     * @param input Input value to parse
+     * @return Result of parsing, if not successful, the property will not have been set.
+     *         Is never null, if parsing fails the {@link PropertyParseResult#getReason()}
+     *         can be checked.
+     */
+    PropertyParseResult<?> parseAndSet(String name, String input);
+
+    /**
+     * Here until {@link #parseAndSet(String, String)} is fully compliant with new api.
+     */
+    default <T> PropertyParseResult<T> parseAndSetUsingIPropertiesAPI(String name, String input) {
+        PropertyParseResult<T> result = IPropertyRegistry.instance().parse(this, name, input);
+        if (result.isSuccessful()) {
+            set(result.getProperty(), result.getValue());
+        }
+        return result;
     }
 
     /**

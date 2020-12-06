@@ -22,6 +22,7 @@ import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
@@ -360,7 +361,7 @@ public class TrainCommands {
         execute(player, properties, arguments.get(1), arguments.range(2).array());
     }
 
-    public static boolean execute(Player p, TrainProperties prop, String cmd, String[] args) throws NoPermissionException {
+    public static void execute(Player p, TrainProperties prop, String cmd, String[] args) throws NoPermissionException {
         TrainPropertiesStore.markForAutosave();
         if (cmd.equalsIgnoreCase("playerenter")) {
             if (args.length == 1) {
@@ -475,7 +476,7 @@ public class TrainCommands {
                 toadd.add(p.getName().toLowerCase());
             } else if (args.length == 0) {
                 p.sendMessage(ChatColor.YELLOW + "Please specify the player names to make owner!");
-                return true;
+                return;
             } else {
                 for (String player : args) {
                     toadd.add(player.toLowerCase());
@@ -549,7 +550,7 @@ public class TrainCommands {
                     mode = ParseUtil.parseEnum(SlowdownMode.class, args[0], null);
                     if (mode == null) {
                         p.sendMessage(ChatColor.RED + "Unknown slowdown mode: " + args[0]);
-                        return true;
+                        return;
                     }
 
                     // If specified, set it
@@ -702,7 +703,7 @@ public class TrainCommands {
             Permission.COMMAND_DEFAULT.handle(p);
             if (args.length == 0) {
                 p.sendMessage(ChatColor.RED + "Not enough args!");
-                return true;
+                return;
             } else {
                 prop.setDefault(args[0]);
                 p.sendMessage(ChatColor.GREEN + "Train properties has been re-set to the defaults named '" + args[0] + "'!");
@@ -735,7 +736,7 @@ public class TrainCommands {
                     }
                     if (mats.isEmpty()) {
                         p.sendMessage(ChatColor.RED + "Failed to find possible and allowed block types in the list given.");
-                        return true;
+                        return;
                     }
                     if (asBreak) {
                         for (CartProperties cprop : prop) {
@@ -781,18 +782,25 @@ public class TrainCommands {
                 }
                 p.sendMessage(ChatColor.YELLOW + "The selected train has its displayed block offset updated!");
             }
-        } else if (args.length >= 1 && Util.parseProperties(prop, cmd, String.join(" ", args))) {
-            p.sendMessage(ChatColor.GREEN + "Property has been updated!");
-            return true;
         } else {
+            if (args.length == 1) {
+                PropertyParseResult<?> parseResult = prop.parseAndSet(cmd, args[0]);
+                if (parseResult.isSuccessful()) {
+                    p.sendMessage(ChatColor.GREEN + "Property has been updated!");
+                    return;
+                } else if (parseResult.getReason() != PropertyParseResult.Reason.PROPERTY_NOT_FOUND) {
+                    p.sendMessage(parseResult.getMessage());
+                    return;
+                }
+            }
+
             if (!cmd.equalsIgnoreCase("help") && !cmd.equalsIgnoreCase("?")) {
                 p.sendMessage(ChatColor.RED + "Unknown cart command: '" + cmd + "'!");
             }
             help(new MessageBuilder()).send(p);
-            return true;
+            return;
         }
         prop.tryUpdate();
-        return true;
     }
 
     public static MessageBuilder help(MessageBuilder builder) {

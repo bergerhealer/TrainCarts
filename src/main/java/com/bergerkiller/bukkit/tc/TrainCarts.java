@@ -377,7 +377,7 @@ public class TrainCarts extends PluginBase {
 
         // Core properties need to be there before defaults/cart/train properties are loaded
         // Will register commands that properties may define using annotations
-        propertyRegistry = new TCPropertyRegistry(commands);
+        propertyRegistry = new TCPropertyRegistry(this, commands);
         propertyRegistry.registerAll(StandardProperties.class);
 
         // And this

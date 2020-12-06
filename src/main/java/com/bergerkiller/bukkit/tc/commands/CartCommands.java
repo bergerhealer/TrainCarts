@@ -9,13 +9,13 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.commands.cloud.ArgumentList;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 
@@ -291,10 +291,18 @@ public class CartCommands {
                 member.getEntity().setBlockOffset(offset);
                 p.sendMessage(ChatColor.YELLOW + "The selected minecart has its displayed block offset updated!");
             }
-        } else if (args.length == 1 && Util.parseProperties(prop, cmd, args[0])) {
-            p.sendMessage(ChatColor.GREEN + "Property has been updated!");
-            return;
         } else {
+            if (args.length == 1) {
+                PropertyParseResult<?> parseResult = prop.parseAndSet(cmd, args[0]);
+                if (parseResult.isSuccessful()) {
+                    p.sendMessage(ChatColor.GREEN + "Property has been updated!");
+                    return;
+                } else if (parseResult.getReason() != PropertyParseResult.Reason.PROPERTY_NOT_FOUND) {
+                    p.sendMessage(parseResult.getMessage());
+                    return;
+                }
+            }
+
             // Show help
             if (!cmd.equalsIgnoreCase("help") && !cmd.equalsIgnoreCase("?")) {
                 p.sendMessage(ChatColor.RED + "Unknown cart command: '" + cmd + "'!");
@@ -302,6 +310,7 @@ public class CartCommands {
             help(new MessageBuilder()).send(p);
             return;
         }
+
         prop.tryUpdate();
     }
 

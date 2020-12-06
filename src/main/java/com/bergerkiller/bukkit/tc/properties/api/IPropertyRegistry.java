@@ -1,9 +1,10 @@
 package com.bergerkiller.bukkit.tc.properties.api;
 
-import java.util.List;
+import java.util.Collection;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.properties.IProperties;
 
 /**
  * Registers and tracks all possible cart and train properties.
@@ -14,24 +15,41 @@ public interface IPropertyRegistry {
 
     /**
      * Looks up a previously registered property by name.
-     * The names returned by {@link IProperty#getNames()}
-     * is used for this lookup. Returns null if a property
-     * by this name does not exist.<br>
-     * <br>
-     * This lookup is case-insensitive and ignores empty space
-     * around the property name.
+     * Parsers defined using {@link PropertyParser} are matched against
+     * this name, and the property of the parser that matches is returned.
+     * Returns null if a property with parser by this name does not exist.
      * 
+     * @param <T> Type of property value
      * @param name Name of the property to find
      * @return property matching this name, null if none is registered
      */
-    IProperty<Object> find(String name);
+    <T> IProperty<T> find(String name);
+
+    /**
+     * Looks up a previously registered property by name, then attempts
+     * to parse the input value to a value for that property.
+     * To check whether parsing succeeded, use
+     * {@link PropertyParseResult#isSuccessful()}. If parsing failed, the
+     * reason for failing can be found using {@link PropertyParseResult#getReason()}.
+     * 
+     * @param <T> Type of property value
+     * @param properties The properties the value is parsed for, can be train or cart
+     *        properties. The previous (current) value is read from these properties
+     *        before parsing. This is used in case a parser makes use of the current
+     *        value to parse a value, for example, when adding elements to a list.
+     *        If <i>null</i> is provided, the default value of the property is used.
+     * @param name Name of the property to parse, matches with {@link PropertyParser}
+     * @param input Input value to parse using the property parser, if found
+     * @return result of parsing the property by this name using the value
+     */
+    <T> PropertyParseResult<T> parse(IProperties properties, String name, String input);
 
     /**
      * Gets an unmodifiable list of all registered properties
      * 
      * @return unmodifiable list of all properties
      */
-    List<IProperty<Object>> all();
+    Collection<IProperty<Object>> all();
 
     /**
      * Registers a new property

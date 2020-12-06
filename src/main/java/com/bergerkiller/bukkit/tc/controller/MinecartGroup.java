@@ -38,6 +38,7 @@ import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
@@ -1009,8 +1010,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     @Override
-    public boolean parseSet(String key, String args) {
-        return false;
+    public PropertyParseResult<?> parseAndSet(String name, String input) {
+        return PropertyParseResult.failPropertyNotFound(name);
     }
 
     @Override

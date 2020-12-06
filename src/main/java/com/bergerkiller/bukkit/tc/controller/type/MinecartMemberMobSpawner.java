@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.wrappers.MobSpawner;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -27,23 +28,22 @@ public class MinecartMemberMobSpawner extends MinecartMember<CommonMinecartMobSp
     }
 
     @Override
-    public boolean parseSet(String key, String args) {
-        if (super.parseSet(key, args)) {
-            return true;
-        }
-        if (LogicUtil.contains(key, "mobtype")) {
-            if (Util.isValidEntity(args)) {
-                getSpawner().setMobName(args);
+    public PropertyParseResult<?> parseAndSet(String name, String input) {
+        if (LogicUtil.contains(name, "mobtype")) {
+            if (Util.isValidEntity(input)) {
+                getSpawner().setMobName(input);
             }
-        } else if (LogicUtil.contains(key, "delay", "minspawndelay")) {
-            getSpawner().setSpawnDelay(ParseUtil.parseInt(args, getSpawner().getSpawnDelay()));
-        } else if (LogicUtil.contains(key, "mindelay", "minspawndelay")) {
-            getSpawner().setMinSpawnDelay(ParseUtil.parseInt(args, getSpawner().getMinSpawnDelay()));
-        } else if (LogicUtil.contains(key, "maxdelay", "maxspawndelay")) {
-            getSpawner().setMaxSpawnDelay(ParseUtil.parseInt(args, getSpawner().getMaxSpawnDelay()));
+        } else if (LogicUtil.contains(name, "delay", "minspawndelay")) {
+            getSpawner().setSpawnDelay(ParseUtil.parseInt(input, getSpawner().getSpawnDelay()));
+        } else if (LogicUtil.contains(name, "mindelay", "minspawndelay")) {
+            getSpawner().setMinSpawnDelay(ParseUtil.parseInt(input, getSpawner().getMinSpawnDelay()));
+        } else if (LogicUtil.contains(name, "maxdelay", "maxspawndelay")) {
+            getSpawner().setMaxSpawnDelay(ParseUtil.parseInt(input, getSpawner().getMaxSpawnDelay()));
         } else {
-            return false;
+            return super.parseAndSet(name, input);
         }
-        return true;
+
+        //TODO: Null property?
+        return PropertyParseResult.success(null, null);
     }
 }

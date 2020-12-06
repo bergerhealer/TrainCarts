@@ -38,6 +38,7 @@ public interface ITrainProperty<T> extends IProperty<T> {
         } else {
             this.writeToConfig(properties.getConfig(), Optional.of(value));
         }
+        properties.tryUpdate(); // onPropertiesChanged()
         TrainPropertiesStore.markForAutosave(); //TODO: Can be removed, there's change listeners now
     }
 }

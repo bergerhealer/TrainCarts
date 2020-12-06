@@ -1,32 +1,24 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
-import com.bergerkiller.bukkit.tc.properties.IParsable;
+import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
-import java.util.Locale;
+import org.bukkit.Location;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 
 public class SignActionProperties extends SignAction {
 
-    private static boolean argsUsesSeparator(String mode) {
-        return LogicUtil.contains(mode, "exitoffset", "exitrot", "exitrotation");
-    }
-
-    private static boolean parseSet(IParsable properties, SignActionEvent info) {
-        String mode = info.getLine(2).toLowerCase(Locale.ENGLISH).trim();
-        if (argsUsesSeparator(mode)) {
-            return Util.parseProperties(properties, mode, info.getLine(3));
-        }
-        String[] args = Util.splitBySeparator(info.getLine(3));
-        if (args.length >= 2) {
-            return Util.parseProperties(properties, mode, info.isPowered() ? args[0] : args[1]);
-        } else
-            return args.length == 1 && info.isPowered() && Util.parseProperties(properties, mode, args[0]);
+    private static PropertyParseResult.Reason parseAndSet(IProperties properties, SignActionEvent info) {
+        return properties.parseAndSet(info.getLine(2), info.getLine(3)).getReason();
     }
 
     @Override
@@ -37,14 +29,48 @@ public class SignActionProperties extends SignAction {
     @Override
     public void execute(SignActionEvent info) {
         final boolean powerChange = info.isAction(SignActionType.REDSTONE_ON, SignActionType.REDSTONE_OFF);
+
+        PropertyParseResult.Reason result;
         if ((powerChange || info.isAction(SignActionType.MEMBER_ENTER)) && info.isCartSign() && info.hasMember()) {
-            parseSet(info.getMember(), info);
+            result = parseAndSet(info.getMember().getProperties(), info);
         } else if ((powerChange || info.isAction(SignActionType.GROUP_ENTER)) && info.isTrainSign() && info.hasGroup()) {
-            parseSet(info.getGroup(), info);
+            result = parseAndSet(info.getGroup().getProperties(), info);
         } else if (powerChange && info.isRCSign()) {
+            result = PropertyParseResult.Reason.NONE;
             for (TrainProperties prop : info.getRCTrainProperties()) {
-                parseSet(prop, info);
+                PropertyParseResult.Reason singleResult = parseAndSet(prop, info);
+                if (singleResult != PropertyParseResult.Reason.NONE) {
+                    result = singleResult;
+                }
             }
+        } else {
+            return;
+        }
+
+        // When not successful, display particles at the sign to indicate such
+        BlockFace facingInv = info.getFacing().getOppositeFace();
+        Location effectLocation = info.getSign().getLocation()
+                .add(0.5, 0.5, 0.5)
+                .add(0.3 * facingInv.getModX(), 0.0, 0.3 * facingInv.getModZ());
+
+        switch (result) {
+        case PROPERTY_NOT_FOUND:
+            // Spawn black dust particles when property is not found
+            Util.spawnDustParticle(effectLocation, 0.0, 0.0, 0.0);
+            WorldUtil.playSound(effectLocation, SoundEffect.EXTINGUISH, 1.0f, 2.0f);
+            break;
+        case INVALID_INPUT:
+            // Spawn yellow dust particles when there is a syntax error on the input value
+            Util.spawnDustParticle(effectLocation, 255.0, 255.0, 0.0);
+            WorldUtil.playSound(effectLocation, SoundEffect.EXTINGUISH, 1.0f, 2.0f);
+            break;
+        case ERROR:
+            // Spawn red dust particles when errors occur
+            Util.spawnDustParticle(effectLocation, 255.0, 0.0, 0.0);
+            WorldUtil.playSound(effectLocation, SoundEffect.EXTINGUISH, 1.0f, 2.0f);
+            break;
+        default:
+            break;
         }
     }
 

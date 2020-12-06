@@ -29,6 +29,8 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.standard.type.AttachmentModelBoundToCart;
 import com.bergerkiller.bukkit.tc.properties.standard.type.BankingOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
@@ -1456,6 +1458,16 @@ public class StandardProperties {
         @Override
         public double getDoubleDefault() {
             return 0.4;
+        }
+
+        @PropertyParser("maxspeed|speedlimit")
+        public double parse(String input) {
+            double result = Util.parseVelocity(input, Double.NaN);
+            if (Double.isNaN(result)) {
+                throw new PropertyInvalidInputException("Not a valid number or speed expression");
+            }
+
+            return result;
         }
 
         @Override

@@ -63,9 +63,6 @@ import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
-import com.bergerkiller.bukkit.tc.properties.IParsable;
-import com.bergerkiller.bukkit.tc.properties.IProperties;
-import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
 import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
@@ -648,28 +645,6 @@ public class Util {
             return def;
         }
         return offset;
-    }
-
-    public static boolean parseProperties(IParsable properties, String key, String args) {
-        IProperties prop;
-        IPropertiesHolder holder;
-        if (properties instanceof IPropertiesHolder) {
-            holder = ((IPropertiesHolder) properties);
-            prop = holder.getProperties();
-        } else if (properties instanceof IProperties) {
-            prop = (IProperties) properties;
-            holder = prop.getHolder();
-        } else {
-            return false;
-        }
-        if (holder == null) {
-            return prop.parseSet(key, args);
-        } else if (prop.parseSet(key, args) || holder.parseSet(key, args)) {
-            holder.onPropertiesChanged();
-            return true;
-        } else {
-            return false;
-        }
     }
 
     /**

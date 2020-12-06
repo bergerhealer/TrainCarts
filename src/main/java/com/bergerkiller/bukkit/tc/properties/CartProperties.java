@@ -15,6 +15,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult.Reason;
 import com.bergerkiller.bukkit.tc.properties.standard.FieldBackedStandardCartPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
@@ -626,7 +628,16 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     }
 
     @Override
-    public boolean parseSet(String key, String arg) {
+    public PropertyParseResult<?> parseAndSet(String key, String arg) {
+        // First try using IProperty API
+        {
+            PropertyParseResult<?> result = parseAndSetUsingIPropertiesAPI(key, arg);
+            if (result.getReason() != Reason.PROPERTY_NOT_FOUND) {
+                return result;
+            }
+        }
+
+        // These will all be moved
         TrainPropertiesStore.markForAutosave();
         if (key.equalsIgnoreCase("exitoffset")) {
             final Vector vec = Util.parseVector(arg, null);
@@ -718,10 +729,29 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         } else if (LogicUtil.containsIgnoreCase(key, "entermessage", "entermsg")) {
             this.setEnterMessage(arg);
         } else {
-            return false;
+            // Attempt parsing it for the member
+            // The only property done this way is the MobSpawner cart mob type/limit/etc.
+            MinecartMember<?> member = this.getHolder();
+            if (member != null) {
+                PropertyParseResult<?> result = member.parseAndSet(key, arg);
+                if (result.getReason() != PropertyParseResult.Reason.PROPERTY_NOT_FOUND) {
+                    this.tryUpdate();
+                    return result;
+                }
+            }
+
+            return PropertyParseResult.failPropertyNotFound(key);
         }
         this.tryUpdate();
-        return true;
+
+        //TODO: No property or value? Uh oh.
+        return PropertyParseResult.success(null, null);
+    }
+
+    @Override
+    public boolean parseSet(String key, String arg) {
+        // Legacy
+        return parseAndSet(key, arg).getReason() != PropertyParseResult.Reason.PROPERTY_NOT_FOUND;
     }
 
     /**
