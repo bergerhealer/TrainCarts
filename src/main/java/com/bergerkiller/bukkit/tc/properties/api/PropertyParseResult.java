@@ -100,11 +100,12 @@ public class PropertyParseResult<T> {
      * @param <T> Type of property value
      * @param property The property that was parsed
      * @param name Name of the property that could not be found
+     * @param input The input text that was parsed that caused the error
      * @return new property parse result
      */
-    public static <T> PropertyParseResult<T> failError(IProperty<T> property, String name) {
+    public static <T> PropertyParseResult<T> failError(IProperty<T> property, String name, String input) {
         return new PropertyParseResult<T>(property, null, Reason.ERROR,
-                Localization.PROPERTY_ERROR.get(name));
+                Localization.PROPERTY_ERROR.get(name, input));
     }
 
     /**

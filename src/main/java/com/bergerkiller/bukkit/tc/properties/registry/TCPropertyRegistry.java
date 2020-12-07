@@ -19,6 +19,7 @@ import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
@@ -340,7 +341,9 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
 
         @Override
         public PropertyParseResult<T> parse(IProperties properties, String input) {
-            IProperty<T> property = this.parser.property;
+            // Property and name as understood by this parser
+            IProperty<T> property = this.getProperty();
+            String name = this.getName();
 
             try {
                 T value;
@@ -348,11 +351,6 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
                     // Send input value straight to the parser
                     value = this.parser.method.invoke(property, input);
                 } else {
-                    // Create a context with the previous value, first
-
-                    // Name as understood by the parser
-                    String name = this.getName();
-
                     // Current value, or default if this fails
                     T currentValue;
                     if (properties != null) {
@@ -385,14 +383,16 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
             }
             catch (PropertyInvalidInputException ex)
             {
-                return PropertyParseResult.failInvalidInput(property, ex.getMessage());
+                return PropertyParseResult.failInvalidInput(property,
+                        Localization.PROPERTY_INVALID_INPUT.get(
+                                name, input, ex.getMessage()));
             }
             catch (Throwable t)
             {
                 this.plugin.getLogger().log(Level.SEVERE,
                         "Failed to parse property '" + this.name + "'", t);
 
-                return PropertyParseResult.failError(property, this.name);
+                return PropertyParseResult.failError(property, this.name, input);
             }
         }
     }

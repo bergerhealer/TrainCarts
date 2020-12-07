@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.properties.api;
 
 import java.util.regex.MatchResult;
 
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -60,6 +61,34 @@ public final class PropertyParseContext<T> {
      */
     public String input() {
         return this.input;
+    }
+
+    /**
+     * Parses the input text as a numeric float value.
+     * 
+     * @return parsed float value
+     * @throws PropertyInvalidInputException if the input is not a number
+     */
+    public float inputFloat() {
+        float result = ParseUtil.parseFloat(input(), Float.NaN);
+        if (Float.isNaN(result)) {
+            throw new PropertyInvalidInputException("Not a number");
+        }
+        return result;
+    }
+
+    /**
+     * Parses the input text as a numeric double value.
+     * 
+     * @return parsed double value
+     * @throws PropertyInvalidInputException if the input is not a number
+     */
+    public double inputDouble() {
+        double result = ParseUtil.parseDouble(input(), Double.NaN);
+        if (Double.isNaN(result)) {
+            throw new PropertyInvalidInputException("Not a number");
+        }
+        return result;
     }
 
     /**
