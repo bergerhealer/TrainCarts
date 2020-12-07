@@ -641,17 +641,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         TrainPropertiesStore.markForAutosave();
         if (key.equalsIgnoreCase("destination")) {
             this.setDestination(arg);
-        } else if (key.equalsIgnoreCase("addroute")) {
-            this.addDestinationToRoute(arg);
-        } else if (LogicUtil.containsIgnoreCase(key, "remroute", "removeroute")) {
-            this.removeDestinationFromRoute(arg);
-        } else if (key.equalsIgnoreCase("clearroute")) {
-            this.clearDestinationRoute();
-        } else if (key.equalsIgnoreCase("setroute")) {
-            this.clearDestinationRoute();
-            this.addDestinationToRoute(arg);
-        } else if (key.equalsIgnoreCase("loadroute")) {
-            this.setDestinationRoute(TrainCarts.plugin.getRouteManager().findRoute(arg));
         } else if (key.equalsIgnoreCase("playerenter")) {
             this.setPlayersEnter(ParseUtil.parseBool(arg));
         } else if (key.equalsIgnoreCase("playerexit")) {

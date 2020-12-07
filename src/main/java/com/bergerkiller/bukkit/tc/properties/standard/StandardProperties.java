@@ -21,6 +21,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -412,6 +413,46 @@ public class StandardProperties {
     };
 
     public static final ICartProperty<List<String>> DESTINATION_ROUTE = new ICartProperty<List<String>>() {
+
+        @PropertyParser("clearroute|route clear")
+        public List<String> parseClear(String input) {
+            return Collections.emptyList();
+        }
+
+        @PropertyParser("setroute|route set")
+        public List<String> parseSet(String input) {
+            return input.isEmpty() ? Collections.emptyList() : Collections.singletonList(input);
+        }
+
+        @PropertyParser("loadroute|route load")
+        public List<String> parseLoad(String input) {
+            return TrainCarts.plugin.getRouteManager().findRoute(input);
+        }
+
+        @PropertyParser(value="addroute|route add", processPerCart = true)
+        public List<String> parseAdd(PropertyParseContext<List<String>> context) {
+            if (context.input().isEmpty()) {
+                return context.current();
+            } else if (context.current().isEmpty()) {
+                return Collections.singletonList(context.input());
+            } else {
+                ArrayList<String> newRoute = new ArrayList<String>(context.current());
+                newRoute.add(context.input());
+                return Collections.unmodifiableList(newRoute);
+            }
+        }
+
+        @PropertyParser(value="remroute|removeroute|route rem|route remove", processPerCart = true)
+        public List<String> parseRemove(PropertyParseContext<List<String>> context) {
+            if (context.input().isEmpty() || !context.current().contains(context.input())) {
+                return context.current();
+            } else {
+                ArrayList<String> newRoute = new ArrayList<String>(context.current());
+                while (newRoute.remove(context.input())); // remove all instances
+                return Collections.unmodifiableList(newRoute);
+            }
+        }
+
         @Override
         public List<String> getDefault() {
             return Collections.emptyList();
