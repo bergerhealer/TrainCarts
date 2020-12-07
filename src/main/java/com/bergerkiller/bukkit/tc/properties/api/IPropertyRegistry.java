@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.properties.api;
 
 import java.util.Collection;
+import java.util.Optional;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -14,16 +15,31 @@ import com.bergerkiller.bukkit.tc.properties.IProperties;
 public interface IPropertyRegistry {
 
     /**
+     * Looks up a parser for a previously registered property by name.
+     * Parsers defined using {@link PropertyParser} are matched against
+     * this name, and the the parser that matches is returned.
+     * Returns <i>empty()</i> if a property with parser by this name does not exist.
+     * 
+     * @param <T>
+     * @param name Name of the property to find a parser of
+     * @return property parser matching this name, or <i>empty()</i> if none is registered
+     */
+    <T> Optional<IPropertyParser<T>> findParser(String name);
+
+    /**
      * Looks up a previously registered property by name.
      * Parsers defined using {@link PropertyParser} are matched against
      * this name, and the property of the parser that matches is returned.
-     * Returns null if a property with parser by this name does not exist.
+     * Returns <i>empty()</i> if a property with parser by this name does not exist.
      * 
      * @param <T> Type of property value
      * @param name Name of the property to find
-     * @return property matching this name, null if none is registered
+     * @return property matching this name, or <i>empty()</i> if none is registered
+     * @see #findParser(String)
      */
-    <T> IProperty<T> find(String name);
+    default <T> Optional<IProperty<T>> find(String name) {
+        return this.<T>findParser(name).map(IPropertyParser::getProperty);
+    }
 
     /**
      * Looks up a previously registered property by name, then attempts
@@ -41,8 +57,36 @@ public interface IPropertyRegistry {
      * @param name Name of the property to parse, matches with {@link PropertyParser}
      * @param input Input value to parse using the property parser, if found
      * @return result of parsing the property by this name using the value
+     * @see #findParser(String)
      */
-    <T> PropertyParseResult<T> parse(IProperties properties, String name, String input);
+    default <T> PropertyParseResult<T> parse(IProperties properties, String name, String input) {
+        Optional<IPropertyParser<T>> optParser = findParser(name);
+        if (optParser.isPresent()) {
+            return optParser.get().parse(properties, input);
+        } else {
+            return PropertyParseResult.failPropertyNotFound(name);
+        }
+    }
+
+    /**
+     * Parses the input using a parser supplied by a property with the given name,
+     * then applies the new value to the properties.
+     * 
+     * @param <T>
+     * @param properties The properties the value is parsed for
+     * @param name Name of the property to parse, matches with {@link PropertyParser}
+     * @param input Input value to parse using the property parser, if found
+     * @return result of parsing the property by this name using the value
+     * @see #parse(IProperties, String, String)
+     */
+    default <T> PropertyParseResult<T> parseAndSet(IProperties properties, String name, String input) {
+        Optional<IPropertyParser<T>> optParser = findParser(name);
+        if (optParser.isPresent()) {
+            return optParser.get().parseAndSet(properties, input);
+        } else {
+            return PropertyParseResult.failPropertyNotFound(name);
+        }
+    }
 
     /**
      * Gets an unmodifiable list of all registered properties

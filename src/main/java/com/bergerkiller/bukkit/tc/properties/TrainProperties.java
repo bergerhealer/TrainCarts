@@ -1089,7 +1089,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     public PropertyParseResult<?> parseAndSet(String key, String arg) {
         // First try using IProperty API
         {
-            PropertyParseResult<?> result = parseAndSetUsingIPropertiesAPI(key, arg);
+            PropertyParseResult<?> result = IPropertyRegistry.instance().parseAndSet(this, key, arg);
             if (result.getReason() != Reason.PROPERTY_NOT_FOUND) {
                 return result;
             }

@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.properties.api;
 
-import java.util.List;
 import java.util.Optional;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -13,14 +12,6 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
  * @param <T> Property value type
  */
 public interface IProperty<T> {
-
-    /**
-     * Gets the names by which this property gets matched when updating a property
-     * by name. This is used on primarily Property Signs.
-     * 
-     * @return names of this property
-     */
-    List<String> getNames();
 
     /**
      * Gets the default value of this property. If the current value of the

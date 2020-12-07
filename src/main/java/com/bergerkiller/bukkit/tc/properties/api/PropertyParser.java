@@ -17,6 +17,12 @@ import java.lang.annotation.Target;
  * To disable this behavior, override {@link #preProcess()}
  * to return <i>false</i> instead.<br>
  * <br>
+ * By default when parsing properties for trains, the value
+ * is parsed once and then applied to all carts of the train.
+ * If the parse function should be executed and applied for
+ * each cart individually instead, override
+ * {@link #processPerCart()} to return <i>true</i> instead.<br>
+ * <br>
  * The method must not be static, must use either a single
  * {@link PropertyParseContext} or {@link String} as argument,
  * and must return the value result. Inside the method a
@@ -42,4 +48,13 @@ public @interface PropertyParser {
      * @return True to pre-process the property name, False to match it unchanged
      */
     boolean preProcess() default true;
+
+    /**
+     * Whether to process parsing of trains by processing each
+     * cart individually, rather than parsing once for the entire train
+     * and setting that value to all carts.
+     * 
+     * @return True to process per cart, False to parse once and set to all
+     */
+    boolean processPerCart() default false;
 }

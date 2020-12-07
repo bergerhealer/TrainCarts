@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.properties;
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
-import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 
 import org.bukkit.entity.Player;
@@ -66,17 +65,6 @@ public interface IProperties extends IParsable {
      *         can be checked.
      */
     PropertyParseResult<?> parseAndSet(String name, String input);
-
-    /**
-     * Here until {@link #parseAndSet(String, String)} is fully compliant with new api.
-     */
-    default <T> PropertyParseResult<T> parseAndSetUsingIPropertiesAPI(String name, String input) {
-        PropertyParseResult<T> result = IPropertyRegistry.instance().parse(this, name, input);
-        if (result.isSuccessful()) {
-            set(result.getProperty(), result.getValue());
-        }
-        return result;
-    }
 
     /**
      * Gets the YAML configuration that stores all these

@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
@@ -22,6 +23,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
+import com.bergerkiller.bukkit.tc.properties.api.IPropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
@@ -81,21 +83,9 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
     }
 
     @Override
-    public <T> IProperty<T> find(String name) {
-        RegistryParseContext context = new RegistryParseContext(plugin, null, name, "");
-        PropertyParserElement<?> result = this.findParserElement(context);
-        return (result == null) ? null : CommonUtil.unsafeCast(result.property);
-    }
-
-    @Override
-    public <T> PropertyParseResult<T> parse(IProperties properties, String name, String input) {
-        RegistryParseContext context = new RegistryParseContext(plugin, properties, name, input);
-        PropertyParserElement<?> result = this.findParserElement(context);
-        if (result == null) {
-            return PropertyParseResult.failPropertyNotFound(name);
-        } else {
-            return CommonUtil.unsafeCast(result.parse(context));
-        }
+    public <T> Optional<IPropertyParser<T>> findParser(String name) {
+        RegistryPropertyParser<T> search = new RegistryPropertyParser<T>(this.plugin, name);
+        return this.findParserElement(search) ? Optional.of(search) : Optional.empty();
     }
 
     @Override
@@ -104,22 +94,24 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
     }
 
     private <T> void registerParser(final PropertyParserElement<T> parser) {
-        if (parser.literals.isEmpty()) {
+        List<String> literals = findPatternLiterals(parser.options.value());
+        if (literals.isEmpty()) {
             this.parsersWithComplexRegex.add(parser);
         } else {
-            Map<String, PropertyParserElement<?>> literalMap = parser.preProcess ?
+            Map<String, PropertyParserElement<?>> literalMap = parser.options.preProcess() ?
                     this.parsersByPreProcessedName : this.parsersByName;
-            parser.literals.forEach(literal -> literalMap.put(literal, parser));
+            literals.forEach(literal -> literalMap.put(literal, parser));
         }
     }
 
     private <T> void unregisterParser(PropertyParserElement<T> parser) {
-        if (parser.literals.isEmpty()) {
+        List<String> literals = findPatternLiterals(parser.options.value());
+        if (literals.isEmpty()) {
             this.parsersWithComplexRegex.remove(parser);
         } else {
-            Map<String, PropertyParserElement<?>> literalMap = parser.preProcess ?
+            Map<String, PropertyParserElement<?>> literalMap = parser.options.preProcess() ?
                     this.parsersByPreProcessedName : this.parsersByName;
-            for (String literal : parser.literals) {
+            for (String literal : literals) {
                 // Remove literal, if mapped to a different parser, cancel
                 PropertyParserElement<?> removed = literalMap.remove(literal);
                 if (removed != parser && removed != null) {
@@ -129,32 +121,32 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
         }
     }
 
-    private PropertyParserElement<?> findParserElement(RegistryParseContext context) {
-        PropertyParserElement<?> result;
+    private <T> boolean findParserElement(RegistryPropertyParser<T> parser) {
+        PropertyParserElement<T> result;
 
         // By name exactly
-        if ((result = this.parsersByName.get(context.name)) != null &&
-            result.match(context))
+        if ((result = CommonUtil.unsafeCast(this.parsersByName.get(parser.name))) != null &&
+            result.match(parser))
         {
-            return result;
+            return true;
         }
 
         // By pre-processed name
-        if ((result = this.parsersByPreProcessedName.get(context.namePreProcessed)) != null &&
-            result.match(context))
+        if ((result = CommonUtil.unsafeCast(this.parsersByPreProcessedName.get(parser.namePreProcessed))) != null &&
+            result.match(parser))
         {
-            return result;
+            return true;
         }
 
         // Complex
-        for (PropertyParserElement<?> parser : this.parsersWithComplexRegex) {
-            if (parser.match(context)) {
-                return parser;
+        for (PropertyParserElement<?> complexParserElementRaw : this.parsersWithComplexRegex) {
+            if ((result = CommonUtil.unsafeCast(complexParserElementRaw)).match(parser)) {
+                return true;
             }
         }
 
         // Not found
-        return null;
+        return false;
     }
 
     /**
@@ -256,12 +248,11 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
     public static class PropertyParserElement<T> {
         public final IProperty<T> property;
         public final FastMethod<T> method;
-        public final List<String> literals;
-        private final boolean inputIsString; // if true, is String, otherwise is PropertyParseContext
-        private final boolean preProcess;
+        public final PropertyParser options;
+        public final boolean inputIsString; // if true, is String, otherwise is PropertyParseContext
         private final Pattern pattern;
 
-        public PropertyParserElement(IProperty<T> property, PropertyParser parser, Method method)
+        public PropertyParserElement(IProperty<T> property, PropertyParser options, Method method)
                 throws PatternSyntaxException, ParserIncorrectSignatureException
         {
             // Validate the method is proper
@@ -282,11 +273,10 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
 
             // Initialize all the fields
             this.property = property;
-            this.preProcess = parser.preProcess();
-            this.pattern = Pattern.compile(parser.value());
+            this.options = options;
+            this.pattern = Pattern.compile(options.value());
             this.method = new FastMethod<T>();
             this.method.init(method);
-            this.literals = findPatternLiterals(parser.value());
         }
 
         /**
@@ -296,97 +286,114 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
          * @param registryContext Context of the parse operation
          * @return true if this parser element matches, false if not
          */
-        public boolean match(RegistryParseContext registryContext) {
-            String name = (this.preProcess ? registryContext.name : registryContext.namePreProcessed);
+        public boolean match(RegistryPropertyParser<T> parser) {
+            String name = (this.options.preProcess() ? parser.name : parser.namePreProcessed);
             Matcher matcher = this.pattern.matcher(name);
             if (matcher.find()) {
-                registryContext.matchResult = matcher;
+                parser.parser = this;
+                parser.matchResult = matcher;
                 return true;
             }
             return false;
         }
+    }
 
-        /**
-         * Uses a previous {@link #match(RegistryParseContext)} MatchResult to parse the
-         * input value text using a property parser method.
-         * 
-         * @param registryContext Context of the parse operation
-         * @param property parse result
-         */
-        public PropertyParseResult<T> parse(RegistryParseContext registryContext) {
+    /**
+     * An initialized property parser that was found by name
+     * 
+     * @param <T> parser value type
+     */
+    private static class RegistryPropertyParser<T> implements IPropertyParser<T> {
+        public final TrainCarts plugin;
+        public final String name;
+        public final String namePreProcessed;
+        public PropertyParserElement<T> parser;
+        public MatchResult matchResult;
+
+        public RegistryPropertyParser(TrainCarts plugin, String name) {
+            this.plugin = plugin;
+            this.name = name;
+            this.namePreProcessed = name.trim().toLowerCase(Locale.ENGLISH);
+            this.parser = null;
+            this.matchResult = null;
+        }
+
+        @Override
+        public IProperty<T> getProperty() {
+            return parser.property;
+        }
+
+        @Override
+        public String getName() {
+            return parser.options.preProcess() ? name : namePreProcessed;
+        }
+
+        @Override
+        public boolean isInputPreProcessed() {
+            return parser.options.preProcess();
+        }
+
+        @Override
+        public boolean isProcessedPerCart() {
+            return parser.options.processPerCart();
+        }
+
+        @Override
+        public PropertyParseResult<T> parse(IProperties properties, String input) {
+            IProperty<T> property = this.parser.property;
+
             try {
                 T value;
-                if (this.inputIsString) {
+                if (this.parser.inputIsString) {
                     // Send input value straight to the parser
-                    value = this.method.invoke(this.property, registryContext.input);
+                    value = this.parser.method.invoke(property, input);
                 } else {
                     // Create a context with the previous value, first
 
                     // Name as understood by the parser
-                    String name = (this.preProcess ? registryContext.name : registryContext.namePreProcessed);
+                    String name = this.getName();
 
                     // Current value, or default if this fails
                     T currentValue;
-                    if (registryContext.properties != null) {
+                    if (properties != null) {
                         try {
-                            currentValue = registryContext.properties.get(this.property);
+                            currentValue = properties.get(property);
                         } catch (Throwable t) {
-                            registryContext.plugin.getLogger().log(Level.SEVERE,
-                                    "Failed to read property value of '" + registryContext.name + "'", t);
+                            this.plugin.getLogger().log(Level.SEVERE,
+                                    "Failed to read property value of '" + this.name + "'", t);
 
-                            currentValue = this.property.getDefault();
+                            currentValue = property.getDefault();
                         }
                     } else {
-                        currentValue = this.property.getDefault();
+                        currentValue = property.getDefault();
                     }
 
                     // Context
                     PropertyParseContext<T> context = new PropertyParseContext<T>(
-                            registryContext.properties,
+                            properties,
                             currentValue,
                             name,
-                            registryContext.input,
-                            registryContext.matchResult
+                            input,
+                            this.matchResult
                     );
 
                     // Parse
-                    value = this.method.invoke(this.property, context);
+                    value = this.parser.method.invoke(property, context);
                 }
 
-                return PropertyParseResult.success(this.property, value);
+                return PropertyParseResult.success(property, value);
             }
             catch (PropertyInvalidInputException ex)
             {
-                return PropertyParseResult.failInvalidInput(this.property, ex.getMessage());
+                return PropertyParseResult.failInvalidInput(property, ex.getMessage());
             }
             catch (Throwable t)
             {
-                registryContext.plugin.getLogger().log(Level.SEVERE,
-                        "Failed to parse property '" + registryContext.name + "'", t);
+                this.plugin.getLogger().log(Level.SEVERE,
+                        "Failed to parse property '" + this.name + "'", t);
 
-                return PropertyParseResult.failError(this.property, registryContext.name);
+                return PropertyParseResult.failError(property, this.name);
             }
-        }
-    }
-
-    /**
-     * Stores the input to a property parse operation
-     */
-    public static class RegistryParseContext {
-        public final TrainCarts plugin;
-        public final IProperties properties;
-        public final String name;
-        public final String namePreProcessed;
-        public final String input;
-        public MatchResult matchResult;
-
-        public RegistryParseContext(TrainCarts plugin, IProperties properties, String name, String input) {
-            this.plugin = plugin;
-            this.properties = properties;
-            this.name = name;
-            this.namePreProcessed = name.trim().toLowerCase(Locale.ENGLISH);
-            this.input = input;
-            this.matchResult = null;
         }
     }
 

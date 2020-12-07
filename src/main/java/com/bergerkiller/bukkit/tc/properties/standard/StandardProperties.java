@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -30,6 +31,7 @@ import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.standard.type.AttachmentModelBoundToCart;
 import com.bergerkiller.bukkit.tc.properties.standard.type.BankingOptions;
@@ -50,7 +52,6 @@ public class StandardProperties {
      * to players. Is lazily initialized the first time this property is read.
      */
     public static final ICartProperty<AttachmentModel> MODEL = new ICartProperty<AttachmentModel>() {
-        @Override
         public List<String> getNames() {
             return Arrays.asList("model");
         }
@@ -147,7 +148,6 @@ public class StandardProperties {
     };
 
     public static final FieldBackedStandardCartProperty<Boolean> PUBLIC_ACCESS = new FieldBackedStandardCartProperty<Boolean>() {
-        @Override
         public List<String> getNames() {
             return Arrays.asList("public");
         }
@@ -179,7 +179,6 @@ public class StandardProperties {
     };
 
     public static final FieldBackedStandardCartProperty<Boolean> PICK_UP_ITEMS = new FieldBackedStandardCartProperty<Boolean>() {
-        @Override
         public List<String> getNames() {
             return Arrays.asList("pickup");
         }
@@ -211,7 +210,6 @@ public class StandardProperties {
     };
 
     public static final ICartProperty<Boolean> INVINCIBLE = new ICartProperty<Boolean>() {
-        @Override
         public List<String> getNames() {
             return Arrays.asList("invincible");
         }
@@ -233,7 +231,6 @@ public class StandardProperties {
     };
 
     public static final ICartProperty<Boolean> SPAWN_ITEM_DROPS = new ICartProperty<Boolean>() {
-        @Override
         public List<String> getNames() {
             return Arrays.asList("spawndrops");
         }
@@ -255,7 +252,6 @@ public class StandardProperties {
     };
 
     public static final ICartProperty<Boolean> ALLOW_PLAYER_ENTER = new ICartProperty<Boolean>() {
-        @Override
         public List<String> getNames() {
             return Arrays.asList("playerenter");
         }
@@ -277,7 +273,6 @@ public class StandardProperties {
     };
 
     public static final ICartProperty<Boolean> ALLOW_PLAYER_EXIT = new ICartProperty<Boolean>() {
-        @Override
         public List<String> getNames() {
             return Arrays.asList("playerexit");
         }
@@ -299,7 +294,6 @@ public class StandardProperties {
     };
 
     public static final ICartProperty<String> ENTER_MESSAGE = new ICartProperty<String>() {
-        @Override
         public List<String> getNames() {
             return Arrays.asList("entermessage");
         }
@@ -321,7 +315,6 @@ public class StandardProperties {
     };
 
     public static final ICartProperty<String> DRIVE_SOUND = new ICartProperty<String>() {
-        @Override
         public List<String> getNames() {
             return Arrays.asList("drivesound");
         }
@@ -343,11 +336,6 @@ public class StandardProperties {
     };
 
     public static final FieldBackedStandardCartProperty<Set<Material>> BLOCK_BREAK_TYPES = new FieldBackedStandardCartProperty<Set<Material>>() {
-        @Override
-        public List<String> getNames() {
-            return Collections.emptyList();
-        }
-
         @Override
         public Set<Material> getDefault() {
             return Collections.emptySet();
@@ -389,11 +377,6 @@ public class StandardProperties {
 
     public static final ICartProperty<String> DESTINATION_LAST_PATH_NODE = new ICartProperty<String>() {
         @Override
-        public List<String> getNames() {
-            return Collections.emptyList();
-        }
-
-        @Override
         public String getDefault() {
             return "";
         }
@@ -413,11 +396,6 @@ public class StandardProperties {
         private final Integer DEFAULT = 0;
 
         @Override
-        public List<String> getNames() {
-            return Collections.emptyList();
-        }
-
-        @Override
         public Integer getDefault() {
             return DEFAULT;
         }
@@ -434,11 +412,6 @@ public class StandardProperties {
     };
 
     public static final ICartProperty<List<String>> DESTINATION_ROUTE = new ICartProperty<List<String>>() {
-        @Override
-        public List<String> getNames() {
-            return Collections.emptyList();
-        }
-
         @Override
         public List<String> getDefault() {
             return Collections.emptyList();
@@ -495,7 +468,6 @@ public class StandardProperties {
     };
 
     public static final ICartProperty<String> DESTINATION = new ICartProperty<String>() {
-        @Override
         public List<String> getNames() {
             return Arrays.asList("destination");
         }
@@ -548,11 +520,6 @@ public class StandardProperties {
 
     public static final FieldBackedStandardCartProperty<Set<String>> OWNER_PERMISSIONS = new FieldBackedStandardCartProperty<Set<String>>() {
         @Override
-        public List<String> getNames() {
-            return Collections.emptyList();
-        }
-
-        @Override
         public Set<String> getDefault() {
             return Collections.emptySet();
         }
@@ -585,11 +552,6 @@ public class StandardProperties {
 
     public static final FieldBackedStandardCartProperty<Set<String>> OWNERS = new FieldBackedStandardCartProperty<Set<String>>() {
         @Override
-        public List<String> getNames() {
-            return Collections.emptyList();
-        }
-
-        @Override
         public Set<String> getDefault() {
             return Collections.emptySet();
         }
@@ -621,9 +583,50 @@ public class StandardProperties {
     };
 
     public static final FieldBackedStandardCartProperty<Set<String>> TAGS = new FieldBackedStandardCartProperty<Set<String>>() {
-        @Override
-        public List<String> getNames() {
-            return Arrays.asList("addtag", "settag", "remtag", "removetag");
+        @PropertyParser("settag")
+        public Set<String> parse(String input) {
+            return Collections.singleton(input);
+        }
+
+        @PropertyParser(value="addtag", processPerCart=true)
+        public Set<String> parseAddTag(PropertyParseContext<Set<String>> context) {
+            // If empty, do nothing
+            if (context.input().isEmpty()) {
+                return context.current();
+            }
+
+            // When old set of tags is empty, return singleton set of new tag
+            if (context.current().isEmpty()) {
+                return Collections.singleton(context.input());
+            }
+
+            // If already contained, return the same set of tags
+            if (context.current().contains(context.input())) {
+                return context.current();
+            }
+
+            // Combine old and new into a new set
+            HashSet<String> newTags = new HashSet<String>(context.current());
+            newTags.add(context.input());
+            return Collections.unmodifiableSet(newTags);
+        }
+
+        @PropertyParser(value="remtag|removetag", processPerCart=true)
+        public Set<String> parseRemoveTag(PropertyParseContext<Set<String>> context) {
+            // If empty or not contained, do nothing
+            if (context.input().isEmpty() || !context.current().contains(context.input())) {
+                return context.current();
+            }
+
+            // If size=1 then no more tags remain, return empty set
+            if (context.current().size() == 1) {
+                return Collections.emptySet();
+            }
+
+            // Remove from set
+            HashSet<String> newTags = new HashSet<String>(context.current());
+            newTags.remove(context.input());
+            return Collections.unmodifiableSet(newTags);
         }
 
         @Override
@@ -658,7 +661,6 @@ public class StandardProperties {
     };
 
     public static final ICartProperty<ExitOffset> EXIT_OFFSET = new ICartProperty<ExitOffset>() {
-        @Override
         public List<String> getNames() {
             return Arrays.asList("exitoffset", "exityaw", "exitpitch", "exitrot", "exitrotation");
         }
@@ -697,11 +699,6 @@ public class StandardProperties {
 
     public static final ITrainProperty<Set<String>> TICKETS = new ITrainProperty<Set<String>>() {
         @Override
-        public List<String> getNames() {
-            return Collections.emptyList();
-        }
-
-        @Override
         public Set<String> getDefault() {
             return Collections.emptySet();
         }
@@ -718,8 +715,6 @@ public class StandardProperties {
     };
 
     public static final ITrainProperty<String> KILL_MESSAGE = new ITrainProperty<String>() {
-
-        @Override
         public List<String> getNames() {
             return Arrays.asList("killmessage");
         }
@@ -741,8 +736,6 @@ public class StandardProperties {
     };
 
     public static final ITrainProperty<Boolean> SUFFOCATION = new ITrainProperty<Boolean>() {
-
-        @Override
         public List<String> getNames() {
             return Arrays.asList("suffocation");
         }
@@ -764,12 +757,6 @@ public class StandardProperties {
     };
 
     public static final ITrainProperty<Boolean> REQUIRE_POWERED_MINECART = new ITrainProperty<Boolean>() {
-
-        @Override
-        public List<String> getNames() {
-            return Collections.emptyList();
-        }
-
         @Override
         public Boolean getDefault() {
             return Boolean.FALSE;
@@ -787,8 +774,6 @@ public class StandardProperties {
     };
 
     public static final FieldBackedStandardTrainProperty<Boolean> ALLOW_MOB_MANUAL_MOVEMENT = new FieldBackedStandardTrainProperty<Boolean>() {
-
-        @Override
         public List<String> getNames() {
             return Arrays.asList("allowmobmanual", "mobmanualmove", "mobmanual");
         }
@@ -820,8 +805,6 @@ public class StandardProperties {
     };
 
     public static final FieldBackedStandardTrainProperty<Boolean> ALLOW_PLAYER_MANUAL_MOVEMENT = new FieldBackedStandardTrainProperty<Boolean>() {
-
-        @Override
         public List<String> getNames() {
             return Arrays.asList("allowmanual", "manualmove", "manual");
         }
@@ -853,8 +836,6 @@ public class StandardProperties {
     };
 
     public static final FieldBackedStandardTrainProperty<Boolean> KEEP_CHUNKS_LOADED = new FieldBackedStandardTrainProperty<Boolean>() {
-
-        @Override
         public List<String> getNames() {
             return Arrays.asList("keeploaded", "keepcloaded", "loadchunks");
         }
@@ -913,11 +894,6 @@ public class StandardProperties {
         private final Double DEFAULT = 1.0;
 
         @Override
-        public List<String> getNames() {
-            return Collections.emptyList();
-        }
-
-        @Override
         public Double getDefault() {
             return DEFAULT;
         }
@@ -934,12 +910,6 @@ public class StandardProperties {
     };
 
     public static final ITrainProperty<Boolean> ALLOW_PLAYER_TAKE = new ITrainProperty<Boolean>() {
-
-        @Override
-        public List<String> getNames() {
-            return Collections.emptyList();
-        }
-
         @Override
         public Boolean getDefault() {
             return Boolean.FALSE;
@@ -957,8 +927,6 @@ public class StandardProperties {
     };
 
     public static final FieldBackedStandardTrainProperty<Boolean> SOUND_ENABLED = new FieldBackedStandardTrainProperty<Boolean>() {
-
-        @Override
         public List<String> getNames() {
             return Arrays.asList("sound", "minecartsound");
         }
@@ -993,8 +961,6 @@ public class StandardProperties {
      * Configures how trains roll inwards when turning
      */
     public static final FieldBackedStandardTrainProperty<BankingOptions> BANKING = new FieldBackedStandardTrainProperty<BankingOptions>() {
-
-        @Override
         public List<String> getNames() {
             return Arrays.asList("banking");
         }
@@ -1044,8 +1010,6 @@ public class StandardProperties {
      * Configures train behavior for waiting on obstacles on the track ahead
      */
     public static final FieldBackedStandardTrainProperty<WaitOptions> WAIT = new FieldBackedStandardTrainProperty<WaitOptions>() {
-
-        @Override
         public List<String> getNames() {
             return Arrays.asList("waitdistance", "waitdelay", "waitacceleration", "waitdeceleration");
         }
@@ -1104,12 +1068,6 @@ public class StandardProperties {
      * This property is used internally by the SignSkipOptions class.
      */
     public static final IProperty<SignSkipOptions> SIGN_SKIP = new IProperty<SignSkipOptions>() {
-
-        @Override
-        public List<String> getNames() {
-            return Collections.emptyList();
-        }
-
         @Override
         public SignSkipOptions getDefault() {
             return SignSkipOptions.NONE;
@@ -1226,7 +1184,6 @@ public class StandardProperties {
         private final Set<SlowdownMode> ALL = Collections.unmodifiableSet(EnumSet.allOf(SlowdownMode.class));
         private final Set<SlowdownMode> NONE = Collections.unmodifiableSet(EnumSet.noneOf(SlowdownMode.class));
 
-        @Override
         public List<String> getNames() {
             return Arrays.asList("slowdown", "slowfriction", "slowgravity");
         }
@@ -1292,7 +1249,6 @@ public class StandardProperties {
     };
 
     public static final ITrainProperty<String> DISPLAYNAME = new ITrainProperty<String>() {
-        @Override
         public List<String> getNames() {
             return Arrays.asList("displayname", "dname", "setdisplayname", "setdname");
         }
@@ -1314,8 +1270,6 @@ public class StandardProperties {
     };
 
     public static final FieldBackedStandardTrainProperty<CollisionOptions> COLLISION = new FieldBackedStandardTrainProperty<CollisionOptions>() {
-
-        @Override
         public List<String> getNames() {
             return Arrays.asList(
                     "playercollision",
@@ -1418,7 +1372,6 @@ public class StandardProperties {
     };
 
     public static final FieldBackedStandardTrainProperty.StandardDouble GRAVITY = new FieldBackedStandardTrainProperty.StandardDouble() {
-        @Override
         public List<String> getNames() {
             return Arrays.asList("gravity");
         }
@@ -1450,7 +1403,6 @@ public class StandardProperties {
     };
 
     public static final FieldBackedStandardTrainProperty.StandardDouble SPEEDLIMIT = new FieldBackedStandardTrainProperty.StandardDouble() {
-        @Override
         public List<String> getNames() {
             return Arrays.asList("maxspeed", "speedlimit");
         }

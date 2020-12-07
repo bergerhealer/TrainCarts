@@ -631,7 +631,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     public PropertyParseResult<?> parseAndSet(String key, String arg) {
         // First try using IProperty API
         {
-            PropertyParseResult<?> result = parseAndSetUsingIPropertiesAPI(key, arg);
+            PropertyParseResult<?> result = IPropertyRegistry.instance().parseAndSet(this, key, arg);
             if (result.getReason() != Reason.PROPERTY_NOT_FOUND) {
                 return result;
             }
@@ -679,12 +679,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
                     curr_off.getRelativeX(), curr_off.getRelativeY(), curr_off.getRelativeZ(),
                     new_yaw, new_pitch
             ));
-        } else if (key.equalsIgnoreCase("addtag")) {
-            this.addTags(arg);
-        } else if (key.equalsIgnoreCase("settag")) {
-            this.setTags(arg);
-        } else if (LogicUtil.containsIgnoreCase(key, "remtag", "removetag")) {
-            this.removeTags(arg);
         } else if (key.equalsIgnoreCase("destination")) {
             this.setDestination(arg);
         } else if (key.equalsIgnoreCase("addroute")) {

@@ -79,7 +79,7 @@ public final class PropertyParseContext<T> {
      * 
      * @return Cart properties, null if the parse operation is on an entire train
      */
-    public CartProperties getCartProperties() {
+    public CartProperties cartProperties() {
         return isCartProperties() ? ((CartProperties) this.properties) : null;
     }
 
@@ -93,7 +93,7 @@ public final class PropertyParseContext<T> {
      * 
      * @return Train Properties, null if no properties were specified
      */
-    public TrainProperties getTrainProperties() {
+    public TrainProperties trainProperties() {
         if (isTrainProperties()) {
             return (TrainProperties) this.properties;
         } else if (isCartProperties()) {
