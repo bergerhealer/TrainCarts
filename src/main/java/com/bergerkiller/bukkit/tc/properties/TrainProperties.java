@@ -18,7 +18,6 @@ import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -39,7 +38,6 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult.Reason;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
-import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
 import com.bergerkiller.bukkit.tc.properties.standard.type.BankingOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
@@ -1097,55 +1095,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
         // These will all be removed
         TrainPropertiesStore.markForAutosave();
-        if (key.equalsIgnoreCase("exitoffset")) {
-            final Vector vec = Util.parseVector(arg, null);
-            if (vec != null) {
-                if (vec.length() > TCConfig.maxEjectDistance) {
-                    vec.normalize().multiply(TCConfig.maxEjectDistance);
-                }
-                for (CartProperties prop : this) {
-                    prop.update(StandardProperties.EXIT_OFFSET, curr_off -> ExitOffset.create(
-                            vec, curr_off.getYaw(), curr_off.getPitch()
-                    ));
-                }
-            }
-        } else if (key.equalsIgnoreCase("exityaw")) {
-            final float new_yaw = ParseUtil.parseFloat(arg, 0.0f);
-            for (CartProperties prop : this) {
-                prop.update(StandardProperties.EXIT_OFFSET, curr_off -> ExitOffset.create(
-                        curr_off.getRelativeX(), curr_off.getRelativeY(), curr_off.getRelativeZ(),
-                        new_yaw, curr_off.getPitch()
-                ));
-            }
-        } else if (key.equalsIgnoreCase("exitpitch")) {
-            final float new_pitch = ParseUtil.parseFloat(arg, 0.0f);
-            for (CartProperties prop : this) {
-                prop.update(StandardProperties.EXIT_OFFSET, curr_off -> ExitOffset.create(
-                        curr_off.getRelativeX(), curr_off.getRelativeY(), curr_off.getRelativeZ(),
-                        curr_off.getYaw(), new_pitch
-                ));
-            }
-        } else if (LogicUtil.containsIgnoreCase(key, "exitrot", "exitrotation")) {
-            String[] angletext = Util.splitBySeparator(arg);
-            final float new_yaw;
-            final float new_pitch;
-            if (angletext.length == 2) {
-                new_yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
-                new_pitch = ParseUtil.parseFloat(angletext[1], 0.0f);
-            } else if (angletext.length == 1) {
-                new_yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
-                new_pitch = 0.0f;
-            } else {
-                new_yaw = 0.0f;
-                new_pitch = 0.0f;
-            }
-            for (CartProperties prop : this) {
-                prop.update(StandardProperties.EXIT_OFFSET, curr_off -> ExitOffset.create(
-                        curr_off.getRelativeX(), curr_off.getRelativeY(), curr_off.getRelativeZ(),
-                        new_yaw, new_pitch
-                ));
-            }
-        } else if (key.equalsIgnoreCase("killmessage")) {
+        if (key.equalsIgnoreCase("killmessage")) {
             this.setKillMessage(arg);
         } else if (key.equalsIgnoreCase("sound") || key.equalsIgnoreCase("minecartsound")) {
             this.setSoundEnabled(ParseUtil.parseBool(arg));
@@ -1224,25 +1174,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             this.setMobManualMovementAllowed(ParseUtil.parseBool(arg));
         } else if (LogicUtil.containsIgnoreCase(key, "keepcloaded", "loadchunks", "keeploaded")) {
             this.setKeepChunksLoaded(ParseUtil.parseBool(arg));
-        } else if (key.equalsIgnoreCase("addtag")) {
-            this.addTags(arg);
-        } else if (key.equalsIgnoreCase("settag")) {
-            this.setTags(arg);
-        } else if (key.equalsIgnoreCase("remtag") || key.equalsIgnoreCase("removetag")) {
-            this.removeTags(arg);
         } else if (key.equalsIgnoreCase("destination")) {
             this.setDestination(arg);
-        } else if (key.equalsIgnoreCase("addroute")) {
-            this.addDestinationToRoute(arg);
-        } else if (LogicUtil.containsIgnoreCase(key, "remroute", "removeroute")) {
-            this.removeDestinationFromRoute(arg);
-        } else if (key.equalsIgnoreCase("clearroute")) {
-            this.clearDestinationRoute();
-        } else if (key.equalsIgnoreCase("setroute")) {
-            this.clearDestinationRoute();
-            this.addDestinationToRoute(arg);
-        } else if (key.equalsIgnoreCase("loadroute")) {
-            this.setDestinationRoute(TrainCarts.plugin.getRouteManager().findRoute(arg));
         } else if (LogicUtil.containsIgnoreCase(key, "name", "rename", "setname")) {
             this.setTrainName(generateTrainName(arg));
         } else if (LogicUtil.containsIgnoreCase(key, "dname", "displayname", "setdisplayname", "setdname")) {
