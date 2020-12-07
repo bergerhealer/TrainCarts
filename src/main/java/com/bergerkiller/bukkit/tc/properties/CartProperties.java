@@ -6,7 +6,6 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
@@ -30,7 +29,6 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
-import org.bukkit.util.Vector;
 
 import java.util.*;
 
@@ -647,20 +645,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
             this.setPlayersExit(ParseUtil.parseBool(arg));
         } else if (LogicUtil.containsIgnoreCase(key, "invincible", "godmode")) {
             this.setInvincible(ParseUtil.parseBool(arg));
-        } else if (key.equalsIgnoreCase("setownerperm")) {
-            this.clearOwnerPermissions();
-            this.addOwnerPermission(arg);
-        } else if (key.equalsIgnoreCase("addownerperm")) {
-            this.addOwnerPermission(arg);
-        } else if (key.equalsIgnoreCase("remownerperm")) {
-            this.removeOwnerPermission(arg);
-        } else if (key.equalsIgnoreCase("setowner")) {
-            this.clearOwners();
-            this.setOwner(arg);
-        } else if (key.equalsIgnoreCase("addowner")) {
-            this.setOwner(arg, true);
-        } else if (key.equalsIgnoreCase("remowner")) {
-            this.setOwner(arg, false);
         } else if (key.equalsIgnoreCase("model")) {
             setModelName(arg);
         } else if (LogicUtil.containsIgnoreCase(key, "clearmodel", "resetmodel")) {

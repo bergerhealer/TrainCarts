@@ -560,6 +560,38 @@ public class StandardProperties {
     };
 
     public static final FieldBackedStandardCartProperty<Set<String>> OWNER_PERMISSIONS = new FieldBackedStandardCartProperty<Set<String>>() {
+        @PropertyParser("setownerperm|ownerperms set")
+        public Set<String> parseSet(String input) {
+            return input.isEmpty() ? Collections.emptySet() : Collections.singleton(input);
+        }
+
+        @PropertyParser("clearownerperm|ownerperms clear")
+        public Set<String> parseClear(String input) {
+            return Collections.emptySet();
+        }
+
+        @PropertyParser(value = "addownerperm|ownerperms add", processPerCart = true)
+        public Set<String> parseAdd(PropertyParseContext<Set<String>> context) {
+            if (context.input().isEmpty() || context.current().contains(context.input())) {
+                return context.current();
+            } else {
+                HashSet<String> newPerms = new HashSet<String>(context.current());
+                newPerms.add(context.input());
+                return Collections.unmodifiableSet(newPerms);
+            }
+        }
+
+        @PropertyParser(value = "remownerperm|ownerperm rem|ownerperms remove", processPerCart = true)
+        public Set<String> parseRemove(PropertyParseContext<Set<String>> context) {
+            if (context.input().isEmpty() || !context.current().contains(context.input())) {
+                return context.current();
+            } else {
+                HashSet<String> newPerms = new HashSet<String>(context.current());
+                newPerms.remove(context.input());
+                return Collections.unmodifiableSet(newPerms);
+            }
+        }
+
         @Override
         public Set<String> getDefault() {
             return Collections.emptySet();
@@ -592,6 +624,40 @@ public class StandardProperties {
     };
 
     public static final FieldBackedStandardCartProperty<Set<String>> OWNERS = new FieldBackedStandardCartProperty<Set<String>>() {
+        @PropertyParser("setowner|owners set")
+        public Set<String> parseSet(String input) {
+            return input.isEmpty() ? Collections.emptySet() : Collections.singleton(input.toLowerCase());
+        }
+
+        @PropertyParser("clearowner|clearowners|owners clear")
+        public Set<String> parseClear(String input) {
+            return Collections.emptySet();
+        }
+
+        @PropertyParser(value = "addowner|owners add", processPerCart = true)
+        public Set<String> parseAdd(PropertyParseContext<Set<String>> context) {
+            String name_lc = context.input().toLowerCase();
+            if (name_lc.isEmpty() || context.current().contains(name_lc)) {
+                return context.current();
+            } else {
+                HashSet<String> newPerms = new HashSet<String>(context.current());
+                newPerms.add(name_lc);
+                return Collections.unmodifiableSet(newPerms);
+            }
+        }
+
+        @PropertyParser(value = "remowner|owners rem|owners remove", processPerCart = true)
+        public Set<String> parseRemove(PropertyParseContext<Set<String>> context) {
+            String name_lc = context.input().toLowerCase();
+            if (name_lc.isEmpty() || !context.current().contains(name_lc)) {
+                return context.current();
+            } else {
+                HashSet<String> newPerms = new HashSet<String>(context.current());
+                newPerms.remove(name_lc);
+                return Collections.unmodifiableSet(newPerms);
+            }
+        }
+
         @Override
         public Set<String> getDefault() {
             return Collections.emptySet();
@@ -793,6 +859,38 @@ public class StandardProperties {
     };
 
     public static final ITrainProperty<Set<String>> TICKETS = new ITrainProperty<Set<String>>() {
+        @PropertyParser("setticket|tickets set")
+        public Set<String> parseSet(String input) {
+            return input.isEmpty() ? Collections.emptySet() : Collections.singleton(input);
+        }
+
+        @PropertyParser("clrticket|cleartickets|tickets clear")
+        public Set<String> parseClear(String input) {
+            return Collections.emptySet();
+        }
+
+        @PropertyParser(value = "addticket|tickets add", processPerCart = true)
+        public Set<String> parseAdd(PropertyParseContext<Set<String>> context) {
+            if (context.input().isEmpty() || context.current().contains(context.input())) {
+                return context.current();
+            } else {
+                HashSet<String> newPerms = new HashSet<String>(context.current());
+                newPerms.add(context.input());
+                return Collections.unmodifiableSet(newPerms);
+            }
+        }
+
+        @PropertyParser(value = "remticket|tickets rem|tickets remove", processPerCart = true)
+        public Set<String> parseRemove(PropertyParseContext<Set<String>> context) {
+            if (context.input().isEmpty() || !context.current().contains(context.input())) {
+                return context.current();
+            } else {
+                HashSet<String> newPerms = new HashSet<String>(context.current());
+                newPerms.remove(context.input());
+                return Collections.unmodifiableSet(newPerms);
+            }
+        }
+
         @Override
         public Set<String> getDefault() {
             return Collections.emptySet();

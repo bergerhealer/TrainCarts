@@ -1213,45 +1213,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             if (args.length >= 2) {
                 this.setBankingSmoothness(ParseUtil.parseDouble(args[1], this.getBankingSmoothness()));
             }
-        } else if (key.equalsIgnoreCase("setownerperm")) {
-            for (CartProperties prop : this) {
-                prop.clearOwnerPermissions();
-                prop.getOwnerPermissions().add(arg);
-            }
-        } else if (key.equalsIgnoreCase("addownerperm")) {
-            for (CartProperties prop : this) {
-                prop.getOwnerPermissions().add(arg);
-            }
-        } else if (key.equalsIgnoreCase("remownerperm")) {
-            for (CartProperties prop : this) {
-                prop.getOwnerPermissions().remove(arg);
-            }
-        } else if (key.equalsIgnoreCase("setowner")) {
-            for (CartProperties cprop : this) {
-                cprop.clearOwners();
-                cprop.setOwner(arg, true);
-            }
-        } else if (key.equalsIgnoreCase("addowner")) {
-            for (CartProperties cprop : this) {
-                cprop.setOwner(arg, true);
-            }
-        } else if (key.equalsIgnoreCase("remowner")) {
-            for (CartProperties cprop : this) {
-                cprop.setOwner(arg, false);
-            }
         } else if (LogicUtil.containsIgnoreCase(key, "spawnitemdrops", "spawndrops", "killdrops")) {
             this.setSpawnItemDrops(ParseUtil.parseBool(arg));
-        } else if (key.equalsIgnoreCase("addticket")) {
-            this.addTicket(arg);
-        } else if (key.equalsIgnoreCase("remticket")) {
-            this.removeTicket(arg);
-        } else if (key.equalsIgnoreCase("setticket")) {
-            this.clearTickets();
-            if (arg.length() > 0) {
-                this.addTicket(arg);
-            }
-        } else if (key.equalsIgnoreCase("clrticket")) {
-            this.clearTickets();
         } else if (LogicUtil.containsIgnoreCase(key, "drivesound", "driveeffect")) {
             for (CartProperties cprop : this) {
                 cprop.setDriveSound(arg);
