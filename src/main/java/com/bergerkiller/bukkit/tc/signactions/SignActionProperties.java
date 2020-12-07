@@ -8,11 +8,11 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import org.bukkit.Location;
-import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 public class SignActionProperties extends SignAction {
@@ -88,7 +88,20 @@ public class SignActionProperties extends SignAction {
         } else if (event.isRCSign()) {
             opt.setDescription( "remotely set properties on the train specified");
         }
-        return opt.handle(event.getPlayer());
+        if (!opt.handle(event.getPlayer())) {
+            return false;
+        }
+
+        // Validate the property and value on the sign exist/are correct
+        PropertyParseResult<Object> result = IPropertyRegistry.instance().parse(null, event.getLine(2), event.getLine(3));
+        if (!result.isSuccessful()) {
+            //TODO: Once all properties have registered parsers, this if can be removed
+            if (result.getReason() != PropertyParseResult.Reason.PROPERTY_NOT_FOUND) {
+                event.getPlayer().sendMessage(result.getMessage());
+            }
+        }
+
+        return true;
     }
 
     @Override
