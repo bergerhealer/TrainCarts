@@ -47,7 +47,7 @@ import java.util.*;
 
 public class TrainCommands {
 
-    @CommandMethod("train info")
+    @CommandMethod("train info|i")
     @CommandDescription("Displays the properties of the train")
     private void commandInfo(
             final Player player,
