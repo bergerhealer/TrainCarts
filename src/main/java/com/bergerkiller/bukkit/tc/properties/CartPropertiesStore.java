@@ -156,6 +156,7 @@ public class CartPropertiesStore {
                 ? null : member.getGroup().getProperties();
 
         prop = new CartProperties(trainProperties, new ConfigurationNode(), uuid);
+        properties.put(uuid, prop);
         prop.setHolder(member);
         prop.onConfigurationChanged();
         return prop;
