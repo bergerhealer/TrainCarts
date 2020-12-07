@@ -683,17 +683,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         } else if (LogicUtil.containsIgnoreCase(key, "entermessage", "entermsg")) {
             this.setEnterMessage(arg);
         } else {
-            // Attempt parsing it for the member
-            // The only property done this way is the MobSpawner cart mob type/limit/etc.
-            MinecartMember<?> member = this.getHolder();
-            if (member != null) {
-                PropertyParseResult<?> result = member.parseAndSet(key, arg);
-                if (result.getReason() != PropertyParseResult.Reason.PROPERTY_NOT_FOUND) {
-                    this.tryUpdate();
-                    return result;
-                }
-            }
-
             return PropertyParseResult.failPropertyNotFound(key);
         }
         this.tryUpdate();

@@ -6,7 +6,6 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.wrappers.MobSpawner;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
-import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -27,8 +26,15 @@ public class MinecartMemberMobSpawner extends MinecartMember<CommonMinecartMobSp
         return getEntity().getMobSpawner();
     }
 
-    @Override
-    public PropertyParseResult<?> parseAndSet(String name, String input) {
+    /**
+     * TODO: This is no longer being called from anywhere
+     * Maybe a sign specifically for configuring stuff like this?
+     * 
+     * @param name
+     * @param input
+     * @return
+     */
+    public boolean parseAndSet(String name, String input) {
         if (LogicUtil.contains(name, "mobtype")) {
             if (Util.isValidEntity(input)) {
                 getSpawner().setMobName(input);
@@ -40,10 +46,8 @@ public class MinecartMemberMobSpawner extends MinecartMember<CommonMinecartMobSp
         } else if (LogicUtil.contains(name, "maxdelay", "maxspawndelay")) {
             getSpawner().setMaxSpawnDelay(ParseUtil.parseInt(input, getSpawner().getMaxSpawnDelay()));
         } else {
-            return super.parseAndSet(name, input);
+            return false;
         }
-
-        //TODO: Null property?
-        return PropertyParseResult.success(null, null);
+        return true;
     }
 }

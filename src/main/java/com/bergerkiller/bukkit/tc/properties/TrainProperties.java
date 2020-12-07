@@ -1326,29 +1326,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         } else if (LogicUtil.containsIgnoreCase(key, "entermessage", "entermsg")) {
             this.setEnterMessage(arg);
         } else {
-            // Attempt parsing it for the group itself, or a member
-            // The only property done this way is the MobSpawner cart mob type/limit/etc.
-            MinecartGroup group = this.getHolder();
-            if (group != null) {
-                PropertyParseResult<?> result = group.parseAndSet(key, arg);
-                if (result.getReason() != PropertyParseResult.Reason.PROPERTY_NOT_FOUND) {
-                    return result;
-                }
-
-                PropertyParseResult<?> bestResult = result;
-                for (MinecartMember<?> member : group) {
-                    result = member.parseAndSet(key, arg);
-                    if (result.isSuccessful()) {
-                        member.onPropertiesChanged();
-                        bestResult = result;
-                    }
-                }
-                if (bestResult.isSuccessful()) {
-                    this.tryUpdate();
-                    return bestResult;
-                }
-            }
-
             return PropertyParseResult.failPropertyNotFound(key);
         }
         this.tryUpdate();

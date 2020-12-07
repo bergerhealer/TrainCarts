@@ -77,7 +77,6 @@ import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
-import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVertical;
@@ -2284,11 +2283,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         } else {
             return this.isSingle() && this.getGroup().getProperties().isPlayerTakeable();
         }
-    }
-
-    @Override
-    public PropertyParseResult<?> parseAndSet(String name, String input) {
-        return PropertyParseResult.failPropertyNotFound(name);
     }
 
     /**
