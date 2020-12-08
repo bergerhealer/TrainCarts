@@ -276,7 +276,7 @@ public class TCListener implements Listener {
                     event.setCancelled(true);
                     return;
                 }
-                if (!prop.isPublic() && !prop.hasOwnership(player)) {
+                if (prop.getCanOnlyOwnersEnter() && !prop.hasOwnership(player)) {
                     event.setCancelled(true);
                     return;
                 }

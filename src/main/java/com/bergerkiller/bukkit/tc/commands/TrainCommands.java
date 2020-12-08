@@ -685,14 +685,14 @@ public class TrainCommands {
             Permission.COMMAND_SETPUBLIC.handle(p);
             boolean pub;
             pub = args.length == 0 || ParseUtil.parseBool(args[0]);
-            prop.setPublic(pub);
-            p.sendMessage(ChatColor.YELLOW + "The selected train can be used by everyone: " + ChatColor.WHITE + pub);
+            prop.setCanOnlyOwnersEnter(!pub);
+            p.sendMessage(ChatColor.YELLOW + "The selected train can be entered by everyone: " + ChatColor.WHITE + pub);
         } else if (LogicUtil.containsIgnoreCase(cmd, "private", "locked", "lock")) {
             Permission.COMMAND_SETPUBLIC.handle(p);
             boolean pub;
             pub = args.length != 0 && !ParseUtil.parseBool(args[0]);
-            prop.setPublic(pub);
-            p.sendMessage(ChatColor.YELLOW + "The selected train can only be used by the respective owners: " + ChatColor.WHITE + !pub);
+            prop.setCanOnlyOwnersEnter(!pub);
+            p.sendMessage(ChatColor.YELLOW + "The selected train can only be entered by the respective owners: " + ChatColor.WHITE + !pub);
         } else if (cmd.equalsIgnoreCase("pickup")) {
             Permission.COMMAND_PICKUP.handle(p);
             boolean mode = true;

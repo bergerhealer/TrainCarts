@@ -206,19 +206,19 @@ public class CartCommands {
         } else if (cmd.equalsIgnoreCase("public")) {
             Permission.COMMAND_SETPUBLIC.handle(p);
             if (args.length == 0) {
-                prop.setPublic(true);
+                prop.setCanOnlyOwnersEnter(false);
             } else {
-                prop.setPublic(ParseUtil.parseBool(args[0]));
+                prop.setCanOnlyOwnersEnter(!ParseUtil.parseBool(args[0]));
             }
-            p.sendMessage(ChatColor.YELLOW + "The selected minecart can be used by everyone: " + ChatColor.WHITE + prop.isPublic());
+            p.sendMessage(ChatColor.YELLOW + "The selected minecart can be entered by everyone: " + ChatColor.WHITE + !prop.getCanOnlyOwnersEnter());
         } else if (LogicUtil.containsIgnoreCase(cmd, "private", "locked", "lock")) {
             Permission.COMMAND_SETPUBLIC.handle(p);
             if (args.length == 0) {
-                prop.setPublic(false);
+                prop.setCanOnlyOwnersEnter(true);
             } else {
-                prop.setPublic(!ParseUtil.parseBool(args[0]));
+                prop.setCanOnlyOwnersEnter(ParseUtil.parseBool(args[0]));
             }
-            p.sendMessage(ChatColor.YELLOW + "The selected minecart can only be used by you: " + ChatColor.WHITE + !prop.isPublic());
+            p.sendMessage(ChatColor.YELLOW + "The selected minecart can only be entered by you: " + ChatColor.WHITE + prop.getCanOnlyOwnersEnter());
         } else if (cmd.equalsIgnoreCase("pickup")) {
             Permission.COMMAND_PICKUP.handle(p);
             if (args.length == 0) {

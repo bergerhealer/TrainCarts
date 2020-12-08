@@ -19,6 +19,6 @@ public class FieldBackedStandardCartPropertiesHolder {
     Set<String> ownerPermissions;
     Set<Material> blockBreakTypes;
     boolean pickUpItems;
-    boolean isPublic;
+    boolean canOnlyOwnersEnter;
     AttachmentModelBoundToCart model = null;
 }

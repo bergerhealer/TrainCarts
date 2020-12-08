@@ -4,7 +4,6 @@ import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
-import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
@@ -15,7 +14,6 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
-import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult.Reason;
 import com.bergerkiller.bukkit.tc.properties.standard.FieldBackedStandardCartPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
@@ -329,13 +327,13 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     }
 
     @Override
-    public boolean isPublic() {
-        return get(StandardProperties.PUBLIC_ACCESS);
+    public boolean getCanOnlyOwnersEnter() {
+        return get(StandardProperties.ONLY_OWNERS_CAN_ENTER);
     }
 
     @Override
-    public void setPublic(boolean state) {
-        set(StandardProperties.PUBLIC_ACCESS, state);
+    public void setCanOnlyOwnersEnter(boolean state) {
+        set(StandardProperties.ONLY_OWNERS_CAN_ENTER, state);
     }
 
     @Override
@@ -623,45 +621,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         AttachmentModel model = new AttachmentModel();
         model.resetToName(modelName);
         set(StandardProperties.MODEL, model);
-    }
-
-    @Override
-    public PropertyParseResult<?> parseAndSet(String key, String arg) {
-        // First try using IProperty API
-        {
-            PropertyParseResult<?> result = IPropertyRegistry.instance().parseAndSet(this, key, arg);
-            if (result.getReason() != Reason.PROPERTY_NOT_FOUND) {
-                return result;
-            }
-        }
-
-        // These will all be moved
-        TrainPropertiesStore.markForAutosave();
-        if (key.equalsIgnoreCase("destination")) {
-            this.setDestination(arg);
-        } else if (key.equalsIgnoreCase("playerenter")) {
-            this.setPlayersEnter(ParseUtil.parseBool(arg));
-        } else if (key.equalsIgnoreCase("playerexit")) {
-            this.setPlayersExit(ParseUtil.parseBool(arg));
-        } else if (LogicUtil.containsIgnoreCase(key, "invincible", "godmode")) {
-            this.setInvincible(ParseUtil.parseBool(arg));
-        } else if (key.equalsIgnoreCase("model")) {
-            setModelName(arg);
-        } else if (LogicUtil.containsIgnoreCase(key, "clearmodel", "resetmodel")) {
-            resetModel();
-        } else if (LogicUtil.containsIgnoreCase(key, "spawnitemdrops", "spawndrops", "killdrops")) {
-            this.setSpawnItemDrops(ParseUtil.parseBool(arg));
-        } else if (LogicUtil.containsIgnoreCase(key, "drivesound", "driveeffect")) {
-            this.setDriveSound(arg);
-        } else if (LogicUtil.containsIgnoreCase(key, "entermessage", "entermsg")) {
-            this.setEnterMessage(arg);
-        } else {
-            return PropertyParseResult.failPropertyNotFound(key);
-        }
-        this.tryUpdate();
-
-        //TODO: No property or value? Uh oh.
-        return PropertyParseResult.success(null, null);
     }
 
     @Override

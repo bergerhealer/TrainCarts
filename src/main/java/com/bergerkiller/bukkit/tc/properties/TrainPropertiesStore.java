@@ -66,8 +66,19 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
      *
      * @param properties   to rename
      * @param newTrainName to set to
+     * @throws IllegalArgumentException if another train by this name already {@link #exists(String)}
      */
     public static void rename(TrainProperties properties, String newTrainName) {
+        // If unchanged, skip
+        if (properties.getTrainName().equals(newTrainName)) {
+            return;
+        }
+
+        // Check
+        if (exists(newTrainName)) {
+            throw new IllegalArgumentException("Another train with name '" + newTrainName + "' already exists");
+        }
+
         // Rename the offline group
         OfflineGroupManager.rename(properties.getTrainName(), newTrainName);
 
@@ -474,10 +485,10 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
      * Gets the Configuration Node containing the defaults of the name specified
      *
      * @param name of the properties Default
-     * @return Default properties configuration node
+     * @return Default properties configuration node, or null if it doesn't exist
      */
     public static ConfigurationNode getDefaultsByName(String name) {
-        return defconfig.getNode(name);
+        return defconfig.isNode(name) ? defconfig.getNode(name) : null;
     }
 
     /**

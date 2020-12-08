@@ -95,10 +95,7 @@ public class SignActionProperties extends SignAction {
         // Validate the property and value on the sign exist/are correct
         PropertyParseResult<Object> result = IPropertyRegistry.instance().parse(null, event.getLine(2), event.getLine(3));
         if (!result.isSuccessful()) {
-            //TODO: Once all properties have registered parsers, this if can be removed
-            if (result.getReason() != PropertyParseResult.Reason.PROPERTY_NOT_FOUND) {
-                event.getPlayer().sendMessage(result.getMessage());
-            }
+            event.getPlayer().sendMessage(result.getMessage());
         }
 
         return true;

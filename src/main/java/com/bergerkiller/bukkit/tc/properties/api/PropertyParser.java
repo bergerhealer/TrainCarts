@@ -35,7 +35,8 @@ public @interface PropertyParser {
 
     /**
      * Defines the regex pattern to match the property name
-     * against.
+     * against. Anchors are automatically included and do not
+     * need to be specified.
      * 
      * @return property name regex pattern
      */

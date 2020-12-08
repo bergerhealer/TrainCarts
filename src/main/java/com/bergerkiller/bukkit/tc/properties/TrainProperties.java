@@ -35,7 +35,6 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
-import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult.Reason;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.BankingOptions;
@@ -373,7 +372,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return display name
      */
     public String getDisplayName() {
-        String name = get(StandardProperties.DISPLAYNAME);
+        String name = get(StandardProperties.DISPLAY_NAME);
         return name.isEmpty() ? this.getTrainName() : name;
     }
 
@@ -384,7 +383,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return display name, or empty if none is set
      */
     public String getDisplayNameOrEmpty() {
-        return get(StandardProperties.DISPLAYNAME);
+        return get(StandardProperties.DISPLAY_NAME);
     }
 
     /**
@@ -394,7 +393,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param displayName to set to
      */
     public void setDisplayName(String displayName) {
-        set(StandardProperties.DISPLAYNAME, displayName);
+        set(StandardProperties.DISPLAY_NAME, displayName);
     }
 
     /**
@@ -600,20 +599,13 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     @Override
-    public boolean isPublic() {
-        for (CartProperties prop : this) {
-            if (prop.isPublic()) {
-                return true;
-            }
-        }
-        return false;
+    public boolean getCanOnlyOwnersEnter() {
+        return get(StandardProperties.ONLY_OWNERS_CAN_ENTER);
     }
 
     @Override
-    public void setPublic(boolean state) {
-        for (CartProperties prop : this) {
-            prop.setPublic(state);
-        }
+    public void setCanOnlyOwnersEnter(boolean state) {
+        set(StandardProperties.ONLY_OWNERS_CAN_ENTER, state);
     }
 
     @Override
@@ -892,6 +884,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * Renames this train, this should be called to rename the train safely.
      *
      * @param newtrainname to set to
+     * @throws IllegalArgumentException if another train by this name already {@link #exists(String)}
      */
     public void setTrainName(String newTrainName) {
         rename(this, newTrainName);
@@ -1057,7 +1050,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     public void setDefault(String key) {
-        this.apply(getDefaultsByName(key));
+        ConfigurationNode config = getDefaultsByName(key);
+        if (config != null) {
+            this.apply(config);
+        }
     }
 
     /**
@@ -1081,153 +1077,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     public void tryUpdate() {
         MinecartGroup g = this.getHolder();
         if (g != null) g.onPropertiesChanged();
-    }
-
-    @Override
-    public PropertyParseResult<?> parseAndSet(String key, String arg) {
-        // First try using IProperty API
-        {
-            PropertyParseResult<?> result = IPropertyRegistry.instance().parseAndSet(this, key, arg);
-            if (result.getReason() != Reason.PROPERTY_NOT_FOUND) {
-                return result;
-            }
-        }
-
-        // These will all be removed
-        TrainPropertiesStore.markForAutosave();
-        if (key.equalsIgnoreCase("killmessage")) {
-            this.setKillMessage(arg);
-        } else if (key.equalsIgnoreCase("sound") || key.equalsIgnoreCase("minecartsound")) {
-            this.setSoundEnabled(ParseUtil.parseBool(arg));
-        } else if (key.equalsIgnoreCase("playercollision")) {
-            CollisionMode mode = CollisionMode.parse(arg);
-            if (mode == null) return PropertyParseResult.failInvalidInput(
-                    StandardProperties.COLLISION, "Not a valid collision mode");
-
-            setCollision(getCollision().cloneAndSetPlayerMode(mode));
-        } else if (key.equalsIgnoreCase("misccollision")) {
-            CollisionMode mode = CollisionMode.parse(arg);
-            if (mode == null) return PropertyParseResult.failInvalidInput(
-                    StandardProperties.COLLISION, "Not a valid collision mode");
-
-            setCollision(getCollision().cloneAndSetMiscMode(mode));
-        } else if (key.equalsIgnoreCase("traincollision")) {
-            CollisionMode mode = CollisionMode.parse(arg);
-            if (mode == null) return PropertyParseResult.failInvalidInput(
-                    StandardProperties.COLLISION, "Not a valid collision mode");
-
-            setCollision(getCollision().cloneAndSetTrainMode(mode));
-        } else if (key.equalsIgnoreCase("blockcollision")) {
-            CollisionMode mode = CollisionMode.parse(arg);
-            if (mode == null) return PropertyParseResult.failInvalidInput(
-                    StandardProperties.COLLISION, "Not a valid collision mode");
-
-            setCollision(getCollision().cloneAndSetBlockMode(mode));
-        } else if (key.equalsIgnoreCase("collisiondamage")) {
-            this.setCollisionDamage(Double.parseDouble(arg));
-        } else if (key.equalsIgnoreCase("suffocation")) {
-            this.setSuffocation(ParseUtil.parseBool(arg));
-        } else if (this.setCollisionMode(key, arg)) {
-            return PropertyParseResult.success(
-                    StandardProperties.COLLISION, this.getCollision());
-        } else if (LogicUtil.containsIgnoreCase(key, "collision", "collide")) {
-            if (ParseUtil.parseBool(arg)) {
-                // Legacy support: just reset to defaults
-                // Preserve mob collision rules
-                setCollision(CollisionOptions.DEFAULT);
-            } else {
-                // Disable all collision
-                setCollision(CollisionOptions.CANCEL);
-            }
-        } else if (LogicUtil.containsIgnoreCase(key, "linking", "link")) {
-            this.setLinking(ParseUtil.parseBool(arg));
-        } else if (key.toLowerCase(Locale.ENGLISH).startsWith("slow")) {
-            SlowdownMode slowMode = null;
-            for (SlowdownMode mode : SlowdownMode.values()) {
-                if (key.contains(mode.getKey())) {
-                    slowMode = mode;
-                    break;
-                }
-            }
-            if (slowMode != null) {
-                this.setSlowingDown(slowMode, ParseUtil.parseBool(arg));
-            } else {
-                this.setSlowingDown(ParseUtil.parseBool(arg));
-            }
-        } else if (LogicUtil.containsIgnoreCase(key, "setdefault", "default")) {
-            this.setDefault(arg);
-        } else if (key.equalsIgnoreCase("pushplayers")) {
-            CollisionMode mode = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
-            setCollision(getCollision().cloneAndSetPlayerMode(mode));
-        } else if (key.equalsIgnoreCase("pushmisc")) {
-            CollisionMode mode = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
-            setCollision(getCollision().cloneAndSetMiscMode(mode));
-        } else if (LogicUtil.containsIgnoreCase(key, "push", "pushing")) {
-            CollisionMode mode = CollisionMode.fromPushing(ParseUtil.parseBool(arg));
-            setCollision(getCollision().cloneAndSetPlayerMode(mode).cloneAndSetMiscMode(mode));
-            this.setCollisionModeForMobs(mode);
-        } else if (LogicUtil.containsIgnoreCase(key, "gravity")) {
-            this.setGravity(ParseUtil.parseDouble(arg, 1.0));
-        } else if (LogicUtil.containsIgnoreCase(key, "allowmanual", "manualmove", "manual")) {
-            this.setManualMovementAllowed(ParseUtil.parseBool(arg));
-        } else if (LogicUtil.containsIgnoreCase(key, "allowmobmanual", "mobmanualmove", "mobmanual")) {
-            this.setMobManualMovementAllowed(ParseUtil.parseBool(arg));
-        } else if (LogicUtil.containsIgnoreCase(key, "keepcloaded", "loadchunks", "keeploaded")) {
-            this.setKeepChunksLoaded(ParseUtil.parseBool(arg));
-        } else if (key.equalsIgnoreCase("destination")) {
-            this.setDestination(arg);
-        } else if (LogicUtil.containsIgnoreCase(key, "name", "rename", "setname")) {
-            this.setTrainName(generateTrainName(arg));
-        } else if (LogicUtil.containsIgnoreCase(key, "dname", "displayname", "setdisplayname", "setdname")) {
-            this.setDisplayName(arg);
-        } else if (LogicUtil.containsIgnoreCase(key, "mobenter", "mobsenter")) {
-            if (ParseUtil.parseBool(arg)) {
-                this.setCollisionModeForMobs(CollisionMode.ENTER);
-            } else {
-                this.setCollisionModeIfModeForMobs(CollisionMode.ENTER, CollisionMode.DEFAULT);
-            }
-        } else if (key.equalsIgnoreCase("waitdistance")) {
-            this.setWaitDistance(ParseUtil.parseDouble(arg, this.getWaitDistance()));
-        } else if (key.equalsIgnoreCase("waitdelay")) {
-            this.setWaitDelay(ParseUtil.parseDouble(arg, this.getWaitDelay()));
-        } else if (LogicUtil.containsIgnoreCase(key, "waitacceleration", "waitaccel", "waitacc")) {
-            String[] args = arg.trim().split(" ");
-            if (args.length >= 2) {
-                this.setWaitAcceleration(Util.parseAcceleration(args[0], this.getWaitAcceleration()),
-                                         Util.parseAcceleration(args[1], this.getWaitDeceleration()));
-            } else {
-                double accel = Util.parseAcceleration(arg, Double.NaN);
-                if (!Double.isNaN(accel)) {
-                    this.setWaitAcceleration(accel);
-                }
-            }
-        } else if (key.equalsIgnoreCase("playerenter")) {
-            this.setPlayersEnter(ParseUtil.parseBool(arg));
-        } else if (key.equalsIgnoreCase("playerexit")) {
-            this.setPlayersExit(ParseUtil.parseBool(arg));
-        } else if (LogicUtil.containsIgnoreCase(key, "invincible", "godmode")) {
-            this.setInvincible(ParseUtil.parseBool(arg));
-        } else if (LogicUtil.containsIgnoreCase(key, "banking")) {
-            String[] args = arg.split(" ");
-            this.setBankingStrength(ParseUtil.parseDouble(args[0], this.getBankingStrength()));
-            if (args.length >= 2) {
-                this.setBankingSmoothness(ParseUtil.parseDouble(args[1], this.getBankingSmoothness()));
-            }
-        } else if (LogicUtil.containsIgnoreCase(key, "spawnitemdrops", "spawndrops", "killdrops")) {
-            this.setSpawnItemDrops(ParseUtil.parseBool(arg));
-        } else if (LogicUtil.containsIgnoreCase(key, "drivesound", "driveeffect")) {
-            for (CartProperties cprop : this) {
-                cprop.setDriveSound(arg);
-            }
-        } else if (LogicUtil.containsIgnoreCase(key, "entermessage", "entermsg")) {
-            this.setEnterMessage(arg);
-        } else {
-            return PropertyParseResult.failPropertyNotFound(key);
-        }
-        this.tryUpdate();
-
-        //TODO: No property or value? Uh oh.
-        return PropertyParseResult.success(null, null);
     }
 
     @Override
@@ -1316,11 +1165,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param mode
      */
     public void setCollisionModeForMobs(CollisionMode mode) {
-        for (CollisionMobCategory collision : CollisionMobCategory.values()) {
-            if (collision.isMobCategory()) {
-                setCollisionMode(collision, mode);
-            }
-        }
+        setCollision(getCollision().cloneAndSetForAllMobs(mode));
     }
 
     /**
@@ -1331,15 +1176,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param mode
      */
     public void setCollisionModeIfModeForMobs(final CollisionMode expected, final CollisionMode mode) {
-        update(StandardProperties.COLLISION, curr_options -> {
-            CollisionOptions new_options = curr_options;
-            for (CollisionMobCategory category : CollisionMobCategory.values()) {
-                if (category.isMobCategory() && curr_options.mobMode(category) == expected) {
-                    new_options = curr_options.cloneAndSetMobMode(category, mode);
-                }
-            }
-            return new_options;
-        });
+        setCollision(getCollision().cloneCompareAndSetForAllMobs(expected, mode));
     }
 
     /**

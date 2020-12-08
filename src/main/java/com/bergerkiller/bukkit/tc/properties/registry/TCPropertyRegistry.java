@@ -275,7 +275,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
             // Initialize all the fields
             this.property = property;
             this.options = options;
-            this.pattern = Pattern.compile(options.value());
+            this.pattern = Pattern.compile(anchorRegex(options.value()));
             this.method = new FastMethod<T>();
             this.method.init(method);
         }
@@ -296,6 +296,16 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
                 return true;
             }
             return false;
+        }
+
+        private static String anchorRegex(String expression) {
+            if (!expression.startsWith("^")) {
+                expression = "^" + expression;
+            }
+            if (!expression.endsWith("$")) {
+                expression = expression + "$";
+            }
+            return expression;
         }
     }
 

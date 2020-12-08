@@ -1,6 +1,6 @@
 package com.bergerkiller.bukkit.tc.properties.standard;
 
-import java.util.EnumSet;
+import java.util.Set;
 
 import com.bergerkiller.bukkit.tc.properties.standard.type.BankingOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
@@ -17,7 +17,7 @@ public class FieldBackedStandardTrainPropertiesHolder {
     double speedLimit;
     double gravity;
     CollisionOptions collision;
-    final EnumSet<SlowdownMode> slowdown = EnumSet.allOf(SlowdownMode.class);
+    Set<SlowdownMode> slowdown;
     SignSkipOptions signSkipOptionsData;
     WaitOptions waitOptionsData;
     BankingOptions bankingOptionsData;

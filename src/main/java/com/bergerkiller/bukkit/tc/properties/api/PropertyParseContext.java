@@ -47,7 +47,7 @@ public final class PropertyParseContext<T> {
      * @return Value of the capture group, or an empty String if out of range
      */
     public String nameGroup(int index) {
-        if (index >= 0 && index < this.matchResult.groupCount()) {
+        if (index >= 0 && index <= this.matchResult.groupCount()) {
             return this.matchResult.group(index);
         } else {
             return "";
@@ -89,6 +89,19 @@ public final class PropertyParseContext<T> {
             throw new PropertyInvalidInputException("Not a number");
         }
         return result;
+    }
+
+    /**
+     * Parses the input text as a boolean expression.
+     * 
+     * @return parsed boolean value
+     * @throws PropertyInvalidInputException if the input is not a boolean
+     */
+    public boolean inputBoolean() {
+        if (!ParseUtil.isBool(input())) {
+            throw new PropertyInvalidInputException("Not a boolean (true/false expression)");
+        }
+        return ParseUtil.parseBool(input());
     }
 
     /**

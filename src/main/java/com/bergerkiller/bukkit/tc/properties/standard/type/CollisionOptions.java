@@ -217,6 +217,63 @@ public final class CollisionOptions {
                                    mode);
     }
 
+    /**
+     * Checks all collision mob categories and if their current
+     * collision mode matches the expected value, updated the mode
+     * to the new value.
+     * 
+     * @param expected Expected mode, null to expect none to be set (defaults)
+     * @param newModeIfExpected New mode, null to remove the mode
+     * @return updated collision options
+     */
+    public CollisionOptions cloneCompareAndSetForAllMobs(CollisionMode expected, CollisionMode newModeIfExpected) {
+        EnumMap<CollisionMobCategory, CollisionMode> modes = this.mobModes.clone();
+        modes.putAll(this.mobModes);
+        if (newModeIfExpected == null) {
+            for (CollisionMobCategory category : CollisionMobCategory.values()) {
+                if (category.isMobCategory() && modes.get(category) == expected) {
+                    modes.remove(category);
+                }
+            }
+        } else {
+            for (CollisionMobCategory category : CollisionMobCategory.values()) {
+                if (category.isMobCategory() && modes.get(category) == expected) {
+                    modes.put(category, newModeIfExpected);
+                }
+            }
+        }
+
+        return new CollisionOptions(modes,
+                this.playerMode,
+                this.miscMode,
+                this.trainMode,
+                this.blockMode);
+    }
+
+    public CollisionOptions cloneAndSetForAllMobs(CollisionMode mode) {
+        EnumMap<CollisionMobCategory, CollisionMode> modes = this.mobModes.clone();
+        modes.putAll(this.mobModes);
+        if (mode == null) {
+            for (CollisionMobCategory category : CollisionMobCategory.values()) {
+                if (category.isMobCategory()) {
+                    modes.remove(category);
+                }
+            }
+        } else {
+            for (CollisionMobCategory category : CollisionMobCategory.values()) {
+                if (category.isMobCategory()) {
+                    modes.put(category, mode);
+                }
+            }
+        }
+
+        return new CollisionOptions(modes,
+                this.playerMode,
+                this.miscMode,
+                this.trainMode,
+                this.blockMode);
+    }
+
     public CollisionOptions cloneAndSetMobMode(CollisionMobCategory category, CollisionMode mode) {
         // Check unchanged
         if (this.mobModes.get(category) == mode) {
@@ -384,7 +441,9 @@ public final class CollisionOptions {
          */
         public Builder setModeForAllMobs(CollisionMode mode) {
             for (CollisionMobCategory category : CollisionMobCategory.values()) {
-                setMobMode(category, mode);
+                if (category.isMobCategory()) {
+                    setMobMode(category, mode);
+                }
             }
             return this;
         }

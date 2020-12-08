@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.properties;
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
+import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 
 import org.bukkit.entity.Player;
@@ -64,7 +65,9 @@ public interface IProperties extends IParsable {
      *         Is never null, if parsing fails the {@link PropertyParseResult#getReason()}
      *         can be checked.
      */
-    PropertyParseResult<?> parseAndSet(String name, String input);
+    default PropertyParseResult<?> parseAndSet(String name, String input) {
+        return IPropertyRegistry.instance().parseAndSet(this, name, input);
+    }
 
     /**
      * Gets the YAML configuration that stores all these
@@ -222,18 +225,20 @@ public interface IProperties extends IParsable {
     void setPickup(boolean pickup);
 
     /**
-     * Gets whether it can be publicly accessed
+     * Gets whether only owners of the train or cart can enter it (true),
+     * or that anyone can regardless of ownership (false).
      *
-     * @return True or False
+     * @return True when only owners can enter, or false if anyone can
      */
-    boolean isPublic();
+    boolean getCanOnlyOwnersEnter();
 
     /**
-     * Sets whether it can be publicly accessed
+     * Sets whether only owners of the train or cart can enter it (true),
+     * or that anyone can regardless of ownership (false).
      *
-     * @param state to set to
+     * @param state Whether only owners can enter
      */
-    void setPublic(boolean state);
+    void setCanOnlyOwnersEnter(boolean state);
 
     /**
      * Gets whether players can enter

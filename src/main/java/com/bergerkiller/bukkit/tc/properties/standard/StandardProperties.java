@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.properties.standard;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -18,6 +17,7 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -28,8 +28,11 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
+import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
+import com.bergerkiller.bukkit.tc.properties.api.ISyntheticProperty;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
@@ -53,10 +56,6 @@ public class StandardProperties {
      * to players. Is lazily initialized the first time this property is read.
      */
     public static final ICartProperty<AttachmentModel> MODEL = new ICartProperty<AttachmentModel>() {
-        public List<String> getNames() {
-            return Arrays.asList("model");
-        }
-
         @Override
         public AttachmentModel getDefault() {
             return null;
@@ -148,40 +147,60 @@ public class StandardProperties {
         }
     };
 
-    public static final FieldBackedStandardCartProperty<Boolean> PUBLIC_ACCESS = new FieldBackedStandardCartProperty<Boolean>() {
-        public List<String> getNames() {
-            return Arrays.asList("public");
+    public static final FieldBackedStandardCartProperty<Boolean> ONLY_OWNERS_CAN_ENTER = new FieldBackedStandardCartProperty<Boolean>() {
+
+        @PropertyParser("onlyownerscanenter")
+        public boolean parseCanEnter(PropertyParseContext<Boolean> context) {
+            return context.inputBoolean();
         }
 
         @Override
         public Boolean getDefault() {
-            return Boolean.TRUE;
+            return Boolean.FALSE;
         }
 
         @Override
         public Boolean getHolderValue(FieldBackedStandardCartPropertiesHolder holder) {
-            return holder.isPublic;
+            return holder.canOnlyOwnersEnter;
         }
 
         @Override
         public void setHolderValue(FieldBackedStandardCartPropertiesHolder holder, Boolean value) {
-            holder.isPublic = value.booleanValue();
+            holder.canOnlyOwnersEnter = value.booleanValue();
         }
 
         @Override
         public Optional<Boolean> readFromConfig(ConfigurationNode config) {
-            return Util.getConfigOptional(config, "isPublic", boolean.class);
+            // Legacy
+            if (config.contains("public")) {
+                return Optional.of(!config.get("public", true));
+            }
+
+            return Util.getConfigOptional(config, "onlyOwnersCanEnter", boolean.class);
         }
 
         @Override
         public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
-            Util.setConfigOptional(config, "isPublic", value);
+            config.remove("public"); // legacy
+            Util.setConfigOptional(config, "onlyOwnersCanEnter", value);
+        }
+
+        @Override
+        public Boolean get(TrainProperties properties) {
+            for (CartProperties cProp : properties) {
+                if (!get(cProp)) {
+                    return Boolean.FALSE;
+                }
+            }
+            return Boolean.TRUE;
         }
     };
 
     public static final FieldBackedStandardCartProperty<Boolean> PICK_UP_ITEMS = new FieldBackedStandardCartProperty<Boolean>() {
-        public List<String> getNames() {
-            return Arrays.asList("pickup");
+
+        @PropertyParser("pickup|pickupitems")
+        public boolean parsePickupItems(PropertyParseContext<Boolean> context) {
+            return context.inputBoolean();
         }
 
         @Override
@@ -211,8 +230,10 @@ public class StandardProperties {
     };
 
     public static final ICartProperty<Boolean> INVINCIBLE = new ICartProperty<Boolean>() {
-        public List<String> getNames() {
-            return Arrays.asList("invincible");
+
+        @PropertyParser("invincible|godmode")
+        public boolean parseInvincible(PropertyParseContext<Boolean> context) {
+            return context.inputBoolean();
         }
 
         @Override
@@ -232,8 +253,10 @@ public class StandardProperties {
     };
 
     public static final ICartProperty<Boolean> SPAWN_ITEM_DROPS = new ICartProperty<Boolean>() {
-        public List<String> getNames() {
-            return Arrays.asList("spawndrops");
+
+        @PropertyParser("spawnitemdrops|spawndrops|killdrops")
+        public boolean parseSpawnItemDrops(PropertyParseContext<Boolean> context) {
+            return context.inputBoolean();
         }
 
         @Override
@@ -253,8 +276,10 @@ public class StandardProperties {
     };
 
     public static final ICartProperty<Boolean> ALLOW_PLAYER_ENTER = new ICartProperty<Boolean>() {
-        public List<String> getNames() {
-            return Arrays.asList("playerenter");
+
+        @PropertyParser("playerenter")
+        public boolean parsePlayerEnter(PropertyParseContext<Boolean> context) {
+            return context.inputBoolean();
         }
 
         @Override
@@ -274,8 +299,10 @@ public class StandardProperties {
     };
 
     public static final ICartProperty<Boolean> ALLOW_PLAYER_EXIT = new ICartProperty<Boolean>() {
-        public List<String> getNames() {
-            return Arrays.asList("playerexit");
+
+        @PropertyParser("playerexit")
+        public boolean parsePlayerExit(PropertyParseContext<Boolean> context) {
+            return context.inputBoolean();
         }
 
         @Override
@@ -295,8 +322,10 @@ public class StandardProperties {
     };
 
     public static final ICartProperty<String> ENTER_MESSAGE = new ICartProperty<String>() {
-        public List<String> getNames() {
-            return Arrays.asList("entermessage");
+
+        @PropertyParser("entermessage|entermsg")
+        public String parseMessage(String input) {
+            return input;
         }
 
         @Override
@@ -316,8 +345,10 @@ public class StandardProperties {
     };
 
     public static final ICartProperty<String> DRIVE_SOUND = new ICartProperty<String>() {
-        public List<String> getNames() {
-            return Arrays.asList("drivesound");
+
+        @PropertyParser("drivesound|driveeffect")
+        public String parseSound(String input) {
+            return input;
         }
 
         @Override
@@ -509,8 +540,10 @@ public class StandardProperties {
     };
 
     public static final ICartProperty<String> DESTINATION = new ICartProperty<String>() {
-        public List<String> getNames() {
-            return Arrays.asList("destination");
+
+        @PropertyParser("destination")
+        public String parseDestination(String input) {
+            return input;
         }
 
         @Override
@@ -768,9 +801,6 @@ public class StandardProperties {
     };
 
     public static final ICartProperty<ExitOffset> EXIT_OFFSET = new ICartProperty<ExitOffset>() {
-        public List<String> getNames() {
-            return Arrays.asList("exitoffset", "exityaw", "exitpitch", "exitrot", "exitrotation");
-        }
 
         @PropertyParser(value="exitoffset", processPerCart = true)
         public ExitOffset parseOffset(PropertyParseContext<ExitOffset> context) {
@@ -908,8 +938,10 @@ public class StandardProperties {
     };
 
     public static final ITrainProperty<String> KILL_MESSAGE = new ITrainProperty<String>() {
-        public List<String> getNames() {
-            return Arrays.asList("killmessage");
+
+        @PropertyParser("killmessage")
+        public String parseMessage(String input) {
+            return input;
         }
 
         @Override
@@ -929,8 +961,10 @@ public class StandardProperties {
     };
 
     public static final ITrainProperty<Boolean> SUFFOCATION = new ITrainProperty<Boolean>() {
-        public List<String> getNames() {
-            return Arrays.asList("suffocation");
+
+        @PropertyParser("suffocation")
+        public boolean parseSuffocate(PropertyParseContext<Boolean> parser) {
+            return parser.inputBoolean();
         }
 
         @Override
@@ -967,8 +1001,10 @@ public class StandardProperties {
     };
 
     public static final FieldBackedStandardTrainProperty<Boolean> ALLOW_MOB_MANUAL_MOVEMENT = new FieldBackedStandardTrainProperty<Boolean>() {
-        public List<String> getNames() {
-            return Arrays.asList("allowmobmanual", "mobmanualmove", "mobmanual");
+
+        @PropertyParser("allowmobmanual|mobmanualmove|mobmanual")
+        public boolean parseAllowMovement(PropertyParseContext<Boolean> context) {
+            return context.inputBoolean();
         }
 
         @Override
@@ -998,8 +1034,10 @@ public class StandardProperties {
     };
 
     public static final FieldBackedStandardTrainProperty<Boolean> ALLOW_PLAYER_MANUAL_MOVEMENT = new FieldBackedStandardTrainProperty<Boolean>() {
-        public List<String> getNames() {
-            return Arrays.asList("allowmanual", "manualmove", "manual");
+
+        @PropertyParser("allowmanual|manualmove|manual")
+        public boolean parseAllowMovement(PropertyParseContext<Boolean> context) {
+            return context.inputBoolean();
         }
 
         @Override
@@ -1029,8 +1067,10 @@ public class StandardProperties {
     };
 
     public static final FieldBackedStandardTrainProperty<Boolean> KEEP_CHUNKS_LOADED = new FieldBackedStandardTrainProperty<Boolean>() {
-        public List<String> getNames() {
-            return Arrays.asList("keeploaded", "keepcloaded", "loadchunks");
+
+        @PropertyParser("keeploaded|keepcloaded|loadchunks")
+        public boolean parseKeepChunksLoaded(PropertyParseContext<Boolean> context) {
+            return context.inputBoolean();
         }
 
         @Override
@@ -1086,6 +1126,11 @@ public class StandardProperties {
     public static final ITrainProperty<Double> COLLISION_DAMAGE = new ITrainProperty<Double>() {
         private final Double DEFAULT = 1.0;
 
+        @PropertyParser("collisiondamage")
+        public double parseDamage(PropertyParseContext<Double> context) {
+            return context.inputDouble();
+        }
+
         @Override
         public Double getDefault() {
             return DEFAULT;
@@ -1120,8 +1165,10 @@ public class StandardProperties {
     };
 
     public static final FieldBackedStandardTrainProperty<Boolean> SOUND_ENABLED = new FieldBackedStandardTrainProperty<Boolean>() {
-        public List<String> getNames() {
-            return Arrays.asList("sound", "minecartsound");
+
+        @PropertyParser("sound|minecartsound")
+        public boolean parseSoundEnabled(PropertyParseContext<Boolean> context) {
+            return context.inputBoolean();
         }
 
         @Override
@@ -1154,8 +1201,25 @@ public class StandardProperties {
      * Configures how trains roll inwards when turning
      */
     public static final FieldBackedStandardTrainProperty<BankingOptions> BANKING = new FieldBackedStandardTrainProperty<BankingOptions>() {
-        public List<String> getNames() {
-            return Arrays.asList("banking");
+
+        @PropertyParser("banking")
+        public BankingOptions parseBanking(PropertyParseContext<BankingOptions> context) {
+            String[] args = context.input().trim().split(" ");
+            double newStrength, newSmoothness;
+            if (args.length >= 2) {
+                newStrength = ParseUtil.parseDouble(args[0], Double.NaN);
+                newSmoothness = ParseUtil.parseDouble(args[1], Double.NaN);
+            } else {
+                newStrength = ParseUtil.parseDouble(context.input(), Double.NaN);
+                newSmoothness = context.current().smoothness();
+            }
+            if (Double.isNaN(newStrength)) {
+                throw new PropertyInvalidInputException("Banking strength is not a number");
+            }
+            if (Double.isNaN(newSmoothness)) {
+                throw new PropertyInvalidInputException("Banking smoothness is not a number");
+            }
+            return BankingOptions.create(newStrength, newSmoothness);
         }
 
         @Override
@@ -1203,8 +1267,44 @@ public class StandardProperties {
      * Configures train behavior for waiting on obstacles on the track ahead
      */
     public static final FieldBackedStandardTrainProperty<WaitOptions> WAIT = new FieldBackedStandardTrainProperty<WaitOptions>() {
-        public List<String> getNames() {
-            return Arrays.asList("waitdistance", "waitdelay", "waitacceleration", "waitdeceleration");
+
+        @PropertyParser("waitdistance")
+        public WaitOptions parseWaitDistance(PropertyParseContext<WaitOptions> context) {
+            return WaitOptions.create(context.inputDouble(),
+                    context.current().delay(),
+                    context.current().acceleration(),
+                    context.current().deceleration());
+        }
+
+        @PropertyParser("waitdelay")
+        public WaitOptions parseWaitDelay(PropertyParseContext<WaitOptions> context) {
+            return WaitOptions.create(context.current().distance(),
+                    context.inputDouble(),
+                    context.current().acceleration(),
+                    context.current().deceleration());
+        }
+
+        @PropertyParser("waitacceleration")
+        public WaitOptions parseWaitAcceleration(PropertyParseContext<WaitOptions> context) {
+            String[] args = context.input().trim().split(" ");
+            double newAcceleration;
+            double newDeceleration;
+            if (args.length >= 2) {
+                newAcceleration = Util.parseAcceleration(args[0], Double.NaN);
+                newDeceleration = Util.parseAcceleration(args[1], Double.NaN);
+            } else {
+                newAcceleration = newDeceleration = Util.parseAcceleration(context.input(), Double.NaN);
+            }
+            if (Double.isNaN(newAcceleration)) {
+                throw new PropertyInvalidInputException("Acceleration is not a number or acceleration expression");
+            }
+            if (Double.isNaN(newDeceleration)) {
+                throw new PropertyInvalidInputException("Deceleration is not a number or acceleration expression");
+            }
+            return WaitOptions.create(context.current().distance(),
+                    context.inputDouble(),
+                    newAcceleration,
+                    newDeceleration);
         }
 
         @Override
@@ -1377,8 +1477,36 @@ public class StandardProperties {
         private final Set<SlowdownMode> ALL = Collections.unmodifiableSet(EnumSet.allOf(SlowdownMode.class));
         private final Set<SlowdownMode> NONE = Collections.unmodifiableSet(EnumSet.noneOf(SlowdownMode.class));
 
-        public List<String> getNames() {
-            return Arrays.asList("slowdown", "slowfriction", "slowgravity");
+        // Uses constants if possible, and otherwise makes the set unmodifiable
+        private Set<SlowdownMode> wrapAndOptimize(Set<SlowdownMode> result) {
+            if (result.isEmpty()) {
+                return NONE;
+            } else if (result.size() == ALL.size()) {
+                return ALL;
+            } else {
+                return Collections.unmodifiableSet(result);
+            }
+        }
+
+        @PropertyParser("slowdown")
+        public Set<SlowdownMode> parseSlowdownAll(PropertyParseContext<Set<SlowdownMode>> context) {
+            return context.inputBoolean() ? ALL : NONE;
+        }
+
+        @PropertyParser("slowfriction")
+        public Set<SlowdownMode> parseSlowdownFriction(PropertyParseContext<Set<SlowdownMode>> context) {
+            EnumSet<SlowdownMode> values = EnumSet.noneOf(SlowdownMode.class);
+            values.addAll(context.current());
+            LogicUtil.addOrRemove(values, SlowdownMode.FRICTION, context.inputBoolean());
+            return wrapAndOptimize(values);
+        }
+
+        @PropertyParser("slowgravity")
+        public Set<SlowdownMode> parseSlowdownGravity(PropertyParseContext<Set<SlowdownMode>> context) {
+            EnumSet<SlowdownMode> values = EnumSet.noneOf(SlowdownMode.class);
+            values.addAll(context.current());
+            LogicUtil.addOrRemove(values, SlowdownMode.GRAVITY, context.inputBoolean());
+            return wrapAndOptimize(values);
         }
 
         @Override
@@ -1388,13 +1516,12 @@ public class StandardProperties {
 
         @Override
         public Set<SlowdownMode> getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
-            return Collections.unmodifiableSet(holder.slowdown);
+            return holder.slowdown;
         }
 
         @Override
         public void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, Set<SlowdownMode> value) {
-            holder.slowdown.clear();
-            holder.slowdown.addAll(value);
+            holder.slowdown = value;
         }
 
         @Override
@@ -1416,7 +1543,7 @@ public class StandardProperties {
                         modes.add(mode);
                     }
                 }
-                return Optional.of(Collections.unmodifiableSet(modes));
+                return Optional.of(wrapAndOptimize(modes));
             }
         }
 
@@ -1441,9 +1568,96 @@ public class StandardProperties {
         }
     };
 
-    public static final ITrainProperty<String> DISPLAYNAME = new ITrainProperty<String>() {
-        public List<String> getNames() {
-            return Arrays.asList("displayname", "dname", "setdisplayname", "setdname");
+    /**
+     * Applies default train properties from configuration by name to the train.
+     * Only used to make this available as a property.
+     */
+    public static final ISyntheticProperty<ConfigurationNode> DEFAULT_CONFIG = new ISyntheticProperty<ConfigurationNode>() {
+
+        @PropertyParser("setdefault|default")
+        public ConfigurationNode parseDefaultConfig(String defaultName) {
+            ConfigurationNode defaults = TrainPropertiesStore.getDefaultsByName(defaultName);
+            if (defaults == null) {
+                throw new PropertyInvalidInputException("Train Property Defaults by key '" + defaultName + "' does not exist");
+            }
+            return defaults;
+        }
+
+        @Override
+        public ConfigurationNode getDefault() {
+            return TrainPropertiesStore.getDefaultsByName("default");
+        }
+
+        @Override
+        public ConfigurationNode get(CartProperties properties) {
+            return getDefault();
+        }
+
+        @Override
+        public ConfigurationNode get(TrainProperties properties) {
+            return getDefault();
+        }
+
+        @Override
+        public void set(CartProperties properties, ConfigurationNode config) {
+            // Go by all properties and apply them to the cart
+            // Do note: if properties are for trains, they are applied too!
+            for (IProperty<Object> property : IPropertyRegistry.instance().all()) {
+                Optional<Object> value = property.readFromConfig(config);
+                if (value.isPresent()) {
+                    properties.set(property, value.get());
+                }
+            }
+        }
+
+        @Override
+        public void set(TrainProperties properties, ConfigurationNode config) {
+            properties.apply(config);
+        }
+    };
+
+    /**
+     * Accesses {@link TrainProperties#setTrainName(String)} as if it were a property.
+     * Adds a parser which allows the train name to be changed using property signs.
+     */
+    public static final ISyntheticProperty<String> TRAIN_NAME = new ISyntheticProperty<String>() {
+
+        @PropertyParser("name|rename|setname|settrainname")
+        public String parseRename(String nameFormat) {
+            return TrainPropertiesStore.generateTrainName(nameFormat);
+        }
+
+        @Override
+        public String getDefault() {
+            return "train";
+        }
+
+        @Override
+        public String get(CartProperties properties) {
+            return get(properties.getTrainProperties());
+        }
+
+        @Override
+        public void set(CartProperties properties, String value) {
+            set(properties.getTrainProperties(), value);
+        }
+
+        @Override
+        public String get(TrainProperties properties) {
+            return properties.getTrainName();
+        }
+
+        @Override
+        public void set(TrainProperties properties, String value) {
+            properties.setTrainName(value);
+        }
+    };
+
+    public static final ITrainProperty<String> DISPLAY_NAME = new ITrainProperty<String>() {
+
+        @PropertyParser("dname|displayname|setdisplayname|setdname")
+        public String parseName(String input) {
+            return input;
         }
 
         @Override
@@ -1463,18 +1677,88 @@ public class StandardProperties {
     };
 
     public static final FieldBackedStandardTrainProperty<CollisionOptions> COLLISION = new FieldBackedStandardTrainProperty<CollisionOptions>() {
-        public List<String> getNames() {
-            return Arrays.asList(
-                    "playercollision",
-                    "misccollision",
-                    "traincollision",
-                    "blockcollision",
-                    "collision", "collide",
-                    "linking", "link",
-                    "pushplayers",
-                    "pushmisc",
-                    "push", "pushing"
-            );
+
+        @PropertyParser("playercollision")
+        public CollisionOptions parsePlayerCollisionMode(PropertyParseContext<CollisionOptions> context) {
+            return context.current().cloneAndSetPlayerMode(parseMode(context));
+        }
+
+        @PropertyParser("misccollision")
+        public CollisionOptions parseMiscCollisionMode(PropertyParseContext<CollisionOptions> context) {
+            return context.current().cloneAndSetMiscMode(parseMode(context));
+        }
+
+        @PropertyParser("traincollision")
+        public CollisionOptions parseTrainCollisionMode(PropertyParseContext<CollisionOptions> context) {
+            return context.current().cloneAndSetTrainMode(parseMode(context));
+        }
+
+        @PropertyParser("blockcollision")
+        public CollisionOptions parseBlockCollisionMode(PropertyParseContext<CollisionOptions> context) {
+            return context.current().cloneAndSetBlockMode(parseMode(context));
+        }
+
+        // For mobs, only used if it doesn't match player/misc/train/block
+        @PropertyParser("([a-z]+)collision")
+        public CollisionOptions parseCollisionMobsType(PropertyParseContext<CollisionOptions> context) {
+            return parseUpdateForMobs(context, context.nameGroup(1), parseModeOrReset(context));
+        }
+
+        @PropertyParser("linking|link")
+        public CollisionOptions parseLinkingMode(PropertyParseContext<CollisionOptions> context) {
+            if (context.inputBoolean()) {
+                return context.current().cloneAndSetTrainMode(CollisionMode.LINK);
+            } else if (context.current().trainMode() == CollisionMode.LINK) {
+                return context.current().cloneAndSetTrainMode(CollisionMode.DEFAULT);
+            } else {
+                return context.current();
+            }
+        }
+
+        @PropertyParser("pushplayers")
+        public CollisionOptions parsePushPlayers(PropertyParseContext<CollisionOptions> context) {
+            return context.current().cloneAndSetPlayerMode(CollisionMode.fromPushing(context.inputBoolean()));
+        }
+
+        @PropertyParser("pushmisc")
+        public CollisionOptions parsePushMisc(PropertyParseContext<CollisionOptions> context) {
+            return context.current().cloneAndSetMiscMode(CollisionMode.fromPushing(context.inputBoolean()));
+        }
+
+        // For mobs
+        @PropertyParser("push([a-z]+)")
+        public CollisionOptions parsePushingMobsType(PropertyParseContext<CollisionOptions> context) {
+            CollisionMode mode;
+            if (ParseUtil.isBool(context.input())) {
+                mode = CollisionMode.fromPushing(context.inputBoolean());
+            } else {
+                mode = parseModeOrReset(context);
+            }
+            return parseUpdateForMobs(context, context.nameGroup(1), mode);
+        }
+
+        @PropertyParser("push|pushing")
+        public CollisionOptions parsePushing(PropertyParseContext<CollisionOptions> context) {
+            // Legacy, ew.
+            CollisionMode mode = CollisionMode.fromPushing(context.inputBoolean());
+            return context.current()
+                    .cloneAndSetPlayerMode(mode)
+                    .cloneAndSetMiscMode(mode)
+                    .cloneAndSetForAllMobs(mode);
+        }
+
+        @PropertyParser("mobenter|mobsenter")
+        public CollisionOptions parseMobsEnter(PropertyParseContext<CollisionOptions> context) {
+            if (context.inputBoolean()) {
+                return context.current().cloneAndSetForAllMobs(CollisionMode.ENTER);
+            } else {
+                return context.current().cloneCompareAndSetForAllMobs(CollisionMode.ENTER, CollisionMode.DEFAULT);
+            }
+        }
+
+        @PropertyParser("collision|collide")
+        public CollisionOptions parseDefaultOrNoCollision(PropertyParseContext<CollisionOptions> context) {
+            return context.inputBoolean() ? CollisionOptions.DEFAULT : CollisionOptions.CANCEL;
         }
 
         @Override
@@ -1562,11 +1846,48 @@ public class StandardProperties {
                 config.remove("collision");
             }
         }
+
+        private CollisionMode parseMode(PropertyParseContext<CollisionOptions> context) {
+            CollisionMode mode = CollisionMode.parse(context.input());
+            if (mode == null)
+                throw new PropertyInvalidInputException("Not a valid collision mode");
+
+            return mode;
+        }
+
+        private CollisionMode parseModeOrReset(PropertyParseContext<CollisionOptions> context) {
+            if (context.input().equalsIgnoreCase("reset")) {
+                return null;
+            } else {
+                return parseMode(context);
+            }
+        }
+
+        private CollisionOptions parseUpdateForMobs(PropertyParseContext<CollisionOptions> context, String mobType, CollisionMode newMode) {
+            if (mobType.equals("mob") || mobType.equals("mobs")) {
+                return context.current().cloneAndSetForAllMobs(newMode);
+            }
+
+            boolean matchedMode = false;
+            CollisionOptions newCollision = context.current();
+            for (CollisionMobCategory mobCategory : CollisionMobCategory.values()) {
+                if (mobType.equals(mobCategory.getMobType()) || mobType.equals(mobCategory.getPluralMobType())) {
+                    newCollision = newCollision.cloneAndSetMobMode(mobCategory, newMode);
+                    matchedMode = true;
+                }
+            }
+            if (!matchedMode) {
+                throw new PropertyInvalidInputException("Invalid collision category: " + mobType);
+            }
+            return newCollision;
+        }
     };
 
     public static final FieldBackedStandardTrainProperty.StandardDouble GRAVITY = new FieldBackedStandardTrainProperty.StandardDouble() {
-        public List<String> getNames() {
-            return Arrays.asList("gravity");
+
+        @PropertyParser("gravity")
+        public double parseGravity(PropertyParseContext<Double> context) {
+            return context.inputDouble();
         }
 
         @Override
@@ -1596,9 +1917,6 @@ public class StandardProperties {
     };
 
     public static final FieldBackedStandardTrainProperty.StandardDouble SPEEDLIMIT = new FieldBackedStandardTrainProperty.StandardDouble() {
-        public List<String> getNames() {
-            return Arrays.asList("maxspeed", "speedlimit");
-        }
 
         @Override
         public double getDoubleDefault() {
