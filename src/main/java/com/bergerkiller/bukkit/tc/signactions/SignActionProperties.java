@@ -28,14 +28,14 @@ public class SignActionProperties extends SignAction {
 
     @Override
     public void execute(SignActionEvent info) {
-        final boolean powerChange = info.isAction(SignActionType.REDSTONE_ON, SignActionType.REDSTONE_OFF);
+        if (!info.isPowered()) return;
 
         PropertyParseResult.Reason result;
-        if ((powerChange || info.isAction(SignActionType.MEMBER_ENTER)) && info.isCartSign() && info.hasMember()) {
+        if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON) && info.isCartSign() && info.hasMember()) {
             result = parseAndSet(info.getMember().getProperties(), info);
-        } else if ((powerChange || info.isAction(SignActionType.GROUP_ENTER)) && info.isTrainSign() && info.hasGroup()) {
+        } else if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.isTrainSign() && info.hasGroup()) {
             result = parseAndSet(info.getGroup().getProperties(), info);
-        } else if (powerChange && info.isRCSign()) {
+        } else if (info.isAction(SignActionType.REDSTONE_ON) && info.isRCSign()) {
             result = PropertyParseResult.Reason.NONE;
             for (TrainProperties prop : info.getRCTrainProperties()) {
                 PropertyParseResult.Reason singleResult = parseAndSet(prop, info);
