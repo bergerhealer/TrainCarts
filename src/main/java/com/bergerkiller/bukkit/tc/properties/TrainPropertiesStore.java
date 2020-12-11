@@ -320,7 +320,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
                 // Carts could not be decoded, invalid properties
                 // Get rid of it
                 config.remove(node.getName());
-                TrainCarts.plugin.log(Level.WARNING, "Train properties with name " + node.getName() + " has no carts!");
+                TrainCarts.plugin.log(Level.WARNING, "Train properties with name " + prop.getTrainName() + " has no carts!");
                 continue;
             }
 
