@@ -612,6 +612,11 @@ public class TrainCarts extends PluginBase {
             for (World world : WorldUtil.getWorlds()) {
                 for (Chunk chunk : WorldUtil.getChunks(world)) {
                     for (org.bukkit.entity.Entity entity : ChunkUtil.getEntities(chunk)) {
+                        // Ignore dead/removed entities
+                        if (entity.isDead()) {
+                            continue;
+                        }
+
                         // Double-check for groups
                         MinecartGroup group = MinecartGroup.get(entity);
                         if (group != null) {
