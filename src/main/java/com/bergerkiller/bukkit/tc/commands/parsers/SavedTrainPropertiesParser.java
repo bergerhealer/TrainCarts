@@ -12,10 +12,8 @@ import com.bergerkiller.bukkit.tc.properties.SavedTrainProperties;
 
 import cloud.commandframework.arguments.parser.ArgumentParseResult;
 import cloud.commandframework.arguments.parser.ArgumentParser;
-import cloud.commandframework.captions.CaptionVariable;
 import cloud.commandframework.context.CommandContext;
 import cloud.commandframework.exceptions.parsing.NoInputProvidedException;
-import cloud.commandframework.exceptions.parsing.ParserException;
 
 /**
  * Parser for SavedTrainProperties
@@ -45,7 +43,7 @@ public class SavedTrainPropertiesParser implements ArgumentParser<CommandSender,
 
         SavedTrainProperties properties = plugin.getSavedTrains().getProperties(input);
         if (properties == null) {
-            return ArgumentParseResult.failure(new SavedTrainPropertiesParseException(input, commandContext,
+            return ArgumentParseResult.failure(new LocalizedParserException(getClass(), input, commandContext,
                     Localization.COMMAND_SAVEDTRAIN_NOTFOUND));
         }
 
@@ -97,42 +95,6 @@ public class SavedTrainPropertiesParser implements ArgumentParser<CommandSender,
             return filtered;
         } else {
             return claimed;
-        }
-    }
-
-    public static final class SavedTrainPropertiesParseException extends ParserException {
-
-        private static final long serialVersionUID = -750027695781313281L;
-        private final String input;
-
-        /**
-         * Construct a new enum parse exception
-         *
-         * @param input     Input
-         * @param enumClass Enum class
-         * @param context   Command context
-         */
-        public SavedTrainPropertiesParseException(
-                final String input,
-                final CommandContext<?> context,
-                final Localization message
-        ) {
-            super(
-                    SavedTrainPropertiesParser.class,
-                    context,
-                    message.getCaption(),
-                    CaptionVariable.of("input", input)
-            );
-            this.input = input;
-        }
-
-        /**
-         * Get the input provided by the sender
-         *
-         * @return Input
-         */
-        public String getInput() {
-            return this.input;
         }
     }
 }

@@ -200,6 +200,20 @@ public class CloudHandler {
     }
 
     /**
+     * Register a named parser supplier
+     *
+     * @param name     Parser name
+     * @param supplier The function that generates the parser. The map supplied my contain parameters used
+     *                 to configure the parser, many of which are documented in {@link StandardParameters}
+     */
+    public void parse(
+            String name,
+            Function<ParserParameters, ArgumentParser<CommandSender, ?>> supplier
+    ) {
+        this.manager.getParserRegistry().registerNamedParserSupplier(name, supplier);
+    }
+
+    /**
      * Register a new named suggestion provider with a constant list of suggestions.
      * 
      * @param name Name of the suggestions provider. The name is case independent.

@@ -12,10 +12,8 @@ import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 
 import cloud.commandframework.arguments.parser.ArgumentParseResult;
 import cloud.commandframework.arguments.parser.ArgumentParser;
-import cloud.commandframework.captions.CaptionVariable;
 import cloud.commandframework.context.CommandContext;
 import cloud.commandframework.exceptions.parsing.NoInputProvidedException;
-import cloud.commandframework.exceptions.parsing.ParserException;
 
 /**
  * Parses tickets by checking what ticket the sender is currently editing
@@ -38,7 +36,7 @@ public class TicketParser implements ArgumentParser<CommandSender, Ticket> {
 
         Ticket ticket = TicketStore.getTicket(input);
         if (ticket == null) {
-            return ArgumentParseResult.failure(new TicketParseException(input, commandContext,
+            return ArgumentParseResult.failure(new LocalizedParserException(getClass(), input, commandContext,
                     Localization.COMMAND_TICKET_NOTFOUND));
         }
 
@@ -54,41 +52,5 @@ public class TicketParser implements ArgumentParser<CommandSender, Ticket> {
         return TicketStore.getAll().stream()
                 .map(Ticket::getName)
                 .collect(Collectors.toList());
-    }
-
-    public static final class TicketParseException extends ParserException {
-
-        private static final long serialVersionUID = -750027695781313281L;
-        private final String input;
-
-        /**
-         * Construct a new enum parse exception
-         *
-         * @param input     Input
-         * @param enumClass Enum class
-         * @param context   Command context
-         */
-        public TicketParseException(
-                final String input,
-                final CommandContext<?> context,
-                final Localization message
-        ) {
-            super(
-                    TicketParser.class,
-                    context,
-                    message.getCaption(),
-                    CaptionVariable.of("input", input)
-            );
-            this.input = input;
-        }
-
-        /**
-         * Get the input provided by the sender
-         *
-         * @return Input
-         */
-        public String getInput() {
-            return this.input;
-        }
     }
 }

@@ -25,6 +25,8 @@ public class Localization extends LocalizationEnum {
             ChatColor.RED + "To create a new train ticket, use /train ticket create\n" +
             ChatColor.RED + "To edit an existing train ticket, use /train ticket edit [name]");
 
+    public static final Localization COMMAND_INPUT_SPEED_INVALID = new Localization("command.input.speed.invalid", ChatColor.RED + "Input value %0% is not a valid number or speed expression");
+
     public static final Localization PROPERTY_NOTFOUND = new Localization("property.notfound", ChatColor.RED + "Property with name '%0%' does not exist");
     public static final Localization PROPERTY_ERROR = new Localization("property.error", ChatColor.RED + "An internal error occurred while parsing value '%1%' for property '%0%'");
     public static final Localization PROPERTY_INVALID_INPUT = new Localization("property.invalidinput", ChatColor.RED + "Value '%1%' for property '%0%' is invalid: %2%");

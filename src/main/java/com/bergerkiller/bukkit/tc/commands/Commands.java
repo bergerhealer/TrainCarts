@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.annotations.SavedTrainRequiresAccess;
 import com.bergerkiller.bukkit.tc.commands.cloud.CloudHandler;
 import com.bergerkiller.bukkit.tc.commands.parsers.SavedTrainPropertiesParser;
+import com.bergerkiller.bukkit.tc.commands.parsers.SpeedParser;
 import com.bergerkiller.bukkit.tc.exception.command.InvalidClaimPlayerNameException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainSelectedException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainStorageChestItemException;
@@ -26,6 +27,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.arguments.parser.StandardParameters;
 import cloud.commandframework.services.types.ConsumerService;
 
 import java.util.ArrayList;
@@ -45,6 +47,10 @@ public class Commands {
     private final RouteCommands commands_train_route = new RouteCommands();
     private final TicketCommands commands_train_ticket = new TicketCommands();
     private final SavedTrainCommands commands_savedtrain = new SavedTrainCommands();
+
+    public CloudHandler getHandler() {
+        return cloud;
+    }
 
     public void enable(TrainCarts plugin) {
         cloud.enable(plugin);
@@ -129,6 +135,11 @@ public class Commands {
             //parameters.get(parameter, defaultValue)
             boolean access = parameters.get(SavedTrainRequiresAccess.PARAM, Boolean.FALSE);
             return new SavedTrainPropertiesParser(plugin, access);
+        });
+
+        cloud.parse(SpeedParser.NAME, (parameters) -> {
+            boolean greedy = parameters.get(StandardParameters.GREEDY, false);
+            return new SpeedParser(greedy);
         });
 
         cloud.handleMessage(NoPermissionException.class, Localization.COMMAND_NOPERM.getName());
