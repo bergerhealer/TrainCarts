@@ -293,8 +293,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
          * @return true if this parser element matches, false if not
          */
         public boolean match(RegistryPropertyParser<T> parser) {
-            String name = (this.options.preProcess() ? parser.namePreProcessed : parser.name);
-            Matcher matcher = this.pattern.matcher(name);
+            Matcher matcher = this.pattern.matcher(parser.getName());
             if (matcher.find()) {
                 parser.parser = this;
                 parser.matchResult = matcher;
@@ -341,7 +340,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
 
         @Override
         public String getName() {
-            return parser.options.preProcess() ? name : namePreProcessed;
+            return parser.options.preProcess() ? namePreProcessed : name;
         }
 
         @Override
