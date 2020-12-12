@@ -22,6 +22,7 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.Commands;
+import com.bergerkiller.bukkit.tc.commands.cloud.CloudHandler;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyParser;
@@ -41,7 +42,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
     private static final Pattern LITERALS_PATTERN = Pattern.compile("([\\w\\s]+)\\|?");
 
     private final TrainCarts plugin;
-    private final Commands commands;
+    private final CloudHandler commands;
 
     // All registered properties and their metadata
     private final Map<IProperty<Object>, PropertyDetails<Object>> properties = new HashMap<>();
@@ -51,7 +52,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
     private final Map<String, PropertyParserElement<?>> parsersByPreProcessedName = new HashMap<>();
     private final List<PropertyParserElement<?>> parsersWithComplexRegex = new ArrayList<>();
 
-    public TCPropertyRegistry(TrainCarts plugin, Commands commands) {
+    public TCPropertyRegistry(TrainCarts plugin, CloudHandler commands) {
         this.plugin = plugin;
         this.commands = commands;
     }
@@ -73,6 +74,10 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
 
         // Register new parsers
         details.parsers.forEach(this::registerParser);
+
+        // Register cloud commands declared inside the property
+        // Note: does not support unregister!
+        this.commands.annotations(property);
     }
 
     @Override
@@ -288,7 +293,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
          * @return true if this parser element matches, false if not
          */
         public boolean match(RegistryPropertyParser<T> parser) {
-            String name = (this.options.preProcess() ? parser.name : parser.namePreProcessed);
+            String name = (this.options.preProcess() ? parser.namePreProcessed : parser.name);
             Matcher matcher = this.pattern.matcher(name);
             if (matcher.find()) {
                 parser.parser = this;
