@@ -35,6 +35,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
+import com.bergerkiller.bukkit.tc.properties.standard.FieldBackedStandardTrainProperty;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.BankingOptions;
@@ -42,7 +43,6 @@ import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.WaitOptions;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
-import com.bergerkiller.bukkit.tc.properties.standard.FieldBackedStandardTrainPropertiesHolder;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
@@ -52,7 +52,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private static final long serialVersionUID = 1L;
 
     private final SoftReference<MinecartGroup> group = new SoftReference<>();
-    private final FieldBackedStandardTrainPropertiesHolder standardProperties = new FieldBackedStandardTrainPropertiesHolder();
+    private final FieldBackedStandardTrainProperty.Holder standardProperties = new FieldBackedStandardTrainProperty.Holder();
     private final ConfigurationNode config;
     protected String trainname;
 
@@ -112,7 +112,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     /**
      * Internal use only
      */
-    public FieldBackedStandardTrainPropertiesHolder getStandardPropertiesHolder() {
+    public FieldBackedStandardTrainProperty.Holder getStandardPropertiesHolder() {
         return standardProperties;
     }
 

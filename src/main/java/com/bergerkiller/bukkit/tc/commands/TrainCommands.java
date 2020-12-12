@@ -615,12 +615,6 @@ public class TrainCommands {
                 }
             }
             prop.tryUpdate();
-        } else if (LogicUtil.containsIgnoreCase(cmd, "speedlimit", "maxspeed")) {
-            Permission.COMMAND_SETSPEEDLIMIT.handle(p);
-            if (args.length == 1) {
-                prop.setSpeedLimit(ParseUtil.parseDouble(args[0], 0.4));
-            }
-            p.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE + prop.getSpeedLimit() + " blocks/tick");
         } else if (LogicUtil.containsIgnoreCase(cmd, "gravity")) {
             Permission.COMMAND_GRAVITY.handle(p);
             if (args.length == 1) {

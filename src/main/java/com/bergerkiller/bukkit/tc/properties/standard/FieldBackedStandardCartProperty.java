@@ -4,9 +4,13 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.bukkit.Material;
+
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
+import com.bergerkiller.bukkit.tc.properties.standard.type.AttachmentModelBoundToCart;
+import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 
 /**
  * A standard cart property that can read the current
@@ -21,7 +25,7 @@ public interface FieldBackedStandardCartProperty<T> extends ICartProperty<T> {
      * @param holder
      * @return holder property value
      */
-    T getHolderValue(FieldBackedStandardCartPropertiesHolder holder);
+    T getHolderValue(Holder holder);
 
     /**
      * Applies the current property value stored in cart properties configuration
@@ -30,7 +34,7 @@ public interface FieldBackedStandardCartProperty<T> extends ICartProperty<T> {
      * @param holder The holder to update
      * @param value The value to update the holder with
      */
-    void setHolderValue(FieldBackedStandardCartPropertiesHolder holder, T value);
+    void setHolderValue(Holder holder, T value);
 
     @Override
     default void onConfigurationChanged(CartProperties properties) {
@@ -87,7 +91,7 @@ public interface FieldBackedStandardCartProperty<T> extends ICartProperty<T> {
          * @param holder StandardCartPropertiesHolder
          * @return current property value
          */
-        double getHolderDoubleValue(FieldBackedStandardCartPropertiesHolder holder);
+        double getHolderDoubleValue(Holder holder);
 
         /**
          * Updates a double property of {@link FieldBackedStandardCartPropertiesHolder}
@@ -95,7 +99,7 @@ public interface FieldBackedStandardCartProperty<T> extends ICartProperty<T> {
          * @param holder StandardCartPropertiesHolder
          * @param value The new value
          */
-        void setHolderDoubleValue(FieldBackedStandardCartPropertiesHolder holder, double value);
+        void setHolderDoubleValue(Holder holder, double value);
 
         @Override
         default java.lang.Double getDefault() {
@@ -103,13 +107,29 @@ public interface FieldBackedStandardCartProperty<T> extends ICartProperty<T> {
         }
 
         @Override
-        default java.lang.Double getHolderValue(FieldBackedStandardCartPropertiesHolder holder) {
+        default java.lang.Double getHolderValue(Holder holder) {
             return java.lang.Double.valueOf(getHolderDoubleValue(holder));
         }
 
         @Override
-        default void setHolderValue(FieldBackedStandardCartPropertiesHolder holder, java.lang.Double value) {
+        default void setHolderValue(Holder holder, java.lang.Double value) {
             setHolderDoubleValue(holder, value.doubleValue());
         }
+    }
+
+    /**
+     * Holds a <b>copy</b> of the cart properties stored in YAML configuration
+     * for faster access at runtime. Properties that aren't accessed
+     * very often aren't stored here.
+     */
+    public class Holder {
+        protected SignSkipOptions signSkipOptionsData;
+        protected Set<String> tags;
+        protected Set<String> owners;
+        protected Set<String> ownerPermissions;
+        protected Set<Material> blockBreakTypes;
+        protected boolean pickUpItems;
+        protected boolean canOnlyOwnersEnter;
+        protected AttachmentModelBoundToCart model = null;
     }
 }

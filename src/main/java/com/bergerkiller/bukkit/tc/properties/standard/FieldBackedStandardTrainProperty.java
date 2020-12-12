@@ -1,7 +1,14 @@
 package com.bergerkiller.bukkit.tc.properties.standard;
 
+import java.util.Set;
+
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
+import com.bergerkiller.bukkit.tc.properties.standard.type.BankingOptions;
+import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
+import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
+import com.bergerkiller.bukkit.tc.properties.standard.type.WaitOptions;
+import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
 /**
  * A standard cart property that can read the current
@@ -16,7 +23,7 @@ public interface FieldBackedStandardTrainProperty<T> extends ITrainProperty<T> {
      * @param holder
      * @return holder property value
      */
-    T getHolderValue(FieldBackedStandardTrainPropertiesHolder holder);
+    T getHolderValue(Holder holder);
 
     /**
      * Applies the current property value stored in train properties configuration
@@ -25,7 +32,7 @@ public interface FieldBackedStandardTrainProperty<T> extends ITrainProperty<T> {
      * @param holder The holder to update
      * @param value The value to update the holder with
      */
-    void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, T value);
+    void setHolderValue(Holder holder, T value);
 
     @Override
     default void onConfigurationChanged(TrainProperties properties) {
@@ -62,7 +69,7 @@ public interface FieldBackedStandardTrainProperty<T> extends ITrainProperty<T> {
          * @param holder StandardTrainPropertiesHolder
          * @return current property value
          */
-        double getHolderDoubleValue(FieldBackedStandardTrainPropertiesHolder holder);
+        double getHolderDoubleValue(Holder holder);
 
         /**
          * Updates a double property of {@link FieldBackedStandardTrainPropertiesHolder}
@@ -70,7 +77,7 @@ public interface FieldBackedStandardTrainProperty<T> extends ITrainProperty<T> {
          * @param holder StandardTrainPropertiesHolder
          * @param value The new value
          */
-        void setHolderDoubleValue(FieldBackedStandardTrainPropertiesHolder holder, double value);
+        void setHolderDoubleValue(Holder holder, double value);
 
         @Override
         default java.lang.Double getDefault() {
@@ -78,13 +85,32 @@ public interface FieldBackedStandardTrainProperty<T> extends ITrainProperty<T> {
         }
 
         @Override
-        default java.lang.Double getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
+        default java.lang.Double getHolderValue(Holder holder) {
             return java.lang.Double.valueOf(getHolderDoubleValue(holder));
         }
 
         @Override
-        default void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, java.lang.Double value) {
+        default void setHolderValue(Holder holder, java.lang.Double value) {
             setHolderDoubleValue(holder, value.doubleValue());
         }
+    }
+
+    /**
+     * Holds a <b>copy</b> of the train properties stored in YAML configuration
+     * for faster access at runtime. Properties that aren't accessed
+     * very often aren't stored here.
+     */
+    public static final class Holder {
+        protected double speedLimit;
+        protected double gravity;
+        protected CollisionOptions collision;
+        protected Set<SlowdownMode> slowdown;
+        protected SignSkipOptions signSkipOptionsData;
+        protected WaitOptions waitOptionsData;
+        protected BankingOptions bankingOptionsData;
+        protected boolean soundEnabled;
+        protected boolean keepChunksLoaded;
+        protected boolean allowPlayerManualMovement;
+        protected boolean allowMobManualMovement;
     }
 }

@@ -55,7 +55,7 @@ public class StandardProperties {
      * The full attachment tree that a single cart of a train uses to display itself
      * to players. Is lazily initialized the first time this property is read.
      */
-    public static final ICartProperty<AttachmentModel> MODEL = new ICartProperty<AttachmentModel>() {
+    public static final ICartProperty<AttachmentModel> MODEL = new FieldBackedStandardCartProperty<AttachmentModel>() {
         @Override
         public AttachmentModel getDefault() {
             return null;
@@ -63,7 +63,7 @@ public class StandardProperties {
 
         @Override
         public void onConfigurationChanged(CartProperties properties) {
-            FieldBackedStandardCartPropertiesHolder holder = properties.getStandardPropertiesHolder();
+            Holder holder = properties.getStandardPropertiesHolder();
             if (holder.model != null) {
                 if (properties.getConfig().isNode("model")) {
                     ConfigurationNode modelConfig = properties.getConfig().getNode("model");
@@ -83,8 +83,18 @@ public class StandardProperties {
         }
 
         @Override
+        public AttachmentModel getHolderValue(Holder holder) {
+            throw new UnsupportedOperationException("Not supported, must have configuration");
+        }
+
+        @Override
+        public void setHolderValue(Holder holder, AttachmentModel value) {
+            throw new UnsupportedOperationException("Not supported, must synchronize configuration");
+        }
+
+        @Override
         public AttachmentModel get(CartProperties properties) {
-            FieldBackedStandardCartPropertiesHolder holder = properties.getStandardPropertiesHolder();
+            Holder holder = properties.getStandardPropertiesHolder();
             if (holder.model == null) {
                 if (properties.getConfig().isNode("model")) {
                     // Decode model and initialize
@@ -101,7 +111,7 @@ public class StandardProperties {
 
         @Override
         public void set(CartProperties properties, AttachmentModel value) {
-            FieldBackedStandardCartPropertiesHolder holder = properties.getStandardPropertiesHolder();
+            Holder holder = properties.getStandardPropertiesHolder();
             if (value == null || value.isDefault()) {
                 // Reset model to vanilla defaults and wipe configuration
                 properties.getConfig().remove("model");
@@ -160,12 +170,12 @@ public class StandardProperties {
         }
 
         @Override
-        public Boolean getHolderValue(FieldBackedStandardCartPropertiesHolder holder) {
+        public Boolean getHolderValue(Holder holder) {
             return holder.canOnlyOwnersEnter;
         }
 
         @Override
-        public void setHolderValue(FieldBackedStandardCartPropertiesHolder holder, Boolean value) {
+        public void setHolderValue(Holder holder, Boolean value) {
             holder.canOnlyOwnersEnter = value.booleanValue();
         }
 
@@ -209,12 +219,12 @@ public class StandardProperties {
         }
 
         @Override
-        public Boolean getHolderValue(FieldBackedStandardCartPropertiesHolder holder) {
+        public Boolean getHolderValue(Holder holder) {
             return holder.pickUpItems;
         }
 
         @Override
-        public void setHolderValue(FieldBackedStandardCartPropertiesHolder holder, Boolean value) {
+        public void setHolderValue(Holder holder, Boolean value) {
             holder.pickUpItems = value.booleanValue();
         }
 
@@ -277,7 +287,7 @@ public class StandardProperties {
 
     public static final ICartProperty<Boolean> ALLOW_PLAYER_ENTER = new ICartProperty<Boolean>() {
 
-        @PropertyParser("playerenter")
+        @PropertyParser("allowplayerenter|playerenter")
         public boolean parsePlayerEnter(PropertyParseContext<Boolean> context) {
             return context.inputBoolean();
         }
@@ -300,7 +310,7 @@ public class StandardProperties {
 
     public static final ICartProperty<Boolean> ALLOW_PLAYER_EXIT = new ICartProperty<Boolean>() {
 
-        @PropertyParser("playerexit")
+        @PropertyParser("allowplayerexit|playerexit")
         public boolean parsePlayerExit(PropertyParseContext<Boolean> context) {
             return context.inputBoolean();
         }
@@ -374,12 +384,12 @@ public class StandardProperties {
         }
 
         @Override
-        public Set<Material> getHolderValue(FieldBackedStandardCartPropertiesHolder holder) {
+        public Set<Material> getHolderValue(Holder holder) {
             return holder.blockBreakTypes;
         }
 
         @Override
-        public void setHolderValue(FieldBackedStandardCartPropertiesHolder holder, Set<Material> value) {
+        public void setHolderValue(Holder holder, Set<Material> value) {
             holder.blockBreakTypes = value;
         }
 
@@ -631,12 +641,12 @@ public class StandardProperties {
         }
 
         @Override
-        public Set<String> getHolderValue(FieldBackedStandardCartPropertiesHolder holder) {
+        public Set<String> getHolderValue(Holder holder) {
             return holder.ownerPermissions;
         }
 
         @Override
-        public void setHolderValue(FieldBackedStandardCartPropertiesHolder holder, Set<String> value) {
+        public void setHolderValue(Holder holder, Set<String> value) {
             holder.ownerPermissions = value;
         }
 
@@ -697,12 +707,12 @@ public class StandardProperties {
         }
 
         @Override
-        public Set<String> getHolderValue(FieldBackedStandardCartPropertiesHolder holder) {
+        public Set<String> getHolderValue(Holder holder) {
             return holder.owners;
         }
 
         @Override
-        public void setHolderValue(FieldBackedStandardCartPropertiesHolder holder, Set<String> value) {
+        public void setHolderValue(Holder holder, Set<String> value) {
             holder.owners = value;
         }
 
@@ -775,12 +785,12 @@ public class StandardProperties {
         }
 
         @Override
-        public Set<String> getHolderValue(FieldBackedStandardCartPropertiesHolder holder) {
+        public Set<String> getHolderValue(Holder holder) {
             return holder.tags;
         }
 
         @Override
-        public void setHolderValue(FieldBackedStandardCartPropertiesHolder holder, Set<String> value) {
+        public void setHolderValue(Holder holder, Set<String> value) {
             holder.tags = value;
         }
 
@@ -1013,12 +1023,12 @@ public class StandardProperties {
         }
 
         @Override
-        public Boolean getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
+        public Boolean getHolderValue(Holder holder) {
             return holder.allowMobManualMovement;
         }
 
         @Override
-        public void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, Boolean value) {
+        public void setHolderValue(Holder holder, Boolean value) {
             holder.allowMobManualMovement = value.booleanValue();
         }
 
@@ -1046,12 +1056,12 @@ public class StandardProperties {
         }
 
         @Override
-        public Boolean getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
+        public Boolean getHolderValue(Holder holder) {
             return holder.allowPlayerManualMovement;
         }
 
         @Override
-        public void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, Boolean value) {
+        public void setHolderValue(Holder holder, Boolean value) {
             holder.allowPlayerManualMovement = value.booleanValue();
         }
 
@@ -1079,12 +1089,12 @@ public class StandardProperties {
         }
 
         @Override
-        public Boolean getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
+        public Boolean getHolderValue(Holder holder) {
             return holder.keepChunksLoaded;
         }
 
         @Override
-        public void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, Boolean value) {
+        public void setHolderValue(Holder holder, Boolean value) {
             holder.keepChunksLoaded = value.booleanValue();
         }
 
@@ -1177,12 +1187,12 @@ public class StandardProperties {
         }
 
         @Override
-        public Boolean getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
+        public Boolean getHolderValue(Holder holder) {
             return holder.soundEnabled;
         }
 
         @Override
-        public void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, Boolean value) {
+        public void setHolderValue(Holder holder, Boolean value) {
             holder.soundEnabled = value.booleanValue();
         }
 
@@ -1228,12 +1238,12 @@ public class StandardProperties {
         }
 
         @Override
-        public BankingOptions getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
+        public BankingOptions getHolderValue(Holder holder) {
             return holder.bankingOptionsData;
         }
 
         @Override
-        public void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, BankingOptions value) {
+        public void setHolderValue(Holder holder, BankingOptions value) {
             holder.bankingOptionsData = value;
         }
 
@@ -1313,12 +1323,12 @@ public class StandardProperties {
         }
 
         @Override
-        public WaitOptions getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
+        public WaitOptions getHolderValue(Holder holder) {
             return holder.waitOptionsData;
         }
 
         @Override
-        public void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, WaitOptions value) {
+        public void setHolderValue(Holder holder, WaitOptions value) {
             holder.waitOptionsData = value;
         }
 
@@ -1515,12 +1525,12 @@ public class StandardProperties {
         }
 
         @Override
-        public Set<SlowdownMode> getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
+        public Set<SlowdownMode> getHolderValue(Holder holder) {
             return holder.slowdown;
         }
 
         @Override
-        public void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, Set<SlowdownMode> value) {
+        public void setHolderValue(Holder holder, Set<SlowdownMode> value) {
             holder.slowdown = value;
         }
 
@@ -1767,12 +1777,12 @@ public class StandardProperties {
         }
 
         @Override
-        public CollisionOptions getHolderValue(FieldBackedStandardTrainPropertiesHolder holder) {
+        public CollisionOptions getHolderValue(Holder holder) {
             return holder.collision;
         }
 
         @Override
-        public void setHolderValue(FieldBackedStandardTrainPropertiesHolder holder, CollisionOptions value) {
+        public void setHolderValue(Holder holder, CollisionOptions value) {
             holder.collision = value;
         }
 
@@ -1896,12 +1906,12 @@ public class StandardProperties {
         }
 
         @Override
-        public double getHolderDoubleValue(FieldBackedStandardTrainPropertiesHolder holder) {
+        public double getHolderDoubleValue(Holder holder) {
             return holder.gravity;
         }
 
         @Override
-        public void setHolderDoubleValue(FieldBackedStandardTrainPropertiesHolder holder, double value) {
+        public void setHolderDoubleValue(Holder holder, double value) {
             holder.gravity = value;
         }
 
@@ -1916,55 +1926,5 @@ public class StandardProperties {
         }
     };
 
-    public static final FieldBackedStandardTrainProperty.StandardDouble SPEEDLIMIT = new FieldBackedStandardTrainProperty.StandardDouble() {
-
-        @Override
-        public double getDoubleDefault() {
-            return 0.4;
-        }
-
-        @PropertyParser("maxspeed|speedlimit")
-        public double parse(String input) {
-            double result = Util.parseVelocity(input, Double.NaN);
-            if (Double.isNaN(result)) {
-                throw new PropertyInvalidInputException("Not a valid number or speed expression");
-            }
-
-            return result;
-        }
-
-        @Override
-        public double getHolderDoubleValue(FieldBackedStandardTrainPropertiesHolder holder) {
-            return holder.speedLimit;
-        }
-
-        @Override
-        public void setHolderDoubleValue(FieldBackedStandardTrainPropertiesHolder holder, double value) {
-            holder.speedLimit = value;
-        }
-
-        @Override
-        public Optional<Double> readFromConfig(ConfigurationNode config) {
-            return Util.getConfigOptional(config, "speedLimit", double.class);
-        }
-
-        @Override
-        public void writeToConfig(ConfigurationNode config, Optional<Double> value) {
-            Util.setConfigOptional(config, "speedLimit", value);
-        }
-
-        @Override
-        public void set(TrainProperties properties, Double value) {
-            // Limit the value between 0.0 and the maximum allowed speed
-            double valuePrim = value.doubleValue();
-            if (valuePrim < 0.0) {
-                value = Double.valueOf(0.0);
-            } else if (valuePrim > TCConfig.maxVelocity) {
-                value = Double.valueOf(TCConfig.maxVelocity);
-            }
-
-            // Standard set
-            StandardDouble.super.set(properties, value);
-        }
-    };
+    public static final SpeedLimitProperty SPEEDLIMIT = new SpeedLimitProperty();
 }
