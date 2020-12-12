@@ -14,8 +14,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
-import com.bergerkiller.bukkit.tc.properties.standard.FieldBackedStandardCartProperty;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
+import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardCartProperty;
 import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
@@ -33,7 +33,7 @@ import java.util.*;
 public class CartProperties extends CartPropertiesStore implements IProperties {
     private SoftReference<MinecartMember<?>> member = new SoftReference<>();
     protected TrainProperties group = null;
-    private final FieldBackedStandardCartProperty.Holder standardProperties = new FieldBackedStandardCartProperty.Holder();
+    private final FieldBackedStandardCartProperty.CartInternalDataHolder standardProperties = new FieldBackedStandardCartProperty.CartInternalDataHolder();
     private ConfigurationNode config;
     private final UUID uuid;
 
@@ -90,7 +90,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     /**
      * Internal use only
      */
-    public FieldBackedStandardCartProperty.Holder getStandardPropertiesHolder() {
+    public FieldBackedStandardCartProperty.CartInternalDataHolder getStandardPropertiesHolder() {
         return standardProperties;
     }
 

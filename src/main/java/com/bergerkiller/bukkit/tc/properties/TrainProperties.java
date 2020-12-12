@@ -35,8 +35,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
-import com.bergerkiller.bukkit.tc.properties.standard.FieldBackedStandardTrainProperty;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
+import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.BankingOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
@@ -52,7 +52,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private static final long serialVersionUID = 1L;
 
     private final SoftReference<MinecartGroup> group = new SoftReference<>();
-    private final FieldBackedStandardTrainProperty.Holder standardProperties = new FieldBackedStandardTrainProperty.Holder();
+    private final FieldBackedStandardTrainProperty.TrainInternalDataHolder standardProperties = new FieldBackedStandardTrainProperty.TrainInternalDataHolder();
     private final ConfigurationNode config;
     protected String trainname;
 
@@ -112,7 +112,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     /**
      * Internal use only
      */
-    public FieldBackedStandardTrainProperty.Holder getStandardPropertiesHolder() {
+    public FieldBackedStandardTrainProperty.TrainInternalDataHolder getStandardPropertiesHolder() {
         return standardProperties;
     }
 
@@ -261,7 +261,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return max speed in blocks/tick
      */
     public double getSpeedLimit() {
-        return StandardProperties.SPEEDLIMIT.getHolderDoubleValue(this.standardProperties);
+        return StandardProperties.SPEEDLIMIT.getDouble(this);
     }
 
     /**
@@ -280,7 +280,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @return gravity factor
      */
     public double getGravity() {
-        return StandardProperties.GRAVITY.getHolderDoubleValue(this.standardProperties);
+        return StandardProperties.GRAVITY.getDouble(this);
     }
 
     /**

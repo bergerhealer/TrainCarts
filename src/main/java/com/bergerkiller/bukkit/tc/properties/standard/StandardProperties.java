@@ -37,6 +37,10 @@ import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
+import com.bergerkiller.bukkit.tc.properties.standard.category.SpeedLimitProperty;
+import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedProperty;
+import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardCartProperty;
+import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
 import com.bergerkiller.bukkit.tc.properties.standard.type.AttachmentModelBoundToCart;
 import com.bergerkiller.bukkit.tc.properties.standard.type.BankingOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
@@ -63,19 +67,19 @@ public class StandardProperties {
 
         @Override
         public void onConfigurationChanged(CartProperties properties) {
-            Holder holder = properties.getStandardPropertiesHolder();
-            if (holder.model != null) {
+            CartInternalData data = CartInternalData.get(properties);
+            if (data.model != null) {
                 if (properties.getConfig().isNode("model")) {
                     ConfigurationNode modelConfig = properties.getConfig().getNode("model");
-                    if (holder.model.isDefault()) {
+                    if (data.model.isDefault()) {
                         // Model property added, load from new configuration
-                        holder.model.update(modelConfig);
-                    } else if (modelConfig != holder.model.getConfig()) {
+                        data.model.update(modelConfig);
+                    } else if (modelConfig != data.model.getConfig()) {
                         // Node was completely swapped out, reload
                         // Configuration has no equals() check we can use
-                        holder.model.update(modelConfig);
+                        data.model.update(modelConfig);
                     }
-                } else if (!holder.model.isDefault()) {
+                } else if (!data.model.isDefault()) {
                     // Model property removed, reset to vanilla defaults
                     resetToVanillaDefaults(properties);
                 }
@@ -83,49 +87,49 @@ public class StandardProperties {
         }
 
         @Override
-        public AttachmentModel getHolderValue(Holder holder) {
+        public AttachmentModel getData(CartInternalData data) {
             throw new UnsupportedOperationException("Not supported, must have configuration");
         }
 
         @Override
-        public void setHolderValue(Holder holder, AttachmentModel value) {
+        public void setData(CartInternalData data, AttachmentModel value) {
             throw new UnsupportedOperationException("Not supported, must synchronize configuration");
         }
 
         @Override
         public AttachmentModel get(CartProperties properties) {
-            Holder holder = properties.getStandardPropertiesHolder();
-            if (holder.model == null) {
+            CartInternalData data = CartInternalData.get(properties);
+            if (data.model == null) {
                 if (properties.getConfig().isNode("model")) {
                     // Decode model and initialize
-                    holder.model = new AttachmentModelBoundToCart(properties, properties.getConfig().getNode("model"));
+                    data.model = new AttachmentModelBoundToCart(properties, properties.getConfig().getNode("model"));
                 } else {
                     // No model was set. Create a Vanilla model based on the Minecart information
-                    holder.model = new AttachmentModelBoundToCart(properties, new ConfigurationNode());
+                    data.model = new AttachmentModelBoundToCart(properties, new ConfigurationNode());
                     resetToVanillaDefaults(properties);
-                    holder.model.setBoundToOwner(false);
+                    data.model.setBoundToOwner(false);
                 }
             }
-            return holder.model;
+            return data.model;
         }
 
         @Override
         public void set(CartProperties properties, AttachmentModel value) {
-            Holder holder = properties.getStandardPropertiesHolder();
+            CartInternalData data = CartInternalData.get(properties);
             if (value == null || value.isDefault()) {
                 // Reset model to vanilla defaults and wipe configuration
                 properties.getConfig().remove("model");
-                if (holder.model != null) {
-                    holder.model.setBoundToOwner(false);
+                if (data.model != null) {
+                    data.model.setBoundToOwner(false);
                 }
-                if (holder.model != null && !holder.model.isDefault()) {
+                if (data.model != null && !data.model.isDefault()) {
                     resetToVanillaDefaults(properties);
                 }
             } else {
                 // Clone configuration and update/assign model if one was initialized
                 // If the model was vanilla defaults, it will set the model during update()
-                if (holder.model != null) {
-                    holder.model.update(properties.getConfig().getNode("model"));
+                if (data.model != null) {
+                    data.model.update(properties.getConfig().getNode("model"));
                 } else {
                     properties.getConfig().set("model", value.getConfig().clone());
                 }
@@ -153,7 +157,7 @@ public class StandardProperties {
         private void resetToVanillaDefaults(CartProperties properties) {
             MinecartMember<?> member = properties.getHolder();
             EntityType entityType = (member == null) ? EntityType.MINECART : member.getEntity().getType();
-            properties.getStandardPropertiesHolder().model.resetToDefaults(entityType);
+            CartInternalData.get(properties).model.resetToDefaults(entityType);
         }
     };
 
@@ -170,13 +174,13 @@ public class StandardProperties {
         }
 
         @Override
-        public Boolean getHolderValue(Holder holder) {
-            return holder.canOnlyOwnersEnter;
+        public Boolean getData(CartInternalData data) {
+            return data.canOnlyOwnersEnter;
         }
 
         @Override
-        public void setHolderValue(Holder holder, Boolean value) {
-            holder.canOnlyOwnersEnter = value.booleanValue();
+        public void setData(CartInternalData data, Boolean value) {
+            data.canOnlyOwnersEnter = value.booleanValue();
         }
 
         @Override
@@ -219,13 +223,13 @@ public class StandardProperties {
         }
 
         @Override
-        public Boolean getHolderValue(Holder holder) {
-            return holder.pickUpItems;
+        public Boolean getData(CartInternalData data) {
+            return data.pickUpItems;
         }
 
         @Override
-        public void setHolderValue(Holder holder, Boolean value) {
-            holder.pickUpItems = value.booleanValue();
+        public void setData(CartInternalData data, Boolean value) {
+            data.pickUpItems = value.booleanValue();
         }
 
         @Override
@@ -384,13 +388,13 @@ public class StandardProperties {
         }
 
         @Override
-        public Set<Material> getHolderValue(Holder holder) {
-            return holder.blockBreakTypes;
+        public Set<Material> getData(CartInternalData data) {
+            return data.blockBreakTypes;
         }
 
         @Override
-        public void setHolderValue(Holder holder, Set<Material> value) {
-            holder.blockBreakTypes = value;
+        public void setData(CartInternalData data, Set<Material> value) {
+            data.blockBreakTypes = value;
         }
 
         @Override
@@ -641,13 +645,13 @@ public class StandardProperties {
         }
 
         @Override
-        public Set<String> getHolderValue(Holder holder) {
-            return holder.ownerPermissions;
+        public Set<String> getData(CartInternalData data) {
+            return data.ownerPermissions;
         }
 
         @Override
-        public void setHolderValue(Holder holder, Set<String> value) {
-            holder.ownerPermissions = value;
+        public void setData(CartInternalData data, Set<String> value) {
+            data.ownerPermissions = value;
         }
 
         @Override
@@ -707,13 +711,13 @@ public class StandardProperties {
         }
 
         @Override
-        public Set<String> getHolderValue(Holder holder) {
-            return holder.owners;
+        public Set<String> getData(CartInternalData data) {
+            return data.owners;
         }
 
         @Override
-        public void setHolderValue(Holder holder, Set<String> value) {
-            holder.owners = value;
+        public void setData(CartInternalData data, Set<String> value) {
+            data.owners = value;
         }
 
         @Override
@@ -785,13 +789,13 @@ public class StandardProperties {
         }
 
         @Override
-        public Set<String> getHolderValue(Holder holder) {
-            return holder.tags;
+        public Set<String> getData(CartInternalData data) {
+            return data.tags;
         }
 
         @Override
-        public void setHolderValue(Holder holder, Set<String> value) {
-            holder.tags = value;
+        public void setData(CartInternalData data, Set<String> value) {
+            data.tags = value;
         }
 
         @Override
@@ -1023,13 +1027,13 @@ public class StandardProperties {
         }
 
         @Override
-        public Boolean getHolderValue(Holder holder) {
-            return holder.allowMobManualMovement;
+        public Boolean getData(TrainInternalData data) {
+            return data.allowMobManualMovement;
         }
 
         @Override
-        public void setHolderValue(Holder holder, Boolean value) {
-            holder.allowMobManualMovement = value.booleanValue();
+        public void setData(TrainInternalData data, Boolean value) {
+            data.allowMobManualMovement = value.booleanValue();
         }
 
         @Override
@@ -1056,13 +1060,13 @@ public class StandardProperties {
         }
 
         @Override
-        public Boolean getHolderValue(Holder holder) {
-            return holder.allowPlayerManualMovement;
+        public Boolean getData(TrainInternalData data) {
+            return data.allowPlayerManualMovement;
         }
 
         @Override
-        public void setHolderValue(Holder holder, Boolean value) {
-            holder.allowPlayerManualMovement = value.booleanValue();
+        public void setData(TrainInternalData data, Boolean value) {
+            data.allowPlayerManualMovement = value.booleanValue();
         }
 
         @Override
@@ -1089,13 +1093,13 @@ public class StandardProperties {
         }
 
         @Override
-        public Boolean getHolderValue(Holder holder) {
-            return holder.keepChunksLoaded;
+        public Boolean getData(TrainInternalData data) {
+            return data.keepChunksLoaded;
         }
 
         @Override
-        public void setHolderValue(Holder holder, Boolean value) {
-            holder.keepChunksLoaded = value.booleanValue();
+        public void setData(TrainInternalData data, Boolean value) {
+            data.keepChunksLoaded = value.booleanValue();
         }
 
         @Override
@@ -1110,13 +1114,13 @@ public class StandardProperties {
 
         @Override
         public void onConfigurationChanged(TrainProperties properties) {
-            FieldBackedStandardTrainProperty.super.onConfigurationChanged(properties);
-            updateState(properties, properties.getStandardPropertiesHolder().keepChunksLoaded);
+            super.onConfigurationChanged(properties);
+            updateState(properties, this.get(properties));
         }
 
         @Override
         public void set(TrainProperties properties, Boolean value) {
-            FieldBackedStandardTrainProperty.super.set(properties, value);
+            super.set(properties, value);
             updateState(properties, value.booleanValue());
         }
 
@@ -1187,13 +1191,13 @@ public class StandardProperties {
         }
 
         @Override
-        public Boolean getHolderValue(Holder holder) {
-            return holder.soundEnabled;
+        public Boolean getData(TrainInternalData data) {
+            return data.soundEnabled;
         }
 
         @Override
-        public void setHolderValue(Holder holder, Boolean value) {
-            holder.soundEnabled = value.booleanValue();
+        public void setData(TrainInternalData data, Boolean value) {
+            data.soundEnabled = value.booleanValue();
         }
 
         @Override
@@ -1238,13 +1242,13 @@ public class StandardProperties {
         }
 
         @Override
-        public BankingOptions getHolderValue(Holder holder) {
-            return holder.bankingOptionsData;
+        public BankingOptions getData(TrainInternalData data) {
+            return data.bankingOptionsData;
         }
 
         @Override
-        public void setHolderValue(Holder holder, BankingOptions value) {
-            holder.bankingOptionsData = value;
+        public void setData(TrainInternalData data, BankingOptions value) {
+            data.bankingOptionsData = value;
         }
 
         @Override
@@ -1323,13 +1327,13 @@ public class StandardProperties {
         }
 
         @Override
-        public WaitOptions getHolderValue(Holder holder) {
-            return holder.waitOptionsData;
+        public WaitOptions getData(TrainInternalData data) {
+            return data.waitOptionsData;
         }
 
         @Override
-        public void setHolderValue(Holder holder, WaitOptions value) {
-            holder.waitOptionsData = value;
+        public void setData(TrainInternalData data, WaitOptions value) {
+            data.waitOptionsData = value;
         }
 
         @Override
@@ -1370,7 +1374,7 @@ public class StandardProperties {
      * The persistent data stored for the sign skip feature of carts and trains.
      * This property is used internally by the SignSkipOptions class.
      */
-    public static final IProperty<SignSkipOptions> SIGN_SKIP = new IProperty<SignSkipOptions>() {
+    public static final IProperty<SignSkipOptions> SIGN_SKIP = new FieldBackedProperty<SignSkipOptions>() {
         @Override
         public SignSkipOptions getDefault() {
             return SignSkipOptions.NONE;
@@ -1440,32 +1444,32 @@ public class StandardProperties {
 
         @Override
         public SignSkipOptions get(CartProperties properties) {
-            return properties.getStandardPropertiesHolder().signSkipOptionsData;
+            return CartInternalData.get(properties).signSkipOptionsData;
         }
 
         @Override
         public void set(CartProperties properties, SignSkipOptions value) {
             if (value.equals(SignSkipOptions.NONE)) {
-                properties.getStandardPropertiesHolder().signSkipOptionsData = SignSkipOptions.NONE;
+                CartInternalData.get(properties).signSkipOptionsData = SignSkipOptions.NONE;
                 this.writeToConfig(properties.getConfig(), Optional.empty());
             } else {
-                properties.getStandardPropertiesHolder().signSkipOptionsData = value;
+                CartInternalData.get(properties).signSkipOptionsData = value;
                 this.writeToConfig(properties.getConfig(), Optional.of(value));
             }
         }
 
         @Override
         public SignSkipOptions get(TrainProperties properties) {
-            return properties.getStandardPropertiesHolder().signSkipOptionsData;
+            return TrainInternalData.get(properties).signSkipOptionsData;
         }
 
         @Override
         public void set(TrainProperties properties, SignSkipOptions value) {
             if (value.equals(SignSkipOptions.NONE)) {
-                properties.getStandardPropertiesHolder().signSkipOptionsData = SignSkipOptions.NONE;
+                TrainInternalData.get(properties).signSkipOptionsData = SignSkipOptions.NONE;
                 this.writeToConfig(properties.getConfig(), Optional.empty());
             } else {
-                properties.getStandardPropertiesHolder().signSkipOptionsData = value;
+                TrainInternalData.get(properties).signSkipOptionsData = value;
                 this.writeToConfig(properties.getConfig(), Optional.of(value));
             }
         }
@@ -1473,13 +1477,13 @@ public class StandardProperties {
         @Override
         public void onConfigurationChanged(CartProperties properties) {
             Optional<SignSkipOptions> opt = this.readFromConfig(properties.getConfig());
-            properties.getStandardPropertiesHolder().signSkipOptionsData = opt.isPresent() ? opt.get() : SignSkipOptions.NONE;
+            CartInternalData.get(properties).signSkipOptionsData = opt.isPresent() ? opt.get() : SignSkipOptions.NONE;
         }
 
         @Override
         public void onConfigurationChanged(TrainProperties properties) {
             Optional<SignSkipOptions> opt = this.readFromConfig(properties.getConfig());
-            properties.getStandardPropertiesHolder().signSkipOptionsData = opt.isPresent() ? opt.get() : SignSkipOptions.NONE;
+            TrainInternalData.get(properties).signSkipOptionsData = opt.isPresent() ? opt.get() : SignSkipOptions.NONE;
         }
     };
 
@@ -1525,13 +1529,13 @@ public class StandardProperties {
         }
 
         @Override
-        public Set<SlowdownMode> getHolderValue(Holder holder) {
-            return holder.slowdown;
+        public Set<SlowdownMode> getData(TrainInternalData data) {
+            return data.slowdown;
         }
 
         @Override
-        public void setHolderValue(Holder holder, Set<SlowdownMode> value) {
-            holder.slowdown = value;
+        public void setData(TrainInternalData data, Set<SlowdownMode> value) {
+            data.slowdown = value;
         }
 
         @Override
@@ -1777,13 +1781,13 @@ public class StandardProperties {
         }
 
         @Override
-        public CollisionOptions getHolderValue(Holder holder) {
-            return holder.collision;
+        public CollisionOptions getData(TrainInternalData data) {
+            return data.collision;
         }
 
         @Override
-        public void setHolderValue(Holder holder, CollisionOptions value) {
-            holder.collision = value;
+        public void setData(TrainInternalData data, CollisionOptions value) {
+            data.collision = value;
         }
 
         @Override
@@ -1906,13 +1910,13 @@ public class StandardProperties {
         }
 
         @Override
-        public double getHolderDoubleValue(Holder holder) {
-            return holder.gravity;
+        public double getDoubleData(TrainInternalData data) {
+            return data.gravity;
         }
 
         @Override
-        public void setHolderDoubleValue(Holder holder, double value) {
-            holder.gravity = value;
+        public void setDoubleData(TrainInternalData data, double value) {
+            data.gravity = value;
         }
 
         @Override

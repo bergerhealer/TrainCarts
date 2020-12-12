@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.properties.standard;
+package com.bergerkiller.bukkit.tc.properties.standard.category;
 
 import java.util.Optional;
 
@@ -13,14 +13,16 @@ import com.bergerkiller.bukkit.tc.commands.parsers.SpeedParser;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
-import com.bergerkiller.bukkit.tc.properties.standard.FieldBackedStandardTrainProperty.Holder;
-import com.bergerkiller.bukkit.tc.properties.standard.FieldBackedStandardTrainProperty.StandardDouble;
+import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
 
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
 
-public class SpeedLimitProperty implements FieldBackedStandardTrainProperty.StandardDouble {
+/**
+ * Changes the maximum speed a train can move at
+ */
+public final class SpeedLimitProperty extends FieldBackedStandardTrainProperty.StandardDouble {
 
     @CommandMethod("train maxspeed|speedlimit <speed>")
     @CommandDescription("Sets a new  speed limit for the train")
@@ -60,13 +62,13 @@ public class SpeedLimitProperty implements FieldBackedStandardTrainProperty.Stan
     }
 
     @Override
-    public double getHolderDoubleValue(Holder holder) {
-        return holder.speedLimit;
+    public double getDoubleData(TrainInternalData data) {
+        return data.speedLimit;
     }
 
     @Override
-    public void setHolderDoubleValue(Holder holder, double value) {
-        holder.speedLimit = value;
+    public void setDoubleData(TrainInternalData data, double value) {
+        data.speedLimit = value;
     }
 
     @Override
@@ -90,6 +92,6 @@ public class SpeedLimitProperty implements FieldBackedStandardTrainProperty.Stan
         }
 
         // Standard set
-        StandardDouble.super.set(properties, value);
+        super.set(properties, value);
     }
 }
