@@ -2,7 +2,11 @@ package com.bergerkiller.bukkit.tc.properties.api;
 
 import java.util.Optional;
 
+import org.bukkit.command.CommandSender;
+
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
+import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
@@ -110,4 +114,31 @@ public interface IProperty<T> {
      * @param value
      */
     void set(TrainProperties properties, T value);
+
+    /**
+     * Throws a {@link NoPermissionForPropertyException} when
+     * {@link #hasPermission(CommandSender, String)} returns false
+     * 
+     * @param sender Sender to check permission for
+     * @param name The name of the property the sender tried to modify
+     * @throws NoPermissionForPropertyException
+     */
+    default void handlePermission(CommandSender sender, String name) {
+        if (!hasPermission(sender, name)) {
+            throw new NoPermissionForPropertyException(name);
+        }
+    }
+
+    /**
+     * Gets whether a given CommandSender has permission to modify this property.
+     * This permission is checked when a player performs a command or places down
+     * a property sign that matches a parser of this property.
+     * 
+     * @param sender Sender to check permission for
+     * @param name  The name of the property the sender tried to modify
+     * @return True if the player has permission, False if not
+     */
+    default boolean hasPermission(CommandSender sender, String name) {
+        return true;
+    }
 }

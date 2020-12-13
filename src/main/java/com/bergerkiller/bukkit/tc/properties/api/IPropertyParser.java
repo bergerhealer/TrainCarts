@@ -100,23 +100,26 @@ public interface IPropertyParser<T> {
         // train property value that is now set. This allows properties to do any
         // merging of individual properties in the train properties getter.
         boolean successful = false;
+        String name = input;
         Iterator<CartProperties> cartIter = trainProperties.iterator();
         CartProperties cartProp = cartIter.next();
         PropertyParseResult<T> result = this.parse(cartProp, input);
         if (result.isSuccessful()) {
-            successful = true;
             cartProp.set(this.getProperty(), result.getValue());
+            name = result.getName();
+            successful = true;
         }
         while (cartIter.hasNext()) {
             cartProp = cartIter.next();
             PropertyParseResult<T> cartResult = parse(cartProp, input);
             if (cartResult.isSuccessful()) {
                 cartProp.set(this.getProperty(), cartResult.getValue());
+                name = result.getName();
                 successful = true;
             }
         }
         if (successful) {
-            result = PropertyParseResult.success(this.getProperty(),
+            result = PropertyParseResult.success(this.getProperty(), name,
                     properties.get(this.getProperty()));
         }
         return result;

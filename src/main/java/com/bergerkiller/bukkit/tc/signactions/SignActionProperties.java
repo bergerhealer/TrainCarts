@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.signactions;
 
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -81,6 +82,14 @@ public class SignActionProperties extends SignAction {
                 .setName(event.isCartSign() ? "cart property setter" : "train property setter")
                 .setTraincartsWIKIHelp("TrainCarts/Signs/Property");
 
+        // Validate the property and value on the sign exist/are correct
+        // We do this first so we can figure out the permission that may be required for it
+        PropertyParseResult<Object> result = IPropertyRegistry.instance().parse(null, event.getLine(2), event.getLine(3));
+        if (!result.hasPermission(event.getPlayer())) {
+            Localization.PROPERTY_NOPERM.message(event.getPlayer(), result.getName());
+            return false;
+        }
+
         if (event.isTrainSign()) {
             opt.setDescription("set properties on the train above");
         } else if (event.isCartSign()) {
@@ -92,8 +101,7 @@ public class SignActionProperties extends SignAction {
             return false;
         }
 
-        // Validate the property and value on the sign exist/are correct
-        PropertyParseResult<Object> result = IPropertyRegistry.instance().parse(null, event.getLine(2), event.getLine(3));
+        // Warn about incorrect syntax
         if (!result.isSuccessful()) {
             event.getPlayer().sendMessage(result.getMessage());
         }

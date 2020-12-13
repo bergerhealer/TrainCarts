@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.commands.cloud.CloudHandler;
 import com.bergerkiller.bukkit.tc.commands.parsers.SavedTrainPropertiesParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.SpeedParser;
 import com.bergerkiller.bukkit.tc.exception.command.InvalidClaimPlayerNameException;
+import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainSelectedException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainStorageChestItemException;
 import com.bergerkiller.bukkit.tc.exception.command.SelectedTrainNotOwnedException;
@@ -146,6 +147,9 @@ public class Commands {
         cloud.handleMessage(NoTrainSelectedException.class, Localization.EDIT_NOSELECT.getName());
         cloud.handleMessage(SelectedTrainNotOwnedException.class, Localization.EDIT_NOTOWNED.getName());
         cloud.handleMessage(NoTrainStorageChestItemException.class, Localization.CHEST_NOITEM.getName());
+        cloud.handle(NoPermissionForPropertyException.class, (sender, ex) -> {
+            Localization.PROPERTY_NOPERM.message(sender, ex.getName());
+        });
 
         cloud.handle(InvalidClaimPlayerNameException.class, (sender, exception) -> {
             Localization.COMMAND_SAVEDTRAIN_CLAIM_INVALID.message(sender, exception.getArgument());

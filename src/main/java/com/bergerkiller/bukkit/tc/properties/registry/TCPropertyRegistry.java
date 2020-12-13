@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.commands.cloud.CloudHandler;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
@@ -293,7 +292,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
          * @return true if this parser element matches, false if not
          */
         public boolean match(RegistryPropertyParser<T> parser) {
-            Matcher matcher = this.pattern.matcher(parser.getName());
+            Matcher matcher = this.pattern.matcher(options.preProcess() ? parser.namePreProcessed : parser.name);
             if (matcher.find()) {
                 parser.parser = this;
                 parser.matchResult = matcher;
@@ -393,11 +392,11 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
                     value = this.parser.method.invoke(property, context);
                 }
 
-                return PropertyParseResult.success(property, value);
+                return PropertyParseResult.success(property, name, value);
             }
             catch (PropertyInvalidInputException ex)
             {
-                return PropertyParseResult.failInvalidInput(property,
+                return PropertyParseResult.failInvalidInput(property, name,
                         Localization.PROPERTY_INVALID_INPUT.get(
                                 name, input, ex.getMessage()));
             }
