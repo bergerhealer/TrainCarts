@@ -8,6 +8,7 @@ public class Permission extends PermissionEnum {
     public static final Permission COMMAND_PROPERTIES = new Permission("train.command.properties", PermissionDefault.TRUE, "The player can edit the properties of carts he owns");
 
     // These permissions are active for both property-based commands, and building new property signs
+    public static final Permission PROPERTY_NAME = new Permission("train.property.name", PermissionDefault.TRUE, "The player can change the name of the train");
     public static final Permission PROPERTY_MAXSPEED = new Permission("train.property.maxspeed", PermissionDefault.TRUE, "The player can alter the maximum speed of trains");
     public static final Permission PROPERTY_SLOWDOWN = new Permission("train.property.slowdown", PermissionDefault.TRUE, "The player can change whether trains slow down due to gravity or friction");
     public static final Permission PROPERTY_COLLISION = new Permission("train.property.collision", PermissionDefault.TRUE, "The player can change what happens when trains collide with entities or blocks");
@@ -94,7 +95,6 @@ public class Permission extends PermissionEnum {
     public static final Permission TICKET_MANAGE = new Permission("train.ticket.manage", PermissionDefault.OP, "The player can edit the details of existing tickets or create new tickets");
 
     // These will all be deleted soon
-    public static final Permission COMMAND_RENAME = new Permission("train.command.rename", PermissionDefault.TRUE, "The player can rename his owned trains");
     public static final Permission COMMAND_DISPLAYNAME = new Permission("train.command.displayname", PermissionDefault.TRUE, "The player can change the display name of his owned trains");
     public static final Permission COMMAND_MANUALMOVE = new Permission("train.command.manualmove", PermissionDefault.TRUE, "Whether the player can change if trains can be moved by damaging them");
     public static final Permission COMMAND_PLAYERTAKE = new Permission("train.command.playertake", PermissionDefault.OP, "Whether the player can change if players take Minecarts with them when they leave");

@@ -46,6 +46,7 @@ public class StandardProperties {
     public static final PlayerExitProperty ALLOW_PLAYER_EXIT = new PlayerExitProperty();
     public static final GravityProperty GRAVITY = new GravityProperty();
     public static final SpeedLimitProperty SPEEDLIMIT = new SpeedLimitProperty();
+    public static final TrainNameProperty TRAIN_NAME = new TrainNameProperty();
 
     public static final FieldBackedStandardCartProperty<Boolean> ONLY_OWNERS_CAN_ENTER = new FieldBackedStandardCartProperty<Boolean>() {
 
@@ -667,43 +668,6 @@ public class StandardProperties {
         @Override
         public void set(TrainProperties properties, ConfigurationNode config) {
             properties.apply(config);
-        }
-    };
-
-    /**
-     * Accesses {@link TrainProperties#setTrainName(String)} as if it were a property.
-     * Adds a parser which allows the train name to be changed using property signs.
-     */
-    public static final ISyntheticProperty<String> TRAIN_NAME = new ISyntheticProperty<String>() {
-
-        @PropertyParser("name|rename|setname|settrainname")
-        public String parseRename(String nameFormat) {
-            return TrainPropertiesStore.generateTrainName(nameFormat);
-        }
-
-        @Override
-        public String getDefault() {
-            return "train";
-        }
-
-        @Override
-        public String get(CartProperties properties) {
-            return get(properties.getTrainProperties());
-        }
-
-        @Override
-        public void set(CartProperties properties, String value) {
-            set(properties.getTrainProperties(), value);
-        }
-
-        @Override
-        public String get(TrainProperties properties) {
-            return properties.getTrainName();
-        }
-
-        @Override
-        public void set(TrainProperties properties, String value) {
-            properties.setTrainName(value);
         }
     };
 

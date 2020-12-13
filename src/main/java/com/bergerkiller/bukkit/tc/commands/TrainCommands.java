@@ -460,19 +460,6 @@ public class TrainCommands {
                 prop.setPoweredMinecartRequired(ParseUtil.parseBool(args[0]));
             }
             p.sendMessage(ChatColor.YELLOW + "Requires powered minecart to stay alive: " + ChatColor.WHITE + prop.isPoweredMinecartRequired());
-        } else if (LogicUtil.containsIgnoreCase(cmd, "rename", "setname", "name")) {
-            Permission.COMMAND_RENAME.handle(p);
-            if (args.length == 0) {
-                p.sendMessage(ChatColor.RED + "You forgot to pass a name along!");
-            } else {
-                String newname = StringUtil.join(" ", args);
-                if (TrainProperties.exists(newname)) {
-                    p.sendMessage(ChatColor.RED + "This name is already taken!");
-                } else {
-                    prop.setTrainName(newname);
-                    p.sendMessage(ChatColor.YELLOW + "This train is now called " + ChatColor.WHITE + newname + ChatColor.YELLOW + "!");
-                }
-            }
         } else if (LogicUtil.containsIgnoreCase(cmd, "displayname", "display", "dname", "setdname", "setdisplayname")) {
             Permission.COMMAND_DISPLAYNAME.handle(p);
             if (args.length == 0) {
