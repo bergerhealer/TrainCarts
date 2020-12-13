@@ -5,20 +5,115 @@ import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Set;
 
+import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
+
+import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
+import cloud.commandframework.annotations.Argument;
+import cloud.commandframework.annotations.CommandDescription;
+import cloud.commandframework.annotations.CommandMethod;
+
 /**
- * Controls whether a train slows (or speeds up) down over time
+ * Controls whether a train slows down (or speeds up) over time
  * due to various factors.
  */
 public final class SlowdownProperty extends FieldBackedStandardTrainProperty<Set<SlowdownMode>> {
     private final Set<SlowdownMode> ALL = Collections.unmodifiableSet(EnumSet.allOf(SlowdownMode.class));
     private final Set<SlowdownMode> NONE = Collections.unmodifiableSet(EnumSet.noneOf(SlowdownMode.class));
+
+    public void appendSlowdownInfo(MessageBuilder message, TrainProperties properties) {
+        message.yellow("Slow down over time: ");
+        if (properties.isSlowingDownAll()) {
+            message.green("Yes (All)");
+        } else if (properties.isSlowingDownNone()) {
+            message.red("No (None)");
+        } else {
+            message.setSeparator(", ");
+            for (SlowdownMode mode : SlowdownMode.values()) {
+                if (properties.isSlowingDown(mode)) {
+                    message.green(mode.getKey() + "[Yes]");
+                } else {
+                    message.red(mode.getKey() + "[No]");
+                }
+            }
+            message.clearSeparator();
+        }
+    }
+
+    @CommandMethod("train slowdown <mode> <enabled>")
+    @CommandDescription("Sets whether trains slow down and speed up due to a particular type of slow-down mode")
+    private void trainSetSlowdownMode(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("mode") SlowdownMode mode,
+            final @Argument("enabled") boolean enabled
+    ) {
+        handlePermission(sender, "slowdown");
+
+        properties.setSlowingDown(mode, enabled);
+        trainGetSlowdownMode(sender, properties, mode);
+    }
+
+    @CommandMethod("train slowdown <mode>")
+    @CommandDescription("Gets whether trains slow down and speed up for a particular slow-down mode")
+    private void trainGetSlowdownMode(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("mode") SlowdownMode mode
+    ) {
+        sender.sendMessage(ChatColor.YELLOW + "Train slows down over time due to " + ChatColor.BLUE +
+                mode.getKey() + ChatColor.YELLOW + ": " +
+                (properties.isSlowingDown(mode) ? (ChatColor.GREEN + "Yes") : (ChatColor.RED + "No")));
+    }
+
+    @CommandMethod("train slowdown all|true|enable|enabled")
+    @CommandDescription("Enables all default modes of slowing down")
+    private void trainSetSlowdownAll(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        handlePermission(sender, "slowdown");
+
+        properties.setSlowingDown(true);
+        trainGetSlowdownModes(sender, properties);
+    }
+
+    @CommandMethod("train slowdown none|false|disable|disabled")
+    @CommandDescription("Disables all default modes of slowing down")
+    private void trainSetSlowdownNone(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        handlePermission(sender, "slowdown");
+
+        properties.setSlowingDown(false);
+        trainGetSlowdownModes(sender, properties);
+    }
+
+    @CommandMethod("train slowdown")
+    @CommandDescription("Gets what types of slow-down are enabled for a train")
+    private void trainGetSlowdownModes(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        MessageBuilder message = new MessageBuilder();
+        appendSlowdownInfo(message, properties);
+        message.send(sender);
+    }
+
+    @Override
+    public boolean hasPermission(CommandSender sender, String name) {
+        return Permission.PROPERTY_SLOWDOWN.has(sender);
+    }
 
     // Uses constants if possible, and otherwise makes the set unmodifiable
     private Set<SlowdownMode> wrapAndOptimize(Set<SlowdownMode> result) {
@@ -33,7 +128,13 @@ public final class SlowdownProperty extends FieldBackedStandardTrainProperty<Set
 
     @PropertyParser("slowdown")
     public Set<SlowdownMode> parseSlowdownAll(PropertyParseContext<Set<SlowdownMode>> context) {
-        return context.inputBoolean() ? ALL : NONE;
+        if (context.input().equalsIgnoreCase("all")) {
+            return ALL;
+        } else if (context.input().equalsIgnoreCase("none")) {
+            return NONE;
+        } else {
+            return context.inputBoolean() ? ALL : NONE;
+        }
     }
 
     @PropertyParser("slowfriction")

@@ -23,12 +23,11 @@ import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
-import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
+import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
-import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
@@ -63,29 +62,8 @@ public class TrainCommands {
         message.newLine().yellow("Train name: ").white(properties.getTrainName());
         message.newLine().yellow("Keep nearby chunks loaded: ").white(properties.isKeepingChunksLoaded());
 
-        infoSlowDown(message.newLine(), properties);
-
-        // Collision states
-        message.newLine().yellow("When colliding this train ");
-        if (properties.getCollision().equals(CollisionOptions.CANCEL)) {
-            message.red("ignores ").yellow("all entities").red(" and ").yellow("blocks");
-        } else if (!properties.getCollision().collidesWithEntities()) {
-            message.red("ignores ").yellow("all entities").red(" and ");
-            message.red(properties.getCollision().blockMode().getOperationName());
-            message.yellow(" blocks");
-        } else {
-            CollisionOptions collisions = properties.getCollision();
-            for (CollisionMobCategory collisionConfigObject : CollisionMobCategory.values()) {
-                if (collisions.mobMode(collisionConfigObject) != null) {
-                    message.red(collisions.mobMode(collisionConfigObject).getOperationName()).yellow(" " +
-                            collisionConfigObject.getFriendlyMobName() + ", ");
-                }
-            }
-            message.red(collisions.blockMode().getOperationName()).yellow(" blocks, ");
-            message.red(collisions.playerMode().getOperationName()).yellow(" players, ");
-            message.red(collisions.miscMode().getOperationName()).yellow(" misc entities and ");
-            message.red(collisions.trainMode().getOperationName()).yellow(" other trains");
-        }
+        StandardProperties.SLOWDOWN.appendSlowdownInfo(message.newLine(), properties);
+        StandardProperties.COLLISION.appendCollisionInfo(message.newLine(), properties);
 
         if (properties.getHolder() != null) {
             message.newLine().yellow("Current speed: ");
@@ -536,85 +514,6 @@ public class TrainCommands {
                 msg += result.getFriendlyMobName() + ": " + ChatColor.WHITE + " " + (newState == CollisionMode.PUSH);
             }
             p.sendMessage(msg);
-        } else if (LogicUtil.containsIgnoreCase(cmd, "slowdown", "slow", "setslow", "setslowdown")) {
-            Permission.COMMAND_SLOWDOWN.handle(p);
-
-            // Get the mode queried, optionally set it if a boolean parameter is specified
-            // Legacy true/false/enable/disable still works, too
-            SlowdownMode mode = null;
-            if (args.length >= 1) {
-                if (ParseUtil.isBool(args[0])) {
-                    prop.setSlowingDown(ParseUtil.parseBool(args[0]));
-                } else {
-                    // Parse the mode
-                    mode = ParseUtil.parseEnum(SlowdownMode.class, args[0], null);
-                    if (mode == null) {
-                        p.sendMessage(ChatColor.RED + "Unknown slowdown mode: " + args[0]);
-                        return;
-                    }
-
-                    // If specified, set it
-                    if (args.length >= 2) {
-                        prop.setSlowingDown(mode, ParseUtil.parseBool(args[1]));
-                    }
-                }
-            }
-
-            // Display result that was set
-            MessageBuilder message = new MessageBuilder();
-            infoSlowDown(message, prop);
-            message.send(p);
-        } else if (LogicUtil.containsIgnoreCase(cmd, "setcollide", "setcollision", "collision", "collide")) {
-            Permission.COMMAND_SETCOLLIDE.handle(p);
-            if (args.length == 2) {
-                CollisionMode mode = CollisionMode.parse(args[1]);
-                if (mode != null) {
-                    String typeName = args[0].toLowerCase(Locale.ENGLISH);
-                    if (prop.updateCollisionProperties(typeName, mode)) {
-                        p.sendMessage(ChatColor.YELLOW + "When colliding this train " + mode.getOperationName() + " " + typeName);
-                    } else if (typeName.contains("player")) {
-                        prop.setCollision(prop.getCollision().cloneAndSetPlayerMode(mode));
-                        p.sendMessage(ChatColor.YELLOW + "When colliding this train " + prop.getCollision().playerMode().getOperationName() + " players");
-                    } else if (typeName.contains("misc")) {
-                        prop.setCollision(prop.getCollision().cloneAndSetMiscMode(mode));
-                        p.sendMessage(ChatColor.YELLOW + "When colliding this train " + prop.getCollision().miscMode().getOperationName() + " misc entities");
-                    } else if (typeName.contains("train")) {
-                        prop.setCollision(prop.getCollision().cloneAndSetTrainMode(mode));
-                        p.sendMessage(ChatColor.YELLOW + "When colliding this train " + prop.getCollision().trainMode().getOperationName() + " other trains");
-                    } else if (typeName.contains("block")) {
-                        prop.setCollision(prop.getCollision().cloneAndSetBlockMode(mode));
-                        p.sendMessage(ChatColor.YELLOW + "When colliding this train " + prop.getCollision().blockMode().getOperationName() + " blocks");
-                    } else {
-                        p.sendMessage(ChatColor.RED + "Unknown collidable type: " + args[0]);
-                        p.sendMessage(ChatColor.YELLOW + "Allowed types: block, mob, player, misc or train");
-                    }
-                } else {
-                    p.sendMessage(ChatColor.RED + "Unknown collision mode: " + args[1]);
-                    ArrayList<String> modes = new ArrayList<>();
-                    for (CollisionMode cmode : CollisionMode.values()) {
-                        modes.add(cmode.toString().toLowerCase());
-                    }
-                    p.sendMessage(ChatColor.YELLOW + "Allowed modes: " + StringUtil.combineNames(modes));
-                }
-            } else {
-                if (args.length == 1) {
-                    if (ParseUtil.isBool(args[0])) {
-                        boolean opt = ParseUtil.parseBool(args[0]);
-                        prop.setCollision(opt ? CollisionOptions.DEFAULT : CollisionOptions.CANCEL);
-                        if (opt) {
-                            p.sendMessage(ChatColor.YELLOW + "Collision configuration reset to collide with entities and blocks");
-                        } else {
-                            p.sendMessage(ChatColor.YELLOW + "Collision configuration reset to disable all collision with entities and blocks");
-                        }
-                    } else {
-                        p.sendMessage(ChatColor.RED + "Unknown mode: " + args[0]);
-                    }
-                } else {
-                    p.sendMessage(ChatColor.YELLOW + "Can collide with other entities: " + ChatColor.WHITE +
-                            prop.getCollision().collidesWithEntities());
-                }
-            }
-            prop.tryUpdate();
         } else if (LogicUtil.containsIgnoreCase(cmd, "gravity")) {
             Permission.COMMAND_GRAVITY.handle(p);
             if (args.length == 1) {
@@ -807,24 +706,5 @@ public class TrainCommands {
         builder.red("passivecollision").red("neutralcollision").red("hostilecollision").red("tameablecollision");
         builder.red("utilitycollision").red("bosscollision").red("jockeycollision").red("petcollision").red("killer_bunnycollision");
         return builder.red("pushplayers").red("pushmobs").red("pushmisc").setSeparator(null).red("]");
-    }
-
-    private static void infoSlowDown(MessageBuilder message, TrainProperties prop) {
-        message.yellow("Slow down over time: ");
-        if (prop.isSlowingDownAll()) {
-            message.green("Yes (All)");
-        } else if (prop.isSlowingDownNone()) {
-            message.red("No (None)");
-        } else {
-            message.setSeparator(", ");
-            for (SlowdownMode mode : SlowdownMode.values()) {
-                if (prop.isSlowingDown(mode)) {
-                    message.green(mode.getKey() + "[Yes]");
-                } else {
-                    message.red(mode.getKey() + "[No]");
-                }
-            }
-            message.clearSeparator();
-        }
     }
 }

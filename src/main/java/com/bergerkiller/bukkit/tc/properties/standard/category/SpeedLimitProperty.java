@@ -29,9 +29,10 @@ public final class SpeedLimitProperty extends FieldBackedStandardTrainProperty.S
     private void trainSetSpeedLimit(
             final CommandSender sender,
             final TrainProperties properties,
-            @Argument(value="speed", parserName=SpeedParser.NAME) double speed
+            final @Argument(value="speed", parserName=SpeedParser.NAME) double speed
     ) {
-        Permission.COMMAND_SETSPEEDLIMIT.handle(sender);
+        handlePermission(sender, "maxspeed");
+
         properties.setSpeedLimit(speed);
         trainGetSpeedLimit(sender, properties);
     }
@@ -54,6 +55,11 @@ public final class SpeedLimitProperty extends FieldBackedStandardTrainProperty.S
         }
 
         return result;
+    }
+
+    @Override
+    public boolean hasPermission(CommandSender sender, String name) {
+        return Permission.PROPERTY_MAXSPEED.has(sender);
     }
 
     @Override

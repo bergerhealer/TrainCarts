@@ -1,10 +1,17 @@
 package com.bergerkiller.bukkit.tc.properties.standard.category;
 
+import java.util.Map;
 import java.util.Optional;
 
+import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
+
+import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
+import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
@@ -12,10 +19,217 @@ import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedSta
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
 
+import cloud.commandframework.annotations.Argument;
+import cloud.commandframework.annotations.CommandDescription;
+import cloud.commandframework.annotations.CommandMethod;
+
 /**
  * Controls the behavior of trains when they collide with other entities or blocks
  */
 public final class CollisionProperty extends FieldBackedStandardTrainProperty<CollisionOptions> {
+
+    public void appendCollisionInfo(MessageBuilder builder, TrainProperties properties) {
+        CollisionOptions opt = properties.getCollision();
+
+        builder.yellow("Collision rules for the train:");
+
+        // Blocks
+        builder.newLine().yellow(" - ").red(opt.blockMode().getOperationName());
+        builder.yellow(" ").blue("blocks");
+
+        // Players
+        builder.newLine().yellow(" - ").red(opt.playerMode().getOperationName());
+        builder.yellow(" ").blue("players");
+
+        // Trains
+        builder.newLine().yellow(" - ").red(opt.trainMode().getOperationName());
+        builder.yellow(" ").blue("other trains");
+
+        // Mob categories
+        for (Map.Entry<CollisionMobCategory, CollisionMode> entry : opt.mobModes().entrySet()) {
+            builder.newLine().yellow(" - ").red(entry.getValue().getOperationName());
+            builder.yellow(" ").blue(entry.getKey().getPluralMobType());
+        }
+
+        // Misc
+        builder.newLine().yellow(" - ").red(opt.miscMode().getOperationName());
+        builder.yellow(" ").blue("miscellaneous entities");
+    }
+
+    @CommandMethod("train collision default|true")
+    @CommandDescription("Configures the default collision settings")
+    private void trainSetCollisionDefault(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        handlePermission(sender, "collision");
+
+        properties.setCollision(CollisionOptions.DEFAULT);
+        trainGetCollisionInfo(sender, properties);
+    }
+
+    @CommandMethod("train collision none|false")
+    @CommandDescription("Disables collision with all entities and blocks")
+    private void trainSetCollisionNone(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        handlePermission(sender, "collision");
+
+        properties.setCollision(CollisionOptions.CANCEL);
+        trainGetCollisionInfo(sender, properties);
+    }
+
+    @CommandMethod("train collision")
+    @CommandDescription("Gets all collision rules configured for a train")
+    private void trainGetCollisionInfo(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        MessageBuilder builder = new MessageBuilder();
+        appendCollisionInfo(builder, properties);
+        builder.send(sender);
+    }
+
+    @CommandMethod("train collision <mobcategory> <mode>")
+    @CommandDescription("Sets new behavior when colliding with a given mob category")
+    private void trainSetMobCollision(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("mobcategory") CollisionMobCategory category,
+            final @Argument("mode") CollisionMode mode
+    ) {
+        handlePermission(sender, category.getMobType() + "collision");
+
+        properties.setCollisionMode(category, mode);
+        trainGetMobCollision(sender, properties, category);
+    }
+
+    @CommandMethod("train collision <mobcategory> none")
+    @CommandDescription("Resets behavior when colliding with a given mob category")
+    private void trainResetMobCollision(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("mobcategory") CollisionMobCategory category
+    ) {
+        handlePermission(sender, category.getMobType() + "collision");
+
+        properties.setCollisionMode(category, null);
+        trainGetMobCollision(sender, properties, category);
+    }
+
+    @CommandMethod("train collision <mobcategory>")
+    @CommandDescription("Gets the current behavior when colliding with a given mob category")
+    private void trainGetMobCollision(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("mobcategory") CollisionMobCategory category
+    ) {
+        CollisionMode mode = properties.getCollision().mobMode(category);
+        if (mode == null) {
+            sender.sendMessage(ChatColor.YELLOW + "The train has no specific mob collision mode set");
+            sender.sendMessage(ChatColor.YELLOW + "Other mob collision rules might be set. If none are, "+
+                    "behavior defaults to what is set for misc: ");
+            showMode(sender, category.getPluralMobType(), properties.getCollision().miscMode());
+        } else {
+            showMode(sender, category.getPluralMobType(), mode);
+        }
+    }
+
+    @CommandMethod("train collision block <mode>")
+    @CommandDescription("Sets the behavior of the train when colliding with blocks")
+    private void trainSetBlockCollision(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("mode") CollisionMode mode
+    ) {
+        handlePermission(sender, "blockcollision");
+
+        properties.setCollision(properties.getCollision().cloneAndSetBlockMode(mode));
+        trainGetBlockCollision(sender, properties);
+    }
+
+    @CommandMethod("train collision block")
+    @CommandDescription("Gets the behavior of the train when colliding with blocks")
+    private void trainGetBlockCollision(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        showMode(sender, "blocks", properties.getCollision().blockMode());
+    }
+
+    @CommandMethod("train collision player <mode>")
+    @CommandDescription("Sets the behavior of the train when colliding with players")
+    private void trainSetPlayerCollision(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("mode") CollisionMode mode
+    ) {
+        handlePermission(sender, "playercollision");
+
+        properties.setCollision(properties.getCollision().cloneAndSetPlayerMode(mode));
+        trainGetPlayerCollision(sender, properties);
+    }
+
+    @CommandMethod("train collision player")
+    @CommandDescription("Gets the behavior of the train when colliding with players")
+    private void trainGetPlayerCollision(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        showMode(sender, "players", properties.getCollision().trainMode());
+    }
+
+    @CommandMethod("train collision train <mode>")
+    @CommandDescription("Sets the behavior of the train when colliding with other trains")
+    private void trainSetTrainCollision(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("mode") CollisionMode mode
+    ) {
+        handlePermission(sender, "traincollision");
+
+        properties.setCollision(properties.getCollision().cloneAndSetTrainMode(mode));
+        trainGetTrainCollision(sender, properties);
+    }
+
+    @CommandMethod("train collision train")
+    @CommandDescription("Gets the behavior of the train when colliding with other trains")
+    private void trainGetTrainCollision(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        showMode(sender, "other trains", properties.getCollision().trainMode());
+    }
+
+    @CommandMethod("train collision misc <mode>")
+    @CommandDescription("Sets the behavior of the train when colliding with miscellaneous mobs and entities")
+    private void trainSetMiscCollision(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("mode") CollisionMode mode
+    ) {
+        handlePermission(sender, "misccollision");
+
+        properties.setCollision(properties.getCollision().cloneAndSetMiscMode(mode));
+        trainGetMiscCollision(sender, properties);
+    }
+
+    @CommandMethod("train collision misc")
+    @CommandDescription("Gets the behavior of the train when colliding with miscellaneous mobs and entities")
+    private void trainGetMiscCollision(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        showMode(sender, "miscellaneous mobs and entities", properties.getCollision().miscMode());
+    }
+
+    private static void showMode(CommandSender sender, String category, CollisionMode mode) {
+        MessageBuilder builder = new MessageBuilder();
+        builder.yellow("The train ").red(mode.getOperationName());
+        builder.yellow(" ").blue(category).yellow(" when colliding");
+        builder.send(sender);
+    }
 
     @PropertyParser("playercollision")
     public CollisionOptions parsePlayerCollisionMode(PropertyParseContext<CollisionOptions> context) {
@@ -98,6 +312,11 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
     @PropertyParser("collision|collide")
     public CollisionOptions parseDefaultOrNoCollision(PropertyParseContext<CollisionOptions> context) {
         return context.inputBoolean() ? CollisionOptions.DEFAULT : CollisionOptions.CANCEL;
+    }
+
+    @Override
+    public boolean hasPermission(CommandSender sender, String name) {
+        return Permission.PROPERTY_COLLISION.has(sender);
     }
 
     @Override
