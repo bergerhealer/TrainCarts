@@ -2,13 +2,22 @@ package com.bergerkiller.bukkit.tc.properties.standard.category;
 
 import java.util.Optional;
 
+import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
+
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.tc.Localization;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
+
+import cloud.commandframework.annotations.Argument;
+import cloud.commandframework.annotations.CommandDescription;
+import cloud.commandframework.annotations.CommandMethod;
 
 /**
  * Controls whether trains keep chunks around them loaded, preventing the train
@@ -17,9 +26,37 @@ import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedSta
  */
 public final class KeepChunksLoadedProperty extends FieldBackedStandardTrainProperty<Boolean> {
 
-    @PropertyParser("keeploaded|keepcloaded|loadchunks")
+    @CommandMethod("train keepchunksloaded|keeploaded|loadchunks <keeploaded>")
+    @CommandDescription("Sets whether players can enter carts of this train")
+    private void commandSetProperty(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("keeploaded") boolean keepLoaded
+    ) {
+        handlePermission(sender, "keeploaded");
+
+        properties.setKeepChunksLoaded(keepLoaded);
+        commandGetProperty(sender, properties);
+    }
+
+    @CommandMethod("train keepchunksloaded|keeploaded|loadchunks")
+    @CommandDescription("Gets whether players can enter carts of this train")
+    private void commandGetProperty(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        sender.sendMessage(ChatColor.YELLOW + "Train keeps nearby chunks loaded: "
+                + Localization.boolStr(properties.isKeepingChunksLoaded()));
+    }
+
+    @PropertyParser("keepchunksloaded|keeploaded|keepcloaded|loadchunks")
     public boolean parseKeepChunksLoaded(PropertyParseContext<Boolean> context) {
         return context.inputBoolean();
+    }
+
+    @Override
+    public boolean hasPermission(CommandSender sender, String name) {
+        return Permission.PROPERTY_KEEPCHUNKSLOADED.has(sender);
     }
 
     @Override

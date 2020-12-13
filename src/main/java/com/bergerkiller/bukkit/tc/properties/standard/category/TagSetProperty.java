@@ -5,24 +5,193 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
+import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
+
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardCartProperty;
+
+import cloud.commandframework.annotations.Argument;
+import cloud.commandframework.annotations.CommandDescription;
+import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.annotations.specifier.Greedy;
 
 /**
  * A simple set of tags that can be used to mark and switch carts or trains
  */
 public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<String>> {
 
-    @PropertyParser("settag")
+    @CommandMethod("train tags")
+    @CommandDescription("Displays the tags set for the carts of a train")
+    private void getTrainTags(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        if (properties.hasTags()) {
+            sender.sendMessage(ChatColor.YELLOW + "Train has tags: " + ChatColor.WHITE
+                    + StringUtil.combineNames(properties.getTags()));
+        } else {
+            sender.sendMessage(ChatColor.YELLOW + "Train has tags: "
+                    + ChatColor.RED + "None");
+        }
+    }
+
+    @CommandMethod("train tags clear")
+    @CommandDescription("Clears the previous tags for a train")
+    private void setCartTags(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        setTrainTags(sender, properties, null);
+    }
+
+    @CommandMethod("train tags set [tags]")
+    @CommandDescription("Clears the previous tags and sets new tags for carts of the train")
+    private void setTrainTags(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("tags") @Greedy String[] tags
+    ) {
+        handlePermission(sender, "tags");
+
+        if (tags != null && tags.length > 0) {
+            properties.setTags(tags);
+            sender.sendMessage(ChatColor.GREEN + "Train tags set to: "
+                    + ChatColor.WHITE + StringUtil.combineNames(properties.getTags()));
+        } else {
+            properties.setTags(new String[0]);
+            sender.sendMessage(ChatColor.GREEN + "Tags of train have been cleared.");
+        }
+    }
+
+    @CommandMethod("train tags add <tags>")
+    @CommandDescription("Adds tags to a train")
+    private void addTrainTags(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("tags") @Greedy String[] tags
+    ) {
+        handlePermission(sender, "tags");
+        
+        if (tags != null && tags.length > 0) {
+            properties.addTags(tags);
+            sender.sendMessage(ChatColor.GREEN + "Added tags: "
+                    + ChatColor.WHITE + StringUtil.combineNames(tags));
+        }
+
+        getTrainTags(sender, properties);
+    }
+
+    @CommandMethod("train tags remove <tags>")
+    @CommandDescription("Removes tags from a train")
+    private void removeTrainTags(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("tags") @Greedy String[] tags
+    ) {
+        handlePermission(sender, "tags");
+        
+        if (tags != null && tags.length > 0) {
+            properties.removeTags(tags);
+            sender.sendMessage(ChatColor.GREEN + "Removed tags: "
+                    + ChatColor.WHITE + StringUtil.combineNames(tags));
+        }
+
+        getTrainTags(sender, properties);
+    }
+
+    @CommandMethod("cart tags")
+    @CommandDescription("Displays the tags set for a cart")
+    private void getCartTags(
+            final CommandSender sender,
+            final CartProperties properties
+    ) {
+        if (properties.hasTags()) {
+            sender.sendMessage(ChatColor.YELLOW + "Cart has tags: " + ChatColor.WHITE
+                    + StringUtil.combineNames(properties.getTags()));
+        } else {
+            sender.sendMessage(ChatColor.YELLOW + "Cart has tags: "
+                    + ChatColor.RED + "None");
+        }
+    }
+
+    @CommandMethod("cart tags clear")
+    @CommandDescription("Clears the previous tags for a cart")
+    private void setCartTags(
+            final CommandSender sender,
+            final CartProperties properties
+    ) {
+        setCartTags(sender, properties, null);
+    }
+
+    @CommandMethod("cart tags set [tags]")
+    @CommandDescription("Clears the previous tags and sets new tags for a cart")
+    private void setCartTags(
+            final CommandSender sender,
+            final CartProperties properties,
+            final @Argument("tags") @Greedy String[] tags
+    ) {
+        handlePermission(sender, "tags");
+
+        if (tags != null && tags.length > 0) {
+            properties.setTags(tags);
+            sender.sendMessage(ChatColor.GREEN + "Cart tags set to: "
+                    + ChatColor.WHITE + StringUtil.combineNames(properties.getTags()));
+        } else {
+            properties.setTags(new String[0]);
+            sender.sendMessage(ChatColor.GREEN + "Tags of cart have been cleared.");
+        }
+    }
+
+    @CommandMethod("cart tags add <tags>")
+    @CommandDescription("Adds tags to a cart")
+    private void addCartTags(
+            final CommandSender sender,
+            final CartProperties properties,
+            final @Argument("tags") @Greedy String[] tags
+    ) {
+        handlePermission(sender, "tags");
+        
+        if (tags != null && tags.length > 0) {
+            properties.addTags(tags);
+            sender.sendMessage(ChatColor.GREEN + "Added tags: "
+                    + ChatColor.WHITE + StringUtil.combineNames(tags));
+        }
+
+        getCartTags(sender, properties);
+    }
+
+    @CommandMethod("cart tags remove <tags>")
+    @CommandDescription("Removes tags from a cart")
+    private void removeCartTags(
+            final CommandSender sender,
+            final CartProperties properties,
+            final @Argument("tags") @Greedy String[] tags
+    ) {
+        handlePermission(sender, "tags");
+        
+        if (tags != null && tags.length > 0) {
+            properties.removeTags(tags);
+            sender.sendMessage(ChatColor.GREEN + "Removed tags: "
+                    + ChatColor.WHITE + StringUtil.combineNames(tags));
+        }
+
+        getCartTags(sender, properties);
+    }
+
+    @PropertyParser("settag|tags set")
     public Set<String> parse(String input) {
         return Collections.singleton(input);
     }
 
-    @PropertyParser(value="addtag", processPerCart=true)
+    @PropertyParser(value="addtag|tags add", processPerCart=true)
     public Set<String> parseAddTag(PropertyParseContext<Set<String>> context) {
         // If empty, do nothing
         if (context.input().isEmpty()) {
@@ -45,7 +214,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         return Collections.unmodifiableSet(newTags);
     }
 
-    @PropertyParser(value="remtag|removetag", processPerCart=true)
+    @PropertyParser(value="remtag|removetag|tags remove", processPerCart=true)
     public Set<String> parseRemoveTag(PropertyParseContext<Set<String>> context) {
         // If empty or not contained, do nothing
         if (context.input().isEmpty() || !context.current().contains(context.input())) {
@@ -61,6 +230,11 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         HashSet<String> newTags = new HashSet<String>(context.current());
         newTags.remove(context.input());
         return Collections.unmodifiableSet(newTags);
+    }
+
+    @Override
+    public boolean hasPermission(CommandSender sender, String name) {
+        return Permission.PROPERTY_TAGS.has(sender);
     }
 
     @Override

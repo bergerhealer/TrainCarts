@@ -8,7 +8,6 @@ import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
-import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -24,7 +23,6 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
-import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
@@ -341,42 +339,18 @@ public class TrainCommands {
 
     public static void execute(Player p, TrainProperties prop, String cmd, String[] args) throws NoPermissionException {
         TrainPropertiesStore.markForAutosave();
-        if (cmd.equalsIgnoreCase("playerenter")) {
-            if (args.length == 1) {
-                Permission.COMMAND_PLAYERENTER.handle(p);
-                prop.setPlayersEnter(ParseUtil.parseBool(args[0]));
-            }
-            p.sendMessage(ChatColor.YELLOW + "Players can enter this train: " + ChatColor.WHITE + " " + prop.getPlayersEnter());
-        } else if (LogicUtil.containsIgnoreCase(cmd, "playerleave", "playerexit")) {
-            if (args.length == 1) {
-                Permission.COMMAND_PLAYEREXIT.handle(p);
-                prop.setPlayersExit(ParseUtil.parseBool(args[0]));
-            }
-            p.sendMessage(ChatColor.YELLOW + "Players can exit this train: " + ChatColor.WHITE + " " + prop.getPlayersExit());
-        } else if (LogicUtil.containsIgnoreCase(cmd, "sound", "soundenabled")) {
+        if (LogicUtil.containsIgnoreCase(cmd, "sound", "soundenabled")) {
             if (args.length == 1) {
                 Permission.COMMAND_SOUND.handle(p);
                 prop.setSoundEnabled(ParseUtil.parseBool(args[0]));
             }
             p.sendMessage(ChatColor.YELLOW + "Minecart sound enabled: " + ChatColor.WHITE + prop.isSoundEnabled());
-        } else if (LogicUtil.containsIgnoreCase(cmd, "linking", "link")) {
-            if (args.length == 1) {
-                Permission.COMMAND_SETLINKING.handle(p);
-                prop.setLinking(ParseUtil.parseBool(args[0]));
-            }
-            p.sendMessage(ChatColor.YELLOW + "Can be linked: " + ChatColor.WHITE + (prop.getCollision().trainMode() == CollisionMode.LINK));
         } else if (LogicUtil.containsIgnoreCase(cmd, "playertake", "allowplayertake")) {
             if (args.length == 1) {
                 Permission.COMMAND_PLAYERTAKE.handle(p);
                 prop.setPlayerTakeable(ParseUtil.parseBool(args[0]));
             }
             p.sendMessage(ChatColor.YELLOW + "Players take Minecart with them: " + ChatColor.WHITE + prop.isPlayerTakeable());
-        } else if (cmd.equalsIgnoreCase("keepchunksloaded")) {
-            if (args.length == 1) {
-                Permission.COMMAND_KEEPCHUNKSLOADED.handle(p);
-                prop.setKeepChunksLoaded(ParseUtil.parseBool(args[0]));
-            }
-            p.sendMessage(ChatColor.YELLOW + "Keep nearby chunks loaded: " + ChatColor.WHITE + prop.isKeepingChunksLoaded());
         } else if (cmd.equalsIgnoreCase("invincible")) {
             if (args.length == 1) {
                 Permission.COMMAND_INVINCIBLE.handle(p);
@@ -480,46 +454,6 @@ public class TrainCommands {
             } else {
                 p.sendMessage(ChatColor.RED + "You failed to set any owners: you don't own any carts!");
             }
-        } else if (LogicUtil.containsIgnoreCase(cmd, "pushmobs", "pushplayers", "pushmisc")) {
-            Permission.COMMAND_PUSHING.handle(p);
-            // Parse a new collision mode to set to
-            CollisionMode newState = null;
-            if (args.length == 1) {
-                newState = CollisionMode.fromPushing(ParseUtil.parseBool(args[0]));
-            }
-            String msg = ChatColor.YELLOW + "Pushes away ";
-            if (cmd.equals("pushmobs")) {
-                if (newState != null) {
-                    prop.setCollisionModeForMobs(newState);
-                }
-                msg += "mobs: " + ChatColor.WHITE + " " + (newState == CollisionMode.PUSH);
-            }
-            if (cmd.equals("pushplayers")) {
-                if (newState != null) {
-                    prop.setCollision(prop.getCollision().cloneAndSetPlayerMode(newState));
-                }
-                msg += "players: " + ChatColor.WHITE + " " + (prop.getCollision().playerMode() == CollisionMode.PUSH);
-            }
-            if (cmd.equals("pushmisc")) {
-                if (newState != null) {
-                    prop.setCollision(prop.getCollision().cloneAndSetMiscMode(newState));
-                }
-                msg += "misc. entities: " + ChatColor.WHITE + " " + (prop.getCollision().miscMode() == CollisionMode.PUSH);
-            }
-            CollisionMobCategory result = CollisionMobCategory.findMobType(cmd, "push");
-            if (result != null) {
-                if (newState != null) {
-                    prop.updateCollisionProperties(result.getMobType(), newState);
-                }
-                msg += result.getFriendlyMobName() + ": " + ChatColor.WHITE + " " + (newState == CollisionMode.PUSH);
-            }
-            p.sendMessage(msg);
-        } else if (LogicUtil.containsIgnoreCase(cmd, "gravity")) {
-            Permission.COMMAND_GRAVITY.handle(p);
-            if (args.length == 1) {
-                prop.setGravity(ParseUtil.parseDouble(args[0], 0.4));
-            }
-            p.sendMessage(ChatColor.YELLOW + "Gravity: " + ChatColor.WHITE + prop.getGravity() + " X");
         } else if (LogicUtil.containsIgnoreCase(cmd, "requirepoweredminecart", "requirepowered")) {
             Permission.COMMAND_SETPOWERCARTREQ.handle(p);
             if (args.length == 1) {
@@ -546,33 +480,6 @@ public class TrainCommands {
             } else {
                 prop.setDisplayName(StringUtil.ampToColor(StringUtil.join(" ", args)));
                 p.sendMessage(ChatColor.YELLOW + "The display name on trigger signs is now " + ChatColor.WHITE + prop.getDisplayName() + ChatColor.YELLOW + "!");
-            }
-        } else if (LogicUtil.containsIgnoreCase(cmd, "addtags", "addtag")) {
-            Permission.COMMAND_SETTAGS.handle(p);
-            if (args.length == 0) {
-                p.sendMessage(ChatColor.RED + "You need to give at least one tag to add!");
-            } else {
-                prop.addTags(args);
-                p.sendMessage(ChatColor.YELLOW + "You added " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " as tags for all minecarts in this train!");
-            }
-        } else if (LogicUtil.containsIgnoreCase(cmd, "settags", "settag", "tags", "tag")) {
-            Permission.COMMAND_SETTAGS.handle(p);
-            prop.clearTags();
-            if (args.length == 0) {
-                p.sendMessage(ChatColor.YELLOW + "All tags of all minecarts in this train have been cleared!");
-            } else {
-                prop.addTags(args);
-                p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " as tags for all minecarts in this train!");
-            }
-        } else if (LogicUtil.containsIgnoreCase(cmd, "dest", "destination")) {
-            Permission.COMMAND_SETDESTINATION.handle(p);
-            if (args.length == 0) {
-                prop.clearDestination();
-                p.sendMessage(ChatColor.YELLOW + "The destination for all minecarts in this train has been cleared!");
-            } else {
-                String dest = StringUtil.join(" ", args);
-                prop.setDestination(dest);
-                p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + dest + ChatColor.YELLOW + " as destination for all the minecarts in this train!");
             }
         } else if (cmd.equalsIgnoreCase("public")) {
             Permission.COMMAND_SETPUBLIC.handle(p);

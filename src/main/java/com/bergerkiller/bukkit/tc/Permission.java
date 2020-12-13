@@ -11,6 +11,13 @@ public class Permission extends PermissionEnum {
     public static final Permission PROPERTY_MAXSPEED = new Permission("train.property.maxspeed", PermissionDefault.TRUE, "The player can alter the maximum speed of trains");
     public static final Permission PROPERTY_SLOWDOWN = new Permission("train.property.slowdown", PermissionDefault.TRUE, "The player can change whether trains slow down due to gravity or friction");
     public static final Permission PROPERTY_COLLISION = new Permission("train.property.collision", PermissionDefault.TRUE, "The player can change what happens when trains collide with entities or blocks");
+    public static final Permission PROPERTY_PLAYERENTER = new Permission("train.property.playerenter", PermissionDefault.TRUE, "The player can change whether players can enter carts or not");
+    public static final Permission PROPERTY_PLAYEREXIT = new Permission("train.property.playerexit", PermissionDefault.TRUE, "The player can change whether players can exit from carts or not");
+    public static final Permission PROPERTY_KEEPCHUNKSLOADED = new Permission("train.property.keepchunksloaded", PermissionDefault.OP, "The player can change whether the train keeps nearby chunks and itself loaded");
+    public static final Permission PROPERTY_GRAVITY = new Permission("train.property.gravity", PermissionDefault.TRUE, "The player can change the gravity multiplier of the train");
+    public static final Permission PROPERTY_BANKING = new Permission("train.property.banking", PermissionDefault.TRUE, "The player can change the way trains bank in curves");
+    public static final Permission PROPERTY_DESTINATION = new Permission("train.property.destination", PermissionDefault.TRUE, "The player can change what destination a train is path-finding to");
+    public static final Permission PROPERTY_TAGS = new Permission("train.property.tags", PermissionDefault.TRUE, "The player can add or remove tags to trains or carts, used by switchers and detectors");
 
     public static final Permission COMMAND_DESTROY = new Permission("train.command.destroy", PermissionDefault.OP, "The player can destroy owned carts through commands");
     public static final Permission COMMAND_DESTROYALL = new Permission("train.command.destroyall", PermissionDefault.OP, "The player can destroy all trains on the server");
@@ -90,20 +97,14 @@ public class Permission extends PermissionEnum {
     public static final Permission COMMAND_RENAME = new Permission("train.command.rename", PermissionDefault.TRUE, "The player can rename his owned trains");
     public static final Permission COMMAND_DISPLAYNAME = new Permission("train.command.displayname", PermissionDefault.TRUE, "The player can change the display name of his owned trains");
     public static final Permission COMMAND_MANUALMOVE = new Permission("train.command.manualmove", PermissionDefault.TRUE, "Whether the player can change if trains can be moved by damaging them");
-    public static final Permission COMMAND_GRAVITY = new Permission("train.command.gravity", PermissionDefault.OP, "Whether the player can use a command to change the gravity factor of a train"); 
     public static final Permission COMMAND_PLAYERTAKE = new Permission("train.command.playertake", PermissionDefault.OP, "Whether the player can change if players take Minecarts with them when they leave");
     public static final Permission COMMAND_SOUND = new Permission("train.command.soundenabled", PermissionDefault.OP, "Whether the player can turn Minecart sound on or off");
     public static final Permission COMMAND_BREAKBLOCK = new Permission("train.command.break", PermissionDefault.TRUE, "The player can set blocks the cart can break from a set list");
     public static final Permission COMMAND_BREAKBLOCK_ADMIN = new Permission("train.command.breakblock.admin", PermissionDefault.OP, "The player can set blocks the cart can break, any type");
     public static final Permission COMMAND_SETPUBLIC = new Permission("train.command.setpublic", PermissionDefault.TRUE, "The player can make his owned carts open for the public");
     public static final Permission COMMAND_SETOWNERS = new Permission("train.command.setowners", PermissionDefault.TRUE, "The player can set the owners of his owned carts");
-    public static final Permission COMMAND_SETTAGS = new Permission("train.command.settags", PermissionDefault.TRUE, "The player can set the tags of his owned carts");
-    public static final Permission COMMAND_SETDESTINATION = new Permission("train.command.setdestination", PermissionDefault.TRUE, "The player can set destinations for his owned carts");
-    public static final Permission COMMAND_PLAYERENTER = new Permission("train.command.playerenter", PermissionDefault.TRUE, "The player can set if players can enter his owned carts");
-    public static final Permission COMMAND_PLAYEREXIT = new Permission("train.command.playerexit", PermissionDefault.TRUE, "The player can set if players can exit his owned carts");
     public static final Permission COMMAND_PICKUP = new Permission("train.command.pickup", PermissionDefault.TRUE, "The player can set if his owned storage carts pick up items");
     public static final Permission COMMAND_SETLINKING = new Permission("train.command.setlinking", PermissionDefault.TRUE, "The player can set if his owned trains can link to other trains");
-    public static final Permission COMMAND_KEEPCHUNKSLOADED = new Permission("train.command.keepchunksloaded", PermissionDefault.OP, "The player can set if his owned trains keep nearby chunks loaded");
     public static final Permission COMMAND_INVINCIBLE = new Permission("train.command.invincible", PermissionDefault.OP, "The player can set if his owned trains are invincible");
     public static final Permission COMMAND_PUSHING = new Permission("train.command.pushing", PermissionDefault.TRUE, "The player can set if his owned trains push away certain entities");
     public static final Permission COMMAND_SETPOWERCARTREQ = new Permission("train.command.setpoweredcartrequirement", PermissionDefault.TRUE, "The player can set if a powered minecart is needed for his train to stay alive");

@@ -25,7 +25,7 @@ public class RouteCommands {
     private static final String ROUTE_SEP = " \u2192 "; // " > "
 
     @CommandMethod("train route [args]")
-    @CommandDescription("Lists all the destination names that exist on the server")
+    @CommandDescription("Configures the destination route of a train")
     private void commandTrainRoute(
             final Player player,
             final TrainProperties properties,
@@ -36,7 +36,7 @@ public class RouteCommands {
     }
 
     @CommandMethod("cart route [args]")
-    @CommandDescription("Lists all the destination names that exist on the server")
+    @CommandDescription("Configures the destination route of a cart")
     private void commandCartRoute(
             final Player player,
             final CartProperties properties,

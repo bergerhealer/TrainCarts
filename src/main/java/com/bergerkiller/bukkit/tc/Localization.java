@@ -105,4 +105,14 @@ public class Localization extends LocalizationEnum {
             this.message(player, arguments);
         }
     }
+
+    /**
+     * Gets a boolean 'yes' or 'no' colored red/green respectively
+     * 
+     * @param value
+     * @return Yes if true, No if false
+     */
+    public static String boolStr(boolean value) {
+        return value ? (ChatColor.GREEN + "Yes") : (ChatColor.RED + "No");
+    }
 }

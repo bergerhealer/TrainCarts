@@ -25,6 +25,7 @@ import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.mountiplex.MountiplexUtil;
 
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
@@ -33,8 +34,10 @@ import cloud.commandframework.services.types.ConsumerService;
 
 import java.util.ArrayList;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.bukkit.ChatColor;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -167,6 +170,22 @@ public class Commands {
                 .filter(p -> !(sender instanceof Player) || p.hasOwnership((Player) sender))
                 .map(TrainProperties::getTrainName)
                 .collect(Collectors.toList());
+        });
+
+        // Register provider for destination names
+        cloud.suggest("destinations", (context, input) -> {
+            Stream<PathWorld> worlds;
+            if (context.getSender() instanceof Player) {
+                // Only of one world the player is on
+                World world = ((Player) context.getSender()).getWorld();
+                worlds = MountiplexUtil.toStream(plugin.getPathProvider().getWorld(world));
+            } else {
+                // Combine all worlds' unique destinations
+                worlds = plugin.getPathProvider().getWorlds().stream();
+            }
+            return worlds.flatMap(world -> world.getNodes().stream())
+                         .flatMap(node -> node.getNames().stream())
+                         .collect(Collectors.toList());
         });
 
         // Register all the commands

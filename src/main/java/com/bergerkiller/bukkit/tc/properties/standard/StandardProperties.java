@@ -42,6 +42,10 @@ public class StandardProperties {
     public static final BankingOptionsProperty BANKING = new BankingOptionsProperty();
     public static final SlowdownProperty SLOWDOWN = new SlowdownProperty();
     public static final CollisionProperty COLLISION = new CollisionProperty();
+    public static final PlayerEnterProperty ALLOW_PLAYER_ENTER = new PlayerEnterProperty();
+    public static final PlayerExitProperty ALLOW_PLAYER_EXIT = new PlayerExitProperty();
+    public static final GravityProperty GRAVITY = new GravityProperty();
+    public static final SpeedLimitProperty SPEEDLIMIT = new SpeedLimitProperty();
 
     public static final FieldBackedStandardCartProperty<Boolean> ONLY_OWNERS_CAN_ENTER = new FieldBackedStandardCartProperty<Boolean>() {
 
@@ -168,52 +172,6 @@ public class StandardProperties {
         @Override
         public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
             Util.setConfigOptional(config, "spawnItemDrops", value);
-        }
-    };
-
-    public static final ICartProperty<Boolean> ALLOW_PLAYER_ENTER = new ICartProperty<Boolean>() {
-
-        @PropertyParser("allowplayerenter|playerenter")
-        public boolean parsePlayerEnter(PropertyParseContext<Boolean> context) {
-            return context.inputBoolean();
-        }
-
-        @Override
-        public Boolean getDefault() {
-            return Boolean.TRUE;
-        }
-
-        @Override
-        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
-            return Util.getConfigOptional(config, "allowPlayerEnter", boolean.class);
-        }
-
-        @Override
-        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
-            Util.setConfigOptional(config, "allowPlayerEnter", value);
-        }
-    };
-
-    public static final ICartProperty<Boolean> ALLOW_PLAYER_EXIT = new ICartProperty<Boolean>() {
-
-        @PropertyParser("allowplayerexit|playerexit")
-        public boolean parsePlayerExit(PropertyParseContext<Boolean> context) {
-            return context.inputBoolean();
-        }
-
-        @Override
-        public Boolean getDefault() {
-            return Boolean.TRUE;
-        }
-
-        @Override
-        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
-            return Util.getConfigOptional(config, "allowPlayerExit", boolean.class);
-        }
-
-        @Override
-        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
-            Util.setConfigOptional(config, "allowPlayerExit", value);
         }
     };
 
@@ -771,39 +729,4 @@ public class StandardProperties {
             Util.setConfigOptional(config, "displayName", value);
         }
     };
-
-    public static final FieldBackedStandardTrainProperty.StandardDouble GRAVITY = new FieldBackedStandardTrainProperty.StandardDouble() {
-
-        @PropertyParser("gravity")
-        public double parseGravity(PropertyParseContext<Double> context) {
-            return context.inputDouble();
-        }
-
-        @Override
-        public double getDoubleDefault() {
-            return 1.0;
-        }
-
-        @Override
-        public double getDoubleData(TrainInternalData data) {
-            return data.gravity;
-        }
-
-        @Override
-        public void setDoubleData(TrainInternalData data, double value) {
-            data.gravity = value;
-        }
-
-        @Override
-        public Optional<Double> readFromConfig(ConfigurationNode config) {
-            return Util.getConfigOptional(config, "gravity", double.class);
-        }
-
-        @Override
-        public void writeToConfig(ConfigurationNode config, Optional<Double> value) {
-            Util.setConfigOptional(config, "gravity", value);
-        }
-    };
-
-    public static final SpeedLimitProperty SPEEDLIMIT = new SpeedLimitProperty();
 }

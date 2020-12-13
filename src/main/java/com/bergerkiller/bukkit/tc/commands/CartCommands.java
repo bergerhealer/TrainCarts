@@ -116,18 +116,6 @@ public class CartCommands {
         TrainPropertiesStore.markForAutosave();
         if (cmd.equals("info") || cmd.equals("i")) {
             info(p, prop);
-        } else if (cmd.equalsIgnoreCase("playerenter")) {
-            if (args.length == 1) {
-                Permission.COMMAND_PLAYERENTER.handle(p);
-                prop.setPlayersEnter(ParseUtil.parseBool(args[0]));
-            }
-            p.sendMessage(ChatColor.YELLOW + "Players can enter this minecart: " + ChatColor.WHITE + " " + prop.getPlayersEnter());
-        } else if (LogicUtil.containsIgnoreCase(cmd, "playerleave", "playerexit")) {
-            if (args.length == 1) {
-                Permission.COMMAND_PLAYEREXIT.handle(p);
-                prop.setPlayersExit(ParseUtil.parseBool(args[0]));
-            }
-            p.sendMessage(ChatColor.YELLOW + "Players can exit this minecart: " + ChatColor.WHITE + " " + prop.getPlayersExit());
         } else if (cmd.equalsIgnoreCase("claim")) {
             Permission.COMMAND_SETOWNERS.handle(p);
             prop.clearOwners();
@@ -176,32 +164,6 @@ public class CartCommands {
                 }
                 p.sendMessage(ChatColor.YELLOW + "You added the owner permissions " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " to this minecart");
                 p.sendMessage(ChatColor.YELLOW + "Players that have these permission nodes are considered owners of this Minecart");
-            }
-        } else if (LogicUtil.containsIgnoreCase(cmd, "addtags", "addtag")) {
-            Permission.COMMAND_SETTAGS.handle(p);
-            if (args.length == 0) {
-                p.sendMessage(ChatColor.RED + "You need to give at least one tag to add!");
-            } else {
-                prop.addTags(args);
-                p.sendMessage(ChatColor.YELLOW + "You added " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " as tags for this minecart!");
-            }
-        } else if (LogicUtil.containsIgnoreCase(cmd, "settags", "settag", "tags", "tag")) {
-            Permission.COMMAND_SETTAGS.handle(p);
-            prop.clearTags();
-            if (args.length == 0) {
-                p.sendMessage(ChatColor.YELLOW + "All tags for this minecart have been cleared!");
-            } else {
-                prop.addTags(args);
-                p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " as tags for this minecart!");
-            }
-        } else if (LogicUtil.containsIgnoreCase(cmd, "dest", "destination")) {
-            Permission.COMMAND_SETDESTINATION.handle(p);
-            if (args.length == 0) {
-                prop.clearDestination();
-                p.sendMessage(ChatColor.YELLOW + "The destination for this minecart has been cleared!");
-            } else {
-                prop.setDestination(StringUtil.join(" ", args[0]));
-                p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + args[0] + ChatColor.YELLOW + " as destination for this minecart!");
             }
         } else if (cmd.equalsIgnoreCase("public")) {
             Permission.COMMAND_SETPUBLIC.handle(p);

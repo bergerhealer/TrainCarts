@@ -3,13 +3,21 @@ package com.bergerkiller.bukkit.tc.properties.standard.category;
 import java.util.List;
 import java.util.Optional;
 
+import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
+
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
+
+import cloud.commandframework.annotations.Argument;
+import cloud.commandframework.annotations.CommandDescription;
+import cloud.commandframework.annotations.CommandMethod;
 
 /**
  * The current destination a train is going for. May also update the
@@ -18,9 +26,88 @@ import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
  */
 public final class DestinationProperty implements ICartProperty<String> {
 
+    @CommandMethod("train destination|dest none")
+    @CommandDescription("Clears the destination set for a train")
+    private void commandClearProperty(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        commandSetProperty(sender, properties, "");
+    }
+
+    @CommandMethod("train destination|dest <destination>")
+    @CommandDescription("Sets a new destination for the train to go to")
+    private void commandSetProperty(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument(value="destination", suggestions="destinations") String destination
+    ) {
+        handlePermission(sender, "destination");
+
+        properties.setDestination(destination);
+        commandGetProperty(sender, properties);
+    }
+
+    @CommandMethod("train destination|dest")
+    @CommandDescription("Displays the current destination set for the train")
+    private void commandGetProperty(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        if (properties.hasDestination()) {
+            sender.sendMessage(ChatColor.YELLOW + "Train destination is set to: "
+                    + ChatColor.WHITE + properties.getDestination());
+        } else {
+            sender.sendMessage(ChatColor.YELLOW + "Train destination is set to: "
+                    + ChatColor.RED + "None");
+        }
+    }
+
+    @CommandMethod("cart destination|dest none")
+    @CommandDescription("Clears the destination set for a cart")
+    private void commandClearProperty(
+            final CommandSender sender,
+            final CartProperties properties
+    ) {
+        commandSetProperty(sender, properties, "");
+    }
+
+    @CommandMethod("cart destination|dest <destination>")
+    @CommandDescription("Sets a new destination for the cart to go to")
+    private void commandSetProperty(
+            final CommandSender sender,
+            final CartProperties properties,
+            final @Argument(value="destination", suggestions="destinations") String destination
+    ) {
+        handlePermission(sender, "destination");
+
+        properties.setDestination(destination);
+        commandGetProperty(sender, properties);
+    }
+
+    @CommandMethod("cart destination|dest")
+    @CommandDescription("Displays the current destination set for the cart")
+    private void commandGetProperty(
+            final CommandSender sender,
+            final CartProperties properties
+    ) {
+        if (properties.hasDestination()) {
+            sender.sendMessage(ChatColor.YELLOW + "Cart destination is set to: "
+                    + ChatColor.WHITE + properties.getDestination());
+        } else {
+            sender.sendMessage(ChatColor.YELLOW + "Cart destination is set to: "
+                    + ChatColor.RED + "None");
+        }
+    }
+
     @PropertyParser("destination")
     public String parseDestination(String input) {
         return input;
+    }
+
+    @Override
+    public boolean hasPermission(CommandSender sender, String name) {
+        return Permission.PROPERTY_DESTINATION.has(sender);
     }
 
     @Override

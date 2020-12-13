@@ -17,8 +17,7 @@ import com.bergerkiller.bukkit.tc.utils.BlockTimeoutMap;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
-import net.md_5.bungee.api.ChatColor;
-
+import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
