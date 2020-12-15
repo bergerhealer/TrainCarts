@@ -1,7 +1,9 @@
 package com.bergerkiller.bukkit.tc.properties.api;
 
 import java.util.Iterator;
+import java.util.function.Consumer;
 
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -81,6 +83,28 @@ public interface IPropertyParser<T> {
      * @see #parse(IProperties, String)
      */
     default PropertyParseResult<T> parseAndSet(IProperties properties, String input) {
+        return parseAndSet(properties, input, LogicUtil.noopConsumer());
+    }
+
+    /**
+     * Parses the input using this parser and, if successful, applies the parsed value
+     * to the properties.<br>
+     * <br>
+     * If {@link #isProcessedPerCart()} is <i>true</i>, then
+     * the property is parsed and applied to each cart individually. In that case
+     * the returned value is the output of {@link IProperty#get(TrainProperties)}.<br>
+     * <br>
+     * A consumer can be specified to process the parse result before it is applied to the
+     * train or cart. This can be used to cancel the operation by throwing exceptions.
+     * 
+     * @param properties The properties the value is parsed for and applied to
+     * @param input Input value to parse
+     * @param beforeSet Consumer of the parse result before the property is updated.
+     *                  Can throw exceptions to cancel the operation.
+     * @return result of parsing the property by this name using the value
+     * @see #parse(IProperties, String)
+     */
+    default PropertyParseResult<T> parseAndSet(IProperties properties, String input, Consumer<PropertyParseResult<T>> beforeSet) {
         // Parsed once and then applied to all carts / the cart
         if (!this.isProcessedPerCart() || !(properties instanceof TrainProperties)) {
             PropertyParseResult<T> result = this.parse(properties, input);

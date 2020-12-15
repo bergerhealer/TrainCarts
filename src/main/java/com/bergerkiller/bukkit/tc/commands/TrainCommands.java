@@ -18,9 +18,11 @@ import com.bergerkiller.bukkit.tc.commands.cloud.ArgumentList;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
+import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
+import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
@@ -570,20 +572,26 @@ public class TrainCommands {
                 p.sendMessage(ChatColor.YELLOW + "The selected train has its displayed block offset updated!");
             }
         } else {
-            if (args.length == 1) {
-                PropertyParseResult<?> parseResult = prop.parseAndSet(cmd, args[0]);
-                if (parseResult.isSuccessful()) {
-                    p.sendMessage(ChatColor.GREEN + "Property has been updated!");
-                    return;
-                } else if (parseResult.getReason() != PropertyParseResult.Reason.PROPERTY_NOT_FOUND) {
-                    p.sendMessage(parseResult.getMessage());
+            if (args.length >= 1) {
+                PropertyParseResult<Object> parseResult = IPropertyRegistry.instance().parseAndSet(
+                        prop, cmd, String.join(" ", args),
+                        (result) -> {
+                            if (!result.hasPermission(p)) {
+                                throw new NoPermissionForPropertyException(result.getName());
+                            }
+                        });
+
+                if (parseResult.getReason() != PropertyParseResult.Reason.PROPERTY_NOT_FOUND) {
+                    if (parseResult.isSuccessful()) {
+                        p.sendMessage(ChatColor.GREEN + "Property has been updated!");
+                    } else {
+                        p.sendMessage(parseResult.getMessage());
+                    }
                     return;
                 }
             }
 
-            if (!cmd.equalsIgnoreCase("help") && !cmd.equalsIgnoreCase("?")) {
-                p.sendMessage(ChatColor.RED + "Unknown cart command: '" + cmd + "'!");
-            }
+            p.sendMessage(ChatColor.RED + "Unknown train command: '" + cmd + "'!");
             help(new MessageBuilder()).send(p);
             return;
         }
