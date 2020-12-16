@@ -7,6 +7,9 @@ public class Permission extends PermissionEnum {
     public static final Permission COMMAND_GLOBALPROPERTIES = new Permission("train.command.globalproperties", PermissionDefault.OP, "The player can edit the properties of all carts");
     public static final Permission COMMAND_PROPERTIES = new Permission("train.command.properties", PermissionDefault.TRUE, "The player can edit the properties of carts he owns");
 
+    // Powerful permission to apply all properties from defaults
+    public static final Permission PROPERTY_APPLYDEFAULTS = new Permission("train.property.applydefaults", PermissionDefault.OP, "The player can apply defaults from DefaultTrainProperties.yml to trains");
+
     // These permissions are active for both property-based commands, and building new property signs
     public static final Permission PROPERTY_NAME = new Permission("train.property.name", PermissionDefault.TRUE, "The player can change the name of the train");
     public static final Permission PROPERTY_MAXSPEED = new Permission("train.property.maxspeed", PermissionDefault.TRUE, "The player can alter the maximum speed of trains");
@@ -19,6 +22,16 @@ public class Permission extends PermissionEnum {
     public static final Permission PROPERTY_BANKING = new Permission("train.property.banking", PermissionDefault.TRUE, "The player can change the way trains bank in curves");
     public static final Permission PROPERTY_DESTINATION = new Permission("train.property.destination", PermissionDefault.TRUE, "The player can change what destination a train is path-finding to");
     public static final Permission PROPERTY_TAGS = new Permission("train.property.tags", PermissionDefault.TRUE, "The player can add or remove tags to trains or carts, used by switchers and detectors");
+    public static final Permission PROPERTY_ONLYOWNERSCANENTER = new Permission("train.property.onlyownerscanenter", PermissionDefault.TRUE, "The player can change whether only owners or all players can enter a train");
+    public static final Permission PROPERTY_PICKUPITEMS = new Permission("train.property.pickupitems", PermissionDefault.TRUE, "The player can change whether storage carts pick up items off the ground");
+    public static final Permission PROPERTY_SOUNDENABLED = new Permission("train.property.soundenabled", PermissionDefault.TRUE, "The player can change whether a train makes sound while moving, or is quiet");
+    public static final Permission PROPERTY_INVINCIBLE = new Permission("train.property.invincible", PermissionDefault.TRUE, "The player can change whether a train is invincible to damage or can be destroyed");
+    public static final Permission PROPERTY_ALLOWPLAYERTAKE = new Permission("train.property.allowplayertake", PermissionDefault.TRUE, "The player can change whether the players take carts with them when they leave the server");
+    public static final Permission PROPERTY_SPAWNITEMDROPS = new Permission("train.property.spawnitemdrops", PermissionDefault.TRUE, "The player can change whether carts drop items when destroyed");
+    public static final Permission PROPERTY_REQUIREPOWEREDCART = new Permission("train.property.requirepoweredcart", PermissionDefault.TRUE, "The player can change whether a train must have a furnace minecart to exist, or unlink");
+    public static final Permission PROPERTY_DISPLAYNAME = new Permission("train.property.displayname", PermissionDefault.TRUE, "The player can change the display name of a train, which is used with the trigger sign");
+    public static final Permission PROPERTY_ALLOWMOBMANUALMOVEMENT = new Permission("train.property.allowmobmanualmovement", PermissionDefault.TRUE, "The player can allow a train to be set in motion by mob passengers");
+    public static final Permission PROPERTY_ALLOWPLAYERMANUALMOVEMENT = new Permission("train.property.allowplayermanualmovement", PermissionDefault.TRUE, "The player can allow player passengers to control the train using steering controls");
 
     public static final Permission COMMAND_DESTROY = new Permission("train.command.destroy", PermissionDefault.OP, "The player can destroy owned carts through commands");
     public static final Permission COMMAND_DESTROYALL = new Permission("train.command.destroyall", PermissionDefault.OP, "The player can destroy all trains on the server");
@@ -95,19 +108,9 @@ public class Permission extends PermissionEnum {
     public static final Permission TICKET_MANAGE = new Permission("train.ticket.manage", PermissionDefault.OP, "The player can edit the details of existing tickets or create new tickets");
 
     // These will all be deleted soon
-    public static final Permission COMMAND_DISPLAYNAME = new Permission("train.command.displayname", PermissionDefault.TRUE, "The player can change the display name of his owned trains");
-    public static final Permission COMMAND_MANUALMOVE = new Permission("train.command.manualmove", PermissionDefault.TRUE, "Whether the player can change if trains can be moved by damaging them");
-    public static final Permission COMMAND_PLAYERTAKE = new Permission("train.command.playertake", PermissionDefault.OP, "Whether the player can change if players take Minecarts with them when they leave");
-    public static final Permission COMMAND_SOUND = new Permission("train.command.soundenabled", PermissionDefault.OP, "Whether the player can turn Minecart sound on or off");
     public static final Permission COMMAND_BREAKBLOCK = new Permission("train.command.break", PermissionDefault.TRUE, "The player can set blocks the cart can break from a set list");
     public static final Permission COMMAND_BREAKBLOCK_ADMIN = new Permission("train.command.breakblock.admin", PermissionDefault.OP, "The player can set blocks the cart can break, any type");
-    public static final Permission COMMAND_SETPUBLIC = new Permission("train.command.setpublic", PermissionDefault.TRUE, "The player can make his owned carts open for the public");
     public static final Permission COMMAND_SETOWNERS = new Permission("train.command.setowners", PermissionDefault.TRUE, "The player can set the owners of his owned carts");
-    public static final Permission COMMAND_PICKUP = new Permission("train.command.pickup", PermissionDefault.TRUE, "The player can set if his owned storage carts pick up items");
-    public static final Permission COMMAND_SETLINKING = new Permission("train.command.setlinking", PermissionDefault.TRUE, "The player can set if his owned trains can link to other trains");
-    public static final Permission COMMAND_INVINCIBLE = new Permission("train.command.invincible", PermissionDefault.OP, "The player can set if his owned trains are invincible");
-    public static final Permission COMMAND_PUSHING = new Permission("train.command.pushing", PermissionDefault.TRUE, "The player can set if his owned trains push away certain entities");
-    public static final Permission COMMAND_SETPOWERCARTREQ = new Permission("train.command.setpoweredcartrequirement", PermissionDefault.TRUE, "The player can set if a powered minecart is needed for his train to stay alive");
 
     // Special hidden debug sekretz
     public static final Permission DEBUG_COMMAND_DEBUG = new Permission("train.debug", PermissionDefault.OP, "The player can use special commands useful for debugging the plugin");

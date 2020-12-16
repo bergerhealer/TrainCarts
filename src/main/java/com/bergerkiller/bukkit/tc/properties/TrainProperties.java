@@ -107,6 +107,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     @Override
     public final <T> void set(IProperty<T> property, T value) {
         property.set(this, value);
+        TrainPropertiesStore.markForAutosave(); //TODO: Deprecate
     }
 
     /**

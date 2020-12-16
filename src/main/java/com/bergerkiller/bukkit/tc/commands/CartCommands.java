@@ -39,6 +39,15 @@ import java.util.Set;
 
 public class CartCommands {
 
+    @CommandMethod("cart info|i")
+    @CommandDescription("Displays the properties of the cart")
+    private void commandInfo(
+            final Player player,
+            final CartProperties properties
+    ) {
+        info(player, properties);
+    }
+
     @CommandMethod("cart destroy|remove")
     @CommandDescription("Destroys the single cart that is selected")
     private void commandDestroy(
@@ -116,9 +125,7 @@ public class CartCommands {
 
     public static void execute(Player p, CartProperties prop, String cmd, String[] args) throws NoPermissionException {
         TrainPropertiesStore.markForAutosave();
-        if (cmd.equals("info") || cmd.equals("i")) {
-            info(p, prop);
-        } else if (cmd.equalsIgnoreCase("claim")) {
+        if (cmd.equalsIgnoreCase("claim")) {
             Permission.COMMAND_SETOWNERS.handle(p);
             prop.clearOwners();
             prop.setOwner(p, true);
@@ -167,30 +174,6 @@ public class CartCommands {
                 p.sendMessage(ChatColor.YELLOW + "You added the owner permissions " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " to this minecart");
                 p.sendMessage(ChatColor.YELLOW + "Players that have these permission nodes are considered owners of this Minecart");
             }
-        } else if (cmd.equalsIgnoreCase("public")) {
-            Permission.COMMAND_SETPUBLIC.handle(p);
-            if (args.length == 0) {
-                prop.setCanOnlyOwnersEnter(false);
-            } else {
-                prop.setCanOnlyOwnersEnter(!ParseUtil.parseBool(args[0]));
-            }
-            p.sendMessage(ChatColor.YELLOW + "The selected minecart can be entered by everyone: " + ChatColor.WHITE + !prop.getCanOnlyOwnersEnter());
-        } else if (LogicUtil.containsIgnoreCase(cmd, "private", "locked", "lock")) {
-            Permission.COMMAND_SETPUBLIC.handle(p);
-            if (args.length == 0) {
-                prop.setCanOnlyOwnersEnter(true);
-            } else {
-                prop.setCanOnlyOwnersEnter(ParseUtil.parseBool(args[0]));
-            }
-            p.sendMessage(ChatColor.YELLOW + "The selected minecart can only be entered by you: " + ChatColor.WHITE + prop.getCanOnlyOwnersEnter());
-        } else if (cmd.equalsIgnoreCase("pickup")) {
-            Permission.COMMAND_PICKUP.handle(p);
-            if (args.length == 0) {
-                prop.setPickup(true);
-            } else {
-                prop.setPickup(ParseUtil.parseBool(args[0]));
-            }
-            p.sendMessage(ChatColor.YELLOW + "The selected minecart picks up nearby items: " + ChatColor.WHITE + prop.canPickup());
         } else if (cmd.equalsIgnoreCase("break")) {
             Permission.COMMAND_BREAKBLOCK.handle(p);
             if (args.length == 0) {

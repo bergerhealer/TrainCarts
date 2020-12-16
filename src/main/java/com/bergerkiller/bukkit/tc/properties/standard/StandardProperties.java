@@ -7,24 +7,19 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.bukkit.Material;
+import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
-import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
-import com.bergerkiller.bukkit.tc.properties.api.IProperty;
-import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
-import com.bergerkiller.bukkit.tc.properties.api.ISyntheticProperty;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
-import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.standard.category.*;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardCartProperty;
-import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
 
 /**
  * All standard TrainCarts built-in train and cart properties
@@ -47,134 +42,15 @@ public class StandardProperties {
     public static final GravityProperty GRAVITY = new GravityProperty();
     public static final SpeedLimitProperty SPEEDLIMIT = new SpeedLimitProperty();
     public static final TrainNameProperty TRAIN_NAME = new TrainNameProperty();
-
-    public static final FieldBackedStandardCartProperty<Boolean> ONLY_OWNERS_CAN_ENTER = new FieldBackedStandardCartProperty<Boolean>() {
-
-        @PropertyParser("onlyownerscanenter")
-        public boolean parseCanEnter(PropertyParseContext<Boolean> context) {
-            return context.inputBoolean();
-        }
-
-        @Override
-        public Boolean getDefault() {
-            return Boolean.FALSE;
-        }
-
-        @Override
-        public Boolean getData(CartInternalData data) {
-            return data.canOnlyOwnersEnter;
-        }
-
-        @Override
-        public void setData(CartInternalData data, Boolean value) {
-            data.canOnlyOwnersEnter = value.booleanValue();
-        }
-
-        @Override
-        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
-            // Legacy
-            if (config.contains("public")) {
-                return Optional.of(!config.get("public", true));
-            }
-
-            return Util.getConfigOptional(config, "onlyOwnersCanEnter", boolean.class);
-        }
-
-        @Override
-        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
-            config.remove("public"); // legacy
-            Util.setConfigOptional(config, "onlyOwnersCanEnter", value);
-        }
-
-        @Override
-        public Boolean get(TrainProperties properties) {
-            for (CartProperties cProp : properties) {
-                if (!get(cProp)) {
-                    return Boolean.FALSE;
-                }
-            }
-            return Boolean.TRUE;
-        }
-    };
-
-    public static final FieldBackedStandardCartProperty<Boolean> PICK_UP_ITEMS = new FieldBackedStandardCartProperty<Boolean>() {
-
-        @PropertyParser("pickup|pickupitems")
-        public boolean parsePickupItems(PropertyParseContext<Boolean> context) {
-            return context.inputBoolean();
-        }
-
-        @Override
-        public Boolean getDefault() {
-            return Boolean.FALSE;
-        }
-
-        @Override
-        public Boolean getData(CartInternalData data) {
-            return data.pickUpItems;
-        }
-
-        @Override
-        public void setData(CartInternalData data, Boolean value) {
-            data.pickUpItems = value.booleanValue();
-        }
-
-        @Override
-        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
-            return Util.getConfigOptional(config, "pickUp", boolean.class);
-        }
-
-        @Override
-        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
-            Util.setConfigOptional(config, "pickUp", value);
-        }
-    };
-
-    public static final ICartProperty<Boolean> INVINCIBLE = new ICartProperty<Boolean>() {
-
-        @PropertyParser("invincible|godmode")
-        public boolean parseInvincible(PropertyParseContext<Boolean> context) {
-            return context.inputBoolean();
-        }
-
-        @Override
-        public Boolean getDefault() {
-            return Boolean.FALSE;
-        }
-
-        @Override
-        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
-            return Util.getConfigOptional(config, "invincible", boolean.class);
-        }
-
-        @Override
-        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
-            Util.setConfigOptional(config, "invincible", value);
-        }
-    };
-
-    public static final ICartProperty<Boolean> SPAWN_ITEM_DROPS = new ICartProperty<Boolean>() {
-
-        @PropertyParser("spawnitemdrops|spawndrops|killdrops")
-        public boolean parseSpawnItemDrops(PropertyParseContext<Boolean> context) {
-            return context.inputBoolean();
-        }
-
-        @Override
-        public Boolean getDefault() {
-            return Boolean.TRUE;
-        }
-
-        @Override
-        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
-            return Util.getConfigOptional(config, "spawnItemDrops", boolean.class);
-        }
-
-        @Override
-        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
-            Util.setConfigOptional(config, "spawnItemDrops", value);
-        }
-    };
+    public static final OnlyOwnersCanEnterProperty ONLY_OWNERS_CAN_ENTER = new OnlyOwnersCanEnterProperty();
+    public static final PickUpItemsProperty PICK_UP_ITEMS = new PickUpItemsProperty();
+    public static final SoundEnabledProperty SOUND_ENABLED = new SoundEnabledProperty();
+    public static final InvincibleProperty INVINCIBLE = new InvincibleProperty();
+    public static final AllowPlayerTakeProperty ALLOW_PLAYER_TAKE = new AllowPlayerTakeProperty();
+    public static final SpawnItemDropsProperty SPAWN_ITEM_DROPS = new SpawnItemDropsProperty();
+    public static final DisplayNameProperty DISPLAY_NAME = new DisplayNameProperty();
+    public static final AllowManualMobMovementProperty ALLOW_MOB_MANUAL_MOVEMENT = new AllowManualMobMovementProperty();
+    public static final AllowManualPlayerMovementProperty ALLOW_PLAYER_MANUAL_MOVEMENT = new AllowManualPlayerMovementProperty();
 
     public static final ICartProperty<String> ENTER_MESSAGE = new ICartProperty<String>() {
 
@@ -456,6 +332,17 @@ public class StandardProperties {
     };
 
     public static final ITrainProperty<Boolean> REQUIRE_POWERED_MINECART = new ITrainProperty<Boolean>() {
+
+        @PropertyParser("requirepoweredminecart|requirepowered")
+        public boolean parseRequirePowered(PropertyParseContext<Boolean> context) {
+            return context.inputBoolean();
+        }
+
+        @Override
+        public boolean hasPermission(CommandSender sender, String name) {
+            return Permission.PROPERTY_REQUIREPOWEREDCART.has(sender);
+        }
+
         @Override
         public Boolean getDefault() {
             return Boolean.FALSE;
@@ -469,72 +356,6 @@ public class StandardProperties {
         @Override
         public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
             Util.setConfigOptional(config, "requirePoweredMinecart", value);
-        }
-    };
-
-    public static final FieldBackedStandardTrainProperty<Boolean> ALLOW_MOB_MANUAL_MOVEMENT = new FieldBackedStandardTrainProperty<Boolean>() {
-
-        @PropertyParser("allowmobmanual|mobmanualmove|mobmanual")
-        public boolean parseAllowMovement(PropertyParseContext<Boolean> context) {
-            return context.inputBoolean();
-        }
-
-        @Override
-        public Boolean getDefault() {
-            return Boolean.FALSE;
-        }
-
-        @Override
-        public Boolean getData(TrainInternalData data) {
-            return data.allowMobManualMovement;
-        }
-
-        @Override
-        public void setData(TrainInternalData data, Boolean value) {
-            data.allowMobManualMovement = value.booleanValue();
-        }
-
-        @Override
-        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
-            return Util.getConfigOptional(config, "allowMobManualMovement", boolean.class);
-        }
-
-        @Override
-        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
-            Util.setConfigOptional(config, "allowMobManualMovement", value);
-        }
-    };
-
-    public static final FieldBackedStandardTrainProperty<Boolean> ALLOW_PLAYER_MANUAL_MOVEMENT = new FieldBackedStandardTrainProperty<Boolean>() {
-
-        @PropertyParser("allowmanual|manualmove|manual")
-        public boolean parseAllowMovement(PropertyParseContext<Boolean> context) {
-            return context.inputBoolean();
-        }
-
-        @Override
-        public Boolean getDefault() {
-            return Boolean.FALSE;
-        }
-
-        @Override
-        public Boolean getData(TrainInternalData data) {
-            return data.allowPlayerManualMovement;
-        }
-
-        @Override
-        public void setData(TrainInternalData data, Boolean value) {
-            data.allowPlayerManualMovement = value.booleanValue();
-        }
-
-        @Override
-        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
-            return Util.getConfigOptional(config, "allowManualMovement", boolean.class);
-        }
-
-        @Override
-        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
-            Util.setConfigOptional(config, "allowManualMovement", value);
         }
     };
 
@@ -562,56 +383,6 @@ public class StandardProperties {
         }
     };
 
-    public static final ITrainProperty<Boolean> ALLOW_PLAYER_TAKE = new ITrainProperty<Boolean>() {
-        @Override
-        public Boolean getDefault() {
-            return Boolean.FALSE;
-        }
-
-        @Override
-        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
-            return Util.getConfigOptional(config, "allowPlayerTake", boolean.class);
-        }
-
-        @Override
-        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
-            Util.setConfigOptional(config, "allowPlayerTake", value);
-        }
-    };
-
-    public static final FieldBackedStandardTrainProperty<Boolean> SOUND_ENABLED = new FieldBackedStandardTrainProperty<Boolean>() {
-
-        @PropertyParser("sound|minecartsound")
-        public boolean parseSoundEnabled(PropertyParseContext<Boolean> context) {
-            return context.inputBoolean();
-        }
-
-        @Override
-        public Boolean getDefault() {
-            return Boolean.TRUE;
-        }
-
-        @Override
-        public Boolean getData(TrainInternalData data) {
-            return data.soundEnabled;
-        }
-
-        @Override
-        public void setData(TrainInternalData data, Boolean value) {
-            data.soundEnabled = value.booleanValue();
-        }
-
-        @Override
-        public Optional<Boolean> readFromConfig(ConfigurationNode config) {
-            return Util.getConfigOptional(config, "soundEnabled", boolean.class);
-        }
-
-        @Override
-        public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
-            Util.setConfigOptional(config, "soundEnabled", value);
-        }
-    };
-
     /**
      * Configures train behavior for waiting on obstacles on the track ahead
      */
@@ -627,70 +398,5 @@ public class StandardProperties {
      * Applies default train properties from configuration by name to the train.
      * Only used to make this available as a property.
      */
-    public static final ISyntheticProperty<ConfigurationNode> DEFAULT_CONFIG = new ISyntheticProperty<ConfigurationNode>() {
-
-        @PropertyParser("setdefault|default")
-        public ConfigurationNode parseDefaultConfig(String defaultName) {
-            ConfigurationNode defaults = TrainPropertiesStore.getDefaultsByName(defaultName);
-            if (defaults == null) {
-                throw new PropertyInvalidInputException("Train Property Defaults by key '" + defaultName + "' does not exist");
-            }
-            return defaults;
-        }
-
-        @Override
-        public ConfigurationNode getDefault() {
-            return TrainPropertiesStore.getDefaultsByName("default");
-        }
-
-        @Override
-        public ConfigurationNode get(CartProperties properties) {
-            return getDefault();
-        }
-
-        @Override
-        public ConfigurationNode get(TrainProperties properties) {
-            return getDefault();
-        }
-
-        @Override
-        public void set(CartProperties properties, ConfigurationNode config) {
-            // Go by all properties and apply them to the cart
-            // Do note: if properties are for trains, they are applied too!
-            for (IProperty<Object> property : IPropertyRegistry.instance().all()) {
-                Optional<Object> value = property.readFromConfig(config);
-                if (value.isPresent()) {
-                    properties.set(property, value.get());
-                }
-            }
-        }
-
-        @Override
-        public void set(TrainProperties properties, ConfigurationNode config) {
-            properties.apply(config);
-        }
-    };
-
-    public static final ITrainProperty<String> DISPLAY_NAME = new ITrainProperty<String>() {
-
-        @PropertyParser("dname|displayname|setdisplayname|setdname")
-        public String parseName(String input) {
-            return input;
-        }
-
-        @Override
-        public String getDefault() {
-            return "";
-        }
-
-        @Override
-        public Optional<String> readFromConfig(ConfigurationNode config) {
-            return Util.getConfigOptional(config, "displayName", String.class);
-        }
-
-        @Override
-        public void writeToConfig(ConfigurationNode config, Optional<String> value) {
-            Util.setConfigOptional(config, "displayName", value);
-        }
-    };
+    public static final DefaultConfigSyntheticProperty DEFAULT_CONFIG = new DefaultConfigSyntheticProperty();
 }

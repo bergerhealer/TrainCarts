@@ -341,37 +341,7 @@ public class TrainCommands {
 
     public static void execute(Player p, TrainProperties prop, String cmd, String[] args) throws NoPermissionException {
         TrainPropertiesStore.markForAutosave();
-        if (LogicUtil.containsIgnoreCase(cmd, "sound", "soundenabled")) {
-            if (args.length == 1) {
-                Permission.COMMAND_SOUND.handle(p);
-                prop.setSoundEnabled(ParseUtil.parseBool(args[0]));
-            }
-            p.sendMessage(ChatColor.YELLOW + "Minecart sound enabled: " + ChatColor.WHITE + prop.isSoundEnabled());
-        } else if (LogicUtil.containsIgnoreCase(cmd, "playertake", "allowplayertake")) {
-            if (args.length == 1) {
-                Permission.COMMAND_PLAYERTAKE.handle(p);
-                prop.setPlayerTakeable(ParseUtil.parseBool(args[0]));
-            }
-            p.sendMessage(ChatColor.YELLOW + "Players take Minecart with them: " + ChatColor.WHITE + prop.isPlayerTakeable());
-        } else if (cmd.equalsIgnoreCase("invincible")) {
-            if (args.length == 1) {
-                Permission.COMMAND_INVINCIBLE.handle(p);
-                prop.setInvincible(ParseUtil.parseBool(args[0]));
-            }
-            p.sendMessage(ChatColor.YELLOW + "Train invincible: " + ChatColor.WHITE + prop.isInvincible());
-        } else if (LogicUtil.containsIgnoreCase(cmd, "manualmove", "allowmanual", "manual", "allowmanualmovement")) {
-            if (args.length == 1) {
-                Permission.COMMAND_MANUALMOVE.handle(p);
-                prop.setManualMovementAllowed(ParseUtil.parseBool(args[0]));
-            }
-            p.sendMessage(ChatColor.YELLOW + "Players can move carts while inside: " + ChatColor.WHITE + prop.isManualMovementAllowed());
-        } else if (LogicUtil.containsIgnoreCase(cmd, "mobmanualmove", "allowmobmanual", "mobmanual", "allowmobmanualmovement")) {
-            if (args.length == 1) {
-                Permission.COMMAND_MANUALMOVE.handle(p);
-                prop.setMobManualMovementAllowed(ParseUtil.parseBool(args[0]));
-            }
-            p.sendMessage(ChatColor.YELLOW + "Mobs can move carts while inside: " + ChatColor.WHITE + prop.isMobManualMovementAllowed());
-        } else if (LogicUtil.containsIgnoreCase(cmd, "setownerperm", "setownerpermission", "setownerpermissions")) {
+        if (LogicUtil.containsIgnoreCase(cmd, "setownerperm", "setownerpermission", "setownerpermissions")) {
             Permission.COMMAND_SETOWNERS.handle(p);
             prop.clearOwnerPermissions();
             if (args.length == 0) {
@@ -455,47 +425,6 @@ public class TrainCommands {
                 p.sendMessage(ChatColor.YELLOW + "Owners updated for " + changed + " train carts your own!");
             } else {
                 p.sendMessage(ChatColor.RED + "You failed to set any owners: you don't own any carts!");
-            }
-        } else if (LogicUtil.containsIgnoreCase(cmd, "requirepoweredminecart", "requirepowered")) {
-            Permission.COMMAND_SETPOWERCARTREQ.handle(p);
-            if (args.length == 1) {
-                prop.setPoweredMinecartRequired(ParseUtil.parseBool(args[0]));
-            }
-            p.sendMessage(ChatColor.YELLOW + "Requires powered minecart to stay alive: " + ChatColor.WHITE + prop.isPoweredMinecartRequired());
-        } else if (LogicUtil.containsIgnoreCase(cmd, "displayname", "display", "dname", "setdname", "setdisplayname")) {
-            Permission.COMMAND_DISPLAYNAME.handle(p);
-            if (args.length == 0) {
-                p.sendMessage(ChatColor.RED + "You forgot to pass a name along!");
-            } else {
-                prop.setDisplayName(StringUtil.ampToColor(StringUtil.join(" ", args)));
-                p.sendMessage(ChatColor.YELLOW + "The display name on trigger signs is now " + ChatColor.WHITE + prop.getDisplayName() + ChatColor.YELLOW + "!");
-            }
-        } else if (cmd.equalsIgnoreCase("public")) {
-            Permission.COMMAND_SETPUBLIC.handle(p);
-            boolean pub;
-            pub = args.length == 0 || ParseUtil.parseBool(args[0]);
-            prop.setCanOnlyOwnersEnter(!pub);
-            p.sendMessage(ChatColor.YELLOW + "The selected train can be entered by everyone: " + ChatColor.WHITE + pub);
-        } else if (LogicUtil.containsIgnoreCase(cmd, "private", "locked", "lock")) {
-            Permission.COMMAND_SETPUBLIC.handle(p);
-            boolean pub;
-            pub = args.length != 0 && !ParseUtil.parseBool(args[0]);
-            prop.setCanOnlyOwnersEnter(!pub);
-            p.sendMessage(ChatColor.YELLOW + "The selected train can only be entered by the respective owners: " + ChatColor.WHITE + !pub);
-        } else if (cmd.equalsIgnoreCase("pickup")) {
-            Permission.COMMAND_PICKUP.handle(p);
-            boolean mode = true;
-            if (args.length > 0) mode = ParseUtil.parseBool(args[0]);
-            prop.setPickup(mode);
-            p.sendMessage(ChatColor.YELLOW + "The selected train picks up nearby items: " + ChatColor.WHITE + mode);
-        } else if (LogicUtil.containsIgnoreCase(cmd, "default", "def")) {
-            Permission.COMMAND_DEFAULT.handle(p);
-            if (args.length == 0) {
-                p.sendMessage(ChatColor.RED + "Not enough args!");
-                return;
-            } else {
-                prop.setDefault(args[0]);
-                p.sendMessage(ChatColor.GREEN + "Train properties has been re-set to the defaults named '" + args[0] + "'!");
             }
         } else if (cmd.equalsIgnoreCase("break")) {
             Permission.COMMAND_BREAKBLOCK.handle(p);
