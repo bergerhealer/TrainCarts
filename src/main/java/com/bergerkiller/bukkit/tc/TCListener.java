@@ -48,6 +48,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.Sign;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
@@ -911,12 +912,39 @@ public class TCListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
-    public void onSignChange(SignChangeEvent event) {
-        if (event.isCancelled() || TrainCarts.isWorldDisabled(event)) {
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onBlockPlaceSignCheck(BlockPlaceEvent event) {
+        Sign sign;
+        if (
+            !event.canBuild() ||
+            TrainCarts.isWorldDisabled(event) ||
+            !MaterialUtil.ISSIGN.get(event.getBlockPlaced()) ||
+            (sign = BlockUtil.getSign(event.getBlockPlaced())) == null
+        ) {
             return;
         }
 
+        // Mock a sign change event to handle building it
+        SignChangeEvent change_event = new SignChangeEvent(
+                event.getBlockPlaced(),
+                event.getPlayer(),
+                sign.getLines());
+        handleSignChange(change_event);
+
+        // If cancelled, cancel block placement too
+        if (change_event.isCancelled()) {
+            event.setBuild(false);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onSignChange(SignChangeEvent event) {
+        if (!TrainCarts.isWorldDisabled(event)) {
+            handleSignChange(event);
+        }
+    }
+
+    private void handleSignChange(SignChangeEvent event) {
         // Reset cache to make sure all signs are recomputed later, after the sign was made
         // Doing it here, in the most generic case, so that custom addon signs are also refreshed
         RailSignCache.reset();
