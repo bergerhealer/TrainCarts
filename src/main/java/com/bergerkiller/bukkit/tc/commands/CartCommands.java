@@ -125,56 +125,7 @@ public class CartCommands {
 
     public static void execute(Player p, CartProperties prop, String cmd, String[] args) throws NoPermissionException {
         TrainPropertiesStore.markForAutosave();
-        if (cmd.equalsIgnoreCase("claim")) {
-            Permission.COMMAND_SETOWNERS.handle(p);
-            prop.clearOwners();
-            prop.setOwner(p, true);
-            p.sendMessage(ChatColor.YELLOW + "You claimed this minecart your own!");
-        } else if (LogicUtil.containsIgnoreCase(cmd, "addowner", "addowners")) {
-            Permission.COMMAND_SETOWNERS.handle(p);
-            if (args.length == 0) {
-                p.sendMessage(ChatColor.YELLOW + "Please specify the player names to set as owner!");
-            } else {
-                for (String owner : args) {
-                    prop.setOwner(owner.toLowerCase());
-                }
-                p.sendMessage(ChatColor.YELLOW + "You added " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " as owners of this minecart!");
-            }
-        } else if (LogicUtil.containsIgnoreCase(cmd, "setowner", "setowners")) {
-            Permission.COMMAND_SETOWNERS.handle(p);
-            prop.clearOwners();
-            if (args.length == 0) {
-                p.sendMessage(ChatColor.YELLOW + "All owners for this minecart have been cleared!");
-            } else {
-                for (String owner : args) {
-                    prop.setOwner(owner.toLowerCase());
-                }
-                p.sendMessage(ChatColor.YELLOW + "You set " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " as owners of this minecart!");
-            }
-        } else if (LogicUtil.containsIgnoreCase(cmd, "setownerperm", "setownerpermission", "setownerpermissions")) {
-            Permission.COMMAND_SETOWNERS.handle(p);
-            prop.clearOwnerPermissions();
-            if (args.length == 0) {
-                p.sendMessage(ChatColor.YELLOW + "All owner permissions for this minecart have been cleared!");
-            } else {
-                for (String ownerPerm : args) {
-                    prop.addOwnerPermission(ownerPerm);
-                }
-                p.sendMessage(ChatColor.YELLOW + "You set the owner permissions " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " for this minecart");
-                p.sendMessage(ChatColor.YELLOW + "Players that have these permission nodes are considered owners of this Minecart");
-            }
-        } else if (LogicUtil.containsIgnoreCase(cmd, "addownerperm", "addownerpermission", "addownerpermissions")) {
-            Permission.COMMAND_SETOWNERS.handle(p);
-            if (args.length == 0) {
-                p.sendMessage(ChatColor.YELLOW + "Please specify the permission nodes to add!");
-            } else {
-                for (String ownerPerm : args) {
-                    prop.removeOwnerPermission(ownerPerm);
-                }
-                p.sendMessage(ChatColor.YELLOW + "You added the owner permissions " + ChatColor.WHITE + StringUtil.combineNames(args) + ChatColor.YELLOW + " to this minecart");
-                p.sendMessage(ChatColor.YELLOW + "Players that have these permission nodes are considered owners of this Minecart");
-            }
-        } else if (cmd.equalsIgnoreCase("break")) {
+        if (cmd.equalsIgnoreCase("break")) {
             Permission.COMMAND_BREAKBLOCK.handle(p);
             if (args.length == 0) {
                 p.sendMessage(ChatColor.YELLOW + "This cart breaks: " + ChatColor.WHITE + StringUtil.combineNames(prop.getBlockBreakTypes()));
@@ -278,7 +229,7 @@ public class CartCommands {
         MessageBuilder message = new MessageBuilder();
 
         //warning message not taken
-        if (!prop.hasOwners()) {
+        if (prop.hasOwners()) {
             message.newLine().yellow("Note: This minecart is not owned, claim it using /cart claim!");
         }
         message.yellow("Picks up nearby items: ").white(prop.canPickup());

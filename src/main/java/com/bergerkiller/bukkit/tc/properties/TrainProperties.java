@@ -555,6 +555,30 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         }
     }
 
+    public void addOwnerPermission(final String permission) {
+        for (CartProperties prop : this) {
+            prop.addOwnerPermission(permission);
+        }
+    }
+
+    public void removeOwnerPermission(final String permission) {
+        for (CartProperties prop : this) {
+            prop.removeOwnerPermission(permission);
+        }
+    }
+
+    /**
+     * Sets whether a player name is an owner of carts of this train.
+     * 
+     * @param player Name of the player to add
+     * @param owner True to add as owner, False to remove as owner
+     */
+    public void setOwner(final String player, final boolean owner) {
+        for (CartProperties cProp : this) {
+            cProp.setOwner(player, owner);
+        }
+    }
+
     /**
      * Gets whether this Train supports players taking minecarts with them when they leave. When the Minecart is part of a
      * Train, it is always disallowed.

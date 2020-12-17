@@ -12,6 +12,7 @@ public class Permission extends PermissionEnum {
 
     // These permissions are active for both property-based commands, and building new property signs
     public static final Permission PROPERTY_NAME = new Permission("train.property.name", PermissionDefault.TRUE, "The player can change the name of the train");
+    public static final Permission PROPERTY_OWNERS = new Permission("train.property.owners", PermissionDefault.TRUE, "The player can change who has ownership of carts and can edit them");
     public static final Permission PROPERTY_MAXSPEED = new Permission("train.property.maxspeed", PermissionDefault.TRUE, "The player can alter the maximum speed of trains");
     public static final Permission PROPERTY_SLOWDOWN = new Permission("train.property.slowdown", PermissionDefault.TRUE, "The player can change whether trains slow down due to gravity or friction");
     public static final Permission PROPERTY_COLLISION = new Permission("train.property.collision", PermissionDefault.TRUE, "The player can change what happens when trains collide with entities or blocks");
@@ -110,7 +111,6 @@ public class Permission extends PermissionEnum {
     // These will all be deleted soon
     public static final Permission COMMAND_BREAKBLOCK = new Permission("train.command.break", PermissionDefault.TRUE, "The player can set blocks the cart can break from a set list");
     public static final Permission COMMAND_BREAKBLOCK_ADMIN = new Permission("train.command.breakblock.admin", PermissionDefault.OP, "The player can set blocks the cart can break, any type");
-    public static final Permission COMMAND_SETOWNERS = new Permission("train.command.setowners", PermissionDefault.TRUE, "The player can set the owners of his owned carts");
 
     // Special hidden debug sekretz
     public static final Permission DEBUG_COMMAND_DEBUG = new Permission("train.debug", PermissionDefault.OP, "The player can use special commands useful for debugging the plugin");

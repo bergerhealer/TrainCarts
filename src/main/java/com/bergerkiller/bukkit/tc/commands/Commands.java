@@ -25,6 +25,7 @@ import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.mountiplex.MountiplexUtil;
 
 import cloud.commandframework.annotations.CommandDescription;
@@ -246,21 +247,7 @@ public class Commands {
     public static void info(MessageBuilder message, IProperties prop) {
         // Ownership information
         message.newLine();
-        if (!prop.hasOwners() && !prop.hasOwnerPermissions()) {
-            message.yellow("Owned by: ").white("Everyone");
-        } else {
-            if (prop.hasOwners()) {
-                message.yellow("Owned by: ").white(StringUtil.combineNames(prop.getOwners()));
-            }
-            if (prop.hasOwnerPermissions()) {
-                message.yellow("Owned by players with the permissions: ");
-                message.setSeparator(ChatColor.YELLOW, " / ").setIndent(4);
-                for (String ownerPerm : prop.getOwnerPermissions()) {
-                    message.white(ownerPerm);
-                }
-                message.clearSeparator().setIndent(0);
-            }
-        }
+        StandardProperties.OWNERS.addOwnerInfo(message, prop);
 
         // Tags and other information
         message.newLine().yellow("Tags: ").white((prop.hasTags() ? StringUtil.combineNames(prop.getTags()) : "None"));

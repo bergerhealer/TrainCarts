@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.properties.standard;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -13,7 +12,6 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
@@ -51,6 +49,8 @@ public class StandardProperties {
     public static final DisplayNameProperty DISPLAY_NAME = new DisplayNameProperty();
     public static final AllowManualMobMovementProperty ALLOW_MOB_MANUAL_MOVEMENT = new AllowManualMobMovementProperty();
     public static final AllowManualPlayerMovementProperty ALLOW_PLAYER_MANUAL_MOVEMENT = new AllowManualPlayerMovementProperty();
+    public static final OwnerSetProperty OWNERS = new OwnerSetProperty();
+    public static final OwnerPermissionSet OWNER_PERMISSIONS = new OwnerPermissionSet();
 
     public static final ICartProperty<String> ENTER_MESSAGE = new ICartProperty<String>() {
 
@@ -152,136 +152,6 @@ public class StandardProperties {
         @Override
         public void writeToConfig(ConfigurationNode config, Optional<String> value) {
             Util.setConfigOptional(config, "lastPathNode", value);
-        }
-    };
-
-    public static final FieldBackedStandardCartProperty<Set<String>> OWNER_PERMISSIONS = new FieldBackedStandardCartProperty<Set<String>>() {
-        @PropertyParser("setownerperm|ownerperms set")
-        public Set<String> parseSet(String input) {
-            return input.isEmpty() ? Collections.emptySet() : Collections.singleton(input);
-        }
-
-        @PropertyParser("clearownerperm|ownerperms clear")
-        public Set<String> parseClear(String input) {
-            return Collections.emptySet();
-        }
-
-        @PropertyParser(value = "addownerperm|ownerperms add", processPerCart = true)
-        public Set<String> parseAdd(PropertyParseContext<Set<String>> context) {
-            if (context.input().isEmpty() || context.current().contains(context.input())) {
-                return context.current();
-            } else {
-                HashSet<String> newPerms = new HashSet<String>(context.current());
-                newPerms.add(context.input());
-                return Collections.unmodifiableSet(newPerms);
-            }
-        }
-
-        @PropertyParser(value = "remownerperm|ownerperm rem|ownerperms remove", processPerCart = true)
-        public Set<String> parseRemove(PropertyParseContext<Set<String>> context) {
-            if (context.input().isEmpty() || !context.current().contains(context.input())) {
-                return context.current();
-            } else {
-                HashSet<String> newPerms = new HashSet<String>(context.current());
-                newPerms.remove(context.input());
-                return Collections.unmodifiableSet(newPerms);
-            }
-        }
-
-        @Override
-        public Set<String> getDefault() {
-            return Collections.emptySet();
-        }
-
-        @Override
-        public Set<String> getData(CartInternalData data) {
-            return data.ownerPermissions;
-        }
-
-        @Override
-        public void setData(CartInternalData data, Set<String> value) {
-            data.ownerPermissions = value;
-        }
-
-        @Override
-        public Optional<Set<String>> readFromConfig(ConfigurationNode config) {
-            return Util.getConfigStringSetOptional(config, "ownerPermissions");
-        }
-
-        @Override
-        public void writeToConfig(ConfigurationNode config, Optional<Set<String>> value) {
-            Util.setConfigStringCollectionOptional(config, "ownerPermissions", value);
-        }
-
-        @Override
-        public Set<String> get(TrainProperties properties) {
-            return FieldBackedStandardCartProperty.combineCartValues(properties, this);
-        }
-    };
-
-    public static final FieldBackedStandardCartProperty<Set<String>> OWNERS = new FieldBackedStandardCartProperty<Set<String>>() {
-        @PropertyParser("setowner|owners set")
-        public Set<String> parseSet(String input) {
-            return input.isEmpty() ? Collections.emptySet() : Collections.singleton(input.toLowerCase());
-        }
-
-        @PropertyParser("clearowner|clearowners|owners clear")
-        public Set<String> parseClear(String input) {
-            return Collections.emptySet();
-        }
-
-        @PropertyParser(value = "addowner|owners add", processPerCart = true)
-        public Set<String> parseAdd(PropertyParseContext<Set<String>> context) {
-            String name_lc = context.input().toLowerCase();
-            if (name_lc.isEmpty() || context.current().contains(name_lc)) {
-                return context.current();
-            } else {
-                HashSet<String> newPerms = new HashSet<String>(context.current());
-                newPerms.add(name_lc);
-                return Collections.unmodifiableSet(newPerms);
-            }
-        }
-
-        @PropertyParser(value = "remowner|owners rem|owners remove", processPerCart = true)
-        public Set<String> parseRemove(PropertyParseContext<Set<String>> context) {
-            String name_lc = context.input().toLowerCase();
-            if (name_lc.isEmpty() || !context.current().contains(name_lc)) {
-                return context.current();
-            } else {
-                HashSet<String> newPerms = new HashSet<String>(context.current());
-                newPerms.remove(name_lc);
-                return Collections.unmodifiableSet(newPerms);
-            }
-        }
-
-        @Override
-        public Set<String> getDefault() {
-            return Collections.emptySet();
-        }
-
-        @Override
-        public Set<String> getData(CartInternalData data) {
-            return data.owners;
-        }
-
-        @Override
-        public void setData(CartInternalData data, Set<String> value) {
-            data.owners = value;
-        }
-
-        @Override
-        public Optional<Set<String>> readFromConfig(ConfigurationNode config) {
-            return Util.getConfigStringSetOptional(config, "owners");
-        }
-
-        @Override
-        public void writeToConfig(ConfigurationNode config, Optional<Set<String>> value) {
-            Util.setConfigStringCollectionOptional(config, "owners", value);
-        }
-
-        @Override
-        public Set<String> get(TrainProperties properties) {
-            return FieldBackedStandardCartProperty.combineCartValues(properties, this);
         }
     };
 
