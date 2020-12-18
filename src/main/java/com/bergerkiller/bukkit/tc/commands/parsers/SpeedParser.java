@@ -40,8 +40,8 @@ public class SpeedParser implements ArgumentParser<CommandSender, Double> {
 
         double result = Util.parseVelocity(input, Double.NaN);
         if (Double.isNaN(result)) {
-            return ArgumentParseResult.failure(new LocalizedParserException(getClass(), input, commandContext,
-                    Localization.COMMAND_INPUT_SPEED_INVALID));
+            return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
+                    Localization.COMMAND_INPUT_SPEED_INVALID, input));
         }
 
         if (this._greedy) {

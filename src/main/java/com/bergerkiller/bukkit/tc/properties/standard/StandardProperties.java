@@ -1,15 +1,10 @@
 package com.bergerkiller.bukkit.tc.properties.standard;
 
-import java.util.Collections;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
-import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
@@ -17,7 +12,6 @@ import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.standard.category.*;
-import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardCartProperty;
 
 /**
  * All standard TrainCarts built-in train and cart properties
@@ -51,6 +45,7 @@ public class StandardProperties {
     public static final AllowManualPlayerMovementProperty ALLOW_PLAYER_MANUAL_MOVEMENT = new AllowManualPlayerMovementProperty();
     public static final OwnerSetProperty OWNERS = new OwnerSetProperty();
     public static final OwnerPermissionSet OWNER_PERMISSIONS = new OwnerPermissionSet();
+    public static final BreakBlocksProperty BLOCK_BREAK_TYPES = new BreakBlocksProperty();
 
     public static final ICartProperty<String> ENTER_MESSAGE = new ICartProperty<String>() {
 
@@ -95,46 +90,6 @@ public class StandardProperties {
         @Override
         public void writeToConfig(ConfigurationNode config, Optional<String> value) {
             Util.setConfigOptional(config, "driveSound", value);
-        }
-    };
-
-    public static final FieldBackedStandardCartProperty<Set<Material>> BLOCK_BREAK_TYPES = new FieldBackedStandardCartProperty<Set<Material>>() {
-        @Override
-        public Set<Material> getDefault() {
-            return Collections.emptySet();
-        }
-
-        @Override
-        public Set<Material> getData(CartInternalData data) {
-            return data.blockBreakTypes;
-        }
-
-        @Override
-        public void setData(CartInternalData data, Set<Material> value) {
-            data.blockBreakTypes = value;
-        }
-
-        @Override
-        public Optional<Set<Material>> readFromConfig(ConfigurationNode config) {
-            if (config.contains("blockBreakTypes")) {
-                return Optional.of(Collections.unmodifiableSet(
-                        config.getList("blockBreakTypes", String.class).stream()
-                            .map(name -> ParseUtil.parseMaterial(name, null))
-                            .filter(m -> m != null)
-                            .collect(Collectors.toSet())));
-            } else {
-                return Optional.empty();
-            }
-        }
-
-        @Override
-        public void writeToConfig(ConfigurationNode config, Optional<Set<Material>> value) {
-            if (value.isPresent()) {
-                config.set("blockBreakTypes", value.get().stream().map(Material::toString)
-                        .collect(Collectors.toList()));
-            } else {
-                config.remove("blockBreakTypes");
-            }
         }
     };
 

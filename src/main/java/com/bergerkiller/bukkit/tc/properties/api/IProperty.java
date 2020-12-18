@@ -5,6 +5,8 @@ import java.util.Optional;
 import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForAnyPropertiesException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -116,13 +118,20 @@ public interface IProperty<T> {
 
     /**
      * Throws a {@link NoPermissionForPropertyException} when
-     * {@link #hasPermission(CommandSender, String)} returns false
+     * {@link #hasPermission(CommandSender, String)} returns false.
+     * Also checks that the sender has permission to modify properties
+     * at all.
      * 
      * @param sender Sender to check permission for
      * @param name The name of the property the sender tried to modify
      * @throws NoPermissionForPropertyException
      */
     default void handlePermission(CommandSender sender, String name) {
+        if (!Permission.COMMAND_PROPERTIES.has(sender) &&
+            !Permission.COMMAND_GLOBALPROPERTIES.has(sender))
+        {
+            throw new NoPermissionForAnyPropertiesException();
+        }
         if (!hasPermission(sender, name)) {
             throw new NoPermissionForPropertyException(name);
         }

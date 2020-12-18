@@ -7,12 +7,13 @@ import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.commands.annotations.SavedTrainRequiresAccess;
 import com.bergerkiller.bukkit.tc.commands.cloud.CloudHandler;
-import com.bergerkiller.bukkit.tc.commands.parsers.SavedTrainPropertiesParser;
+import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.commands.parsers.SpeedParser;
 import com.bergerkiller.bukkit.tc.exception.command.InvalidClaimPlayerNameException;
+import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForAnyPropertiesException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
+import com.bergerkiller.bukkit.tc.exception.command.NoTicketSelectedException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainSelectedException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainStorageChestItemException;
 import com.bergerkiller.bukkit.tc.exception.command.SelectedTrainNotOwnedException;
@@ -23,7 +24,6 @@ import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
-import com.bergerkiller.bukkit.tc.properties.SavedTrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.mountiplex.MountiplexUtil;
@@ -31,9 +31,7 @@ import com.bergerkiller.mountiplex.MountiplexUtil;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.arguments.parser.StandardParameters;
-import cloud.commandframework.services.types.ConsumerService;
 
-import java.util.ArrayList;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -97,51 +95,6 @@ public class Commands {
             return trainProperties;
         });
 
-        // Token specified when a command requires write access to a saved train
-        cloud.annotationParameter(SavedTrainRequiresAccess.class, SavedTrainRequiresAccess.PARAM, Boolean.TRUE);
-
-        /*
-        cloud.preprocessAnnotation(SavedTrainRequiresAccess.class, (context, queue) -> {
-            Map<String, Object> flags = SafeField.get(context.flags(), "flagValues", Map.class);
-            System.out.println("FLAGS=" + String.join(", ", flags.keySet()));
-            return ArgumentParseResult.success(true);
-        });
-        */
-
-        cloud.postProcess(context -> {
-            // Check if command uses saved train properties
-            Object raw_arg = context.getCommandContext().getOrDefault("savedtrainname", (Object) null);
-            if (!(raw_arg instanceof SavedTrainProperties)) {
-                return;
-            }
-            SavedTrainProperties savedTrain = (SavedTrainProperties) raw_arg;
-
-            // Check if SavedTrainRequiresAccess is set
-            if (!context.getCommand().getArguments().stream().filter(arg -> {
-                return arg.getParser() instanceof SavedTrainPropertiesParser
-                        && ((SavedTrainPropertiesParser) arg.getParser()).isMustHaveAccess();
-            }).findAny().isPresent()) {
-                return;
-            }
-
-            // Check whether sender has permission to modify it
-            CommandSender sender = context.getCommandContext().getSender();
-            if (savedTrain.hasPermission(sender)) {
-                return;
-            }
-
-            boolean force = context.getCommandContext().flags().hasFlag("force");
-            if (!commands_savedtrain.checkAccess(sender, savedTrain, force)) {
-                ConsumerService.interrupt();
-            }
-        });
-
-        cloud.parse(SavedTrainProperties.class, (parameters) -> {
-            //parameters.get(parameter, defaultValue)
-            boolean access = parameters.get(SavedTrainRequiresAccess.PARAM, Boolean.FALSE);
-            return new SavedTrainPropertiesParser(plugin, access);
-        });
-
         cloud.parse(SpeedParser.NAME, (parameters) -> {
             boolean greedy = parameters.get(StandardParameters.GREEDY, false);
             return new SpeedParser(greedy);
@@ -151,17 +104,17 @@ public class Commands {
         cloud.handleMessage(NoTrainSelectedException.class, Localization.EDIT_NOSELECT.getName());
         cloud.handleMessage(SelectedTrainNotOwnedException.class, Localization.EDIT_NOTOWNED.getName());
         cloud.handleMessage(NoTrainStorageChestItemException.class, Localization.CHEST_NOITEM.getName());
+        cloud.handleMessage(NoTicketSelectedException.class, Localization.COMMAND_TICKET_NOTEDITING.getName());
+        cloud.handleMessage(NoPermissionForAnyPropertiesException.class, Localization.PROPERTY_NOPERM_ANY.getName());
         cloud.handle(NoPermissionForPropertyException.class, (sender, ex) -> {
             Localization.PROPERTY_NOPERM.message(sender, ex.getName());
+        });
+        cloud.handle(LocalizedParserException.class, (sender, ex) -> {
+            sender.sendMessage(ex.getMessage());
         });
 
         cloud.handle(InvalidClaimPlayerNameException.class, (sender, exception) -> {
             Localization.COMMAND_SAVEDTRAIN_CLAIM_INVALID.message(sender, exception.getArgument());
-        });
-
-        // Register provider for saved train module names
-        cloud.suggest("savedtrainmodules", (context, input) -> {
-            return new ArrayList<String>(plugin.getSavedTrains().getModuleNames());
         });
 
         // Register provider for train names a player can edit

@@ -82,6 +82,14 @@ public class SignActionProperties extends SignAction {
                 .setName(event.isCartSign() ? "cart property setter" : "train property setter")
                 .setTraincartsWIKIHelp("TrainCarts/Signs/Property");
 
+        // Check permission to modify properties at all
+        if (!Permission.COMMAND_PROPERTIES.has(event.getPlayer()) &&
+            !Permission.COMMAND_GLOBALPROPERTIES.has(event.getPlayer()))
+        {
+            Localization.PROPERTY_NOPERM_ANY.message(event.getPlayer());
+            return false;
+        }
+
         // Validate the property and value on the sign exist/are correct
         // We do this first so we can figure out the permission that may be required for it
         PropertyParseResult<Object> result = IPropertyRegistry.instance().parse(null, event.getLine(2), event.getLine(3));

@@ -33,6 +33,8 @@ public class Permission extends PermissionEnum {
     public static final Permission PROPERTY_DISPLAYNAME = new Permission("train.property.displayname", PermissionDefault.TRUE, "The player can change the display name of a train, which is used with the trigger sign");
     public static final Permission PROPERTY_ALLOWMOBMANUALMOVEMENT = new Permission("train.property.allowmobmanualmovement", PermissionDefault.TRUE, "The player can allow a train to be set in motion by mob passengers");
     public static final Permission PROPERTY_ALLOWPLAYERMANUALMOVEMENT = new Permission("train.property.allowplayermanualmovement", PermissionDefault.TRUE, "The player can allow player passengers to control the train using steering controls");
+    public static final Permission PROPERTY_BREAKBLOCKS_NORMAL = new Permission("train.property.breakblocks.normal", PermissionDefault.TRUE, "The player can configure a train to automatically break blocks from a whitelist for farming setups.");
+    public static final Permission PROPERTY_BREAKBLOCKS_ADMIN = new Permission("train.property.breakblocks.admin", PermissionDefault.OP, "The player can configure a train to break any type of block at all");
 
     public static final Permission COMMAND_DESTROY = new Permission("train.command.destroy", PermissionDefault.OP, "The player can destroy owned carts through commands");
     public static final Permission COMMAND_DESTROYALL = new Permission("train.command.destroyall", PermissionDefault.OP, "The player can destroy all trains on the server");
@@ -107,10 +109,6 @@ public class Permission extends PermissionEnum {
     public static final Permission BREAK_MINECART_SELF = new Permission("train.break.self", PermissionDefault.TRUE, "The player can break their own minecarts");
     public static final Permission BREAK_MINECART_ANY = new Permission("train.break.any", PermissionDefault.OP, "The player can break all carts in the game");
     public static final Permission TICKET_MANAGE = new Permission("train.ticket.manage", PermissionDefault.OP, "The player can edit the details of existing tickets or create new tickets");
-
-    // These will all be deleted soon
-    public static final Permission COMMAND_BREAKBLOCK = new Permission("train.command.break", PermissionDefault.TRUE, "The player can set blocks the cart can break from a set list");
-    public static final Permission COMMAND_BREAKBLOCK_ADMIN = new Permission("train.command.breakblock.admin", PermissionDefault.OP, "The player can set blocks the cart can break, any type");
 
     // Special hidden debug sekretz
     public static final Permission DEBUG_COMMAND_DEBUG = new Permission("train.debug", PermissionDefault.OP, "The player can use special commands useful for debugging the plugin");

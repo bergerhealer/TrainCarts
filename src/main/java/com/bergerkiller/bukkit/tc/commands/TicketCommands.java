@@ -1,6 +1,9 @@
 package com.bergerkiller.bukkit.tc.commands;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Queue;
+import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -12,35 +15,48 @@ import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.commands.parsers.TicketParser;
+import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTicketSelectedException;
 import com.bergerkiller.bukkit.tc.tickets.TCTicketDisplay;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 
 import cloud.commandframework.CommandManager;
-import cloud.commandframework.annotations.AnnotationParser;
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.annotations.InitializationMethod;
+import cloud.commandframework.annotations.parsers.Parser;
+import cloud.commandframework.annotations.suggestions.Suggestions;
+import cloud.commandframework.context.CommandContext;
 import cloud.commandframework.exceptions.InvalidCommandSenderException;
-import io.leangen.geantyref.TypeToken;
 
 public class TicketCommands {
 
-    @InitializationMethod
-    private void init(AnnotationParser<CommandSender> parser, CommandManager<CommandSender> manager) {
-        // Parses name -> Ticket
-        manager.getParserRegistry().registerParserSupplier(TypeToken.get(Ticket.class), (params) -> {
-            return new TicketParser();
-        });
+    @Suggestions("ticketNames")
+    public List<String> getTicketNames(final CommandContext<CommandSender> context, final String input) {
+        return TicketStore.getAll().stream()
+                .map(Ticket::getName)
+                .collect(Collectors.toList());
+    }
 
+    @Parser(suggestions = "ticketNames")
+    public Ticket parseTicket(final CommandContext<CommandSender> commandContext, final Queue<String> inputQueue) {
+        final String input = inputQueue.peek();
+        Ticket ticket = TicketStore.getTicket(input);
+        if (ticket == null) {
+            throw new LocalizedParserException(commandContext,
+                    Localization.COMMAND_TICKET_NOTFOUND, input);
+        }
+
+        inputQueue.poll();
+        return ticket;
+    }
+
+    @InitializationMethod
+    private void init(CommandManager<CommandSender> manager) {
         // Injects the ticket the sender is editing, otherwise fails
-        manager.registerExceptionHandler(NoTicketSelectedException.class, (sender, ex) -> {
-            Localization.COMMAND_TICKET_NOTEDITING.message(sender);
-        });
-        parser.getParameterInjectorRegistry().registerInjector(Ticket.class, (context, annot) -> {
+        manager.parameterInjectorRegistry().registerInjector(Ticket.class, (context, annot) -> {
             if (!(context.getSender() instanceof Player)) {
                 throw new InvalidCommandSenderException(
                         context.getSender(),

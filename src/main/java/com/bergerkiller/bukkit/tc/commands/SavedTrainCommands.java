@@ -1,11 +1,15 @@
 package com.bergerkiller.bukkit.tc.commands;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -23,20 +27,88 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.annotations.SavedTrainRequiresAccess;
+import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.exception.command.InvalidClaimPlayerNameException;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainProperties;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore;
 
+import cloud.commandframework.CommandManager;
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.annotations.Flag;
+import cloud.commandframework.annotations.InitializationMethod;
+import cloud.commandframework.annotations.suggestions.Suggestions;
+import cloud.commandframework.arguments.parser.ArgumentParseResult;
+import cloud.commandframework.arguments.parser.ArgumentParser;
+import cloud.commandframework.arguments.parser.ParserParameters;
+import cloud.commandframework.context.CommandContext;
+import cloud.commandframework.exceptions.parsing.NoInputProvidedException;
+import cloud.commandframework.services.types.ConsumerService;
+import io.leangen.geantyref.TypeToken;
 
 /**
  * Commands to modify an existing saved train
  */
 public class SavedTrainCommands {
+
+    @Suggestions("savedtrainmodules")
+    public List<String> getSavedTrainModuleNames(final CommandContext<CommandSender> context, final String input) {
+        final TrainCarts plugin = context.inject(TrainCarts.class).get();
+        return new ArrayList<String>(plugin.getSavedTrains().getModuleNames());
+    }
+
+    @InitializationMethod
+    private void init(CommandManager<CommandSender> manager) {
+        manager.registerCommandPostProcessor((context) -> {
+            // Check if command uses saved train properties
+            Object raw_arg = context.getCommandContext().getOrDefault("savedtrainname", (Object) null);
+            if (!(raw_arg instanceof SavedTrainProperties)) {
+                return;
+            }
+            SavedTrainProperties savedTrain = (SavedTrainProperties) raw_arg;
+
+            // Check if SavedTrainRequiresAccess is set
+            if (!context.getCommand().getArguments().stream().filter(arg -> {
+                return arg.getParser() instanceof SavedTrainPropertiesParser
+                        && ((SavedTrainPropertiesParser) arg.getParser()).isMustHaveAccess();
+            }).findAny().isPresent()) {
+                return;
+            }
+
+            // Check whether sender has permission to modify it
+            CommandSender sender = context.getCommandContext().getSender();
+            if (savedTrain.hasPermission(sender)) {
+                return;
+            }
+
+            boolean force = context.getCommandContext().flags().hasFlag("force");
+            if (!checkAccess(sender, savedTrain, force)) {
+                ConsumerService.interrupt();
+            }
+        });
+
+        // Token specified when a command requires write access to a saved train
+        manager.getParserRegistry().registerAnnotationMapper(SavedTrainRequiresAccess.class, (a, typeToken) -> {
+            return ParserParameters.single(SavedTrainRequiresAccess.PARAM, Boolean.TRUE);
+        });
+
+        // Create parsers, take @SavedTrainRequiresAccess flag into account
+        manager.getParserRegistry().registerParserSupplier(TypeToken.get(SavedTrainProperties.class), (parameters) -> {
+            //parameters.get(parameter, defaultValue)
+            boolean access = parameters.get(SavedTrainRequiresAccess.PARAM, Boolean.FALSE);
+            return new SavedTrainPropertiesParser(access);
+        });
+
+        /*
+        cloud.preprocessAnnotation(SavedTrainRequiresAccess.class, (context, queue) -> {
+            Map<String, Object> flags = SafeField.get(context.flags(), "flagValues", Map.class);
+            System.out.println("FLAGS=" + String.join(", ", flags.keySet()));
+            return ArgumentParseResult.success(true);
+        });
+        */
+    }
 
     @CommandMethod("savedtrain")
     @CommandDescription("Shows command usage of /savedtrain, lists saved trains")
@@ -512,6 +584,91 @@ public class SavedTrainCommands {
                 Localization.COMMAND_SAVEDTRAIN_CLAIMED.message(sender, savedTrain.getName());
             }
             return false;
+        }
+    }
+
+    /**
+     * Parser for SavedTrainProperties
+     */
+    private static class SavedTrainPropertiesParser implements ArgumentParser<CommandSender, SavedTrainProperties> {
+        private final boolean mustHaveAccess;
+
+        public SavedTrainPropertiesParser(boolean mustHaveAccess) {
+            this.mustHaveAccess = mustHaveAccess;
+        }
+
+        public boolean isMustHaveAccess() {
+            return this.mustHaveAccess;
+        }
+
+        @Override
+        public ArgumentParseResult<SavedTrainProperties> parse(CommandContext<CommandSender> commandContext, Queue<String> inputQueue) {
+            final TrainCarts plugin = commandContext.inject(TrainCarts.class).get();
+            final String input = inputQueue.peek();
+            if (input == null) {
+                return ArgumentParseResult.failure(new NoInputProvidedException(
+                        SavedTrainPropertiesParser.class,
+                        commandContext
+                ));
+            }
+
+            SavedTrainProperties properties = plugin.getSavedTrains().getProperties(input);
+            if (properties == null) {
+                return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
+                        Localization.COMMAND_SAVEDTRAIN_NOTFOUND, input));
+            }
+
+            /*
+            System.out.println("CHECK " + mustHaveAccess + " force=" + commandContext.flags().hasFlag("force"));
+
+            if (mustHaveAccess && !properties.hasPermission(commandContext.getSender())) {
+                // Check if --force was specified
+                boolean force = commandContext.flags().hasFlag("force");
+                if (!Permission.COMMAND_SAVEDTRAIN_GLOBAL.has(commandContext.getSender())) {
+                    if (force) {
+                        // Force was specified, but player has no permission for that
+                        return ArgumentParseResult.failure(new SavedTrainPropertiesParseException(input, commandContext,
+                                Localization.COMMAND_SAVEDTRAIN_GLOBAL_NOPERM));
+                    } else {
+                        // No force was specified, was claimed and player has no permission
+                        return ArgumentParseResult.failure(new SavedTrainPropertiesParseException(input, commandContext,
+                                Localization.COMMAND_SAVEDTRAIN_CLAIMED));
+                    }
+                } else if (!force) {
+                    return ArgumentParseResult.failure(new SavedTrainPropertiesParseException(input, commandContext,
+                            Localization.COMMAND_SAVEDTRAIN_FORCE));
+                }
+            }
+            */
+
+            inputQueue.remove();
+            return ArgumentParseResult.success(properties);
+        }
+
+        @Override
+        public List<String> suggestions(
+                final CommandContext<CommandSender> commandContext,
+                final String input
+        ) {
+            final TrainCarts plugin = commandContext.inject(TrainCarts.class).get();
+
+            List<String> filtered;
+            if (input.isEmpty()) {
+                filtered = plugin.getSavedTrains().getNames();
+            } else {
+                filtered = plugin.getSavedTrains().getNames().stream()
+                        .filter(s -> s.startsWith(input)).collect(Collectors.toList());
+            }
+
+            List<String> claimed = filtered.stream().filter(name -> {
+                return plugin.getSavedTrains().hasPermission(commandContext.getSender(), name);
+            }).collect(Collectors.toList());
+
+            if (claimed.isEmpty()) {
+                return filtered;
+            } else {
+                return claimed;
+            }
         }
     }
 }

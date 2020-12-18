@@ -2,19 +2,16 @@ package com.bergerkiller.bukkit.tc.commands;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
-import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Direction;
+import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
-import com.bergerkiller.bukkit.tc.commands.cloud.ArgumentList;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
@@ -40,6 +37,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -327,119 +325,105 @@ public class TrainCommands {
         }
     }
 
-    @CommandMethod("train <arguments>")
-    @CommandDescription("Performs commands that operate on the train currently being edited")
-    private void commandTrain(
-              final Player player,
-              final TrainProperties properties,
-              final ArgumentList arguments,
-              final @Argument("arguments") @Greedy String unused_arguments
+    @CommandMethod("train displayedblock clear")
+    @CommandDescription("Clears the displayed block in Minecart carts of the train, making it empty")
+    private void commandClearDisplayedBlock(
+            final CommandSender sender,
+            final TrainProperties properties
     ) {
-        Permission.COMMAND_PROPERTIES.handle(player);
-        execute(player, properties, arguments.get(1), arguments.range(2).array());
+        Permission.COMMAND_CHANGEBLOCK.handle(sender);
+
+        MinecartGroup members = properties.getHolder();
+        if (members == null) {
+            Localization.EDIT_NOTLOADED.message(sender);
+        } else {
+            for (MinecartMember<?> member : members) {
+                member.getEntity().setBlock(Material.AIR);
+            }
+            sender.sendMessage(ChatColor.YELLOW + "The selected train has its displayed blocks cleared!");
+        }
     }
 
-    public static void execute(Player p, TrainProperties prop, String cmd, String[] args) throws NoPermissionException {
-        TrainPropertiesStore.markForAutosave();
-        if (cmd.equalsIgnoreCase("break")) {
-            Permission.COMMAND_BREAKBLOCK.handle(p);
-            if (args.length == 0) {
-                Set<Material> types = new HashSet<>();
-                for (CartProperties cprop : prop) types.addAll(cprop.getBlockBreakTypes());
-                p.sendMessage(ChatColor.YELLOW + "This train breaks: " + ChatColor.WHITE + StringUtil.combineNames(types));
-            } else {
-                if (ParseUtil.isBool(args[0]) && !ParseUtil.parseBool(args[0])) {
-                    for (CartProperties cprop : prop) cprop.clearBlockBreakTypes();
-                    p.sendMessage(ChatColor.YELLOW + "Train block break types have been cleared!");
-                } else {
-                    boolean asBreak = true;
-                    boolean lastIsBool = ParseUtil.isBool(args[args.length - 1]);
-                    if (lastIsBool) asBreak = ParseUtil.parseBool(args[args.length - 1]);
-                    int count = lastIsBool ? args.length - 1 : args.length;
-                    Set<Material> mats = new HashSet<>();
-                    for (int i = 0; i < count; i++) {
-                        Material mat = ParseUtil.parseMaterial(args[i], null);
-                        if (mat != null) {
-                            if (p.hasPermission("train.command.break.admin") || TrainCarts.canBreak(mat)) {
-                                mats.add(mat);
-                            } else {
-                                p.sendMessage(ChatColor.RED + "You are not allowed to make this train break '" + mat.toString() + "'!");
-                            }
-                        }
-                    }
-                    if (mats.isEmpty()) {
-                        p.sendMessage(ChatColor.RED + "Failed to find possible and allowed block types in the list given.");
-                        return;
-                    }
-                    if (asBreak) {
-                        for (CartProperties cprop : prop) {
-                            cprop.getBlockBreakTypes().addAll(mats);
-                        }
-                        p.sendMessage(ChatColor.YELLOW + "This cart can now (also) break: " + ChatColor.WHITE + StringUtil.combineNames(mats));
-                    } else {
-                        for (CartProperties cprop : prop) {
-                            cprop.getBlockBreakTypes().removeAll(mats);
-                        }
-                        p.sendMessage(ChatColor.YELLOW + "This cart can no longer break: " + ChatColor.WHITE + StringUtil.combineNames(mats));
-                    }
-                }
-            }
-        } else if (LogicUtil.containsIgnoreCase(cmd, "setblock", "setblocks", "changeblock", "changeblocks", "blockchanger")) {
-            Permission.COMMAND_CHANGEBLOCK.handle(p);
-            MinecartGroup members = prop.getHolder();
-            if (members == null) {
-                p.sendMessage(ChatColor.RED + "The selected train is unloaded: we can not change it at this time!");
-            } else if (args.length == 0) {
-                for (MinecartMember<?> member : members) {
-                    member.getEntity().setBlock(Material.AIR);
-                }
-                p.sendMessage(ChatColor.YELLOW + "The selected train has its displayed blocks cleared!");
-            } else {
-                SignActionBlockChanger.setBlocks(members, StringUtil.join(" ", args), SignActionBlockChanger.BLOCK_OFFSET_NONE);
-                p.sendMessage(ChatColor.YELLOW + "The selected train has its displayed blocks updated!");
-            }
-        } else if (LogicUtil.containsIgnoreCase(cmd, "setblockoffset", "changeblockoffset", "blockoffset")) {
-            Permission.COMMAND_CHANGEBLOCK.handle(p);
-            MinecartGroup members = prop.getHolder();
-            if (members == null) {
-                p.sendMessage(ChatColor.RED + "The selected train is unloaded: we can not change it at this time!");
-            } else if (args.length == 0) {
-                for (MinecartMember<?> member : members) {
-                    member.getEntity().setBlockOffset(9);
-                }
-                p.sendMessage(ChatColor.YELLOW + "The selected train has its block offset reset!");
-            } else {
-                int offset = ParseUtil.parseInt(args[0], 9);
-                for (MinecartMember<?> member : members) {
-                    member.getEntity().setBlockOffset(offset);
-                }
-                p.sendMessage(ChatColor.YELLOW + "The selected train has its displayed block offset updated!");
-            }
+    @CommandMethod("train displayedblock <blocks>")
+    @CommandDescription("Clears the displayed block in the Minecart, making it empty")
+    private void commandChangeDisplayedBlock(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("blocks") @Greedy String blockNames
+    ) {
+        Permission.COMMAND_CHANGEBLOCK.handle(sender);
+
+        MinecartGroup members = properties.getHolder();
+        if (members == null) {
+            Localization.EDIT_NOTLOADED.message(sender);
         } else {
-            if (args.length >= 1) {
-                PropertyParseResult<Object> parseResult = IPropertyRegistry.instance().parseAndSet(
-                        prop, cmd, String.join(" ", args),
-                        (result) -> {
-                            if (!result.hasPermission(p)) {
-                                throw new NoPermissionForPropertyException(result.getName());
-                            }
-                        });
-
-                if (parseResult.getReason() != PropertyParseResult.Reason.PROPERTY_NOT_FOUND) {
-                    if (parseResult.isSuccessful()) {
-                        p.sendMessage(ChatColor.GREEN + "Property has been updated!");
-                    } else {
-                        p.sendMessage(parseResult.getMessage());
-                    }
-                    return;
-                }
-            }
-
-            p.sendMessage(ChatColor.RED + "Unknown train command: '" + cmd + "'!");
-            help(new MessageBuilder()).send(p);
-            return;
+            SignActionBlockChanger.setBlocks(members, blockNames, SignActionBlockChanger.BLOCK_OFFSET_NONE);
+            sender.sendMessage(ChatColor.YELLOW + "The selected train has its displayed blocks updated!");
         }
-        prop.tryUpdate();
+    }
+
+    @CommandMethod("train displayedblock offset reset")
+    @CommandDescription("Resets the height offset at which blocks are displayed in Minecarts of a train to the defaults")
+    private void commandResetDisplayedBlockOffset(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        Permission.COMMAND_CHANGEBLOCK.handle(sender);
+
+        MinecartGroup members = properties.getHolder();
+        if (members == null) {
+            Localization.EDIT_NOTLOADED.message(sender);
+        } else {
+            for (MinecartMember<?> member : members) {
+                member.getEntity().setBlockOffset(9);
+            }
+            sender.sendMessage(ChatColor.YELLOW + "The selected train has its block offset reset!");
+        }
+    }
+
+    @CommandMethod("train displayedblock offset <offset>")
+    @CommandDescription("Sets the height offset at which blocks are displayed in Minecarts of a train")
+    private void commandSetDisplayedBlockOffset(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("offset") int offset
+    ) {
+        Permission.COMMAND_CHANGEBLOCK.handle(sender);
+
+        MinecartGroup members = properties.getHolder();
+        if (members == null) {
+            Localization.EDIT_NOTLOADED.message(sender);
+        } else {
+            for (MinecartMember<?> member : members) {
+                member.getEntity().setBlockOffset(offset);
+            }
+            sender.sendMessage(ChatColor.YELLOW + "The selected train has its displayed block offset updated!");
+        }
+    }
+
+    @CommandMethod("train <property> <value>")
+    @CommandDescription("Updates the value of a property of a train by name")
+    private void commandCart(
+              final CommandSender sender,
+              final TrainProperties properties,
+              final @Argument("property") String propertyName,
+              final @Argument("value") @Greedy String value
+    ) {
+        PropertyParseResult<Object> parseResult = IPropertyRegistry.instance().parseAndSet(
+                properties, propertyName, value,
+                (result) -> {
+                    if (!result.hasPermission(sender)) {
+                        throw new NoPermissionForPropertyException(result.getName());
+                    }
+                });
+
+        if (parseResult.isSuccessful()) {
+            sender.sendMessage(ChatColor.GREEN + "Property has been updated!");
+        } else {
+            sender.sendMessage(parseResult.getMessage());
+        }
+
+        help(new MessageBuilder()).send(sender);
     }
 
     public static MessageBuilder help(MessageBuilder builder) {

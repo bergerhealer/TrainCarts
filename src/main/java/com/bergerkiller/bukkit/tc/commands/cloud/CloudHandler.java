@@ -32,7 +32,6 @@ import cloud.commandframework.arguments.parser.ParserParameters;
 import cloud.commandframework.arguments.parser.StandardParameters;
 import cloud.commandframework.brigadier.CloudBrigadierManager;
 import cloud.commandframework.bukkit.BukkitCommandManager;
-import cloud.commandframework.bukkit.BukkitCommandMetaBuilder;
 import cloud.commandframework.bukkit.CloudBukkitCapabilities;
 import cloud.commandframework.captions.Caption;
 import cloud.commandframework.captions.SimpleCaptionRegistry;
@@ -78,9 +77,8 @@ public class CloudHandler {
         // Create the annotation parser. This allows you to define commands using methods annotated with
         // @CommandMethod
         final Function<ParserParameters, CommandMeta> commandMetaFunction = p ->
-                BukkitCommandMetaBuilder.builder()
-                        // This will allow you to decorate commands with descriptions
-                        .withDescription(p.get(StandardParameters.DESCRIPTION, "No description"))
+                CommandMeta.simple()
+                        .with(CommandMeta.DESCRIPTION, p.get(StandardParameters.DESCRIPTION, "No description"))
                         .build();
         this.annotationParser = new AnnotationParser<>(
                 /* Manager */ this.manager,
@@ -146,16 +144,6 @@ public class CloudHandler {
                 .filter(p -> p.startsWith(input))
                 .collect(Collectors.toList());
         });
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
     }
 
     /**
