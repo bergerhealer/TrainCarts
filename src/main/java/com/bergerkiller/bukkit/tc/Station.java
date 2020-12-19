@@ -14,7 +14,6 @@ import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 import org.bukkit.Location;
-import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
@@ -28,176 +27,34 @@ public class Station {
     private final long delay;
     private final BlockFace instruction;
     private final Direction nextDirection;
-    private final boolean valid;
-    private final Block railsBlock;
+    private final double centerOffset;
     private boolean wasCentered = false;
-    private double centerOffset = 0.0;
 
+    /**
+     * Initializes a Station for a sign, reading station configuration
+     * from the sign using station sign syntax.
+     * 
+     * @param info Station sign action event
+     */
     public Station(SignActionEvent info) {
+        this(info, StationConfig.fromSign(info));
+    }
+
+    /**
+     * Initializes a Station for a sign. The station configuration
+     * can be specified and is not read from the sign text.
+     * 
+     * @param info Sign that acts as a station
+     * @param config Station configuration
+     */
+    public Station(SignActionEvent info, StationConfig config) {
         this.info = info;
-        this.delay = ParseUtil.parseTime(info.getLine(2));
-        this.railsBlock = info.getRails();
-
-        // Parse the (next) launch direction and launch force (speed) on the fourth line
-        Direction parsedNextDirection = Direction.NONE;
-        double parsedLaunchForce = TCConfig.launchForce;
-        for (String part : info.getLine(3).split(" ")) {
-            Direction direction = Direction.parse(part);
-            if (direction != Direction.NONE) {
-                parsedNextDirection = direction;
-            } else {
-                parsedLaunchForce = parseLaunchForce(part, info);
-            }
-        }
-        this.nextDirection = parsedNextDirection;
-        this.launchForce = parsedLaunchForce;
-
-        // Vertical or horizontal rail logic
-        if (info.isRailsVertical()) {
-            // Up, down or center based on redstone power
-            boolean up = info.isPowered(BlockFace.UP);
-            boolean down = info.isPowered(BlockFace.DOWN);
-            if (up && !down) {
-                this.instruction = BlockFace.UP;
-            } else if (!up && down) {
-                this.instruction = BlockFace.DOWN;
-            } else if (info.isPowered()) {
-                this.instruction = BlockFace.SELF;
-            } else {
-                this.instruction = null;
-            }
-        } else {
-            Vector railDirection = info.getCartEnterDirection();
-            boolean diagonal = Util.isDiagonal(railDirection);
-
-            // Diagonal logic is only used for SIGN_POST, so verify that this is the case
-            if (diagonal) {
-                org.bukkit.material.Sign sign_material = BlockUtil.getData(info.getBlock(), org.bukkit.material.Sign.class);
-                if (sign_material == null || sign_material.isWallSign()) {
-                    diagonal = false;
-                }
-            }
-
-            if (Util.isDiagonal(railDirection)) {
-                org.bukkit.material.Sign sign_material = BlockUtil.getData(info.getBlock(), org.bukkit.material.Sign.class);
-                if (sign_material == null || sign_material.isWallSign()) {
-                    // A wall sign used with a diagonal piece of track
-                    // The direction is based on the facing of the sign, so adjust for that
-                    BlockFace facing = info.getFacing();
-                    if (FaceUtil.isAlongX(facing)) {
-                        // Sign facing is along X, launch along Z
-                        boolean north = info.isPowered(BlockFace.NORTH);
-                        boolean south = info.isPowered(BlockFace.SOUTH);
-                        if (north && !south) {
-                            this.instruction = BlockFace.NORTH;
-                        } else if (south && !north) {
-                            this.instruction = BlockFace.SOUTH;
-                        } else if (info.isPowered()) {
-                            this.instruction = BlockFace.SELF;
-                        } else {
-                            this.instruction = null;
-                        }
-                    } else {
-                        // Sign facing is along Z, launch along X
-                        boolean west = info.isPowered(BlockFace.WEST);
-                        boolean east = info.isPowered(BlockFace.EAST);
-                        if (west && !east) {
-                            this.instruction = BlockFace.WEST;
-                        } else if (east && !west) {
-                            this.instruction = BlockFace.EAST;
-                        } else if (info.isPowered()) {
-                            this.instruction = BlockFace.SELF;
-                        } else {
-                            this.instruction = null;
-                        }
-                    }
-                } else {
-                    // Diagonal logic is only used for SIGN_POST
-                    // Sub-cardinal checks: Both directions have two possible powered sides
-                    BlockFace face_x = (railDirection.getX() > 0.0) ? BlockFace.EAST : BlockFace.WEST;
-                    BlockFace face_z = (railDirection.getZ() > 0.0) ? BlockFace.SOUTH : BlockFace.NORTH;
-                    boolean pow1 = info.isPowered(face_x) || info.isPowered(face_z);
-                    boolean pow2 = info.isPowered(face_x.getOppositeFace()) || info.isPowered(face_z.getOppositeFace());
-                    if (pow1 && !pow2) {
-                        this.instruction = FaceUtil.combine(face_x, face_z);
-                    } else if (!pow1 && pow2) {
-                        this.instruction = FaceUtil.combine(face_x.getOppositeFace(), face_z.getOppositeFace());
-                    } else if (info.isPowered()) {
-                        this.instruction = BlockFace.SELF;
-                    } else {
-                        this.instruction = null;
-                    }
-                }
-            } else if (Math.abs(railDirection.getX()) > Math.abs(railDirection.getZ())) {
-                // Along X
-                boolean west = info.isPowered(BlockFace.WEST);
-                boolean east = info.isPowered(BlockFace.EAST);
-                if (west && !east) {
-                    this.instruction = BlockFace.WEST;
-                } else if (east && !west) {
-                    this.instruction = BlockFace.EAST;
-                } else if (info.isPowered()) {
-                    this.instruction = BlockFace.SELF;
-                } else {
-                    this.instruction = null;
-                }
-            } else {
-                // Along Z
-                boolean north = info.isPowered(BlockFace.NORTH);
-                boolean south = info.isPowered(BlockFace.SOUTH);
-                if (north && !south) {
-                    this.instruction = BlockFace.NORTH;
-                } else if (south && !north) {
-                    this.instruction = BlockFace.SOUTH;
-                } else if (info.isPowered()) {
-                    this.instruction = BlockFace.SELF;
-                } else {
-                    this.instruction = null;
-                }
-            }
-        }
-
-        // Parse and filter offset before parsing launcher configuration
-        // Offset is specified using '0.352m'
-        String launchConfigStr = info.getLine(1).substring(7);
-        int offsetTextEndIdx = launchConfigStr.indexOf('m');
-        if (offsetTextEndIdx != -1) {
-            launchConfigStr = launchConfigStr.substring(0, offsetTextEndIdx) + launchConfigStr.substring(offsetTextEndIdx + 1);
-
-            int offsetTextStartIdx = offsetTextEndIdx - 1;
-            while (offsetTextStartIdx >= 0) {
-                char c = launchConfigStr.charAt(offsetTextStartIdx);
-                if (!Character.isDigit(c) && c != '.' && c != ',' && c != '-') {
-                    break;
-                } else {
-                    offsetTextStartIdx--;
-                }
-            }
-            offsetTextStartIdx++;
-
-            if (offsetTextStartIdx < offsetTextEndIdx) {
-                String offsetStr = launchConfigStr.substring(offsetTextStartIdx, offsetTextEndIdx);
-                launchConfigStr = launchConfigStr.substring(0, offsetTextStartIdx) + launchConfigStr.substring(offsetTextEndIdx);
-                this.centerOffset = ParseUtil.parseDouble(offsetStr, 0.0);
-            }
-        }
-
-        // Get initial station length, delay and direction
-        this.launchConfig = LauncherConfig.parse(launchConfigStr);
-        if (!this.launchConfig.hasDuration() && !this.launchConfig.hasDistance() && this.instruction != null) {
-            // Manually calculate the length
-            // Use the amount of straight blocks
-            BlockFace launchDir = this.instruction;
-            if (launchDir == BlockFace.SELF) {
-                launchDir = getNextDirectionFace();
-            }
-            double length = Util.calculateStraightLength(this.railsBlock, launchDir);
-            if (length == 0.0) {
-                length++;
-            }
-            this.launchConfig.setDistance(length);
-        }
-        this.valid = true;
+        this.delay = config.getDelay();
+        this.instruction = config.getInstruction();
+        this.launchForce = config.getLaunchSpeed();
+        this.launchConfig = config.getLaunchConfig();
+        this.centerOffset = config.getOffsetFromCenter();
+        this.nextDirection = config.getNextDirection();
     }
 
     /**
@@ -226,15 +83,6 @@ public class Station {
      */
     public long getDelay() {
         return this.delay;
-    }
-
-    /**
-     * Checks if this Station is valid for use
-     *
-     * @return True if valid, False if not
-     */
-    public boolean isValid() {
-        return this.valid;
     }
 
     /**
@@ -564,19 +412,293 @@ public class Station {
         return info;
     }
 
-    private double parseLaunchForce(String text, SignActionEvent info) {
-        if (text.equalsIgnoreCase("max") && info.hasGroup()) {
-            return info.getGroup().getProperties().getSpeedLimit();
-        }
-
-        return ParseUtil.parseDouble(text, TCConfig.launchForce);
-    }
-
     private static class CartToStationInfo {
         public MinecartMember<?> cart;
         public BlockFace cartDir;
         public Vector centerMoveDir;
         public double distance;
         public Location centerLocation;
+    }
+
+    /**
+     * Configuration for stations that can be specified on the station sign
+     */
+    public static class StationConfig {
+        private double _offsetFromCenter = 0.0;
+        private Direction _nextDirection = Direction.NONE;
+        private double _launchSpeed = TCConfig.launchForce;
+        private LauncherConfig _launchConfig = LauncherConfig.createDefault();
+        private BlockFace _instruction = null;
+        private long _delay = 0;
+
+        public double getOffsetFromCenter() {
+            return this._offsetFromCenter;
+        }
+
+        public void setOffsetFromCenter(double offset) {
+            this._offsetFromCenter = offset;
+        }
+
+        public Direction getNextDirection() {
+            return this._nextDirection;
+        }
+
+        public void setNextDirection(Direction nextDirection) {
+            this._nextDirection = nextDirection;
+        }
+
+        public double getLaunchSpeed() {
+            return this._launchSpeed;
+        }
+
+        public void setLaunchSpeed(double speed) {
+            this._launchSpeed = speed;
+        }
+
+        public LauncherConfig getLaunchConfig() {
+            return this._launchConfig;
+        }
+
+        public void setLaunchConfig(LauncherConfig config) {
+            this._launchConfig = config;
+        }
+
+        public long getDelay() {
+            return this._delay;
+        }
+
+        public void setDelay(long delay) {
+            this._delay = delay;
+        }
+
+        /**
+         * Gets the instruction for the station sign. If null, the
+         * station does nothing. If {@link BlockFace#SELF} the train is centered
+         * above the sign. If a direction is specified, the train is launched
+         * into that direction.
+         * 
+         * @return station instruction
+         */
+        public BlockFace getInstruction() {
+            return this._instruction;
+        }
+
+        /**
+         * Sets the instruction for the station sign. If null, the
+         * station does nothing. If {@link BlockFace#SELF} the train is centered
+         * above the sign. If a direction is specified, the train is launched
+         * into that direction.
+         * 
+         * @param instruction The instruction to set to
+         */
+        public void setInstruction(BlockFace instruction) {
+            this._instruction = instruction;
+        }
+
+        /**
+         * Checks the redstone levels on different sides of the sign to decide
+         * the station instruction to perform
+         * 
+         * @param info Sign information to use
+         */
+        public void setInstructionUsingSign(SignActionEvent info) {
+            // Vertical or horizontal rail logic
+            if (info.isRailsVertical()) {
+                // Up, down or center based on redstone power
+                boolean up = info.isPowered(BlockFace.UP);
+                boolean down = info.isPowered(BlockFace.DOWN);
+                if (up && !down) {
+                    this.setInstruction(BlockFace.UP);
+                } else if (!up && down) {
+                    this.setInstruction(BlockFace.DOWN);
+                } else if (info.isPowered()) {
+                    this.setInstruction(BlockFace.SELF);
+                } else {
+                    this.setInstruction(null);
+                }
+            } else {
+                Vector railDirection = info.getCartEnterDirection();
+                boolean diagonal = Util.isDiagonal(railDirection);
+
+                // Diagonal logic is only used for SIGN_POST, so verify that this is the case
+                if (diagonal) {
+                    org.bukkit.material.Sign sign_material = BlockUtil.getData(info.getBlock(), org.bukkit.material.Sign.class);
+                    if (sign_material == null || sign_material.isWallSign()) {
+                        diagonal = false;
+                    }
+                }
+
+                if (Util.isDiagonal(railDirection)) {
+                    org.bukkit.material.Sign sign_material = BlockUtil.getData(info.getBlock(), org.bukkit.material.Sign.class);
+                    if (sign_material == null || sign_material.isWallSign()) {
+                        // A wall sign used with a diagonal piece of track
+                        // The direction is based on the facing of the sign, so adjust for that
+                        BlockFace facing = info.getFacing();
+                        if (FaceUtil.isAlongX(facing)) {
+                            // Sign facing is along X, launch along Z
+                            boolean north = info.isPowered(BlockFace.NORTH);
+                            boolean south = info.isPowered(BlockFace.SOUTH);
+                            if (north && !south) {
+                                this.setInstruction(BlockFace.NORTH);
+                            } else if (south && !north) {
+                                this.setInstruction(BlockFace.SOUTH);
+                            } else if (info.isPowered()) {
+                                this.setInstruction(BlockFace.SELF);
+                            } else {
+                                this.setInstruction(null);
+                            }
+                        } else {
+                            // Sign facing is along Z, launch along X
+                            boolean west = info.isPowered(BlockFace.WEST);
+                            boolean east = info.isPowered(BlockFace.EAST);
+                            if (west && !east) {
+                                this.setInstruction(BlockFace.WEST);
+                            } else if (east && !west) {
+                                this.setInstruction(BlockFace.EAST);
+                            } else if (info.isPowered()) {
+                                this.setInstruction(BlockFace.SELF);
+                            } else {
+                                this.setInstruction(null);
+                            }
+                        }
+                    } else {
+                        // Diagonal logic is only used for SIGN_POST
+                        // Sub-cardinal checks: Both directions have two possible powered sides
+                        BlockFace face_x = (railDirection.getX() > 0.0) ? BlockFace.EAST : BlockFace.WEST;
+                        BlockFace face_z = (railDirection.getZ() > 0.0) ? BlockFace.SOUTH : BlockFace.NORTH;
+                        boolean pow1 = info.isPowered(face_x) || info.isPowered(face_z);
+                        boolean pow2 = info.isPowered(face_x.getOppositeFace()) || info.isPowered(face_z.getOppositeFace());
+                        if (pow1 && !pow2) {
+                            this.setInstruction(FaceUtil.combine(face_x, face_z));
+                        } else if (!pow1 && pow2) {
+                            this.setInstruction(FaceUtil.combine(face_x.getOppositeFace(), face_z.getOppositeFace()));
+                        } else if (info.isPowered()) {
+                            this.setInstruction(BlockFace.SELF);
+                        } else {
+                            this.setInstruction(null);
+                        }
+                    }
+                } else if (Math.abs(railDirection.getX()) > Math.abs(railDirection.getZ())) {
+                    // Along X
+                    boolean west = info.isPowered(BlockFace.WEST);
+                    boolean east = info.isPowered(BlockFace.EAST);
+                    if (west && !east) {
+                        this.setInstruction(BlockFace.WEST);
+                    } else if (east && !west) {
+                        this.setInstruction(BlockFace.EAST);
+                    } else if (info.isPowered()) {
+                        this.setInstruction(BlockFace.SELF);
+                    } else {
+                        this.setInstruction(null);
+                    }
+                } else {
+                    // Along Z
+                    boolean north = info.isPowered(BlockFace.NORTH);
+                    boolean south = info.isPowered(BlockFace.SOUTH);
+                    if (north && !south) {
+                        this.setInstruction(BlockFace.NORTH);
+                    } else if (south && !north) {
+                        this.setInstruction(BlockFace.SOUTH);
+                    } else if (info.isPowered()) {
+                        this.setInstruction(BlockFace.SELF);
+                    } else {
+                        this.setInstruction(null);
+                    }
+                }
+            }
+        }
+
+        /**
+         * Parses the station configuration from a standard station sign
+         * using the station sign syntax.
+         * 
+         * @param info Station sign to parse from
+         * @return station configuration that was parsed
+         */
+        public static StationConfig fromSign(SignActionEvent info) {
+            StationConfig config = new StationConfig();
+
+            // Parse delay from sign
+            config.setDelay(ParseUtil.parseTime(info.getLine(2)));
+
+            // Parse the (next) launch direction and launch force (speed) on the fourth line
+            for (String part : info.getLine(3).split(" ")) {
+                Direction direction = Direction.parse(part);
+                if (direction != Direction.NONE) {
+                    config.setNextDirection(direction);
+                } else {
+                    config.setLaunchSpeed(parseLaunchForce(part, info));
+                }
+            }
+
+            // Use redstone around the sign to decide an instruction
+            config.setInstructionUsingSign(info);
+
+            // Trim the first alphanumeric (a-z) contents of the second line
+            // This omits the 'station' (or other text) and checks the text past that
+            String launchConfigStr = info.getLine(1).trim();
+            for (int i = 0;;i++) {
+                if (i == launchConfigStr.length()) {
+                    launchConfigStr = ""; // no non-letter contents
+                    break;
+                }
+
+                char c = launchConfigStr.charAt(i);
+                if (!Character.isLetter(c)) {
+                    launchConfigStr = launchConfigStr.substring(i);
+                    break;
+                }
+            }
+
+            // Parse and filter offset before parsing launcher configuration
+            // Offset is specified using '0.352m'
+            int offsetTextEndIdx = launchConfigStr.indexOf('m');
+            if (offsetTextEndIdx != -1) {
+                launchConfigStr = launchConfigStr.substring(0, offsetTextEndIdx) + launchConfigStr.substring(offsetTextEndIdx + 1);
+
+                int offsetTextStartIdx = offsetTextEndIdx - 1;
+                while (offsetTextStartIdx >= 0) {
+                    char c = launchConfigStr.charAt(offsetTextStartIdx);
+                    if (!Character.isDigit(c) && c != '.' && c != ',' && c != '-') {
+                        break;
+                    } else {
+                        offsetTextStartIdx--;
+                    }
+                }
+                offsetTextStartIdx++;
+
+                if (offsetTextStartIdx < offsetTextEndIdx) {
+                    String offsetStr = launchConfigStr.substring(offsetTextStartIdx, offsetTextEndIdx);
+                    launchConfigStr = launchConfigStr.substring(0, offsetTextStartIdx) + launchConfigStr.substring(offsetTextEndIdx);
+                    config.setOffsetFromCenter(ParseUtil.parseDouble(offsetStr, 0.0));
+                }
+            }
+
+            // Get initial station length, delay and direction
+            config.setLaunchConfig(LauncherConfig.parse(launchConfigStr));
+            if (!config.getLaunchConfig().hasDuration() && !config.getLaunchConfig().hasDistance() && config.getInstruction() != null) {
+                // Manually calculate the length
+                // Use the amount of straight blocks
+                BlockFace launchDir = config.getInstruction();
+                if (launchDir == BlockFace.SELF) {
+                    launchDir = config.getNextDirection().getDirection(info.getFacing(), info.getMember().getDirection());
+                }
+                double length = Util.calculateStraightLength(info.getRails(), launchDir);
+                if (length == 0.0) {
+                    length++;
+                }
+                config.getLaunchConfig().setDistance(length);
+            }
+
+            return config;
+        }
+
+        private static double parseLaunchForce(String text, SignActionEvent info) {
+            if (text.equalsIgnoreCase("max") && info.hasGroup()) {
+                return info.getGroup().getProperties().getSpeedLimit();
+            }
+
+            return ParseUtil.parseDouble(text, TCConfig.launchForce);
+        }
     }
 }

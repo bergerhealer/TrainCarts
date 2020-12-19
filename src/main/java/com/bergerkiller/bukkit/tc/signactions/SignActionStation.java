@@ -36,9 +36,6 @@ public class SignActionStation extends SignAction {
         //Check if not already targeting
         MinecartGroup group = info.getGroup();
         Station station = new Station(info);
-        if (!station.isValid()) {
-            return;
-        }
 
         //What do we do?
         if (station.getInstruction() == null) {
