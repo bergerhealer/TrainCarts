@@ -22,6 +22,7 @@ public class Permission extends PermissionEnum {
     public static final Permission PROPERTY_GRAVITY = new Permission("train.property.gravity", PermissionDefault.TRUE, "The player can change the gravity multiplier of the train");
     public static final Permission PROPERTY_BANKING = new Permission("train.property.banking", PermissionDefault.TRUE, "The player can change the way trains bank in curves");
     public static final Permission PROPERTY_DESTINATION = new Permission("train.property.destination", PermissionDefault.TRUE, "The player can change what destination a train is path-finding to");
+    public static final Permission PROPERTY_ROUTE = new Permission("train.property.route", PermissionDefault.TRUE, "The player can change what sequence of destinations a train follows");
     public static final Permission PROPERTY_TAGS = new Permission("train.property.tags", PermissionDefault.TRUE, "The player can add or remove tags to trains or carts, used by switchers and detectors");
     public static final Permission PROPERTY_ONLYOWNERSCANENTER = new Permission("train.property.onlyownerscanenter", PermissionDefault.TRUE, "The player can change whether only owners or all players can enter a train");
     public static final Permission PROPERTY_PICKUPITEMS = new Permission("train.property.pickupitems", PermissionDefault.TRUE, "The player can change whether storage carts pick up items off the ground");

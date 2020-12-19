@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.commands;
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -17,13 +16,10 @@ import com.bergerkiller.bukkit.tc.exception.command.NoTicketSelectedException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainSelectedException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainStorageChestItemException;
 import com.bergerkiller.bukkit.tc.exception.command.SelectedTrainNotOwnedException;
-import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
-import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathWorld;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
-import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.mountiplex.MountiplexUtil;
@@ -35,7 +31,6 @@ import cloud.commandframework.arguments.parser.StandardParameters;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -47,7 +42,6 @@ public class Commands {
     private final CartCommands commands_cart = new CartCommands();
     private final TrainCommands commands_train = new TrainCommands();
     private final GlobalCommands commands_train_global = new GlobalCommands();
-    private final RouteCommands commands_train_route = new RouteCommands();
     private final TicketCommands commands_train_ticket = new TicketCommands();
     private final SavedTrainCommands commands_savedtrain = new SavedTrainCommands();
 
@@ -139,6 +133,7 @@ public class Commands {
             }
             return worlds.flatMap(world -> world.getNodes().stream())
                          .flatMap(node -> node.getNames().stream())
+                         .distinct()
                          .collect(Collectors.toList());
         });
 
@@ -146,7 +141,6 @@ public class Commands {
         cloud.annotations(commands_cart);
         cloud.annotations(commands_train);
         cloud.annotations(commands_train_global);
-        cloud.annotations(commands_train_route);
         cloud.annotations(commands_train_ticket);
         cloud.annotations(commands_savedtrain);
 
@@ -157,44 +151,6 @@ public class Commands {
     @CommandDescription("Displays the TrainCarts plugin about message, with version information")
     private void commandShowAbout(final CommandSender sender) {
         Localization.COMMAND_ABOUT.message(sender, TrainCarts.plugin.getDebugVersion());
-    }
-
-    public static void showPathInfo(CommandSender sender, IProperties prop) {
-        MessageBuilder msg = new MessageBuilder();
-        msg.yellow("This ").append(prop.getTypeName());
-        final String lastName = prop.getDestination();
-        IPropertiesHolder holder;
-        if (LogicUtil.nullOrEmpty(lastName)) {
-            msg.append(" is not trying to reach a destination.");
-        } else if ((holder = prop.getHolder()) == null) {
-            msg.append(" is not currently loaded.");
-        } else {
-            msg.append(" is trying to reach ").green(lastName).newLine();
-
-            PathWorld pathWorld = TrainCarts.plugin.getPathProvider().getWorld(holder.getWorld());
-            final PathNode first = pathWorld.getNodeByName(prop.getLastPathNode());
-            if (first == null) {
-                msg.yellow("It has not yet visited a routing node, so no route is available yet.");
-            } else {
-                PathNode last = pathWorld.getNodeByName(lastName);
-                if (last == null) {
-                    msg.red("The destination position to reach can not be found!");
-                } else {
-                    // Calculate the exact route taken from first to last
-                    PathConnection[] route = first.findRoute(last);
-                    msg.yellow("Route: ");
-                    if (route.length == 0) {
-                        msg.red(first.getDisplayName() + " /=/ " + last.getDisplayName() + " (not found)");
-                    } else {
-                        msg.setSeparator(ChatColor.YELLOW, " -> ");
-                        for (PathConnection connection : route) {
-                            msg.green(connection.destination.getDisplayName());
-                        }
-                    }
-                }
-            }
-        }
-        msg.send(sender);
     }
 
     public static void info(MessageBuilder message, IProperties prop) {

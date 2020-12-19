@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.pathfinding;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -40,6 +41,15 @@ public class RouteManager {
             this.changed = false;
             this.config.save();
         }
+    }
+
+    /**
+     * Gets the names of all saved routes
+     * 
+     * @return saved route names
+     */
+    public List<String> getRouteNames() {
+        return new ArrayList<>(this.config.getKeys());
     }
 
     /**
