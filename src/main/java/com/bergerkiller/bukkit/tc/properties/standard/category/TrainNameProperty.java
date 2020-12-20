@@ -21,12 +21,12 @@ import cloud.commandframework.annotations.Flag;
  */
 public final class TrainNameProperty implements ISyntheticProperty<String> {
 
-    @CommandMethod("train rename|setname|name <newname>")
+    @CommandMethod("train rename|setname|name <new_name>")
     @CommandDescription("Renames a train")
     private void trainSetSpeedLimit(
             final CommandSender sender,
             final TrainProperties properties,
-            final @Argument("newname") String newName,
+            final @Argument("new_name") String newName,
             final @Flag(value="generate", description="Generate a unique name") boolean generate
     ) {
         handlePermission(sender, "name");
