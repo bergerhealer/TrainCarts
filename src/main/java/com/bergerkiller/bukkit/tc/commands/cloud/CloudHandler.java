@@ -23,13 +23,16 @@ import org.bukkit.plugin.Plugin;
 import com.bergerkiller.bukkit.common.localization.LocalizationEnum;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 
+import cloud.commandframework.Command;
 import cloud.commandframework.annotations.AnnotationParser;
 import cloud.commandframework.annotations.injection.ParameterInjector;
+import cloud.commandframework.arguments.CommandArgument;
 import cloud.commandframework.arguments.parser.ArgumentParseResult;
 import cloud.commandframework.arguments.parser.ArgumentParser;
 import cloud.commandframework.arguments.parser.ParserParameter;
 import cloud.commandframework.arguments.parser.ParserParameters;
 import cloud.commandframework.arguments.parser.StandardParameters;
+import cloud.commandframework.arguments.standard.StringArgument;
 import cloud.commandframework.brigadier.CloudBrigadierManager;
 import cloud.commandframework.bukkit.BukkitCommandManager;
 import cloud.commandframework.bukkit.CloudBukkitCapabilities;
@@ -422,11 +425,68 @@ public class CloudHandler {
         caption(regex, (caption, sender) -> value);
     }
 
-    public MinecraftHelp<CommandSender> help(String commandPrefix) {
-        return new MinecraftHelp<>(
+    /**
+     * Registers a new help command for all the commands under a filter prefix
+     * 
+     * @param filterPrefix Command filter prefix, for commands shown in the menu
+     * @return minecraft help
+     */
+    public MinecraftHelp<CommandSender> helpCommand(List<String> filterPrefix, String helpDescription) {
+        String helpCmd = "/" + String.join(" ", filterPrefix) + " help";
+        final MinecraftHelp<CommandSender> help = this.help(helpCmd, filterPrefix);
+
+        // Start a builder
+        Command.Builder<CommandSender> command = Command.newBuilder(
+                filterPrefix.get(0),
+                CommandMeta.simple()
+                    .with(CommandMeta.DESCRIPTION, helpDescription)
+                    .build());
+
+        // Add literals, then 'help'
+        for (int i = 1; i < filterPrefix.size(); i++) {
+            command = command.literal(filterPrefix.get(i));
+        }
+        command = command.literal("help");
+        command = command.argument(StringArgument.<CommandSender>newBuilder("query")
+                .greedy()
+                .asOptional());
+        command = command.handler(context -> {
+            String query = context.getOrDefault("query", "");
+            help.queryCommands(query, context.getSender());
+        });
+
+        this.manager.command(command);
+
+        return help;
+    }
+
+    /**
+     * Creates a help menu
+     * 
+     * @param commandPrefix Help command prefix
+     * @param filterPrefix Command filter prefix, for commands shown in the menu
+     * @return minecraft help
+     */
+    public MinecraftHelp<CommandSender> help(String commandPrefix, final List<String> filterPrefix) {
+        MinecraftHelp<CommandSender> help = new MinecraftHelp<>(
                 commandPrefix, /* Help Prefix */
                 this.bukkitAudiences::sender, /* Audience mapper */
                 this.manager /* Manager */
         );
+
+        help.setCommandFilter(command -> {
+            List<CommandArgument<CommandSender, ?>> args = command.getArguments();
+            if (args.size() < filterPrefix.size()) {
+                return false;
+            }
+            for (int i = 0; i < filterPrefix.size(); i++) {
+                if (!args.get(i).getName().equals(filterPrefix.get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        });
+
+        return help;
     }
 }

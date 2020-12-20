@@ -24,13 +24,12 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.mountiplex.MountiplexUtil;
 
-import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
-import cloud.commandframework.annotations.specifier.Greedy;
 import cloud.commandframework.arguments.parser.StandardParameters;
-import cloud.commandframework.minecraft.extras.MinecraftHelp;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -47,8 +46,6 @@ public class Commands {
     private final GlobalCommands commands_train_global = new GlobalCommands();
     private final TicketCommands commands_train_ticket = new TicketCommands();
     private final SavedTrainCommands commands_savedtrain = new SavedTrainCommands();
-
-    public MinecraftHelp<CommandSender> help;
 
     public CloudHandler getHandler() {
         return cloud;
@@ -151,16 +148,12 @@ public class Commands {
 
         cloud.annotations(this);
 
-        this.help = cloud.help("/train help");
-    }
-
-    @CommandMethod("train help [query]")
-    @CommandDescription("Shows help")
-    private void commandHelp(
-            final CommandSender sender,
-            final @Argument("query") @Greedy String query
-    ) {
-        this.help.queryCommands((query == null) ? "" : query, sender);
+        // Help menus
+        cloud.helpCommand(Collections.singletonList("cart"), "Shows help for commands that target carts");
+        cloud.helpCommand(Collections.singletonList("train"), "Shows help for global commands and commands that target trains");
+        cloud.helpCommand(Collections.singletonList("savedtrain"), "Shows help for commands that manage saved trains");
+        cloud.helpCommand(Arrays.asList("cart", "route"), "Shows help for commands that modify the route set for carts");
+        cloud.helpCommand(Arrays.asList("train", "route"), "Shows help for commands that modify the route set for trains");
     }
 
     @CommandMethod("train")

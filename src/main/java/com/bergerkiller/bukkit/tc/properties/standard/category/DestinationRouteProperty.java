@@ -117,14 +117,6 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
         showRoute("/cart route", sender, properties);
     }
 
-    @CommandMethod("cart route help")
-    @CommandDescription("Displays help information about the route command")
-    private void showCartHelp(
-            final CommandSender sender
-    ) {
-        showHelp(sender, "/cart route");
-    }
-
     @CommandMethod("cart route add <destinations>")
     @CommandDescription("Adds one or more destinations to the route set for a cart")
     private void setPropertyAdd(
@@ -198,14 +190,6 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
         showRoute("/train route", sender, properties);
     }
 
-    @CommandMethod("train route help")
-    @CommandDescription("Displays help information about the route command")
-    private void showTrainHelp(
-            final CommandSender sender
-    ) {
-        showHelp(sender, "/train route");
-    }
-
     @CommandMethod("train route add <destinations>")
     @CommandDescription("Adds one or more destinations to the route set for a train")
     private void setPropertyAdd(
@@ -274,15 +258,6 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
     public List<String> getSavedRouteNames(final CommandContext<CommandSender> context, final String input) {
         final TrainCarts plugin = context.inject(TrainCarts.class).get();
         return plugin.getRouteManager().getRouteNames();
-    }
-
-    private void showHelp(CommandSender sender, String cmd_prefix) {
-        sender.sendMessage(cmd_prefix + " - shows current route");
-        sender.sendMessage(cmd_prefix + " add/set [destination...] - adds or sets the destinations of the route");
-        sender.sendMessage(cmd_prefix + " remove [destination...] - remove destinations from the route");
-        sender.sendMessage(cmd_prefix + " clear - remove all destinations from the route, disabling it");
-        sender.sendMessage(cmd_prefix + " save [name] - save routes to a global route directory by name");
-        sender.sendMessage(cmd_prefix + " load [name] - load routes from a global route directory by name");
     }
 
     private void setPropertySetGeneric(CommandSender sender, IProperties properties, String[] destinations) {
