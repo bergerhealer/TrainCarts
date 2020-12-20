@@ -166,9 +166,20 @@
             <version>1.4.0-SNAPSHOT</version>
         </dependency>
         <dependency>
+            <groupId>org.bergerhealer.cloud.commandframework</groupId>
+            <artifactId>cloud-minecraft-extras</artifactId>
+            <version>1.4.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
             <groupId>me.lucko</groupId>
             <artifactId>commodore</artifactId>
             <version>1.9</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-platform-bukkit</artifactId>
+            <version>4.0.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
 
@@ -252,7 +263,11 @@
                         </relocation>
                         <relocation>
                             <pattern>me.lucko.commodore</pattern>
-                            <shadedPattern>>com.bergerkiller.bukkit.tc.dep.commodore</shadedPattern>
+                            <shadedPattern>com.bergerkiller.bukkit.tc.dep.commodore</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>net.kyori</pattern>
+                            <shadedPattern>com.bergerkiller.bukkit.tc.dep.net.kyori</shadedPattern>
                         </relocation>
                     </relocations>
                     <artifactSet>
@@ -261,6 +276,7 @@
                             <include>org.bergerhealer.cloud.commandframework</include>
                             <include>io.leangen.geantyref</include>
                             <include>me.lucko:commodore</include>
+                            <include>net.kyori</include>
                         </includes>
                     </artifactSet>
                 </configuration>

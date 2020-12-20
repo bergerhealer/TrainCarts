@@ -40,8 +40,10 @@ import cloud.commandframework.exceptions.CommandExecutionException;
 import cloud.commandframework.execution.CommandExecutionCoordinator;
 import cloud.commandframework.execution.postprocessor.CommandPostprocessor;
 import cloud.commandframework.meta.CommandMeta;
+import cloud.commandframework.minecraft.extras.MinecraftHelp;
 import cloud.commandframework.paper.PaperCommandManager;
 import io.leangen.geantyref.TypeToken;
+import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 
 /**
  * Configures the Cloud command dispatcher
@@ -49,6 +51,7 @@ import io.leangen.geantyref.TypeToken;
 public class CloudHandler {
     private BukkitCommandManager<CommandSender> manager;
     private AnnotationParser<CommandSender> annotationParser;
+    private BukkitAudiences bukkitAudiences;
 
     public void enable(Plugin plugin) {
         try {
@@ -144,6 +147,9 @@ public class CloudHandler {
                 .filter(p -> p.startsWith(input))
                 .collect(Collectors.toList());
         });
+
+        // Used by the help system
+        this.bukkitAudiences = BukkitAudiences.create(plugin);
     }
 
     /**
@@ -414,5 +420,13 @@ public class CloudHandler {
      */
     public void caption(String regex, String value) {
         caption(regex, (caption, sender) -> value);
+    }
+
+    public MinecraftHelp<CommandSender> help(String commandPrefix) {
+        return new MinecraftHelp<>(
+                commandPrefix, /* Help Prefix */
+                this.bukkitAudiences::sender, /* Audience mapper */
+                this.manager /* Manager */
+        );
     }
 }
