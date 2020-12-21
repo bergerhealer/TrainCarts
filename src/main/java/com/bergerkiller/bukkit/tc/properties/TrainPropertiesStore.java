@@ -331,8 +331,6 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         hasChanges = false;
 
         // Add a change listener which will set hasChanges to true
-        // Note: new in BKCommonLib 1.16.4-v3, so this is allowed to fail for now
-        // Once this is a hard dependency, all other places where hasChanges is set to true can be removed
         config.addChangeListener((path) -> hasChanges = true);
     }
 
