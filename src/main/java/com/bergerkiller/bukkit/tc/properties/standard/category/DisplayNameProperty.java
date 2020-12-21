@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 
 import cloud.commandframework.annotations.Argument;
@@ -23,15 +24,14 @@ import net.md_5.bungee.api.ChatColor;
  */
 public final class DisplayNameProperty implements ITrainProperty<String> {
 
+    @PropertyCheckPermission("displayname")
     @CommandMethod("train displayname <name>")
     @CommandDescription("Sets the display name of the train")
-    private void getProperty(
+    private void setProperty(
             final CommandSender sender,
             final TrainProperties properties,
             final @Argument("name") @Greedy String name
     ) {
-        handlePermission(sender, "displayname");
-
         properties.set(this, name);
         getProperty(sender, properties);
     }

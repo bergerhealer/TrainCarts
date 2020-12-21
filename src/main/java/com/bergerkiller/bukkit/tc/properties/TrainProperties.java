@@ -107,7 +107,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     @Override
     public final <T> void set(IProperty<T> property, T value) {
         property.set(this, value);
-        TrainPropertiesStore.markForAutosave(); //TODO: Deprecate
     }
 
     /**
@@ -1258,7 +1257,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         }
 
         // Deep-copy input train configuration to train configuration, skip 'carts'
-        Util.cloneInto(node, this.config, Collections.singleton("carts"));
+        node.cloneIntoExcept(this.config, Collections.singleton("carts"));
 
         // Reload properties
         onConfigurationChanged(false);
@@ -1266,7 +1265,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
     @Override
     public void save(ConfigurationNode node) {
-        Util.cloneInto(saveToConfig(), node, Collections.emptySet());
+        saveToConfig().cloneInto(node);
     }
 
     protected void onConfigurationChanged(boolean cartsChanged) {

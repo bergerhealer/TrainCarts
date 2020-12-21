@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.utils;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.permissions.IPermissionEnum;
 import com.bergerkiller.bukkit.common.permissions.PermissionEnum;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
 
@@ -12,7 +13,7 @@ import com.bergerkiller.bukkit.common.wrappers.ChatText;
  * called to handle everything.
  */
 public class SignBuildOptions {
-    private PermissionEnum permission = null;
+    private IPermissionEnum permission = null;
     private String name = null;
     private String helpURL = null;
     private String helpAlt = null;
@@ -28,6 +29,17 @@ public class SignBuildOptions {
      * @return this
      */
     public SignBuildOptions setPermission(PermissionEnum permission) {
+        this.permission = permission;
+        return this;
+    }
+
+    /**
+     * Sets a required permission for building the sign
+     * 
+     * @param permission
+     * @return this
+     */
+    public SignBuildOptions setPermission(IPermissionEnum permission) {
         this.permission = permission;
         return this;
     }

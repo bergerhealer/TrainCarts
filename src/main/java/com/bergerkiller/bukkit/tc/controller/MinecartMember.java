@@ -2041,7 +2041,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                     break;
                 }
             }
-            Util.setBlockActivationEnabled(this, enabled);
+            this.setBlockActivationEnabled(enabled);
         }
 
         // Detect when the train starts and stops moving, to player a configured drive sound

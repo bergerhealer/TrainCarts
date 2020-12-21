@@ -8,7 +8,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -35,13 +34,9 @@ import org.bukkit.material.Stairs;
 import org.bukkit.material.Step;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.config.yaml.YamlListNode;
-import com.bergerkiller.bukkit.common.config.yaml.YamlNodeAbstract;
 import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
-import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.math.Quaternion;
@@ -70,7 +65,6 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bergerkiller.generated.net.minecraft.server.AxisAlignedBBHandle;
 import com.bergerkiller.generated.net.minecraft.server.ChunkHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryHandle;
-import com.bergerkiller.mountiplex.reflection.util.FastMethod;
 import com.bergerkiller.reflection.net.minecraft.server.NMSItem;
 
 public class Util {
@@ -1482,26 +1476,6 @@ public class Util {
         }
     }
 
-    // For BKC 1.15.2-v1 support (remove when no longer backwards compatible)
-    private static final FastMethod<Void> setBlockActivationEnabledMethod;
-    static {
-        if (Common.hasCapability("Common:EntityController:SetBlockActivationEnabled")) {
-            setBlockActivationEnabledMethod = new FastMethod<Void>();
-            try {
-                setBlockActivationEnabledMethod.init(EntityController.class.getDeclaredMethod("setBlockActivationEnabled", boolean.class));
-            } catch (Throwable t) {
-                throw new RuntimeException("This is impossible", t);
-            }
-        } else {
-            setBlockActivationEnabledMethod = null;
-        }
-    }
-    public static void setBlockActivationEnabled(EntityController<?> controller, boolean enabled) {
-        if (setBlockActivationEnabledMethod != null) {
-            setBlockActivationEnabledMethod.invoke(controller, enabled);
-        }
-    }
-
     /**
      * Checks whether a given direction motion vector is sub-cardinal,
      * pointing into a diagonal and not along a single axis.
@@ -1676,79 +1650,6 @@ public class Util {
 
                 parent.remove();
                 parentYamlPath = parentYamlPath.parent();
-            }
-        }
-    }
-
-    /**
-     * Deep-clones one configuration node into another.
-     * Original keys in from that are not in to are preserved.
-     * Original keys in to that are not in from are added.<br>
-     * <br>
-     * TODO: This is a new function in BKCommonLib, can remove this once that one is
-     * a hard dependency.
-     * 
-     * @param from
-     * @param to
-     * @param pathsToExclude
-     */
-    public static void cloneInto(ConfigurationNode from, ConfigurationNode to, Collection<String> excludedPaths) {
-        if (Common.hasCapability("Common:Yaml:CloneAndSetToWithFixes")) {
-            from.cloneIntoExcept(to, excludedPaths);
-        } else {
-            cloneIntoFallback(from, to, YamlPath.ROOT, excludedPaths, false);
-        }
-    }
-
-    /**
-     * Assigns all the values of the source to the target node.<br>
-     * <br>
-     * TODO: This is a new function in BKCommonLib, can remove this once that one is
-     * a hard dependency.
-     * 
-     * @param target
-     * @param source
-     */
-    public static void setToExcept(ConfigurationNode target, ConfigurationNode source, Collection<String> excludedPaths) {
-        if (Common.hasCapability("Common:Yaml:CloneAndSetToWithFixes")) {
-            target.setToExcept(source, excludedPaths);
-        } else {
-            cloneIntoFallback(source, target, YamlPath.ROOT, excludedPaths, true);
-        }
-    }
-
-    private static void cloneIntoFallback(YamlNodeAbstract<?> from, YamlNodeAbstract<?> to, YamlPath filterRoot, Collection<String> excludedPaths, boolean removeOthers) {
-        // Deep-copy old train configuration to the new one
-        // Note: is slower than BKCommonLib's implementation :(
-        Set<String> keysToRemove = removeOthers ? new HashSet<>(to.getKeys()) : Collections.emptySet();
-        for (Map.Entry<String, Object> property : from.getValues().entrySet()) {
-            String key = property.getKey();
-            YamlPath filterPath = filterRoot.child(key);
-            if (excludedPaths.contains(filterPath.toString())) {
-                continue;
-            }
-
-            if (removeOthers) {
-                keysToRemove.remove(key);
-            }
-
-            Object value = property.getValue();
-            if (value instanceof YamlListNode) {
-                // Simply overwrite lists
-                to.set(key, ((YamlListNode) value).clone());
-            } else if (value instanceof YamlNodeAbstract) {
-                // Recursively copy the key-values of this node
-                YamlNodeAbstract<?> nodeFrom = (YamlNodeAbstract<?>) value;
-                YamlNodeAbstract<?> nodeTo = to.getNode(key);
-                cloneIntoFallback(nodeFrom, nodeTo, filterPath, excludedPaths, removeOthers);
-            } else {
-                // Other types of values aren't cloned
-                to.set(property.getKey(), value);
-            }
-        }
-        for (String key : keysToRemove) {
-            if (!excludedPaths.contains(filterRoot.child(key).toString())) {
-                to.remove(key);
             }
         }
     }

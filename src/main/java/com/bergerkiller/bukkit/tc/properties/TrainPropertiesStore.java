@@ -1,13 +1,11 @@
 package com.bergerkiller.bukkit.tc.properties;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
@@ -272,7 +270,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         ConfigurationNode newTrainConfig = config.getNode(name);
 
         // Deep-copy old train configuration to the new one, skip 'carts'
-        Util.cloneInto(fromTrainProperties.saveToConfig(), newTrainConfig, Collections.singleton("carts"));
+        fromTrainProperties.saveToConfig().cloneIntoExcept(newTrainConfig, Collections.singleton("carts"));
 
         // Create new properties with this configuration
         TrainProperties prop = new TrainProperties(name, newTrainConfig);
@@ -335,9 +333,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         // Add a change listener which will set hasChanges to true
         // Note: new in BKCommonLib 1.16.4-v3, so this is allowed to fail for now
         // Once this is a hard dependency, all other places where hasChanges is set to true can be removed
-        if (Common.hasCapability("Common:Yaml:ChangeListeners")) {
-            config.addChangeListener((path) -> hasChanges = true);
-        }
+        config.addChangeListener((path) -> hasChanges = true);
     }
 
     /**
@@ -450,13 +446,6 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         if (changed) {
             defconfig.save();
         }
-    }
-
-    /**
-     * Informs TrainCarts that (some) Train Properties have changed, and will need to be synchronized to disk
-     */
-    public static void markForAutosave() {
-        hasChanges = true;
     }
 
     /**

@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 
@@ -35,6 +36,7 @@ public final class DestinationProperty implements ICartProperty<String> {
         commandSetProperty(sender, properties, "");
     }
 
+    @PropertyCheckPermission("destination")
     @CommandMethod("train destination|dest <destination>")
     @CommandDescription("Sets a new destination for the train to go to")
     private void commandSetProperty(
@@ -42,8 +44,6 @@ public final class DestinationProperty implements ICartProperty<String> {
             final TrainProperties properties,
             final @Argument(value="destination", suggestions="destinations") String destination
     ) {
-        handlePermission(sender, "destination");
-
         properties.setDestination(destination);
         commandGetProperty(sender, properties);
     }
@@ -72,6 +72,7 @@ public final class DestinationProperty implements ICartProperty<String> {
         commandSetProperty(sender, properties, "");
     }
 
+    @PropertyCheckPermission("destination")
     @CommandMethod("cart destination|dest <destination>")
     @CommandDescription("Sets a new destination for the cart to go to")
     private void commandSetProperty(
@@ -79,8 +80,6 @@ public final class DestinationProperty implements ICartProperty<String> {
             final CartProperties properties,
             final @Argument(value="destination", suggestions="destinations") String destination
     ) {
-        handlePermission(sender, "destination");
-
         properties.setDestination(destination);
         commandGetProperty(sender, properties);
     }

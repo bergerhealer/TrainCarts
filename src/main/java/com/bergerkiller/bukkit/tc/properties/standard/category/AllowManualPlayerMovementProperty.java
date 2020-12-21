@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
@@ -23,6 +24,7 @@ import net.md_5.bungee.api.ChatColor;
  */
 public final class AllowManualPlayerMovementProperty extends FieldBackedStandardTrainProperty<Boolean> {
 
+    @PropertyCheckPermission("allowmanual")
     @CommandMethod("train manualmovement player <enabled>")
     @CommandDescription("Sets whether the train can be controlled by player passengers using steering controls")
     private void getProperty(
@@ -30,8 +32,6 @@ public final class AllowManualPlayerMovementProperty extends FieldBackedStandard
             final TrainProperties properties,
             final @Argument("enabled") boolean enabled
     ) {
-        handlePermission(sender, "allowmanual");
-
         properties.set(this, enabled);
         getProperty(sender, properties);
     }

@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
@@ -21,6 +22,7 @@ import cloud.commandframework.annotations.CommandMethod;
  */
 public final class AllowPlayerTakeProperty implements ITrainProperty<Boolean> {
 
+    @PropertyCheckPermission("allowplayertake")
     @CommandMethod("train allowplayertake|playertake <allow>")
     @CommandDescription("Sets whether players take carts of the train with them when they leave the server")
     private void commandSetProperty(
@@ -28,8 +30,6 @@ public final class AllowPlayerTakeProperty implements ITrainProperty<Boolean> {
             final TrainProperties properties,
             final @Argument("allow") boolean allow
     ) {
-        handlePermission(sender, "allowplayertake");
-
         properties.set(this, allow);
         commandGetProperty(sender, properties);
     }

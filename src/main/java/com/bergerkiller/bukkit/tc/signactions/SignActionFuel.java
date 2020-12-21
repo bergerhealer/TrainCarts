@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import com.bergerkiller.bukkit.tc.utils.TransferSignUtil;
 import org.bukkit.Material;
 import org.bukkit.block.BlockState;
@@ -92,6 +93,11 @@ public class SignActionFuel extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        return handleBuild(event, Permission.BUILD_COLLECTOR, "powered minecart coal collector", "fuel the powered minecart using coal from a chest");
+        SignBuildOptions opt = SignBuildOptions.create()
+                .setPermission(Permission.BUILD_COLLECTOR)
+                .setName("powered minecart coal collector")
+                .setDescription("fuel the powered minecart using coal from a chest");
+
+        return opt.handle(event.getPlayer());
     }
 }

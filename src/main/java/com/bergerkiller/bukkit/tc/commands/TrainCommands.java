@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
@@ -92,14 +93,13 @@ public class TrainCommands {
         message.send(player);
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_DESTROY)
     @CommandMethod("train destroy|remove")
     @CommandDescription("Destroys the train, removing all carts")
     private void commandDestroy(
             final Player player,
             final TrainProperties properties
     ) {
-        Permission.COMMAND_DESTROY.handle(player);
-
         MinecartGroup group = properties.getHolder();
         if (group == null) {
             TrainPropertiesStore.remove(properties.getTrainName());
@@ -110,6 +110,7 @@ public class TrainCommands {
         player.sendMessage(ChatColor.YELLOW + "The selected train has been destroyed!");
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_SAVE_TRAIN)
     @CommandMethod("train save <name>")
     @CommandDescription("Saves the train under a name")
     private void commandSave(
@@ -120,8 +121,6 @@ public class TrainCommands {
             final @Flag(value="force", description="Force saving when the train is claimed by someone else") boolean force,
             final @Flag(value="module", description="Module to move the saved train to") String module
     ) {
-        Permission.COMMAND_SAVE_TRAIN.handle(player);
-
         MinecartGroup group = properties.getHolder();
         if (group == null) {
             player.sendMessage(ChatColor.YELLOW + "The train you are editing is not loaded and can not be saved");
@@ -168,14 +167,13 @@ public class TrainCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_TELEPORT)
     @CommandMethod("train teleport|tp")
     @CommandDescription("Teleports the player to where the train is")
     private void commandTeleport(
             final Player player,
             final TrainProperties properties
     ) {
-        Permission.COMMAND_TELEPORT.handle(player);
-
         if (!properties.restore()) {
             player.sendMessage(ChatColor.RED + "Train location could not be found: Train is lost");
         } else {
@@ -190,6 +188,7 @@ public class TrainCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_ENTER)
     @CommandMethod("train enter")
     @CommandDescription("Teleports the player to the train and enters an available seat")
     private void commandEnter(
@@ -197,8 +196,6 @@ public class TrainCommands {
             final CartProperties cartProperties,
             final TrainProperties trainProperties
     ) {
-        Permission.COMMAND_ENTER.handle(player);
-
         if (!trainProperties.isLoaded()) {
             player.sendMessage(ChatColor.RED + "Can not enter the train: it is not loaded");
             return;
@@ -228,6 +225,7 @@ public class TrainCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_LAUNCH)
     @CommandMethod("train launch [options]")
     @CommandDescription("Launches the train into a direction")
     private void commandLaunch(
@@ -235,8 +233,6 @@ public class TrainCommands {
             final TrainProperties properties,
             final @Argument("options") String[] options
     ) {
-        Permission.COMMAND_LAUNCH.handle(player);
-
         if (!properties.isLoaded()) {
             player.sendMessage(ChatColor.RED + "Can not launch the train: it is not loaded");
             return;
@@ -302,6 +298,7 @@ public class TrainCommands {
         msg.send(player);
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_ANIMATE)
     @CommandMethod("train animate [options]")
     @CommandDescription("Plays an animation for the entire train")
     private void commandAnimate(
@@ -309,8 +306,6 @@ public class TrainCommands {
             final TrainProperties properties,
             final @Argument("options") String[] options
     ) {
-        Permission.COMMAND_ANIMATE.handle(player);
-
         if (!properties.isLoaded()) {
             player.sendMessage(ChatColor.RED + "Can not animate the train: it is not loaded");
             return;
@@ -325,14 +320,13 @@ public class TrainCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
     @CommandMethod("train displayedblock clear")
     @CommandDescription("Clears the displayed block in Minecart carts of the train, making it empty")
     private void commandClearDisplayedBlock(
             final CommandSender sender,
             final TrainProperties properties
     ) {
-        Permission.COMMAND_CHANGEBLOCK.handle(sender);
-
         MinecartGroup members = properties.getHolder();
         if (members == null) {
             Localization.EDIT_NOTLOADED.message(sender);
@@ -344,6 +338,7 @@ public class TrainCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
     @CommandMethod("train displayedblock <blocks>")
     @CommandDescription("Clears the displayed block in the Minecart, making it empty")
     private void commandChangeDisplayedBlock(
@@ -351,8 +346,6 @@ public class TrainCommands {
             final TrainProperties properties,
             final @Argument("blocks") @Greedy String blockNames
     ) {
-        Permission.COMMAND_CHANGEBLOCK.handle(sender);
-
         MinecartGroup members = properties.getHolder();
         if (members == null) {
             Localization.EDIT_NOTLOADED.message(sender);
@@ -362,14 +355,13 @@ public class TrainCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
     @CommandMethod("train displayedblock offset reset")
     @CommandDescription("Resets the height offset at which blocks are displayed in Minecarts of a train to the defaults")
     private void commandResetDisplayedBlockOffset(
             final CommandSender sender,
             final TrainProperties properties
     ) {
-        Permission.COMMAND_CHANGEBLOCK.handle(sender);
-
         MinecartGroup members = properties.getHolder();
         if (members == null) {
             Localization.EDIT_NOTLOADED.message(sender);
@@ -381,6 +373,7 @@ public class TrainCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
     @CommandMethod("train displayedblock offset <offset>")
     @CommandDescription("Sets the height offset at which blocks are displayed in Minecarts of a train")
     private void commandSetDisplayedBlockOffset(
@@ -388,8 +381,6 @@ public class TrainCommands {
             final TrainProperties properties,
             final @Argument("offset") int offset
     ) {
-        Permission.COMMAND_CHANGEBLOCK.handle(sender);
-
         MinecartGroup members = properties.getHolder();
         if (members == null) {
             Localization.EDIT_NOTLOADED.message(sender);

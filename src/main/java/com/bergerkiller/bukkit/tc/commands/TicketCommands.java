@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTicketSelectedException;
 import com.bergerkiller.bukkit.tc.tickets.TCTicketDisplay;
@@ -94,43 +95,41 @@ public class TicketCommands {
         builder.send(sender);
     }
 
+    @CommandRequiresPermission(Permission.TICKET_MANAGE)
     @CommandMethod("train ticket edit <name>")
     @CommandDescription("Edits a ticket by name")
     private void commandEdit(
               final Player sender,
               final @Argument("name") Ticket ticket
     ) {
-        Permission.TICKET_MANAGE.handle(sender);
-
         TicketStore.setEditing(sender, ticket);
         sender.sendMessage(ChatColor.GREEN + "You are now editing ticket " + ChatColor.YELLOW + ticket.getName());
     }
 
+    @CommandRequiresPermission(Permission.TICKET_MANAGE)
     @CommandMethod("train ticket create")
     @CommandDescription("Creates a new ticket with a unique random name")
     private void commandCreate(
               final Player sender
     ) {
-        Permission.TICKET_MANAGE.handle(sender);
-
         Ticket newTicket = TicketStore.createTicket(TicketStore.DEFAULT);
         sender.sendMessage(ChatColor.GREEN + "You have created a new ticket with the name " + ChatColor.YELLOW + newTicket.getName());
         TicketStore.setEditing(sender, newTicket);
     }
 
+    @CommandRequiresPermission(Permission.TICKET_MANAGE)
     @CommandMethod("train ticket create <name>")
     @CommandDescription("Creates a new ticket with a name as specified")
     private void commandCreateWithName(
               final Player sender,
               final @Argument("name") String name
     ) {
-        Permission.TICKET_MANAGE.handle(sender);
-
         Ticket newTicket = TicketStore.createTicket(TicketStore.DEFAULT, name);
         sender.sendMessage(ChatColor.GREEN + "You have created a new ticket with the name " + ChatColor.YELLOW + newTicket.getName());
         TicketStore.setEditing(sender, newTicket);
     }
 
+    @CommandRequiresPermission(Permission.TICKET_MANAGE)
     @CommandMethod("train ticket give <ticket> <players>")
     @CommandDescription("Gives a ticket by name to one or more players")
     private void commandGiveTicket(
@@ -138,8 +137,6 @@ public class TicketCommands {
               final @Argument("ticket") String ticketName,
               final @Argument("players") String[] playerNames
     ) {
-        Permission.TICKET_MANAGE.handle(sender);
-
         Ticket ticket = TicketStore.getTicket(ticketName);
         if (ticket == null) {
             sender.sendMessage(ChatColor.RED + "Failed to give ticket: ticket with name " + ticketName + " does not exist!");
@@ -159,19 +156,19 @@ public class TicketCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.TICKET_MANAGE)
     @CommandMethod("train ticket clone")
     @CommandDescription("Clones the currently edited ticket with a random new name")
     private void commandCloneTicket(
               final Player sender,
               final Ticket ticket
     ) {
-        Permission.TICKET_MANAGE.handle(sender);
-
         Ticket newTicket = TicketStore.createTicket(ticket);
         sender.sendMessage(ChatColor.GREEN + "You cloned the ticket, creating a new ticket with the name " + ChatColor.YELLOW + newTicket.getName());
         TicketStore.setEditing(sender, newTicket);
     }
 
+    @CommandRequiresPermission(Permission.TICKET_MANAGE)
     @CommandMethod("train ticket clone <newname>")
     @CommandDescription("Clones the currently edited ticket with the new name specified")
     private void commandCloneTicketWithNewName(
@@ -179,8 +176,6 @@ public class TicketCommands {
               final Ticket ticket,
               final @Argument("newname") String newTicketName
     ) {
-        Permission.TICKET_MANAGE.handle(sender);
-
         Ticket newTicket = TicketStore.createTicket(ticket, newTicketName);
         if (newTicket == null) {
             sender.sendMessage(ChatColor.RED + "Failed to clone ticket: a ticket with the name " + newTicketName + " already exists");
@@ -190,6 +185,7 @@ public class TicketCommands {
         TicketStore.setEditing(sender, newTicket);
     }
 
+    @CommandRequiresPermission(Permission.TICKET_MANAGE)
     @CommandMethod("train ticket rename <newname>")
     @CommandDescription("Renames the currently edited ticket")
     private void commandRenameTicket(
@@ -197,8 +193,6 @@ public class TicketCommands {
               final Ticket ticket,
               final @Argument("newname") String newTicketName
     ) {
-        Permission.TICKET_MANAGE.handle(sender);
-
         if (ticket.setName(newTicketName)) {
             sender.sendMessage(ChatColor.GREEN + "Ticket has been renamed to " + ChatColor.YELLOW + ticket.getName());
         } else {
@@ -206,6 +200,7 @@ public class TicketCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.TICKET_MANAGE)
     @CommandMethod("train ticket realm <newrealm>")
     @CommandDescription("Changes the realm of the currently edited ticket")
     private void commandSetRealm(
@@ -213,8 +208,6 @@ public class TicketCommands {
               final Ticket ticket,
               final @Argument("newrealm") String newRealm
     ) {
-        Permission.TICKET_MANAGE.handle(sender);
-
         ticket.setRealm(newRealm);
         TicketStore.markChanged();
         sender.sendMessage(ChatColor.GREEN + "Ticket realm set to " + ChatColor.YELLOW + newRealm);
@@ -235,6 +228,7 @@ public class TicketCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.TICKET_MANAGE)
     @CommandMethod("train ticket background|image <newimage>")
     @CommandDescription("Configures a custom background image for the currently edited ticket")
     private void commandSetBackground(
@@ -242,8 +236,6 @@ public class TicketCommands {
               final Ticket ticket,
               final @Argument("newimage") String newImage
     ) {
-        Permission.TICKET_MANAGE.handle(sender);
-
         ticket.setBackgroundImagePath(newImage);
         TicketStore.markChanged();
         if (newImage.isEmpty()) {
@@ -269,6 +261,7 @@ public class TicketCommands {
         commandSetMaximumUses(sender, ticket, -1);
     }
 
+    @CommandRequiresPermission(Permission.TICKET_MANAGE)
     @CommandMethod("train ticket maximumuses|maxuses|uselimit <newmaxuses>")
     @CommandDescription("Sets the number of uses for the currently edited ticket")
     private void commandSetMaximumUses(
@@ -276,8 +269,6 @@ public class TicketCommands {
               final Ticket ticket,
               final @Argument("newmaxuses") int newMaximumUses
     ) {
-        Permission.TICKET_MANAGE.handle(sender);
-
         ticket.setMaxNumberOfUses(newMaximumUses);
         TicketStore.markChanged();
         if (newMaximumUses >= 0) {
@@ -288,6 +279,7 @@ public class TicketCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.TICKET_MANAGE)
     @CommandMethod("train ticket destination <newdestination>")
     @CommandDescription("Sets a destination to apply to the train when the currently edited ticket is used")
     private void commandSetDestination(
@@ -295,12 +287,11 @@ public class TicketCommands {
               final Ticket ticket,
               final @Argument("newdestination") String newDestination
     ) {
-        Permission.TICKET_MANAGE.handle(sender);
-
         ticket.getProperties().set("destination", newDestination);
         sender.sendMessage(ChatColor.GREEN + "Ticket destination set to " + ChatColor.YELLOW + newDestination);
     }
 
+    @CommandRequiresPermission(Permission.TICKET_MANAGE)
     @CommandMethod("train ticket tags [newtags]")
     @CommandDescription("Sets tags to apply to the train when the currently edited ticket is used")
     private void commandSetTags(
@@ -308,8 +299,6 @@ public class TicketCommands {
               final Ticket ticket,
               final @Argument("newtags") String[] newTags
     ) {
-        Permission.TICKET_MANAGE.handle(sender);
-
         if (newTags == null || newTags.length == 0) {
             ticket.getProperties().set("tags", new String[0]);
             sender.sendMessage(ChatColor.GREEN + "All ticket tags have been cleared");

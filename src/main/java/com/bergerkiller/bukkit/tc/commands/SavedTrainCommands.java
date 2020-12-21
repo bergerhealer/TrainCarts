@@ -26,6 +26,7 @@ import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.annotations.SavedTrainRequiresAccess;
 import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
@@ -176,13 +177,13 @@ public class SavedTrainCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_EXPORT)
     @CommandMethod("savedtrain <savedtrainname> export|share|paste|upload")
     @CommandDescription("Exports the saved train configuration to a hastebin server")
     private void commandExport(
             final CommandSender sender,
             final @Argument("savedtrainname") SavedTrainProperties savedTrain
     ) {
-        Permission.COMMAND_SAVEDTRAIN_EXPORT.handle(sender);
         ConfigurationNode exportedConfig = savedTrain.getConfig().clone();
         exportedConfig.remove("claims");
         exportedConfig.set("name", savedTrain.getName());
@@ -199,6 +200,7 @@ public class SavedTrainCommands {
         });
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_RENAME)
     @CommandMethod("savedtrain <savedtrainname> rename|changename|move <newsavedtrainname>")
     @CommandDescription("Renames a saved train")
     private void commandRename(
@@ -208,8 +210,6 @@ public class SavedTrainCommands {
             final @Argument("newsavedtrainname") String newSavedTrainName,
             final @Flag("force") boolean force
     ) {
-        Permission.COMMAND_SAVEDTRAIN_RENAME.handle(sender);
-
         if (savedTrain.getName().equals(newSavedTrainName)) {
             sender.sendMessage(ChatColor.RED + "The new name is the same as the current name");
             return;
@@ -222,6 +222,7 @@ public class SavedTrainCommands {
                 ChatColor.YELLOW + "'!");
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_REVERSE)
     @CommandMethod("savedtrain <savedtrainname> reverse|flip")
     @CommandDescription("Reverse and flips the carts so it is moving in reverse when spawned")
     private void commandRename(
@@ -229,13 +230,12 @@ public class SavedTrainCommands {
             final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain,
             final @Flag("force") boolean force
     ) {
-        Permission.COMMAND_SAVEDTRAIN_REVERSE.handle(sender);
-
         savedTrain.reverse();
         sender.sendMessage(ChatColor.GREEN + "Saved train '" + ChatColor.WHITE + savedTrain.getName() +
                 ChatColor.GREEN + "' has been reversed!");
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_DELETE)
     @CommandMethod("savedtrain <savedtrainname> delete|remove")
     @CommandDescription("Deletes a saved train permanently")
     private void commandDelete(
@@ -244,22 +244,19 @@ public class SavedTrainCommands {
             final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain,
             final @Flag("force") boolean force
     ) {
-        Permission.COMMAND_SAVEDTRAIN_DELETE.handle(sender);
-
         String name = savedTrain.getName();
         plugin.getSavedTrains().remove(name);
         sender.sendMessage(ChatColor.YELLOW + "Saved train '" + ChatColor.WHITE + name +
                 ChatColor.YELLOW + "' has been deleted!");
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_CLAIM)
     @CommandMethod("savedtrain <savedtrainname> claim")
     @CommandDescription("Claims a saved train so that the player has exclusive access")
     private void commandClaimSelf(
             final Player sender,
             final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain
     ) {
-        Permission.COMMAND_SAVEDTRAIN_CLAIM.handle(sender);
-
         // Retrieve current list of claims
         Set<SavedTrainPropertiesStore.Claim> oldClaims = savedTrain.getClaims();
 
@@ -276,6 +273,7 @@ public class SavedTrainCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_CLAIM)
     @CommandMethod("savedtrain <savedtrainname> claim add <player>")
     @CommandDescription("Adds a claim to a saved train so that the added player has exclusive access")
     private void commandClaimAdd(
@@ -284,8 +282,6 @@ public class SavedTrainCommands {
             final @Argument(value="player", suggestions="playername") String player, //TODO: Support multiple players WITH flags
             final @Flag("force") boolean force
     ) {
-        Permission.COMMAND_SAVEDTRAIN_CLAIM.handle(sender);
-
         // Retrieve current list of claims
         Set<SavedTrainPropertiesStore.Claim> oldClaims = savedTrain.getClaims();
 
@@ -301,6 +297,7 @@ public class SavedTrainCommands {
         updateClaimList(sender, savedTrain, oldClaims, newClaims);
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_CLAIM)
     @CommandMethod("savedtrain <savedtrainname> claim remove <player>")
     @CommandDescription("Removes a claim from a saved train so that the player no longer has exclusive access")
     private void commandClaimRemove(
@@ -309,8 +306,6 @@ public class SavedTrainCommands {
             final @Argument(value="player", suggestions="playername") String player, //TODO: Support multiple players WITH flags
             final @Flag("force") boolean force
     ) {
-        Permission.COMMAND_SAVEDTRAIN_CLAIM.handle(sender);
-
         // Retrieve current list of claims
         Set<SavedTrainPropertiesStore.Claim> oldClaims = savedTrain.getClaims();
 
@@ -326,6 +321,7 @@ public class SavedTrainCommands {
         updateClaimList(sender, savedTrain, oldClaims, newClaims);
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_CLAIM)
     @CommandMethod("savedtrain <savedtrainname> claim clear")
     @CommandDescription("Clears all the claims set for the saved train, allowing anyone to access it")
     private void commandClaimClear(
@@ -333,8 +329,6 @@ public class SavedTrainCommands {
             final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain,
             final @Flag("force") boolean force
     ) {
-        Permission.COMMAND_SAVEDTRAIN_CLAIM.handle(sender);
-
         // Retrieve current list of claims
         Set<SavedTrainPropertiesStore.Claim> oldClaims = savedTrain.getClaims();
 
@@ -342,6 +336,7 @@ public class SavedTrainCommands {
         updateClaimList(sender, savedTrain, oldClaims, Collections.emptySet());
     }   
 
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_IMPORT)
     @CommandMethod("savedtrain <savedtrainname> import <url>")
     @CommandDescription("Imports a saved train from an online hastebin server by url")
     private void commandImport(
@@ -351,8 +346,6 @@ public class SavedTrainCommands {
             final @Argument(value="url", description="The URL to a Hastebin-hosted paste to download from") String url,
             final @Flag("force") boolean force
     ) {
-        Permission.COMMAND_SAVEDTRAIN_IMPORT.handle(sender);
-
         TCConfig.hastebin.download(url).thenAccept(new Consumer<DownloadResult>() {
             @Override
             public void accept(DownloadResult result) {

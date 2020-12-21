@@ -19,6 +19,7 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.attachments.ui.SetValueTarget;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -133,14 +134,13 @@ public class GlobalCommands {
         listTrains(sender, statementText == null ? "" : statementText);
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_MESSAGE)
     @CommandMethod("train message <key>")
     @CommandDescription("Checks what value is assigned to a given message key")
     private void commandGetMessage(
             final CommandSender sender,
             final @Argument("key") String key
     ) {
-        Permission.COMMAND_MESSAGE.handle(sender);
-
         String value = TCConfig.messageShortcuts.get(key);
         if (value == null) {
             sender.sendMessage(ChatColor.RED + "No shortcut is set for key '" + key + "'");
@@ -149,6 +149,7 @@ public class GlobalCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_MESSAGE)
     @CommandMethod("train message <key> <value>")
     @CommandDescription("Checks what value is assigned to a given message key")
     private void commandSetMessage(
@@ -156,8 +157,6 @@ public class GlobalCommands {
             final @Argument("key") String key,
             final @Argument("value") @Greedy String value
     ) {
-        Permission.COMMAND_MESSAGE.handle(sender);
-
         String conv_value = StringUtil.ampToColor(value);
         TCConfig.messageShortcuts.remove(key);
         TCConfig.messageShortcuts.add(key, conv_value);
@@ -165,26 +164,24 @@ public class GlobalCommands {
         sender.sendMessage(ChatColor.GREEN + "Shortcut '" + key + "' set to: " + ChatColor.WHITE + conv_value);
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_DESTROYALL)
     @CommandMethod("train destroyall|removeall")
     @CommandDescription("Destroys all trains server-wide")
     private void commandDestroyAll(
             final CommandSender sender
     ) {
-        Permission.COMMAND_DESTROYALL.handle(sender);
-
         // Destroy all trains on the entire server
         int count = OfflineGroupManager.destroyAll();
         sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_DESTROYALL)
     @CommandMethod("train destroyall|removeall <worldname>")
     @CommandDescription("Destroys all trains on a single world")
     private void commandDestroyAllOnWorld(
             final CommandSender sender,
             final @Argument("worldname") String worldName
     ) {
-        Permission.COMMAND_DESTROYALL.handle(sender);
-
         // Destroy the trains on a single world
         String cname = worldName.toLowerCase();
         World w = Bukkit.getWorld(worldName);
@@ -207,14 +204,13 @@ public class GlobalCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_GIVE_EDITOR)
     @CommandMethod("train menu set <value>")
     @CommandDescription("Updates a menu item in a TrainCarts editor map using commands")
     private void commandMenuSet(
             final Player sender,
             final @Argument("value") @Greedy String value
     ) {
-        Permission.COMMAND_GIVE_EDITOR.handle(sender);
-
         // Get editor instance
         MapDisplay display = MapDisplay.getHeldDisplay((Player) sender, AttachmentEditor.class);
         if (display == null) {
@@ -246,14 +242,13 @@ public class GlobalCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_REROUTE)
     @CommandMethod("train reroute")
     @CommandDescription("Recalculates all path finding information on the server")
     private void commandReroute(
             final CommandSender sender,
             final @Flag(value="lazy", description="Delays recalculating routes until a train needs it") boolean lazy
     ) {
-        Permission.COMMAND_REROUTE.handle(sender);
-
         if (lazy) {
             PathNode.clearAll();
             sender.sendMessage(ChatColor.YELLOW + "All train routings will be recalculated when needed");
@@ -263,6 +258,7 @@ public class GlobalCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_RELOAD)
     @CommandMethod("train globalconfig reload|load")
     @CommandDescription("Reloads one or more global TrainCarts configuration files from disk")
     private void commandReloadConfig(
@@ -272,8 +268,6 @@ public class GlobalCommands {
             final @Flag(value="defaulttrainproperties", description="Reload DefaultTrainProperties.yml") boolean defaultTrainproperties,
             final @Flag(value="savedtrainproperties", description="Reload SavedTrainProperties.yml and modules") boolean savedTrainproperties
     ) {
-        Permission.COMMAND_RELOAD.handle(sender);
-
         if (!config &&
             !routes &&
             !defaultTrainproperties &&
@@ -302,24 +296,24 @@ public class GlobalCommands {
         sender.sendMessage(ChatColor.YELLOW + "Configuration has been reloaded!");
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_SAVEALL)
     @CommandMethod("train globalconfig save")
     @CommandDescription("Forces a save of all configuration to disk")
     private void commandReloadConfig(
             final CommandSender sender
     ) {
-        Permission.COMMAND_SAVEALL.handle(sender);
         TrainCarts.plugin.save(false);
         sender.sendMessage(ChatColor.YELLOW + "TrainCarts' information has been saved to file.");
     }
 
     @Hidden
+    @CommandRequiresPermission(Permission.COMMAND_UPGRADESAVED)
     @CommandMethod("train upgradesavedtrains")
     @CommandDescription("Upgrades all saved train properties to correct for position changes during v1.12.2")
     private void commandUpgradeSavedTrains(
             final CommandSender sender,
             final @Flag("undo") boolean undo
     ) {
-        Permission.COMMAND_UPGRADESAVED.handle(sender);
         TrainCarts.plugin.getSavedTrains().upgradeSavedTrains(undo);
         if (undo) {
             sender.sendMessage(ChatColor.YELLOW + "All saved trains have been restored to use the old position calibration of Traincarts v1.12.2-v2 (UNDO)");
@@ -328,12 +322,12 @@ public class GlobalCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_FIXBUGGED)
     @CommandMethod("train fixbugged")
     @CommandDescription("Forcibly removes minecarts and trackers that have glitched out")
     private void commandFixBugged(
             final CommandSender sender
     ) {
-        Permission.COMMAND_FIXBUGGED.handle(sender);
         for (World world : WorldUtil.getWorlds()) {
             OfflineGroupManager.removeBuggedMinecarts(world);
         }
@@ -438,35 +432,32 @@ public class GlobalCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_CHANGETICK)
     @CommandMethod("train tick disable")
     @CommandDescription("Disables ticking of all trains, causing all physics to pause")
     private void commandTickDisable(
             final CommandSender sender
     ) {
-        Permission.COMMAND_CHANGETICK.handle(sender);
-
         TCConfig.tickUpdateDivider = Integer.MAX_VALUE;
         sender.sendMessage(ChatColor.YELLOW + "Train tick updates have been globally " + ChatColor.RED + "disabled");
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_CHANGETICK)
     @CommandMethod("train tick enable")
     @CommandDescription("Enables ticking of all trains, causing all physics to resume")
     private void commandTickEnable(
             final CommandSender sender
     ) {
-        Permission.COMMAND_CHANGETICK.handle(sender);
-
         TCConfig.tickUpdateDivider = 1;
         sender.sendMessage(ChatColor.YELLOW + "Train tick updates have been globally " + ChatColor.GREEN + "enabled");
     }
-    
+
+    @CommandRequiresPermission(Permission.COMMAND_CHANGETICK)
     @CommandMethod("train tick div")
     @CommandDescription("Checks what kind of tick divider configuration is configured")
     private void commandGetTickDivider(
             final CommandSender sender
     ) {
-        Permission.COMMAND_CHANGETICK.handle(sender);
-
         if (TCConfig.tickUpdateDivider == Integer.MAX_VALUE) {
             sender.sendMessage(ChatColor.YELLOW + "Automatic train tick updates are globally disabled");
         } else {
@@ -474,6 +465,7 @@ public class GlobalCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_CHANGETICK)
     @CommandMethod("train tick div reset")
     @CommandDescription("Resets any previous global tick divider, resuming physics as normal")
     private void commandResetTickDivider(
@@ -482,14 +474,13 @@ public class GlobalCommands {
         commandSetTickDivider(sender, 1);
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_CHANGETICK)
     @CommandMethod("train tick div <divider>")
     @CommandDescription("Configures a global tick divider, causing all physics to run more slowly")
     private void commandSetTickDivider(
             final CommandSender sender,
             final @Argument("divider") int divider
     ) {
-        Permission.COMMAND_CHANGETICK.handle(sender);
-
         if (divider > 1) {
             TCConfig.tickUpdateDivider = divider;
             sender.sendMessage(ChatColor.GREEN + "The tick rate divider has been set to " + ChatColor.YELLOW + TCConfig.tickUpdateDivider);
@@ -499,6 +490,7 @@ public class GlobalCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_CHANGETICK)
     @CommandMethod("train tick")
     @CommandDescription("Performs a single update tick. Useful when automatic ticking is disabled or slowed down.")
     private void commandPerformTick(
@@ -507,14 +499,13 @@ public class GlobalCommands {
         commandPerformTick(sender, 1);
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_CHANGETICK)
     @CommandMethod("train tick <times>")
     @CommandDescription("Performs a burst of update ticks. Useful when automatic ticking is disabled or slowed down.")
     private void commandPerformTick(
             final CommandSender sender,
             final @Argument("times") @Range(min="1") int number
     ) {
-        Permission.COMMAND_CHANGETICK.handle(sender);
-
         TCConfig.tickUpdateNow = number;
         if (number <= 1) {
             sender.sendMessage(ChatColor.GREEN + "Trains ticked once");
@@ -523,13 +514,12 @@ public class GlobalCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_ISSUE)
     @CommandMethod("train issue")
     @CommandDescription("Shows helpful information for posting an issue ticket on our Github")
     private void commandIssueTicket(
             final CommandSender sender
     ) {
-        Permission.COMMAND_ISSUE.handle(sender);
-
         if(sender instanceof Player){
             Player player = (Player)sender;
 
@@ -626,22 +616,22 @@ public class GlobalCommands {
     }
 
     @Hidden
+    @CommandRequiresPermission(Permission.COMMAND_GIVE_EDITOR)
     @CommandMethod("train editor")
     @CommandDescription("Gives a legacy editor map item (broken)")
     private void commandGiveEditor(
             final Player sender
     ) {
-        Permission.COMMAND_GIVE_EDITOR.handle(sender);
         sender.getInventory().addItem(TCMapControl.createTCMapItem());
         sender.sendMessage("Given editor map item (note: broken)");
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_GIVE_EDITOR)
     @CommandMethod("train attachments")
     @CommandDescription("Gives an attachment editor map item to the player")
     private void commandGiveAttachmentEditor(
             final Player sender
     ) {
-        Permission.COMMAND_GIVE_EDITOR.handle(sender);
         ItemStack item = MapDisplay.createMapItem(AttachmentEditor.class);
         ItemUtil.setDisplayName(item, "Traincarts Attachments Editor");
         CommonTagCompound tag = ItemUtil.getMetaTag(item, true);
@@ -651,14 +641,13 @@ public class GlobalCommands {
         sender.sendMessage(ChatColor.GREEN + "Given a Traincarts attachments editor");
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_USE_STORAGE_CHEST)
     @CommandMethod("train chest [spawnconfig]")
     @CommandDescription("Gives a new train-storing chest item, train information to store can be specified")
     private void commandGiveChestItem(
             final Player sender,
             final @Argument("spawnconfig") @Greedy String spawnConfig
     ) {
-        Permission.COMMAND_USE_STORAGE_CHEST.handle(sender);
-
         // Create a new item and give it to the player
         ItemStack item = StoredTrainItemUtil.createItem();
         if (spawnConfig != null && !spawnConfig.isEmpty()) {
@@ -676,8 +665,6 @@ public class GlobalCommands {
      * @param consumer Modifying function
      */
     private void updateChestItemInInventory(Player player, Consumer<ItemStack> consumer) {
-        Permission.COMMAND_USE_STORAGE_CHEST.handle(player);
-
         ItemStack item = HumanHand.getItemInMainHand(player);
         if (!StoredTrainItemUtil.isItem(item)) {
             throw new NoTrainStorageChestItemException();
@@ -689,6 +676,7 @@ public class GlobalCommands {
         Localization.CHEST_UPDATE.message(player);
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_USE_STORAGE_CHEST)
     @CommandMethod("train chest set [spawnconfig]")
     @CommandDescription("Clears the train-storing chest item the player is currently holding")
     private void commandSetChestItem(
@@ -700,6 +688,7 @@ public class GlobalCommands {
         });
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_USE_STORAGE_CHEST)
     @CommandMethod("train chest clear")
     @CommandDescription("Clears the train-storing chest item the player is currently holding")
     private void commandClearChestItem(
@@ -708,6 +697,7 @@ public class GlobalCommands {
         updateChestItemInInventory(player, StoredTrainItemUtil::clear);
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_USE_STORAGE_CHEST)
     @CommandMethod("train chest lock")
     @CommandDescription("Locks the train-storing chest item so it can not pick up trains by right-clicking")
     private void commandLockChestItem(
@@ -716,6 +706,7 @@ public class GlobalCommands {
         updateChestItemInInventory(player, item -> StoredTrainItemUtil.setLocked(item, true));
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_USE_STORAGE_CHEST)
     @CommandMethod("train chest unlock")
     @CommandDescription("Unlocks the train-storing chest item so it can pick up trains by right-clicking again")
     private void commandUnlockChestItem(
@@ -724,6 +715,7 @@ public class GlobalCommands {
         updateChestItemInInventory(player, item -> StoredTrainItemUtil.setLocked(item, false));
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_USE_STORAGE_CHEST)
     @CommandMethod("train chest name <name>")
     @CommandDescription("Sets a descriptive name for the train-storing chest item")
     private void commandNameChestItem(
@@ -733,112 +725,89 @@ public class GlobalCommands {
         updateChestItemInInventory(player, item -> StoredTrainItemUtil.setName(item, name));
     }
 
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
     @CommandMethod("train debug rails")
     @CommandDescription("Get a debug stick item to visually display what path tracks use")
     private void commandDebugRails(
             final Player player
     ) {
-        Permission.DEBUG_COMMAND_DEBUG.handle(player);
-
         giveDebugItem(player, "Rails", "TrainCarts Rails Debugger");
         player.sendMessage(ChatColor.GREEN + "Given a rails debug item. Right-click rails and see where a train would go.");
     }
 
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
     @CommandMethod("train debug destination")
     @CommandDescription("Get a debug stick item to visually display the possible path finding routes")
     private void commandDebugDestinationAll(
             final Player player
     ) {
-        Permission.DEBUG_COMMAND_DEBUG.handle(player);
-
         giveDebugItem(player, "Destinations", "TrainCarts Destination Debugger");
         player.sendMessage(ChatColor.GREEN + "Given a destination debug item. " +
                 "Right-click rails to see what destinations can be reached from there.");
     }
 
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
     @CommandMethod("train debug destination <destination>")
     @CommandDescription("Get a debug stick item to visually display the route towards a destination")
     private void commandDebugDestinationName(
             final Player player,
             final @Argument("destination") String destination
     ) {
-        Permission.DEBUG_COMMAND_DEBUG.handle(player);
-
         giveDebugItem(player, "Destination " + destination, "TrainCarts Destination Debugger [" + destination + "]");
         player.sendMessage(ChatColor.GREEN + "Given a destination debug item. " +
                 "Right-click rails to see whether and how a train would travel to " + destination + ".");
     }
 
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
     @CommandMethod("train debug mutex")
     @CommandDescription("Displays the area of effect of all nearby mutex signs")
     private void commandDebugMutex(
             final Player player
     ) {
-        Permission.DEBUG_COMMAND_DEBUG.handle(player);
-
         DebugTool.showMutexZones(player);
         player.sendMessage(ChatColor.GREEN + "Displaying mutex zones near your position");
     }
 
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
     @CommandMethod("train debug railtracker <enabled>")
     @CommandDescription("Sets whether the rail tracker debugging is currently enabled")
     private void commandDebugSetRailTracker(
             final CommandSender sender,
             final @Argument("enabled") boolean enabled
     ) {
-        Permission.DEBUG_COMMAND_DEBUG.handle(sender);
-
         TCConfig.railTrackerDebugEnabled = enabled;
         commandDebugCheckRailTracker(sender);
     }
 
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
     @CommandMethod("train debug railtracker")
     @CommandDescription("Checks whether the rail tracker debugging is currently enabled")
     private void commandDebugCheckRailTracker(
             final CommandSender sender
     ) {
-        Permission.DEBUG_COMMAND_DEBUG.handle(sender);
-
         sender.sendMessage(ChatColor.GREEN + "Displaying tracked rail positions: " +
                 (TCConfig.railTrackerDebugEnabled ? "ENABLED" : (ChatColor.RED + "DISABLED")));
     }
 
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
     @CommandMethod("train debug wheeltracker <enabled>")
     @CommandDescription("Sets whether the rail tracker debugging is currently enabled")
     private void commandDebugSetWheelTracker(
             final CommandSender sender,
             final @Argument("enabled") boolean enabled
     ) {
-        Permission.DEBUG_COMMAND_DEBUG.handle(sender);
-
         TCConfig.wheelTrackerDebugEnabled = enabled;
         commandDebugCheckWheelTracker(sender);
     }
 
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
     @CommandMethod("train debug wheeltracker")
     @CommandDescription("Checks whether the wheel tracker debugging is currently enabled")
     private void commandDebugCheckWheelTracker(
             final CommandSender sender
     ) {
-        Permission.DEBUG_COMMAND_DEBUG.handle(sender);
-
         sender.sendMessage(ChatColor.GREEN + "Displaying tracked wheel positions: " +
                 (TCConfig.wheelTrackerDebugEnabled ? "ENABLED" : (ChatColor.RED + "DISABLED")));
-    }
-
-    @CommandMethod("train debug")
-    @CommandDescription("Provides helpful information about all debugging modes")
-    private void commandDebugShowInfo(
-            final CommandSender sender
-    ) {
-        Permission.DEBUG_COMMAND_DEBUG.handle(sender);
-
-        sender.sendMessage(ChatColor.RED + "Specify the type of debug to perform!");
-        sender.sendMessage(ChatColor.RED + "/train debug rails - debug rails");
-        sender.sendMessage(ChatColor.RED + "/train debug destination [destination] - debug destination pathfinding");
-        sender.sendMessage(ChatColor.RED + "/train debug mutex - display mutex zones near you");
-        sender.sendMessage(ChatColor.RED + "/train debug railtracker [boolean] - debug tracked rail positions");
-        sender.sendMessage(ChatColor.RED + "/train debug wheeltracker [boolean] - debug tracked wheel positions");
     }
 
     public static void giveDebugItem(Player player, String debugMode, String debugTitle) {

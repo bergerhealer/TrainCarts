@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardCartProperty;
@@ -43,6 +44,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         }
     }
 
+    @PropertyCheckPermission("tags")
     @CommandMethod("train tags clear")
     @CommandDescription("Clears the previous tags for a train")
     private void setCartTags(
@@ -52,6 +54,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         setTrainTags(sender, properties, null);
     }
 
+    @PropertyCheckPermission("tags")
     @CommandMethod("train tags set [tags]")
     @CommandDescription("Clears the previous tags and sets new tags for carts of the train")
     private void setTrainTags(
@@ -59,8 +62,6 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
             final TrainProperties properties,
             final @Argument("tags") @Greedy String[] tags
     ) {
-        handlePermission(sender, "tags");
-
         if (tags != null && tags.length > 0) {
             properties.setTags(tags);
             sender.sendMessage(ChatColor.GREEN + "Train tags set to: "
@@ -71,6 +72,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         }
     }
 
+    @PropertyCheckPermission("tags")
     @CommandMethod("train tags add <tags>")
     @CommandDescription("Adds tags to a train")
     private void addTrainTags(
@@ -78,8 +80,6 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
             final TrainProperties properties,
             final @Argument("tags") @Greedy String[] tags
     ) {
-        handlePermission(sender, "tags");
-        
         if (tags != null && tags.length > 0) {
             properties.addTags(tags);
             sender.sendMessage(ChatColor.GREEN + "Added tags: "
@@ -89,6 +89,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         getTrainTags(sender, properties);
     }
 
+    @PropertyCheckPermission("tags")
     @CommandMethod("train tags remove <tags>")
     @CommandDescription("Removes tags from a train")
     private void removeTrainTags(
@@ -96,8 +97,6 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
             final TrainProperties properties,
             final @Argument("tags") @Greedy String[] tags
     ) {
-        handlePermission(sender, "tags");
-        
         if (tags != null && tags.length > 0) {
             properties.removeTags(tags);
             sender.sendMessage(ChatColor.GREEN + "Removed tags: "
@@ -122,6 +121,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         }
     }
 
+    @PropertyCheckPermission("tags")
     @CommandMethod("cart tags clear")
     @CommandDescription("Clears the previous tags for a cart")
     private void setCartTags(
@@ -131,6 +131,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         setCartTags(sender, properties, null);
     }
 
+    @PropertyCheckPermission("tags")
     @CommandMethod("cart tags set [tags]")
     @CommandDescription("Clears the previous tags and sets new tags for a cart")
     private void setCartTags(
@@ -138,8 +139,6 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
             final CartProperties properties,
             final @Argument("tags") @Greedy String[] tags
     ) {
-        handlePermission(sender, "tags");
-
         if (tags != null && tags.length > 0) {
             properties.setTags(tags);
             sender.sendMessage(ChatColor.GREEN + "Cart tags set to: "
@@ -150,6 +149,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         }
     }
 
+    @PropertyCheckPermission("tags")
     @CommandMethod("cart tags add <tags>")
     @CommandDescription("Adds tags to a cart")
     private void addCartTags(
@@ -157,8 +157,6 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
             final CartProperties properties,
             final @Argument("tags") @Greedy String[] tags
     ) {
-        handlePermission(sender, "tags");
-        
         if (tags != null && tags.length > 0) {
             properties.addTags(tags);
             sender.sendMessage(ChatColor.GREEN + "Added tags: "
@@ -168,6 +166,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         getCartTags(sender, properties);
     }
 
+    @PropertyCheckPermission("tags")
     @CommandMethod("cart tags remove <tags>")
     @CommandDescription("Removes tags from a cart")
     private void removeCartTags(
@@ -175,8 +174,6 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
             final CartProperties properties,
             final @Argument("tags") @Greedy String[] tags
     ) {
-        handlePermission(sender, "tags");
-        
         if (tags != null && tags.length > 0) {
             properties.removeTags(tags);
             sender.sendMessage(ChatColor.GREEN + "Removed tags: "

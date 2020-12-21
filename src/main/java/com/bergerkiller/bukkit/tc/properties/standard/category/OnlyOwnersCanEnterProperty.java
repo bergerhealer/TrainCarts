@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardCartProperty;
@@ -25,6 +26,7 @@ import cloud.commandframework.annotations.CommandMethod;
  */
 public final class OnlyOwnersCanEnterProperty extends FieldBackedStandardCartProperty<Boolean> {
 
+    @PropertyCheckPermission("onlyownerscanenter")
     @CommandMethod("train onlyownerscanenter <state>")
     @CommandDescription("Sets whether only owners can enter the train")
     private void setProperty(
@@ -32,8 +34,6 @@ public final class OnlyOwnersCanEnterProperty extends FieldBackedStandardCartPro
             final TrainProperties properties,
             final @Argument("state") boolean state
     ) {
-        handlePermission(sender, "onlyownerscanenter");
-
         properties.setCanOnlyOwnersEnter(state);
         getProperty(sender, properties);
     }
@@ -48,6 +48,7 @@ public final class OnlyOwnersCanEnterProperty extends FieldBackedStandardCartPro
                 + Localization.boolStr(properties.getCanOnlyOwnersEnter()));
     }
 
+    @PropertyCheckPermission("onlyownerscanenter")
     @CommandMethod("cart onlyownerscanenter <state>")
     @CommandDescription("Sets whether only owners can enter the cart")
     private void setProperty(
@@ -55,8 +56,6 @@ public final class OnlyOwnersCanEnterProperty extends FieldBackedStandardCartPro
             final CartProperties properties,
             final @Argument("state") boolean state
     ) {
-        handlePermission(sender, "onlyownerscanenter");
-
         properties.setCanOnlyOwnersEnter(state);
         getProperty(sender, properties);
     }

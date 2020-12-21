@@ -10,12 +10,10 @@ import org.bukkit.entity.EntityType;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 
 public class AttachmentModel {
     private final AttachmentTypeRegistry registry;
@@ -157,7 +155,7 @@ public class AttachmentModel {
      * @param notify True to not notify the changes, False for a silent update
      */
     public void update(ConfigurationNode newConfig, boolean notify) {
-        Util.setToExcept(this.config, newConfig, Collections.emptyList());
+        this.config.setTo(newConfig);
         this.onConfigChanged(notify);
 
         //TODO: Tell save scheduler we can re-save models.yml
@@ -195,7 +193,7 @@ public class AttachmentModel {
             }
         }
 
-        Util.setToExcept(changedNode, newConfig, Collections.singletonList("attachments"));
+        changedNode.setToExcept(newConfig, Collections.singletonList("attachments"));
         this.onConfigNodeChanged(targetPath, changedNode, notify);
     }
 
@@ -230,7 +228,6 @@ public class AttachmentModel {
     protected void onConfigChanged(boolean notify) {
         this._isDefault = false; // Was changed; no longer default!
         this.computeProperties();
-        TrainPropertiesStore.markForAutosave(); // hack!
         if (notify) {
             for (AttachmentModelOwner owner : new ArrayList<AttachmentModelOwner>(this.owners)) {
                 owner.onModelChanged(this);
@@ -240,7 +237,6 @@ public class AttachmentModel {
 
     protected void onConfigNodeChanged(int[] targetPath, ConfigurationNode config, boolean notify) {
         this._isDefault = false; // Was changed; no longer default!
-        TrainPropertiesStore.markForAutosave(); // hack!
         if (notify) {
             for (AttachmentModelOwner owner : new ArrayList<AttachmentModelOwner>(this.owners)) {
                 owner.onModelNodeChanged(this, targetPath, config);

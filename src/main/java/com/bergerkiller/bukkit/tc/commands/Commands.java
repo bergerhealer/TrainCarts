@@ -5,7 +5,9 @@ import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Localization;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.cloud.CloudHandler;
 import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.commands.parsers.SpeedParser;
@@ -24,9 +26,11 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.mountiplex.MountiplexUtil;
 
+import cloud.commandframework.Command;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.arguments.parser.StandardParameters;
+import cloud.commandframework.meta.CommandMeta;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -56,6 +60,10 @@ public class Commands {
 
         // Localization
         cloud.captionFromLocalization(Localization.class);
+
+        // Permissions
+        cloud.getParser().registerBuilderModifier(CommandRequiresPermission.class,
+                (perm, builder) -> builder.permission(perm.value().getName()));
 
         // Plugin instance
         cloud.inject(TrainCarts.class, plugin);
@@ -154,6 +162,21 @@ public class Commands {
         cloud.helpCommand(Collections.singletonList("savedtrain"), "Shows help for commands that manage saved trains");
         cloud.helpCommand(Arrays.asList("cart", "route"), "Shows help for commands that modify the route set for carts");
         cloud.helpCommand(Arrays.asList("train", "route"), "Shows help for commands that modify the route set for trains");
+
+        // The /train debug and /train debug help command
+        {
+            final Command<CommandSender> debugHelpCommand = cloud.helpCommand(
+                    Arrays.asList("train", "debug"),
+                    "Shows help about the debugging commands",
+                    builder -> {
+                        return builder.permission(Permission.DEBUG_COMMAND_DEBUG.getName());
+                    });
+
+            cloud.getManager().command(Command.<CommandSender>newBuilder("train", CommandMeta.simple().build())
+                    .literal("debug")
+                    .hidden()
+                    .proxies(debugHelpCommand));
+        }
     }
 
     @CommandMethod("train")

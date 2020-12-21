@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardCartProperty;
@@ -24,15 +25,14 @@ import net.md_5.bungee.api.ChatColor;
  */
 public final class PickUpItemsProperty extends FieldBackedStandardCartProperty<Boolean> {
 
+    @PropertyCheckPermission("pickupitems")
     @CommandMethod("train pickupitems|pickup <pickup>")
     @CommandDescription("Sets whether the train picks up items off the ground")
-    private void getProperty(
+    private void setProperty(
             final CommandSender sender,
             final TrainProperties properties,
             final @Argument("pickup") boolean pickup
     ) {
-        handlePermission(sender, "pickupitems");
-
         properties.set(this, pickup);
         getProperty(sender, properties);
     }
@@ -47,15 +47,14 @@ public final class PickUpItemsProperty extends FieldBackedStandardCartProperty<B
                 + Localization.boolStr(properties.get(this)));
     }
 
+    @PropertyCheckPermission("pickupitems")
     @CommandMethod("cart pickupitems|pickup <pickup>")
     @CommandDescription("Sets whether the cart picks up items off the ground")
-    private void getProperty(
+    private void setProperty(
             final CommandSender sender,
             final CartProperties properties,
             final @Argument("pickup") boolean pickup
     ) {
-        handlePermission(sender, "pickupitems");
-
         properties.set(this, pickup);
         getProperty(sender, properties);
     }

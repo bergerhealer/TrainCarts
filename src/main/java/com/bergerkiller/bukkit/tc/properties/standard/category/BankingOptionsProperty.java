@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
@@ -24,6 +25,7 @@ import cloud.commandframework.annotations.CommandMethod;
  */
 public final class BankingOptionsProperty extends FieldBackedStandardTrainProperty<BankingOptions> {
 
+    @PropertyCheckPermission("banking")
     @CommandMethod("train banking <strength> <smoothness>")
     @CommandDescription("Sets a new train banking strength and smoothness")
     private void trainSetBanking(
@@ -32,8 +34,6 @@ public final class BankingOptionsProperty extends FieldBackedStandardTrainProper
             final @Argument("strength") double strength,
             final @Argument("smoothness") double smoothness
     ) {
-        handlePermission(sender, "banking");
-
         properties.setBanking(strength, smoothness);
         trainGetBankingInfo(sender, properties);
     }
@@ -54,6 +54,7 @@ public final class BankingOptionsProperty extends FieldBackedStandardTrainProper
         }
     }
 
+    @PropertyCheckPermission("banking")
     @CommandMethod("train banking strength <strength>")
     @CommandDescription("Sets a new train banking strength")
     private void trainSetBankingStrength(
@@ -61,8 +62,6 @@ public final class BankingOptionsProperty extends FieldBackedStandardTrainProper
             final TrainProperties properties,
             final @Argument("strength") double strength
     ) {
-        handlePermission(sender, "banking");
-
         properties.setBankingStrength(strength);
         trainGetBankingStrength(sender, properties);
     }
@@ -82,6 +81,7 @@ public final class BankingOptionsProperty extends FieldBackedStandardTrainProper
         }
     }
 
+    @PropertyCheckPermission("banking")
     @CommandMethod("train banking smoothness <strength>")
     @CommandDescription("Sets a new train banking smoothness")
     private void trainSetBankingSmoothness(
@@ -89,8 +89,6 @@ public final class BankingOptionsProperty extends FieldBackedStandardTrainProper
             final TrainProperties properties,
             final @Argument("strength") double strength
     ) {
-        handlePermission(sender, "banking");
-
         properties.setBankingSmoothness(strength);
         trainGetBankingSmoothness(sender, properties);
     }

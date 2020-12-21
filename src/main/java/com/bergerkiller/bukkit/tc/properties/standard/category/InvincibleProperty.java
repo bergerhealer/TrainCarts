@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 
@@ -25,15 +26,14 @@ import net.md_5.bungee.api.ChatColor;
  */
 public final class InvincibleProperty implements ICartProperty<Boolean> {
 
+    @PropertyCheckPermission("invincible")
     @CommandMethod("train invincible|godmode <invincible>")
     @CommandDescription("Sets whether the train is invincible to damage")
-    private void getProperty(
+    private void setProperty(
             final CommandSender sender,
             final TrainProperties properties,
             final @Argument("invincible") boolean invincible
     ) {
-        handlePermission(sender, "invincible");
-
         properties.set(this, invincible);
         getProperty(sender, properties);
     }
@@ -48,15 +48,14 @@ public final class InvincibleProperty implements ICartProperty<Boolean> {
                 + Localization.boolStr(properties.get(this)));
     }
 
+    @PropertyCheckPermission("invincible")
     @CommandMethod("cart invincible|godmode <invincible>")
     @CommandDescription("Sets whether the cart is invincible to damage")
-    private void getProperty(
+    private void setProperty(
             final CommandSender sender,
             final CartProperties properties,
             final @Argument("invincible") boolean invincible
     ) {
-        handlePermission(sender, "invincible");
-
         properties.set(this, invincible);
         getProperty(sender, properties);
     }

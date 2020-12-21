@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.commands.parsers.SpeedParser;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
@@ -24,6 +25,7 @@ import cloud.commandframework.annotations.CommandMethod;
  */
 public final class SpeedLimitProperty extends FieldBackedStandardTrainProperty.StandardDouble {
 
+    @PropertyCheckPermission("maxspeed")
     @CommandMethod("train maxspeed|speedlimit <speed>")
     @CommandDescription("Sets a new  speed limit for the train")
     private void trainSetSpeedLimit(
@@ -31,8 +33,6 @@ public final class SpeedLimitProperty extends FieldBackedStandardTrainProperty.S
             final TrainProperties properties,
             final @Argument(value="speed", parserName=SpeedParser.NAME) double speed
     ) {
-        handlePermission(sender, "maxspeed");
-
         properties.setSpeedLimit(speed);
         trainGetSpeedLimit(sender, properties);
     }

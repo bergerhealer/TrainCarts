@@ -7,6 +7,8 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
+
 import org.bukkit.util.Vector;
 
 public class SignActionJumper extends SignAction {
@@ -50,12 +52,16 @@ public class SignActionJumper extends SignAction {
     }
 
     @Override
-    public boolean build(SignChangeActionEvent info) {
-        if (info.isCartSign()) {
-            return handleBuild(info, Permission.BUILD_JUMPER, "cart jumper", "cause a minecart to jump towards a certain direction");
-        } else if (info.isTrainSign()) {
-            return handleBuild(info, Permission.BUILD_JUMPER, "train jumper", "cause an entire train to jump towards a certain direction");
+    public boolean build(SignChangeActionEvent event) {
+        SignBuildOptions opt = SignBuildOptions.create()
+                .setPermission(Permission.BUILD_JUMPER)
+                .setName(event.isCartSign() ? "cart jumper" : "train jumper");
+
+        if (event.isTrainSign()) {
+            opt.setDescription("cause a minecart to jump towards a certain direction");
+        } else {
+            opt.setDescription("cause an entire train to jump towards a certain direction");
         }
-        return false;
+        return opt.handle(event.getPlayer());
     }
 }

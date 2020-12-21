@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -42,14 +43,13 @@ public class CartCommands {
         info(player, properties);
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_DESTROY)
     @CommandMethod("cart destroy|remove")
     @CommandDescription("Destroys the single cart that is selected")
     private void commandDestroy(
             final Player player,
             final CartProperties properties
     ) {
-        Permission.COMMAND_DESTROY.handle(player);
-
         MinecartMember<?> member = properties.getHolder();
         if (member == null) {
             CartPropertiesStore.remove(properties.getUUID());
@@ -60,14 +60,13 @@ public class CartCommands {
         player.sendMessage(ChatColor.YELLOW + "The selected cart has been destroyed!");
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_TELEPORT)
     @CommandMethod("cart teleport|tp")
     @CommandDescription("Teleports the player to where the cart is")
     private void commandTeleport(
             final Player player,
             final CartProperties properties
     ) {
-        Permission.COMMAND_TELEPORT.handle(player);
-
         if (!properties.restore()) {
             player.sendMessage(ChatColor.RED + "Cart location could not be found: Train is lost");
         } else {
@@ -82,6 +81,7 @@ public class CartCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_ANIMATE)
     @CommandMethod("cart animate [options]")
     @CommandDescription("Plays an animation for a single cart")
     private void commandAnimate(
@@ -89,8 +89,6 @@ public class CartCommands {
             final CartProperties properties,
             final @Argument("options") String[] options
     ) {
-        Permission.COMMAND_ANIMATE.handle(player);
-
         if (!properties.hasHolder()) {
             player.sendMessage(ChatColor.RED + "Can not animate the minecart: it is not loaded");
             return;
@@ -105,14 +103,13 @@ public class CartCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
     @CommandMethod("cart displayedblock clear")
     @CommandDescription("Clears the displayed block in the Minecart, making it empty")
     private void commandClearDisplayedBlock(
             final CommandSender sender,
             final CartProperties properties
     ) {
-        Permission.COMMAND_CHANGEBLOCK.handle(sender);
-
         MinecartMember<?> member = properties.getHolder();
         if (member == null) {
             Localization.EDIT_NOTLOADED.message(sender);
@@ -122,6 +119,7 @@ public class CartCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
     @CommandMethod("cart displayedblock <block>")
     @CommandDescription("Clears the displayed block in the Minecart, making it empty")
     private void commandChangeDisplayedBlock(
@@ -129,8 +127,6 @@ public class CartCommands {
             final CartProperties properties,
             final @Argument("block") @Greedy String blockName
     ) {
-        Permission.COMMAND_CHANGEBLOCK.handle(sender);
-
         MinecartMember<?> member = properties.getHolder();
         if (member == null) {
             Localization.EDIT_NOTLOADED.message(sender);
@@ -142,14 +138,13 @@ public class CartCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
     @CommandMethod("cart displayedblock offset reset")
     @CommandDescription("Resets the height offset at which a block is displayed in a Minecart to the defaults")
     private void commandResetDisplayedBlockOffset(
             final CommandSender sender,
             final CartProperties properties
     ) {
-        Permission.COMMAND_CHANGEBLOCK.handle(sender);
-
         MinecartMember<?> member = properties.getHolder();
         if (member == null) {
             Localization.EDIT_NOTLOADED.message(sender);
@@ -159,6 +154,7 @@ public class CartCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
     @CommandMethod("cart displayedblock offset <offset>")
     @CommandDescription("Sets the height offset at which a block is displayed in a Minecart")
     private void commandSetDisplayedBlockOffset(
@@ -166,8 +162,6 @@ public class CartCommands {
             final CartProperties properties,
             final @Argument("offset") int offset
     ) {
-        Permission.COMMAND_CHANGEBLOCK.handle(sender);
-
         MinecartMember<?> member = properties.getHolder();
         if (member == null) {
             Localization.EDIT_NOTLOADED.message(sender);

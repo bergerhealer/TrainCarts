@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
@@ -23,15 +24,14 @@ import net.md_5.bungee.api.ChatColor;
  */
 public final class SoundEnabledProperty extends FieldBackedStandardTrainProperty<Boolean> {
 
+    @PropertyCheckPermission("soundenabled")
     @CommandMethod("train soundenabled|sound <enabled>")
     @CommandDescription("Sets whether the train makes sound while moving")
-    private void getProperty(
+    private void setProperty(
             final CommandSender sender,
             final TrainProperties properties,
             final @Argument("enabled") boolean enabled
     ) {
-        handlePermission(sender, "soundenabled");
-
         properties.set(this, enabled);
         getProperty(sender, properties);
     }

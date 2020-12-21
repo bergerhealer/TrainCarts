@@ -367,6 +367,11 @@ public class TrainCarts extends PluginBase {
     public void enable() {
         plugin = this;
 
+        // Check BKCommonLib is recent enough
+        if (!Common.hasCapability("Common:IPermissionEnum")) {
+            throw new IllegalStateException("BKCommonLib is too old! Please update to the latest version (on Jenkins or 1.16.4-v3 release on spigot)");
+        }
+
         // Do this first
         Conversion.registerConverters(MinecartMemberStore.class);
 

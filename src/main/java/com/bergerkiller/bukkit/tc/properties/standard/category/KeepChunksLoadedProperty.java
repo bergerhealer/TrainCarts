@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
@@ -26,6 +27,7 @@ import cloud.commandframework.annotations.CommandMethod;
  */
 public final class KeepChunksLoadedProperty extends FieldBackedStandardTrainProperty<Boolean> {
 
+    @PropertyCheckPermission("keeploaded")
     @CommandMethod("train keepchunksloaded|keeploaded|loadchunks <keeploaded>")
     @CommandDescription("Sets whether players can enter carts of this train")
     private void commandSetProperty(
@@ -33,8 +35,6 @@ public final class KeepChunksLoadedProperty extends FieldBackedStandardTrainProp
             final TrainProperties properties,
             final @Argument("keeploaded") boolean keepLoaded
     ) {
-        handlePermission(sender, "keeploaded");
-
         properties.setKeepChunksLoaded(keepLoaded);
         commandGetProperty(sender, properties);
     }

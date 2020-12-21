@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.ISyntheticProperty;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 
@@ -25,6 +26,7 @@ import cloud.commandframework.annotations.CommandMethod;
  */
 public final class DefaultConfigSyntheticProperty implements ISyntheticProperty<ConfigurationNode> {
 
+    @PropertyCheckPermission("setdefault")
     @CommandMethod("train defaults apply <defaultname>")
     @CommandDescription("Applies defaults from DefaultTrainProperties to a train")
     private void commandApplyDefaults(
@@ -32,8 +34,6 @@ public final class DefaultConfigSyntheticProperty implements ISyntheticProperty<
             final TrainProperties properties,
             final @Argument("defaultname") String defaultName
     ) {
-        handlePermission(sender, "setdefault");
-
         ConfigurationNode defaults = TrainPropertiesStore.getDefaultsByName(defaultName);
         if (defaults == null) {
             sender.sendMessage(ChatColor.RED + "Train Property Defaults by key "

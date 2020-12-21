@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardCartProperty;
@@ -58,6 +59,7 @@ public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Se
         message.send(sender);
     }
 
+    @PropertyCheckPermission("ownerperms")
     @CommandMethod("cart owners permission add <permissions>")
     @CommandDescription("Adds permissions players need to access a cart")
     private void setPropertyAdd(
@@ -65,8 +67,6 @@ public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Se
             final CartProperties properties,
             final @Argument("permissions") String[] permissions
     ) {
-        handlePermission(sender, "ownerperms");
-
         if (permissions != null && permissions.length > 0) {
             sender.sendMessage(ChatColor.GREEN + "Adding permission rules to cart: "
                     + StringUtil.combineNames(permissions));
@@ -77,6 +77,7 @@ public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Se
         getProperty(sender, properties);
     }
 
+    @PropertyCheckPermission("ownerperms")
     @CommandMethod("cart owners permission remove <permissions>")
     @CommandDescription("Removes permissions players need to access a cart")
     private void setPropertyRemove(
@@ -84,8 +85,6 @@ public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Se
             final CartProperties properties,
             final @Argument("permissions") String[] permissions
     ) {
-        handlePermission(sender, "ownerperms");
-
         if (permissions != null && permissions.length > 0) {
             sender.sendMessage(ChatColor.GREEN + "Removing permission rules from cart: "
                     + StringUtil.combineNames(permissions));
@@ -96,6 +95,7 @@ public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Se
         getProperty(sender, properties);
     }
 
+    @PropertyCheckPermission("ownerperms")
     @CommandMethod("cart owners permission set <permissions>")
     @CommandDescription("Discards previous owner permissions and sets new permissions players need to access a cart")
     private void setProperty(
@@ -104,8 +104,6 @@ public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Se
             final @Argument("permissions") String[] permissions
     ) {
         if (permissions != null && permissions.length > 0) {
-            handlePermission(sender, "ownerperms");
-
             properties.clearOwnerPermissions();
             sender.sendMessage(ChatColor.GREEN + "Set new permission rules for cart: "
                     + StringUtil.combineNames(permissions));
@@ -117,14 +115,13 @@ public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Se
         }
     }
 
+    @PropertyCheckPermission("ownerperms")
     @CommandMethod("cart owners permission clear")
     @CommandDescription("Clears all owner permissions set for a cart")
     private void setPropertyClear(
             final CommandSender sender,
             final CartProperties properties
     ) {
-        handlePermission(sender, "ownerperms");
-
         properties.clearOwnerPermissions();
         sender.sendMessage(ChatColor.GREEN + "Permission rules cleared.");
     }
@@ -140,6 +137,7 @@ public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Se
         message.send(sender);
     }
 
+    @PropertyCheckPermission("ownerperms")
     @CommandMethod("train owners permission add <permissions>")
     @CommandDescription("Adds permissions players need to access a cart")
     private void setPropertyAdd(
@@ -147,8 +145,6 @@ public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Se
             final TrainProperties properties,
             final @Argument("permissions") String[] permissions
     ) {
-        handlePermission(sender, "ownerperms");
-
         if (permissions != null && permissions.length > 0) {
             sender.sendMessage(ChatColor.GREEN + "Adding permission rules to train: "
                     + StringUtil.combineNames(permissions));
@@ -159,6 +155,7 @@ public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Se
         getProperty(sender, properties);
     }
 
+    @PropertyCheckPermission("ownerperms")
     @CommandMethod("train owners permission remove <permissions>")
     @CommandDescription("Removes permissions players need to access a cart")
     private void setPropertyRemove(
@@ -166,8 +163,6 @@ public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Se
             final TrainProperties properties,
             final @Argument("permissions") String[] permissions
     ) {
-        handlePermission(sender, "ownerperms");
-
         if (permissions != null && permissions.length > 0) {
             sender.sendMessage(ChatColor.GREEN + "Removing permission rules from train: "
                     + StringUtil.combineNames(permissions));
@@ -178,6 +173,7 @@ public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Se
         getProperty(sender, properties);
     }
 
+    @PropertyCheckPermission("ownerperms")
     @CommandMethod("train owners permission set <permissions>")
     @CommandDescription("Discards previous owner permissions and sets new permissions players need to access a train")
     private void setProperty(
@@ -186,8 +182,6 @@ public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Se
             final @Argument("permissions") String[] permissions
     ) {
         if (permissions != null && permissions.length > 0) {
-            handlePermission(sender, "ownerperms");
-
             properties.clearOwnerPermissions();
             sender.sendMessage(ChatColor.GREEN + "Set new permission rules for train: "
                     + StringUtil.combineNames(permissions));
@@ -199,14 +193,13 @@ public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Se
         }
     }
 
+    @PropertyCheckPermission("ownerperms")
     @CommandMethod("train owners permission clear")
     @CommandDescription("Clears all owner permissions set for a train")
     private void setPropertyClear(
             final CommandSender sender,
             final TrainProperties properties
     ) {
-        handlePermission(sender, "ownerperms");
-
         properties.clearOwnerPermissions();
         sender.sendMessage(ChatColor.GREEN + "Permission rules cleared.");
     }

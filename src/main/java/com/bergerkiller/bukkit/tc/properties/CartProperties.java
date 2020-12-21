@@ -85,7 +85,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     @Override
     public final <T> void set(IProperty<T> property, T value) {
         property.set(this, value);
-        TrainPropertiesStore.markForAutosave(); //TODO: Deprecate
     }
 
     /**
@@ -647,7 +646,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         this.config.clear();
 
         // Deep-copy input cart configuration to self cart configuration
-        Util.cloneInto(node, this.config, Collections.emptySet());
+        node.cloneInto(this.config);
 
         // Reload properties from YAML
         onConfigurationChanged();
@@ -655,7 +654,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
     @Override
     public void save(ConfigurationNode node) {
-        Util.cloneInto(saveToConfig(), node, Collections.emptySet());
+        saveToConfig().cloneInto(node);
     }
 
     protected void onConfigurationChanged() {

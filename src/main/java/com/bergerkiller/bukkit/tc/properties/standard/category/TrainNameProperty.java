@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.api.ISyntheticProperty;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 
 import cloud.commandframework.annotations.Argument;
@@ -21,6 +22,7 @@ import cloud.commandframework.annotations.Flag;
  */
 public final class TrainNameProperty implements ISyntheticProperty<String> {
 
+    @PropertyCheckPermission("name")
     @CommandMethod("train rename|setname|name <new_name>")
     @CommandDescription("Renames a train")
     private void trainSetSpeedLimit(
@@ -29,8 +31,6 @@ public final class TrainNameProperty implements ISyntheticProperty<String> {
             final @Argument("new_name") String newName,
             final @Flag(value="generate", description="Generate a unique name") boolean generate
     ) {
-        handlePermission(sender, "name");
-
         if (generate) {
             properties.setTrainName(TrainPropertiesStore.generateTrainName(newName));
             sender.sendMessage(ChatColor.YELLOW + "A name was generated! Train renamed to: "

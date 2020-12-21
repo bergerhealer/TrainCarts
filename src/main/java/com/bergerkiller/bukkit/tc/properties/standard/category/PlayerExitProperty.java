@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 
@@ -24,6 +25,7 @@ import cloud.commandframework.annotations.CommandMethod;
  */
 public final class PlayerExitProperty implements ICartProperty<Boolean> {
 
+    @PropertyCheckPermission("playerexit")
     @CommandMethod("train playerexit|allowplayerexit|playerleave <allow>")
     @CommandDescription("Sets whether players can exit from carts of this train")
     private void commandSetProperty(
@@ -31,8 +33,6 @@ public final class PlayerExitProperty implements ICartProperty<Boolean> {
             final TrainProperties properties,
             final @Argument("allow") boolean allow
     ) {
-        handlePermission(sender, "playerexit");
-
         properties.setPlayersExit(allow);
         commandGetProperty(sender, properties);
     }
@@ -47,6 +47,7 @@ public final class PlayerExitProperty implements ICartProperty<Boolean> {
                 + Localization.boolStr(properties.getPlayersExit()));
     }
 
+    @PropertyCheckPermission("playerexit")
     @CommandMethod("cart playerexit|allowplayerexit|playerleave <allow>")
     @CommandDescription("Sets whether players can exit the cart")
     private void commandSetProperty(
@@ -54,8 +55,6 @@ public final class PlayerExitProperty implements ICartProperty<Boolean> {
             final CartProperties properties,
             final @Argument("allow") boolean allow
     ) {
-        handlePermission(sender, "playerexit");
-
         properties.setPlayersExit(allow);
         commandGetProperty(sender, properties);
     }

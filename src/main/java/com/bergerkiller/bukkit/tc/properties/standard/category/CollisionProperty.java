@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
@@ -56,26 +57,24 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         builder.yellow(" ").blue("miscellaneous entities");
     }
 
+    @PropertyCheckPermission("collision")
     @CommandMethod("train collision default|true")
     @CommandDescription("Configures the default collision settings")
     private void trainSetCollisionDefault(
             final CommandSender sender,
             final TrainProperties properties
     ) {
-        handlePermission(sender, "collision");
-
         properties.setCollision(CollisionOptions.DEFAULT);
         trainGetCollisionInfo(sender, properties);
     }
 
+    @PropertyCheckPermission("collision")
     @CommandMethod("train collision none|false")
     @CommandDescription("Disables collision with all entities and blocks")
     private void trainSetCollisionNone(
             final CommandSender sender,
             final TrainProperties properties
     ) {
-        handlePermission(sender, "collision");
-
         properties.setCollision(CollisionOptions.CANCEL);
         trainGetCollisionInfo(sender, properties);
     }
@@ -91,6 +90,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         builder.send(sender);
     }
 
+    @PropertyCheckPermission("mobcollision")
     @CommandMethod("train collision <mobcategory> <mode>")
     @CommandDescription("Sets new behavior when colliding with a given mob category")
     private void trainSetMobCollision(
@@ -99,12 +99,11 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
             final @Argument("mobcategory") CollisionMobCategory category,
             final @Argument("mode") CollisionMode mode
     ) {
-        handlePermission(sender, category.getMobType() + "collision");
-
         properties.setCollisionMode(category, mode);
         trainGetMobCollision(sender, properties, category);
     }
 
+    @PropertyCheckPermission("mobcollision")
     @CommandMethod("train collision <mobcategory> none")
     @CommandDescription("Resets behavior when colliding with a given mob category")
     private void trainResetMobCollision(
@@ -112,8 +111,6 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
             final TrainProperties properties,
             final @Argument("mobcategory") CollisionMobCategory category
     ) {
-        handlePermission(sender, category.getMobType() + "collision");
-
         properties.setCollisionMode(category, null);
         trainGetMobCollision(sender, properties, category);
     }
@@ -136,6 +133,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         }
     }
 
+    @PropertyCheckPermission("blockcollision")
     @CommandMethod("train collision block <mode>")
     @CommandDescription("Sets the behavior of the train when colliding with blocks")
     private void trainSetBlockCollision(
@@ -143,8 +141,6 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
             final TrainProperties properties,
             final @Argument("mode") CollisionMode mode
     ) {
-        handlePermission(sender, "blockcollision");
-
         properties.setCollision(properties.getCollision().cloneAndSetBlockMode(mode));
         trainGetBlockCollision(sender, properties);
     }
@@ -158,6 +154,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         showMode(sender, "blocks", properties.getCollision().blockMode());
     }
 
+    @PropertyCheckPermission("playercollision")
     @CommandMethod("train collision player <mode>")
     @CommandDescription("Sets the behavior of the train when colliding with players")
     private void trainSetPlayerCollision(
@@ -165,8 +162,6 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
             final TrainProperties properties,
             final @Argument("mode") CollisionMode mode
     ) {
-        handlePermission(sender, "playercollision");
-
         properties.setCollision(properties.getCollision().cloneAndSetPlayerMode(mode));
         trainGetPlayerCollision(sender, properties);
     }
@@ -180,6 +175,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         showMode(sender, "players", properties.getCollision().trainMode());
     }
 
+    @PropertyCheckPermission("traincollision")
     @CommandMethod("train collision train <mode>")
     @CommandDescription("Sets the behavior of the train when colliding with other trains")
     private void trainSetTrainCollision(
@@ -187,8 +183,6 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
             final TrainProperties properties,
             final @Argument("mode") CollisionMode mode
     ) {
-        handlePermission(sender, "traincollision");
-
         properties.setCollision(properties.getCollision().cloneAndSetTrainMode(mode));
         trainGetTrainCollision(sender, properties);
     }
@@ -202,6 +196,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         showMode(sender, "other trains", properties.getCollision().trainMode());
     }
 
+    @PropertyCheckPermission("misccollision")
     @CommandMethod("train collision misc <mode>")
     @CommandDescription("Sets the behavior of the train when colliding with miscellaneous mobs and entities")
     private void trainSetMiscCollision(
@@ -209,8 +204,6 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
             final TrainProperties properties,
             final @Argument("mode") CollisionMode mode
     ) {
-        handlePermission(sender, "misccollision");
-
         properties.setCollision(properties.getCollision().cloneAndSetMiscMode(mode));
         trainGetMiscCollision(sender, properties);
     }

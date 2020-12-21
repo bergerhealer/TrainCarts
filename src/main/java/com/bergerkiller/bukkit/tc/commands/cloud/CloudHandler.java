@@ -24,6 +24,7 @@ import com.bergerkiller.bukkit.common.localization.LocalizationEnum;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 
 import cloud.commandframework.Command;
+import cloud.commandframework.CommandManager;
 import cloud.commandframework.annotations.AnnotationParser;
 import cloud.commandframework.annotations.injection.ParameterInjector;
 import cloud.commandframework.arguments.CommandArgument;
@@ -153,6 +154,24 @@ public class CloudHandler {
 
         // Used by the help system
         this.bukkitAudiences = BukkitAudiences.create(plugin);
+    }
+
+    /**
+     * Gets the parser instance used to parse annotated commands
+     * 
+     * @return parser
+     */
+    public AnnotationParser<CommandSender> getParser() {
+        return this.annotationParser;
+    }
+
+    /**
+     * Gets the command manager
+     * 
+     * @return manager
+     */
+    public CommandManager<CommandSender> getManager() {
+        return this.manager;
     }
 
     /**
@@ -429,9 +448,30 @@ public class CloudHandler {
      * Registers a new help command for all the commands under a filter prefix
      * 
      * @param filterPrefix Command filter prefix, for commands shown in the menu
-     * @return minecraft help
+     * @param helpDescription Description of the help command
+     * @param modifier Modifier for the command applied before registering
+     * @return minecraft help command
      */
-    public MinecraftHelp<CommandSender> helpCommand(List<String> filterPrefix, String helpDescription) {
+    public Command<CommandSender> helpCommand(
+            List<String> filterPrefix,
+            String helpDescription
+    ) {
+        return helpCommand(filterPrefix, helpDescription, builder -> builder);
+    }
+
+    /**
+     * Registers a new help command for all the commands under a filter prefix
+     * 
+     * @param filterPrefix Command filter prefix, for commands shown in the menu
+     * @param helpDescription Description of the help command
+     * @param modifier Modifier for the command applied before registering
+     * @return minecraft help command
+     */
+    public Command<CommandSender> helpCommand(
+            List<String> filterPrefix,
+            String helpDescription,
+            Function<Command.Builder<CommandSender>, Command.Builder<CommandSender>> modifier
+    ) {
         String helpCmd = "/" + String.join(" ", filterPrefix) + " help";
         final MinecraftHelp<CommandSender> help = this.help(helpCmd, filterPrefix);
 
@@ -454,10 +494,12 @@ public class CloudHandler {
             String query = context.getOrDefault("query", "");
             help.queryCommands(query, context.getSender());
         });
+        command = modifier.apply(command);
 
-        this.manager.command(command);
-
-        return help;
+        // Build & return
+        Command<CommandSender> builtCommand = command.build();
+        this.manager.command(builtCommand);
+        return builtCommand;
     }
 
     /**

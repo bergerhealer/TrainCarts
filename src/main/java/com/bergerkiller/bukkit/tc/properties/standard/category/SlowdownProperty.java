@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
@@ -49,6 +50,7 @@ public final class SlowdownProperty extends FieldBackedStandardTrainProperty<Set
         }
     }
 
+    @PropertyCheckPermission("slowdown")
     @CommandMethod("train slowdown <mode> <enabled>")
     @CommandDescription("Sets whether trains slow down and speed up due to a particular type of slow-down mode")
     private void trainSetSlowdownMode(
@@ -57,8 +59,6 @@ public final class SlowdownProperty extends FieldBackedStandardTrainProperty<Set
             final @Argument("mode") SlowdownMode mode,
             final @Argument("enabled") boolean enabled
     ) {
-        handlePermission(sender, "slowdown");
-
         properties.setSlowingDown(mode, enabled);
         trainGetSlowdownMode(sender, properties, mode);
     }
@@ -75,26 +75,24 @@ public final class SlowdownProperty extends FieldBackedStandardTrainProperty<Set
                 (properties.isSlowingDown(mode) ? (ChatColor.GREEN + "Yes") : (ChatColor.RED + "No")));
     }
 
+    @PropertyCheckPermission("slowdown")
     @CommandMethod("train slowdown all|true|enable|enabled")
     @CommandDescription("Enables all default modes of slowing down")
     private void trainSetSlowdownAll(
             final CommandSender sender,
             final TrainProperties properties
     ) {
-        handlePermission(sender, "slowdown");
-
         properties.setSlowingDown(true);
         trainGetSlowdownModes(sender, properties);
     }
 
+    @PropertyCheckPermission("slowdown")
     @CommandMethod("train slowdown none|false|disable|disabled")
     @CommandDescription("Disables all default modes of slowing down")
     private void trainSetSlowdownNone(
             final CommandSender sender,
             final TrainProperties properties
     ) {
-        handlePermission(sender, "slowdown");
-
         properties.setSlowingDown(false);
         trainGetSlowdownModes(sender, properties);
     }

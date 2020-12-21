@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 
@@ -24,6 +25,7 @@ import cloud.commandframework.annotations.CommandMethod;
  */
 public final class PlayerEnterProperty implements ICartProperty<Boolean> {
 
+    @PropertyCheckPermission("playerenter")
     @CommandMethod("train playerenter|allowplayerenter <allow>")
     @CommandDescription("Sets whether players can enter carts of this train")
     private void commandSetProperty(
@@ -31,8 +33,6 @@ public final class PlayerEnterProperty implements ICartProperty<Boolean> {
             final TrainProperties properties,
             final @Argument("allow") boolean allow
     ) {
-        handlePermission(sender, "playerenter");
-
         properties.setPlayersEnter(allow);
         commandGetProperty(sender, properties);
     }
@@ -47,6 +47,7 @@ public final class PlayerEnterProperty implements ICartProperty<Boolean> {
                 + Localization.boolStr(properties.getPlayersEnter()));
     }
 
+    @PropertyCheckPermission("playerenter")
     @CommandMethod("cart playerenter|allowplayerenter <allow>")
     @CommandDescription("Sets whether players can enter the cart")
     private void commandSetProperty(
@@ -54,8 +55,6 @@ public final class PlayerEnterProperty implements ICartProperty<Boolean> {
             final CartProperties properties,
             final @Argument("allow") boolean allow
     ) {
-        handlePermission(sender, "playerenter");
-
         properties.setPlayersEnter(allow);
         commandGetProperty(sender, properties);
     }

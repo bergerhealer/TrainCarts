@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardCartProperty;
 
 import cloud.commandframework.annotations.Argument;
@@ -52,32 +53,31 @@ public final class BreakBlocksProperty extends FieldBackedStandardCartProperty<S
         sender.sendMessage(ChatColor.YELLOW + "This train breaks: " + ChatColor.WHITE + StringUtil.combineNames(types));
     }
 
+    @PropertyCheckPermission("breakblocks")
     @CommandMethod("cart breakblocks|break clear")
     @CommandDescription("Clears the list of blocks broken by the cart, disabling it")
     private void setPropertyClear(
             final CommandSender sender,
             final CartProperties properties
     ) {
-        handlePermission(sender, "breakblocks");
-
         properties.clearBlockBreakTypes();
         sender.sendMessage(ChatColor.YELLOW + "Block break types have been cleared!");
     }
 
+    @PropertyCheckPermission("breakblocks")
     @CommandMethod("train breakblocks|break clear")
     @CommandDescription("Clears the list of blocks broken by the train, disabling it")
     private void setPropertyClear(
             final CommandSender sender,
             final TrainProperties properties
     ) {
-        handlePermission(sender, "breakblocks");
-
         for (CartProperties cProp : properties) {
             cProp.clearBlockBreakTypes();
         }
         sender.sendMessage(ChatColor.YELLOW + "Train block break types have been cleared!");
     }
 
+    @PropertyCheckPermission("breakblocks")
     @CommandMethod("cart breakblocks|break <block_types>")
     @CommandDescription("Sets the list of blocks broken by the cart")
     private void setProperty(
@@ -85,8 +85,6 @@ public final class BreakBlocksProperty extends FieldBackedStandardCartProperty<S
             final CartProperties properties,
             final @Argument("block_types") String[] args
     ) {
-        handlePermission(sender, "breakblocks");
-
         boolean anyblock = Permission.PROPERTY_BREAKBLOCKS_ADMIN.has(sender);
         boolean asBreak = true;
         boolean lastIsBool = ParseUtil.isBool(args[args.length - 1]);
@@ -124,6 +122,7 @@ public final class BreakBlocksProperty extends FieldBackedStandardCartProperty<S
         }
     }
 
+    @PropertyCheckPermission("breakblocks")
     @CommandMethod("train breakblocks|break <block_types>")
     @CommandDescription("Sets the list of blocks broken by the train")
     private void setProperty(
@@ -131,8 +130,6 @@ public final class BreakBlocksProperty extends FieldBackedStandardCartProperty<S
             final TrainProperties properties,
             final @Argument("block_types") String[] args
     ) {
-        handlePermission(sender, "breakblocks");
-
         boolean anyblock = Permission.PROPERTY_BREAKBLOCKS_ADMIN.has(sender);
         boolean asBreak = true;
         boolean lastIsBool = ParseUtil.isBool(args[args.length - 1]);

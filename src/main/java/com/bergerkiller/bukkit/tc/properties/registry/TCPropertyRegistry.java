@@ -26,6 +26,7 @@ import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
@@ -51,9 +52,30 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
     private final Map<String, PropertyParserElement<?>> parsersByPreProcessedName = new HashMap<>();
     private final List<PropertyParserElement<?>> parsersWithComplexRegex = new ArrayList<>();
 
+    // Used during parse() to see what property is being parsed currently
+    private IProperty<?> currentPropertyBeingParsed = null;
+
     public TCPropertyRegistry(TrainCarts plugin, CloudHandler commands) {
         this.plugin = plugin;
         this.commands = commands;
+
+        // Register the PropertyCheckPermission annotation, which will run
+        // a handler to check various property permissions before executing
+        // a command handler.
+        this.commands.getParser().registerBuilderModifier(PropertyCheckPermission.class, (annot, builder) -> {
+            final IProperty<?> property = currentlyParsedProperty();
+            final String propertyName = annot.value();
+            return builder.prependHandler(context -> {
+                property.handlePermission(context.getSender(), propertyName);
+            });
+        });
+    }
+
+    private IProperty<?> currentlyParsedProperty() {
+        if (this.currentPropertyBeingParsed == null) {
+            throw new IllegalStateException("No property is being parsed right now");
+        }
+        return this.currentPropertyBeingParsed;
     }
 
     @Override
@@ -76,7 +98,12 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
 
         // Register cloud commands declared inside the property
         // Note: does not support unregister!
-        this.commands.annotations(property);
+        this.currentPropertyBeingParsed = property;
+        try {
+            this.commands.annotations(property);
+        } finally {
+            this.currentPropertyBeingParsed = null;
+        }
     }
 
     @Override

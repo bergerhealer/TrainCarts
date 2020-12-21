@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 
@@ -24,15 +25,14 @@ import net.md_5.bungee.api.ChatColor;
  */
 public final class SpawnItemDropsProperty implements ICartProperty<Boolean> {
 
+    @PropertyCheckPermission("spawnitemdrops")
     @CommandMethod("train spawnitemdrops <spawn>")
     @CommandDescription("Sets whether the train drops items when destroyed")
-    private void getProperty(
+    private void setProperty(
             final CommandSender sender,
             final TrainProperties properties,
             final @Argument("spawn") boolean spawn
     ) {
-        handlePermission(sender, "spawnitemdrops");
-
         properties.set(this, spawn);
         getProperty(sender, properties);
     }
@@ -47,15 +47,14 @@ public final class SpawnItemDropsProperty implements ICartProperty<Boolean> {
                 + Localization.boolStr(properties.get(this)));
     }
 
+    @PropertyCheckPermission("spawnitemdrops")
     @CommandMethod("cart spawnitemdrops <spawn>")
     @CommandDescription("Sets whether the cart drops items when destroyed")
-    private void getProperty(
+    private void setProperty(
             final CommandSender sender,
             final CartProperties properties,
             final @Argument("spawn") boolean spawn
     ) {
-        handlePermission(sender, "spawnitemdrops");
-
         properties.set(this, spawn);
         getProperty(sender, properties);
     }
