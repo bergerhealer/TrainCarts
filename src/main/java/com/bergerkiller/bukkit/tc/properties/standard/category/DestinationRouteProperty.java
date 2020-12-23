@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathWorld;
@@ -119,6 +120,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
         showRoute("/cart route", sender, properties);
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("route")
     @CommandMethod("cart route add <destinations>")
     @CommandDescription("Adds one or more destinations to the route set for a cart")
@@ -130,6 +132,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
         setPropertyAddGeneric(sender, properties, destinations);
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("route")
     @CommandMethod("cart route set <destinations>")
     @CommandDescription("Resets the route to one or more destinations for a cart")
@@ -141,6 +144,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
         setPropertySetGeneric(sender, properties, destinations);
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("route")
     @CommandMethod("cart route remove <destinations>")
     @CommandDescription("Removes one or more destinations from the route of a cart")
@@ -152,6 +156,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
         setPropertyRemoveGeneric(sender, properties, destinations);
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("route")
     @CommandMethod("cart route clear")
     @CommandDescription("Clears the route set for a cart")
@@ -163,6 +168,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
         sender.sendMessage(ChatColor.YELLOW + "Route cleared!");
     }
 
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_SAVE_ROUTE)
     @CommandMethod("cart route save <route_name>")
     @CommandDescription("Saves the current route of the cart with a name, which can then be loaded by that name")
@@ -176,6 +182,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
         sender.sendMessage(ChatColor.YELLOW + "Route saved as '" + ChatColor.WHITE + routeName + ChatColor.YELLOW + "'!");
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("route")
     @CommandMethod("cart route load <route_name>")
     @CommandDescription("Resets the route and loads a new route by name for a cart")
@@ -196,6 +203,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
         showRoute("/train route", sender, properties);
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("route")
     @CommandMethod("train route add <destinations>")
     @CommandDescription("Adds one or more destinations to the route set for a train")
@@ -207,6 +215,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
         setPropertyAddGeneric(sender, properties, destinations);
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("route")
     @CommandMethod("train route set <destinations>")
     @CommandDescription("Resets the route to one or more destinations for a train")
@@ -218,6 +227,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
         setPropertySetGeneric(sender, properties, destinations);
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("route")
     @CommandMethod("train route remove <destinations>")
     @CommandDescription("Removes one or more destinations from the route of a train")
@@ -229,6 +239,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
         setPropertyRemoveGeneric(sender, properties, destinations);
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("route")
     @CommandMethod("train route clear")
     @CommandDescription("Clears the route set for a train")
@@ -240,6 +251,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
         sender.sendMessage(ChatColor.YELLOW + "Route cleared!");
     }
 
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_SAVE_ROUTE)
     @CommandMethod("train route save <route_name>")
     @CommandDescription("Saves the current route of the train with a name, which can then be loaded by that name")
@@ -253,6 +265,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
         sender.sendMessage(ChatColor.YELLOW + "Route saved as '" + ChatColor.WHITE + routeName + ChatColor.YELLOW + "'!");
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("route")
     @CommandMethod("train route load <route_name>")
     @CommandDescription("Resets the route and loads a new route by name for a train")

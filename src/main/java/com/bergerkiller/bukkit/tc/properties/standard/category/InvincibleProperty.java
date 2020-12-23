@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
@@ -26,6 +27,7 @@ import net.md_5.bungee.api.ChatColor;
  */
 public final class InvincibleProperty implements ICartProperty<Boolean> {
 
+    @CommandTargetTrain
     @PropertyCheckPermission("invincible")
     @CommandMethod("train invincible|godmode <invincible>")
     @CommandDescription("Sets whether the train is invincible to damage")
@@ -48,6 +50,7 @@ public final class InvincibleProperty implements ICartProperty<Boolean> {
                 + Localization.boolStr(properties.get(this)));
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("invincible")
     @CommandMethod("cart invincible|godmode <invincible>")
     @CommandDescription("Sets whether the cart is invincible to damage")

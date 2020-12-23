@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
@@ -44,6 +45,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         }
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("tags")
     @CommandMethod("train tags clear")
     @CommandDescription("Clears the previous tags for a train")
@@ -72,8 +74,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         }
     }
 
-    @PropertyCheckPermission("tags")
-    @CommandMethod("train tags add <tags>")
+    @CommandMethod("train tags add_many <tags>")
     @CommandDescription("Adds tags to a train")
     private void addTrainTags(
             final CommandSender sender,
@@ -90,7 +91,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
     }
 
     @PropertyCheckPermission("tags")
-    @CommandMethod("train tags remove <tags>")
+    @CommandMethod("train tags remove_many <tags>")
     @CommandDescription("Removes tags from a train")
     private void removeTrainTags(
             final CommandSender sender,
@@ -150,7 +151,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
     }
 
     @PropertyCheckPermission("tags")
-    @CommandMethod("cart tags add <tags>")
+    @CommandMethod("cart tags add_many <tags>")
     @CommandDescription("Adds tags to a cart")
     private void addCartTags(
             final CommandSender sender,
@@ -167,7 +168,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
     }
 
     @PropertyCheckPermission("tags")
-    @CommandMethod("cart tags remove <tags>")
+    @CommandMethod("cart tags remove_many <tags>")
     @CommandDescription("Removes tags from a cart")
     private void removeCartTags(
             final CommandSender sender,
@@ -181,6 +182,54 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         }
 
         getCartTags(sender, properties);
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("tags")
+    @CommandMethod("train tags add <tag>")
+    @CommandDescription("Adds a single tag to the train, supports targeting")
+    private void addTrainSingleTag(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("tag") String tag
+    ) {
+        addTrainTags(sender, properties, new String[] {tag});
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("tags")
+    @CommandMethod("train tags remove <tag>")
+    @CommandDescription("Removes a single tag from the train, supports targeting")
+    private void removeTrainSingleTag(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("tag") String tag
+    ) {
+        removeTrainTags(sender, properties, new String[] {tag});
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("tags")
+    @CommandMethod("cart tags add <tag>")
+    @CommandDescription("Adds a single tag to the cart, supports targeting")
+    private void addCartSingleTag(
+            final CommandSender sender,
+            final CartProperties properties,
+            final @Argument("tag") String tag
+    ) {
+        addCartTags(sender, properties, new String[] {tag});
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("tags")
+    @CommandMethod("cart tags remove <tag>")
+    @CommandDescription("Removes a single tag from the cart, supports targeting")
+    private void removeCartSingleTag(
+            final CommandSender sender,
+            final CartProperties properties,
+            final @Argument("tag") String tag
+    ) {
+        removeCartTags(sender, properties, new String[] {tag});
     }
 
     @PropertyParser("settag|tags set")

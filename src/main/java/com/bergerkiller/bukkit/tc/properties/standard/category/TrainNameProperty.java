@@ -4,6 +4,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
@@ -22,6 +23,7 @@ import cloud.commandframework.annotations.Flag;
  */
 public final class TrainNameProperty implements ISyntheticProperty<String> {
 
+    @CommandTargetTrain
     @PropertyCheckPermission("name")
     @CommandMethod("train rename|setname|name <new_name>")
     @CommandDescription("Renames a train")

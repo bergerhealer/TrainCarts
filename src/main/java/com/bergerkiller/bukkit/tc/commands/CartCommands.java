@@ -35,6 +35,7 @@ import java.util.List;
 
 public class CartCommands {
 
+    @CommandTargetTrain
     @CommandMethod("cart info|i")
     @CommandDescription("Displays the properties of the cart")
     private void commandInfo(
@@ -62,6 +63,7 @@ public class CartCommands {
         sender.sendMessage(ChatColor.YELLOW + "The selected cart has been destroyed!");
     }
 
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_TELEPORT)
     @CommandMethod("cart teleport|tp")
     @CommandDescription("Teleports the player to where the cart is")
@@ -105,6 +107,7 @@ public class CartCommands {
         }
     }
 
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
     @CommandMethod("cart displayedblock clear")
     @CommandDescription("Clears the displayed block in the Minecart, making it empty")
@@ -121,6 +124,7 @@ public class CartCommands {
         }
     }
 
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
     @CommandMethod("cart displayedblock <block>")
     @CommandDescription("Clears the displayed block in the Minecart, making it empty")
@@ -140,6 +144,7 @@ public class CartCommands {
         }
     }
 
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
     @CommandMethod("cart displayedblock offset reset")
     @CommandDescription("Resets the height offset at which a block is displayed in a Minecart to the defaults")
@@ -156,6 +161,7 @@ public class CartCommands {
         }
     }
 
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
     @CommandMethod("cart displayedblock offset <offset>")
     @CommandDescription("Sets the height offset at which a block is displayed in a Minecart")
@@ -173,13 +179,14 @@ public class CartCommands {
         }
     }
 
+    @CommandTargetTrain
     @CommandMethod("cart <property> <value>")
     @CommandDescription("Updates the value of a property of a cart by name")
     private void commandCart(
               final CommandSender sender,
               final CartProperties properties,
               final @Argument("property") String propertyName,
-              final @Argument("value") @Greedy String value
+              final @Argument("value") String value
     ) {
         PropertyParseResult<Object> parseResult = IPropertyRegistry.instance().parseAndSet(
                 properties, propertyName, value,

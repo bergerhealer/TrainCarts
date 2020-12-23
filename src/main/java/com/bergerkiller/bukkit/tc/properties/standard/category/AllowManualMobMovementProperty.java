@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
@@ -24,6 +25,7 @@ import net.md_5.bungee.api.ChatColor;
  */
 public final class AllowManualMobMovementProperty extends FieldBackedStandardTrainProperty<Boolean> {
 
+    @CommandTargetTrain
     @PropertyCheckPermission("allowmobmanual")
     @CommandMethod("train manualmovement mob <enabled>")
     @CommandDescription("Sets whether mobs seated in the train can cause the train to move")

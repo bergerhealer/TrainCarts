@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
@@ -53,6 +54,7 @@ public final class BreakBlocksProperty extends FieldBackedStandardCartProperty<S
         sender.sendMessage(ChatColor.YELLOW + "This train breaks: " + ChatColor.WHITE + StringUtil.combineNames(types));
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("breakblocks")
     @CommandMethod("cart breakblocks|break clear")
     @CommandDescription("Clears the list of blocks broken by the cart, disabling it")
@@ -64,6 +66,7 @@ public final class BreakBlocksProperty extends FieldBackedStandardCartProperty<S
         sender.sendMessage(ChatColor.YELLOW + "Block break types have been cleared!");
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("breakblocks")
     @CommandMethod("train breakblocks|break clear")
     @CommandDescription("Clears the list of blocks broken by the train, disabling it")

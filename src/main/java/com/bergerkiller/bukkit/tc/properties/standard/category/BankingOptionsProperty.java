@@ -8,6 +8,7 @@ import org.bukkit.command.CommandSender;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
@@ -25,6 +26,7 @@ import cloud.commandframework.annotations.CommandMethod;
  */
 public final class BankingOptionsProperty extends FieldBackedStandardTrainProperty<BankingOptions> {
 
+    @CommandTargetTrain
     @PropertyCheckPermission("banking")
     @CommandMethod("train banking <strength> <smoothness>")
     @CommandDescription("Sets a new train banking strength and smoothness")
@@ -54,6 +56,7 @@ public final class BankingOptionsProperty extends FieldBackedStandardTrainProper
         }
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("banking")
     @CommandMethod("train banking strength <strength>")
     @CommandDescription("Sets a new train banking strength")
@@ -81,6 +84,7 @@ public final class BankingOptionsProperty extends FieldBackedStandardTrainProper
         }
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("banking")
     @CommandMethod("train banking smoothness <strength>")
     @CommandDescription("Sets a new train banking smoothness")

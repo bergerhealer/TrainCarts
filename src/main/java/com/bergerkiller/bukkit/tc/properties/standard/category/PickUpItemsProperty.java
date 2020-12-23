@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
@@ -25,6 +26,7 @@ import net.md_5.bungee.api.ChatColor;
  */
 public final class PickUpItemsProperty extends FieldBackedStandardCartProperty<Boolean> {
 
+    @CommandTargetTrain
     @PropertyCheckPermission("pickupitems")
     @CommandMethod("train pickupitems|pickup <pickup>")
     @CommandDescription("Sets whether the train picks up items off the ground")
@@ -47,6 +49,7 @@ public final class PickUpItemsProperty extends FieldBackedStandardCartProperty<B
                 + Localization.boolStr(properties.get(this)));
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("pickupitems")
     @CommandMethod("cart pickupitems|pickup <pickup>")
     @CommandDescription("Sets whether the cart picks up items off the ground")

@@ -7,6 +7,7 @@ import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
@@ -26,6 +27,7 @@ import cloud.commandframework.annotations.CommandMethod;
  */
 public final class DefaultConfigSyntheticProperty implements ISyntheticProperty<ConfigurationNode> {
 
+    @CommandTargetTrain
     @PropertyCheckPermission("setdefault")
     @CommandMethod("train defaults apply <defaultname>")
     @CommandDescription("Applies defaults from DefaultTrainProperties to a train")

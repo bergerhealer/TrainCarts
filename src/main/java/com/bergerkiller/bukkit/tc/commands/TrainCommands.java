@@ -46,6 +46,7 @@ import java.util.*;
 
 public class TrainCommands {
 
+    @CommandTargetTrain
     @CommandMethod("train info|i")
     @CommandDescription("Displays the properties of the train")
     private void commandInfo(
@@ -112,6 +113,7 @@ public class TrainCommands {
         sender.sendMessage(ChatColor.YELLOW + "The selected train has been destroyed!");
     }
 
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_SAVE_TRAIN)
     @CommandMethod("train save <name>")
     @CommandDescription("Saves the train under a name")
@@ -169,6 +171,7 @@ public class TrainCommands {
         }
     }
 
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_TELEPORT)
     @CommandMethod("train teleport|tp")
     @CommandDescription("Teleports the player to where the train is")
@@ -190,6 +193,7 @@ public class TrainCommands {
         }
     }
 
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_ENTER)
     @CommandMethod("train enter")
     @CommandDescription("Teleports the player to the train and enters an available seat")
@@ -227,6 +231,7 @@ public class TrainCommands {
         }
     }
 
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_LAUNCH)
     @CommandMethod("train launch [options]")
     @CommandDescription("Launches the train into a direction")
@@ -324,6 +329,7 @@ public class TrainCommands {
         }
     }
 
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
     @CommandMethod("train displayedblock clear")
     @CommandDescription("Clears the displayed block in Minecart carts of the train, making it empty")
@@ -342,6 +348,7 @@ public class TrainCommands {
         }
     }
 
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
     @CommandMethod("train displayedblock <blocks>")
     @CommandDescription("Clears the displayed block in the Minecart, making it empty")
@@ -359,6 +366,7 @@ public class TrainCommands {
         }
     }
 
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
     @CommandMethod("train displayedblock offset reset")
     @CommandDescription("Resets the height offset at which blocks are displayed in Minecarts of a train to the defaults")
@@ -377,6 +385,7 @@ public class TrainCommands {
         }
     }
 
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
     @CommandMethod("train displayedblock offset <offset>")
     @CommandDescription("Sets the height offset at which blocks are displayed in Minecarts of a train")
@@ -396,13 +405,14 @@ public class TrainCommands {
         }
     }
 
+    @CommandTargetTrain
     @CommandMethod("train <property> <value>")
     @CommandDescription("Updates the value of a property of a train by name")
     private void commandCart(
               final CommandSender sender,
               final TrainProperties properties,
               final @Argument("property") String propertyName,
-              final @Argument("value") @Greedy String value
+              final @Argument("value") String value
     ) {
         PropertyParseResult<Object> parseResult = IPropertyRegistry.instance().parseAndSet(
                 properties, propertyName, value,

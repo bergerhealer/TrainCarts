@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
@@ -25,6 +26,7 @@ import net.md_5.bungee.api.ChatColor;
  */
 public final class SpawnItemDropsProperty implements ICartProperty<Boolean> {
 
+    @CommandTargetTrain
     @PropertyCheckPermission("spawnitemdrops")
     @CommandMethod("train spawnitemdrops <spawn>")
     @CommandDescription("Sets whether the train drops items when destroyed")
@@ -47,6 +49,7 @@ public final class SpawnItemDropsProperty implements ICartProperty<Boolean> {
                 + Localization.boolStr(properties.get(this)));
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("spawnitemdrops")
     @CommandMethod("cart spawnitemdrops <spawn>")
     @CommandDescription("Sets whether the cart drops items when destroyed")

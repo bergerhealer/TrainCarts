@@ -8,6 +8,7 @@ import org.bukkit.command.CommandSender;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
@@ -24,6 +25,7 @@ import cloud.commandframework.annotations.CommandMethod;
  */
 public final class GravityProperty extends FieldBackedStandardTrainProperty.StandardDouble {
 
+    @CommandTargetTrain
     @PropertyCheckPermission("gravity")
     @CommandMethod("train gravity <multiplier>")
     @CommandDescription("Sets a gravity effect multiplier for the train")

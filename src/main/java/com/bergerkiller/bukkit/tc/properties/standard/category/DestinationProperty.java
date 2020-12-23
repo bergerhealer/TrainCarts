@@ -9,6 +9,7 @@ import org.bukkit.command.CommandSender;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
@@ -27,6 +28,7 @@ import cloud.commandframework.annotations.CommandMethod;
  */
 public final class DestinationProperty implements ICartProperty<String> {
 
+    @CommandTargetTrain
     @CommandMethod("train destination|dest none")
     @CommandDescription("Clears the destination set for a train")
     private void commandClearProperty(
@@ -36,6 +38,7 @@ public final class DestinationProperty implements ICartProperty<String> {
         commandSetProperty(sender, properties, "");
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("destination")
     @CommandMethod("train destination|dest <destination>")
     @CommandDescription("Sets a new destination for the train to go to")
@@ -63,6 +66,7 @@ public final class DestinationProperty implements ICartProperty<String> {
         }
     }
 
+    @CommandTargetTrain
     @CommandMethod("cart destination|dest none")
     @CommandDescription("Clears the destination set for a cart")
     private void commandClearProperty(
@@ -72,6 +76,7 @@ public final class DestinationProperty implements ICartProperty<String> {
         commandSetProperty(sender, properties, "");
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("destination")
     @CommandMethod("cart destination|dest <destination>")
     @CommandDescription("Sets a new destination for the cart to go to")

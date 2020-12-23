@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
@@ -25,6 +26,7 @@ import cloud.commandframework.annotations.CommandMethod;
  */
 public final class PlayerExitProperty implements ICartProperty<Boolean> {
 
+    @CommandTargetTrain
     @PropertyCheckPermission("playerexit")
     @CommandMethod("train playerexit|allowplayerexit|playerleave <allow>")
     @CommandDescription("Sets whether players can exit from carts of this train")
@@ -47,6 +49,7 @@ public final class PlayerExitProperty implements ICartProperty<Boolean> {
                 + Localization.boolStr(properties.getPlayersExit()));
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("playerexit")
     @CommandMethod("cart playerexit|allowplayerexit|playerleave <allow>")
     @CommandDescription("Sets whether players can exit the cart")

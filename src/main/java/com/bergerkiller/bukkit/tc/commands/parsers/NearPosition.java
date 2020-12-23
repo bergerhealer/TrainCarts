@@ -4,9 +4,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
+
+import com.bergerkiller.mountiplex.MountiplexUtil;
 
 import cloud.commandframework.arguments.CommandArgument;
 import cloud.commandframework.arguments.parser.ArgumentParseResult;
@@ -90,6 +94,12 @@ public class NearPosition {
                 final CommandContext<CommandSender> commandContext,
                 final String input
         ) {
+            if (input.isEmpty()) {
+                return Stream.concat(MountiplexUtil.toStream("~"),
+                        IntStream.range(0, 10).mapToObj(Integer::toString))
+                        .collect(Collectors.toList());
+            }
+
             final String workingInput;
             final String prefix;
             if (input.startsWith("~") || input.startsWith("^")) {

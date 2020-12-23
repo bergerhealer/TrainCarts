@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseContext;
@@ -50,6 +51,7 @@ public final class SlowdownProperty extends FieldBackedStandardTrainProperty<Set
         }
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("slowdown")
     @CommandMethod("train slowdown <mode> <enabled>")
     @CommandDescription("Sets whether trains slow down and speed up due to a particular type of slow-down mode")
@@ -75,6 +77,7 @@ public final class SlowdownProperty extends FieldBackedStandardTrainProperty<Set
                 (properties.isSlowingDown(mode) ? (ChatColor.GREEN + "Yes") : (ChatColor.RED + "No")));
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("slowdown")
     @CommandMethod("train slowdown all|true|enable|enabled")
     @CommandDescription("Enables all default modes of slowing down")
@@ -86,6 +89,7 @@ public final class SlowdownProperty extends FieldBackedStandardTrainProperty<Set
         trainGetSlowdownModes(sender, properties);
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("slowdown")
     @CommandMethod("train slowdown none|false|disable|disabled")
     @CommandDescription("Disables all default modes of slowing down")

@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
@@ -26,6 +27,7 @@ import cloud.commandframework.annotations.CommandMethod;
  */
 public final class OnlyOwnersCanEnterProperty extends FieldBackedStandardCartProperty<Boolean> {
 
+    @CommandTargetTrain
     @PropertyCheckPermission("onlyownerscanenter")
     @CommandMethod("train onlyownerscanenter <state>")
     @CommandDescription("Sets whether only owners can enter the train")
@@ -48,6 +50,7 @@ public final class OnlyOwnersCanEnterProperty extends FieldBackedStandardCartPro
                 + Localization.boolStr(properties.getCanOnlyOwnersEnter()));
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("onlyownerscanenter")
     @CommandMethod("cart onlyownerscanenter <state>")
     @CommandDescription("Sets whether only owners can enter the cart")

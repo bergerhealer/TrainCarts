@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
@@ -25,6 +26,7 @@ import cloud.commandframework.annotations.CommandMethod;
  */
 public final class PlayerEnterProperty implements ICartProperty<Boolean> {
 
+    @CommandTargetTrain
     @PropertyCheckPermission("playerenter")
     @CommandMethod("train playerenter|allowplayerenter <allow>")
     @CommandDescription("Sets whether players can enter carts of this train")
@@ -47,6 +49,7 @@ public final class PlayerEnterProperty implements ICartProperty<Boolean> {
                 + Localization.boolStr(properties.getPlayersEnter()));
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("playerenter")
     @CommandMethod("cart playerenter|allowplayerenter <allow>")
     @CommandDescription("Sets whether players can enter the cart")

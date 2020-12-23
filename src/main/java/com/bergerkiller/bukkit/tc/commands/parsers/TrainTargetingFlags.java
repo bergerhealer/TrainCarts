@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.commands.parsers;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;

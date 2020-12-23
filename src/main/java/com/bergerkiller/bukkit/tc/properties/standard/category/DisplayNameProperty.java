@@ -7,6 +7,7 @@ import org.bukkit.command.CommandSender;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
@@ -24,6 +25,7 @@ import net.md_5.bungee.api.ChatColor;
  */
 public final class DisplayNameProperty implements ITrainProperty<String> {
 
+    @CommandTargetTrain
     @PropertyCheckPermission("displayname")
     @CommandMethod("train displayname <name>")
     @CommandDescription("Sets the display name of the train")

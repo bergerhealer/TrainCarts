@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
@@ -57,6 +58,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         builder.yellow(" ").blue("miscellaneous entities");
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("collision")
     @CommandMethod("train collision default|true")
     @CommandDescription("Configures the default collision settings")
@@ -68,6 +70,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         trainGetCollisionInfo(sender, properties);
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("collision")
     @CommandMethod("train collision none|false")
     @CommandDescription("Disables collision with all entities and blocks")
@@ -90,6 +93,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         builder.send(sender);
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("mobcollision")
     @CommandMethod("train collision <mobcategory> <mode>")
     @CommandDescription("Sets new behavior when colliding with a given mob category")
@@ -103,6 +107,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         trainGetMobCollision(sender, properties, category);
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("mobcollision")
     @CommandMethod("train collision <mobcategory> none")
     @CommandDescription("Resets behavior when colliding with a given mob category")
@@ -133,6 +138,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         }
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("blockcollision")
     @CommandMethod("train collision block <mode>")
     @CommandDescription("Sets the behavior of the train when colliding with blocks")
@@ -154,6 +160,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         showMode(sender, "blocks", properties.getCollision().blockMode());
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("playercollision")
     @CommandMethod("train collision player <mode>")
     @CommandDescription("Sets the behavior of the train when colliding with players")
@@ -175,6 +182,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         showMode(sender, "players", properties.getCollision().trainMode());
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("traincollision")
     @CommandMethod("train collision train <mode>")
     @CommandDescription("Sets the behavior of the train when colliding with other trains")
@@ -196,6 +204,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         showMode(sender, "other trains", properties.getCollision().trainMode());
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("misccollision")
     @CommandMethod("train collision misc <mode>")
     @CommandDescription("Sets the behavior of the train when colliding with miscellaneous mobs and entities")
