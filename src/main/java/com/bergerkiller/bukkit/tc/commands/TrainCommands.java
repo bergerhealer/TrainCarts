@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
@@ -93,11 +94,12 @@ public class TrainCommands {
         message.send(player);
     }
 
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_DESTROY)
     @CommandMethod("train destroy|remove")
     @CommandDescription("Destroys the train, removing all carts")
     private void commandDestroy(
-            final Player player,
+            final CommandSender sender,
             final TrainProperties properties
     ) {
         MinecartGroup group = properties.getHolder();
@@ -107,7 +109,7 @@ public class TrainCommands {
         } else {
             group.destroy();
         }
-        player.sendMessage(ChatColor.YELLOW + "The selected train has been destroyed!");
+        sender.sendMessage(ChatColor.YELLOW + "The selected train has been destroyed!");
     }
 
     @CommandRequiresPermission(Permission.COMMAND_SAVE_TRAIN)
@@ -412,9 +414,11 @@ public class TrainCommands {
             sender.sendMessage(ChatColor.GREEN + "Property has been updated!");
         } else {
             sender.sendMessage(parseResult.getMessage());
-        }
 
-        help(new MessageBuilder()).send(sender);
+            if (parseResult.getReason() == PropertyParseResult.Reason.PROPERTY_NOT_FOUND) {
+                help(new MessageBuilder()).send(sender);
+            }
+        }
     }
 
     public static MessageBuilder help(MessageBuilder builder) {

@@ -23,6 +23,16 @@ public class CartPropertiesStore {
     private static HashMap<UUID, CartProperties> properties = new HashMap<>();
 
     /**
+     * Gets the cart properties by cart uuid
+     * 
+     * @param uuid
+     * @return cart properties, null if not found
+     */
+    public static CartProperties getByUUID(UUID uuid) {
+        return properties.get(uuid);
+    }
+
+    /**
      * Gets the properties of the Minecart the specified player is currently editing
      *
      * @param player that is editing

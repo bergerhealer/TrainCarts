@@ -9,6 +9,7 @@ import org.bukkit.permissions.PermissionDefault;
 public enum Permission implements IPermissionEnum {
     COMMAND_GLOBALPROPERTIES("train.command.globalproperties", PermissionDefault.OP, "The player can edit the properties of all carts"),
     COMMAND_PROPERTIES("train.command.properties", PermissionDefault.TRUE, "The player can edit the properties of carts he owns"),
+    COMMAND_TARGET_NEAR("train.command.targetnear", PermissionDefault.TRUE, "The player can use the --near selector to target carts he owns"),
 
     // Powerful permission to apply all properties from defaults
     PROPERTY_APPLYDEFAULTS("train.property.applydefaults", PermissionDefault.OP, "The player can apply defaults from DefaultTrainProperties.yml to trains"),

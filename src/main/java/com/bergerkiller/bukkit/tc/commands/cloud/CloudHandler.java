@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.commands.cloud;
 
 import java.lang.annotation.Annotation;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -123,15 +124,6 @@ public class CloudHandler {
                     "Exception executing command handler", cause);
             sender.sendMessage(ChatColor.RED + "An internal error occurred while attempting to perform this command.");
         });
-        
-        /*
-        this.annotationParser.registerPreprocessorMapper(TestAnnot.class, a -> {
-            return (context, queue) -> {
-                System.out.println("PREPROCESS");
-                return ArgumentParseResult.success(Boolean.TRUE);
-            };
-        });
-        */
 
         suggest("playername", (context, input) -> {
             // Try online players first

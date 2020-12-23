@@ -8,19 +8,21 @@ import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.commands.cloud.CloudHandler;
 import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.commands.parsers.SpeedParser;
+import com.bergerkiller.bukkit.tc.commands.parsers.TrainTargetingFlags;
 import com.bergerkiller.bukkit.tc.exception.command.InvalidClaimPlayerNameException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForAnyPropertiesException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTicketSelectedException;
+import com.bergerkiller.bukkit.tc.exception.command.NoTrainNearbyException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainSelectedException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainStorageChestItemException;
 import com.bergerkiller.bukkit.tc.exception.command.SelectedTrainNotOwnedException;
 import com.bergerkiller.bukkit.tc.pathfinding.PathWorld;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
-import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
@@ -58,44 +60,48 @@ public class Commands {
     public void enable(TrainCarts plugin) {
         cloud.enable(plugin);
 
+        // Override syntax formatter to hide excess flags for targeting a train or cart
+        cloud.getManager().setCommandSyntaxFormatter(new TCSyntaxFormatter<CommandSender>());
+
         // Localization
         cloud.captionFromLocalization(Localization.class);
 
-        // Permissions
+        // TrainCarts Permissions
         cloud.getParser().registerBuilderModifier(CommandRequiresPermission.class,
                 (perm, builder) -> builder.permission(perm.value().getName()));
 
         // Plugin instance
         cloud.inject(TrainCarts.class, plugin);
 
+        // Target a cart or train using added flags at the end of the command
+        cloud.getParser().registerBuilderModifier(CommandTargetTrain.class, TrainTargetingFlags.INSTANCE);
+
         // Handle train not found exception
         cloud.injector(CartProperties.class, (context, annotations) -> {
-            if (!(context.getSender() instanceof Player)) {
-                throw new NoTrainSelectedException();
+            final CartProperties cartProperties = TrainTargetingFlags.INSTANCE.findCartProperties(context);
+
+            // Check ownership permissions
+            if (context.getSender() instanceof Player) {
+                Player p = (Player) context.getSender();
+                if (!cartProperties.hasOwnership(p)) {
+                    throw new SelectedTrainNotOwnedException();
+                }
             }
-            Player player = (Player) context.getSender();
-            CartProperties properties = CartPropertiesStore.getEditing(player);
-            if (properties == null) {
-                throw new NoTrainSelectedException();
-            }
-            if (!properties.hasOwnership(player)) {
-                throw new SelectedTrainNotOwnedException();
-            }
-            return properties;
+
+            return cartProperties;
         });
         cloud.injector(TrainProperties.class, (context, annotations) -> {
-            if (!(context.getSender() instanceof Player)) {
-                throw new NoTrainSelectedException();
+            final CartProperties cartProperties = TrainTargetingFlags.INSTANCE.findCartProperties(context);
+            final TrainProperties trainProperties = cartProperties.getTrainProperties();
+
+            // Check ownership permissions
+            if (context.getSender() instanceof Player) {
+                Player p = (Player) context.getSender();
+                if (!trainProperties.hasOwnership(p)) {
+                    throw new SelectedTrainNotOwnedException();
+                }
             }
-            Player player = (Player) context.getSender();
-            CartProperties properties = CartPropertiesStore.getEditing(player);
-            if (properties == null) {
-                throw new NoTrainSelectedException();
-            }
-            TrainProperties trainProperties = properties.getTrainProperties();
-            if (!trainProperties.hasOwnership(player)) {
-                throw new SelectedTrainNotOwnedException();
-            }
+
             return trainProperties;
         });
 
@@ -107,6 +113,7 @@ public class Commands {
         cloud.handleMessage(NoPermissionException.class, Localization.COMMAND_NOPERM.getName());
         cloud.handleMessage(NoTrainSelectedException.class, Localization.EDIT_NOSELECT.getName());
         cloud.handleMessage(SelectedTrainNotOwnedException.class, Localization.EDIT_NOTOWNED.getName());
+        cloud.handleMessage(NoTrainNearbyException.class, Localization.COMMAND_CART_NOT_FOUND_NEARBY.getName());
         cloud.handleMessage(NoTrainStorageChestItemException.class, Localization.CHEST_NOITEM.getName());
         cloud.handleMessage(NoTicketSelectedException.class, Localization.COMMAND_TICKET_NOTEDITING.getName());
         cloud.handleMessage(NoPermissionForAnyPropertiesException.class, Localization.PROPERTY_NOPERM_ANY.getName());

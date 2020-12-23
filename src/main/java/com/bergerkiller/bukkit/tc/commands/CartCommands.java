@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -43,11 +44,12 @@ public class CartCommands {
         info(player, properties);
     }
 
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_DESTROY)
     @CommandMethod("cart destroy|remove")
     @CommandDescription("Destroys the single cart that is selected")
     private void commandDestroy(
-            final Player player,
+            final CommandSender sender,
             final CartProperties properties
     ) {
         MinecartMember<?> member = properties.getHolder();
@@ -57,7 +59,7 @@ public class CartCommands {
         } else {
             member.onDie();
         }
-        player.sendMessage(ChatColor.YELLOW + "The selected cart has been destroyed!");
+        sender.sendMessage(ChatColor.YELLOW + "The selected cart has been destroyed!");
     }
 
     @CommandRequiresPermission(Permission.COMMAND_TELEPORT)
@@ -191,9 +193,11 @@ public class CartCommands {
             sender.sendMessage(ChatColor.GREEN + "Property has been updated!");
         } else {
             sender.sendMessage(parseResult.getMessage());
-        }
 
-        help(new MessageBuilder()).send(sender);
+            if (parseResult.getReason() == PropertyParseResult.Reason.PROPERTY_NOT_FOUND) {
+                help(new MessageBuilder()).send(sender);
+            }
+        }
     }
 
     public static MessageBuilder help(MessageBuilder builder) {
@@ -207,6 +211,8 @@ public class CartCommands {
 
     public static void info(Player p, CartProperties prop) {
         MessageBuilder message = new MessageBuilder();
+
+        message.yellow("UUID: ").white(prop.getUUID().toString()).newLine();
 
         //warning message not taken
         if (prop.hasOwners()) {
