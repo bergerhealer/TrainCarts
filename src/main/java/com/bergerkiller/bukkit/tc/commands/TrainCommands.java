@@ -49,12 +49,12 @@ public class TrainCommands {
     @CommandMethod("train info|i")
     @CommandDescription("Displays the properties of the train")
     private void commandInfo(
-            final Player player,
+            final CommandSender sender,
             final TrainProperties properties
     ) {
         MessageBuilder message = new MessageBuilder();
 
-        if (!properties.isOwner(player)) {
+        if (sender instanceof Player && !properties.isOwner((Player) sender)) {
             if (!properties.hasOwners()) {
                 message.newLine().yellow("Note: This train is not owned, claim it using /train claim!");
             }
@@ -91,7 +91,7 @@ public class TrainCommands {
         }
 
         // Send
-        message.send(player);
+        message.send(sender);
     }
 
     @CommandTargetTrain
@@ -116,7 +116,7 @@ public class TrainCommands {
     @CommandMethod("train save <name>")
     @CommandDescription("Saves the train under a name")
     private void commandSave(
-            final Player player,
+            final CommandSender sender,
             final TrainCarts plugin,
             final TrainProperties properties,
             final @Argument("name") String name,
@@ -125,24 +125,24 @@ public class TrainCommands {
     ) {
         MinecartGroup group = properties.getHolder();
         if (group == null) {
-            player.sendMessage(ChatColor.YELLOW + "The train you are editing is not loaded and can not be saved");
+            sender.sendMessage(ChatColor.YELLOW + "The train you are editing is not loaded and can not be saved");
             return;
         }
 
-        if (!plugin.getSavedTrains().hasPermission(player, name)) {
+        if (!plugin.getSavedTrains().hasPermission(sender, name)) {
             // Check that the player has global editing permission
-            if (!Permission.COMMAND_SAVEDTRAIN_GLOBAL.has(player)) {
-                player.sendMessage(ChatColor.RED + "You do not have permission to overwrite saved train " + name);
+            if (!Permission.COMMAND_SAVEDTRAIN_GLOBAL.has(sender)) {
+                sender.sendMessage(ChatColor.RED + "You do not have permission to overwrite saved train " + name);
                 return;
             }
 
             // Check that a second argument, 'forced', is specified
             if (!force) {
-                player.sendMessage(ChatColor.RED + "The saved train '" + name + "' already exists, but it is not yours!");
-                player.sendMessage(ChatColor.RED + "Here are some options:");
-                player.sendMessage(ChatColor.RED + "/savedtrain " + name + " info  -  See who claimed it");
-                player.sendMessage(ChatColor.RED + "/savedtrain " + name + " claim  -  Claim it yourself");
-                player.sendMessage(ChatColor.RED + "/train save " + name + " --force  -  Force a save and overwrite");
+                sender.sendMessage(ChatColor.RED + "The saved train '" + name + "' already exists, but it is not yours!");
+                sender.sendMessage(ChatColor.RED + "Here are some options:");
+                sender.sendMessage(ChatColor.RED + "/savedtrain " + name + " info  -  See who claimed it");
+                sender.sendMessage(ChatColor.RED + "/savedtrain " + name + " claim  -  Claim it yourself");
+                sender.sendMessage(ChatColor.RED + "/train save " + name + " --force  -  Force a save and overwrite");
                 return;
             }
         }
@@ -157,15 +157,15 @@ public class TrainCommands {
             }
 
             if (wasContained) {
-                player.sendMessage(ChatColor.GREEN + "The train was saved as " + name + moduleString + ", a previous train was overwritten");
+                sender.sendMessage(ChatColor.GREEN + "The train was saved as " + name + moduleString + ", a previous train was overwritten");
             } else {
-                player.sendMessage(ChatColor.GREEN + "The train was saved as " + name + moduleString);
-                if (TCConfig.claimNewSavedTrains) {
-                    plugin.getSavedTrains().setClaim(name, player);
+                sender.sendMessage(ChatColor.GREEN + "The train was saved as " + name + moduleString);
+                if (TCConfig.claimNewSavedTrains && sender instanceof Player) {
+                    plugin.getSavedTrains().setClaim(name, (Player) sender);
                 }
             }
         } catch (IllegalNameException ex) {
-            player.sendMessage(ChatColor.RED + "The train could not be saved under this name: " + ex.getMessage());
+            sender.sendMessage(ChatColor.RED + "The train could not be saved under this name: " + ex.getMessage());
         }
     }
 
@@ -231,12 +231,12 @@ public class TrainCommands {
     @CommandMethod("train launch [options]")
     @CommandDescription("Launches the train into a direction")
     private void commandLaunch(
-            final Player player,
+            final CommandSender sender,
             final TrainProperties properties,
             final @Argument("options") String[] options
     ) {
         if (!properties.isLoaded()) {
-            player.sendMessage(ChatColor.RED + "Can not launch the train: it is not loaded");
+            sender.sendMessage(ChatColor.RED + "Can not launch the train: it is not loaded");
             return;
         }
 
@@ -281,7 +281,9 @@ public class TrainCommands {
         }
 
         // Resolve the launch direction into a BlockFace (TODO: Vector?) using the player's orientation
-        BlockFace facing = Util.vecToFace(player.getEyeLocation().getDirection(), false).getOppositeFace();
+        BlockFace facing = (sender instanceof Player)
+                ? Util.vecToFace(((Player) sender).getEyeLocation().getDirection(), false).getOppositeFace()
+                        : BlockFace.UP;
         BlockFace directionFace = direction.getDirection(facing);
 
         // Now we have all the pieces put together, actually launch the train
@@ -297,28 +299,28 @@ public class TrainCommands {
         } else if (launchConfig.hasDuration()) {
             msg.green(" over a period of ").yellow(launchConfig.getDuration()).green(" ticks");
         }
-        msg.send(player);
+        msg.send(sender);
     }
 
     @CommandRequiresPermission(Permission.COMMAND_ANIMATE)
     @CommandMethod("train animate [options]")
     @CommandDescription("Plays an animation for the entire train")
     private void commandAnimate(
-            final Player player,
+            final CommandSender sender,
             final TrainProperties properties,
             final @Argument("options") String[] options
     ) {
         if (!properties.isLoaded()) {
-            player.sendMessage(ChatColor.RED + "Can not animate the train: it is not loaded");
+            sender.sendMessage(ChatColor.RED + "Can not animate the train: it is not loaded");
             return;
         }
 
         AnimationOptions opt = new AnimationOptions();
         opt.loadCommandArgs((options==null) ? StringUtil.EMPTY_ARRAY : options);
         if (properties.getHolder().playNamedAnimation(opt)) {
-            player.sendMessage(opt.getCommandSuccessMessage());
+            sender.sendMessage(opt.getCommandSuccessMessage());
         } else {
-            player.sendMessage(opt.getCommandFailureMessage());
+            sender.sendMessage(opt.getCommandFailureMessage());
         }
     }
 

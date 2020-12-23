@@ -38,10 +38,10 @@ public class CartCommands {
     @CommandMethod("cart info|i")
     @CommandDescription("Displays the properties of the cart")
     private void commandInfo(
-            final Player player,
+            final CommandSender sender,
             final CartProperties properties
     ) {
-        info(player, properties);
+        info(sender, properties);
     }
 
     @CommandTargetTrain
@@ -87,21 +87,21 @@ public class CartCommands {
     @CommandMethod("cart animate [options]")
     @CommandDescription("Plays an animation for a single cart")
     private void commandAnimate(
-            final Player player,
+            final CommandSender sender,
             final CartProperties properties,
             final @Argument("options") String[] options
     ) {
         if (!properties.hasHolder()) {
-            player.sendMessage(ChatColor.RED + "Can not animate the minecart: it is not loaded");
+            sender.sendMessage(ChatColor.RED + "Can not animate the minecart: it is not loaded");
             return;
         }
 
         AnimationOptions opt = new AnimationOptions();
         opt.loadCommandArgs((options==null) ? StringUtil.EMPTY_ARRAY : options);
         if (properties.getHolder().playNamedAnimation(opt)) {
-            player.sendMessage(opt.getCommandSuccessMessage());
+            sender.sendMessage(opt.getCommandSuccessMessage());
         } else {
-            player.sendMessage(opt.getCommandFailureMessage());
+            sender.sendMessage(opt.getCommandFailureMessage());
         }
     }
 
@@ -209,7 +209,7 @@ public class CartCommands {
         return builder.setSeparator(null).red("]");
     }
 
-    public static void info(Player p, CartProperties prop) {
+    public static void info(CommandSender sender, CartProperties prop) {
         MessageBuilder message = new MessageBuilder();
 
         message.yellow("UUID: ").white(prop.getUUID().toString()).newLine();
@@ -234,8 +234,8 @@ public class CartCommands {
         }
 
         // Send
-        p.sendMessage(" ");
-        message.send(p);
+        sender.sendMessage(" ");
+        message.send(sender);
     }
 
 }
