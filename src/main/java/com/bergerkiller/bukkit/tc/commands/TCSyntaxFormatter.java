@@ -175,6 +175,10 @@ public class TCSyntaxFormatter<C> implements CommandSyntaxFormatter<C> {
                 if (first) {
                     first = false;
                     this.builder.append(this.getOptionalPrefix());
+                } else {
+                    this.appendBlankSpace();
+                    this.appendPipe();
+                    this.appendBlankSpace();
                 }
 
                 this.appendName(String.format("--%s", flag.getName()));
@@ -184,12 +188,6 @@ public class TCSyntaxFormatter<C> implements CommandSyntaxFormatter<C> {
                     this.builder.append(this.getOptionalPrefix());
                     this.appendName(flag.getCommandArgument().getName());
                     this.builder.append(this.getOptionalSuffix());
-                }
-
-                if (flagIterator.hasNext()) {
-                    this.appendBlankSpace();
-                    this.appendPipe();
-                    this.appendBlankSpace();
                 }
             }
 
