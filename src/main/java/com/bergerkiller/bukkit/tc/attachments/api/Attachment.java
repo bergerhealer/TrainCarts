@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.api;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 
 import org.bukkit.entity.Player;
@@ -300,6 +301,28 @@ public interface Attachment {
      */
     default void addAnimation(Animation animation) {
         this.getInternalState().animations.put(animation.getOptions().getName(), animation);
+    }
+
+    /**
+     * Gets a list of animation names defined for this attachment
+     *
+     * @return unmodifiable list of registered animation names. Unsorted.
+     */
+    default List<String> getAnimationNames() {
+        return Collections.unmodifiableList(new ArrayList<String>(this.getInternalState().animations.keySet()));
+    }
+
+    /**
+     * Gets a list of animation names defined for this attachment, or any of the child
+     * attachments, recursively. The list only contains the unique animation names.
+     *
+     * @return unmodifiable list of registered animation names of this attachment,
+     *         and all children recursively. Unsorted.
+     */
+    default List<String> getAnimationNamesRecursive() {
+        HashSet<String> tmp = new HashSet<String>();
+        HelperMethods.addAnimationNamesToListRecursive(tmp, this);
+        return Collections.unmodifiableList(new ArrayList<String>(tmp));
     }
 
     /**

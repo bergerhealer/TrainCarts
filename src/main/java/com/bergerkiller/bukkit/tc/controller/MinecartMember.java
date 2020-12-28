@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.controller;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -63,6 +64,7 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
+import com.bergerkiller.bukkit.tc.controller.components.AnimationController;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
@@ -96,7 +98,7 @@ import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
 
 public abstract class MinecartMember<T extends CommonMinecart<?>> extends EntityController<T>
-        implements IPropertiesHolder, AttachmentModelOwner {
+        implements IPropertiesHolder, AttachmentModelOwner, AnimationController {
     public static final double GRAVITY_MULTIPLIER_RAILED = 0.015625;
     public static final double GRAVITY_MULTIPLIER = 0.04;
     public static final int MAXIMUM_DAMAGE_SUSTAINED = 40;
@@ -2389,6 +2391,16 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
     }
 
+    @Override
+    public List<String> GetAnimationNames() {
+        MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
+        if (network != null) {
+            return network.getRootAttachment().getAnimationNamesRecursive();
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
     /**
      * Plays an animation for a single attachment node for this minecart. Only the
      * attachment at the targetPath will play the animation.
@@ -2397,6 +2409,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @param options    defining the animation to play
      * @return True if the attachment node and animation could be found
      */
+    @Override
     public boolean playNamedAnimationFor(int[] targetPath, AnimationOptions options) {
         Attachment attachment = findAttachment(targetPath);
         return attachment != null && attachment.playNamedAnimation(options);
@@ -2409,6 +2422,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @param animation  to play
      * @return True if the attachment node could be found
      */
+    @Override
     public boolean playAnimationFor(int[] targetPath, Animation animation) {
         Attachment attachment = findAttachment(targetPath);
         if (attachment == null) {
@@ -2426,8 +2440,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @param name of the animation
      * @return True if an animation was found and started
      */
+    @Override
     public boolean playNamedAnimation(String name) {
-        return this.playNamedAnimation(new AnimationOptions(name));
+        return AnimationController.super.playNamedAnimation(name);
     }
 
     /**
@@ -2437,6 +2452,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @param options for the animation
      * @return True if an animation was found and started
      */
+    @Override
     public boolean playNamedAnimation(AnimationOptions options) {
         MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
         if (network != null) {

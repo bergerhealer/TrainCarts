@@ -24,9 +24,11 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
+import com.bergerkiller.bukkit.tc.controller.components.AnimationController;
 import com.bergerkiller.bukkit.tc.controller.components.SignTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.SpeedAheadWaiter;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
@@ -59,8 +61,9 @@ import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
-public class MinecartGroup extends MinecartGroupStore implements IPropertiesHolder {
+public class MinecartGroup extends MinecartGroupStore implements IPropertiesHolder, AnimationController {
     private static final long serialVersionUID = 3;
     private static final LongHashSet chunksBuffer = new LongHashSet(50);
     protected final ToggledState networkInvalid = new ToggledState();
@@ -718,14 +721,29 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
     }
 
+    @Override
+    public List<String> GetAnimationNames() {
+        if (this.isEmpty()) {
+            return Collections.emptyList();
+        } else if (this.size() == 1) {
+            return this.get(0).GetAnimationNames();
+        } else {
+            return Collections.unmodifiableList(this.stream()
+                    .flatMap(m -> m.GetAnimationNames().stream())
+                    .distinct()
+                    .collect(Collectors.toList()));
+        }
+    }
+
     /**
      * Plays an animation by name for this train
      * 
      * @param name of the animation
      * @return True if an animation was started for one or more minecarts in this train
      */
+    @Override
     public boolean playNamedAnimation(String name) {
-        return this.playNamedAnimation(new AnimationOptions(name));
+        return AnimationController.super.playNamedAnimation(name);
     }
 
     /**
@@ -734,10 +752,29 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      * @param options for the animation
      * @return True if an animation was started for one or more minecarts in this train
      */
+    @Override
     public boolean playNamedAnimation(AnimationOptions options) {
         boolean success = false;
         for (MinecartMember<?> member : this) {
             success |= member.playNamedAnimation(options);
+        }
+        return success;
+    }
+
+    @Override
+    public boolean playNamedAnimationFor(int[] targetPath, AnimationOptions options) {
+        boolean success = false;
+        for (MinecartMember<?> member : this) {
+            success |= member.playNamedAnimationFor(targetPath, options);
+        }
+        return success;
+    }
+
+    @Override
+    public boolean playAnimationFor(int[] targetPath, Animation animation) {
+        boolean success = false;
+        for (MinecartMember<?> member : this) {
+            success |= member.playAnimationFor(targetPath, animation);
         }
         return success;
     }

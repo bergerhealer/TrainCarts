@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.tc.commands.cloud.CloudHandler;
 import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.commands.parsers.SpeedParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.TrainTargetingFlags;
+import com.bergerkiller.bukkit.tc.commands.suggestions.AnimationName;
 import com.bergerkiller.bukkit.tc.exception.command.InvalidClaimPlayerNameException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForAnyPropertiesException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
@@ -127,6 +128,10 @@ public class Commands {
         cloud.handle(InvalidClaimPlayerNameException.class, (sender, exception) -> {
             Localization.COMMAND_SAVEDTRAIN_CLAIM_INVALID.message(sender, exception.getArgument());
         });
+
+        // Provides names of animations stored in trains/carts
+        cloud.suggest("cartAnimationName", AnimationName.CART_ANIMATION_NAME);
+        cloud.suggest("trainAnimationName", AnimationName.TRAIN_ANIMATION_NAME);
 
         // Register provider for train names a player can edit
         cloud.suggest("trainnames", (context, input) -> {

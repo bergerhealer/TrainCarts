@@ -4,6 +4,7 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -342,6 +343,20 @@ public class HelperMethods {
             } else {
                 return GLOW_COLORS[parent.getChildren().indexOf(attachment) & 0xF];
             }
+        }
+    }
+
+    /**
+     * Adds all the animation names defined by an attachment and its children, recursively,
+     * to an output set.
+     *
+     * @param out_names Set of names to fill
+     * @param attachment Root attachment
+     */
+    public static void addAnimationNamesToListRecursive(Set<String> out_names, Attachment attachment) {
+        out_names.addAll(attachment.getAnimationNames());
+        for (Attachment child : attachment.getChildren()) {
+            addAnimationNamesToListRecursive(out_names,  child);
         }
     }
 

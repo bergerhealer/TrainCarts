@@ -21,6 +21,7 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.annotations.Flag;
 import cloud.commandframework.annotations.specifier.Greedy;
 
 import org.bukkit.ChatColor;
@@ -85,13 +86,20 @@ public class CartCommands {
         }
     }
 
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_ANIMATE)
-    @CommandMethod("cart animate [options]")
-    @CommandDescription("Plays an animation for a single cart")
+    @CommandMethod("cart animate <animation_name>")
+    @CommandDescription("Plays an animation for the cart")
     private void commandAnimate(
             final CommandSender sender,
             final CartProperties properties,
-            final @Argument("options") String[] options
+            final @Argument(value="animation_name", suggestions="cartAnimationName", description="Name of the animation to play") String animationName,
+            final @Flag(value="speed", aliases="s", description="Speed of the animation, 1.0 is default") Double speed,
+            final @Flag(value="delay", aliases="d", description="Delay of the animation, 0.0 is default") Double delay,
+            final @Flag(value="loop", aliases="l", description="Loop the animation") boolean setLooping,
+            final @Flag(value="noloop", description="Disable looping the animation") boolean setNotLooping,
+            final @Flag(value="reset", aliases="r", description="Reset the animation to the beginning") boolean setReset,
+            final @Flag(value="queue", aliases="q", description="Play the animation once previous animations have finished") boolean setQueued
     ) {
         if (!properties.hasHolder()) {
             sender.sendMessage(ChatColor.RED + "Can not animate the minecart: it is not loaded");
@@ -99,7 +107,14 @@ public class CartCommands {
         }
 
         AnimationOptions opt = new AnimationOptions();
-        opt.loadCommandArgs((options==null) ? StringUtil.EMPTY_ARRAY : options);
+        opt.setName(animationName);
+        if (speed != null) opt.setSpeed(speed);
+        if (delay != null) opt.setDelay(delay);
+        if (setReset) opt.setReset(true);
+        if (setQueued) opt.setQueue(true);
+        if (setLooping) opt.setLooped(true);
+        if (setNotLooping) opt.setLooped(false);
+
         if (properties.getHolder().playNamedAnimation(opt)) {
             sender.sendMessage(opt.getCommandSuccessMessage());
         } else {
