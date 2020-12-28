@@ -110,11 +110,13 @@ public class MinecartMemberChest extends MinecartMember<CommonMinecartChest> {
 
     @Override
     public void onTrainSaved(ConfigurationNode data) {
+        super.onTrainSaved(data);
         Util.saveInventoryToConfig(entity.getInventory(), data);
     }
 
     @Override
     public void onTrainSpawned(ConfigurationNode data) {
+        super.onTrainSpawned(data);
         Util.loadInventoryFromConfig(entity.getInventory(), data);
     }
 }

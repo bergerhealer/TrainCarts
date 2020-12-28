@@ -15,11 +15,13 @@ public class MinecartMemberCommandBlock extends MinecartMember<CommonMinecartCom
 
     @Override
     public void onTrainSaved(ConfigurationNode data) {
+        super.onTrainSaved(data);
         data.set("command", this.getEntity().metaCommand.get());
     }
 
     @Override
     public void onTrainSpawned(ConfigurationNode data) {
+        super.onTrainSpawned(data);
         if (data.contains("command")) {
             this.entity.metaCommand.set(data.get("command", ""));
         }

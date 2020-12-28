@@ -48,6 +48,7 @@ import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.DamageSource;
 import com.bergerkiller.bukkit.common.wrappers.MoveType;
 import com.bergerkiller.bukkit.tc.CollisionMode;
@@ -259,7 +260,22 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * 
      * @param data
      */
+    @SuppressWarnings("deprecation")
     public void onTrainSaved(ConfigurationNode data) {
+        if (entity != null) {
+            int offset = entity.getBlockOffset();
+            BlockData block = entity.getBlock();
+            boolean hasOffset = (offset != 6);
+            boolean hasBlock = (block != null && block != BlockData.AIR);
+            if (hasOffset || hasBlock) {
+                // Save displayed block information
+                ConfigurationNode displayedBlock = data.getNode("displayedBlock");
+                displayedBlock.set("offset", hasOffset ? offset : null);
+                displayedBlock.set("type", hasBlock ? block.getCombinedId() : null);
+            } else {
+                data.remove("displayedBlock");
+            }
+        }
     }
 
     /**
@@ -268,7 +284,20 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * 
      * @param data
      */
+    @SuppressWarnings("deprecation")
     public void onTrainSpawned(ConfigurationNode data) {
+        if (entity != null && data.isNode("displayedBlock")) {
+            ConfigurationNode displayedBlock = data.getNode("displayedBlock");
+            if (displayedBlock.contains("offset")) {
+                entity.setBlockOffset(displayedBlock.get("offset", 6));
+            }
+            if (displayedBlock.contains("type")) {
+                BlockData type = BlockData.fromCombinedId(displayedBlock.get("type", 0));
+                if (type != null && type != BlockData.AIR) {
+                    entity.setBlock(type);
+                }
+            }
+        }
     }
 
     /**

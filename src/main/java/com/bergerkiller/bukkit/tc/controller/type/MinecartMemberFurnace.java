@@ -194,6 +194,7 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
 
     @Override
     public void onTrainSaved(ConfigurationNode data) {
+        super.onTrainSaved(data);
         if (this.getEntity().getFuelTicks() > 0) {
             data.set("fuel", this.entity.getFuelTicks());
         }
@@ -201,6 +202,7 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
 
     @Override
     public void onTrainSpawned(ConfigurationNode data) {
+        super.onTrainSpawned(data);
         if (data.contains("fuel")) {
             this.entity.setFuelTicks(data.get("fuel", 0));
         } else {
