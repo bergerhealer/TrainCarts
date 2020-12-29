@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
@@ -141,8 +142,8 @@ public class CartCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
-    @CommandMethod("cart displayedblock <block>")
-    @CommandDescription("Clears the displayed block in the Minecart, making it empty")
+    @CommandMethod("cart displayedblock type <block>")
+    @CommandDescription("Sets the displayed block type in the Minecart")
     private void commandChangeDisplayedBlock(
             final CommandSender sender,
             final CartProperties properties,
@@ -171,7 +172,7 @@ public class CartCommands {
         if (member == null) {
             Localization.EDIT_NOTLOADED.message(sender);
         } else {
-            member.getEntity().setBlockOffset(9);
+            member.getEntity().setBlockOffset(Util.getDefaultDisplayedBlockOffset());
             sender.sendMessage(ChatColor.YELLOW + "The selected minecart has its block offset reset!");
         }
     }

@@ -1554,6 +1554,16 @@ public class Util {
         return false;
     }
 
+    /**
+     * Default value of the displayed block offset.
+     * Might be different on some server versions, was 9 at some point apparently.
+     *
+     * @return default displayed block offset
+     */
+    public static int getDefaultDisplayedBlockOffset() {
+        return 6;
+    }
+
     public static Optional<Set<String>> getConfigStringSetOptional(ConfigurationNode config, String key) {
         if (config.contains(key)) {
             List<String> configList = config.getList(key, String.class);

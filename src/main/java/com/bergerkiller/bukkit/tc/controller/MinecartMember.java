@@ -265,7 +265,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (entity != null) {
             int offset = entity.getBlockOffset();
             BlockData block = entity.getBlock();
-            boolean hasOffset = (offset != 6);
+            boolean hasOffset = (offset != Util.getDefaultDisplayedBlockOffset());
             boolean hasBlock = (block != null && block != BlockData.AIR);
             if (hasOffset || hasBlock) {
                 // Save displayed block information
@@ -289,7 +289,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (entity != null && data.isNode("displayedBlock")) {
             ConfigurationNode displayedBlock = data.getNode("displayedBlock");
             if (displayedBlock.contains("offset")) {
-                entity.setBlockOffset(displayedBlock.get("offset", 6));
+                entity.setBlockOffset(displayedBlock.get("offset", Util.getDefaultDisplayedBlockOffset()));
             }
             if (displayedBlock.contains("type")) {
                 BlockData type = BlockData.fromCombinedId(displayedBlock.get("type", 0));

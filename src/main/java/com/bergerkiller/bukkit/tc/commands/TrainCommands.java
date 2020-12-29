@@ -230,7 +230,6 @@ public class TrainCommands {
         }
     }
 
-    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_LAUNCH)
     @CommandMethod("train launch [options]")
     @CommandDescription("Launches the train into a direction")
@@ -363,8 +362,8 @@ public class TrainCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
-    @CommandMethod("train displayedblock <blocks>")
-    @CommandDescription("Clears the displayed block in the Minecart, making it empty")
+    @CommandMethod("train displayedblock type <blocks>")
+    @CommandDescription("Sets the displayed block in the Minecart carts of the train")
     private void commandChangeDisplayedBlock(
             final CommandSender sender,
             final TrainProperties properties,
@@ -392,7 +391,7 @@ public class TrainCommands {
             Localization.EDIT_NOTLOADED.message(sender);
         } else {
             for (MinecartMember<?> member : members) {
-                member.getEntity().setBlockOffset(9);
+                member.getEntity().setBlockOffset(Util.getDefaultDisplayedBlockOffset());
             }
             sender.sendMessage(ChatColor.YELLOW + "The selected train has its block offset reset!");
         }
