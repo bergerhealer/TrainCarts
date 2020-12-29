@@ -18,14 +18,14 @@ import cloud.commandframework.context.CommandContext;
 import cloud.commandframework.exceptions.parsing.NoInputProvidedException;
 
 /**
- * Parses a speed with a default unit of blocks/tick, where a unit
+ * Parses an acceleration with a default unit of blocks/tick^2, where a unit
  * can optionally be specified.
  */
-public class SpeedParser implements ArgumentParser<CommandSender, Double> {
-    public static final String NAME = "speed";
+public class AccelerationParser implements ArgumentParser<CommandSender, Double> {
+    public static final String NAME = "acceleration";
     private final boolean _greedy;
 
-    public SpeedParser(boolean greedy) {
+    public AccelerationParser(boolean greedy) {
         this._greedy = greedy;
     }
 
@@ -47,10 +47,10 @@ public class SpeedParser implements ArgumentParser<CommandSender, Double> {
         if (input.equalsIgnoreCase("nan")) {
             result = Double.NaN;
         } else {
-            result = Util.parseVelocity(input, Double.NaN);
+            result = Util.parseAcceleration(input, Double.NaN);
             if (Double.isNaN(result)) {
                 return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
-                        Localization.COMMAND_INPUT_SPEED_INVALID, input));
+                        Localization.COMMAND_INPUT_ACCELERATION_INVALID, input));
             }
         }
 
@@ -113,6 +113,6 @@ public class SpeedParser implements ArgumentParser<CommandSender, Double> {
     }
 
     private static Stream<String> unitStream() {
-        return Stream.of("m/s", "km/h", "mi/h", "mph", "kmh", "ft/s");
+        return Stream.of("G", "m/s/s", "km/h/s", "mi/h/s", "mph/s", "ft/s/s");
     }
 }

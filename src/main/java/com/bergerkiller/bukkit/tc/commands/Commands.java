@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.commands.cloud.CloudHandler;
+import com.bergerkiller.bukkit.tc.commands.parsers.AccelerationParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.commands.parsers.SpeedParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.TrainTargetingFlags;
@@ -109,6 +110,11 @@ public class Commands {
         cloud.parse(SpeedParser.NAME, (parameters) -> {
             boolean greedy = parameters.get(StandardParameters.GREEDY, false);
             return new SpeedParser(greedy);
+        });
+
+        cloud.parse(AccelerationParser.NAME, (parameters) -> {
+            boolean greedy = parameters.get(StandardParameters.GREEDY, false);
+            return new AccelerationParser(greedy);
         });
 
         cloud.handleMessage(NoPermissionException.class, Localization.COMMAND_NOPERM.getName());
