@@ -259,8 +259,8 @@ public class DebugTool {
 
     private static String coordinates(RailPath.Position position) {
         return coordinates(MathUtil.floor(position.posX),
-                           MathUtil.floor(position.posX),
-                           MathUtil.floor(position.posX));
+                           MathUtil.floor(position.posY),
+                           MathUtil.floor(position.posZ));
     }
 
     private static String coordinates(int x, int y, int z) {
