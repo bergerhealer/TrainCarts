@@ -698,7 +698,7 @@ public class Station {
                 return info.getGroup().getProperties().getSpeedLimit();
             }
 
-            return ParseUtil.parseDouble(text, TCConfig.launchForce);
+            return Util.parseVelocity(text, TCConfig.launchForce);
         }
     }
 }
