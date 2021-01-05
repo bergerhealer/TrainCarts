@@ -274,7 +274,7 @@ public class TCConfig {
         config.setHeader("slowDownEmptyCarts", "\nWhether or not empty minecarts slow down faster than occupied minecarts");
         slowDownEmptyCarts = config.get("slowDownEmptyCarts", false);
 
-        config.setHeader("refillAtStations", "\nWhether storage minecarts get fuel when launching from stations");
+        config.setHeader("refillAtStations", "\nWhether furnace minecarts get fuel when launching from stations");
         refillAtStations = config.get("refillAtStations", true);
 
         config.setHeader("optimizeInteraction", "\nWhether destroying or entering minecarts is made easier to do");
