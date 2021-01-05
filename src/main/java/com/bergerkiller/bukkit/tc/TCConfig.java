@@ -504,13 +504,13 @@ public class TCConfig {
         // Sound configuration options
         config.setHeader("sounds", "\nConfigures the different sound effects used in traincarts globally");
         ConfigurationNode soundsConfig = config.getNode("sounds");
-        config.setHeader("hissWhenStopAtStation", "Enable/disable hiss sound played when trains stop at stations");
+        soundsConfig.setHeader("hissWhenStopAtStation", "Enable/disable hiss sound played when trains stop at stations");
         playHissWhenStopAtStation = soundsConfig.get("hissWhenStopAtStation", true);
-        config.setHeader("hissWhenDestroyedBySign", "Enable/disable hiss sound played when carts are destroyed by a destroy sign");
+        soundsConfig.setHeader("hissWhenDestroyedBySign", "Enable/disable hiss sound played when carts are destroyed by a destroy sign");
         playHissWhenDestroyedBySign = soundsConfig.get("hissWhenDestroyedBySign", true);
-        config.setHeader("playHissWhenCartRemoved", "Enable/disable hiss sound played when a cart is removed from a train (destroyed/unlinked)");
+        soundsConfig.setHeader("playHissWhenCartRemoved", "Enable/disable hiss sound played when a cart is removed from a train (destroyed/unlinked)");
         playHissWhenCartRemoved = soundsConfig.get("playHissWhenCartRemoved", true);
-        config.setHeader("hissWhenLinked", "Enable/disable hiss sound played when two carts connect together");
+        soundsConfig.setHeader("hissWhenLinked", "Enable/disable hiss sound played when two carts connect together");
         playHissWhenLinked = soundsConfig.get("hissWhenLinked", true);
 
         // Whether only solid blocks support upside-down rails, or any type of block with collision
