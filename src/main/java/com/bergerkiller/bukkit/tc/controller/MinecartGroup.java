@@ -672,29 +672,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         }
     }
 
-    public void reverse() {
-        // Invert current velocity
-        for (MinecartMember<?> mm : this) {
-            mm.getEntity().vel.multiply(-1.0);
-            if (mm.direction != null) {
-                mm.direction = mm.direction.getOppositeFace();
-            }
-        }
-
-        // Invert motion direction on the rails
-        for (TrackedRail rail : this.getRailTracker().getRailInformation()) {
-            rail.state.position().invertMotion();
-            rail.state.initEnterDirection();
-        }
-
-        // With velocity at 0, updateDirection() would (falsely) assume there are no changes
-        // Just to make sure we always recalculate the rails, force an update
-        hasPhysicsChanges = true;
-
-        // Must be re-calculated since this alters the path the train takes
-        this.updateDirection();
-    }
-
     public void setForwardForce(double force) {
         for (MinecartMember<?> mm : this) {
             final double currvel = mm.getForce();
@@ -855,12 +832,42 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                     if (fforce >= 0) {
                         break;
                     } else {
-                        Collections.reverse(this);
+                        reverseDataStructures();
                         notifyPhysicsChange();
                     }
                 }
             }
         }
+    }
+
+    public void reverse() {
+        // Reverse current movement direction for each individual cart
+        for (MinecartMember<?> mm : this) {
+            mm.reverseDirection();
+        }
+
+        // Reverses train data structures so head becomes tail
+        reverseDataStructures();
+
+        // Invert motion direction on the rails
+        for (TrackedRail rail : this.getRailTracker().getRailInformation()) {
+            rail.state.position().invertMotion();
+            rail.state.initEnterDirection();
+        }
+
+        // With velocity at 0, updateDirection() would (falsely) assume there are no changes
+        // Just to make sure we always recalculate the rails, force an update
+        notifyPhysicsChange();
+
+        // Must be re-calculated since this alters the path the train takes
+        this.updateDirection();
+    }
+
+    // Reverses all structures that store information sorted from head to tail
+    // This is done when the direction of the train changes
+    private void reverseDataStructures() {
+        Collections.reverse(this);
+        Collections.reverse(this.getRailTracker().getRailInformation());
     }
 
     // Refresh wheel position information, important to do it AFTER updateDirection()

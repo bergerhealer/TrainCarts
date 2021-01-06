@@ -1009,7 +1009,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             state.setMember(this);
             boolean result = this.fillRailInformation(state);
             if (!result) {
-                state.setRailType(RailType.NONE);
+                // Note: Cannot use world placeholder, because then the rail block is null
+                //       Also cannot set to NONE, because then there is no world.
+                state.setRailPiece(RailPiece.create(RailType.NONE, state.railBlock()));
                 state.position().setLocation(entity.getLocation());
                 state.setMotionVector(this.calcMotionVector(true));
                 state.initEnterDirection();
@@ -1258,6 +1260,18 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public void setDirectionForward() {
         this.directionFrom = this.directionTo = null;
         this.direction = Util.vecToFace(this.getOrientationForward(), true);
+    }
+
+    /**
+     * Reverses the movement direction of the cart.
+     * Called from MinecartGroup.
+     */
+    void reverseDirection() {
+        entity.vel.multiply(-1.0);
+        if (direction != null) {
+            direction = direction.getOppositeFace();
+        }
+        preMovePosition = null;
     }
 
     public int getDirectionDifference(BlockFace dircomparer) {
