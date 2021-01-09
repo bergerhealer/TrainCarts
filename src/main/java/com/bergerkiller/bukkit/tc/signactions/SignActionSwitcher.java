@@ -89,7 +89,7 @@ public class SignActionSwitcher extends SignAction {
             }
         }
 
-        boolean toggleRails = info.isAction(SignActionType.GROUP_ENTER, SignActionType.MEMBER_ENTER);
+        boolean toggleRails = info.isCartSign() ? info.isAction(SignActionType.MEMBER_ENTER) : info.isAction(SignActionType.GROUP_ENTER);
         boolean doCart = false;
         boolean doTrain = false;
         if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_UPDATE) && info.isTrainSign()) {
@@ -102,7 +102,9 @@ public class SignActionSwitcher extends SignAction {
         } else if (info.isAction(SignActionType.GROUP_LEAVE) && info.isTrainSign()) {
             info.setLevers(false);
             return;
-        } else if (hasFromDirections && info.isPowered()) {
+        } else if (hasFromDirections && info.isPowered() && info.isAction(SignActionType.REDSTONE_CHANGE)) {
+            // Redstone change used with from-to directions, to toggle track automatically
+            // Used when toggling rails using redstone input
             toggleRails = true;
         } else {
             return;
@@ -160,7 +162,7 @@ public class SignActionSwitcher extends SignAction {
                     }
 
                     // When no member exists, but the statement supports that, and a from direction is also specified
-                    if (!hasMember && !stat.isSwitchedFromSelf() && stat.has(info, (MinecartMember<?>) null)) {
+                    if (!stat.isSwitchedFromSelf() && stat.has(info, (MinecartMember<?>) null)) {
                         dir = stat;
                         break;
                     }
