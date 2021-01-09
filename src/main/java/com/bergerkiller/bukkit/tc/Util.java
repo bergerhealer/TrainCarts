@@ -60,6 +60,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
+import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
 import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bergerkiller.generated.net.minecraft.server.AxisAlignedBBHandle;
@@ -774,51 +775,11 @@ public class Util {
      * @param velocityString The text to parse
      * @param defaultValue The default value to return if parsing fails
      * @return parsed velocity in blocks/tick
+     * @see FormattedSpeed#parse(String, FormattedSpeed)
      */
     public static double parseVelocity(String velocityString, double defaultValue) {
-        String numberText = velocityString;
-        String unitText = "";
-        for (int i = 0; i < velocityString.length(); i++) {
-            char c = velocityString.charAt(i);
-            if (!Character.isDigit(c) && c != '.' && c != ',' && c != ' ' && c != '-') {
-                numberText = velocityString.substring(0, i);
-                unitText = velocityString.substring(i).replace(" ", "").trim().toLowerCase(Locale.ENGLISH);
-                break;
-            }
-        }
-        double value = ParseUtil.parseDouble(numberText, Double.NaN);
-        if (Double.isNaN(value)) {
-            return defaultValue;
-        }
-        if (unitText.length() >= 3) {
-            // Perform a few common translations
-            if (unitText.equals("mph") || unitText.equals("mphr")) {
-                unitText = "mi/h";
-            } else if (LogicUtil.contains(unitText, "kmh", "kmph", "kmphr")) {
-                unitText = "km/h";
-            }
-
-            // Try to convert the value based on the unit
-            int slashIndex = unitText.indexOf('/', 1);
-            if (slashIndex != -1) {
-                // Get the numerator / denominator part of the speed unit fraction
-                String num = unitText.substring(0, slashIndex);
-                String den = unitText.substring(slashIndex + 1);
-                if (num.equals("k") || num.equals("km")) {
-                    value *= 1000.0; // Kilometers
-                } else if (num.equals("mi")) {
-                    value *= 1609.344; // Miles
-                } else if (num.equals("ft")) {
-                    value *= (1.0 / 3.28); // Feet
-                }
-                if (LogicUtil.contains(den, "s", "sec", "second")) {
-                    value /= 20.0;
-                } else if (LogicUtil.contains(den, "h", "hr", "hour")) {
-                    value /= (20.0 * 3600.0);
-                }
-            }
-        }
-        return value;
+        FormattedSpeed speed = FormattedSpeed.parse(velocityString, null);
+        return (speed != null) ? speed.getValue() : defaultValue;
     }
 
     /**

@@ -112,7 +112,7 @@ public class Station {
      * @return post wait launch direction
      */
     public BlockFace getNextDirectionFace() {
-        return getNextDirection().getDirection(info.getFacing(), info.getMember().getDirection());
+        return getNextDirection().getDirectionLegacy(info.getFacing(), info.getMember().getDirection());
     }
 
     /**
@@ -681,7 +681,7 @@ public class Station {
                 // Use the amount of straight blocks
                 BlockFace launchDir = config.getInstruction();
                 if (launchDir == BlockFace.SELF) {
-                    launchDir = config.getNextDirection().getDirection(info.getFacing(), info.getMember().getDirection());
+                    launchDir = config.getNextDirection().getDirectionLegacy(info.getFacing(), info.getMember().getDirection());
                 }
                 double length = Util.calculateStraightLength(info.getRails(), launchDir);
                 if (length == 0.0) {

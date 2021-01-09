@@ -10,12 +10,12 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
-import com.bergerkiller.bukkit.tc.commands.parsers.SpeedParser;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
+import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
 
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
@@ -33,9 +33,9 @@ public final class SpeedLimitProperty extends FieldBackedStandardTrainProperty.S
     private void trainSetSpeedLimit(
             final CommandSender sender,
             final TrainProperties properties,
-            final @Argument(value="speed", parserName=SpeedParser.NAME) double speed
+            final @Argument("speed") FormattedSpeed speed
     ) {
-        properties.setSpeedLimit(speed);
+        properties.setSpeedLimit(speed.getValue());
         trainGetSpeedLimit(sender, properties);
     }
 

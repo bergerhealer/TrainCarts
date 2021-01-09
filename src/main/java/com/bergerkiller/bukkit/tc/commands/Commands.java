@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -11,8 +12,9 @@ import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.commands.cloud.CloudHandler;
 import com.bergerkiller.bukkit.tc.commands.parsers.AccelerationParser;
+import com.bergerkiller.bukkit.tc.commands.parsers.DirectionParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
-import com.bergerkiller.bukkit.tc.commands.parsers.SpeedParser;
+import com.bergerkiller.bukkit.tc.commands.parsers.FormattedSpeedParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.TrainTargetingFlags;
 import com.bergerkiller.bukkit.tc.commands.suggestions.AnimationName;
 import com.bergerkiller.bukkit.tc.exception.command.InvalidClaimPlayerNameException;
@@ -28,6 +30,7 @@ import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
+import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
 import com.bergerkiller.mountiplex.MountiplexUtil;
 
 import cloud.commandframework.Command;
@@ -107,15 +110,17 @@ public class Commands {
             return trainProperties;
         });
 
-        cloud.parse(SpeedParser.NAME, (parameters) -> {
+        cloud.parse(FormattedSpeed.class, (parameters) -> {
             boolean greedy = parameters.get(StandardParameters.GREEDY, false);
-            return new SpeedParser(greedy);
+            return new FormattedSpeedParser(greedy);
         });
 
         cloud.parse(AccelerationParser.NAME, (parameters) -> {
             boolean greedy = parameters.get(StandardParameters.GREEDY, false);
             return new AccelerationParser(greedy);
         });
+
+        cloud.parse(Direction.class, p -> new DirectionParser());
 
         cloud.handleMessage(NoPermissionException.class, Localization.COMMAND_NOPERM.getName());
         cloud.handleMessage(NoTrainSelectedException.class, Localization.EDIT_NOSELECT.getName());

@@ -8,10 +8,12 @@ import java.util.LinkedHashSet;
 public enum Direction {
     NORTH("n", "north"), EAST("e", "east"), SOUTH("s", "south"),
     WEST("w", "west"), LEFT("l", "left"), RIGHT("r", "right"),
-    FORWARD("f", "front", "forward", "forwards", "continue"),
-    BACKWARD("b", "back", "backward", "backwards", "reverse"),
+    FORWARD("f", "front", "forward", "forwards"),
+    BACKWARD("b", "back", "backward", "backwards"),
     UP("u", "up", "upwards", "above"),
     DOWN("d", "down", "downwards", "below"),
+    CONTINUE("c", "continue"),
+    REVERSE("r", "reverse"),
     NONE("", "n", "none");
 
     private final String[] aliases;
@@ -25,10 +27,43 @@ public enum Direction {
     }
 
     public BlockFace getDirection(BlockFace signfacing) {
-        return getDirection(signfacing, signfacing.getOppositeFace());
+        return getDirectionLegacy(signfacing, signfacing.getOppositeFace());
     }
 
     public BlockFace getDirection(BlockFace signfacing, BlockFace cartdirection) {
+        switch (this) {
+        case NORTH:
+            return BlockFace.NORTH;
+        case EAST:
+            return BlockFace.EAST;
+        case SOUTH:
+            return BlockFace.SOUTH;
+        case WEST:
+            return BlockFace.WEST;
+        case DOWN:
+            return BlockFace.DOWN;
+        case UP:
+            return BlockFace.UP;
+        case LEFT:
+            return FaceUtil.rotate(signfacing, 2);
+        case RIGHT:
+            return FaceUtil.rotate(signfacing, -2);
+        case FORWARD:
+            return signfacing.getOppositeFace();
+        case BACKWARD:
+            return signfacing;
+        case CONTINUE:
+            return cartdirection;
+        case REVERSE:
+            return cartdirection.getOppositeFace();
+        default:
+            return cartdirection;
+        }
+    }
+
+    // Was changed so that FORWARD/BACKWARD is distinct from CONTINUE/REVERSE
+    // For this reason to remain backwards-supported with existing signs, this one is kept
+    public BlockFace getDirectionLegacy(BlockFace signfacing, BlockFace cartdirection) {
         switch (this) {
             case NORTH:
                 return BlockFace.NORTH;
@@ -46,8 +81,10 @@ public enum Direction {
                 return FaceUtil.rotate(signfacing, 2);
             case RIGHT:
                 return FaceUtil.rotate(signfacing, -2);
+            case CONTINUE:
             case FORWARD:
                 return cartdirection;
+            case REVERSE:
             case BACKWARD:
                 return cartdirection.getOppositeFace();
             default:
@@ -100,7 +137,7 @@ public enum Direction {
             case DOWN:
                 return DOWN;
             case SELF:
-                return FORWARD;
+                return CONTINUE;
             default:
                 return NONE;
         }

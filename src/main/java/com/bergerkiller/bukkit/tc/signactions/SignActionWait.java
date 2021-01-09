@@ -32,7 +32,7 @@ public class SignActionWait extends SignAction {
 
             if (launchData.length == 3) {
                 launchDistance = ParseUtil.parseDouble(launchData[0], 2.0);
-                launchDirection = Direction.parse(launchData[1]).getDirection(info.getFacing(), info.getCartEnterFace());
+                launchDirection = Direction.parse(launchData[1]).getDirectionLegacy(info.getFacing(), info.getCartEnterFace());
                 launchVelocity = Util.parseVelocity(launchData[2], info.getGroup().getAverageForce());
             } else if (launchData.length == 1) {
                 launchDistance = ParseUtil.parseDouble(launchData[0], 2.0);

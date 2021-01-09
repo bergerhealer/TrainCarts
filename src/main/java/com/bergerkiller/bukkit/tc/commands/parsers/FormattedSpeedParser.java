@@ -9,7 +9,7 @@ import java.util.stream.Stream;
 import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.tc.Localization;
-import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
 import com.bergerkiller.mountiplex.MountiplexUtil;
 
 import cloud.commandframework.arguments.parser.ArgumentParseResult;
@@ -21,16 +21,15 @@ import cloud.commandframework.exceptions.parsing.NoInputProvidedException;
  * Parses a speed with a default unit of blocks/tick, where a unit
  * can optionally be specified.
  */
-public class SpeedParser implements ArgumentParser<CommandSender, Double> {
-    public static final String NAME = "speed";
+public class FormattedSpeedParser implements ArgumentParser<CommandSender, FormattedSpeed> {
     private final boolean _greedy;
 
-    public SpeedParser(boolean greedy) {
+    public FormattedSpeedParser(boolean greedy) {
         this._greedy = greedy;
     }
 
     @Override
-    public ArgumentParseResult<Double> parse(
+    public ArgumentParseResult<FormattedSpeed> parse(
             final CommandContext<CommandSender> commandContext,
             final Queue<String> inputQueue
     ) {
@@ -42,13 +41,13 @@ public class SpeedParser implements ArgumentParser<CommandSender, Double> {
         }
 
         String input = this._greedy ? String.join(" ", inputQueue) : inputQueue.peek();
-        double result;
+        FormattedSpeed result;
 
         if (input.equalsIgnoreCase("nan")) {
-            result = Double.NaN;
+            result = FormattedSpeed.of(Double.NaN);
         } else {
-            result = Util.parseVelocity(input, Double.NaN);
-            if (Double.isNaN(result)) {
+            result = FormattedSpeed.parse(input, null);
+            if (result == null) {
                 return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
                         Localization.COMMAND_INPUT_SPEED_INVALID, input));
             }
@@ -68,8 +67,8 @@ public class SpeedParser implements ArgumentParser<CommandSender, Double> {
             final String input
     ) {
         if (input.isEmpty()) {
-            // Show digits and '-'
-            return Stream.concat(MountiplexUtil.toStream("-"), IntStream.range(0, 10)
+            // Show digits and '-'/'+'
+            return Stream.concat(Stream.of("-", "+"), IntStream.range(0, 10)
                     .mapToObj(Integer::toString))
                     .collect(Collectors.toList());
         }

@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.commands;
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Localization;
@@ -25,6 +26,7 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
 
 import cloud.commandframework.annotations.Argument;
@@ -231,67 +233,65 @@ public class TrainCommands {
     }
 
     @CommandRequiresPermission(Permission.COMMAND_LAUNCH)
-    @CommandMethod("train launch [options]")
+    @CommandMethod("train launch <speed>")
     @CommandDescription("Launches the train into a direction")
-    private void commandLaunch(
+    private void commandTrainLaunch(
             final CommandSender sender,
             final TrainProperties properties,
-            final @Argument("options") String[] options
+            final @Argument("speed") FormattedSpeed speed,
+            final @Flag(value="direction", aliases="d") Direction directionFlag,
+            final @Flag(value="options", aliases="o") String launchOptions
     ) {
         if (!properties.isLoaded()) {
             sender.sendMessage(ChatColor.RED + "Can not launch the train: it is not loaded");
             return;
         }
 
-        // Parse all the arguments specified into launch direction, distance and speed
-        double velocity = TCConfig.launchForce;
+        MinecartGroup group = properties.getHolder();
+        commandCartLaunch(sender, group.head().getProperties(), speed, directionFlag, launchOptions);
+    }
+
+    @CommandRequiresPermission(Permission.COMMAND_LAUNCH)
+    @CommandMethod("cart launch <speed>")
+    @CommandDescription("Launches the train into a direction")
+    private void commandCartLaunch(
+            final CommandSender sender,
+            final CartProperties properties,
+            final @Argument("speed") FormattedSpeed speed,
+            final @Flag(value="direction", aliases="d") Direction directionFlag,
+            final @Flag(value="options", aliases="o") String launchOptions
+    ) {
+        MinecartMember<?> member = properties.getHolder();
+        if (member == null) {
+            sender.sendMessage(ChatColor.RED + "Can not launch the cart: it is not loaded");
+            return;
+        }
+
+        // Velocity, if relative, add current speed
+        double velocity = speed.getValue();
+        if (speed.isRelative()) {
+            velocity += member.getGroup().getAverageForce();
+        }
+
+        // Direction, if not specified use 'FORWARD'
+        Direction direction = LogicUtil.fixNull(directionFlag, Direction.FORWARD);
+
+        // Optional launch configuration (distance / curve / acceleration)
+        // TODO: Create parser for LauncherConfig
         LauncherConfig launchConfig = LauncherConfig.createDefault();
-        Direction direction = Direction.FORWARD;
-
-        List<String> argsList = new ArrayList<String>((options==null) ?
-                Collections.emptyList() : Arrays.asList(options));
-
-        // Go by all arguments and try to parse them as a direction
-        // All arguments that fail to parse are considered either velocity or launch config
-        for (int i = 0; i < argsList.size(); i++) {
-            Direction d = Direction.parse(argsList.get(i));
-            if (d != Direction.NONE) {
-                direction = d;
-                argsList.remove(i);
-                break;
-            }
-        }
-
-        // More than one argument specified, attempt to parse the last argument as a Double
-        // This would be the velocity (if it succeeds)
-        if (argsList.size() >= 1) {
-            String valueStr = argsList.get(argsList.size() - 1);
-            double value = Util.parseVelocity(valueStr, Double.NaN);
-            if (!Double.isNaN(value)) {
-                argsList.remove(argsList.size() - 1);
-                velocity = value;
-
-                // If +/- put in front, it's relative to the speed of the cart
-                if (valueStr.startsWith("+") || valueStr.startsWith("-")) {
-                    velocity += properties.getHolder().getAverageForce();
-                }
-            }
-        }
-
-        // Parse any numbers remaining as the launch config
-        if (argsList.size() >= 1) {
-            launchConfig = LauncherConfig.parse(argsList.get(0));
+        if (launchOptions != null && !launchOptions.isEmpty()) {
+            launchConfig = LauncherConfig.parse(launchOptions);
         }
 
         // Resolve the launch direction into a BlockFace (TODO: Vector?) using the player's orientation
         BlockFace facing = (sender instanceof Player)
                 ? Util.vecToFace(((Player) sender).getEyeLocation().getDirection(), false).getOppositeFace()
                         : BlockFace.UP;
-        BlockFace directionFace = direction.getDirection(facing);
+        BlockFace directionFace = direction.getDirection(facing, member.getDirectionTo());
 
         // Now we have all the pieces put together, actually launch the train
-        properties.getHolder().getActions().clear();
-        properties.getHolder().head().getActions().addActionLaunch(directionFace, launchConfig, velocity);
+        properties.getGroup().getActions().clear();
+        member.getActions().addActionLaunch(directionFace, launchConfig, velocity);
 
         // Display a message. Yay!
         MessageBuilder msg = new MessageBuilder();
