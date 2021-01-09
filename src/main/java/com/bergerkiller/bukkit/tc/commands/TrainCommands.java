@@ -301,6 +301,8 @@ public class TrainCommands {
             msg.green(" over the course of ").yellow(launchConfig.getDistance()).green(" blocks");
         } else if (launchConfig.hasDuration()) {
             msg.green(" over a period of ").yellow(launchConfig.getDuration()).green(" ticks");
+        } else if (launchConfig.hasAcceleration()) {
+            msg.green(" at an acceleration of ").yellow(launchConfig.getAcceleration()).green(" b/t\u00B2");
         }
         msg.send(sender);
     }
