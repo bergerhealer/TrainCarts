@@ -849,12 +849,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         // Reverses train data structures so head becomes tail
         reverseDataStructures();
 
-        // Invert motion direction on the rails
-        for (TrackedRail rail : this.getRailTracker().getRailInformation()) {
-            rail.state.position().invertMotion();
-            rail.state.initEnterDirection();
-        }
-
         // With velocity at 0, updateDirection() would (falsely) assume there are no changes
         // Just to make sure we always recalculate the rails, force an update
         notifyPhysicsChange();
@@ -867,7 +861,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     // This is done when the direction of the train changes
     private void reverseDataStructures() {
         Collections.reverse(this);
-        Collections.reverse(this.getRailTracker().getRailInformation());
+        this.getRailTracker().reverseRailData();
     }
 
     // Refresh wheel position information, important to do it AFTER updateDirection()
