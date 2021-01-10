@@ -12,7 +12,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 public class Localization extends LocalizationEnum {
-    public static final Localization COMMAND_ABOUT = new Localization("command.about", "TrainCarts %0% - See WIKI page for more information, or use /train help");
+    public static final Localization COMMAND_USAGE = new Localization("command.usage", ChatColor.GREEN + "See " + "[" + ChatColor.WHITE + ChatColor.UNDERLINE + "the WIKI](https://wiki.traincarts.net/p/TrainCarts)" + ChatColor.RESET + ChatColor.GREEN + " for more information, or use /train help");
     public static final Localization COMMAND_NOPERM = new Localization("command.noperm", ChatColor.RED + "You do not have permission, ask an admin to do this for you.");
     public static final Localization COMMAND_SAVEDTRAIN_CLAIMED = new Localization("command.savedtrain.claimed", ChatColor.RED + "Saved train with name %0% is claimed by someone else, you can not access it!");
     public static final Localization COMMAND_SAVEDTRAIN_GLOBAL_NOPERM = new Localization("command.savedtrain.global.noperm", ChatColor.RED + "You do not have permission to force access to saved trains by others, ask an admin to do this for you.");

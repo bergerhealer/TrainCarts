@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -41,9 +42,12 @@ import cloud.commandframework.meta.CommandMeta;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -205,7 +209,35 @@ public class Commands {
     @CommandMethod("train")
     @CommandDescription("Displays the TrainCarts plugin about message, with version information")
     private void commandShowAbout(final CommandSender sender) {
-        Localization.COMMAND_ABOUT.message(sender, TrainCarts.plugin.getDebugVersion());
+        // Build a message showing 'TrainCarts <version>, followed by a clickable link to the wiki
+        // with a message (usage). We try to find 'wiki' in the message, and make
+        sender.sendMessage(ChatColor.BLUE + "TrainCarts " + TrainCarts.plugin.getDebugVersion());
+
+        // Experimental link syntax in localization, may eventually be moved to BKCommonLib if it proves useful elsewhere
+        String message = Localization.COMMAND_USAGE.get();
+        Pattern urlPattern = Pattern.compile("\\[(.*)\\]\\(([\\w\\/\\.:\\&\\?=]+)\\)");
+        Matcher matcher = urlPattern.matcher(message);
+
+        // Build ChatText
+        ChatText text = ChatText.empty();
+        int currentIndex = 0;
+        while (matcher.find()) {
+            int startIndex = matcher.start();
+            if (startIndex > currentIndex) {
+                text.append(message.substring(currentIndex, startIndex));
+            }
+            text.appendClickableURL(matcher.group(1), matcher.group(2));
+            currentIndex = matcher.end();
+        }
+        if (currentIndex < message.length()) {
+            text.append(message.substring(currentIndex));
+        }
+
+        if (sender instanceof Player) {
+            text.sendTo((Player) sender);
+        } else {
+            sender.sendMessage(text.getMessage());
+        }
     }
 
     public static void info(MessageBuilder message, IProperties prop) {
