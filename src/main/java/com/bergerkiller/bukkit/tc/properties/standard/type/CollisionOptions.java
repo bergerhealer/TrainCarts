@@ -228,7 +228,6 @@ public final class CollisionOptions {
      */
     public CollisionOptions cloneCompareAndSetForAllMobs(CollisionMode expected, CollisionMode newModeIfExpected) {
         EnumMap<CollisionMobCategory, CollisionMode> modes = this.mobModes.clone();
-        modes.putAll(this.mobModes);
         if (newModeIfExpected == null) {
             for (CollisionMobCategory category : CollisionMobCategory.values()) {
                 if (category.isMobCategory() && modes.get(category) == expected) {
@@ -252,7 +251,6 @@ public final class CollisionOptions {
 
     public CollisionOptions cloneAndSetForAllMobs(CollisionMode mode) {
         EnumMap<CollisionMobCategory, CollisionMode> modes = this.mobModes.clone();
-        modes.putAll(this.mobModes);
         if (mode == null) {
             for (CollisionMobCategory category : CollisionMobCategory.values()) {
                 if (category.isMobCategory()) {
@@ -275,6 +273,11 @@ public final class CollisionOptions {
     }
 
     public CollisionOptions cloneAndSetMobMode(CollisionMobCategory category, CollisionMode mode) {
+        // Check not null
+        if (category == null) {
+            throw new IllegalArgumentException("Collision mob category can not be null");
+        }
+
         // Check unchanged
         if (this.mobModes.get(category) == mode) {
             return this;
@@ -429,7 +432,14 @@ public final class CollisionOptions {
          * @return this builder
          */
         public Builder setMobMode(CollisionMobCategory category, CollisionMode mode) {
-            this.mobModes.put(category, mode);
+            if (category == null) {
+                throw new IllegalArgumentException("Collision mob category cannot be null");
+            }
+            if (mode == null) {
+                this.mobModes.remove(category);
+            } else {
+                this.mobModes.put(category, mode);
+            }
             return this;
         }
 
