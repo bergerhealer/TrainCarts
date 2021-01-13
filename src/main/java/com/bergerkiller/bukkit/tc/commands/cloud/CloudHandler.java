@@ -507,7 +507,7 @@ public class CloudHandler {
                 this.manager /* Manager */
         );
 
-        help.setCommandFilter(command -> {
+        help.commandFilter(command -> {
             List<CommandArgument<CommandSender, ?>> args = command.getArguments();
             if (args.size() < filterPrefix.size()) {
                 return false;

@@ -77,7 +77,7 @@ public class Commands {
 
         // TrainCarts Permissions
         cloud.getParser().registerBuilderModifier(CommandRequiresPermission.class,
-                (perm, builder) -> builder.permission(perm.value().getName()));
+                (perm, builder) -> builder.permission(sender -> perm.value().has(sender)));
 
         // Plugin instance
         cloud.inject(TrainCarts.class, plugin);
