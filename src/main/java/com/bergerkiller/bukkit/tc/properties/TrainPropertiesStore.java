@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -39,24 +40,22 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
     }
 
     /**
-     * Finds all the Train Properties that match the name with the expression given
+     * Matches all train properties that have a train name matching the expression.
+     * The expression can use *-characters to denote portions of 'any' contents.
      *
-     * @param expression to match to
-     * @return a Collection of TrainProperties that match
+     * @param expression
+     * @return matching train properties (unmodifiable)
      */
     public static Collection<TrainProperties> matchAll(String expression) {
-        List<TrainProperties> rval = new ArrayList<>();
         if (expression != null && !expression.isEmpty()) {
-            String[] elements = expression.split("\\*");
-            boolean first = expression.startsWith("*");
-            boolean last = expression.endsWith("*");
-            for (TrainProperties prop : getAll()) {
-                if (prop.matchName(elements, first, last)) {
-                    rval.add(prop);
-                }
-            }
+            final String[] elements = expression.split("\\*");
+            final boolean first = expression.startsWith("*");
+            final boolean last = expression.endsWith("*");
+            return trainProperties.values().stream()
+                    .filter(p -> p.matchName(elements, first, last))
+                    .collect(StreamUtil.toUnmodifiableList());
         }
-        return rval;
+        return Collections.emptySet();
     }
 
     /**
@@ -141,7 +140,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         TrainProperties prop = trainProperties.get(trainname);
         return (prop != null) ? prop : createDefaultWithName(trainname);
     }
-
+    
     /**
      * Generates a new train name using the default format.
      *

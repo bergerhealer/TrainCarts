@@ -775,7 +775,7 @@ public class SignActionEvent extends Event implements Cancellable {
     /**
      * Gets a collection of all Minecart Group train properties this sign remotely controls
      *
-     * @return Train properties of remotely controlled groups
+     * @return Train properties of remotely controlled groups (unmodifiable)
      */
     public Collection<TrainProperties> getRCTrainProperties() {
         return TrainProperties.matchAll(this.getRCName());
@@ -788,9 +788,7 @@ public class SignActionEvent extends Event implements Cancellable {
      */
     public String getRCName() {
         if (this.isRCSign()) {
-            String name = this.getLine(0);
-            int idx = name.indexOf(' ') + 1;
-            return name.substring(idx, name.length() - 1);
+            return this.header.getRemoteName();
         } else {
             return null;
         }

@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller;
 
 import com.bergerkiller.bukkit.common.collections.ImplicitlySharedSet;
+import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
@@ -181,21 +182,13 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
      * Finds all the Minecart Groups that match the name with the expression given
      *
      * @param expression to match to
-     * @return a Collection of MinecartGroup that match
+     * @return a Collection of MinecartGroup that match (unmodifiable)
      */
     public static Collection<MinecartGroup> matchAll(String expression) {
-        List<MinecartGroup> rval = new ArrayList<>();
-        if (expression != null && !expression.isEmpty()) {
-            String[] elements = expression.split("\\*");
-            boolean first = expression.startsWith("*");
-            boolean last = expression.endsWith("*");
-            for (MinecartGroup group : groups) {
-                if (group.getProperties().matchName(elements, first, last)) {
-                    rval.add(group);
-                }
-            }
-        }
-        return rval;
+        return TrainPropertiesStore.matchAll(expression).stream()
+                .map(TrainProperties::getHolder)
+                .filter(Objects::nonNull)
+                .collect(StreamUtil.toUnmodifiableList());
     }
 
     /**

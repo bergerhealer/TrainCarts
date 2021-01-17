@@ -35,7 +35,8 @@ import net.md_5.bungee.api.ChatColor;
  * as a Listener in the Bukkit API.
  */
 public class SelectorHandlerRegistry implements Listener {
-    private static final Pattern SELECTOR_PATTERN = Pattern.compile("(?<!\\S)@([a-zA-Z0-9]+)(\\[([\\w\\d\\-=,]+)\\])?(\\s|$)");
+    // (?:[=]|(?<!\S))@([a-zA-Z0-9]+)(\[([\w\d\-\+=,\*]+)\])?(\s|$)
+    private static final Pattern SELECTOR_PATTERN = Pattern.compile("(?:[=]|(?<!\\S))@([a-zA-Z0-9]+)(\\[([\\w\\d\\-\\+=,\\*]+)\\])?(\\s|$)");
     private final Map<String, SelectorHandler> handlers = new HashMap<>();
 
     /**

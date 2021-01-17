@@ -151,8 +151,17 @@ public class SelectorHandlerTest {
     }
 
     @Test
+    public void testHandlerAlternativeStart() {
+        assertEquals(Arrays.asList("command --flag=test"), registry.expandCommands(null, "command --flag=@test"));
+        assertEquals(Arrays.asList("command pre --flag=test"), registry.expandCommands(null, "command pre --flag=@test"));
+        assertEquals(Arrays.asList("command --flag=test post"), registry.expandCommands(null, "command --flag=@test post"));
+        assertEquals(Arrays.asList("command pre --flag=test post"), registry.expandCommands(null, "command pre --flag=@test post"));
+    }
+
+    @Test
     public void testHandlerInvalidSyntax() {
         // This is mostly about making sure no errors are thrown
+        assertEquals(Arrays.asList("command word@test"), registry.expandCommands(null, "command word@test"));
         assertEquals(Arrays.asList("command @test["), registry.expandCommands(null, "command @test["));
         assertEquals(Arrays.asList("command @test[]"), registry.expandCommands(null, "command @test[]"));
         assertEquals(Arrays.asList("command @test[ ]"), registry.expandCommands(null, "command @test[ ]"));

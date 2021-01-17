@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.commands.selector;
 
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.selector.type.PlayersInTrainSelector;
+import com.bergerkiller.bukkit.tc.commands.selector.type.TrainNameSelector;
 
 /**
  * TrainCarts selector handler registry. Pre-registers TrainCarts
@@ -15,8 +16,8 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
     }
 
     public void enable() {
-        System.out.println("ENABLE()!");
         plugin.register(this);
         register("ptrain", new PlayersInTrainSelector());
+        register("train", new TrainNameSelector());
     }
 }
