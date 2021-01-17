@@ -1,6 +1,9 @@
 package com.bergerkiller.bukkit.tc;
 
+import com.bergerkiller.bukkit.common.internal.CommonPlugin;
 import com.bergerkiller.bukkit.common.permissions.IPermissionEnum;
+
+import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.PermissionDefault;
 
 /**
@@ -127,6 +130,16 @@ public enum Permission implements IPermissionEnum {
         this._root = node;
         this._default = permdefault;
         this._description = desc;
+    }
+
+    @Override
+    public boolean has(CommandSender sender) {
+        // Brigadier nags us about this after the plugin disables, which causes problems
+        if (CommonPlugin.hasInstance()) {
+            return IPermissionEnum.super.has(sender);
+        } else {
+            return sender.hasPermission(this.getName());
+        }
     }
 
     @Override
