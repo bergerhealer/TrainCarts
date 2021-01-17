@@ -22,6 +22,8 @@ import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.cache.RailPieceCache;
 import com.bergerkiller.bukkit.tc.commands.Commands;
+import com.bergerkiller.bukkit.tc.commands.selector.SelectorHandlerRegistry;
+import com.bergerkiller.bukkit.tc.commands.selector.TCSelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.controller.*;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
@@ -82,6 +84,7 @@ public class TrainCarts extends PluginBase {
     private GlowColorTeamProvider glowColorTeamProvider;
     private PathProvider pathProvider;
     private RouteManager routeManager;
+    private final TCSelectorHandlerRegistry selectorHandlerRegistry = new TCSelectorHandlerRegistry(this);
     private Economy econ = null;
     private SmoothCoastersAPI smoothCoastersAPI;
     private Commands commands;
@@ -160,6 +163,19 @@ public class TrainCarts extends PluginBase {
      */
     public RouteManager getRouteManager() {
         return this.routeManager;
+    }
+
+    /**
+     * Gets the selector handler registry, which is used to replace selectors
+     * in commands with the handler-provided replacements.<br>
+     * <br>
+     * For example, this replaces <code>@ptrain[train=train12]</code>
+     * with the names of players in the train.
+     *
+     * @return selector handler registry
+     */
+    public SelectorHandlerRegistry getSelectorHandlerRegistry() {
+        return this.selectorHandlerRegistry;
     }
 
     /**
@@ -367,11 +383,6 @@ public class TrainCarts extends PluginBase {
     public void enable() {
         plugin = this;
 
-        // Check BKCommonLib is recent enough
-        if (!Common.hasCapability("Common:IPermissionEnum")) {
-            throw new IllegalStateException("BKCommonLib is too old! Please update to the latest version (on Jenkins or 1.16.4-v3 release on spigot)");
-        }
-
         // Do this first
         Conversion.registerConverters(MinecartMemberStore.class);
 
@@ -384,6 +395,9 @@ public class TrainCarts extends PluginBase {
         // Will register commands that properties may define using annotations
         propertyRegistry = new TCPropertyRegistry(this, commands.getHandler());
         propertyRegistry.registerAll(StandardProperties.class);
+
+        // Selector registry, do this early in case a command block triggers during enabling
+        selectorHandlerRegistry.enable();
 
         // And this
         CartAttachment.registerDefaultAttachments();
