@@ -226,7 +226,7 @@ public class SelectorHandlerRegistry implements Listener {
             commands = this.expandCommands(sender, inputCommand);
         } catch (SelectorException ex) {
             sender.sendMessage(ChatColor.RED + "[TrainCarts] " + ex.getMessage());
-            event.setCancelled(true);
+            cancelCommand(event);
             return;
         }
 
@@ -239,14 +239,7 @@ public class SelectorHandlerRegistry implements Listener {
             }
         } else if (commands.isEmpty()) {
             // No results from expansion, cancel the command
-            // Note: cancellable since Server version 1.8.8
-            //       as fallback for the few people that still use it,
-            //       set the command to something harmless.
-            if (event instanceof Cancellable) {
-                ((Cancellable) event).setCancelled(true);
-            } else {
-                event.setCommand("");
-            }
+            cancelCommand(event);
         } else {
             // More than one command. Set the event command itself
             // to use the first command result. All following commands
@@ -262,6 +255,17 @@ public class SelectorHandlerRegistry implements Listener {
                     java.util.logging.Logger.getLogger(PlayerConnectionHandle.T.getType().getName()).log(java.util.logging.Level.SEVERE, null, ex);
                 }
             }
+        }
+    }
+
+    private void cancelCommand(ServerCommandEvent event) {
+        // Note: cancellable since Server version 1.8.8
+        //       as fallback for the few people that still use it,
+        //       set the command to something harmless.
+        if (event instanceof Cancellable) {
+            ((Cancellable) event).setCancelled(true);
+        } else {
+            event.setCommand("");
         }
     }
 }
