@@ -6,7 +6,7 @@ import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
+import com.bergerkiller.bukkit.tc.properties.standard.type.SlowdownMode;
 
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
