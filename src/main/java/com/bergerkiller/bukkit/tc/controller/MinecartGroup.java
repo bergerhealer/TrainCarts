@@ -31,7 +31,6 @@ import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.AnimationController;
 import com.bergerkiller.bukkit.tc.controller.components.SignTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.SpeedAheadWaiter;
-import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
@@ -1558,10 +1557,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 member.calculateSpeedFactor();
             }
 
-            // Perform the rail pre-movement and post-movement logic
+            // Perform the rail post-movement logic
             for (MinecartMember<?> member : this) {
                 try (Timings t = TCTimings.MEMBER_PHYSICS_POST.start()) {
-                    member.getRailType().onPreMove(member);
                     member.onPhysicsPostMove();
                     if (this.breakPhysics) return true;
                 }

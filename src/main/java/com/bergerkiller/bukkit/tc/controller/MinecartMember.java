@@ -1829,7 +1829,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
 
         // Perform rails logic
-        getRailLogic().onPreMove(this);
+        this.railTrackerMember.getRailLogic().onPreMove(this);
+
+        // Perform rails type logic (powered rails!)
+        this.railTrackerMember.getRailType().onPreMove(this);
 
         // Refresh last-update direction and block information
         this.getRailTracker().updateLast();
@@ -1968,7 +1971,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.directionFrom = this.directionTo;
 
         // Before executing movement logic, check if we should check for block activation at all
-        // Only used when BKCommonLib supports it (1.15.2-v2) and enabled in the configuration
+        // Only used when enabled in the configuration
         if (TCConfig.optimizeBlockActivation) {
             boolean enabled = false;
             for (TrackedRail rail : this.getGroup().getRailTracker().getRailInformation()) {
@@ -1980,7 +1983,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             this.setBlockActivationEnabled(enabled);
         }
 
-        // Detect when the train starts and stops moving, to player a configured drive sound
+        // Detect when the train starts and stops moving, to play a configured drive sound
         if (wasMoving != (vel.lengthSquared() >= 1e-10)) {
             wasMoving = !wasMoving;
             if (wasMoving) {
@@ -2032,7 +2035,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             // If we were on rails before, attempt to move the full moved distance
             if (preMoveState != null && preMoveState.railType() != RailType.NONE) {
                 final double distanceToMove = preMoveState.position().distance(entity.loc);
-
                 final TrackWalkingPoint p = new TrackWalkingPoint(preMoveState);
                 do {
                     // Set MinecartMember position to the current walked point,
