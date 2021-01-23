@@ -2073,11 +2073,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             if (!moveSuccessful) {
                 RailState newRailState = this.discoverRail();
                 if (newRailState.railType() != RailType.NONE) {
-                    // Snap to these rails, then perform onPostMove()
-                    RailLogic logic = newRailState.loadRailLogic();
-                    this.snapToPath(logic.getPath());
-                    logic.onPostMove(this);
-                    newRailState.railType().onPostMove(this);
+                    this.snapToPosition(newRailState.position());
                 }
             }
         }
