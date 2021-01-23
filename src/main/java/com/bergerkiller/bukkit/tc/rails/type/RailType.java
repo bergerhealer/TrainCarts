@@ -493,13 +493,12 @@ public abstract class RailType {
 
     /**
      * Obtains the Rail Logic to use for the Minecart at the (previously calculated) rail position in a World.
-     * <br>
-     * <b>Deprecated: use {@link #getLogic(RailLogicState)} instead.</b>
      *
      * @param member to get the logic for (can be null when used by track walkers for e.g. spawning)
      * @param railsBlock the Minecart is driving on
      * @param direction in which the Minecart is moving. Only block directions (north/east/south/west/up/down) are used.
      * @return Rail Logic
+     * @deprecated Use {@link #getLogic(RailState)} instead.
      */
     @Deprecated
     public RailLogic getLogic(MinecartMember<?> member, Block railsBlock, BlockFace direction) {

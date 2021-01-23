@@ -510,6 +510,28 @@ public class RailPath {
         return str.toString();
     }
 
+    /**
+     * Stringifies the start and end positions of this rail path.
+     * The input railBlock is used to turn relative coordinates into
+     * absolute coordinates, if required.
+     *
+     * @param railBlock Rail block used to translate relative
+     *        to absolute coordinates
+     * @return stringified readout of the start and end coordinates
+     */
+    public String stringifyEndPoints(Block railBlock) {
+        if (this.isEmpty()) {
+            return "RailPath{EMPTY}";
+        } else {
+            Position a = this.getStartPosition();
+            Position b = this.getEndPosition();
+            a.makeAbsolute(railBlock);
+            b.makeAbsolute(railBlock);
+            return "RailPath{[ " + a.posX + " / "  + a.posY + " / " + a.posZ + " ]"
+                    + " => [ " + b.posX + " / " + b.posY + " / " + b.posZ + " ]}";
+        }
+    }
+
     public static RailPath create(Vector... pointVectors) {
         Point[] points = new Point[pointVectors.length];
         for (int i = 0; i < pointVectors.length; i++) {
@@ -659,6 +681,12 @@ public class RailPath {
             posZ += 1e-10 * motZ;
         }
 
+        /**
+         * Moves a distance forwards along the same current movement
+         * vector.
+         *
+         * @param distance Distance to move, negative to move in reverse
+         */
         public void move(double distance) {
             posX += distance * motX;
             posY += distance * motY;
@@ -676,6 +704,12 @@ public class RailPath {
         }
 
         public double distance(Location location) {
+            this.assertAbsolute();
+            return MathUtil.distance(posX, posY, posZ,
+                    location.getX(), location.getY(), location.getZ());
+        }
+
+        public double distance(LocationAbstract location) {
             this.assertAbsolute();
             return MathUtil.distance(posX, posY, posZ,
                     location.getX(), location.getY(), location.getZ());

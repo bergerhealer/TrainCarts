@@ -148,5 +148,16 @@ public abstract class RailTracker {
             return new TrackedRail(member, member.discoverRail(), disconnected);
         }
 
+        @Override
+        public String toString() {
+            RailPath.Position start = getPath().getStartPosition();
+            RailPath.Position end = getPath().getEndPosition();
+            start.makeAbsolute(state.railBlock());
+            end.makeAbsolute(state.railBlock());
+            RailPath.Position pos = state.position();
+            return "POS{x=" + pos.posX + ",y=" + pos.posY + ",z=" + pos.posZ + "} "
+                   + "START{x=" + start.posX + ",y=" + start.posY + ",z=" + start.posZ + "} "
+                   + "END{x=" + end.posX + ",y=" + end.posY + ",z=" + end.posZ + "}";
+        }
     }
 }

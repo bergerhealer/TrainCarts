@@ -94,6 +94,7 @@ import com.bergerkiller.bukkit.tc.utils.Effect;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
+import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bergerkiller.generated.net.minecraft.server.AxisAlignedBBHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
@@ -103,7 +104,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public static final double GRAVITY_MULTIPLIER_RAILED = 0.015625;
     public static final double GRAVITY_MULTIPLIER = 0.04;
     public static final int MAXIMUM_DAMAGE_SUSTAINED = 40;
-    private static final double MAX_MOVEMENT_STEP = 0.7; // ~ sqrt(3 * 0.4^2) with legacy speed limiting
     protected final ToggledState forcedBlockUpdate = new ToggledState(true);
     protected final ToggledState ignoreDie = new ToggledState(false);
     private final SignTrackerMember signTracker = new SignTrackerMember(this);
@@ -131,8 +131,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private float cachedOrientation_yaw = 0.0f;
     private float cachedOrientation_pitch = 0.0f;
     private boolean hasLinkedFarMinecarts = false;
-    private Location preMovePosition = null;
-    private Location postMovePosition = null;
     private Vector lastRailRefreshPosition = null;
     private Vector lastRailRefreshDirection = null;
     private List<Entity> enterForced = new ArrayList<Entity>(1);
@@ -934,63 +932,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // Need an initial Rail Block set
         state.setRailPiece(RailPiece.createWorldPlaceholder(entity.getWorld()));
         state.setMember(this);
+
+        // Initially try going into the direction that leads away from the
+        // cart behind, or towards the cart in front. This is usually the
+        // right direction to go.
         state.position().setMotion(this.calcMotionVector(false));
-
-        // No pre-move position? Simply return block at current position.
-        if (this.preMovePosition == null) {
-            state.position().setLocation(entity.getLocation());
-            return RailType.loadRailInformation(state);
-        }
-
-        // Detect the movement vector
-        Vector direction = new Vector(entity.loc.getX() - this.preMovePosition.getX(),
-                entity.loc.getY() - this.preMovePosition.getY(), entity.loc.getZ() - this.preMovePosition.getZ());
-        double moved = direction.length();
-
-        // When distance is too small or too large (teleport), simply use the current
-        // position only
-        final double smallStep = 1e-7;
-        if (moved <= smallStep || moved > MAX_MOVEMENT_STEP) {
-            state.position().setLocation(entity.getLocation());
-            return RailType.loadRailInformation(state);
-        }
-
-        // Normalize direction vector
-        direction.multiply(1.0 / moved);
-
-        // Debug: uses walking point to do this instead of the small offset
-        /*
-        TrackWalkingPoint p = new TrackWalkingPoint(this.preMovePosition, direction);
-        p.move(0.0);
-        if (p.move(moved)) {
-            state.setTo(p.state);
-            state.setMember(this);
-            return true;
-        }
-        */
-
-        // TODO: Do we use this direction vector for motion or not?
-        // Using this causes reverse() to not work anymore
-
-        // Iterate the blocks from the preMovePosition to the current position and
-        // discover rails here
-        // Because we move such a short distance (<=MAX_MOVEMENT_STEP) it is very rare
-        // for more than two blocks to ever be iterated
-        // So we take a shortcut and only check the pre-move and current positions for
-        // blocks in that order
-        // The pre-move position might contain an outdated block though, so add a very
-        // small amount to it in the direction
-        // There is a TODO here to use a proper block iterator.
-        Location prePos = new Location(entity.getWorld(), this.preMovePosition.getX() + smallStep * direction.getX(),
-                this.preMovePosition.getY() + smallStep * direction.getY(),
-                this.preMovePosition.getZ() + smallStep * direction.getZ());
-        state.position().setLocation(prePos);
-        if (RailType.loadRailInformation(state)) {
-            state.position().setLocation(entity.getLocation());
-            return true;
-        }
-
-        // Current position
         state.position().setLocation(entity.getLocation());
         return RailType.loadRailInformation(state);
     }
@@ -1038,63 +984,27 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
-     * Snaps a minecart onto a rail path, preserving moved distance from the last
-     * position moved. Can be used in rail logic pre/post-move to adjust and correct
+     * Snaps a minecart onto a rail path, preserving the movement direction.
+     * Can be used in rail logic pre/post-move to adjust and correct
      * position on the path.
      * 
      * @param member to snap to this path
      */
     public void snapToPath(RailPath path) {
-        if (path.isEmpty()) {
-            return;
+        if (!path.isEmpty()) {
+            RailPath.Position pos = RailPath.Position.fromPosDir(entity.loc.vector(), entity.getVelocity());
+            path.move(pos, this.getBlock(), 0.0);
+            this.snapToPosition(pos);
         }
+    }
 
-        RailPath.Position pos;
-        double toMove;
-        Location currPos = entity.getLocation();
-        if (this.preMovePosition == null) {
-            pos = RailPath.Position.fromTo(currPos, currPos);
-            toMove = 0.0;
-        } else {
-            pos = RailPath.Position.fromTo(this.preMovePosition, currPos);
-            toMove = pos.motLength();
-        }
-
-        // When movement is large, teleport is almost certain
-        // Because the only movement allowed in onMove is limited to 0.4
-        if (toMove > MAX_MOVEMENT_STEP) {
-            if (this.preMovePosition != null) {
-                this.preMovePosition = currPos;
-            }
-            pos = RailPath.Position.fromTo(currPos, currPos);
-            toMove = 0.0;
-        }
-
-        toMove -= path.move(pos, this.getBlock(), toMove);
-
-        if (this.preMovePosition != null) {
-            this.preMovePosition.setX(pos.posX);
-            this.preMovePosition.setY(pos.posY);
-            this.preMovePosition.setZ(pos.posZ);
-        }
-
-        // Correct motion based on anticipated end location
-        // Sometimes the input motion is incorrect
-        // When dot = 0 then there is no extra movement (or 90 degree angle, weird)
-        /*
-         * double dx = currPos.getX() - this.preMovePosition.getX(); double dy =
-         * currPos.getY() - this.preMovePosition.getY(); double dz = currPos.getZ() -
-         * this.preMovePosition.getZ(); double dot = dx*pos.motX + dy*pos.motY +
-         * dz*pos.motZ; if (dot != 0.0) { toMove = Math.sqrt(dx*dx+dy*dy+dz*dz); if (dot
-         * < 0.0) { pos.invertMotion(); } }
-         */
-
-        if (toMove > 0.0) {
-            pos.posX += toMove * pos.motX;
-            pos.posY += toMove * pos.motY;
-            pos.posZ += toMove * pos.motZ;
-        }
-        entity.setPosition(pos.posX, pos.posY, pos.posZ);
+    private void snapToPosition(RailPath.Position position) {
+        position.assertAbsolute();
+        double velocity = entity.vel.length();
+        entity.setPosition(position.posX, position.posY, position.posZ);
+        entity.vel.set(position.motX * velocity,
+                       position.motY * velocity,
+                       position.motZ * velocity);
     }
 
     /*
@@ -1271,7 +1181,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (direction != null) {
             direction = direction.getOppositeFace();
         }
-        preMovePosition = null;
     }
 
     public int getDirectionDifference(BlockFace dircomparer) {
@@ -2018,24 +1927,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         return direction;
     }
 
-    protected void verifyPreMovePosition() {
-        if (this.postMovePosition != null) {
-            if (this.postMovePosition.getX() != this.entity.loc.getX()
-                    || this.postMovePosition.getY() != this.entity.loc.getY()
-                    || this.postMovePosition.getZ() != this.entity.loc.getZ()) {
-                this.preMovePosition = null;
-            }
-        }
-    }
-
-    protected void calcPostMovePosition() {
-        if (this.postMovePosition == null) {
-            this.postMovePosition = this.entity.getLocation();
-        } else {
-            this.entity.getLocation(this.postMovePosition);
-        }
-    }
-
     /**
      * Moves the minecart and performs post-movement logic such as events,
      * onBlockChanged and other (rail) logic Physics stage: <b>4</b>
@@ -2114,19 +2005,79 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             }
         }
 
-        // Move using set motion, and perform post-move rail logic
+        // Save the state prior to moving, then move the entity the required distance
+        // During this movement, entity/block collisions are handled
+        final RailState preMoveState;
         try (Timings t = TCTimings.MEMBER_PHYSICS_POST_MOVE.start()) {
-            if (this.preMovePosition == null) {
-                this.preMovePosition = entity.getLocation();
-            } else {
-                entity.getLocation(this.preMovePosition);
+            preMoveState = this.railTrackerMember.getRail().state.clone();
+
+            /*
+            double distanceFromPath = preMoveState.loadRailLogic().getPath().distanceSquared(preMoveState.railPosition());
+            if (distanceFromPath > 0.1) {
+                System.out.println("TOO BIG DISTANCE: " + distanceFromPath);
             }
+            */
+
             onMove(MoveType.SELF, vel.getX(), vel.getY(), vel.getZ());
         }
 
         this.checkMissing();
+
+        // The train has been moved. Check the actual distance moved relative
+        // to the origin, and move the same distance by walking on the track path
+        // We might be iterating over multiple rail paths while doing this
         try (Timings t = TCTimings.MEMBER_PHYSICS_POST_RAIL_LOGIC.start()) {
-            this.getRailLogic().onPostMove(this);
+            boolean moveSuccessful = false;
+
+            // If we were on rails before, attempt to move the full moved distance
+            if (preMoveState != null && preMoveState.railType() != RailType.NONE) {
+                final double distanceToMove = preMoveState.position().distance(entity.loc);
+
+                final TrackWalkingPoint p = new TrackWalkingPoint(preMoveState);
+                do {
+                    // Set MinecartMember position to the current walked point,
+                    // and then call onPostMove() to let the logic/type do whatever with it.
+                    this.snapToPosition(p.state.position());
+                    p.currentRailLogic.onPostMove(this);
+                    p.state.railType().onPostMove(this);
+                } while (p.moveStep(distanceToMove - p.movedTotal));
+
+                if (moveSuccessful = (p.failReason == TrackWalkingPoint.FailReason.LIMIT_REACHED)) {
+                    // Moving on rails to a new location
+                    // Now execute onPostMove() for the current rail
+                    this.snapToPosition(p.state.position());
+                    p.currentRailLogic.onPostMove(this);
+                    p.state.railType().onPostMove(this);
+                } else {
+                    // System.out.println("[Debug] Failed to move on track: " + p.failReason);
+
+                    // Moved some portion of the track. Assume we're moving the
+                    // rest of it forwards in a straight line.
+                    // Assume all the remaining distance traveled is 'air'
+                    double remaining = distanceToMove - p.movedTotal;
+                    if (remaining > 1e-10) {
+                        p.state.position().move(remaining);
+                    }
+
+                    // Place the cart here
+                    this.snapToPosition(p.state.position());
+                }
+            }
+
+            // If for some reason move was impossible (rail end found), start completely
+            // from scratch. This identifies rails at the current position, and ignores
+            // the movement start position. This makes sure 'hopping' over air works
+            // properly.
+            if (!moveSuccessful) {
+                RailState newRailState = this.discoverRail();
+                if (newRailState.railType() != RailType.NONE) {
+                    // Snap to these rails, then perform onPostMove()
+                    RailLogic logic = newRailState.loadRailLogic();
+                    this.snapToPath(logic.getPath());
+                    logic.onPostMove(this);
+                    newRailState.railType().onPostMove(this);
+                }
+            }
         }
 
         // Update manual movement from player input

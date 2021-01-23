@@ -42,6 +42,10 @@ public class TrackWalkingPoint {
      */
     public double movedTotal = 0.0;
     /**
+     * The reason a previous {@link #move(double)} call failed and returned false
+     */
+    public FailReason failReason = FailReason.NONE;
+    /**
      * Is used to make sure rails are only crossed once, if enabled
      */
     private Set<Block> loopFilter = null;
@@ -55,12 +59,16 @@ public class TrackWalkingPoint {
     private int _stuckCtr = 0;
 
     private boolean first = true;
+    private boolean isAtEnd = false;
 
     public TrackWalkingPoint(RailState state) {
         state.position().assertAbsolute();
         this.state = state.clone();
         this.currentRailLogic = this.state.loadRailLogic();
         this.currentRailPath = this.currentRailLogic.getPath();
+        if (this.isDerailed()) {
+            this.failReason = FailReason.NO_RAIL;
+        }
     }
 
     public TrackWalkingPoint(Location startPos, Vector motionVector) {
@@ -71,6 +79,9 @@ public class TrackWalkingPoint {
         RailType.loadRailInformation(this.state);
         this.currentRailLogic = this.state.loadRailLogic();
         this.currentRailPath = this.currentRailLogic.getPath();
+        if (this.isDerailed()) {
+            this.failReason = FailReason.NO_RAIL;
+        }
     }
 
     public TrackWalkingPoint(Block startRail, BlockFace motionFace) {
@@ -83,6 +94,11 @@ public class TrackWalkingPoint {
             this.state.initEnterDirection();
             this.currentRailLogic = this.state.loadRailLogic();
             this.currentRailPath = this.currentRailLogic.getPath();
+            if (this.isDerailed()) {
+                this.failReason = FailReason.NO_RAIL;
+            }
+        } else {
+            this.failReason = FailReason.NO_RAIL;
         }
     }
 
@@ -97,9 +113,14 @@ public class TrackWalkingPoint {
 
     /**
      * Moves a full step towards the next rails block, limiting the steps taken by the limit parameter.
-     * This can be used to discover the rails blocks that covers a particular stretch of track.
-     * The {@link #moved} and {@link #movedTotal} parameters are updated with this call.
-     * 
+     * This can be used to discover the rail blocks that cover a particular stretch of track.
+     * The {@link #moved} and {@link #movedTotal} parameters are updated with this call.<br>
+     * <br>
+     * After each iteration, the state on the rails is positioned at the very end of the current
+     * rail logic, until the limit is reached, at which the position is exactly at this limit.
+     * To check whether the step failed because of reaching the limit, check that {@link #failReason}
+     * is set to {@link FailReason#LIMIT_REACHED}.
+     *
      * @param limit distance to move
      * @return True if the step was successful
      */
@@ -109,15 +130,29 @@ public class TrackWalkingPoint {
             return false;
         }
 
-        // Move the full length of the path, to the end of the path
-        this.moved = this.currentRailPath.move(this.state, limit);
-        this.movedTotal += this.moved;
-        this.state.initEnterDirection();
+        // If not already at the end of the current logic, move as much as possible
+        // to the end. In normal iteration, this only occurs once.
+        if (this.isAtEnd) {
+            this.moved = 0.0;
+        } else {
+            double movedOnPath = this.currentRailPath.move(this.state, limit);
+            this.state.initEnterDirection();
 
-        // When moved closely equals the limit, we've reached the end of track.
-        double diff = (this.moved - limit);
-        if (diff > -1e-10 && diff < 1e-10) {
-            return false;
+            // Set initial moved value and reduce this from the limit
+            // This is so that during the next move below, the moved distance here
+            // is taken into account.
+            this.moved = movedOnPath;
+            this.movedTotal += movedOnPath;
+            limit -= movedOnPath;
+
+            // When moved closely equals the limit, we've reached the end of track.
+            if (limit > -1e-10 && limit < 1e-10) {
+                this.failReason = FailReason.LIMIT_REACHED;
+                return false;
+            }
+
+            // If not, then the end is reached
+            this.isAtEnd = true;
         }
 
         // Attempt loading the next rail information. Return false if no more rails exist.
@@ -125,7 +160,24 @@ public class TrackWalkingPoint {
             return false;
         }
 
-        // All good, found the next rail!
+        // Try to move as much distance forward as possible
+        // This is during normal iteration and will position it at the very end
+        double movedOnPath = this.currentRailPath.move(this.state, limit);
+        this.state.initEnterDirection();
+
+        // Update moved distances
+        this.moved += movedOnPath;
+        this.movedTotal += movedOnPath;
+        limit -= movedOnPath;
+
+        // When moved closely equals the limit, we've reached the end of track.
+        if (limit > -1e-10 && limit < 1e-10) {
+            this.failReason = FailReason.LIMIT_REACHED;
+            return false;
+        }
+
+        // All good, found the end of the next rail!
+        this.isAtEnd = true;
         return true;
     }
 
@@ -148,10 +200,11 @@ public class TrackWalkingPoint {
             return true;
         }
 
-        // Move the full length of the path, to the end of the path
+        // Move the full length of the path, to the end of the path'
         this.moved = this.currentRailPath.move(this.state, Double.MAX_VALUE);
         this.movedTotal += this.moved;
         this.state.initEnterDirection();
+        this.isAtEnd = true;
 
         // Attempt moving to next rails block
         if (!loadNextRail()) {
@@ -205,11 +258,13 @@ public class TrackWalkingPoint {
                 System.err.println("[TrackWalkingPoint] Rail Type at rail is " + this.state.railType());
                 this.moved = (distance - remainingDistance);
                 this.movedTotal += this.moved;
+                this.failReason = FailReason.CYCLIC_PATH;
                 this.state.initEnterDirection();
                 return false;
             }
 
             // Attempt moving to next rails block
+            this.isAtEnd = true;
             if (!loadNextRail()) {
                 this.moved = (distance - remainingDistance);
                 this.movedTotal += this.moved;
@@ -231,11 +286,14 @@ public class TrackWalkingPoint {
                    this.lastLocation.getY() == position.posY &&
                    this.lastLocation.getZ() == position.posZ)
         {
+            this.failReason = FailReason.CYCLIC_PATH;
+
             if (++this._stuckCtr > 20) {
                 System.err.println("[TrackWalkingPoint] Stuck on rails block " + this.state.railBlock());
                 System.err.println("[TrackWalkingPoint] Rail Logic at rail is " + this.currentRailLogic);
                 System.err.println("[TrackWalkingPoint] Rail Type at rail is " + this.state.railType());
             }
+
             return false;
         } else {
             this.lastLocation.setX(position.posX);
@@ -255,17 +313,20 @@ public class TrackWalkingPoint {
             !BlockUtil.equals(this.state.railBlock(), prevRailBlock) &&
             !this.loopFilter.add(this.state.railBlock()))
         {
-            this.state.setRailType(RailType.NONE);
+            this.state.setRailPiece(RailPiece.create(RailType.NONE, this.state.railBlock()));
+            this.failReason = FailReason.LOOP_DETECTED;
         }
 
         // No next rail available. This is it.
         if (isDerailed()) {
+            this.failReason = FailReason.NO_RAIL;
             return false;
         }
 
         // Refresh rail logic for the new position and state
         this.currentRailLogic = this.state.loadRailLogic();
         this.currentRailPath = this.currentRailLogic.getPath();
+        this.isAtEnd = true;
         return true;
     }
 
@@ -301,7 +362,11 @@ public class TrackWalkingPoint {
         if (!startedOnRail) {
             do {
                 // Out of tracks or distance exceeded
-                if (!this.moveFull() || this.movedTotal > maxDistance) {
+                if (!this.moveFull()) {
+                    return false;
+                }
+                if (this.movedTotal > maxDistance) {
+                    this.failReason = FailReason.LIMIT_REACHED;
                     return false;
                 }
             } while (!BlockUtil.equals(this.state.railBlock(), railsBlock));
@@ -323,6 +388,7 @@ public class TrackWalkingPoint {
                 // In that case, fail the walker, as we are really moving <off> the current rail,
                 // never reaching the intended center position.
                 if (startedOnRail) {
+                    this.failReason = FailReason.LIMIT_REACHED;
                     return false;
                 }
 
@@ -332,5 +398,22 @@ public class TrackWalkingPoint {
         }
         this.moved = this.movedTotal;
         return this.movedTotal <= maxDistance;
+    }
+
+    /**
+     * A reason for functions like move() to return false.
+     * Diagnostic information, helpful for debugging.
+     */
+    public static enum FailReason {
+        /** No failure has occurred yet */
+        NONE,
+        /** No rails were found beyond the current position */
+        NO_RAIL,
+        /** The rail path does not advance, an error inside {@link RailType#getLogic(RailState)} */
+        CYCLIC_PATH,
+        /** A loop on the track was detected */
+        LOOP_DETECTED,
+        /** An imposed movement limit was reached */
+        LIMIT_REACHED
     }
 }

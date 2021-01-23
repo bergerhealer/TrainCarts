@@ -251,30 +251,16 @@ public abstract class RailLogic {
      */
     public void onPreMove(MinecartMember<?> member) {
         member.snapToPath(getPath());
-        
-        // Adjust the velocity vector to be oriented along the rail path slope
-        //System.out.println("VEL: " + member.getEntity().vel + "    DIR " + member.getDirection());
-        if (!this.getPath().isEmpty()) {
-            CommonMinecart<?> entity = member.getEntity();
-            double vel = entity.vel.length();
-            RailPath.Position pos = new RailPath.Position();
-            pos.setLocation(entity.loc);
-            pos.setMotion(entity.vel);
-            this.getPath().move(pos, member.getBlock(), 0.0);
-            entity.vel.set(vel * pos.motX, vel * pos.motY, vel * pos.motZ);
-        }
     }
 
     /**
-     * Is called after the minecart performed the movement updates<br>
-     * This event is called after the onPreMove event<br><br>
-     * <p/>
-     * Final positioning updates and velocity changes for the next tick should occur here
+     * Is called after the minecart has moved to a new location, having used this rail
+     * logic to get there. This might be called multiple times for one member, if during
+     * movement multiple different rail logic sections were crossed.
      *
-     * @param member that moved
+     * @param member The MinecartMember that moved making use of this logic
      */
     public void onPostMove(MinecartMember<?> member) {
-        member.snapToPath(getPath());
     }
 
     /**
