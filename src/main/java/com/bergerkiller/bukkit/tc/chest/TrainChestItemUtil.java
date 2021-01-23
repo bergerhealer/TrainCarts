@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.utils;
+package com.bergerkiller.bukkit.tc.chest;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -38,7 +38,7 @@ import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.google.common.io.ByteStreams;
 
-public class StoredTrainItemUtil {
+public class TrainChestItemUtil {
     private static final String IDENTIFIER = "Traincarts.chest";
     private static final String TITLE = "Traincarts Chest";
 

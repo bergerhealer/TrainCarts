@@ -19,6 +19,7 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.attachments.ui.SetValueTarget;
+import com.bergerkiller.bukkit.tc.chest.TrainChestItemUtil;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
@@ -34,7 +35,6 @@ import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
-import com.bergerkiller.bukkit.tc.utils.StoredTrainItemUtil;
 
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
@@ -649,9 +649,9 @@ public class GlobalCommands {
             final @Argument("spawnconfig") @Greedy String spawnConfig
     ) {
         // Create a new item and give it to the player
-        ItemStack item = StoredTrainItemUtil.createItem();
+        ItemStack item = TrainChestItemUtil.createItem();
         if (spawnConfig != null && !spawnConfig.isEmpty()) {
-            StoredTrainItemUtil.store(item, spawnConfig);
+            TrainChestItemUtil.store(item, spawnConfig);
         }
         sender.getInventory().addItem(item);
         Localization.CHEST_GIVE.message(sender);
@@ -666,7 +666,7 @@ public class GlobalCommands {
      */
     private void updateChestItemInInventory(Player player, Consumer<ItemStack> consumer) {
         ItemStack item = HumanHand.getItemInMainHand(player);
-        if (!StoredTrainItemUtil.isItem(item)) {
+        if (!TrainChestItemUtil.isItem(item)) {
             throw new NoTrainStorageChestItemException();
         }
 
@@ -684,7 +684,7 @@ public class GlobalCommands {
             final @Argument("spawnconfig") @Greedy String spawnConfig
     ) {
         updateChestItemInInventory(player, item -> {
-            StoredTrainItemUtil.store(item, spawnConfig==null ? "" : spawnConfig);
+            TrainChestItemUtil.store(item, spawnConfig==null ? "" : spawnConfig);
         });
     }
 
@@ -694,7 +694,7 @@ public class GlobalCommands {
     private void commandClearChestItem(
             final Player player
     ) {
-        updateChestItemInInventory(player, StoredTrainItemUtil::clear);
+        updateChestItemInInventory(player, TrainChestItemUtil::clear);
     }
 
     @CommandRequiresPermission(Permission.COMMAND_USE_STORAGE_CHEST)
@@ -703,7 +703,7 @@ public class GlobalCommands {
     private void commandLockChestItem(
             final Player player
     ) {
-        updateChestItemInInventory(player, item -> StoredTrainItemUtil.setLocked(item, true));
+        updateChestItemInInventory(player, item -> TrainChestItemUtil.setLocked(item, true));
     }
 
     @CommandRequiresPermission(Permission.COMMAND_USE_STORAGE_CHEST)
@@ -712,7 +712,7 @@ public class GlobalCommands {
     private void commandUnlockChestItem(
             final Player player
     ) {
-        updateChestItemInInventory(player, item -> StoredTrainItemUtil.setLocked(item, false));
+        updateChestItemInInventory(player, item -> TrainChestItemUtil.setLocked(item, false));
     }
 
     @CommandRequiresPermission(Permission.COMMAND_USE_STORAGE_CHEST)
@@ -722,7 +722,7 @@ public class GlobalCommands {
             final Player player,
             final @Argument("name") String name
     ) {
-        updateChestItemInInventory(player, item -> StoredTrainItemUtil.setName(item, name));
+        updateChestItemInInventory(player, item -> TrainChestItemUtil.setName(item, name));
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
