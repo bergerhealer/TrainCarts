@@ -20,7 +20,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.localization.LocalizationEnum;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 
@@ -73,7 +72,7 @@ public class CloudHandler {
 
         // Register Brigadier mappings
         // Only do this on PaperSpigot. On base Spigot, this breaks command blocks
-        if (Common.IS_PAPERSPIGOT_SERVER && manager.queryCapability(CloudBukkitCapabilities.BRIGADIER)) {
+        if (manager.queryCapability(CloudBukkitCapabilities.NATIVE_BRIGADIER)) {
             manager.registerBrigadier();
 
             CloudBrigadierManager<?, ?> brig = manager.brigadierManager();
