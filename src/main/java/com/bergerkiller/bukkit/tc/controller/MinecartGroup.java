@@ -1491,9 +1491,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 }
             }
 
-            // Direction can change as a result of gravity
-            this.updateDirection();
-
             // Stop if all dead
             if (this.isEmpty()) {
                 return false;
@@ -1513,6 +1510,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                     member.getRailLogic().onGravity(member, usf_sq);
                 }
             }
+
+            // Direction can change as a result of gravity
+            this.updateDirection();
 
             // Share forward force between all the Minecarts when size > 1
             double forwardMovingSpeed;
