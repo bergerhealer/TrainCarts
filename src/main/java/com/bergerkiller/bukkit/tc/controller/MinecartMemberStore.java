@@ -443,7 +443,7 @@ public abstract class MinecartMemberStore {
                     continue;
                 }
 
-                double dist_hit = member.getHitBox().hittest(eyeLocation);
+                double dist_hit = member.getHitBox().hitTest(eyeLocation);
                 if (dist_hit >= best_dist) {
                     continue;
                 }

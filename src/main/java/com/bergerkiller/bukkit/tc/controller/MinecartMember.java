@@ -40,6 +40,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -89,7 +90,6 @@ import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
-import com.bergerkiller.bukkit.tc.utils.CollisionBox;
 import com.bergerkiller.bukkit.tc.utils.Effect;
 import com.bergerkiller.bukkit.tc.utils.SlowdownMode;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
@@ -2345,10 +2345,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * 
      * @return click hitbox
      */
-    public CollisionBox getHitBox() {
-        CollisionBox box = new CollisionBox();
+    public OrientedBoundingBox getHitBox() {
+        OrientedBoundingBox box = new OrientedBoundingBox();
         box.setPosition(this.getWheels().getPosition());
-        box.setRadius(1.0, 1.0, entity.getWidth());
+        box.setSize(1.0, 1.0, entity.getWidth());
         box.setOrientation(this.getOrientation());
         return box;
     }
