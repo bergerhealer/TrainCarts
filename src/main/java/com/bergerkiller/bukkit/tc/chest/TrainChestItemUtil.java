@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.chest;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -23,19 +22,15 @@ import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
-import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
-import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath.Position;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
-import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.google.common.io.ByteStreams;
 
 public class TrainChestItemUtil {
@@ -162,11 +157,55 @@ public class TrainChestItemUtil {
         }
     }
 
-    public static SpawnResult spawn(ItemStack item, Player player, Block clickedBlock) {
+    /**
+     * Gets the spawnable group stored in the configuration of an item.
+     * Supports both when the configuration itself, as when the train name is
+     * referenced.
+     *
+     * @param item Input train chest item
+     * @return group configured in the item. Is null if the item is not a train
+     *         chest item, or is empty.
+     */
+    public static SpawnableGroup getSpawnableGroup(ItemStack item) {
         if (!isItem(item)) {
-            return SpawnResult.FAIL_EMPTY;
+            return null;
         }
         if (isEmpty(item)) {
+            return null;
+        }
+
+        // Attempt parsing the Item's configuration into a SpawnableGroup
+        SpawnableGroup group;
+        if (ItemUtil.getMetaTag(item).getValue("parsed", false)) {
+            group = SpawnableGroup.parse(ItemUtil.getMetaTag(item).getValue("config", ""));
+        } else {
+            BasicConfiguration basicConfig = new BasicConfiguration();
+            try {
+                byte[] uncompressed = new byte[0];
+                byte[] compressed = ItemUtil.getMetaTag(item).getValue("config", new byte[0]);
+                if (compressed != null && compressed.length > 0) {
+                    try (ByteArrayInputStream inByteStream = new ByteArrayInputStream(compressed)) {
+                        try (GZIPInputStream zipStream = new GZIPInputStream(inByteStream)) {
+                            uncompressed = ByteStreams.toByteArray(zipStream);
+                        }
+                    }
+                }
+                basicConfig.loadFromStream(new ByteArrayInputStream(uncompressed));
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                return null;
+            }
+            group = SpawnableGroup.fromConfig(basicConfig);
+        }
+        if (group.getMembers().isEmpty()) {
+            return null;
+        }
+
+        return group;
+    }
+
+    public static SpawnResult spawnAtBlock(SpawnableGroup group, Player player, Block clickedBlock) {
+        if (group == null) {
             return SpawnResult.FAIL_EMPTY;
         }
 
@@ -196,57 +235,103 @@ public class TrainChestItemUtil {
             }
         }
 
-        // Attempt parsing the Item's configuration into a SpawnableGroup
-        SpawnableGroup group;
-        if (ItemUtil.getMetaTag(item).getValue("parsed", false)) {
-            group = SpawnableGroup.parse(ItemUtil.getMetaTag(item).getValue("config", ""));
-        } else {
-            BasicConfiguration basicConfig = new BasicConfiguration();
-            try {
-                byte[] uncompressed = new byte[0];
-                byte[] compressed = ItemUtil.getMetaTag(item).getValue("config", new byte[0]);
-                if (compressed != null && compressed.length > 0) {
-                    try (ByteArrayInputStream inByteStream = new ByteArrayInputStream(compressed)) {
-                        try (GZIPInputStream zipStream = new GZIPInputStream(inByteStream)) {
-                            uncompressed = ByteStreams.toByteArray(zipStream);
-                        }
-                    }
-                }
-                basicConfig.loadFromStream(new ByteArrayInputStream(uncompressed));
-            } catch (IOException ex) {
-                ex.printStackTrace();
-                return SpawnResult.FAIL_EMPTY;
-            }
-            group = SpawnableGroup.fromConfig(basicConfig);
+        // Find locations to spawn at
+        SpawnableGroup.SpawnLocationList locationList = group.findSpawnLocations(spawnLoc, spawnDirection, SpawnableGroup.SpawnMode.DEFAULT);
+        if (locationList == null) {
+            return SpawnResult.FAIL_NORAIL;
         }
-        if (group.getMembers().isEmpty()) {
+        if (locationList.locations.size() < group.getMembers().size()) {
+            return SpawnResult.FAIL_NORAIL;
+        }
+
+        // Prepare chunks
+        locationList.loadChunks();
+
+        // Verify spawn area is clear of trains before spawning
+        if (locationList.isOccupied()) {
+            return SpawnResult.FAIL_BLOCKED; // Occupied
+        }
+
+        // Spawn.
+        MinecartGroup spawnedGroup = group.spawn(locationList);
+        if (spawnedGroup != null && !spawnedGroup.isEmpty()) {
+            CartProperties.setEditing(player, spawnedGroup.tail().getProperties());
+        }
+        return SpawnResult.SUCCESS;
+    }
+
+    public static SpawnResult spawnLookingAt(SpawnableGroup group, Player player, Location eyeLocation) {
+        // Clicked in the air. Perform a raytrace hit-test to find
+        // possible rails in range of where the player clicked.
+        // No need to make this complicated, we only need to get close
+        // to the actual rail. Once we find the block within the rail is found,
+        // then we can do finetuning to find exactly where on the rail
+        // was clicked.
+        final double reach = 5.0;
+        final int steps = 100;
+        final Vector step = eyeLocation.getDirection().multiply(reach / (double) steps);
+
+        RailState bestState = null;
+        {
+            Location pos = eyeLocation.clone();
+            RailState tmp = new RailState();
+            tmp.setRailPiece(RailPiece.createWorldPlaceholder(eyeLocation.getWorld()));
+            double bestDistanceSq = (2.0 * 2.0); // at most 2 blocks away from where the player is looking
+            for (int n = 0; n < steps; n++) {
+                pos.add(step);
+                tmp.position().setLocation(pos);
+
+                if (!RailType.loadRailInformation(tmp)) {
+                    continue;
+                }
+
+                tmp.loadRailLogic().getPath().move(tmp, 0.0);
+                double dist_sq = tmp.position().distanceSquared(pos);
+                if (dist_sq < bestDistanceSq) {
+                    bestDistanceSq = dist_sq;
+                    bestState = tmp.clone();
+                }
+            }
+        }
+
+        if (bestState == null) {
+            return SpawnResult.FAIL_NORAIL;
+        } else {
+            // Reverse direction to align how the player is looking
+            if (bestState.position().motDot(step) < 0.0) {
+                bestState.position().invertMotion();
+            }
+            bestState.initEnterDirection();
+
+            // Try spawning
+            return spawnAtState(group, player, bestState);
+        }
+    }
+
+    public static SpawnResult spawnAtState(SpawnableGroup group, Player player, RailState state) {
+        if (group == null) {
             return SpawnResult.FAIL_EMPTY;
         }
 
         // Find locations to spawn at
-        List<Location> locations = SignActionSpawn.getSpawnPositions(spawnLoc, true, spawnDirection, group.getMembers());
-        if (locations.isEmpty() && group.getMembers().size() == 1) {
-            // Spawn at the exact location
-            locations.add(spawnLoc);
+        SpawnableGroup.SpawnLocationList locationList = group.findSpawnLocations(state, SpawnableGroup.SpawnMode.DEFAULT);
+        if (locationList == null) {
+            return SpawnResult.FAIL_NORAIL;
         }
-        if (locations.size() < group.getMembers().size()) {
-            return SpawnResult.FAIL_BLOCKED;
+        if (locationList.locations.size() < group.getMembers().size()) {
+            return SpawnResult.FAIL_NORAIL;
         }
 
         // Prepare chunks
-        for (Location loc : locations) {
-            WorldUtil.loadChunks(loc, 2);
-        }
+        locationList.loadChunks();
 
         // Verify spawn area is clear of trains before spawning
-        for (Location loc : locations) {
-            if (MinecartMemberStore.getAt(loc) != null) {
-                return SpawnResult.FAIL_BLOCKED; // Occupied
-            }
+        if (locationList.isOccupied()) {
+            return SpawnResult.FAIL_BLOCKED; // Occupied
         }
 
         // Spawn.
-        MinecartGroup spawnedGroup = MinecartGroupStore.spawn(group, locations);
+        MinecartGroup spawnedGroup = group.spawn(locationList);
         if (spawnedGroup != null && !spawnedGroup.isEmpty()) {
             CartProperties.setEditing(player, spawnedGroup.tail().getProperties());
         }

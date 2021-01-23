@@ -709,6 +709,12 @@ public class RailPath {
                     location.getX(), location.getY(), location.getZ());
         }
 
+        public double distanceSquared(Location location) {
+            this.assertAbsolute();
+            return MathUtil.distanceSquared(posX, posY, posZ,
+                    location.getX(), location.getY(), location.getZ());
+        }
+
         public double distance(LocationAbstract location) {
             this.assertAbsolute();
             return MathUtil.distance(posX, posY, posZ,

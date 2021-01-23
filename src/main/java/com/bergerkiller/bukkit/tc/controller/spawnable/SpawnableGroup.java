@@ -231,6 +231,9 @@ public class SpawnableGroup {
         if (this.members.isEmpty()) {
             return null;
         }
+        if (startState.railType() == RailType.NONE) {
+            return null;
+        }
 
         // Whether the edge of the cart should be at the start position
         boolean edgeAtStart = (mode == SpawnMode.DEFAULT_EDGE) || (mode == SpawnMode.REVERSE_EDGE);
