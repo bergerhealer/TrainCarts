@@ -20,6 +20,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.localization.LocalizationEnum;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 
@@ -46,6 +47,7 @@ import cloud.commandframework.execution.postprocessor.CommandPostprocessor;
 import cloud.commandframework.meta.CommandMeta;
 import cloud.commandframework.minecraft.extras.MinecraftHelp;
 import cloud.commandframework.paper.PaperCommandManager;
+import cloud.commandframework.services.PipelineException;
 import io.leangen.geantyref.TypeToken;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 
@@ -70,7 +72,8 @@ public class CloudHandler {
         }
 
         // Register Brigadier mappings
-        if (manager.queryCapability(CloudBukkitCapabilities.BRIGADIER)) {
+        // Only do this on PaperSpigot. On base Spigot, this breaks command blocks
+        if (Common.IS_PAPERSPIGOT_SERVER && manager.queryCapability(CloudBukkitCapabilities.BRIGADIER)) {
             manager.registerBrigadier();
 
             CloudBrigadierManager<?, ?> brig = manager.brigadierManager();
@@ -102,27 +105,8 @@ public class CloudHandler {
             return context.get("full_argument_list");
         });
 
-        handle(CommandExecutionException.class, (sender, exception) -> {
-            Throwable cause = exception.getCause();
-
-            // Find handler for this exception, if registered, execute that handler
-            // If the handler throws, handle it as an internal error
-            @SuppressWarnings({"unchecked", "rawtypes"})
-            BiConsumer<CommandSender, Throwable> handler = manager.getExceptionHandler((Class) cause.getClass());
-            if (handler != null) {
-                try {
-                    handler.accept(sender, exception.getCause());
-                    return;
-                } catch (Throwable t2) {
-                    cause = t2;
-                }
-            }
-
-            // Default fallback
-            this.manager.getOwningPlugin().getLogger().log(Level.SEVERE,
-                    "Exception executing command handler", cause);
-            sender.sendMessage(ChatColor.RED + "An internal error occurred while attempting to perform this command.");
-        });
+        handle(CommandExecutionException.class, this::handleException);
+        handle(PipelineException.class, this::handleException);
 
         suggest("playername", (context, input) -> {
             // Try online players first
@@ -147,6 +131,28 @@ public class CloudHandler {
         this.bukkitAudiences = BukkitAudiences.create(plugin);
     }
 
+    private void handleException(CommandSender sender, Throwable exception) {
+        Throwable cause = exception.getCause();
+
+        // Find handler for this exception, if registered, execute that handler
+        // If the handler throws, handle it as an internal error
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        BiConsumer<CommandSender, Throwable> handler = manager.getExceptionHandler((Class) cause.getClass());
+        if (handler != null) {
+            try {
+                handler.accept(sender, exception.getCause());
+                return;
+            } catch (Throwable t2) {
+                cause = t2;
+            }
+        }
+
+        // Default fallback
+        this.manager.getOwningPlugin().getLogger().log(Level.SEVERE,
+                "Exception executing command handler", cause);
+        sender.sendMessage(ChatColor.RED + "An internal error occurred while attempting to perform this command.");
+    }
+    
     /**
      * Gets the parser instance used to parse annotated commands
      * 
