@@ -1,5 +1,5 @@
 # TrainCarts
-[Spigot Resource Page](https://www.spigotmc.org/resources/traincarts.39592/) | [Dev Builds](https://ci.mg-dev.eu/job/TrainCarts/) | [Javadocs](http://jd.mg-dev.eu/TrainCarts)
+[Spigot Resource Page](https://www.spigotmc.org/resources/traincarts.39592/) | [Dev Builds](https://ci.mg-dev.eu/job/TrainCarts/) | [Javadocs](https://ci.mg-dev.eu/javadocs/TrainCarts/)
 
 This Minecraft Bukkit server plugin links carts together to form trains you can control!
 
