@@ -1,8 +1,9 @@
 package com.bergerkiller.bukkit.tc.commands.selector.type;
 
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.bukkit.command.CommandSender;
@@ -22,19 +23,26 @@ public class PlayersInTrainSelector implements SelectorHandler {
     public Collection<String> handle(CommandSender sender, String selector, Map<String, String> arguments) throws SelectorException {
         String trainName = arguments.get("train");
         if (trainName == null) {
-            throw new SelectorException("No train name was provided");
-        } else if (!TrainPropertiesStore.exists(trainName)) {
-            throw new SelectorException("Train with name '" + trainName + "' does not exist");
+            throw new SelectorException("No train name pattern was provided");
         }
 
-        TrainProperties properties = TrainPropertiesStore.get(trainName);
-        if (properties.isLoaded()) {
-            return properties.getHolder().stream()
-                .filter(m -> !m.isUnloaded())
-                .flatMap(m ->  m.getEntity().getPlayerPassengers().stream())
+        Collection<TrainProperties> foundTrains = TrainPropertiesStore.matchAll(trainName);
+        if (foundTrains.isEmpty()) {
+            throw new SelectorException("No train with name pattern '" + trainName + "' could be found");
+        }
+
+        List<String> playerNames = foundTrains.stream()
+                .map(TrainProperties::getHolder)
+                .filter(Objects::nonNull)
+                .flatMap(group -> group.stream())
+                .flatMap(member -> member.getEntity().getPlayerPassengers().stream())
                 .map(Player::getName)
                 .collect(Collectors.toList());
+
+        if (playerNames.isEmpty()) {
+            throw new SelectorException("No player passengers found");
         }
-        return Collections.emptyList();
+
+        return playerNames;
     }
 }
