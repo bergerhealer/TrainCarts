@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.commands.parsers.FormattedSpeedParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.TrainTargetingFlags;
 import com.bergerkiller.bukkit.tc.commands.suggestions.AnimationName;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.exception.command.InvalidClaimPlayerNameException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForAnyPropertiesException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
@@ -25,6 +26,7 @@ import com.bergerkiller.bukkit.tc.exception.command.NoTicketSelectedException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainNearbyException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainSelectedException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainStorageChestItemException;
+import com.bergerkiller.bukkit.tc.exception.command.SelectedTrainNotLoadedException;
 import com.bergerkiller.bukkit.tc.exception.command.SelectedTrainNotOwnedException;
 import com.bergerkiller.bukkit.tc.pathfinding.PathWorld;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -114,6 +116,16 @@ public class Commands {
             return trainProperties;
         });
 
+        // Getting the loaded MinecartGroup from potentially not loaded TrainProperties
+        cloud.injector(MinecartGroup.class, (context, annotations) -> {
+            TrainProperties properties = context.inject(TrainProperties.class).get();
+            MinecartGroup group = properties.getHolder();
+            if (group == null) {
+                throw new SelectedTrainNotLoadedException();
+            }
+            return group;
+        });
+
         cloud.parse(FormattedSpeed.class, (parameters) -> {
             boolean greedy = parameters.get(StandardParameters.GREEDY, false);
             return new FormattedSpeedParser(greedy);
@@ -129,6 +141,7 @@ public class Commands {
         cloud.handleMessage(NoPermissionException.class, Localization.COMMAND_NOPERM.getName());
         cloud.handleMessage(NoTrainSelectedException.class, Localization.EDIT_NOSELECT.getName());
         cloud.handleMessage(SelectedTrainNotOwnedException.class, Localization.EDIT_NOTOWNED.getName());
+        cloud.handleMessage(SelectedTrainNotLoadedException.class, Localization.EDIT_NOTLOADED.getName());
         cloud.handleMessage(NoTrainNearbyException.class, Localization.COMMAND_CART_NOT_FOUND_NEARBY.getName());
         cloud.handleMessage(NoTrainStorageChestItemException.class, Localization.CHEST_NOITEM.getName());
         cloud.handleMessage(NoTicketSelectedException.class, Localization.COMMAND_TICKET_NOTEDITING.getName());

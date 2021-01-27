@@ -2,6 +2,8 @@ package com.bergerkiller.bukkit.tc.commands;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
+import com.bergerkiller.bukkit.common.Hastebin.UploadResult;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -44,6 +46,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 public class TrainCommands {
 
@@ -114,6 +117,31 @@ public class TrainCommands {
         sender.sendMessage(ChatColor.YELLOW + "The selected train has been destroyed!");
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_EXPORT)
+    @CommandMethod("train export|share|paste|upload")
+    @CommandDescription("Exports the train configuration to a hastebin server")
+    private void commandExport(
+            final CommandSender sender,
+            final MinecartGroup group
+    ) {
+        final String name = group.getProperties().getTrainName();
+
+        ConfigurationNode exportedConfig = group.saveConfig();
+        exportedConfig.remove("claims");
+        exportedConfig.set("name", name);
+        TCConfig.hastebin.upload(exportedConfig.toString()).thenAccept(new Consumer<UploadResult>() {
+            @Override
+            public void accept(UploadResult t) {
+                if (t.success()) {
+                    sender.sendMessage(ChatColor.GREEN + "Train '" + ChatColor.YELLOW + name +
+                            ChatColor.GREEN + "' exported: " + ChatColor.WHITE + ChatColor.UNDERLINE + t.url());
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Failed to export train '" + name + "': " + t.error());
+                }
+            }
+        });
+    }
+
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_SAVE_TRAIN)
     @CommandMethod("train save <name>")
@@ -121,17 +149,11 @@ public class TrainCommands {
     private void commandSave(
             final CommandSender sender,
             final TrainCarts plugin,
-            final TrainProperties properties,
+            final MinecartGroup group,
             final @Argument("name") String name,
             final @Flag(value="force", description="Force saving when the train is claimed by someone else") boolean force,
             final @Flag(value="module", description="Module to move the saved train to") String module
     ) {
-        MinecartGroup group = properties.getHolder();
-        if (group == null) {
-            sender.sendMessage(ChatColor.YELLOW + "The train you are editing is not loaded and can not be saved");
-            return;
-        }
-
         if (!plugin.getSavedTrains().hasPermission(sender, name)) {
             // Check that the player has global editing permission
             if (!Permission.COMMAND_SAVEDTRAIN_GLOBAL.has(sender)) {

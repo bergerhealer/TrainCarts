@@ -68,7 +68,7 @@ public enum Permission implements IPermissionEnum {
     COMMAND_SAVEDTRAIN_CLAIM("train.command.savedtrain.claim", PermissionDefault.OP, "Whether the player can change who has claimed a saved train"),
     COMMAND_SAVEDTRAIN_GLOBAL("train.command.savedtrain.global", PermissionDefault.OP, "Whether the player can modify, delete or claim saved trains claimed by other players"),
     COMMAND_SAVEDTRAIN_IMPORT("train.command.savedtrain.import", PermissionDefault.OP, "Whether the player can import saved trains from online using hastebin"),
-    COMMAND_SAVEDTRAIN_EXPORT("train.command.savedtrain.export", PermissionDefault.OP, "Whether the player can export (paste) saved trains to online using hastebin"),
+    COMMAND_SAVEDTRAIN_EXPORT("train.command.savedtrain.export", PermissionDefault.OP, "Whether the player can export (paste) saved trains to online using hastebin. Also used for /train export."),
     COMMAND_ENTER("train.command.enter", PermissionDefault.OP, "Whether the player can use a command to enter the train/cart being edited"),
     COMMAND_LAUNCH("train.command.launch", PermissionDefault.OP, "Whether the player can use a command to launch the train being edited"),
     COMMAND_ANIMATE("train.command.animate", PermissionDefault.OP, "Whether the player can use a command to play an animation"),
