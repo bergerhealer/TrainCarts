@@ -27,12 +27,13 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
+import com.bergerkiller.bukkit.tc.commands.annotations.SavedTrainImplicitlyCreated;
 import com.bergerkiller.bukkit.tc.commands.annotations.SavedTrainRequiresAccess;
-import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.exception.command.InvalidClaimPlayerNameException;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainProperties;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore;
+import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore.Claim;
 
 import cloud.commandframework.CommandManager;
 import cloud.commandframework.annotations.Argument;
@@ -41,6 +42,7 @@ import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.annotations.Flag;
 import cloud.commandframework.annotations.InitializationMethod;
 import cloud.commandframework.annotations.suggestions.Suggestions;
+import cloud.commandframework.arguments.CommandArgument;
 import cloud.commandframework.arguments.parser.ArgumentParseResult;
 import cloud.commandframework.arguments.parser.ArgumentParser;
 import cloud.commandframework.arguments.parser.ParserParameters;
@@ -62,31 +64,62 @@ public class SavedTrainCommands {
 
     @InitializationMethod
     private void init(CommandManager<CommandSender> manager) {
-        manager.registerCommandPostProcessor((context) -> {
+        manager.registerCommandPostProcessor((postProcessContext) -> {
+            final CommandContext<CommandSender> context = postProcessContext.getCommandContext();
+
             // Check if command uses saved train properties
-            Object raw_arg = context.getCommandContext().getOrDefault("savedtrainname", (Object) null);
+            Object raw_arg = context.getOrDefault("savedtrainname", (Object) null);
             if (!(raw_arg instanceof SavedTrainProperties)) {
                 return;
             }
+
+            // Find SavedTrainPropertiesParser. If used, process the post-logic code down below.
+            SavedTrainPropertiesParser parser = postProcessContext.getCommand().getArguments().stream()
+                    .map(CommandArgument::getParser)
+                    .filter(SavedTrainPropertiesParser.class::isInstance)
+                    .map(SavedTrainPropertiesParser.class::cast)
+                    .findFirst().orElse(null);
+            if (parser == null) {
+                return;
+            }
+
             SavedTrainProperties savedTrain = (SavedTrainProperties) raw_arg;
+            if (savedTrain.isNone()) {
+                if (parser.isImplicitlyCreated()) {
+                    // Implicitly create new properties if needed
+                    TrainCarts plugin = context.inject(TrainCarts.class).get();
+                    try {
+                        // Create new configuration
+                        savedTrain = plugin.getSavedTrains().setConfig(
+                                savedTrain.getName(), new ConfigurationNode());
+                        context.set("savedtrainname", savedTrain);
 
-            // Check if SavedTrainRequiresAccess is set
-            if (!context.getCommand().getArguments().stream().filter(arg -> {
-                return arg.getParser() instanceof SavedTrainPropertiesParser
-                        && ((SavedTrainPropertiesParser) arg.getParser()).isMustHaveAccess();
-            }).findAny().isPresent()) {
-                return;
-            }
+                        // Add claim if configured this should happen
+                        if (TCConfig.claimNewSavedTrains && context.getSender() instanceof Player) {
+                            savedTrain.setClaims(Collections.singleton(new Claim((Player) context.getSender())));
+                        }
+                    } catch (IllegalNameException e) {
+                        Localization.COMMAND_SAVEDTRAIN_INVALID_NAME.message(
+                                context.getSender(), savedTrain.getName());
+                        ConsumerService.interrupt();
+                    }
+                } else {
+                    // Not found, fail
+                    Localization.COMMAND_SAVEDTRAIN_NOTFOUND.message(
+                            context.getSender(), savedTrain.getName());
+                    ConsumerService.interrupt();
+                }
+            } else if (parser.isMustHaveAccess()) {
+                // Check permissions when access is required
+                CommandSender sender = context.getSender();
+                if (savedTrain.hasPermission(sender)) {
+                    return;
+                }
 
-            // Check whether sender has permission to modify it
-            CommandSender sender = context.getCommandContext().getSender();
-            if (savedTrain.hasPermission(sender)) {
-                return;
-            }
-
-            boolean force = context.getCommandContext().flags().hasFlag("force");
-            if (!checkAccess(sender, savedTrain, force)) {
-                ConsumerService.interrupt();
+                boolean force = context.flags().hasFlag("force");
+                if (!checkAccess(sender, savedTrain, force)) {
+                    ConsumerService.interrupt();
+                }
             }
         });
 
@@ -95,20 +128,18 @@ public class SavedTrainCommands {
             return ParserParameters.single(SavedTrainRequiresAccess.PARAM, Boolean.TRUE);
         });
 
+        // Token specified when new saved train properties are created when missing
+        manager.getParserRegistry().registerAnnotationMapper(SavedTrainImplicitlyCreated.class, (a, typeToken) -> {
+            return ParserParameters.single(SavedTrainImplicitlyCreated.PARAM, Boolean.TRUE);
+        });
+
         // Create parsers, take @SavedTrainRequiresAccess flag into account
         manager.getParserRegistry().registerParserSupplier(TypeToken.get(SavedTrainProperties.class), (parameters) -> {
             //parameters.get(parameter, defaultValue)
             boolean access = parameters.get(SavedTrainRequiresAccess.PARAM, Boolean.FALSE);
-            return new SavedTrainPropertiesParser(access);
+            boolean implicitlyCreated = parameters.get(SavedTrainImplicitlyCreated.PARAM, Boolean.FALSE);
+            return new SavedTrainPropertiesParser(access, implicitlyCreated);
         });
-
-        /*
-        cloud.preprocessAnnotation(SavedTrainRequiresAccess.class, (context, queue) -> {
-            Map<String, Object> flags = SafeField.get(context.flags(), "flagValues", Map.class);
-            System.out.println("FLAGS=" + String.join(", ", flags.keySet()));
-            return ArgumentParseResult.success(true);
-        });
-        */
     }
 
     @CommandMethod("savedtrain")
@@ -342,7 +373,7 @@ public class SavedTrainCommands {
     private void commandImport(
             final CommandSender sender,
             final TrainCarts plugin,
-            final @Argument(value="savedtrainname") String savedTrainName,
+            final @SavedTrainRequiresAccess @SavedTrainImplicitlyCreated @Argument(value="savedtrainname") SavedTrainProperties savedTrain,
             final @Argument(value="url", description="The URL to a Hastebin-hosted paste to download from") String url,
             final @Flag("force") boolean force
     ) {
@@ -365,29 +396,20 @@ public class SavedTrainCommands {
                 }
 
                 // Retrieve previous train properties
-                boolean isNewTrain = false;
-                SavedTrainPropertiesStore savedTrains = plugin.getSavedTrains();
-                SavedTrainProperties savedTrain = savedTrains.getProperties(savedTrainName);
-                if (savedTrain == null) {
-                    isNewTrain = true;
-                } else if (!checkAccess(sender, savedTrain, force)) {
-                    return;
-                }
+                boolean isNewTrain = savedTrain.isEmpty();
 
                 // Update configuration
                 try {
-                    savedTrains.setConfig(savedTrainName, config);
+                    plugin.getSavedTrains().setConfig(savedTrain.getName(), config);
                 } catch (IllegalNameException e) {
-                    sender.sendMessage(ChatColor.RED + "Invalid train name: " + savedTrainName);
+                    // Should never happen because of pre-validation, but hey!
+                    sender.sendMessage(ChatColor.RED + "Invalid train name: " + savedTrain.getName());
                     return;
                 }
                 if (isNewTrain) {
-                    sender.sendMessage(ChatColor.GREEN + "The train was imported and saved as " + savedTrainName);
-                    if (TCConfig.claimNewSavedTrains && sender instanceof Player) {
-                        savedTrains.setClaim(savedTrainName, (Player) sender);
-                    }
+                    sender.sendMessage(ChatColor.GREEN + "The train was imported and saved as " + savedTrain.getName());
                 } else {
-                    sender.sendMessage(ChatColor.GREEN + "The train was imported and saved as " + savedTrainName + ", a previous train was overwritten");
+                    sender.sendMessage(ChatColor.GREEN + "The train was imported and saved as " + savedTrain.getName() + ", a previous train was overwritten");
                 }
             }
         });
@@ -585,13 +607,19 @@ public class SavedTrainCommands {
      */
     private static class SavedTrainPropertiesParser implements ArgumentParser<CommandSender, SavedTrainProperties> {
         private final boolean mustHaveAccess;
+        private final boolean implicitlyCreated;
 
-        public SavedTrainPropertiesParser(boolean mustHaveAccess) {
+        public SavedTrainPropertiesParser(boolean mustHaveAccess, boolean implicitlyCreated) {
             this.mustHaveAccess = mustHaveAccess;
+            this.implicitlyCreated = implicitlyCreated;
         }
 
         public boolean isMustHaveAccess() {
             return this.mustHaveAccess;
+        }
+
+        public boolean isImplicitlyCreated() {
+            return this.implicitlyCreated;
         }
 
         @Override
@@ -605,37 +633,13 @@ public class SavedTrainCommands {
                 ));
             }
 
-            SavedTrainProperties properties = plugin.getSavedTrains().getProperties(input);
-            if (properties == null) {
-                return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
-                        Localization.COMMAND_SAVEDTRAIN_NOTFOUND, input));
-            }
-
-            /*
-            System.out.println("CHECK " + mustHaveAccess + " force=" + commandContext.flags().hasFlag("force"));
-
-            if (mustHaveAccess && !properties.hasPermission(commandContext.getSender())) {
-                // Check if --force was specified
-                boolean force = commandContext.flags().hasFlag("force");
-                if (!Permission.COMMAND_SAVEDTRAIN_GLOBAL.has(commandContext.getSender())) {
-                    if (force) {
-                        // Force was specified, but player has no permission for that
-                        return ArgumentParseResult.failure(new SavedTrainPropertiesParseException(input, commandContext,
-                                Localization.COMMAND_SAVEDTRAIN_GLOBAL_NOPERM));
-                    } else {
-                        // No force was specified, was claimed and player has no permission
-                        return ArgumentParseResult.failure(new SavedTrainPropertiesParseException(input, commandContext,
-                                Localization.COMMAND_SAVEDTRAIN_CLAIMED));
-                    }
-                } else if (!force) {
-                    return ArgumentParseResult.failure(new SavedTrainPropertiesParseException(input, commandContext,
-                            Localization.COMMAND_SAVEDTRAIN_FORCE));
-                }
-            }
-            */
-
             inputQueue.remove();
-            return ArgumentParseResult.success(properties);
+            SavedTrainProperties properties = plugin.getSavedTrains().getProperties(input);
+            if (properties != null) {
+                return ArgumentParseResult.success(properties);
+            } else {
+                return ArgumentParseResult.success(SavedTrainProperties.none(input));
+            }
         }
 
         @Override

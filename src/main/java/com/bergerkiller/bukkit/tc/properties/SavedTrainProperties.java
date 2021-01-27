@@ -35,12 +35,34 @@ public class SavedTrainProperties {
         return this.module;
     }
 
+    /**
+     * Gets whether these properties refer to missing properties
+     * not yet stored. Only the {@link #getName()} attribute can
+     * then be used.
+     *
+     * @return True if these properties do not yet exist
+     */
+    public boolean isNone() {
+        return this.module == null && this.config == null;
+    }
+
     public String getName() {
         return this.name;
     }
 
     public ConfigurationNode getConfig() {
         return this.config;
+    }
+
+    /**
+     * Gets whether this saved train is currently empty. It can be empty if it was newly
+     * created without an initial train configuration. Empty means no carts are contained,
+     * and thus spawning it will spawn no train.
+     *
+     * @return True if empty
+     */
+    public boolean isEmpty() {
+        return this.config == null || !this.config.contains("carts");
     }
 
     /**
@@ -196,5 +218,16 @@ public class SavedTrainProperties {
      */
     public static SavedTrainProperties of(SavedTrainPropertiesStore module, String name, ConfigurationNode config) {
         return new SavedTrainProperties(module, name, config);
+    }
+
+    /**
+     * Creates new SavedTrainProperties that refers to missing properties.
+     * This is used when referencing a saved train by name before one is created.
+     *
+     * @param name Saved train name
+     * @return saved train properties
+     */
+    public static SavedTrainProperties none(String name) {
+        return new SavedTrainProperties(null, name, null);
     }
 }

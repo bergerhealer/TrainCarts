@@ -333,14 +333,14 @@ public class SavedTrainPropertiesStore {
      * @param name of the saved train
      * @param config to set to, is cloned before storing
      * @throws IllegalNameException Thrown if the train name is of an invalid format
+     * @return Existing or created saved train properties
      */
-    public void setConfig(String name, ConfigurationNode config) throws IllegalNameException {
+    public SavedTrainProperties setConfig(String name, ConfigurationNode config) throws IllegalNameException {
         // Check if stored in a module, first
         if (!this.savedTrainsConfig.isNode(name)) {
             for (SavedTrainPropertiesStore module : this.modules.values()) {
                 if (module.savedTrainsConfig.isNode(name)) {
-                    module.setConfig(name, config);
-                    return;
+                    return module.setConfig(name, config);
                 }
             }
         }
@@ -365,6 +365,9 @@ public class SavedTrainPropertiesStore {
         this.savedTrainsConfig.set(name, newConfig);
         this.names.remove(name);
         this.names.add(name);
+
+        // Return link to this configuration
+        return SavedTrainProperties.of(this, name, newConfig);
     }
 
     /**
