@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.commands;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -8,7 +7,6 @@ import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
@@ -17,10 +15,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.Hastebin.DownloadResult;
-import com.bergerkiller.bukkit.common.Hastebin.UploadResult;
 import com.bergerkiller.bukkit.common.MessageBuilder;
-import com.bergerkiller.bukkit.common.config.BasicConfiguration;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -218,17 +213,7 @@ public class SavedTrainCommands {
         ConfigurationNode exportedConfig = savedTrain.getConfig().clone();
         exportedConfig.remove("claims");
         exportedConfig.set("name", savedTrain.getName());
-        TCConfig.hastebin.upload(exportedConfig.toString()).thenAccept(new Consumer<UploadResult>() {
-            @Override
-            public void accept(UploadResult t) {
-                if (t.success()) {
-                    sender.sendMessage(ChatColor.GREEN + "Train '" + ChatColor.YELLOW + savedTrain.getName() +
-                            ChatColor.GREEN + "' exported: " + ChatColor.WHITE + ChatColor.UNDERLINE + t.url());
-                } else {
-                    sender.sendMessage(ChatColor.RED + "Failed to export train '" + savedTrain.getName() + "': " + t.error());
-                }
-            }
-        });
+        Commands.exportTrain(sender, savedTrain.getName(), exportedConfig);
     }
 
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_RENAME)
@@ -377,40 +362,22 @@ public class SavedTrainCommands {
             final @Argument(value="url", description="The URL to a Hastebin-hosted paste to download from") String url,
             final @Flag("force") boolean force
     ) {
-        TCConfig.hastebin.download(url).thenAccept(new Consumer<DownloadResult>() {
-            @Override
-            public void accept(DownloadResult result) {
-                // Check successful
-                if (!result.success()) {
-                    sender.sendMessage(ChatColor.RED + "Failed to import train: " + result.error());
-                    return;
-                }
+        Commands.importTrain(sender, url, config -> {
+            // Retrieve previous train properties
+            boolean isNewTrain = savedTrain.isEmpty();
 
-                // Parse the String contents as YAML
-                BasicConfiguration config;
-                try {
-                    config = result.contentYAML();
-                } catch (IOException ex) {
-                    sender.sendMessage(ChatColor.RED + "Failed to import train because of YAML decode error: " + ex.getMessage());
-                    return;
-                }
-
-                // Retrieve previous train properties
-                boolean isNewTrain = savedTrain.isEmpty();
-
-                // Update configuration
-                try {
-                    plugin.getSavedTrains().setConfig(savedTrain.getName(), config);
-                } catch (IllegalNameException e) {
-                    // Should never happen because of pre-validation, but hey!
-                    sender.sendMessage(ChatColor.RED + "Invalid train name: " + savedTrain.getName());
-                    return;
-                }
-                if (isNewTrain) {
-                    sender.sendMessage(ChatColor.GREEN + "The train was imported and saved as " + savedTrain.getName());
-                } else {
-                    sender.sendMessage(ChatColor.GREEN + "The train was imported and saved as " + savedTrain.getName() + ", a previous train was overwritten");
-                }
+            // Update configuration
+            try {
+                plugin.getSavedTrains().setConfig(savedTrain.getName(), config);
+            } catch (IllegalNameException e) {
+                // Should never happen because of pre-validation, but hey!
+                sender.sendMessage(ChatColor.RED + "Invalid train name: " + savedTrain.getName());
+                return;
+            }
+            if (isNewTrain) {
+                sender.sendMessage(ChatColor.GREEN + "The train was imported and saved as " + savedTrain.getName());
+            } else {
+                sender.sendMessage(ChatColor.GREEN + "The train was imported and saved as " + savedTrain.getName() + ", a previous train was overwritten");
             }
         });
     }

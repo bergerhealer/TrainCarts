@@ -19,7 +19,6 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.attachments.ui.SetValueTarget;
-import com.bergerkiller.bukkit.tc.chest.TrainChestItemUtil;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
@@ -27,7 +26,6 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.debug.DebugTool;
 import com.bergerkiller.bukkit.tc.editor.TCMapControl;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
-import com.bergerkiller.bukkit.tc.exception.command.NoTrainStorageChestItemException;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathWorld;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -62,7 +60,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.function.Consumer;
 
 public class GlobalCommands {
 
@@ -639,90 +636,6 @@ public class GlobalCommands {
         display.putValue("MapColor", 0xFF0000);
         sender.getInventory().addItem(item);
         sender.sendMessage(ChatColor.GREEN + "Given a Traincarts attachments editor");
-    }
-
-    @CommandRequiresPermission(Permission.COMMAND_USE_STORAGE_CHEST)
-    @CommandMethod("train chest [spawnconfig]")
-    @CommandDescription("Gives a new train-storing chest item, train information to store can be specified")
-    private void commandGiveChestItem(
-            final Player sender,
-            final @Argument("spawnconfig") @Greedy String spawnConfig
-    ) {
-        // Create a new item and give it to the player
-        ItemStack item = TrainChestItemUtil.createItem();
-        if (spawnConfig != null && !spawnConfig.isEmpty()) {
-            TrainChestItemUtil.store(item, spawnConfig);
-        }
-        sender.getInventory().addItem(item);
-        Localization.CHEST_GIVE.message(sender);
-    }
-
-    /**
-     * Updates the train storage chest item in the player's main hand. Throws
-     * exceptions if this operation fails.
-     * 
-     * @param player
-     * @param consumer Modifying function
-     */
-    private void updateChestItemInInventory(Player player, Consumer<ItemStack> consumer) {
-        ItemStack item = HumanHand.getItemInMainHand(player);
-        if (!TrainChestItemUtil.isItem(item)) {
-            throw new NoTrainStorageChestItemException();
-        }
-
-        item = ItemUtil.cloneItem(item);
-        consumer.accept(item);
-        HumanHand.setItemInMainHand(player, item);
-        Localization.CHEST_UPDATE.message(player);
-    }
-
-    @CommandRequiresPermission(Permission.COMMAND_USE_STORAGE_CHEST)
-    @CommandMethod("train chest set [spawnconfig]")
-    @CommandDescription("Clears the train-storing chest item the player is currently holding")
-    private void commandSetChestItem(
-            final Player player,
-            final @Argument("spawnconfig") @Greedy String spawnConfig
-    ) {
-        updateChestItemInInventory(player, item -> {
-            TrainChestItemUtil.store(item, spawnConfig==null ? "" : spawnConfig);
-        });
-    }
-
-    @CommandRequiresPermission(Permission.COMMAND_USE_STORAGE_CHEST)
-    @CommandMethod("train chest clear")
-    @CommandDescription("Clears the train-storing chest item the player is currently holding")
-    private void commandClearChestItem(
-            final Player player
-    ) {
-        updateChestItemInInventory(player, TrainChestItemUtil::clear);
-    }
-
-    @CommandRequiresPermission(Permission.COMMAND_USE_STORAGE_CHEST)
-    @CommandMethod("train chest lock")
-    @CommandDescription("Locks the train-storing chest item so it can not pick up trains by right-clicking")
-    private void commandLockChestItem(
-            final Player player
-    ) {
-        updateChestItemInInventory(player, item -> TrainChestItemUtil.setLocked(item, true));
-    }
-
-    @CommandRequiresPermission(Permission.COMMAND_USE_STORAGE_CHEST)
-    @CommandMethod("train chest unlock")
-    @CommandDescription("Unlocks the train-storing chest item so it can pick up trains by right-clicking again")
-    private void commandUnlockChestItem(
-            final Player player
-    ) {
-        updateChestItemInInventory(player, item -> TrainChestItemUtil.setLocked(item, false));
-    }
-
-    @CommandRequiresPermission(Permission.COMMAND_USE_STORAGE_CHEST)
-    @CommandMethod("train chest name <name>")
-    @CommandDescription("Sets a descriptive name for the train-storing chest item")
-    private void commandNameChestItem(
-            final Player player,
-            final @Argument("name") String name
-    ) {
-        updateChestItemInInventory(player, item -> TrainChestItemUtil.setName(item, name));
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)

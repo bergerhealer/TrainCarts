@@ -2,13 +2,20 @@ package com.bergerkiller.bukkit.tc.commands;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
+import com.bergerkiller.bukkit.common.config.BasicConfiguration;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.Hastebin.DownloadResult;
+import com.bergerkiller.bukkit.common.Hastebin.UploadResult;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.chest.TrainChestCommands;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresMultiplePermissions;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.commands.cloud.CloudHandler;
@@ -19,6 +26,7 @@ import com.bergerkiller.bukkit.tc.commands.parsers.FormattedSpeedParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.TrainTargetingFlags;
 import com.bergerkiller.bukkit.tc.commands.suggestions.AnimationName;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.exception.command.InvalidClaimPlayerNameException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForAnyPropertiesException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
@@ -42,8 +50,10 @@ import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.arguments.parser.StandardParameters;
 import cloud.commandframework.meta.CommandMeta;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -61,6 +71,7 @@ public class Commands {
     private final CartCommands commands_cart = new CartCommands();
     private final TrainCommands commands_train = new TrainCommands();
     private final GlobalCommands commands_train_global = new GlobalCommands();
+    private final TrainChestCommands commands_train_chest = new TrainChestCommands();
     private final TicketCommands commands_train_ticket = new TicketCommands();
     private final SavedTrainCommands commands_savedtrain = new SavedTrainCommands();
 
@@ -80,6 +91,17 @@ public class Commands {
         // TrainCarts Permissions
         cloud.getParser().registerBuilderModifier(CommandRequiresPermission.class,
                 (perm, builder) -> builder.permission(sender -> perm.value().has(sender)));
+        cloud.getParser().registerBuilderModifier(CommandRequiresMultiplePermissions.class, (multi, builder) -> {
+            final Permission[] perms = Stream.of(multi.value()).map(CommandRequiresPermission::value).toArray(Permission[]::new);
+            return builder.permission(sender -> {
+                for (Permission perm : perms) {
+                    if (!perm.has(sender)) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+        });
 
         // Plugin instance
         cloud.inject(TrainCarts.class, plugin);
@@ -191,6 +213,7 @@ public class Commands {
         cloud.annotations(commands_cart);
         cloud.annotations(commands_train);
         cloud.annotations(commands_train_global);
+        cloud.annotations(commands_train_chest);
         cloud.annotations(commands_train_ticket);
         cloud.annotations(commands_savedtrain);
 
@@ -269,5 +292,60 @@ public class Commands {
         if (loc != null) {
             message.newLine().yellow("Current location: ").white("[", loc.x, "/", loc.y, "/", loc.z, "] in world ", loc.world);
         }
+    }
+
+    /**
+     * Downloads the full YAML configuration of a train from hastebin, and
+     * calls the callback with the configuration if successful.
+     *
+     * @param sender Command Sender to send a message to when problems occur
+     * @param url The URL of the hastebin paste to download
+     * @param callback The callback to call when successfully downloaded
+     */
+    public static void importTrain(final CommandSender sender, final String url, final Consumer<ConfigurationNode> callback) {
+        TCConfig.hastebin.download(url).thenAccept(new Consumer<DownloadResult>() {
+            @Override
+            public void accept(DownloadResult result) {
+                // Check successful
+                if (!result.success()) {
+                    sender.sendMessage(ChatColor.RED + "Failed to import train: " + result.error());
+                    return;
+                }
+
+                // Parse the String contents as YAML
+                BasicConfiguration config;
+                try {
+                    config = result.contentYAML();
+                } catch (IOException ex) {
+                    sender.sendMessage(ChatColor.RED + "Failed to import train because of YAML decode error: " + ex.getMessage());
+                    return;
+                }
+
+                // Callback time!
+                callback.accept(config);;
+            }
+        });
+    }
+
+    /**
+     * Uploads the full YAML configuration of a train to hastebin, using the
+     * configured hastebin server.
+     *
+     * @param sender Command Sender to send a message to once completed
+     * @param name Name of the train exported, part of the completion message
+     * @param exportedConfig Configuration to upload
+     */
+    public static void exportTrain(final CommandSender sender, final String name, final ConfigurationNode exportedConfig) {
+        TCConfig.hastebin.upload(exportedConfig.toString()).thenAccept(new Consumer<UploadResult>() {
+            @Override
+            public void accept(UploadResult t) {
+                if (t.success()) {
+                    sender.sendMessage(ChatColor.GREEN + "Train '" + ChatColor.YELLOW + name +
+                            ChatColor.GREEN + "' exported: " + ChatColor.WHITE + ChatColor.UNDERLINE + t.url());
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Failed to export train '" + name + "': " + t.error());
+                }
+            }
+        });
     }
 }

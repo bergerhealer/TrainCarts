@@ -771,7 +771,7 @@ public class TCListener implements Listener {
         if (!(event.getRightClicked() instanceof Minecart)) {
             return;
         }
-        
+
         // Check that we are not spam-clicking (for block placement, that is!)
         Long lastHitTime = lastHitTimes.get(event.getPlayer());
         if (lastHitTime != null) {

@@ -21,6 +21,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
@@ -51,6 +52,20 @@ public class SpawnableGroup {
      */
     public ConfigurationNode getConfig() {
         return this.config;
+    }
+
+    /**
+     * Gets the name of the saved group information. If no name is set in the
+     * configuration, a default name is generated.
+     *
+     * @return saved train name, or a default generated name.
+     */
+    public String getSavedName() {
+        if (config.contains("name")) {
+            return config.get("name", "dummyname");
+        } else {
+            return TrainProperties.generateTrainName();
+        }
     }
 
     /**
@@ -105,6 +120,21 @@ public class SpawnableGroup {
      */
     public void addMember(SpawnableMember member) {
         this.members.add(member.cloneWithGroup(this));
+    }
+
+    /**
+     * Gets the full configuration of the spawnable group, including
+     * the configuration of all spawned carts.
+     *
+     * @return full configuration
+     */
+    public ConfigurationNode getFullConfig() {
+        ConfigurationNode fullConfig = this.config.clone();
+        List<ConfigurationNode> cartConfigList = fullConfig.getNodeList("carts");
+        for (int i = this.members.size() - 1; i >= 0; i--) {
+            cartConfigList.add(this.members.get(i).getConfig().clone());
+        }
+        return fullConfig;
     }
 
     private int applyConfig(ConfigurationNode savedConfig) {

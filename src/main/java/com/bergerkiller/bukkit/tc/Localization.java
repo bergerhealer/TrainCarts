@@ -72,6 +72,7 @@ public class Localization extends LocalizationEnum {
     public static final Localization CHEST_UPDATE = new Localization("chest.update", ChatColor.GREEN + "Your train storage chest item has been updated");
     public static final Localization CHEST_LOCKED = new Localization("chest.locked", ChatColor.RED + "Your train storage chest item is locked and can not pick up the train");
     public static final Localization CHEST_PICKUP = new Localization("chest.pickup", ChatColor.GREEN + "Train picked up and stored inside the item!");
+    public static final Localization CHEST_IMPORTED = new Localization("chest.imported", ChatColor.GREEN + "The train was imported into the chest item");
     public static final Localization CHEST_SPAWN_SUCCESS = new Localization("chest.spawn.success", ChatColor.GREEN + "Train stored inside the item has been spawned on the rails!");
     public static final Localization CHEST_SPAWN_EMPTY = new Localization("chest.spawn.empty", ChatColor.RED + "Train can not be spawned, no train is stored in the item!");
     public static final Localization CHEST_SPAWN_NORAIL = new Localization("chest.spawn.norail", ChatColor.RED + "Train can not be spawned, clicked block is not a known rail!");
