@@ -984,11 +984,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
-     * Snaps a minecart onto a rail path, preserving the movement direction.
+     * Snaps the minecart onto a rail path, preserving the movement direction.
      * Can be used in rail logic pre/post-move to adjust and correct
      * position on the path.
      * 
-     * @param member to snap to this path
+     * @param path The path to snap this member onto
      */
     public void snapToPath(RailPath path) {
         if (!path.isEmpty()) {
@@ -998,7 +998,13 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
     }
 
-    private void snapToPosition(RailPath.Position position) {
+    /**
+     * Snaps the minecart onto a rail path position, using the new movement direction
+     * stored in the position.
+     *
+     * @param position The positiion to snap this member to
+     */
+    public void snapToPosition(RailPath.Position position) {
         position.assertAbsolute();
         double velocity = entity.vel.length();
         entity.setPosition(position.posX, position.posY, position.posZ);

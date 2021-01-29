@@ -429,7 +429,10 @@ public abstract class RailType {
     }
 
     /**
-     * Switches the rails from one junction to another. Junctions are used from {@link #getJunctions(railBlock)}.
+     * Switches the rails from one junction to another. Junctions are used from {@link #getJunctions(railBlock)}.<br>
+     * <br>
+     * This should be implemented by RailType implementations to switch junctions. It should not be called,
+     * for that use {@link RailPiece#switchJunction(RailJunction, RailJunction)} instead.
      * 
      * @param railBlock where this Rail Type is at
      * @param from junction

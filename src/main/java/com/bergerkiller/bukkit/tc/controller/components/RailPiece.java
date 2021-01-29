@@ -8,6 +8,7 @@ import org.bukkit.block.Block;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
+import com.bergerkiller.bukkit.tc.utils.RailJunctionSwitcher;
 
 /**
  * Represents a single piece of rails, occupying a single block where signs can be placed.
@@ -82,6 +83,19 @@ public final class RailPiece {
      */
     public List<RailJunction> getJunctions() {
         return this.type.getJunctions(this.block);
+    }
+
+    /**
+     * Switches the rails from one junction to another. Junctions are used from
+     * {@link #getJunctions()}. In addition to switching track, also moves carts
+     * currently on this rail block along to the new junction, if possible.
+     * 
+     * @param railBlock where this Rail Type is at
+     * @param from junction
+     * @param to junction
+     */
+    public void switchJunction(RailJunction from, RailJunction to) {
+        (new RailJunctionSwitcher(this)).switchJunction(from, to);
     }
 
     /**

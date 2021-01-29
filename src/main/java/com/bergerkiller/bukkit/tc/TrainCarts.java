@@ -512,7 +512,7 @@ public class TrainCarts extends PluginBase {
             }
         });
 
-        // Register listeners and commands
+        // Register listeners
         this.register(packetListener = new TCPacketListener(), TCPacketListener.LISTENED_TYPES);
         this.register(interactionPacketListener = new TCInteractionPacketListener(), TCInteractionPacketListener.TYPES);
         this.register(TCListener.class);
