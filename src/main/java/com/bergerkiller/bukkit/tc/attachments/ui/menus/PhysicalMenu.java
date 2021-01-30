@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.menus;
 
+import java.util.Collections;
 import java.util.Random;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -10,6 +11,7 @@ import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.particle.PhysicalMemberPreview;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
@@ -23,6 +25,8 @@ public class PhysicalMenu extends MapWidgetMenu {
     private static final int NUMBERBOX_STEP = 24;
     private static final int NUMBERBOX_HEIGHT = 11;
     private final MapTexture wheelTexture;
+    private PhysicalMemberPreview preview;
+    private int ticksPreviewVisible = 0;
 
     public PhysicalMenu() {
         this.setBounds(5, 15, 118, 104);
@@ -34,6 +38,15 @@ public class PhysicalMenu extends MapWidgetMenu {
     @Override
     public void onAttached() {
         super.onAttached();
+
+        // Shows a preview in the real world
+        preview = new PhysicalMemberPreview(this.getAttachment().getEditor().getEditedCart(), () -> {
+                    if (ticksPreviewVisible > 0 && display != null) {
+                        return display.getOwners();
+                    } else {
+                        return Collections.emptySet();
+                    }
+                });
 
         //this.transformType
         this.addWidget(new MapWidgetNumberBox() { // Position X
@@ -52,10 +65,10 @@ public class PhysicalMenu extends MapWidgetMenu {
             @Override
             public void onValueChanged() {
                 getConfig().set("cartLength", getValue());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                onChanged();
             }
         }).setBounds(10, NUMBERBOX_OFFSET, 100, NUMBERBOX_HEIGHT);
-        
+
         this.addWidget(new MapWidgetNumberBox() { // Position Y
             @Override
             public void onAttached() {
@@ -72,10 +85,10 @@ public class PhysicalMenu extends MapWidgetMenu {
             @Override
             public void onValueChanged() {
                 getConfig().set("wheelDistance", getValue());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                onChanged();
             }
         }).setBounds(10, NUMBERBOX_OFFSET + NUMBERBOX_STEP, 100, NUMBERBOX_HEIGHT);
-        
+
         this.addWidget(new MapWidgetNumberBox() { // Position Z
             @Override
             public void onAttached() {
@@ -91,7 +104,7 @@ public class PhysicalMenu extends MapWidgetMenu {
             @Override
             public void onValueChanged() {
                 getConfig().set("wheelCenter", getValue());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                onChanged();
             }
         }).setBounds(10, NUMBERBOX_OFFSET + 2 * NUMBERBOX_STEP, 100, NUMBERBOX_HEIGHT);
 
@@ -100,6 +113,26 @@ public class PhysicalMenu extends MapWidgetMenu {
         this.addWidget(new MapWidgetText()).setColor(lblColor).setText("Cart Length").setPosition(20, NUMBERBOX_OFFSET+0*NUMBERBOX_STEP - 8);
         this.addWidget(new MapWidgetText()).setColor(lblColor).setText("Wheel Distance").setPosition(20, NUMBERBOX_OFFSET+1*NUMBERBOX_STEP - 8);
         this.addWidget(new MapWidgetText()).setColor(lblColor).setText("Wheel Offset").setPosition(20, NUMBERBOX_OFFSET+2*NUMBERBOX_STEP - 8);
+    }
+
+    @Override
+    public void onDetached() {
+        super.onDetached();
+        this.preview.hide();
+    }
+
+    @Override
+    public void onTick() {
+        super.onTick();
+        this.preview.update();
+        if (--this.ticksPreviewVisible < 0) {
+            this.ticksPreviewVisible = 0;
+        }
+    }
+
+    private void onChanged() {
+        sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+        this.ticksPreviewVisible = 100;
     }
 
     public ConfigurationNode getConfig() {

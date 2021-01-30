@@ -19,6 +19,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode.MenuItem;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 
 public class AttachmentEditor extends MapDisplay {
@@ -160,6 +161,25 @@ public class AttachmentEditor extends MapDisplay {
 
         // Make sure previously selected attachments are not focused
         this.updateFocus(FocusMode.NONE);
+    }
+
+    /**
+     * Gets the properties being edited. Null if no cart is being edited.
+     *
+     * @return edited cart properties
+     */
+    public CartProperties getEditedCartProperties() {
+        return this.editedCart;
+    }
+
+    /**
+     * Gets the cart being edited. Null if no cart is being edited, or the
+     * cart is not loaded.
+     *
+     * @return edited cart
+     */
+    public MinecartMember<?> getEditedCart() {
+        return this.editedCart == null ? null : this.editedCart.getHolder();
     }
 
     /**
