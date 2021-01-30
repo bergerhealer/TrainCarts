@@ -18,6 +18,7 @@
         <project.slversion>1.11.2-v2-SNAPSHOT</project.slversion>
         <project.mwversion>1.11.2-v2-SNAPSHOT</project.mwversion>
         <project.cibuild/>
+        <project.outputfile>${project.name}-${project.version}</project.outputfile>
         <junit.version>4.11</junit.version>
     </properties>
 
@@ -31,6 +32,7 @@
             </activation>
             <properties>
                 <project.cibuild>${env.BUILD_NUMBER}</project.cibuild>
+                <project.outputfile>${project.name}-${project.version}-${project.cibuild}</project.outputfile>
             </properties>
         </profile>
     </profiles>
@@ -247,6 +249,7 @@
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>3.2.3</version>
                 <configuration>
+                    <finalName>${project.outputfile}</finalName>
                     <createDependencyReducedPom>false</createDependencyReducedPom>
                     <relocations>
                         <relocation>
@@ -334,7 +337,7 @@
                         </goals>
                         <configuration>
                             <target>
-                                <copy file="target/${project.name}-${project.version}.jar" tofile="target/static/${project.name}.jar"/>
+                                <copy file="target/${project.outputfile}.jar" tofile="target/static/${project.name}.jar"/>
                             </target>
                         </configuration>
                     </execution>
