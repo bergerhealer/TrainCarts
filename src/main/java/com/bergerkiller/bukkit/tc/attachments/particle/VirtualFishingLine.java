@@ -31,8 +31,12 @@ public class VirtualFishingLine {
     private final int hookedEntityId, holderEntityId, hookEntityId;
 
     public VirtualFishingLine() {
+        this(false);
+    }
+
+    public VirtualFishingLine(boolean useViewerAsHolder) {
         this.hookedEntityId = EntityUtil.getUniqueEntityId();
-        this.holderEntityId = EntityUtil.getUniqueEntityId();
+        this.holderEntityId = useViewerAsHolder ? -1 : EntityUtil.getUniqueEntityId();
         this.hookEntityId = EntityUtil.getUniqueEntityId();
     }
 
@@ -46,7 +50,7 @@ public class VirtualFishingLine {
     public void spawn(Player viewer, Vector positionA, Vector positionB) {
         // Spawn the invisible entity that holds the other end of the fishing hook
         // Seems that this must be a player entity, so just spawn clones of the viewer
-        {
+        if (this.holderEntityId != -1) {
             PacketPlayOutNamedEntitySpawnHandle spawnPacket = PacketPlayOutNamedEntitySpawnHandle.T.newHandleNull();
             spawnPacket.setEntityId(this.holderEntityId);
             spawnPacket.setEntityUUID(viewer.getUniqueId());
@@ -87,7 +91,7 @@ public class VirtualFishingLine {
             spawnPacket.setPosX(positionB.getX());
             spawnPacket.setPosY(positionB.getY());
             spawnPacket.setPosZ(positionB.getZ());
-            spawnPacket.setExtraData(this.holderEntityId);
+            spawnPacket.setExtraData((this.holderEntityId == -1) ? viewer.getEntityId() : this.holderEntityId);
             PacketUtil.sendPacket(viewer, spawnPacket);
 
             // Metadata packet
@@ -108,7 +112,7 @@ public class VirtualFishingLine {
      */
     public void update(Iterable<Player> viewers, Vector positionA, Vector positionB) {
         // Teleport holder entity
-        {
+        if (this.holderEntityId != -1) {
             final PacketPlayOutEntityTeleportHandle packet = PacketPlayOutEntityTeleportHandle.createNew(
                     this.holderEntityId,
                     positionA.getX() + OFFSET_HOLDER.getX(),
