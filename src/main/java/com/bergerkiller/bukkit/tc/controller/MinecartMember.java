@@ -2348,10 +2348,19 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return click hitbox
      */
     public OrientedBoundingBox getHitBox() {
+        final Quaternion orientation = this.getOrientation();
+        final Vector position = this.getWheels().getPosition().clone();
+        final double height = 1.0;
+
+        // Bounding box position is relative to the center of the box
+        // We want it to be relative to the bottom. To make that happen,
+        // offset position upwards by half the height.
+        position.add(orientation.upVector().multiply(0.5 * height));
+
         OrientedBoundingBox box = new OrientedBoundingBox();
-        box.setPosition(this.getWheels().getPosition());
-        box.setSize(1.0, 1.0, entity.getWidth());
-        box.setOrientation(this.getOrientation());
+        box.setPosition(position);
+        box.setSize(1.0, height, entity.getWidth());
+        box.setOrientation(orientation);
         return box;
     }
 
