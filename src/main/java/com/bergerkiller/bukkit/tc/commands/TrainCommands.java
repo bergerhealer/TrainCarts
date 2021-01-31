@@ -243,6 +243,7 @@ public class TrainCommands {
         }
     }
 
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_LAUNCH)
     @CommandMethod("train launch <speed>")
     @CommandDescription("Launches the train into a direction")
