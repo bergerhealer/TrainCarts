@@ -2,7 +2,7 @@ name: Train_Carts
 main: com.bergerkiller.bukkit.tc.TrainCarts
 api-version: 1.13
 version: ${project.version}
-build: ${project.cibuild}
+build: ${project.build.number}
 authors: [bergerkiller, lenis0012, timstans, bubba1234119, KamikazePlatypus, mg_1999, Friwi, kpaulisse]
 description: Plugin that allows the use of minecart trains with adjustable settings
 depend: [BKCommonLib]
