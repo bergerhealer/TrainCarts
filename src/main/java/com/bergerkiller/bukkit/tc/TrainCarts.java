@@ -228,11 +228,17 @@ public class TrainCarts extends PluginBase {
      */
     public static void sendMessage(Player player, String text) {
         if (TCConfig.SignLinkEnabled) {
-            int startindex, endindex;
-            while ((startindex = text.indexOf('%')) != -1 && (endindex = text.indexOf('%', startindex + 1)) != -1) {
+            //TODO: SignLink 1.16.5-v1 supports far more functionality, such as escaping using %% and
+            //      filtering out variable names with spaces in them. This code doesn't do that.
+            //      Improvements could definitely be made.
+            int startindex, endindex = 0;
+            while ((startindex = text.indexOf('%', endindex)) != -1 && (endindex = text.indexOf('%', startindex + 1)) != -1) {
                 String varname = text.substring(startindex + 1, endindex);
                 String value = varname.isEmpty() ? "%" : Variables.get(varname).get(player.getName());
                 text = text.substring(0, startindex) + value + text.substring(endindex + 1);
+
+                // Search from beyond this point to avoid infinite loops if value contains %-characters
+                endindex = startindex + value.length();
             }
         }
         player.sendMessage(text);
