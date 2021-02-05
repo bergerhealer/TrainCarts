@@ -33,15 +33,16 @@ public enum CollisionMobCategory {
     UTILITY_MOBS("utility", "utilities", EntityCategory.UTILITY.getEntityClasses(), "Utility Mobs", CollisionMode.DEFAULT),
     BOSS_MOBS("boss", "bosses", EntityCategory.BOSS.getEntityClasses(), "Boss Mobs", CollisionMode.DEFAULT);
 
-    private String mobType;
-    private String friendlyMobName;
-    private String pluralMobType;
+    private final String mobType;
+    private final String pluralMobType;
+    private final String friendlyMobName;
     private CollisionMode defaultCollisionMode;
     private Set<Class<?>> entityClasses;
 
     CollisionMobCategory(String mobType, String pluralMobType, Set<Class<?>> entityClasses, String friendlyMobName, CollisionMode defaultCollisionMode) {
-        this.setMobType(mobType);
-        this.setFriendlyMobName(friendlyMobName);
+        this.mobType = mobType;
+        this.pluralMobType = pluralMobType;
+        this.friendlyMobName = friendlyMobName;
         this.setDefaultCollisionMode(defaultCollisionMode);
         this.setEntityClasses(entityClasses);
     }
@@ -57,10 +58,6 @@ public enum CollisionMobCategory {
 
     public String getMobType() {
         return mobType;
-    }
-
-    public void setMobType(String mobType) {
-        this.mobType = mobType;
     }
 
     /**
@@ -112,16 +109,8 @@ public enum CollisionMobCategory {
         return friendlyMobName;
     }
 
-    public void setFriendlyMobName(String friendlyMobName) {
-        this.friendlyMobName = friendlyMobName;
-    }
-
     public String getPluralMobType() {
         return this.pluralMobType;
-    }
-
-    public void setPluralMobType(String pluralMobType) {
-        this.pluralMobType = pluralMobType;
     }
 
     public CollisionMode getDefaultCollisionMode() {
