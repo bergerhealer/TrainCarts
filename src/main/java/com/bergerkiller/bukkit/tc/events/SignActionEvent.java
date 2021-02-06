@@ -401,7 +401,12 @@ public class SignActionEvent extends Event implements Cancellable {
             }
 
             // Compute the position at the start of the rail's path by walking 'back'
-            RailPath.Position pos = RailPath.Position.fromPosDir(memberRail.state.enterPosition(), memberRail.state.enterDirection());
+            RailPath.Position pos;
+            {
+                RailState tmp = memberRail.state.cloneAndInvertMotion();
+                memberRail.getPath().move(tmp, Double.MAX_VALUE);
+                pos = tmp.position();
+            }
 
             // Find the junction closest to this start position
             double min_dist = Double.MAX_VALUE;
