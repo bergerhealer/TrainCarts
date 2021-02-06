@@ -460,6 +460,10 @@ public class TrainCarts extends PluginBase {
         //Init signs
         SignAction.init();
 
+        // Start the path finding task
+        this.pathProvider = new PathProvider(this);
+        this.pathProvider.enable(getDataFolder() + File.separator + "destinations.dat");
+
         //Load properties
         TrainProperties.load();
 
@@ -474,10 +478,6 @@ public class TrainCarts extends PluginBase {
 
         //Convert Minecarts
         MinecartMemberStore.convertAllAutomatically();
-
-        // Start the path finding task
-        this.pathProvider = new PathProvider(this);
-        this.pathProvider.enable(getDataFolder() + File.separator + "destinations.dat");
 
         //Load arrival times
         ArrivalSigns.init(getDataFolder() + File.separator + "arrivaltimes.txt");
