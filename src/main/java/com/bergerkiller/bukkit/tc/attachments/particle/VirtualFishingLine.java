@@ -73,12 +73,11 @@ public class VirtualFishingLine {
             spawnPacket.setPosX(positionB.getX() + OFFSET_HOOKED.getX());
             spawnPacket.setPosY(positionB.getY() + OFFSET_HOOKED.getY());
             spawnPacket.setPosZ(positionB.getZ() + OFFSET_HOOKED.getZ());
-            PacketUtil.sendPacket(viewer, spawnPacket);
 
             DataWatcher meta = new DataWatcher();
             meta.set(EntityHandle.DATA_NO_GRAVITY, true);
             meta.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, true);
-            PacketUtil.sendPacket(viewer, PacketPlayOutEntityMetadataHandle.createNew(this.hookedEntityId, meta, true));
+            PacketUtil.sendEntityLivingSpawnPacket(viewer, spawnPacket, meta);
         }
 
         // Spawn the fishing hook connecting the two
