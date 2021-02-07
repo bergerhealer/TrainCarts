@@ -91,6 +91,7 @@ public class TCConfig {
     public static boolean playHissWhenDestroyedBySign = true;
     public static boolean playHissWhenLinked = true;
     public static boolean playHissWhenCartRemoved = true;
+    public static boolean rerouteOnStartup = false;
     public static String launchFunctionType = "bezier";
     public static boolean parseOldSigns;
     public static boolean allowParenthesesFormat = true;
@@ -419,6 +420,9 @@ public class TCConfig {
         config.addHeader("onlyPoweredEmptySwitchersDoPathfinding", "When false, the original behavior is used, where any switcher sign handles path finding");
         config.addHeader("onlyPoweredEmptySwitchersDoPathfinding", "False will allow switching of trains overriding standard path finding");
         onlyPoweredEmptySwitchersDoPathfinding = config.get("onlyPoweredEmptySwitchersDoPathfinding", false);
+
+        config.setHeader("rerouteOnStartup", "\nWhen enabled, re-calculates all path finding routes on plugin startup");
+        rerouteOnStartup = config.get("rerouteOnStartup", false);
 
         parsers.clear();
 
