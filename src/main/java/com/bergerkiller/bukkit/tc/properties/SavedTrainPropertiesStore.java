@@ -67,7 +67,12 @@ public class SavedTrainPropertiesStore {
             }
             for (File file : StreamUtil.listFiles(dir)) {
                 String name = file.getName();
-                createModule(name);
+                String ext = name.toLowerCase(Locale.ENGLISH);
+                if (ext.endsWith(".yml")) {
+                    createModule(name);
+                } else if (ext.endsWith(".zip")) {
+                    TrainCarts.plugin.getLogger().warning("Zip files are not read, please extract '" + name + "'!");
+                }
             }
         } else {
             throw new UnsupportedOperationException("This store is not authorized to load modules");
