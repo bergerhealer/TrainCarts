@@ -8,6 +8,8 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.actions.GroupActionWaitPathFinding;
+import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
@@ -20,19 +22,39 @@ import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Set;
+import java.util.UUID;
 
 public class SignActionSwitcher extends SignAction {
-    private BlockMap<AtomicInteger> switchedTimes = new BlockMap<>();
+    private BlockMap<CounterState> switchedTimes = new BlockMap<>();
 
-    private AtomicInteger getSwitchedTimes(Block signblock) {
-        AtomicInteger i = switchedTimes.get(signblock);
+    private CounterState getSwitchedTimes(Block signblock) {
+        CounterState i = switchedTimes.get(signblock);
         if (i == null) {
-            i = new AtomicInteger();
+            i = new CounterState();
             switchedTimes.put(signblock, i);
         }
         return i;
+    }
+
+    /**
+     * As trains leave the switcher sign, we will want to clean
+     * up the counter state tracked for it
+     *
+     * @param info
+     */
+    private void cleanupCountersOnLeave(SignActionEvent info) {
+        if (info.isAction(SignActionType.GROUP_LEAVE)) {
+            CounterState state = switchedTimes.get(info.getBlock());
+            if (state != null) {
+                for (MinecartMember<?> member : info.getGroup()) {
+                    state.syncLeave(member);
+                }
+            }
+        }
     }
 
     private static List<DirectionStatement> parseDirectionStatements(SignActionEvent info) {
@@ -89,6 +111,8 @@ public class SignActionSwitcher extends SignAction {
             }
         }
 
+        cleanupCountersOnLeave(info);
+
         boolean toggleRails = info.isCartSign() ? info.isAction(SignActionType.MEMBER_ENTER) : info.isAction(SignActionType.GROUP_ENTER);
         boolean doCart = false;
         boolean doTrain = false;
@@ -123,34 +147,35 @@ public class SignActionSwitcher extends SignAction {
                 //parse all of the statements
                 //are we going to use a counter?
                 int maxcount = 0;
-                int currentcount = 0;
-                AtomicInteger signcounter = null;
+                CounterState signcounter = null;
                 for (DirectionStatement stat : statements) {
                     //System.out.println(stat.toString());
                     if (stat.hasNumber()) {
                         maxcount += stat.number;
                         if (signcounter == null) {
                             signcounter = getSwitchedTimes(info.getBlock());
-                            if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)) {
-                                currentcount = signcounter.getAndIncrement();
-                            } else if (info.isAction(SignActionType.REDSTONE_ON) && !stat.isSwitchedFromSelf()) {
-                                currentcount = signcounter.getAndIncrement();
-                            } else {
-                                currentcount = signcounter.get();
-                            }
+                            signcounter.syncEnter(info.getGroup(), info.getRails());
                         }
                     }
                 }
-                if (signcounter != null && currentcount >= maxcount) {
-                    signcounter.set(1);
-                    currentcount = 0;
+
+                // Increment counter every time a new cart enters the sign
+                if (signcounter != null) {
+                    if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)) {
+                        signcounter.counter++;
+                    } else if (info.isAction(SignActionType.REDSTONE_ON) && hasFromDirections) {
+                        signcounter.counter++;
+                    }
+                    if (signcounter.counter > maxcount) {
+                        signcounter.counter = 1;
+                    }
                 }
 
-                int counter = 0;
+                int counter = 1; // counter starts at 1 due to increment
                 DirectionStatement dir = null;
                 for (DirectionStatement stat : statements) {
                     // Counter logic
-                    if (stat.hasNumber() && (counter += stat.number) > currentcount) {
+                    if (stat.hasNumber() && (counter += stat.number) > signcounter.counter) {
                         dir = stat;
                         break;
                     }
@@ -272,5 +297,82 @@ public class SignActionSwitcher extends SignAction {
     @Override
     public boolean overrideFacing() {
         return true;
+    }
+
+    /**
+     * Tracks the counter state of counters on a switcher sign.
+     * Not persistent.
+     */
+    private static class CounterState {
+        public int counter = 0;
+        public Set<UUID> uuidsToIgnore = Collections.emptySet();
+
+        /**
+         * Synchronizes the counter. If it finds out an entirely new
+         * group hit the switcher sign, resets the counter.
+         *
+         * @param group
+         * @param railBlock
+         */
+        public void syncEnter(MinecartGroup group, Block railBlock) {
+            if (!TCConfig.switcherResetCountersOnFirstCart) {
+                return;
+            }
+
+            boolean isNewGroup = !isGroupTracked(group);
+            addAll(group);
+            if (isNewGroup) {
+                this.counter = 0;
+                if (uuidsToIgnore.size() != group.size()) {
+                    // Weird situation that there are carts not
+                    // tracked by the group. Sync up!
+                    uuidsToIgnore.clear();
+                    addAll(group);
+                    if (railBlock != null) {
+                        RailMemberCache.findAll(railBlock).stream()
+                            .map(MinecartMember::getGroup)
+                            .distinct()
+                            .forEach(this::addAll);
+                    }
+                }
+            }
+        }
+
+        /**
+         * Cleans up tracked uuids as carts leave the sign
+         *
+         * @param member
+         */
+        public void syncLeave(MinecartMember<?> member) {
+            if (!TCConfig.switcherResetCountersOnFirstCart) {
+                return;
+            }
+
+            // Remove from set, once empty, set to empty constant
+            if (!uuidsToIgnore.isEmpty()) {
+                uuidsToIgnore.remove(member.getEntity().getUniqueId());
+                if (uuidsToIgnore.isEmpty()) {
+                    uuidsToIgnore = Collections.emptySet();
+                }
+            }
+        }
+
+        private void addAll(MinecartGroup group) {
+            if (uuidsToIgnore.isEmpty()) {
+                uuidsToIgnore = new HashSet<>();
+            }
+            for (MinecartMember<?> member : group) {
+                uuidsToIgnore.add(member.getEntity().getUniqueId());
+            }
+        }
+
+        private boolean isGroupTracked(MinecartGroup group) {
+            for (MinecartMember<?> member : group) {
+                if (uuidsToIgnore.contains(member.getEntity().getUniqueId())) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }

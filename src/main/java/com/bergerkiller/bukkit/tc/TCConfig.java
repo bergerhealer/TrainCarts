@@ -92,6 +92,7 @@ public class TCConfig {
     public static boolean playHissWhenLinked = true;
     public static boolean playHissWhenCartRemoved = true;
     public static boolean rerouteOnStartup = false;
+    public static boolean switcherResetCountersOnFirstCart = true;
     public static String launchFunctionType = "bezier";
     public static boolean parseOldSigns;
     public static boolean allowParenthesesFormat = true;
@@ -423,6 +424,10 @@ public class TCConfig {
 
         config.setHeader("rerouteOnStartup", "\nWhen enabled, re-calculates all path finding routes on plugin startup");
         rerouteOnStartup = config.get("rerouteOnStartup", false);
+
+        config.setHeader("switcherResetCountersOnFirstCart", "\nFor [cart] signs that use counter statements, specifies whether");
+        config.addHeader("switcherResetCountersOnFirstCart", "counters reset on the first cart of the train");
+        switcherResetCountersOnFirstCart = config.get("switcherResetCountersOnFirstCart", true);
 
         parsers.clear();
 
