@@ -81,6 +81,7 @@ public class PathProvider extends Task {
                         }
                     }
                 }
+
                 // Generating connections
                 for (PathNode node : parr) {
                     int ncount = stream.readInt();
@@ -88,6 +89,9 @@ public class PathProvider extends Task {
                         node.addNeighbourFast(new PathConnection(parr[stream.readInt()], stream));
                     }
                 }
+
+                // Cancel all scheduled (pending) nodes
+                pendingNodes.clear();
             }
         }.read();
 
