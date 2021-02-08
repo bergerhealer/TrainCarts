@@ -150,12 +150,12 @@ public class SignActionSwitcher extends SignAction {
                 CounterState signcounter = null;
                 for (DirectionStatement stat : statements) {
                     //System.out.println(stat.toString());
-                    if (stat.hasNumber()) {
-                        maxcount += stat.number;
+                    if (stat.hasCounter()) {
                         if (signcounter == null) {
                             signcounter = getSwitchedTimes(info.getBlock());
                             signcounter.syncEnter(info.getGroup(), info.getRails());
                         }
+                        maxcount += stat.counter.get(signcounter.startLength);
                     }
                 }
 
@@ -175,7 +175,7 @@ public class SignActionSwitcher extends SignAction {
                 DirectionStatement dir = null;
                 for (DirectionStatement stat : statements) {
                     // Counter logic
-                    if (stat.hasNumber() && (counter += stat.number) > signcounter.counter) {
+                    if (stat.hasCounter() && (counter += stat.counter.get(signcounter.startLength)) > signcounter.counter) {
                         dir = stat;
                         break;
                     }
@@ -305,6 +305,7 @@ public class SignActionSwitcher extends SignAction {
      */
     private static class CounterState {
         public int counter = 0;
+        public int startLength = 0;
         public Set<UUID> uuidsToIgnore = Collections.emptySet();
 
         /**
@@ -322,7 +323,10 @@ public class SignActionSwitcher extends SignAction {
             boolean isNewGroup = !isGroupTracked(group);
             addAll(group);
             if (isNewGroup) {
-                this.counter = 0;
+                this.startLength = group.size();
+                if (TCConfig.switcherResetCountersOnFirstCart) {
+                    this.counter = 0;
+                }
                 if (uuidsToIgnore.size() != group.size()) {
                     // Weird situation that there are carts not
                     // tracked by the group. Sync up!
@@ -344,10 +348,6 @@ public class SignActionSwitcher extends SignAction {
          * @param member
          */
         public void syncLeave(MinecartMember<?> member) {
-            if (!TCConfig.switcherResetCountersOnFirstCart) {
-                return;
-            }
-
             // Remove from set, once empty, set to empty constant
             if (!uuidsToIgnore.isEmpty()) {
                 uuidsToIgnore.remove(member.getEntity().getUniqueId());
