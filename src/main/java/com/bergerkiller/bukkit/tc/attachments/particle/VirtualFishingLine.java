@@ -17,6 +17,7 @@ import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityDestroyHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityTeleportHandle;
+import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutMountHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutNamedEntitySpawnHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutSpawnEntityHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutSpawnEntityLivingHandle;
@@ -26,9 +27,13 @@ import com.bergerkiller.mountiplex.reflection.SafeField;
  * Tracks and updates a single fishing line connecting two points
  */
 public class VirtualFishingLine {
-    private static final Vector OFFSET_HOLDER = new Vector(-0.35, -1.17, -0.8);
+    /** Offset to position the player so that the held fishing rod line is exactly at 0/0/0 */
+    private static final Vector OFFSET_PLAYER = new Vector(-0.35, -1.17, -0.8);
+    /** Offset to position the silverfish mount of the player to align at 0/0/0 */
+    private static final Vector OFFSET_HOLDER = new Vector(-0.35, -1.04, -0.8);
+    /** Offset to position the hooked silverfish entity to align hook-line at 0/0/0 */
     private static final Vector OFFSET_HOOKED = new Vector(0.0, - 0.49, 0.0);
-    private final int hookedEntityId, holderEntityId, hookEntityId;
+    private final int hookedEntityId, holderEntityId, holderPlayerEntityId, hookEntityId;
 
     public VirtualFishingLine() {
         this(false);
@@ -37,6 +42,7 @@ public class VirtualFishingLine {
     public VirtualFishingLine(boolean useViewerAsHolder) {
         this.hookedEntityId = EntityUtil.getUniqueEntityId();
         this.holderEntityId = useViewerAsHolder ? -1 : EntityUtil.getUniqueEntityId();
+        this.holderPlayerEntityId = useViewerAsHolder ? -1 : EntityUtil.getUniqueEntityId();
         this.hookEntityId = EntityUtil.getUniqueEntityId();
     }
 
@@ -50,10 +56,27 @@ public class VirtualFishingLine {
     public void spawn(Player viewer, Vector positionA, Vector positionB) {
         // Spawn the invisible entity that holds the other end of the fishing hook
         // Seems that this must be a player entity, so just spawn clones of the viewer
-        if (this.holderEntityId != -1) {
+        if (this.holderPlayerEntityId != -1) {
             PacketPlayOutNamedEntitySpawnHandle spawnPacket = PacketPlayOutNamedEntitySpawnHandle.T.newHandleNull();
-            spawnPacket.setEntityId(this.holderEntityId);
+            spawnPacket.setEntityId(this.holderPlayerEntityId);
             spawnPacket.setEntityUUID(viewer.getUniqueId());
+            spawnPacket.setPosX(positionA.getX() + OFFSET_PLAYER.getX());
+            spawnPacket.setPosY(positionA.getY() + OFFSET_PLAYER.getY());
+            spawnPacket.setPosZ(positionA.getZ() + OFFSET_PLAYER.getZ());
+
+            DataWatcher meta = new DataWatcher();
+            meta.set(EntityHandle.DATA_NO_GRAVITY, true);
+            meta.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, true);
+            PacketUtil.sendNamedEntitySpawnPacket(viewer, spawnPacket, meta);
+        }
+
+        // This is a vehicle the fake player entity sits in. We must put the player in
+        // a vehicle, otherwise the player ends up rotating when moved.
+        if (this.holderEntityId != -1) {
+            PacketPlayOutSpawnEntityLivingHandle spawnPacket = PacketPlayOutSpawnEntityLivingHandle.createNew();
+            spawnPacket.setEntityId(this.holderEntityId);
+            spawnPacket.setEntityUUID(UUID.randomUUID());
+            spawnPacket.setEntityType(EntityType.SILVERFISH);
             spawnPacket.setPosX(positionA.getX() + OFFSET_HOLDER.getX());
             spawnPacket.setPosY(positionA.getY() + OFFSET_HOLDER.getY());
             spawnPacket.setPosZ(positionA.getZ() + OFFSET_HOLDER.getZ());
@@ -61,7 +84,10 @@ public class VirtualFishingLine {
             DataWatcher meta = new DataWatcher();
             meta.set(EntityHandle.DATA_NO_GRAVITY, true);
             meta.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, true);
-            PacketUtil.sendNamedEntitySpawnPacket(viewer, spawnPacket, meta);
+            PacketUtil.sendEntityLivingSpawnPacket(viewer, spawnPacket, meta);
+
+            PacketUtil.sendPacket(viewer, PacketPlayOutMountHandle.createNew(
+                    this.holderEntityId, new int[] { this.holderPlayerEntityId }));
         }
 
         // Spawn the invisible entity that is hooked by a fishing hook
@@ -90,7 +116,7 @@ public class VirtualFishingLine {
             spawnPacket.setPosX(positionB.getX());
             spawnPacket.setPosY(positionB.getY());
             spawnPacket.setPosZ(positionB.getZ());
-            spawnPacket.setExtraData((this.holderEntityId == -1) ? viewer.getEntityId() : this.holderEntityId);
+            spawnPacket.setExtraData((this.holderPlayerEntityId == -1) ? viewer.getEntityId() : this.holderPlayerEntityId);
             PacketUtil.sendPacket(viewer, spawnPacket);
 
             // Metadata packet
@@ -139,8 +165,14 @@ public class VirtualFishingLine {
      * @param viewer
      */
     public void destroy(Player viewer) {
-        PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNew(
-                new int[] { this.hookedEntityId, this.holderEntityId, this.hookEntityId }));
+        if (this.holderEntityId == -1) {
+            PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNew(
+                    new int[] { this.hookedEntityId, this.hookEntityId }));
+        } else {
+            PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNew(
+                    new int[] { this.hookedEntityId, this.holderEntityId,
+                            this.holderPlayerEntityId, this.hookEntityId }));
+        }
     }
 
     // Note: can be removed once BKCommonLib 1.16.5-v2 or later becomes a dependency
