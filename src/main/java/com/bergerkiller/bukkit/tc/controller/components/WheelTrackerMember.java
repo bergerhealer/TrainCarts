@@ -113,15 +113,21 @@ public class WheelTrackerMember {
     public Vector getPosition() {
         if (this._position == null) {
             // Take average of the two wheel positions for where the Minecart should be
-            // TODO: Is this actually correct?
-            double diff = back().getDistance() - front().getDistance();
+            double diff = (back().getDistance() - front().getDistance());
 
             this._position = new Vector();
             this._position.add(front().getPosition());
             this._position.add(back().getPosition());
             if (diff != 0.0) {
                 Vector dir = front().getPosition().clone().subtract(back().getPosition());
-                this._position.add(dir.multiply(diff));
+                double n = MathUtil.getNormalizationFactor(dir);
+                if (n < 1e10) {
+                    dir.multiply(n * diff);
+                } else {
+                    // Unusable, fallback
+                    dir = getOwner().getOrientationForward().multiply(diff);
+                }
+                this._position.add(dir);
             }
             this._position.multiply(0.5);
             this._position.add(this._owner.getEntity().loc.vector());
