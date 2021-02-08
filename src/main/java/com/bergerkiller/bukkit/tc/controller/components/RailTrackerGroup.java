@@ -327,17 +327,18 @@ public class RailTrackerGroup extends RailTracker {
             TrackWalkingPoint p = new TrackWalkingPoint(startInfo.state);
 
             int limit = 1000;
-            while (p.moveStep(wheelDistance - p.movedTotal)) {
-                this.rails.add(++railIndex, new TrackedRail(tail, p, false));
-                if (--limit == 0) {
+            do {
+                if (p.moveStep(wheelDistance - p.movedTotal) && --limit == 0) {
                     TrainCarts.plugin.log(Level.WARNING, "Reached maximum loops refreshing front wheel position (" +
-                        "train=" + this.owner.getProperties().getTrainName() +
-                        " x=" + tail.getEntity().loc.getX() +
-                        " y=" + tail.getEntity().loc.getY() +
-                        " z=" + tail.getEntity().loc.getZ() + ")");
-                    break;
+                            "train=" + this.owner.getProperties().getTrainName() +
+                            " x=" + tail.getEntity().loc.getX() +
+                            " y=" + tail.getEntity().loc.getY() +
+                            " z=" + tail.getEntity().loc.getZ() + ")");
+                        break;
                 }
-            }
+
+                this.rails.add(++railIndex, new TrackedRail(tail, p, false));
+            } while (p.failReason == TrackWalkingPoint.FailReason.NONE);
 
             //Location loc = position.toLocation(owner.getWorld());
             //Util.spawnParticle(loc, Particle.WATER_BUBBLE);
@@ -481,12 +482,22 @@ public class RailTrackerGroup extends RailTracker {
                     p = new TrackWalkingPoint(state);
                 }
 
-                while (p.moveStep(wheelDistance - p.movedTotal)) {
+                int limit = 1000;
+                do {
+                    if (p.moveStep(wheelDistance - p.movedTotal) && --limit == 1000) {
+                        TrainCarts.plugin.log(Level.WARNING, "Reached maximum loops refreshing back wheel position (" +
+                                "train=" + this.owner.getProperties().getTrainName() +
+                                " x=" + tail.getEntity().loc.getX() +
+                                " y=" + tail.getEntity().loc.getY() +
+                                " z=" + tail.getEntity().loc.getZ() + ")");
+                            break;
+                    }
+
                     TrackedRail rail = new TrackedRail(tail, p, false);
                     rail = rail.invertMotionVector();
                     rail.cachedPath = p.currentRailPath;
                     this.rails.add(railIndex, rail);
-                }
+                } while (p.failReason == TrackWalkingPoint.FailReason.NONE);
             }
 
             if (position != null) {
