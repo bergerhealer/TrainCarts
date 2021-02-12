@@ -378,7 +378,8 @@ public class TCListener implements Listener {
         }
 
         final Entity e = event.getExited();
-        final Location old_location = e.getLocation();
+        final Location old_entity_location = e.getLocation();
+        final Location old_seat_location = mm.getPassengerLocation(e);
         final Location loc = mm.getPassengerEjectLocation(e);
 
         // Teleport to the exit position a tick later
@@ -391,17 +392,12 @@ public class TCListener implements Listener {
                 // Do not teleport if the player changed position dramatically after exiting
                 // This is the case when teleporting (/tp)
                 // The default vanilla exit position is going to be at most 1 block away in all axis
+                // Check both seat and entity location. Players can sync their perceived seat
+                // location which the server accepts as an actual position.
                 Location new_location = e.getLocation();
-                if (old_location.getWorld() != new_location.getWorld()) {
-                    return;
-                }
-                if (Math.abs(old_location.getBlockX() - new_location.getBlockX()) > 1) {
-                    return;
-                }
-                if (Math.abs(old_location.getBlockY() - new_location.getBlockY()) > 1) {
-                    return;
-                }
-                if (Math.abs(old_location.getBlockZ() - new_location.getBlockZ()) > 1) {
+                if (!isPossibleExit(new_location, old_entity_location)
+                        && !isPossibleExit(new_location, old_seat_location))
+                {
                     return;
                 }
 
@@ -411,6 +407,22 @@ public class TCListener implements Listener {
         });
         mm.resetCollisionEnter();
         mm.onPropertiesChanged();
+    }
+
+    /**
+     * Minecraft client 'predicts' a stable exit for the player around
+     * the seat being exited. This method checks whether the current player
+     * position is within range that this could be.
+     *
+     * @param a Position A
+     * @param b Position B
+     * @return True if a is a possible exit of b (or vice-versa)
+     */
+    private static boolean isPossibleExit(Location a, Location b) {
+        return a.getWorld() == b.getWorld()
+                && Math.abs(a.getBlockX() - b.getBlockX()) <= 2
+                && Math.abs(a.getBlockY() - b.getBlockY()) <= 5
+                && Math.abs(a.getBlockZ() - b.getBlockZ()) <= 2;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
