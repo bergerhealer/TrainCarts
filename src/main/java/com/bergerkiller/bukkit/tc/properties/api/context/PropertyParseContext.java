@@ -1,11 +1,12 @@
-package com.bergerkiller.bukkit.tc.properties.api;
+package com.bergerkiller.bukkit.tc.properties.api.context;
 
 import java.util.regex.MatchResult;
 
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
-import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
-import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.api.IProperty;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 
 /**
  * Argument passed to {@link PropertyParser} annotated methods
@@ -14,15 +15,14 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
  * 
  * @param <T> Type of value to parse
  */
-public final class PropertyParseContext<T> {
-    private final IProperties properties;
+public final class PropertyParseContext<T> extends PropertyContext {
     private final T current;
     private final String name;
     private final String input;
     private final MatchResult matchResult;
 
     public PropertyParseContext(IProperties properties, T current, String name, String input, MatchResult matchResult) {
-        this.properties = properties;
+        super(properties);
         this.current = current;
         this.name = name;
         this.input = input;
@@ -112,54 +112,5 @@ public final class PropertyParseContext<T> {
      */
     public T current() {
         return this.current;
-    }
-
-    /**
-     * Retrieves the cart properties that are being parsed if
-     * {@link #isCartProperties()} is true, otherwise returns
-     * <i>null</i>
-     * 
-     * @return Cart properties, null if the parse operation is on an entire train
-     */
-    public CartProperties cartProperties() {
-        return isCartProperties() ? ((CartProperties) this.properties) : null;
-    }
-
-    /**
-     * Retrieves the train properties that are being parsed.
-     * If {@link #isTrainProperties()} is true, then these
-     * properties are returned. If {@link #isCartProperties()} is
-     * true instead, then the train properties of the cart properties
-     * are returned. If neither returns true, then the caller did
-     * not specify properties being parsed, and null is returned.
-     * 
-     * @return Train Properties, null if no properties were specified
-     */
-    public TrainProperties trainProperties() {
-        if (isTrainProperties()) {
-            return (TrainProperties) this.properties;
-        } else if (isCartProperties()) {
-            return ((CartProperties) this.properties).getTrainProperties();
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * Gets whether currently cart properties are being parsed
-     * 
-     * @return True if cart properties are being parsed
-     */
-    public boolean isCartProperties() {
-        return this.properties instanceof CartProperties;
-    }
-
-    /**
-     * Gets whether currently train properties are being parsed
-     * 
-     * @return True if train properties are being parsed
-     */
-    public boolean isTrainProperties() {
-        return this.properties instanceof TrainProperties;
     }
 }

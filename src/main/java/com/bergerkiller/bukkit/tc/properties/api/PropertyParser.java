@@ -5,6 +5,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
+
 /**
  * Declares a member method of an {@link IProperty} as being
  * a property parser. The regex defined by this annotation
