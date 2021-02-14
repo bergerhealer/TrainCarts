@@ -924,7 +924,7 @@ public class TCListener implements Listener {
                     signItemType = MaterialUtil.getFirst("OAK_SIGN", "LEGACY_SIGN");
                 } else if (signBlockType.name().contains("_WALL_")) {
                     // BIRCH_WALL_SIGN -> BIRCH_SIGN
-                    signItemType = MaterialUtil.getMaterial(signBlockType.name().replace("_WALL_", ""));
+                    signItemType = MaterialUtil.getMaterial(signBlockType.name().replace("_WALL_", "_"));
                     if (signItemType == null) {
                         // Fallback to at least return 'a' sign
                         signItemType = MaterialUtil.getFirst("OAK_SIGN", "LEGACY_SIGN");
