@@ -585,10 +585,28 @@ public class SavedTrainPropertiesStore {
     private void storeSavedNameInConfig() {
         // Stores the key of each saved train node in the configuration itself
         // This is done automatically, so this is a migration method to update old config
+        // If people change this field, revert that and log a warning
+        boolean logSavedNameFieldWarning = false;
         for (ConfigurationNode config : this.savedTrainsConfig.getNodes()) {
             if (!config.contains(KEY_SAVED_NAME)) {
                 config.set(KEY_SAVED_NAME, config.getName());
+                continue;
             }
+
+            String setName = config.get(KEY_SAVED_NAME, config.getName());
+            if (!config.getName().equals(setName)) {
+                // Note: people may have intended to rename these properties
+                // It is best to notify about this.
+                TrainCarts.plugin.log(Level.WARNING, "Saved train '" + config.getName() + "' has a different "
+                        + "name set: '" + setName + "'");
+                logSavedNameFieldWarning = true;
+
+                config.set(KEY_SAVED_NAME, config.getName());
+            }
+        }
+        if (logSavedNameFieldWarning) {
+            TrainCarts.plugin.log(Level.WARNING, "If the intention was to rename the train, instead "
+                    + "rename the key, not field '" + KEY_SAVED_NAME + "'");
         }
     }
 
