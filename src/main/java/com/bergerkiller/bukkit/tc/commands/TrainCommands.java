@@ -59,14 +59,16 @@ public class TrainCommands {
 
         if (sender instanceof Player && !properties.isOwner((Player) sender)) {
             if (!properties.hasOwners()) {
-                message.newLine().yellow("Note: This train is not owned, claim it using /train claim!");
+                message.yellow("Note: This train is not owned, claim it using /train claim!");
+                message.newLine().newLine();
             }
         }
-        message.newLine().yellow("Train name: ").white(properties.getTrainName());
-        message.newLine().yellow("Keep nearby chunks loaded: ").white(properties.isKeepingChunksLoaded());
 
+        StandardProperties.TRAIN_NAME_FORMAT.appendNameInfo(message, properties, "Train name: ");
         StandardProperties.SLOWDOWN.appendSlowdownInfo(message.newLine(), properties);
         StandardProperties.COLLISION.appendCollisionInfo(message.newLine(), properties);
+
+        message.newLine().yellow("Keep nearby chunks loaded: ").white(properties.isKeepingChunksLoaded());
 
         if (properties.getHolder() != null) {
             message.newLine().yellow("Current speed: ");
@@ -127,7 +129,6 @@ public class TrainCommands {
 
         ConfigurationNode exportedConfig = group.saveConfig();
         exportedConfig.remove("claims");
-        exportedConfig.set("name", name);
         Commands.exportTrain(sender, name, exportedConfig);
     }
 

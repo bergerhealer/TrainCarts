@@ -42,6 +42,7 @@ import com.bergerkiller.bukkit.tc.properties.standard.type.BankingOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SlowdownMode;
+import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
 import com.bergerkiller.bukkit.tc.properties.standard.type.WaitOptions;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
@@ -1046,7 +1047,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     public boolean isTrainRenamed() {
-        return !this.trainname.startsWith("train") || !ParseUtil.isNumeric(this.trainname.substring(5));
+        return !TrainNameFormat.DEFAULT.matches(getTrainName());
     }
 
     public boolean isLoaded() {

@@ -33,7 +33,7 @@ public class StandardProperties {
     public static final PlayerExitProperty ALLOW_PLAYER_EXIT = new PlayerExitProperty();
     public static final GravityProperty GRAVITY = new GravityProperty();
     public static final SpeedLimitProperty SPEEDLIMIT = new SpeedLimitProperty();
-    public static final TrainNameProperty TRAIN_NAME = new TrainNameProperty();
+    public static final TrainNameFormatProperty TRAIN_NAME_FORMAT = new TrainNameFormatProperty();
     public static final OnlyOwnersCanEnterProperty ONLY_OWNERS_CAN_ENTER = new OnlyOwnersCanEnterProperty();
     public static final PickUpItemsProperty PICK_UP_ITEMS = new PickUpItemsProperty();
     public static final SoundEnabledProperty SOUND_ENABLED = new SoundEnabledProperty();

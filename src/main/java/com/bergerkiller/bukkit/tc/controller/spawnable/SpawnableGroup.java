@@ -21,8 +21,9 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
-import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
+import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
+import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
@@ -55,16 +56,30 @@ public class SpawnableGroup {
     }
 
     /**
-     * Gets the name of the saved group information. If no name is set in the
-     * configuration, a default name is generated.
+     * Gets the name format of the saved group information.
+     * If no name is set in the configuration, the default
+     * train name format is returned instead.
+     *
+     * @return saved train name format
+     */
+    public TrainNameFormat getNameFormat() {
+        return StandardProperties.TRAIN_NAME_FORMAT.readFromConfig(this.config)
+                .orElse(StandardProperties.TRAIN_NAME_FORMAT.getDefault());
+    }
+
+    /**
+     * Gets the name under which this spawnable group was previously
+     * saved in the saved train properties store. If no such name
+     * is stored, generates a random name based on the name format,
+     * instead.
      *
      * @return saved train name, or a default generated name.
      */
     public String getSavedName() {
-        if (config.contains("name")) {
-            return config.get("name", "dummyname");
+        if (config.contains("savedName")) {
+            return config.get("savedName", "dummyname");
         } else {
-            return TrainProperties.generateTrainName();
+            return getNameFormat().generate(1);
         }
     }
 

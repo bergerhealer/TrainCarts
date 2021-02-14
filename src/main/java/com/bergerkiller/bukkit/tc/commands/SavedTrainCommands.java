@@ -211,8 +211,7 @@ public class SavedTrainCommands {
             final @Argument("savedtrainname") SavedTrainProperties savedTrain
     ) {
         ConfigurationNode exportedConfig = savedTrain.getConfig().clone();
-        exportedConfig.remove("claims");
-        exportedConfig.set("name", savedTrain.getName());
+        exportedConfig.remove("claims");;
         Commands.exportTrain(sender, savedTrain.getName(), exportedConfig);
     }
 

@@ -147,7 +147,9 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
 
     public static MinecartGroup spawn(SpawnableGroup spawnableGroup, SpawnableGroup.SpawnLocationList locations) {
         MinecartGroup group = new MinecartGroup();
+        group.setProperties(TrainPropertiesStore.createFromConfig(spawnableGroup.getConfig()));
         groups.add(group);
+
         for (int i = locations.locations.size() - 1; i >= 0; i--) {
             SpawnableMember.SpawnLocation loc = locations.locations.get(i);
             Location spawnLoc = loc.location;
@@ -158,8 +160,8 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
             // Spawn the minecart
             group.add(loc.member.spawn(spawnLoc));
         }
+
         group.updateDirection();
-        group.getProperties().load(spawnableGroup.getConfig());
         GroupCreateEvent.call(group);
         group.onGroupCreated();
         return group;
@@ -181,11 +183,11 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
     /**
      * Finds all the Minecart Groups that match the name with the expression given
      *
-     * @param expression to match to
+     * @param nameExpression Name expression to match train names against
      * @return a Collection of MinecartGroup that match (unmodifiable)
      */
-    public static Collection<MinecartGroup> matchAll(String expression) {
-        return TrainPropertiesStore.matchAll(expression).stream()
+    public static Collection<MinecartGroup> matchAll(String nameExpression) {
+        return TrainPropertiesStore.matchAll(nameExpression).stream()
                 .map(TrainProperties::getHolder)
                 .filter(Objects::nonNull)
                 .collect(StreamUtil.toUnmodifiableList());

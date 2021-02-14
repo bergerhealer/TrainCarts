@@ -10,8 +10,11 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
+import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
+import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -140,14 +143,14 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         TrainProperties prop = trainProperties.get(trainname);
         return (prop != null) ? prop : createDefaultWithName(trainname);
     }
-    
+
     /**
      * Generates a new train name using the default format.
      *
      * @return generated (unused) train name
      */
     public static String generateTrainName() {
-        return generateTrainName("train#");
+        return TrainNameFormat.DEFAULT.search(TrainPropertiesStore::isUseableName);
     }
 
     /**
@@ -159,26 +162,19 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
      * @return generated (unused) train name
      */
     public static String generateTrainName(String format) {
-        // No constant: append a number at the end or use full name
-        if (!format.contains("#")) {
-            // If possible, set the name as it is
-            if (exists(format)) {
-                // Already exists, append number
-                format = format + "#";
-            } else {
-                // Doesn't exist, use it directly
-                return format;
-            }
-        }
-        // Replace the numeric constant
-        String trainName = format;
-        for (int i = 1; i < Integer.MAX_VALUE; i++) {
-            trainName = format.replace("#", Integer.toString(i));
-            if (!exists(trainName)) {
-                break;
-            }
-        }
-        return trainName;
+        return TrainNameFormat.parse(format).search(TrainPropertiesStore::isUseableName);
+    }
+
+    /**
+     * Gets whether the train name matches a train name format used by
+     * {@link #generateTrainName(String)}.
+     *
+     * @param trainName Train name
+     * @param format Train name format (see {@link #generateTrainName(String)})
+     * @return True if train name matches the format, False if not
+     */
+    public static boolean isMatchingTrainNameFormat(String trainName, String format) {
+        return TrainNameFormat.parse(format).matches(trainName);
     }
 
     /**
@@ -274,7 +270,36 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         // Create new properties with this configuration
         TrainProperties prop = new TrainProperties(name, newTrainConfig);
         trainProperties.put(name, prop);
-        prop.onConfigurationChanged(true);
+        prop.onConfigurationChanged(false);
+
+        hasChanges = true;
+        return prop;
+    }
+
+    /**
+     * Creates a new TrainProperties value based off of (saved) train configuration.
+     * If a name format was stored in the configuration, this name format is used to
+     * generate the final train name.
+     *
+     * @param savedTrainConfig The saved train configuration to base the properties off of
+     * @return new Train Properties
+     */
+    public static TrainProperties createFromConfig(ConfigurationNode savedTrainConfig) {
+        // Decide on a name to use for the new properties object
+        String name = StandardProperties.TRAIN_NAME_FORMAT.readFromConfig(savedTrainConfig)
+                .orElse(TrainNameFormat.DEFAULT)
+                .search(TrainPropertiesStore::isUseableName);
+
+        // Initialize new properties with this name
+        ConfigurationNode newTrainConfig = config.getNode(name);
+
+        // Deep-copy old train configuration to the new one, skip 'carts'
+        savedTrainConfig.cloneIntoExcept(newTrainConfig, Collections.singleton("carts"));
+
+        // Create new properties with this configuration
+        TrainProperties prop = new TrainProperties(name, newTrainConfig);
+        trainProperties.put(name, prop);
+        prop.onConfigurationChanged(false);
 
         hasChanges = true;
         return prop;
@@ -288,6 +313,17 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
      */
     public static boolean exists(String trainname) {
         return trainProperties != null && trainProperties.containsKey(trainname);
+    }
+
+    /**
+     * Tests whether a given train name can be used for a new train.
+     * Simply inverse of {@link #exists(String)}.
+     *
+     * @param trainName Name to test
+     * @return True if the name can be used for a new train
+     */
+    public static boolean isUseableName(String trainName) {
+        return !exists(trainName);
     }
 
     /**
