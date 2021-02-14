@@ -911,18 +911,39 @@ public class TCListener implements Listener {
         SignAction.handleBuild(event);
         if (event.isCancelled()) {
             // Properly give the sign back to the player that placed it
+            // We do not want to place down an empty sign, that is annoying
             // If this is impossible for whatever reason, just drop it
-            if (!Util.canInstantlyBuild(event.getPlayer())) {
+            Material signBlockType = event.getBlock().getType();
+            if (!Util.canInstantlyBuild(event.getPlayer()) && MaterialUtil.ISSIGN.get(signBlockType)) {
+                // Find the type of item matching the sign type
+                Material signItemType;
+                if (signBlockType == MaterialUtil.getMaterial("LEGACY_SIGN_POST")
+                        || signBlockType == MaterialUtil.getMaterial("LEGACY_WALL_SIGN")
+                ) {
+                    // Legacy (pre-1.13 support)
+                    signItemType = MaterialUtil.getFirst("OAK_SIGN", "LEGACY_SIGN");
+                } else if (signBlockType.name().contains("_WALL_")) {
+                    // BIRCH_WALL_SIGN -> BIRCH_SIGN
+                    signItemType = MaterialUtil.getMaterial(signBlockType.name().replace("_WALL_", ""));
+                    if (signItemType == null) {
+                        // Fallback to at least return 'a' sign
+                        signItemType = MaterialUtil.getFirst("OAK_SIGN", "LEGACY_SIGN");
+                    }
+                } else {
+                    // Same as the sign block type
+                    signItemType = signBlockType;
+                }
+
                 ItemStack item = HumanHand.getItemInMainHand(event.getPlayer());
                 if (LogicUtil.nullOrEmpty(item)) {
-                    HumanHand.setItemInMainHand(event.getPlayer(), new ItemStack(Material.SIGN, 1));
-                } else if (MaterialUtil.isType(item, Material.SIGN) && item.getAmount() < ItemUtil.getMaxSize(item)) {
+                    HumanHand.setItemInMainHand(event.getPlayer(), new ItemStack(signItemType, 1));
+                } else if (MaterialUtil.isType(item, signItemType) && item.getAmount() < ItemUtil.getMaxSize(item)) {
                     ItemUtil.addAmount(item, 1);
                     HumanHand.setItemInMainHand(event.getPlayer(), item);
                 } else {
                     // Drop the item
                     Location loc = event.getBlock().getLocation().add(0.5, 0.5, 0.5);
-                    loc.getWorld().dropItemNaturally(loc, new ItemStack(Material.SIGN, 1));
+                    loc.getWorld().dropItemNaturally(loc, new ItemStack(signItemType, 1));
                 }
             }
 
