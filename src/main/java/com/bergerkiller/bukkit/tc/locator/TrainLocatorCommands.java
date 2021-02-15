@@ -112,20 +112,20 @@ public class TrainLocatorCommands {
         MessageBuilder message = new MessageBuilder();
         if (timeout == null) {
             if (plugin.getTrainLocator().start(sender, group)) {
-                message.green("Locating the cart for indefinite time");
+                message.green("Locating the train for indefinite time");
                 message.newLine();
-                message.green("To stop locating, use /cart locate stop");
+                message.green("To stop locating, use /train locate stop");
             } else {
-                message.red("Failed to locate this cart (different world?)");
+                message.red("Failed to locate this train (different world?)");
             }
         } else {
             int numTicks = MathUtil.ceil(timeout.doubleValue() * 20.0);
             if (plugin.getTrainLocator().start(sender, group, numTicks)) {
-                message.green("Locating the cart for ", timeout, " seconds");
+                message.green("Locating the train for ", timeout, " seconds");
                 message.newLine();
-                message.green("To stop locating, use /cart locate stop");
+                message.green("To stop locating, use /train locate stop");
             } else {
-                message.red("Failed to locate this cart (different world?)");
+                message.red("Failed to locate this train (different world?)");
             }
         }
         message.send(sender);
@@ -153,7 +153,7 @@ public class TrainLocatorCommands {
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_LOCATE)
     @CommandMethod("train locate stop")
-    @CommandDescription("Stops locating the selected cart, keeps locating other carts")
+    @CommandDescription("Stops locating the selected train, keeps locating other train")
     private void commandStopLocatingTrain(
             final Player sender,
             final TrainCarts plugin,
@@ -162,9 +162,9 @@ public class TrainLocatorCommands {
         MessageBuilder message = new MessageBuilder();
         String name = group.getProperties().getTrainName();
         if (plugin.getTrainLocator().stop(sender, group)) {
-            message.yellow("No longer locating cart of train ").white(name);
+            message.yellow("No longer locating train ").white(name);
         } else {
-            message.red("You were not locating this cart of train ", name);
+            message.red("You were not locating the train ", name);
         }
         message.send(sender);
     }
