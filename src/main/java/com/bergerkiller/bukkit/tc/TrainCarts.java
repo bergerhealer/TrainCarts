@@ -28,6 +28,7 @@ import com.bergerkiller.bukkit.tc.commands.selector.TCSelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.controller.*;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
+import com.bergerkiller.bukkit.tc.locator.TrainLocator;
 import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
 import com.bergerkiller.bukkit.tc.pathfinding.RouteManager;
 import com.bergerkiller.bukkit.tc.portals.TCPortalManager;
@@ -85,6 +86,7 @@ public class TrainCarts extends PluginBase {
     private GlowColorTeamProvider glowColorTeamProvider;
     private PathProvider pathProvider;
     private RouteManager routeManager;
+    private TrainLocator trainLocator;
     private final TCSelectorHandlerRegistry selectorHandlerRegistry = new TCSelectorHandlerRegistry(this);
     private Economy econ = null;
     private SmoothCoastersAPI smoothCoastersAPI;
@@ -177,6 +179,16 @@ public class TrainCarts extends PluginBase {
      */
     public SelectorHandlerRegistry getSelectorHandlerRegistry() {
         return this.selectorHandlerRegistry;
+    }
+
+    /**
+     * Gets the train locator manager, which is used to display a line from
+     * players to minecarts to locate them.
+     *
+     * @return train locator manager
+     */
+    public TrainLocator getTrainLocator() {
+        return this.trainLocator;
     }
 
     /**
@@ -435,6 +447,10 @@ public class TrainCarts extends PluginBase {
         //Initialize entity glow color provider
         this.glowColorTeamProvider = new GlowColorTeamProvider(this);
         this.glowColorTeamProvider.enable();
+
+        //Initialize train locator manager
+        this.trainLocator = new TrainLocator();
+        this.trainLocator.enable(this);
 
         //Initialize route manager
         this.routeManager = new RouteManager(getDataFolder() + File.separator + "routes.yml");
@@ -699,6 +715,9 @@ public class TrainCarts extends PluginBase {
         this.redstoneTracker.disable();
         this.redstoneTracker = null;
 
+        this.trainLocator.disable();
+        this.trainLocator = null;
+ 
         AttachmentTypeRegistry.instance().unregisterAll();
     }
 

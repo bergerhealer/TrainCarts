@@ -72,6 +72,7 @@ public enum Permission implements IPermissionEnum {
     COMMAND_ENTER("train.command.enter", PermissionDefault.OP, "Whether the player can use a command to enter the train/cart being edited"),
     COMMAND_LAUNCH("train.command.launch", PermissionDefault.OP, "Whether the player can use a command to launch the train being edited"),
     COMMAND_ANIMATE("train.command.animate", PermissionDefault.OP, "Whether the player can use a command to play an animation"),
+    COMMAND_LOCATE("train.command.locate", PermissionDefault.OP, "Whether the player can locate trains, which shows a line from player to trains"),
 
     SPAWNER_AUTOMATIC("train.spawner.automatic", PermissionDefault.TRUE, "The player can build spawners which automatically create carts"),
     SPAWNER_REGULAR("train.spawner.regular", PermissionDefault.TRUE, "The player can build spawners which create regular minecarts"),

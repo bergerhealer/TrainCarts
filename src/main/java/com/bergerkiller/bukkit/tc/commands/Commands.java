@@ -27,6 +27,7 @@ import com.bergerkiller.bukkit.tc.commands.parsers.FormattedSpeedParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.TrainTargetingFlags;
 import com.bergerkiller.bukkit.tc.commands.suggestions.AnimationName;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.exception.command.InvalidClaimPlayerNameException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForAnyPropertiesException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
@@ -36,6 +37,7 @@ import com.bergerkiller.bukkit.tc.exception.command.NoTrainSelectedException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainStorageChestItemException;
 import com.bergerkiller.bukkit.tc.exception.command.SelectedTrainNotLoadedException;
 import com.bergerkiller.bukkit.tc.exception.command.SelectedTrainNotOwnedException;
+import com.bergerkiller.bukkit.tc.locator.TrainLocatorCommands;
 import com.bergerkiller.bukkit.tc.pathfinding.PathWorld;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
@@ -73,6 +75,7 @@ public class Commands {
     private final TrainCommands commands_train = new TrainCommands();
     private final GlobalCommands commands_train_global = new GlobalCommands();
     private final TrainChestCommands commands_train_chest = new TrainChestCommands();
+    private final TrainLocatorCommands commands_train_locator = new TrainLocatorCommands();
     private final TicketCommands commands_train_ticket = new TicketCommands();
     private final SavedTrainCommands commands_savedtrain = new SavedTrainCommands();
 
@@ -137,6 +140,16 @@ public class Commands {
             }
 
             return trainProperties;
+        });
+
+        // Getting the loaded MinecartMember from potentially not loaded CartProperties
+        cloud.injector(MinecartMember.class, (context, annotations) -> {
+            CartProperties properties = context.inject(CartProperties.class).get();
+            MinecartMember<?> member = properties.getHolder();
+            if (member == null || member.isUnloaded()) {
+                throw new SelectedTrainNotLoadedException();
+            }
+            return member;
         });
 
         // Getting the loaded MinecartGroup from potentially not loaded TrainProperties
@@ -216,6 +229,7 @@ public class Commands {
         cloud.annotations(commands_train);
         cloud.annotations(commands_train_global);
         cloud.annotations(commands_train_chest);
+        cloud.annotations(commands_train_locator);
         cloud.annotations(commands_train_ticket);
         cloud.annotations(commands_savedtrain);
 
