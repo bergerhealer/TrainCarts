@@ -222,11 +222,12 @@ public class SignActionSwitcher extends SignAction {
         }
 
         // Pathfinding or nah?
-        boolean handlePathfinding;
-        if (TCConfig.onlyPoweredEmptySwitchersDoPathfinding) {
-            handlePathfinding = info.isPowered() && statements.isEmpty();
-        } else {
-            handlePathfinding = true;
+        boolean handlePathfinding = true;
+        if (TCConfig.onlyPoweredSwitchersDoPathFinding && !info.isPowered()) {
+            handlePathfinding = false;
+        }
+        if (TCConfig.onlyEmptySwitchersDoPathFinding && !statements.isEmpty()) {
+            handlePathfinding = false;
         }
 
         // Handle path finding

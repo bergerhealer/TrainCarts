@@ -85,7 +85,8 @@ public class TCConfig {
     public static boolean initRedstoneWithRadius = true;
     public static boolean animationsUseTickTime = false;
     public static boolean claimNewSavedTrains = true;
-    public static boolean onlyPoweredEmptySwitchersDoPathfinding = false;
+    public static boolean onlyPoweredSwitchersDoPathFinding = true;
+    public static boolean onlyEmptySwitchersDoPathFinding = false;
     public static boolean enableSneakingInAttachmentEditor = false;
     public static boolean playHissWhenStopAtStation = true;
     public static boolean playHissWhenDestroyedBySign = true;
@@ -415,12 +416,27 @@ public class TCConfig {
         config.addHeader("initRedstoneWithRadius", "False will make sure signs initialize sooner and respond to redstone faster");
         initRedstoneWithRadius = config.get("initRedstoneWithRadius", true);
 
-        config.setHeader("onlyPoweredEmptySwitchersDoPathfinding", "\nSets whether only powered switcher signs without statements on them");
-        config.addHeader("onlyPoweredEmptySwitchersDoPathfinding", "actively switch tracks to lead trains towards their destination");
-        config.addHeader("onlyPoweredEmptySwitchersDoPathfinding", "When true, only [+train] switcher signs do pathfinding logic");
-        config.addHeader("onlyPoweredEmptySwitchersDoPathfinding", "When false, the original behavior is used, where any switcher sign handles path finding");
-        config.addHeader("onlyPoweredEmptySwitchersDoPathfinding", "False will allow switching of trains overriding standard path finding");
-        onlyPoweredEmptySwitchersDoPathfinding = config.get("onlyPoweredEmptySwitchersDoPathfinding", false);
+        // Legacy configuration option migration
+        if (config.contains("onlyPoweredEmptySwitchersDoPathfinding")) {
+            if (config.get("onlyPoweredEmptySwitchersDoPathfinding", false)) {
+                config.set("onlyPoweredSwitchersDoPathFinding", true);
+                config.set("onlyEmptySwitchersDoPathFinding", true);
+            }
+            config.remove("onlyPoweredEmptySwitchersDoPathfinding");
+        }
+
+        config.setHeader("onlyPoweredSwitchersDoPathFinding", "\nSets whether switcher signs must be redstone-powered to switch track using pathfinding logic");
+        config.addHeader("onlyPoweredSwitchersDoPathFinding", "If true, then signs must be redstone-powered or use [+train] to do pathfinding");
+        config.addHeader("onlyPoweredSwitchersDoPathFinding", "If false, then signs will also switch track using pathfinding when not powered");
+        config.addHeader("onlyPoweredSwitchersDoPathFinding", "Default is true, which allows for [-train] switcher signs to properly detect trains");
+        onlyPoweredSwitchersDoPathFinding = config.get("onlyPoweredSwitchersDoPathFinding", true);
+
+        config.setHeader("onlyEmptySwitchersDoPathFinding", "\nSets whether switchers must have the last two lines on the sign empty, for it to switch");
+        config.addHeader("onlyEmptySwitchersDoPathFinding", "track using pathfinding logic");
+        config.addHeader("onlyEmptySwitchersDoPathFinding", "If true, then statements on switcher signs will disable the pathfinding functionality");
+        config.addHeader("onlyEmptySwitchersDoPathFinding", "If false, then statements on switcher signs complement the pathfinding functionality");
+        config.addHeader("onlyEmptySwitchersDoPathFinding", "Default is false, which allows pathfinding to be a fallback case");
+        onlyEmptySwitchersDoPathFinding = config.get("onlyEmptySwitchersDoPathFinding", false);
 
         config.setHeader("rerouteOnStartup", "\nWhen enabled, re-calculates all path finding routes on plugin startup");
         rerouteOnStartup = config.get("rerouteOnStartup", false);
