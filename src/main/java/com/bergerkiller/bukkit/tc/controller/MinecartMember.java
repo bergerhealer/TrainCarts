@@ -2202,7 +2202,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
         MinecartGroup g = this.getGroup();
         if (g != null && g.ticked.set()) {
-            g.doPhysics();
+            g.doPhysics(TrainCarts.plugin);
         }
     }
 

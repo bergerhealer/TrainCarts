@@ -21,14 +21,17 @@ import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
 
 /**
- * Whether players in a train can set it in motion using W/A/S/D steering controls
+ * Configures whether the train takes into account changes in tick rate
+ * when updating trains. When enabled, movement is accelerated when the
+ * server lags behind, and decelerated when it catches up. This attempts
+ * to make trains move with less jitter, at a constant speed.
  */
-public final class AllowManualPlayerMovementProperty extends FieldBackedStandardTrainProperty<Boolean> {
+public class RealtimePhysicsProperty extends FieldBackedStandardTrainProperty<Boolean> {
 
     @CommandTargetTrain
-    @PropertyCheckPermission("allowmanual")
-    @CommandMethod("train manualmovement player <enabled>")
-    @CommandDescription("Sets whether the train can be controlled by player passengers using steering controls")
+    @PropertyCheckPermission("realtime")
+    @CommandMethod("train realtime <enabled>")
+    @CommandDescription("Sets whether the train updates in realtime, adjusting for server tick lag and jitter")
     private void getProperty(
             final CommandSender sender,
             final TrainProperties properties,
@@ -38,24 +41,24 @@ public final class AllowManualPlayerMovementProperty extends FieldBackedStandard
         getProperty(sender, properties);
     }
 
-    @CommandMethod("train manualmovement player")
-    @CommandDescription("Displays whether the train can be controlled by player passengers using steering controls")
+    @CommandMethod("train realtime")
+    @CommandDescription("Displays whether the train updates in realtime, adjusting for server tick lag and jitter")
     private void getProperty(
             final CommandSender sender,
             final TrainProperties properties
     ) {
-        sender.sendMessage(ChatColor.YELLOW + "Player passengers can control train movement: "
+        sender.sendMessage(ChatColor.YELLOW + "Train updates in realtime: "
                 + Localization.boolStr(properties.get(this)));
     }
 
-    @PropertyParser("allowmanual|manualmove|manual|manualmovement player")
-    public boolean parseAllowMovement(PropertyParseContext<Boolean> context) {
+    @PropertyParser("realtime")
+    public boolean parseRealtime(PropertyParseContext<Boolean> context) {
         return context.inputBoolean();
     }
 
     @Override
     public boolean hasPermission(CommandSender sender, String name) {
-        return Permission.PROPERTY_ALLOWPLAYERMANUALMOVEMENT.has(sender);
+        return Permission.PROPERTY_REALTIME.has(sender);
     }
 
     @Override
@@ -65,21 +68,21 @@ public final class AllowManualPlayerMovementProperty extends FieldBackedStandard
 
     @Override
     public Boolean getData(TrainInternalData data) {
-        return data.allowPlayerManualMovement;
+        return data.realtimePhysics;
     }
 
     @Override
     public void setData(TrainInternalData data, Boolean value) {
-        data.allowPlayerManualMovement = value.booleanValue();
+        data.realtimePhysics = value.booleanValue();
     }
 
     @Override
     public Optional<Boolean> readFromConfig(ConfigurationNode config) {
-        return Util.getConfigOptional(config, "allowManualMovement", boolean.class);
+        return Util.getConfigOptional(config, "realtimePhysics", boolean.class);
     }
 
     @Override
     public void writeToConfig(ConfigurationNode config, Optional<Boolean> value) {
-        Util.setConfigOptional(config, "allowManualMovement", value);
+        Util.setConfigOptional(config, "realtimePhysics", value);
     }
 }

@@ -86,6 +86,13 @@ public class TrainCommands {
 
         message.newLine().yellow("Maximum speed: ").white(properties.getSpeedLimit(), " blocks/tick");
 
+        message.newLine().yellow("Realtime physics: ");
+        if (properties.hasRealtimePhysics()) {
+            message.green("Enabled");
+        } else {
+            message.red("Disabled");
+        }
+
         // Remaining common info
         Commands.info(message, properties);
 

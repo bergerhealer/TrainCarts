@@ -1289,7 +1289,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         }
     }
 
-    public void doPhysics() {
+    protected void doPhysics(TrainCarts plugin) {
         // NOP if unloaded
         if (this.isUnloaded()) {
             return;
@@ -1353,19 +1353,22 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         }
 
         // If physics disabled this tick, cut off here.
-        if (!TCConfig.tickUpdateEnabled) {
+        if (!plugin.getTrainUpdateController().isTicking()) {
             return;
         }
 
         try {
             double totalforce = this.getAverageForce();
             double speedlimit = this.getProperties().getSpeedLimit();
-            if (totalforce > 0.4 && speedlimit > 0.4) {
-                this.updateStepCount = (int) Math.ceil(speedlimit / 0.4);
-                this.updateSpeedFactor = 1.0 / (double) this.updateStepCount;
+            double realtimeFactor = this.getProperties().hasRealtimePhysics()
+                    ? plugin.getTrainUpdateController().getRealtimeFactor() : 1.0;
+
+            if (totalforce > 0.4 && (realtimeFactor*speedlimit) > 0.4) {
+                this.updateStepCount = (int) Math.ceil((realtimeFactor*speedlimit) / 0.4);
+                this.updateSpeedFactor = realtimeFactor / (double) this.updateStepCount;
             } else {
                 this.updateStepCount = 1;
-                this.updateSpeedFactor = 1.0;
+                this.updateSpeedFactor = realtimeFactor;
             }
 
             try (Timings t = TCTimings.GROUP_DOPHYSICS.start()) {

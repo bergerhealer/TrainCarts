@@ -26,6 +26,7 @@ import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.commands.selector.SelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.commands.selector.TCSelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.controller.*;
+import com.bergerkiller.bukkit.tc.controller.global.TrainUpdateController;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.locator.TrainLocator;
@@ -69,7 +70,6 @@ import java.util.logging.Level;
 
 public class TrainCarts extends PluginBase {
     public static TrainCarts plugin;
-    private Task fixGroupTickTask;
     private Task signtask;
     private Task autosaveTask;
     private Task cacheCleanupTask;
@@ -87,6 +87,7 @@ public class TrainCarts extends PluginBase {
     private PathProvider pathProvider;
     private RouteManager routeManager;
     private TrainLocator trainLocator;
+    private TrainUpdateController trainUpdateController = new TrainUpdateController(this);
     private final TCSelectorHandlerRegistry selectorHandlerRegistry = new TCSelectorHandlerRegistry(this);
     private Economy econ = null;
     private SmoothCoastersAPI smoothCoastersAPI;
@@ -189,6 +190,16 @@ public class TrainCarts extends PluginBase {
      */
     public TrainLocator getTrainLocator() {
         return this.trainLocator;
+    }
+
+    /**
+     * Gets the main controller responsible for updating trains, and
+     * configuring how trains are updated.
+     *
+     * @return train update controller
+     */
+    public TrainUpdateController getTrainUpdateController() {
+        return this.trainUpdateController;
     }
 
     /**
@@ -516,8 +527,8 @@ public class TrainCarts extends PluginBase {
         //Activate all detector regions with trains that are on it
         DetectorRegion.detectAllMinecarts();
 
-        // Hackish fix the chunk persistence failing
-        fixGroupTickTask = new TrainUpdateTask(this).start(1, 1);
+        // Initialize train updater task
+        this.trainUpdateController.enable();
 
         // Cleans up unused cached rail types over time to avoid memory leaks
         cacheCleanupTask = new CacheCleanupTask(this).start(1, 1);
@@ -605,10 +616,12 @@ public class TrainCarts extends PluginBase {
 
         //Stop tasks
         Task.stop(signtask);
-        Task.stop(fixGroupTickTask);
         Task.stop(autosaveTask);
         Task.stop(cacheCleanupTask);
         Task.stop(mutexZoneUpdateTask);
+
+        //stop updating
+        trainUpdateController.disable();
 
         //update max item stack
         if (TCConfig.maxMinecartStackSize != 1) {
@@ -758,31 +771,6 @@ public class TrainCarts extends PluginBase {
         @Override
         public void run() {
             ((TrainCarts) this.getPlugin()).save(true);
-        }
-    }
-
-    private static class TrainUpdateTask extends Task {
-        int ctr = 0;
-
-        public TrainUpdateTask(JavaPlugin plugin) {
-            super(plugin);
-        }
-
-        public void run() {
-            // Refresh whether or not trains are allowed to tick
-            if (++ctr >= TCConfig.tickUpdateDivider) {
-                ctr = 0;
-                TCConfig.tickUpdateNow++;
-            }
-            if (TCConfig.tickUpdateNow > 0) {
-                TCConfig.tickUpdateNow--;
-                TCConfig.tickUpdateEnabled = true;
-            } else {
-                TCConfig.tickUpdateEnabled = false;
-            }
-
-            // For all Minecart that were not ticked, tick them ourselves
-            MinecartGroupStore.doFixedTick();
         }
     }
 

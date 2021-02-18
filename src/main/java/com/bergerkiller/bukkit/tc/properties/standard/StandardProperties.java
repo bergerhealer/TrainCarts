@@ -46,6 +46,7 @@ public class StandardProperties {
     public static final OwnerSetProperty OWNERS = new OwnerSetProperty();
     public static final OwnerPermissionSet OWNER_PERMISSIONS = new OwnerPermissionSet();
     public static final BreakBlocksProperty BLOCK_BREAK_TYPES = new BreakBlocksProperty();
+    public static final RealtimePhysicsProperty REALTIME_PHYSICS = new RealtimePhysicsProperty();
 
     public static final ICartProperty<String> ENTER_MESSAGE = new ICartProperty<String>() {
 

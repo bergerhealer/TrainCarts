@@ -77,6 +77,7 @@ public abstract class FieldBackedProperty<T> implements IProperty<T> {
         public boolean keepChunksLoaded;
         public boolean allowPlayerManualMovement;
         public boolean allowMobManualMovement;
+        public boolean realtimePhysics;
 
         public static TrainInternalData get(TrainProperties properties) {
             return properties.getStandardPropertiesHolder().data;

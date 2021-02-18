@@ -98,9 +98,6 @@ public class TCConfig {
     public static boolean parseOldSigns;
     public static boolean allowParenthesesFormat = true;
     public static boolean upsideDownSupportedByAll = false;
-    public static int tickUpdateDivider = 1; // allows slowing down of minecart physics globally (debugging!)
-    public static int tickUpdateNow = 0; // forces update ticks
-    public static boolean tickUpdateEnabled = true; // whether train tick updates are enabled
     public static int autoSaveInterval = 30 * 20; // autosave every 30 seconds
     public static boolean allowExternalTicketImagePaths = false; // Whether images outside of the images subdirectory are allowed
     public static String currencyFormat;

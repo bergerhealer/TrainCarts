@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.properties.standard.category;
 
 import java.util.Optional;
 
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -18,7 +19,6 @@ import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedSta
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
-import net.md_5.bungee.api.ChatColor;
 
 /**
  * Whether mobs inside a train can set it in motion

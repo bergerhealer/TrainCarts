@@ -433,9 +433,10 @@ public class GlobalCommands {
     @CommandMethod("train tick disable")
     @CommandDescription("Disables ticking of all trains, causing all physics to pause")
     private void commandTickDisable(
-            final CommandSender sender
+            final CommandSender sender,
+            final TrainCarts plugin
     ) {
-        TCConfig.tickUpdateDivider = Integer.MAX_VALUE;
+        plugin.getTrainUpdateController().setTickDivider(Integer.MAX_VALUE);
         sender.sendMessage(ChatColor.YELLOW + "Train tick updates have been globally " + ChatColor.RED + "disabled");
     }
 
@@ -443,9 +444,10 @@ public class GlobalCommands {
     @CommandMethod("train tick enable")
     @CommandDescription("Enables ticking of all trains, causing all physics to resume")
     private void commandTickEnable(
-            final CommandSender sender
+            final CommandSender sender,
+            final TrainCarts plugin
     ) {
-        TCConfig.tickUpdateDivider = 1;
+        plugin.getTrainUpdateController().setTickDivider(1);
         sender.sendMessage(ChatColor.YELLOW + "Train tick updates have been globally " + ChatColor.GREEN + "enabled");
     }
 
@@ -453,12 +455,14 @@ public class GlobalCommands {
     @CommandMethod("train tick div")
     @CommandDescription("Checks what kind of tick divider configuration is configured")
     private void commandGetTickDivider(
-            final CommandSender sender
+            final CommandSender sender,
+            final TrainCarts plugin
     ) {
-        if (TCConfig.tickUpdateDivider == Integer.MAX_VALUE) {
+        int divider = plugin.getTrainUpdateController().getTickDivider();
+        if (divider == Integer.MAX_VALUE) {
             sender.sendMessage(ChatColor.YELLOW + "Automatic train tick updates are globally disabled");
         } else {
-            sender.sendMessage(ChatColor.GREEN + "The tick rate divider is currently set to " + ChatColor.YELLOW + TCConfig.tickUpdateDivider);
+            sender.sendMessage(ChatColor.GREEN + "The tick rate divider is currently set to " + ChatColor.YELLOW + divider);
         }
     }
 
@@ -466,9 +470,10 @@ public class GlobalCommands {
     @CommandMethod("train tick div reset")
     @CommandDescription("Resets any previous global tick divider, resuming physics as normal")
     private void commandResetTickDivider(
-            final CommandSender sender
+            final CommandSender sender,
+            final TrainCarts plugin
     ) {
-        commandSetTickDivider(sender, 1);
+        commandSetTickDivider(sender, plugin, 1);
     }
 
     @CommandRequiresPermission(Permission.COMMAND_CHANGETICK)
@@ -476,13 +481,14 @@ public class GlobalCommands {
     @CommandDescription("Configures a global tick divider, causing all physics to run more slowly")
     private void commandSetTickDivider(
             final CommandSender sender,
+            final TrainCarts plugin,
             final @Argument("divider") int divider
     ) {
         if (divider > 1) {
-            TCConfig.tickUpdateDivider = divider;
-            sender.sendMessage(ChatColor.GREEN + "The tick rate divider has been set to " + ChatColor.YELLOW + TCConfig.tickUpdateDivider);
+            plugin.getTrainUpdateController().setTickDivider(divider);
+            sender.sendMessage(ChatColor.GREEN + "The tick rate divider has been set to " + ChatColor.YELLOW + divider);
         } else {
-            TCConfig.tickUpdateDivider = 1;
+            plugin.getTrainUpdateController().setTickDivider(1);
             sender.sendMessage(ChatColor.GREEN + "The tick rate divider has been reset to the default");
         }
     }
@@ -491,9 +497,10 @@ public class GlobalCommands {
     @CommandMethod("train tick")
     @CommandDescription("Performs a single update tick. Useful when automatic ticking is disabled or slowed down.")
     private void commandPerformTick(
-            final CommandSender sender
+            final CommandSender sender,
+            final TrainCarts plugin
     ) {
-        commandPerformTick(sender, 1);
+        commandPerformTick(sender, plugin, 1);
     }
 
     @CommandRequiresPermission(Permission.COMMAND_CHANGETICK)
@@ -501,13 +508,14 @@ public class GlobalCommands {
     @CommandDescription("Performs a burst of update ticks. Useful when automatic ticking is disabled or slowed down.")
     private void commandPerformTick(
             final CommandSender sender,
+            final TrainCarts plugin,
             final @Argument("times") @Range(min="1") int number
     ) {
-        TCConfig.tickUpdateNow = number;
+        plugin.getTrainUpdateController().step(number);
         if (number <= 1) {
             sender.sendMessage(ChatColor.GREEN + "Trains ticked once");
         } else {
-            sender.sendMessage(ChatColor.GREEN + "Trains ticked " + TCConfig.tickUpdateNow + " times");
+            sender.sendMessage(ChatColor.GREEN + "Trains ticked " + number + " times");
         }
     }
 

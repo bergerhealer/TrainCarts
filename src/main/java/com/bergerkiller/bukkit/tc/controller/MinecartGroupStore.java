@@ -26,14 +26,16 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
     /**
      * Called onPhysics for all Minecart entities who didn't get ticked in the previous run.
      * This is a sort of hack against the bugged issues on some server implementations.
+     *
+     * @param plugin Main TrainCarts plugin instance initiating this
      */
-    public static void doFixedTick() {
+    public static void doFixedTick(TrainCarts plugin) {
         try (ImplicitlySharedSet<MinecartGroup> groups_copy = groups.clone()) {
             try {
                 for (MinecartGroup group : groups_copy) {
                     // Tick the train if required
                     if (!group.ticked.clear()) {
-                        group.doPhysics();
+                        group.doPhysics(plugin);
                     }
 
                     // Perform post-tick physics for all Minecarts in the train, if not previously ticked
