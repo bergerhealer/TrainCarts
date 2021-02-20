@@ -1363,7 +1363,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             double realtimeFactor = this.getProperties().hasRealtimePhysics()
                     ? plugin.getTrainUpdateController().getRealtimeFactor() : 1.0;
 
-            if (totalforce > 0.4 && (realtimeFactor*speedlimit) > 0.4) {
+            if ((realtimeFactor*totalforce) > 0.4 && (realtimeFactor*speedlimit) > 0.4) {
                 this.updateStepCount = (int) Math.ceil((realtimeFactor*speedlimit) / 0.4);
                 this.updateSpeedFactor = realtimeFactor / (double) this.updateStepCount;
             } else {

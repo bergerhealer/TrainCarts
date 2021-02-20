@@ -158,13 +158,13 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         int time = this.elapsedTicks() - this.timeoffset;
         if (time > this.function.getTotalTime()) {
             // Finish with the desired end-velocity
-            this.getGroup().setForwardForce(this.targetvelocity * this.getGroup().getUpdateSpeedFactor());
+            this.getGroup().setForwardForce(this.targetvelocity / this.getGroup().getUpdateStepCount());
             return true;
         }
 
         // Update velocity based on the distance difference
         this.lastVelocity = (this.function.getDistance(time) - this.distance + this.distanceoffset);
-        this.getGroup().setForwardForce(this.lastVelocity * this.getGroup().getUpdateSpeedFactor());
+        this.getGroup().setForwardForce(this.lastVelocity / this.getGroup().getUpdateStepCount());
 
         // Refresh distance every full tick
         if (this.isFullTick()) {
