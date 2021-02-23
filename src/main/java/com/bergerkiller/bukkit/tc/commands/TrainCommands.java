@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
+import com.bergerkiller.bukkit.tc.commands.argument.DirectionOrFormattedSpeed;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
@@ -253,13 +254,14 @@ public class TrainCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_LAUNCH)
-    @CommandMethod("train launch <speed>")
+    @CommandMethod("train launch <speed_or_direction>")
     @CommandDescription("Launches the train into a direction")
     private void commandTrainLaunch(
             final CommandSender sender,
             final TrainProperties properties,
-            final @Argument("speed") FormattedSpeed speed,
+            final @Argument("speed_or_direction") DirectionOrFormattedSpeed directionOrSpeed,
             final @Flag(value="direction", aliases="d") Direction directionFlag,
+            final @Flag(value="speed", aliases="s") FormattedSpeed speedFlag,
             final @Flag(value="options", aliases="o") String launchOptions
     ) {
         if (!properties.isLoaded()) {
@@ -268,17 +270,22 @@ public class TrainCommands {
         }
 
         MinecartGroup group = properties.getHolder();
-        commandCartLaunch(sender, group.head().getProperties(), speed, directionFlag, launchOptions);
+        commandCartLaunch(sender, group.head().getProperties(),
+                directionOrSpeed,
+                directionFlag,
+                speedFlag,
+                launchOptions);
     }
 
     @CommandRequiresPermission(Permission.COMMAND_LAUNCH)
-    @CommandMethod("cart launch <speed>")
+    @CommandMethod("cart launch <speed_or_direction>")
     @CommandDescription("Launches the train into a direction")
     private void commandCartLaunch(
             final CommandSender sender,
             final CartProperties properties,
-            final @Argument("speed") FormattedSpeed speed,
+            final @Argument("speed_or_direction") DirectionOrFormattedSpeed directionOrSpeed,
             final @Flag(value="direction", aliases="d") Direction directionFlag,
+            final @Flag(value="speed", aliases="s") FormattedSpeed speedFlag,
             final @Flag(value="options", aliases="o") String launchOptions
     ) {
         MinecartMember<?> member = properties.getHolder();
@@ -287,14 +294,24 @@ public class TrainCommands {
             return;
         }
 
+        // Choose the speed from flag, or the direction/speed argument value, or the default
+        // Oh lawd this code, cover your eyes!
+        final FormattedSpeed speed = (speedFlag != null) ? speedFlag :
+            (directionOrSpeed.hasFormattedSpeed() ?
+                    directionOrSpeed.getFormattedSpeed() :
+                        FormattedSpeed.of(TCConfig.launchForce));
+
+        // Choose direction from flag, or the direction/speed argument value, or the default
+        // Oof.
+        final Direction direction = (directionFlag != null) ? directionFlag :
+            (directionOrSpeed.hasDirection() ?
+                    directionOrSpeed.getDirection() : Direction.FORWARD);
+
         // Velocity, if relative, add current speed
         double velocity = speed.getValue();
         if (speed.isRelative()) {
             velocity += member.getGroup().getAverageForce();
         }
-
-        // Direction, if not specified use 'FORWARD'
-        Direction direction = LogicUtil.fixNull(directionFlag, Direction.FORWARD);
 
         // Optional launch configuration (distance / curve / acceleration)
         // TODO: Create parser for LauncherConfig

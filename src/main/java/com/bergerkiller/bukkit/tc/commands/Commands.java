@@ -18,8 +18,10 @@ import com.bergerkiller.bukkit.tc.chest.TrainChestCommands;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresMultiplePermissions;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
+import com.bergerkiller.bukkit.tc.commands.argument.DirectionOrFormattedSpeed;
 import com.bergerkiller.bukkit.tc.commands.cloud.CloudHandler;
 import com.bergerkiller.bukkit.tc.commands.parsers.AccelerationParser;
+import com.bergerkiller.bukkit.tc.commands.parsers.DirectionOrFormattedSpeedParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.DirectionParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.commands.parsers.TrainNameFormatParser;
@@ -174,6 +176,7 @@ public class Commands {
 
         cloud.parse(Direction.class, p -> new DirectionParser());
         cloud.parse(TrainNameFormat.class, p -> new TrainNameFormatParser());
+        cloud.parse(DirectionOrFormattedSpeed.class, p -> new DirectionOrFormattedSpeedParser());
 
         cloud.handleMessage(NoPermissionException.class, Localization.COMMAND_NOPERM.getName());
         cloud.handleMessage(NoTrainSelectedException.class, Localization.EDIT_NOSELECT.getName());
