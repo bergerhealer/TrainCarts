@@ -254,6 +254,19 @@ public class TrainCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_LAUNCH)
+    @CommandMethod("train launch")
+    @CommandDescription("Launches the train forwards at station launch speed")
+    private void commandTrainLaunchNoArg(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        commandTrainLaunch(sender, properties,
+                new DirectionOrFormattedSpeed(Direction.FORWARD),
+                null, null, null);
+    }
+
+    @CommandTargetTrain
+    @CommandRequiresPermission(Permission.COMMAND_LAUNCH)
     @CommandMethod("train launch <speed_or_direction>")
     @CommandDescription("Launches the train into a direction")
     private void commandTrainLaunch(
@@ -275,6 +288,19 @@ public class TrainCommands {
                 directionFlag,
                 speedFlag,
                 launchOptions);
+    }
+
+    @CommandTargetTrain
+    @CommandRequiresPermission(Permission.COMMAND_LAUNCH)
+    @CommandMethod("cart launch")
+    @CommandDescription("Launches the cart forwards at station launch speed")
+    private void commandCartLaunchNoArg(
+            final CommandSender sender,
+            final CartProperties properties
+    ) {
+        commandCartLaunch(sender, properties,
+                new DirectionOrFormattedSpeed(Direction.FORWARD),
+                null, null, null);
     }
 
     @CommandRequiresPermission(Permission.COMMAND_LAUNCH)
