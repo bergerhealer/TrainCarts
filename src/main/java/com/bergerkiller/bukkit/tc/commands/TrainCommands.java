@@ -252,7 +252,6 @@ public class TrainCommands {
         }
     }
 
-    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_LAUNCH)
     @CommandMethod("train launch")
     @CommandDescription("Launches the train forwards at station launch speed")
@@ -290,7 +289,6 @@ public class TrainCommands {
                 launchOptions);
     }
 
-    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_LAUNCH)
     @CommandMethod("cart launch")
     @CommandDescription("Launches the cart forwards at station launch speed")
