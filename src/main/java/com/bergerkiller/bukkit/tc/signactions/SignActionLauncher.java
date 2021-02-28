@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
@@ -24,11 +25,9 @@ public class SignActionLauncher extends SignAction {
         if (!info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) || !info.isPowered()) {
             return;
         }
-        // Parse the launch speed
-        double velocity = Util.parseVelocity(info.getLine(2), TCConfig.launchForce);
 
-        // When prefixed with + or - the speed should be added on top of the current speed of the train
-        boolean addToRealSpeed = (info.getLine(2).startsWith("+") || info.getLine(2).startsWith("-"));
+        // Parse the launch speed (if starts with + or -, it is relative)
+        FormattedSpeed velocity = FormattedSpeed.parse(info.getLine(2), FormattedSpeed.of(TCConfig.launchForce));
 
         // Parse the launch distance
         int launchEndIdx = info.getLine(1).indexOf(' ');
@@ -40,8 +39,10 @@ public class SignActionLauncher extends SignAction {
             Direction direction = Direction.parse(info.getLine(3));
             // Launch all groups
             for (MinecartGroup group : info.getRCTrainGroups()) {
-                double launchVelocity = velocity;
-                if (addToRealSpeed) {
+                double launchVelocity = velocity.getValue();
+
+                // When prefixed with + or - the speed should be added on top of the current speed of the train
+                if (velocity.isRelative()) {
                     launchVelocity += group.head().getRealSpeed();
                 }
 
@@ -59,8 +60,10 @@ public class SignActionLauncher extends SignAction {
                 launchConfig.setDistance(Util.calculateStraightLength(info.getRails(), direction));
             }
 
-            double launchVelocity = velocity;
-            if (addToRealSpeed) {
+            double launchVelocity = velocity.getValue();
+
+            // When prefixed with + or - the speed should be added on top of the current speed of the train
+            if (velocity.isRelative()) {
                 launchVelocity += info.getMember().getRealSpeed();
             }
 
