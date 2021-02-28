@@ -110,9 +110,19 @@ public class SignActionLauncher extends SignAction {
         // Launch
         group.getActions().clear();
         if (speedLimitToSet != null) {
+            // Same as for velocity, relative number support
+            // Instead of adding the real speed though, we use the current speed limit
+            double speedLimitValue = speedLimitToSet.getValue();
+            if (speedLimitToSet.isRelative()) {
+                speedLimitValue += group.getProperties().getSpeedLimit();
+            }
+            if (speedLimitValue < 0.0) {
+                speedLimitValue = 0.0;
+            }
+
             // Updates the speed limit as well, and restricts the launch curve to within
             // the current speed limit and new speed limit. The remainder turns into 'energy'.
-            member.getActions().addActionLaunch(direction, launchConfig, launchVelocityABS, speedLimitToSet.getValue());
+            member.getActions().addActionLaunch(direction, launchConfig, launchVelocityABS, speedLimitValue);
         } else {
             // Speed limit isn't changed
             member.getActions().addActionLaunch(direction, launchConfig, launchVelocityABS);
