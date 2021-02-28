@@ -103,6 +103,12 @@ public class ActionTrackerMember extends ActionTracker {
         return addGroupAction(action);
     }
 
+    public MemberActionLaunchDirection addActionLaunch(final BlockFace direction, LauncherConfig config, double targetvelocity, double targetspeedlimit) {
+        MemberActionLaunchDirection action = new MemberActionLaunchDirection();
+        action.init(config, targetvelocity, targetspeedlimit, direction);
+        return addGroupAction(action);
+    }
+
     public MemberActionLaunchLocation addActionLaunch(Location destination, double targetvelocity) {
         return addGroupAction(new MemberActionLaunchLocation(targetvelocity, destination));
     }

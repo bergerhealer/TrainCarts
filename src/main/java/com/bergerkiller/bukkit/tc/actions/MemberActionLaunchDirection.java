@@ -23,6 +23,11 @@ public class MemberActionLaunchDirection extends MemberActionLaunch implements M
         this.initDistance(targetdistance, targetvelocity, direction);
     }
 
+    public void init(LauncherConfig config, double targetvelocity, double targetspeedlimit, BlockFace direction) {
+        this.init(config, targetvelocity, targetspeedlimit);
+        this.direction = direction;
+    }
+
     public void init(LauncherConfig config, double targetvelocity, BlockFace direction) {
         this.init(config, targetvelocity);
         this.direction = direction;

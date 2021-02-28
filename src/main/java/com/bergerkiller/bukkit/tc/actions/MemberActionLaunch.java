@@ -11,6 +11,7 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
     private double distanceoffset;
     private int timeoffset;
     private double targetvelocity;
+    private double targetspeedlimit;
     private double distance;
     private double lastVelocity;
     private double lastspeedlimit;
@@ -28,8 +29,20 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
      * @param targetvelocity goal final speed
      */
     public void init(LauncherConfig config, double targetvelocity) {
+        this.init(config, targetvelocity, Double.NaN);
+    }
+
+    /**
+     * Sets the launch function and launch duration or time based on Launch Config.
+     * 
+     * @param config to apply
+     * @param targetvelocity goal final speed
+     * @param targetspeedlimit goal speed limit to set on the train. Use NaN to ignore.
+     */
+    public void init(LauncherConfig config, double targetvelocity, double targetspeedlimit) {
         this.config = config;
         this.targetvelocity = targetvelocity;
+        this.targetspeedlimit = targetspeedlimit;
         this.timeoffset = 0;
         this.distanceoffset = 0.0;
 
@@ -91,11 +104,20 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
 
     @Override
     public void start() {
-        this.lastVelocity = this.getMember().getRealSpeed();
+        this.lastVelocity = this.getMember().getRealSpeedLimited();
         this.lastspeedlimit = this.getGroup().getProperties().getSpeedLimit();
+
+        // If launching to a higher speed limit, update that right now
+        if (!Double.isNaN(this.targetspeedlimit) && this.targetspeedlimit > this.lastspeedlimit) {
+            this.getGroup().getProperties().setSpeedLimit(this.targetspeedlimit);
+            this.lastspeedlimit = this.targetspeedlimit;
+        }
+
         this.function.setMinimumVelocity(minVelocity);
-        this.function.setMaximumVelocity(this.lastspeedlimit);
-        this.function.setVelocityRange(this.lastVelocity, this.targetvelocity);
+        this.function.setMaximumVelocity(Double.isNaN(this.targetspeedlimit) ? this.lastspeedlimit
+                : Math.max(this.targetspeedlimit, this.lastspeedlimit));
+        this.function.setVelocityRange(this.lastVelocity, Double.isNaN(this.targetspeedlimit) ? this.targetvelocity
+                : Math.min(this.targetspeedlimit, this.targetvelocity));
         if (this.function.getStartVelocity() < minLaunchVelocity && this.function.getEndVelocity() < minLaunchVelocity) {
             this.function.setStartVelocity(minLaunchVelocity);
         }
@@ -127,12 +149,14 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
     public boolean update() {
         // Abort when derailed. We do permit vertical 'air-launching'
         if (this.getMember().isDerailed() && !this.getMember().isMovingVerticalOnly()) {
+            this.onLaunchingDone(false);
             return true;
         }
 
         // Did the maximum speed of the train change? If so we have to recalibrate the algorithm.
         if (this.lastspeedlimit != this.getGroup().getProperties().getSpeedLimit()) {
             this.lastspeedlimit = this.getGroup().getProperties().getSpeedLimit();
+            this.targetspeedlimit = Double.NaN; // Ignore, somebody overrules it
             this.function.setMaximumVelocity(this.lastspeedlimit);
             this.function.setVelocityRange(this.lastVelocity, this.targetvelocity);
             this.timeoffset = this.elapsedTicks();
@@ -149,6 +173,7 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         if (this.distance != 0) {
             for (MinecartMember<?> mm : this.getGroup()) {
                 if (mm.getRealSpeed() < minVelocity && this.lastVelocity > (10.0 * minVelocity)) {
+                    this.onLaunchingDone(false);
                     return true;
                 }
             }
@@ -158,7 +183,7 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         int time = this.elapsedTicks() - this.timeoffset;
         if (time > this.function.getTotalTime()) {
             // Finish with the desired end-velocity
-            this.getGroup().setForwardForce(this.targetvelocity / this.getGroup().getUpdateStepCount());
+            this.onLaunchingDone(true);
             return true;
         }
 
@@ -175,4 +200,17 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         return false;
     }
 
+    private void onLaunchingDone(boolean successful) {
+        // If a target speed limit lower than before was specified, set that now launching has finished
+        // During the launch we keep the original (higher) speed limit to have a smooth decrease
+        if (!Double.isNaN(this.targetspeedlimit) && this.targetspeedlimit < this.lastspeedlimit) {
+            this.getGroup().getProperties().setSpeedLimit(this.targetspeedlimit);
+        }
+
+        // Set the full forward force. This might be higher than the launch curve predicted,
+        // when an 'energy' portion is included.
+        if (successful) {
+            this.getGroup().setForwardForce(this.targetvelocity / this.getGroup().getUpdateStepCount());
+        }
+    }
 }

@@ -24,10 +24,21 @@ public class FormattedSpeed {
         this._unitName = unitName;
     }
 
+    /**
+     * Gets the current speed value as a blocks/tick unit
+     *
+     * @return blocks/tick speed value
+     */
     public double getValue() {
         return this._value;
     }
 
+    /**
+     * Gets whether the speed was formatted as a relative number.
+     * This means the number had a + or - prefix.
+     *
+     * @return True if this is a relative speed
+     */
     public boolean isRelative() {
         return this._relative;
     }
