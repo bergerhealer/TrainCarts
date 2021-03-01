@@ -148,8 +148,11 @@ public class OfflineGroupManager {
             return true;
         }
         // Keep chunks loaded property
-        if (!TrainProperties.get(group.name).isKeepingChunksLoaded()) {
-            return false;
+        {
+            TrainProperties prop = TrainProperties.get(group.name);
+            if (prop == null || !prop.isKeepingChunksLoaded()) {
+                return false;
+            }
         }
         if (TCConfig.keepChunksLoadedOnlyWhenMoving && !group.isMoving()) {
             return false;

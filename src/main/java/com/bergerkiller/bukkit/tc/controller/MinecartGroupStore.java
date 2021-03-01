@@ -92,7 +92,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         // There is not a group with this name already?
         MinecartGroup g = new MinecartGroup();
         if (name != null) {
-            g.setProperties(TrainPropertiesStore.get(name));
+            g.setProperties(TrainPropertiesStore.create(name));
         }
         addMembersAndFinalize(g, members);
         return g;

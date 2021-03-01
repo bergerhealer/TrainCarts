@@ -131,13 +131,28 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
     }
 
     /**
-     * Gets a TrainProperties instance by name<br>
-     * Creates a new instance if none is contained
+     * Gets a TrainProperties instance by name. If no properties
+     * by this name are stored, null is returned instead.
      *
      * @param trainname to get the properties of
-     * @return TrainProperties instance of the train name
+     * @return TrainProperties instance of the train name, or null
+     *         if no properties by this name exist.
      */
     public static TrainProperties get(String trainname) {
+        if (trainname == null) return null;
+        return trainProperties.get(trainname);
+    }
+
+    /**
+     * Gets a TrainProperties instance by name<br>
+     * Creates a new instance if none exists yet
+     *
+     * @param trainname to get the properties of
+     * @return TrainProperties instance of the train name.
+     *         A new instance is registered and returned if none
+     *         by this name exists.
+     */
+    public static TrainProperties create(String trainname) {
         if (trainname == null) return null;
 
         TrainProperties prop = trainProperties.get(trainname);

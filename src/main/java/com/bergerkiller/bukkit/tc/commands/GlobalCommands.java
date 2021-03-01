@@ -415,7 +415,7 @@ public class GlobalCommands {
             final Player sender,
             final @Argument(value="trainname", suggestions="trainnames") String trainName
     ) {
-        TrainProperties prop = TrainProperties.exists(trainName) ? TrainProperties.get(trainName) : null;
+        TrainProperties prop = TrainProperties.get(trainName);
         if (prop != null && !prop.isEmpty()) {
             if (prop.hasOwnership((Player) sender)) {
                 CartPropertiesStore.setEditing((Player) sender, prop.get(0));
