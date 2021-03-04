@@ -118,7 +118,7 @@ public enum Permission implements IPermissionEnum {
     GENERAL_PLACE_TRAINCART("train.place.traincart", PermissionDefault.TRUE, "The player can place TrainCarts minecarts"),
     GENERAL_PROPERTIES_ADMIN("train.properties.admin", PermissionDefault.OP, "Carts placed by this player get the admin properties"),
     BREAK_MINECART_SELF("train.break.self", PermissionDefault.TRUE, "The player can break their own minecarts"),
-    BREAK_MINECART_ANY("train.break.any", PermissionDefault.OP, "The player can break all carts in the game"),
+    BREAK_MINECART_ANY("train.break.any", PermissionDefault.FALSE, "The player can break all carts in the game"),
     TICKET_MANAGE("train.ticket.manage", PermissionDefault.OP, "The player can edit the details of existing tickets or create new tickets"),
 
     // Special hidden debug sekretz
