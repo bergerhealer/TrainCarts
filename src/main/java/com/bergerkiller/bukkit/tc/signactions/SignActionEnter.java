@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
@@ -25,6 +26,8 @@ public class SignActionEnter extends SignAction {
             return enterPlayers;
         } else if (EntityUtil.isMob(entity)) {
             return enterMobs;
+        } else if (MinecartMemberStore.getFromEntity(entity) != null) {
+            return false; // Disallow other trains
         } else {
             return enterMisc;
         }
