@@ -241,11 +241,15 @@ public class TrainCommands {
             }
         }
         if (member != null) {
-            if (player.teleport(member.getEntity().getLocation())) {
+            Location entityLoc = member.getEntity().getLocation();
+            boolean mustTeleport = (player.getLocation().distance(entityLoc) > 64.0);
+            if (!mustTeleport || player.teleport(member.getEntity().getLocation())) {
                 if (member.addPassengerForced(player)) {
                     player.sendMessage(ChatColor.GREEN + "You entered a seat of train '" + trainProperties.getTrainName() + "'!");
+                } else if (mustTeleport) {
+                    player.sendMessage(ChatColor.YELLOW + "Selected cart has no available seat. Teleported to the train instead.");
                 } else {
-                    player.sendMessage(ChatColor.YELLOW + "Selected cart has no free seat. Teleported to the train instead.");
+                    player.sendMessage(ChatColor.YELLOW + "Selected cart has no available seat.");
                 }
             } else {
                 player.sendMessage(ChatColor.RED + "Failed to enter train: teleport was denied");
