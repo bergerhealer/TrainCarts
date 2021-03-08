@@ -208,7 +208,7 @@ public class SelectorHandlerRegistry implements Listener {
             final String command = event.getMessage().substring(1);
             ServerCommandEvent wrapped = new ServerCommandEvent(event.getPlayer(), command);
             this.onServerCommand(wrapped);
-            if (wrapped.isCancelled() || wrapped.getCommand().isEmpty()) {
+            if (isCancelled(wrapped) || wrapped.getCommand().isEmpty()) {
                 event.setCancelled(true);
             } else if (!command.equals(wrapped.getCommand())) {
                 event.setMessage("/" + wrapped.getCommand());
@@ -258,7 +258,15 @@ public class SelectorHandlerRegistry implements Listener {
         }
     }
 
-    private void cancelCommand(ServerCommandEvent event) {
+    private static boolean isCancelled(ServerCommandEvent event) {
+        if (event instanceof Cancellable) {
+            return ((Cancellable) event).isCancelled();
+        } else {
+            return event.getCommand().isEmpty();
+        }
+    }
+
+    private static void cancelCommand(ServerCommandEvent event) {
         // Note: cancellable since Server version 1.8.8
         //       as fallback for the few people that still use it,
         //       set the command to something harmless.
