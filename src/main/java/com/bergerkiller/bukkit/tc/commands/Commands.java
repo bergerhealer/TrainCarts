@@ -30,6 +30,7 @@ import com.bergerkiller.bukkit.tc.commands.parsers.TrainTargetingFlags;
 import com.bergerkiller.bukkit.tc.commands.suggestions.AnimationName;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.debug.DebugCommands;
 import com.bergerkiller.bukkit.tc.exception.command.InvalidClaimPlayerNameException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForAnyPropertiesException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
@@ -76,6 +77,7 @@ public class Commands {
     private final CartCommands commands_cart = new CartCommands();
     private final TrainCommands commands_train = new TrainCommands();
     private final GlobalCommands commands_train_global = new GlobalCommands();
+    private final DebugCommands commands_train_debug = new DebugCommands();
     private final TrainChestCommands commands_train_chest = new TrainChestCommands();
     private final TrainLocatorCommands commands_train_locator = new TrainLocatorCommands();
     private final TicketCommands commands_train_ticket = new TicketCommands();
@@ -231,6 +233,7 @@ public class Commands {
         cloud.annotations(commands_cart);
         cloud.annotations(commands_train);
         cloud.annotations(commands_train_global);
+        cloud.annotations(commands_train_debug);
         cloud.annotations(commands_train_chest);
         cloud.annotations(commands_train_locator);
         cloud.annotations(commands_train_ticket);

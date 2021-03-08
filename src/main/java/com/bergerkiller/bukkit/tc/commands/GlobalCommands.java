@@ -12,7 +12,6 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
-import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -23,7 +22,6 @@ import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.debug.DebugTool;
 import com.bergerkiller.bukkit.tc.editor.TCMapControl;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
@@ -46,7 +44,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Effect;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
@@ -644,110 +641,6 @@ public class GlobalCommands {
         display.putValue("MapColor", 0xFF0000);
         sender.getInventory().addItem(item);
         sender.sendMessage(ChatColor.GREEN + "Given a Traincarts attachments editor");
-    }
-
-    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug rails")
-    @CommandDescription("Get a debug stick item to visually display what path tracks use")
-    private void commandDebugRails(
-            final Player player
-    ) {
-        giveDebugItem(player, "Rails", "TrainCarts Rails Debugger");
-        player.sendMessage(ChatColor.GREEN + "Given a rails debug item. Right-click rails and see where a train would go.");
-    }
-
-    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug destination")
-    @CommandDescription("Get a debug stick item to visually display the possible path finding routes")
-    private void commandDebugDestinationAll(
-            final Player player
-    ) {
-        giveDebugItem(player, "Destinations", "TrainCarts Destination Debugger");
-        player.sendMessage(ChatColor.GREEN + "Given a destination debug item. " +
-                "Right-click rails to see what destinations can be reached from there.");
-    }
-
-    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug destination <destination>")
-    @CommandDescription("Get a debug stick item to visually display the route towards a destination")
-    private void commandDebugDestinationName(
-            final Player player,
-            final @Argument("destination") String destination
-    ) {
-        giveDebugItem(player, "Destination " + destination, "TrainCarts Destination Debugger [" + destination + "]");
-        player.sendMessage(ChatColor.GREEN + "Given a destination debug item. " +
-                "Right-click rails to see whether and how a train would travel to " + destination + ".");
-    }
-
-    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug mutex")
-    @CommandDescription("Displays the area of effect of all nearby mutex signs")
-    private void commandDebugMutex(
-            final Player player
-    ) {
-        DebugTool.showMutexZones(player);
-        player.sendMessage(ChatColor.GREEN + "Displaying mutex zones near your position");
-    }
-
-    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug railtracker <enabled>")
-    @CommandDescription("Sets whether the rail tracker debugging is currently enabled")
-    private void commandDebugSetRailTracker(
-            final CommandSender sender,
-            final @Argument("enabled") boolean enabled
-    ) {
-        TCConfig.railTrackerDebugEnabled = enabled;
-        commandDebugCheckRailTracker(sender);
-    }
-
-    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug railtracker")
-    @CommandDescription("Checks whether the rail tracker debugging is currently enabled")
-    private void commandDebugCheckRailTracker(
-            final CommandSender sender
-    ) {
-        sender.sendMessage(ChatColor.GREEN + "Displaying tracked rail positions: " +
-                (TCConfig.railTrackerDebugEnabled ? "ENABLED" : (ChatColor.RED + "DISABLED")));
-    }
-
-    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug wheeltracker <enabled>")
-    @CommandDescription("Sets whether the rail tracker debugging is currently enabled")
-    private void commandDebugSetWheelTracker(
-            final CommandSender sender,
-            final @Argument("enabled") boolean enabled
-    ) {
-        TCConfig.wheelTrackerDebugEnabled = enabled;
-        commandDebugCheckWheelTracker(sender);
-    }
-
-    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug wheeltracker")
-    @CommandDescription("Checks whether the wheel tracker debugging is currently enabled")
-    private void commandDebugCheckWheelTracker(
-            final CommandSender sender
-    ) {
-        sender.sendMessage(ChatColor.GREEN + "Displaying tracked wheel positions: " +
-                (TCConfig.wheelTrackerDebugEnabled ? "ENABLED" : (ChatColor.RED + "DISABLED")));
-    }
-
-    public static void giveDebugItem(Player player, String debugMode, String debugTitle) {
-        ItemStack item = ItemUtil.createItem(Material.STICK, 1);
-        ItemUtil.getMetaTag(item, true).putValue("TrainCartsDebug", debugMode);
-        ItemUtil.setDisplayName(item, debugTitle);
-
-        // Update item in main hand, if it is a debug item
-        ItemStack inMainHand = HumanHand.getItemInMainHand(player);
-        if (inMainHand != null) {
-            CommonTagCompound tag = ItemUtil.getMetaTag(inMainHand, false);
-            if (tag != null && tag.containsKey("TrainCartsDebug")) {
-                HumanHand.setItemInMainHand(player, item);
-                return;
-            }
-        }
-
-        // Give new item
-        player.getInventory().addItem(item);
     }
 
     public static void listTrains(CommandSender sender, String statement) {

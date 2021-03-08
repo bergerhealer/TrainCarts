@@ -242,8 +242,11 @@ public class TrainCommands {
         }
         if (member != null) {
             if (player.teleport(member.getEntity().getLocation())) {
-                member.addPassengerForced(player);
-                player.sendMessage(ChatColor.GREEN + "You entered a seat of train '" + trainProperties.getTrainName() + "'!");
+                if (member.addPassengerForced(player)) {
+                    player.sendMessage(ChatColor.GREEN + "You entered a seat of train '" + trainProperties.getTrainName() + "'!");
+                } else {
+                    player.sendMessage(ChatColor.YELLOW + "Selected cart has no free seat. Teleported to the train instead.");
+                }
             } else {
                 player.sendMessage(ChatColor.RED + "Failed to enter train: teleport was denied");
             }
