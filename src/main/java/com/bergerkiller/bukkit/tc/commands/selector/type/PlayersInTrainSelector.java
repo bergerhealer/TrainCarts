@@ -21,7 +21,10 @@ public class PlayersInTrainSelector implements SelectorHandler {
 
     @Override
     public Collection<String> handle(CommandSender sender, String selector, Map<String, String> arguments) throws SelectorException {
-        String trainName = arguments.get("train");
+        String trainName = arguments.get("name");
+        if (trainName == null) {
+            trainName = arguments.get("train"); // Deprecated!!!
+        }
         if (trainName == null) {
             throw new SelectorException("No train name pattern was provided");
         }
