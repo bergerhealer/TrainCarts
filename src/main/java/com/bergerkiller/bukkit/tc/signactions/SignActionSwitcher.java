@@ -153,7 +153,9 @@ public class SignActionSwitcher extends SignAction {
                     if (stat.hasCounter()) {
                         if (signcounter == null) {
                             signcounter = getSwitchedTimes(info.getBlock());
-                            signcounter.syncEnter(info.getGroup(), info.getRails());
+                            if (info.isCartSign()) {
+                                signcounter.syncCartSignEnter(info.getGroup(), info.getRails());
+                            }
                         }
                         maxcount += stat.counter.get(signcounter.startLength);
                     }
@@ -316,7 +318,7 @@ public class SignActionSwitcher extends SignAction {
          * @param group
          * @param railBlock
          */
-        public void syncEnter(MinecartGroup group, Block railBlock) {
+        public void syncCartSignEnter(MinecartGroup group, Block railBlock) {
             if (!TCConfig.switcherResetCountersOnFirstCart) {
                 return;
             }
