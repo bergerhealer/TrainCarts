@@ -143,7 +143,7 @@ public abstract class Statement {
                     isLogicAnd = false;
                     statementText = statementText.substring(1);
                 }
-                boolean result = Statement.has(group, statementText, event);
+                boolean result = Statement.has(member, group, statementText, event);
                 if (isLogicAnd) {
                     match &= result;
                 } else {
