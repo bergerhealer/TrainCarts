@@ -51,7 +51,9 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -967,41 +969,29 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         return !groups.contains(this);
     }
 
+    /**
+     * Gets an inventory view of all the items in the carts of this train
+     *
+     * @return cart inventory view
+     */
     public Inventory getInventory() {
-        //count amount of storage minecarts
-        Inventory[] source = new Inventory[this.size(EntityType.MINECART_CHEST)];
-        int i = 0;
-        for (MinecartMember<?> mm : this) {
-            if (mm instanceof MinecartMemberChest) {
-                source[i] = ((MinecartMemberChest) mm).getEntity().getInventory();
-                i++;
-            }
-        }
-        if (source.length == 1) {
-            return source[0];
-        }
+        Inventory[] source = this.stream()
+                .map(MinecartMember::getEntity)
+                .filter(e -> e instanceof InventoryHolder)
+                .map(e -> ((InventoryHolder) e).getInventory())
+                .toArray(Inventory[]::new);
         return new MergedInventory(source);
     }
 
+    /**
+     * Gets an inventory view of all players inside all carts of this train
+     *
+     * @return player inventory view
+     */
     public Inventory getPlayerInventory() {
-        //count amount of player passengers
-        int count = 0;
-        for (MinecartMember<?> mm : this) {
-            if (mm.getEntity().hasPlayerPassenger()) {
-                count++;
-            }
-        }
-        Inventory[] source = new Inventory[count];
-        if (source.length == 1) {
-            return source[0];
-        }
-        int i = 0;
-        for (MinecartMember<?> mm : this) {
-            if (mm.getEntity().hasPlayerPassenger()) {
-                source[i] = mm.getPlayerInventory();
-                i++;
-            }
-        }
+        Inventory[] source = this.stream().flatMap(m -> m.getEntity().getPlayerPassengers().stream())
+                     .map(Player::getInventory)
+                     .toArray(Inventory[]::new);
         return new MergedInventory(source);
     }
 

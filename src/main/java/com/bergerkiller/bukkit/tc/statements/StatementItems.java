@@ -5,17 +5,31 @@ import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-public class StatementItems extends Statement {
+/**
+ * Generic base implementation for statements that evaluate inventory
+ * views of carts or trains.
+ */
+public abstract class StatementItems extends Statement {
 
-    @Override
-    public boolean match(String text) {
-        return text.startsWith("items");
-    }
+    /**
+     * Gets the inventory of items of a given cart for this statement type
+     *
+     * @param member
+     * @return inventory
+     */
+    public abstract Inventory getInventory(MinecartMember<?> member);
+    
+    /**
+     * Gets the inventory of items of a given train for this statement type
+     *
+     * @param group
+     * @return inventory
+     */
+    public abstract Inventory getInventory(MinecartGroup group);
 
     @Override
     public boolean handle(MinecartMember<?> member, String text, SignActionEvent event) {
@@ -35,11 +49,6 @@ public class StatementItems extends Statement {
         }
         int count = ItemUtil.getItemCount(inventory, null, -1);
         return Util.evaluate(count, text);
-    }
-
-    @Override
-    public boolean matchArray(String text) {
-        return text.equals("i");
     }
 
     public boolean handleInventory(Inventory inv, String[] items) {
@@ -82,18 +91,6 @@ public class StatementItems extends Statement {
             }
         }
         return false;
-    }
-
-    public Inventory getInventory(MinecartMember<?> member) {
-        if (member instanceof MinecartMemberChest) {
-            return ((MinecartMemberChest) member).getEntity().getInventory();
-        } else {
-            return null;
-        }
-    }
-
-    public Inventory getInventory(MinecartGroup group) {
-        return group.getInventory();
     }
 
     @Override

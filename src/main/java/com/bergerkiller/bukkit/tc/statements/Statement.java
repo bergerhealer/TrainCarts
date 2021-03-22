@@ -25,7 +25,7 @@ public abstract class Statement {
         register(new StatementEmpty());
         register(new StatementPassenger());
         register(new StatementOwners());
-        register(new StatementItems());
+        register(new StatementTrainItems());
         register(new StatementFuel());
         register(new StatementType());
         register(new StatementVelocity());

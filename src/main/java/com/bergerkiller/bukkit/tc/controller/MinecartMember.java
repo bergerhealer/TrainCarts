@@ -27,8 +27,8 @@ import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.event.vehicle.VehicleUpdateEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
@@ -39,6 +39,7 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
+import com.bergerkiller.bukkit.common.inventory.MergedInventory;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.math.Quaternion;
@@ -1544,18 +1545,15 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
-     * Gets the inventory of a potential Player passenger
+     * Gets the inventory view of all player passengers of this Minecart.
      *
-     * @return the passenger Player inventory, or null if there is no player
+     * @return the passengers Player inventory
      */
-    public PlayerInventory getPlayerInventory() {
-        List<Player> players = entity.getPlayerPassengers();
-        if (players.isEmpty()) {
-            return null;
-        } else {
-            // TODO: Perhaps allow more than one player? Its weird.
-            return players.get(0).getInventory();
-        }
+    public Inventory getPlayerInventory() {
+        Inventory[] source = this.getEntity().getPlayerPassengers().stream()
+                .map(Player::getInventory)
+                .toArray(Inventory[]::new);
+        return new MergedInventory(source);
     }
 
     /**
