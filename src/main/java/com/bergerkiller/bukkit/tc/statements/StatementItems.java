@@ -23,7 +23,7 @@ public abstract class StatementItems extends Statement {
      * @return inventory
      */
     public abstract Inventory getInventory(MinecartMember<?> member);
-    
+
     /**
      * Gets the inventory of items of a given train for this statement type
      *
@@ -38,7 +38,7 @@ public abstract class StatementItems extends Statement {
         if (inventory == null) {
             inventory = new MergedInventory(); // simulate empty inventory
         }
-        int count = ItemUtil.getItemCount(getInventory(member), null, -1);
+        int count = ItemUtil.getItemCount(inventory, null, -1);
         return Util.evaluate(count, text);
     }
 
