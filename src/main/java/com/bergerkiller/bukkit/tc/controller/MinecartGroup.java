@@ -977,6 +977,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     public Inventory getInventory() {
         Inventory[] source = this.stream()
                 .map(MinecartMember::getEntity)
+                .map(CommonEntity::getEntity)
                 .filter(e -> e instanceof InventoryHolder)
                 .map(e -> ((InventoryHolder) e).getInventory())
                 .toArray(Inventory[]::new);
