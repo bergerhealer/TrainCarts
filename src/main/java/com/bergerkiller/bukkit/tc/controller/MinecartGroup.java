@@ -5,7 +5,6 @@ import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.bases.mutable.VectorAbstract;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
@@ -29,6 +28,7 @@ import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.AnimationController;
+import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.SignTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.SpeedAheadWaiter;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerGroup;
@@ -67,7 +67,6 @@ import java.util.stream.Collectors;
 public class MinecartGroup extends MinecartGroupStore implements IPropertiesHolder, AnimationController {
     private static final long serialVersionUID = 3;
     private static final LongHashSet chunksBuffer = new LongHashSet(50);
-    protected final ToggledState networkInvalid = new ToggledState();
     protected final ToggledState ticked = new ToggledState();
     protected final ChunkArea chunkArea = new ChunkArea();
     private boolean chunkAreaValid = false;
@@ -75,6 +74,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     private final RailTrackerGroup railTracker = new RailTrackerGroup(this);
     private final ActionTrackerGroup actionTracker = new ActionTrackerGroup(this);
     private final SpeedAheadWaiter speedAheadWaiter = new SpeedAheadWaiter(this);
+    private final AttachmentControllerGroup attachmentController = new AttachmentControllerGroup(this);
     protected long lastSync = Long.MIN_VALUE;
     private TrainProperties prop = null;
     private boolean breakPhysics = false;
@@ -174,6 +174,16 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      */
     public RailTrackerGroup getRailTracker() {
         return this.railTracker;
+    }
+
+    /**
+     * Gets the attachment controller for this group. This controller manages
+     * the (synchronized) updates of all carts of the train.
+     *
+     * @return group attachment controller
+     */
+    public AttachmentControllerGroup getAttachments() {
+        return this.attachmentController;
     }
 
     public MinecartMember<?> head(int index) {
@@ -1431,13 +1441,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
 
             // Set up a valid network controller if needed
-            if (networkInvalid.clear()) {
-                for (MinecartMember<?> m : this) {
-                    EntityNetworkController<?> controller = m.getEntity().getNetworkController();
-                    if (!(controller instanceof MinecartMemberNetwork)) {
-                        m.getEntity().setNetworkController(new MinecartMemberNetwork());
-                    }
-                }
+            for (MinecartMember<?> member : this) {
+                member.getAttachments().fixNetworkController();
             }
 
             // Update some per-tick stuff

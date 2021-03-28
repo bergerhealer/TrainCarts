@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.controller;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.collections.ClassMap;
 import com.bergerkiller.bukkit.common.controller.DefaultEntityController;
-import com.bergerkiller.bukkit.common.controller.DefaultEntityNetworkController;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
@@ -167,17 +166,13 @@ public abstract class MinecartMemberStore {
     }
 
     /**
-     * Creates a suitable Minecart Member Network controller for an Entity.
-     * Network settings are used to select the right one.
+     * Creates a suitable Minecart Member Network controller for an Entity
      *
      * @return new Network Controller
      */
+    @SuppressWarnings("deprecation")
     public static EntityNetworkController<?> createNetworkController() {
-        if (TCConfig.useNetworkSynchronizer) {
-            return new MinecartMemberNetwork();
-        } else {
-            return new DefaultEntityNetworkController();
-        }
+        return new MinecartMemberNetwork();
     }
 
     /**

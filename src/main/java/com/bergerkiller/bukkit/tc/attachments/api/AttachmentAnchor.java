@@ -10,7 +10,7 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
+import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
 
 /**
  * Anchor relative to which the attachment is positioned.
@@ -105,13 +105,13 @@ public abstract class AttachmentAnchor {
     public static AttachmentAnchor FRONT_WHEEL = register(new AttachmentAnchor("front wheel") {
         @Override
         public boolean supports(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType) {
-            return managerType.isAssignableFrom(MinecartMemberNetwork.class);
+            return managerType.isAssignableFrom(AttachmentControllerMember.class);
         }
 
         @Override
         public void apply(Attachment attachment, Matrix4x4 transform) {
-            if (attachment.getManager() instanceof MinecartMemberNetwork) {
-                MinecartMemberNetwork controller = (MinecartMemberNetwork) attachment.getManager();
+            if (attachment.getManager() instanceof AttachmentControllerMember) {
+                AttachmentControllerMember controller = (AttachmentControllerMember) attachment.getManager();
                 controller.getMember().getWheels().front().getAbsoluteTransform(transform);
             }
         }
@@ -123,13 +123,13 @@ public abstract class AttachmentAnchor {
     public static AttachmentAnchor BACK_WHEEL = register(new AttachmentAnchor("back wheel") {
         @Override
         public boolean supports(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType) {
-            return managerType.isAssignableFrom(MinecartMemberNetwork.class);
+            return managerType.isAssignableFrom(AttachmentControllerMember.class);
         }
 
         @Override
         public void apply(Attachment attachment, Matrix4x4 transform) {
-            if (attachment.getManager() instanceof MinecartMemberNetwork) {
-                MinecartMemberNetwork controller = (MinecartMemberNetwork) attachment.getManager();
+            if (attachment.getManager() instanceof AttachmentControllerMember) {
+                AttachmentControllerMember controller = (AttachmentControllerMember) attachment.getManager();
                 controller.getMember().getWheels().back().getAbsoluteTransform(transform);
             }
         }

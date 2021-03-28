@@ -100,7 +100,6 @@ public class CartAttachmentText extends CartAttachment {
 
     @Override
     public void onTick() {
-
     }
 
     @Override
@@ -108,21 +107,19 @@ public class CartAttachmentText extends CartAttachment {
         return this.entity != null && this.entity.getEntityId() == entityId;
     }
 
-
-
     @Override
     public int getMountEntityId() {
         return this.entity.getEntityId();
     }
 
     @Override
-    public void onMove(boolean absolute) {
-        this.entity.syncPosition(absolute);
+    public void onTransformChanged(Matrix4x4 transform) {
+        this.entity.updatePosition(transform);
     }
 
     @Override
-    public void onTransformChanged(Matrix4x4 transform) {
-        this.entity.updatePosition(transform);
+    public void onMove(boolean absolute) {
+        this.entity.syncPosition(absolute);
     }
 
     @Override

@@ -77,21 +77,40 @@ public interface Attachment {
     void onLoad(ConfigurationNode config);
 
     /**
-     * Called every tick to update the attachment
-     */
-    void onTick();
-
-    /**
      * Called right after the {@link #getTransform()} has been updated.
      * Additional transformations can be performed here on the transformation matrix,
-     * and position information can be calculated.
+     * and position information can be calculated. Called every tick.<br>
+     * <br>
+     * <b>Important: </b>this method may be called from other threads when
+     * multi-threaded computation is used. Fields of this attachments can be safely
+     * updated, but access to shared resources should be protected. It might
+     * be better to access shared state, such as blocks or entities, inside
+     * {@link #onTick()}.<br>
+     * <br>
+     * It is not recommended to send packets inside this method, because asynchronous
+     * sending of packets is queued by the server. Doing so might introduce unneeded
+     * overhead.
      * 
      * @param transform (same as {@link #getTransform()} but mutable)
      */
     void onTransformChanged(Matrix4x4 transform);
 
     /**
-     * Called every now and then to refresh the position of the attachment
+     * Called every tick to update the attachment.<br>
+     * <br>
+     * Before this method is called,
+     * the {@link #getTransform()} information is updated. If the position of
+     * the attachment needs to be changed, this should be done inside
+     * {@link #onTransformChanged(Matrix4x4)} for better performance.
+     */
+    void onTick();
+
+    /**
+     * Called every now and then to refresh the position of the attachment.<br>
+     * <br>
+     * <b>Important: </b>this method is not called every tick, and may cause jitter
+     * when used for updating something that changes every tick. If this is the case,
+     * perform movement updates inside {@link #onTick()} instead.
      * 
      * @param absolute whether this is an absolute (synchronize) movement update.
      *        If this is true, the position information should be refreshed.

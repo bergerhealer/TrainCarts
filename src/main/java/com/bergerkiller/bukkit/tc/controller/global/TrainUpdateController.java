@@ -1,14 +1,24 @@
 package com.bergerkiller.bukkit.tc.controller.global;
 
 import java.util.Random;
+import java.util.function.Supplier;
+import java.util.logging.Level;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.Timings;
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.helper.AttachmentUpdateTransformHelper;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 /**
  * Handles everything to do with updating trains:
@@ -26,6 +36,8 @@ public class TrainUpdateController {
     private boolean ticking = true; // whether train tick updates are enabled
     private double realtimeFactor = 1.0; // Factor to correct for server lag this current tick
     private TrainUpdateTask updateTask = null;
+    private TrainNetworkSyncTask networkSyncTask = null;
+    private AttachmentUpdateTransformHelper updateTransformHelper;
 
     public TrainUpdateController(TrainCarts plugin) {
         this.plugin = plugin;
@@ -70,6 +82,11 @@ public class TrainUpdateController {
         this.updateTask = new TrainUpdateTask(this.plugin);
         this.updateTask.start(1, 1);
 
+        this.networkSyncTask = new TrainNetworkSyncTask(this.plugin);
+        this.networkSyncTask.start(1, 1);
+
+        this.updateTransformHelper = AttachmentUpdateTransformHelper.create(TCConfig.attachmentTransformParallelism);
+
         // Note: just for testing, is normally disabled
         //new DebugArtificialLag(this.plugin).start(1, 1);
     }
@@ -77,6 +94,12 @@ public class TrainUpdateController {
     public void disable() {
         Task.stop(this.updateTask);
         this.updateTask = null;
+        Task.stop(this.networkSyncTask);
+        this.networkSyncTask = null;
+    }
+
+    public void computeAttachmentTransform(Attachment attachment, Supplier<Matrix4x4> initialTransformSupplier) {
+        updateTransformHelper.startAndFinish(attachment, initialTransformSupplier);
     }
 
     private class TrainUpdateTask extends Task {
@@ -112,6 +135,43 @@ public class TrainUpdateController {
 
             // For all Minecart that were not ticked, tick them ourselves
             MinecartGroupStore.doFixedTick(plugin);
+        }
+    }
+
+    private class TrainNetworkSyncTask extends Task {
+
+        public TrainNetworkSyncTask(JavaPlugin plugin) {
+            super(plugin);
+        }
+
+        @Override
+        public void run() {
+            try (Timings t = TCTimings.NETWORK_UPDATE_POSITIONS.start()) {
+                // First do a pre-movement update for all trains
+                for (MinecartGroup group : MinecartGroupStore.getGroups().cloneAsIterable()) {
+                    try {
+                        group.getAttachments().syncPrePositionUpdate(updateTransformHelper);
+                    } catch (Throwable ex) {
+                        final TrainProperties p = group.getProperties();
+                        plugin.log(Level.SEVERE, "Failed to synchronize a network controller of train '" + p.getTrainName() + "' at " + p.getLocation() + ":");
+                        plugin.handle(ex);
+                    }
+                }
+
+                // Sync
+                updateTransformHelper.finish();
+            }
+
+            // Post-updates
+            for (MinecartGroup group : MinecartGroupStore.getGroups().cloneAsIterable()) {
+                try {
+                    group.getAttachments().syncPostPositionUpdate();
+                } catch (Throwable t) {
+                    final TrainProperties p = group.getProperties();
+                    plugin.log(Level.SEVERE, "Failed to synchronize a network controller of train '" + p.getTrainName() + "' at " + p.getLocation() + ":");
+                    plugin.handle(t);
+                }
+            }            
         }
     }
 

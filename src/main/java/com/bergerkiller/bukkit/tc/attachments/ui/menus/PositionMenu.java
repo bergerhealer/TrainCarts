@@ -12,7 +12,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
-import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
+import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
 
 public class PositionMenu extends MapWidgetMenu {
     private boolean isLoadingWidgets;
@@ -40,7 +40,7 @@ public class PositionMenu extends MapWidgetMenu {
                 // To test compatibility: load the attachment first
                 AttachmentType attachmentType = attachment.getType();
                 for (AttachmentAnchor type : AttachmentAnchor.values()) {
-                    if (type.supports(MinecartMemberNetwork.class, attachmentType)) {
+                    if (type.supports(AttachmentControllerMember.class, attachmentType)) {
                         this.addItem(type.getName());
                     }
                 }

@@ -21,7 +21,6 @@ import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.debug.DebugTool;
 import com.bergerkiller.bukkit.tc.editor.TCMapControl;
@@ -803,10 +802,7 @@ public class TCListener implements Listener {
             // If the Player indeed does enter the Minecart, then we know what seat to pick
             MinecartMember<?> newMinecart = MinecartMemberStore.getFromEntity(event.getRightClicked());
             if (!event.isCancelled() && newMinecart != null) {
-                MinecartMemberNetwork network = CommonUtil.tryCast(newMinecart.getEntity().getNetworkController(), MinecartMemberNetwork.class);
-                if (network != null) {
-                    network.storeSeatHint(event.getPlayer());
-                }
+                newMinecart.getAttachments().storeSeatHint(event.getPlayer());
             }
         }
     }

@@ -163,10 +163,6 @@ public class CartAttachmentLight extends CartAttachment {
 
     @Override
     public void onTick() {
-    }
-
-    @Override
-    public void onMove(boolean absolute) {
         Vector pos_d = this.getTransform().toVector();
         IntVector3 pos = new IntVector3(pos_d.getX(), pos_d.getY(), pos_d.getZ());
 
@@ -182,5 +178,9 @@ public class CartAttachmentLight extends CartAttachment {
             controller.remove(prev_block, lightLevel);
             prev_block = null;
         }
+    }
+
+    @Override
+    public void onMove(boolean absolute) {
     }
 }

@@ -491,6 +491,9 @@ public class TrainCarts extends PluginBase {
         this.pathProvider = new PathProvider(this);
         this.pathProvider.enable(getDataFolder() + File.separator + "destinations.dat");
 
+        // Initialize train updater task
+        this.trainUpdateController.enable();
+
         //Load properties
         TrainProperties.load();
 
@@ -526,9 +529,6 @@ public class TrainCarts extends PluginBase {
 
         //Activate all detector regions with trains that are on it
         DetectorRegion.detectAllMinecarts();
-
-        // Initialize train updater task
-        this.trainUpdateController.enable();
 
         // Cleans up unused cached rail types over time to avoid memory leaks
         cacheCleanupTask = new CacheCleanupTask(this).start(1, 1);

@@ -7,7 +7,6 @@ import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
@@ -16,7 +15,6 @@ import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 
 public class SeatExitPositionMenu extends MapWidgetMenu {
     private SeatMapWidgetNumberBox _positionX, _positionY, _positionZ;
@@ -153,12 +151,7 @@ public class SeatExitPositionMenu extends MapWidgetMenu {
             return;
         }
 
-        MinecartMemberNetwork network = CommonUtil.tryCast(member.getEntity().getNetworkController(), MinecartMemberNetwork.class);
-        if (network == null) {
-            return;
-        }
-
-        Attachment attachment = network.getRootAttachment().findChild(this.attachment.getTargetPath());
+        Attachment attachment = member.getAttachments().getRootAttachment().findChild(this.attachment.getTargetPath());
         if (!(attachment instanceof CartAttachmentSeat)) {
             return;
         }

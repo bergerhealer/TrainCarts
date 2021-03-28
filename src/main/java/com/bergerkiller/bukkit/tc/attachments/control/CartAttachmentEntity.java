@@ -9,6 +9,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
@@ -239,7 +240,8 @@ public class CartAttachmentEntity extends CartAttachment {
             this.entity = new VirtualEntity(this.getManager());
         } else {
             // Root Minecart node - allow the same Entity Id as the minecart to be used
-            this.entity = new VirtualEntity(this.getManager(), this.getController().getEntity().getEntityId(), this.getController().getEntity().getUniqueId());
+            CommonEntity<?> entity = this.getController().getMember().getEntity();
+            this.entity = new VirtualEntity(this.getManager(), entity.getEntityId(), entity.getUniqueId());
             this.entity.setUseParentMetadata(true);
         }
         this.entity.setEntityType(entityType);

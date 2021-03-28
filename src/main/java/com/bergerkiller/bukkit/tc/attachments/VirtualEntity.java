@@ -22,7 +22,7 @@ import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
+import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
 import com.bergerkiller.generated.net.minecraft.server.EntityTrackerEntryStateHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityDestroyHandle;
@@ -83,30 +83,6 @@ public class VirtualEntity {
     private boolean useParentMetadata = false;
     private final ArrayList<Player> viewers = new ArrayList<Player>();
     private Vector yawPitchRoll = new Vector(0.0, 0.0, 0.0);
-
-    /**
-     * Deprecated: now uses Attachment Manager
-     * 
-     * @param controller
-     * @param entityId
-     * @param entityUUID
-     */
-    @Deprecated
-    public VirtualEntity(MinecartMemberNetwork controller) {
-        this((AttachmentManager) controller);
-    }
-
-    /**
-     * Deprecated: now uses Attachment Manager
-     * 
-     * @param controller
-     * @param entityId
-     * @param entityUUID
-     */
-    @Deprecated
-    public VirtualEntity(MinecartMemberNetwork controller, int entityId, UUID entityUUID) {
-        this((AttachmentManager) controller, entityId, entityUUID);
-    }
 
     public VirtualEntity(AttachmentManager manager) {
         this(manager, EntityUtil.getUniqueEntityId(), UUID.randomUUID());
@@ -320,8 +296,8 @@ public class VirtualEntity {
         // When derailed, no audio should be made. Otherwise, the velocity speed controls volume.
         // Only applies when used in a minecart member network environment
         liveVel = 0.0;
-        if (this.entityTypeIsMinecart && this.manager instanceof MinecartMemberNetwork) {
-            MinecartMember<?> member = ((MinecartMemberNetwork) manager).getMember();
+        if (this.entityTypeIsMinecart && this.manager instanceof AttachmentControllerMember) {
+            MinecartMember<?> member = ((AttachmentControllerMember) manager).getMember();
             if (!member.isUnloaded() && member.getGroup().getProperties().isSoundEnabled() && !member.isDerailed()) {
                 if (!Double.isNaN(velSyncAbsX)) {
                     liveVel = MathUtil.distance(liveAbsX, liveAbsY, liveAbsZ, velSyncAbsX, velSyncAbsY, velSyncAbsZ);
@@ -652,8 +628,8 @@ public class VirtualEntity {
     }
 
     private DataWatcher getUsedMeta() {
-        if (this.useParentMetadata && this.manager instanceof MinecartMemberNetwork) {
-            return ((MinecartMemberNetwork) this.manager).getEntity().getMetaData();
+        if (this.useParentMetadata && this.manager instanceof AttachmentControllerMember) {
+            return ((AttachmentControllerMember) this.manager).getMember().getEntity().getMetaData();
         } else {
             return this.metaData;
         }

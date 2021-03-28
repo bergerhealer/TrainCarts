@@ -269,9 +269,6 @@ public class CartAttachmentItem extends CartAttachment {
             meta.set(EntityArmorStandHandle.DATA_POSE_LEG_LEFT, rotation);
             meta.set(EntityArmorStandHandle.DATA_POSE_LEG_RIGHT, rotation);
         }
-
-        // Sync right now! Not only when moving!
-        this.entity.syncMetadata();
     }
 
     public final void onTransformChanged_legacy(Matrix4x4 transform) {
@@ -327,7 +324,10 @@ public class CartAttachmentItem extends CartAttachment {
             meta.set(EntityArmorStandHandle.DATA_POSE_LEG_LEFT, rotation);
             meta.set(EntityArmorStandHandle.DATA_POSE_LEG_RIGHT, rotation);
         }
+    }
 
+    @Override
+    public void onTick() {
         // Sync right now! Not only when moving!
         this.entity.syncMetadata();
     }
@@ -335,10 +335,6 @@ public class CartAttachmentItem extends CartAttachment {
     @Override
     public void onMove(boolean absolute) {
         this.entity.syncPosition(absolute);
-    }
-
-    @Override
-    public void onTick() {
     }
 
 }

@@ -35,7 +35,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetToggleButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositionMenu;
-import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
+import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutPositionHandle;
@@ -248,9 +248,6 @@ public class CartAttachmentSeat extends CartAttachment {
         {
             this.getParent().applyDefaultSeatTransform(transform);
         }
-
-        // Synchronize orientation of the entity inside this seat
-        this.seated.orientation.synchronize(this, transform, this.seated);
     }
 
     /**
@@ -329,6 +326,9 @@ public class CartAttachmentSeat extends CartAttachment {
 
     @Override
     public void onTick() {
+        // Synchronize orientation of the entity inside this seat
+        this.seated.orientation.synchronize(this, this.getTransform(), this.seated);
+
         // Only needed when there is a passenger
         this.seated.updateMode(false);
 
@@ -402,8 +402,8 @@ public class CartAttachmentSeat extends CartAttachment {
         this._ejectPosition.anchor.apply(this, tmp);
 
         // If this is inside a Minecart, check the exit offset / rotation properties
-        if (this.getManager() instanceof MinecartMemberNetwork) {
-            CartProperties cprop = ((MinecartMemberNetwork) this.getManager()).getMember().getProperties();
+        if (this.getManager() instanceof AttachmentControllerMember) {
+            CartProperties cprop = ((AttachmentControllerMember) this.getManager()).getMember().getProperties();
             ExitOffset cprop_offset = cprop.getExitOffset();
 
             // Translate eject offset specified in the cart's properties

@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.controller;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -16,7 +15,6 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
@@ -68,6 +66,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.AnimationController;
+import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
@@ -111,6 +110,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private final ActionTrackerMember actionTracker = new ActionTrackerMember(this);
     private final RailTrackerMember railTrackerMember = new RailTrackerMember(this);
     private final WheelTrackerMember wheelTracker = new WheelTrackerMember(this);
+    private final AttachmentControllerMember attachmentController = new AttachmentControllerMember(this);
     private final ToggledState railActivated = new ToggledState(false);
     protected final ToggledState ticked = new ToggledState();
     public boolean vertToSlope = false;
@@ -497,6 +497,15 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
+     * Gets the controller for the attachments configured for this cart
+     *
+     * @return attachment controller
+     */
+    public AttachmentControllerMember getAttachments() {
+        return attachmentController;
+    }
+
+    /**
      * Sets whether this Minecart is unloaded. An unloaded minecart can not move and
      * can not be part of a group. Minecarts that are set unloaded will have all
      * standard behavior frozen until they are loaded again.
@@ -605,8 +614,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return passenger eject position
      */
     public Location getPassengerEjectLocation(Entity passenger) {
-        MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
-        CartAttachmentSeat seat = (network == null) ? null : network.findSeat(passenger);
+        CartAttachmentSeat seat = this.getAttachments().findSeat(passenger);
 
         if (seat == null || !seat.isAttached()) {
             // Fallback
@@ -627,8 +635,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return passenger position
      */
     public Location getPassengerLocation(Entity passenger) {
-        MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
-        CartAttachmentSeat seat = (network == null) ? null : network.findSeat(passenger);
+        CartAttachmentSeat seat = this.getAttachments().findSeat(passenger);
 
         if (seat == null) {
             // Fallback
@@ -2290,15 +2297,15 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return number of available seats
      */
     public int getAvailableSeatCount(Entity passenger) {
+        // Sync passengers first, which is for now done by the network controller
+        @SuppressWarnings("deprecation")
         MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
-        if (network == null) {
-            // Assume a single passenger slot, no special rules
-            return (entity.getType() == EntityType.MINECART && !entity.hasPassenger()) ? 1 : 0;
+        if (network != null) {
+            network.syncPassengers();
         }
 
-        // Ask the network controller about available seats. Make sure to sync passengers first.
-        network.syncPassengers();
-        return network.getAvailableSeatCount(passenger);
+        // Ask attachments controller for the number of available seats
+        return this.getAttachments().getAvailableSeatCount(passenger);
     }
 
     /**
@@ -2398,12 +2405,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     @Override
     public List<String> GetAnimationNames() {
-        MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
-        if (network != null) {
-            return network.getRootAttachment().getAnimationNamesRecursive();
-        } else {
-            return Collections.emptyList();
-        }
+        return this.getAttachments().getRootAttachment().getAnimationNamesRecursive();
     }
 
     /**
@@ -2459,12 +2461,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      */
     @Override
     public boolean playNamedAnimation(AnimationOptions options) {
-        MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
-        if (network != null) {
-            return network.getRootAttachment().playNamedAnimationRecursive(options);
-        } else {
-            return false;
-        }
+        return this.getAttachments().getRootAttachment().playNamedAnimationRecursive(options);
     }
 
     /**
@@ -2475,7 +2472,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return Attachment at this path, or null if not found
      */
     public Attachment findAttachment(int[] targetPath) {
-        MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
-        return (network == null) ? null : network.getRootAttachment().findChild(targetPath);
+        return this.getAttachments().getRootAttachment().findChild(targetPath);
     }
 }

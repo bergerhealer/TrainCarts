@@ -1,9 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.helper;
 
-import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Set;
 
 import org.bukkit.ChatColor;
@@ -12,11 +9,8 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
-import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
-import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
-import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 
 /**
  * Just some helper methods to keep the API clean
@@ -34,127 +28,21 @@ public class HelperMethods {
             ChatColor.BLACK, ChatColor.DARK_GRAY, ChatColor.GRAY, ChatColor.WHITE
     };
 
+    // Used by updatePositions()
+    private static final AttachmentUpdateTransformHelper updateTransformHelper = AttachmentUpdateTransformHelper.createSimple();
+
     /**
-     * Updates the positions of an attachment and all child attachments
+     * Updates the positions of an attachment and all child attachments synchronously
+     * on the calling thread.
      * 
      * @param attachment to update
      * @param transform of the attachment relative to which it should be updated
+     * @deprecated Position updates are now done asynchronously, and this method only
+     *             operates on a single thread.
      */
-    public static void updatePositions(Attachment startAttachment, Matrix4x4 transform) {
-        UpdatePositionsState update_state = UpdatePositionsState.INSTANCE;
-        try {
-            // Refresh root attachment using the specified transform
-            updatePositionsSingle(update_state, startAttachment, transform);
-
-            // Add all children and begin processing those
-            update_state.pendingUpdates.addAll(startAttachment.getChildren());
-
-            // Update positions of all attachments in the list since previous index
-            // Add their children to the list and then process all of those
-            // Do this until the entire list is exhausted
-            int startIndex = 0, endIndex;
-            while (startIndex < (endIndex = update_state.pendingUpdates.size())) {
-                for (int index = startIndex; index < endIndex; index++) {
-                    Attachment attachment = update_state.pendingUpdates.get(index);
-                    updatePositionsSingle(update_state, attachment, attachment.getParent().getTransform());
-                    update_state.pendingUpdates.addAll(attachment.getChildren());
-                }
-                startIndex = endIndex;
-            }
-
-            // Handle changes in active mode last, as this causes spawning/despawning
-            for (Map.Entry<Attachment, Boolean> activeChange : update_state.pendingActiveChanges) {
-                activeChange.getKey().setActive(activeChange.getValue().booleanValue());
-            }
-        } finally {
-            update_state.pendingUpdates.clear();
-            update_state.pendingActiveChanges.clear();
-        }
-    }
-
-    /*
-     * Update logic for a single attachment only
-     */
-    private static void updatePositionsSingle(UpdatePositionsState update_state, Attachment attachment, Matrix4x4 transform) {
-        AttachmentInternalState state = attachment.getInternalState();
-
-        // Update last transform if one is available
-        boolean hasLastTransform = (state.last_transform != null);
-        if (state.curr_transform != null) {
-            if (state.last_transform == null) {
-                state.last_transform = state.curr_transform.clone();
-            } else {
-                state.last_transform.set(state.curr_transform);
-            }
-            hasLastTransform = true;
-        }
-
-        // Assign new transform to start from
-        if (state.curr_transform == null) {
-            state.curr_transform = transform.clone();
-        } else {
-            state.curr_transform.set(transform);
-        }
-
-        if (state.position.anchor.appliedLate()) {
-            // First apply the local transformation, then transform using anchor
-            state.curr_transform.multiply(state.position.transform);
-            state.position.anchor.apply(attachment, state.curr_transform);
-        } else {
-            // First transform using anchor, then apply the local transformation
-            state.position.anchor.apply(attachment, state.curr_transform);
-            state.curr_transform.multiply(state.position.transform);
-        }
-
-        // Go to next animation when end of animation is reached (or no animation is playing)
-        if (!state.nextAnimationQueue.isEmpty() && (state.currentAnimation == null || state.currentAnimation.hasReachedEnd())) {
-            state.currentAnimation = state.nextAnimationQueue.remove(0);
-            state.currentAnimation.start();
-        }
-
-        // If animation was reset (disabled), erase any previous animation state we had
-        // If one is running, then refresh the last animation state to apply to this transform
-        // If this method returns null, then we keep whatever state we were in prior
-        if (state.currentAnimation == null) {
-            state.lastAnimationState = null;
-        } else if (!state.currentAnimation.hasReachedEnd()) {
-            // TODO: Do we need dt here?
-            double dt = ((CartAttachment) attachment).getController().getAnimationDeltaTime();
-            AnimationNode animNode = state.currentAnimation.update(dt);
-            if (animNode != null) {
-                state.lastAnimationState = animNode;
-            }
-        }
-
-        // Apply animation state from current or previous animation to the transformation
-        if (state.lastAnimationState != null) {
-            // Refresh active changes
-            boolean active = state.lastAnimationState.isActive();
-            state.lastAnimationState.apply(state.curr_transform);
-            if (active != attachment.isActive()) {
-                update_state.pendingActiveChanges.add(new AbstractMap.SimpleEntry<Attachment, Boolean>(attachment, active));
-            }
-        }
-
-        // In case onTransformChanged requires this
-        if (!hasLastTransform) {
-            state.last_transform = state.curr_transform.clone();
-        }
-
-        // Update positions
-        attachment.onTransformChanged(state.curr_transform);
-
-        // Refresh
-        if (!hasLastTransform) {
-            state.last_transform = state.curr_transform.clone();
-        }
-    }
-
-    // Singleton helper object
-    private static final class UpdatePositionsState {
-        public static final UpdatePositionsState INSTANCE = new UpdatePositionsState();
-        public final ArrayList<Map.Entry<Attachment,Boolean>> pendingActiveChanges = new ArrayList<>();
-        public final ArrayList<Attachment> pendingUpdates = new ArrayList<>();
+    @Deprecated
+    public static void updatePositions(final Attachment startAttachment, final Matrix4x4 transform) {
+        updateTransformHelper.startAndFinish(startAttachment, () -> transform);
     }
 
     /**

@@ -56,6 +56,7 @@ public class RailTrackerMember extends RailTracker {
      *
      * @return forward track iterator
      */
+    @Deprecated
     public TrackIterator getTrackIterator() {
         return new TrackIterator(this.rail.state.railBlock(), this.owner.getDirectionTo());
     }

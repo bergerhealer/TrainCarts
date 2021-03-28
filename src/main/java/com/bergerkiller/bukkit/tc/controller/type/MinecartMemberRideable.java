@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.type;
 
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartRideable;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.common.wrappers.InteractionResult;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
@@ -9,7 +8,6 @@ import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,9 +40,8 @@ public class MinecartMemberRideable extends MinecartMember<CommonMinecartRideabl
                 return InteractionResult.PASS;
             }
 
-            // Tell the network handler to change seats
-            MinecartMemberNetwork network = CommonUtil.tryCast(entity.getNetworkController(), MinecartMemberNetwork.class);
-            if (network != null && network.changeSeats(interacter)) {
+            // Ask attachments if changing seats is possible
+            if (this.getAttachments().changeSeats(interacter)) {
                 return InteractionResult.SUCCESS;
             } else {
                 return InteractionResult.PASS;

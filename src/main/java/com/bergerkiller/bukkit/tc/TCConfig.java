@@ -71,7 +71,6 @@ public class TCConfig {
     public static boolean allowRailEditing;
     public static double manualMovementFactor;
     public static boolean allMinecartsAreTrainCarts;
-    public static boolean useNetworkSynchronizer;
     public static boolean allowUpsideDownRails;
     public static boolean allowNetherTeleport;
     public static boolean enableCeilingBlockCollision = true; // whether to allow blocks above the minecart to collide
@@ -99,6 +98,7 @@ public class TCConfig {
     public static boolean allowParenthesesFormat = true;
     public static boolean upsideDownSupportedByAll = false;
     public static int autoSaveInterval = 30 * 20; // autosave every 30 seconds
+    public static int attachmentTransformParallelism = -1;
     public static boolean allowExternalTicketImagePaths = false; // Whether images outside of the images subdirectory are allowed
     public static String currencyFormat;
     public static Set<Material> allowedBlockBreakTypes = new HashSet<>();
@@ -222,11 +222,6 @@ public class TCConfig {
         config.addHeader("enableCeilingBlockCollision", "Some constructions depend on these block collisions to block minecarts");
         config.addHeader("enableCeilingBlockCollision", "If these collisions are unwanted, they can be turned off here");
         enableCeilingBlockCollision = config.get("enableCeilingBlockCollision", true);
-
-        config.setHeader("useNetworkSynchronizer", "\nAdvanced: Whether trains use a different way of server->client synchronization");
-        config.addHeader("useNetworkSynchronizer", "With this enabled, trains are expected to move smoother with less bumping");
-        config.addHeader("useNetworkSynchronizer", "With this disabled, no smoothing is applied. Only disable it if it causes problems/incompatibility");
-        useNetworkSynchronizer = config.get("useNetworkSynchronizer", true);
 
         config.setHeader("animationsUseTickTime", "\nSets whether attachment animations use tick time or wall clock time");
         config.addHeader("animationsUseTickTime", "When false, wall clock time is used, and server lag will not slow down/speed up animations");
@@ -508,7 +503,6 @@ public class TCConfig {
 
         for (Map.Entry<String, String> entry : itemshort.getValues(String.class).entrySet()) {
             putParsers(entry.getKey(), Util.getParsers(entry.getValue()));
-            itemshort.setRead(entry.getKey());
         }
 
         // Whether images can be loaded outside of the /images subdirectory
@@ -540,6 +534,20 @@ public class TCConfig {
         config.addHeader("upsideDownSupportedByAll", "If true, blocks like glass and barrier blocks can hold upside-down rails");
         config.addHeader("upsideDownSupportedByAll", "If false, only fully-solid blocks can hold them");
         upsideDownSupportedByAll = config.get("upsideDownSupportedByAll", true);
+
+        // How many threads are used to update attachment positions
+        config.setHeader("attachmentTransformParallelism", "\nHow many threads are used to update attachment positions");
+        config.addHeader("attachmentTransformParallelism", "Multi-core CPU servers can benefit from higher parallelism");
+        config.addHeader("attachmentTransformParallelism", "If only a single core is available, using 1 is recommended to avoid overhead");
+        config.addHeader("attachmentTransformParallelism", "The default, 'auto' or -1, will detect the number of CPU cores and use that");
+        if (!config.contains("attachmentTransformParallelism")) {
+            config.set("attachmentTransformParallelism", "auto");
+            attachmentTransformParallelism = -1;
+        } else if ("auto".equals(config.get("attachmentTransformParallelism"))) {
+            attachmentTransformParallelism = -1;
+        } else {
+            attachmentTransformParallelism = config.get("attachmentTransformParallelism", -1);
+        }
     }
 
     public static void putParsers(String key, ItemParser[] parsersArr) {

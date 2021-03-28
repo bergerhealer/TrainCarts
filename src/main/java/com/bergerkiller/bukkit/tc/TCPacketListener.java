@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc;
 
 import com.bergerkiller.bukkit.common.collections.ImplicitlySharedSet;
-import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.conversion.type.HandleConversion;
 import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
 import com.bergerkiller.bukkit.common.events.PacketSendEvent;
@@ -15,7 +14,6 @@ import com.bergerkiller.bukkit.common.wrappers.UseAction;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork;
 import com.bergerkiller.generated.net.minecraft.server.EntityHumanHandle;
 import com.bergerkiller.generated.net.minecraft.server.EnumHandHandle;
 import com.bergerkiller.generated.net.minecraft.server.PacketPlayInUseEntityHandle;
@@ -103,16 +101,10 @@ public class TCPacketListener implements PacketListener {
                     }
 
                     for (MinecartMember<?> member : group) {
-                        EntityNetworkController<?> enc_raw = member.getEntity().getNetworkController();
-                        if (!(enc_raw instanceof MinecartMemberNetwork)) {
-                            continue;
-                        }
-
-                        MinecartMemberNetwork enc = (MinecartMemberNetwork) enc_raw;
-                        if (!enc.getViewers().contains(event.getPlayer())) {
+                        if (!member.getAttachments().isViewer(event.getPlayer())) {
                             continue; // If not visible, don't loop through the model to check this
                         }
-                        if (!enc.isAttachment(entityId)) {
+                        if (!member.getAttachments().isAttachment(entityId)) {
                             continue; // Id is not used in the model
                         }
 

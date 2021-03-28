@@ -22,7 +22,6 @@ import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
-import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 public class TicketStore {
@@ -32,10 +31,6 @@ public class TicketStore {
     private static boolean hasChanges = false;
     private static final HashMap<String, Ticket> ticketMap = new HashMap<String, Ticket>();
     private static final HashMap<UUID, Ticket> editingMap = new HashMap<UUID, Ticket>();
-
-    static {
-        
-    }
 
     /**
      * Creates a new ticket, using an existing ticket as a base configuration.
