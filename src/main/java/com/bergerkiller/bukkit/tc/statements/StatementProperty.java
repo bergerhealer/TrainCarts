@@ -87,8 +87,9 @@ public class StatementProperty extends Statement {
             return prop.getPlayersEnter();
         } else if (match(playerExit, lower)) {
             return prop.getPlayersExit();
+        } else {
+            return handle(member.getGroup(), text, event);
         }
-        return false;
     }
 
     @Override
