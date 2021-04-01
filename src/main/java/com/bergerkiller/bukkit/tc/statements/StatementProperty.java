@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Locale;
 
 public class StatementProperty extends Statement {
     private ArrayList<String> properties = new ArrayList<>();
@@ -58,7 +59,7 @@ public class StatementProperty extends Statement {
     @Override
     public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
         TrainProperties prop = group.getProperties();
-        String lower = text.toLowerCase();
+        String lower = text.toLowerCase(Locale.ENGLISH);
         if (match(maxspeed, lower)) {
             return Util.evaluate(prop.getSpeedLimit(), text);
         } else if (match(playerEnter, lower)) {
@@ -81,12 +82,17 @@ public class StatementProperty extends Statement {
     @Override
     public boolean handle(MinecartMember<?> member, String text, SignActionEvent event) {
         CartProperties prop = member.getProperties();
-        String lower = text.toLowerCase();
+        String lower = text.toLowerCase(Locale.ENGLISH);
         if (match(playerEnter, lower)) {
             return prop.getPlayersEnter();
         } else if (match(playerExit, lower)) {
             return prop.getPlayersExit();
         }
+        return false;
+    }
+
+    @Override
+    public boolean requiredEvent() {
         return false;
     }
 }

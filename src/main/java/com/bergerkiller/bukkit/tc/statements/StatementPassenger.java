@@ -55,4 +55,11 @@ public class StatementPassenger extends Statement {
         }
         return false;
     }
+
+    @Override
+    public int priority() {
+        // Make sure it is matched after other statements, because otherwise
+        // it starts matching all statements that start with 'player'.
+        return -1;
+    }
 }
