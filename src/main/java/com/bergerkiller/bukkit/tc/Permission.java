@@ -60,7 +60,7 @@ public enum Permission implements IPermissionEnum {
     COMMAND_CHANGETICK("train.command.changetick", PermissionDefault.OP, "Whether the player can alter the global update tick rate of TrainCarts (debug!)"),
     COMMAND_ISSUE("train.command.issue", PermissionDefault.TRUE, "Whether the player can report problems with TrainCarts"),
     COMMAND_GIVE_EDITOR("train.command.editor", PermissionDefault.OP, "Whether the player can use commands to give himself editors for trains (models) and signs"),
-    COMMAND_USE_STORAGE_CHEST("train.command.chest", PermissionDefault.OP, "Whether the player can use a chest item that can store and spawn trains"),
+    COMMAND_USE_STORAGE_CHEST("train.command.chest", PermissionDefault.OP, "Whether the player can use and modify a chest item that can store and spawn trains"),
     COMMAND_SAVE_TRAIN("train.command.save", PermissionDefault.OP, "Whether the player can use a command to save a train under a name"),
     COMMAND_SAVE_ROUTE("train.command.route.save", PermissionDefault.OP, "Whether the player can save a train or cart route to name to a global store"),
     COMMAND_SAVEDTRAIN_REVERSE("train.command.savedtrain.reverse", PermissionDefault.OP, "Whether the player can reverse a saved train, so that back becomes front when spawning"),
@@ -120,7 +120,6 @@ public enum Permission implements IPermissionEnum {
     BREAK_MINECART_SELF("train.break.self", PermissionDefault.TRUE, "The player can break their own minecarts"),
     BREAK_MINECART_ANY("train.break.any", PermissionDefault.FALSE, "The player can break all carts in the game"),
     TICKET_MANAGE("train.ticket.manage", PermissionDefault.OP, "The player can edit the details of existing tickets or create new tickets"),
-
     // Special hidden debug sekretz
     DEBUG_COMMAND_DEBUG("train.debug", PermissionDefault.OP, "The player can use special commands useful for debugging the plugin");
 

@@ -179,7 +179,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
             final CommandSender sender,
             final TrainProperties properties
     ) {
-        showMode(sender, "players", properties.getCollision().trainMode());
+        showMode(sender, "players", properties.getCollision().playerMode());
     }
 
     @CommandTargetTrain
