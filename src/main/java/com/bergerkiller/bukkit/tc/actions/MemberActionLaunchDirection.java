@@ -20,30 +20,35 @@ public class MemberActionLaunchDirection extends MemberActionLaunch implements M
      */
     @Deprecated
     public MemberActionLaunchDirection(double targetdistance, double targetvelocity, final BlockFace direction) {
+        this.setDirection(direction);
         this.initDistance(targetdistance, targetvelocity, direction);
     }
 
     public void init(LauncherConfig config, double targetvelocity, double targetspeedlimit, BlockFace direction) {
+        this.setDirection(direction);
         this.init(config, targetvelocity, targetspeedlimit);
-        this.direction = direction;
     }
 
     public void init(LauncherConfig config, double targetvelocity, BlockFace direction) {
+        this.setDirection(direction);
         this.init(config, targetvelocity);
-        this.direction = direction;
     }
 
     public void initTime(int timeTicks, double targetvelocity, BlockFace direction) {
+        this.setDirection(direction);
         this.initTime(timeTicks, targetvelocity);
-        this.direction = direction;
     }
 
     public void initDistance(double targetdistance, double targetvelocity, BlockFace direction) {
+        this.setDirection(direction);
         this.initDistance(targetdistance, targetvelocity);
-        this.direction = direction;
     }
 
     public void setDirection(BlockFace direction) {
+        if (direction == null) {
+            throw new IllegalArgumentException("Direction is null");
+        }
+
         this.direction = direction;
     }
 
