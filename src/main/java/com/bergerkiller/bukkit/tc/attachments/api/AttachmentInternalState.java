@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ForkJoinTask;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -261,8 +260,8 @@ public class AttachmentInternalState {
      * is done first.
      *
      * @param attachment The attachment this internal state is of
-     * @param initialTransformSupplier Supplier for the initial transformation
-     *                                 matrix for this attachment.
+     * @param initialTransform Initial transformation matrix for this
+     *                         attachment.
      * @param activeChangeHandler Handler for changing the active
      *                            state change of an attachment.
      *                            The handler should sync the active
@@ -271,12 +270,14 @@ public class AttachmentInternalState {
      */
     public ForkJoinTask<Void> updateTransformRecurseAsync(
             final Attachment attachment,
-            final Supplier<Matrix4x4> initialTransformSupplier,
+            final Matrix4x4 initialTransform,
             final ActiveChangeHandler activeChangeHandler
     ) {
-        if (!(this.transformUpdateTask instanceof UpdateRootAttachmentTask)) {
+        if (this.transformUpdateTask instanceof UpdateRootAttachmentTask) {
+            ((UpdateRootAttachmentTask) this.transformUpdateTask).initialTransform = initialTransform;
+        } else {
             this.transformUpdateTask = new UpdateRootAttachmentTask(
-                    attachment, initialTransformSupplier, activeChangeHandler);
+                    attachment, initialTransform, activeChangeHandler);
         }
         this.transformUpdateTask.reinitialize();
         return this.transformUpdateTask;
@@ -393,23 +394,22 @@ public class AttachmentInternalState {
 
     private static final class UpdateRootAttachmentTask extends UpdateTask {
         private static final long serialVersionUID = -758729101023975440L;
-        public final Supplier<Matrix4x4> initialTransformSupplier;
+        public Matrix4x4 initialTransform;
 
         public UpdateRootAttachmentTask(
                 final Attachment attachment,
-                final Supplier<Matrix4x4> initialTransformSupplier,
+                final Matrix4x4 initialTransform,
                 final ActiveChangeHandler activeChangeHandler
         ) {
             super(attachment, activeChangeHandler);
-            this.initialTransformSupplier = initialTransformSupplier;
+            this.initialTransform = initialTransform;
         }
 
         @Override
         public void performUpdates() {
             final AttachmentInternalState state = this.attachment.getInternalState();
-            final Matrix4x4 initialTransform = this.initialTransformSupplier.get();
 
-            state.updateTransform(this.attachment, initialTransform, this.activeChangeHandler);
+            state.updateTransform(this.attachment, this.initialTransform, this.activeChangeHandler);
 
             updateChildren(state);
         }

@@ -478,7 +478,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
         this.rootAttachment = this.createAttachment(model.getConfig());
         HelperMethods.perform_onAttached(this.rootAttachment);
         TrainCarts.plugin.getTrainUpdateController().computeAttachmentTransform(
-                this.rootAttachment, this::getLiveTransform);
+                this.rootAttachment, this.getLiveTransform());
 
         this.seatAttachments.clear();
         this.discoverSeats(this.rootAttachment);
@@ -541,7 +541,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
 
         // TODO: Maybe only update from the changed attachment onwards?
         TrainCarts.plugin.getTrainUpdateController().computeAttachmentTransform(
-                this.rootAttachment, this::getLiveTransform);
+                this.rootAttachment, this.getLiveTransform());
     }
 
     // Information stored when a player interacts with a seat trying to enter it

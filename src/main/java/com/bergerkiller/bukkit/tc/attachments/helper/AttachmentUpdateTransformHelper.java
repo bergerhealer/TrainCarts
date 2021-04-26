@@ -53,11 +53,11 @@ public abstract class AttachmentUpdateTransformHelper {
      * Same as {@link #start(Attachment, Supplier)} but calls {@link #finish()} right after
      *
      * @param attachment
-     * @param initialTransformSupplier
+     * @param initialTransform
      */
-    public final void startAndFinish(Attachment attachment, Supplier<Matrix4x4> initialTransformSupplier) {
+    public final void startAndFinish(Attachment attachment, Matrix4x4 initialTransform) {
         try {
-            start(attachment, initialTransformSupplier);
+            start(attachment, initialTransform);
         } finally {
             finish();
         }
@@ -67,11 +67,10 @@ public abstract class AttachmentUpdateTransformHelper {
      * Schedules an attachment for updating the transformation
      *
      * @param attachment The attachment to update the transform of
-     * @param initialTransformSupplier Initial transformation matrix
-     *                                 relative to which the attachment
-     *                                 is placed.
+     * @param initialTransform Initial transformation matrix relative
+     *                         to which the attachment is placed.
      */
-    public abstract void start(Attachment attachment, Supplier<Matrix4x4> initialTransformSupplier);
+    public abstract void start(Attachment attachment, Matrix4x4 initialTransform);
 
     /**
      * Finishes processing all the tasks previously started using
@@ -83,11 +82,11 @@ public abstract class AttachmentUpdateTransformHelper {
         private final ArrayList<Attachment> pendingUpdates = new ArrayList<>();
 
         @Override
-        public void start(Attachment attachment, Supplier<Matrix4x4> initialTransformSupplier) {
+        public void start(Attachment attachment, Matrix4x4 initialTransform) {
             // Refresh root attachment using the specified transform
             attachment.getInternalState().updateTransform(
                     attachment,
-                    initialTransformSupplier.get(),
+                    initialTransform,
                     activeChangeHandler);
 
             // Add all children
@@ -130,11 +129,11 @@ public abstract class AttachmentUpdateTransformHelper {
         }
 
         @Override
-        public void start(Attachment attachment, Supplier<Matrix4x4> initialTransformSupplier) {
+        public void start(Attachment attachment, Matrix4x4 initialTransform) {
             // Create or retrieve the task used for updating
             ForkJoinTask<Void> task = attachment.getInternalState().updateTransformRecurseAsync(
                     attachment,
-                    initialTransformSupplier,
+                    initialTransform,
                     activeChangeHandler);
 
             // Schedule it

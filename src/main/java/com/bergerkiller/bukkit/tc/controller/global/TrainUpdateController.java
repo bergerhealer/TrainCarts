@@ -98,8 +98,8 @@ public class TrainUpdateController {
         this.networkSyncTask = null;
     }
 
-    public void computeAttachmentTransform(Attachment attachment, Supplier<Matrix4x4> initialTransformSupplier) {
-        updateTransformHelper.startAndFinish(attachment, initialTransformSupplier);
+    public void computeAttachmentTransform(Attachment attachment, Matrix4x4 initialTransform) {
+        updateTransformHelper.startAndFinish(attachment, initialTransform);
     }
 
     private class TrainUpdateTask extends Task {

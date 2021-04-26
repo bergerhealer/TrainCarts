@@ -42,7 +42,7 @@ public class HelperMethods {
      */
     @Deprecated
     public static void updatePositions(final Attachment startAttachment, final Matrix4x4 transform) {
-        updateTransformHelper.startAndFinish(startAttachment, () -> transform);
+        updateTransformHelper.startAndFinish(startAttachment, transform);
     }
 
     /**
