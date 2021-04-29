@@ -102,6 +102,7 @@ public class TCConfig {
     public static boolean allowExternalTicketImagePaths = false; // Whether images outside of the images subdirectory are allowed
     public static String currencyFormat;
     public static Set<Material> allowedBlockBreakTypes = new HashSet<>();
+    public static Set<String> enabledWorlds = new HashSet<>();
     public static Set<String> disabledWorlds = new HashSet<>();
     public static Map<String, ItemParser[]> parsers = new HashMap<>();
     public static MapResourcePack resourcePack = MapResourcePack.SERVER;
@@ -341,7 +342,18 @@ public class TCConfig {
         config.addHeader("activatorEjectEnabled", "If activator rails are used for decoration purposes, this should be disabled");
         activatorEjectEnabled = config.get("activatorEjectEnabled", true);
 
+        config.setHeader("enabledWorlds", "\nA list of world names where TrainCarts should be enabled");
+        config.addHeader("enabledWorlds", "World names are not case-sensitive");
+        enabledWorlds.clear();
+        if (!config.contains("enabledWorlds")) {
+            config.set("enabledWorlds", Arrays.asList("DefaultWorld1", "DefaultWorld2"));
+        }
+        for (String world : config.getList("enabledWorlds", String.class)) {
+            enabledWorlds.add(world.toLowerCase());
+        }
+
         config.setHeader("disabledWorlds", "\nA list of world names where TrainCarts should be disabled");
+        config.addHeader("disabledWorlds", "Is overridden by enabledWorlds");
         config.addHeader("disabledWorlds", "World names are not case-sensitive");
         disabledWorlds.clear();
         if (!config.contains("disabledWorlds")) {
