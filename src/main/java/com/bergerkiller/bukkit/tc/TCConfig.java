@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -343,17 +344,18 @@ public class TCConfig {
         activatorEjectEnabled = config.get("activatorEjectEnabled", true);
 
         config.setHeader("enabledWorlds", "\nA list of world names where TrainCarts should be enabled");
+        config.addHeader("enabledWorlds", "If this list is empty, all worlds are enabled except those listed in disabledWorlds");
         config.addHeader("enabledWorlds", "World names are not case-sensitive");
         enabledWorlds.clear();
         if (!config.contains("enabledWorlds")) {
-            config.set("enabledWorlds", Arrays.asList("DefaultWorld1", "DefaultWorld2"));
+            config.set("enabledWorlds", Collections.emptyList());
         }
         for (String world : config.getList("enabledWorlds", String.class)) {
             enabledWorlds.add(world.toLowerCase());
         }
 
         config.setHeader("disabledWorlds", "\nA list of world names where TrainCarts should be disabled");
-        config.addHeader("disabledWorlds", "Is overridden by enabledWorlds");
+        config.addHeader("disabledWorlds", "Overridden by enabledWorlds");
         config.addHeader("disabledWorlds", "World names are not case-sensitive");
         disabledWorlds.clear();
         if (!config.contains("disabledWorlds")) {

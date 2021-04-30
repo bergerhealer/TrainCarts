@@ -298,7 +298,7 @@ public class TrainCarts extends PluginBase {
 
     public static boolean isWorldDisabled(String worldname) {
         if(!TCConfig.enabledWorlds.isEmpty())
-            return TCConfig.enabledWorlds.contains(worldname.toLowerCase());
+            return !TCConfig.enabledWorlds.contains(worldname.toLowerCase());
 
         return TCConfig.disabledWorlds.contains(worldname.toLowerCase());
     }
