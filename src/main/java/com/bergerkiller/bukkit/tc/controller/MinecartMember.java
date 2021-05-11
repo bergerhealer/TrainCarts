@@ -14,7 +14,9 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
@@ -50,6 +52,7 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.DamageSource;
+import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.common.wrappers.MoveType;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -1235,12 +1238,41 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (damagesource.toString().equals("fireworks")) {
             return false; // Ignore firework damage (used for cosmetics)
         }
+
         final Entity damager = damagesource.getEntity();
+
+        // Note: When a player is sprinting and damaging the Minecart, or uses
+        //       a weapon with knockback, the minecart is given a 'push'.
+        //       When collision with this entity/player is disabled, this is undesirable.
+        //       To disable this behavior, we return false from this method, causing
+        //       all the extra 'knockback' code to be skipped internally. There is no
+        //       Bukkit event we can handle to disable this otherwise.
+        boolean executePostLogic = true;
+        if (damager instanceof HumanEntity) {
+            ItemStack itemInMainHand = HumanHand.getItemInMainHand((HumanEntity) damager);
+            boolean willDoKnockback = false;
+            if (itemInMainHand != null &&
+                    itemInMainHand.hasItemMeta() &&
+                    itemInMainHand.getItemMeta().hasEnchant(Enchantment.KNOCKBACK)
+            ) {
+                willDoKnockback = true;
+            } else if (damager instanceof Player && ((Player) damager).isSprinting()) {
+                willDoKnockback = true;
+            }
+            if (willDoKnockback) {
+                if (this.isUnloaded()) {
+                    executePostLogic = false; // better safe than sorry
+                } else if (!this.getGroup().getProperties().getCollisionMode(damager).permitsKnockback()) {
+                    executePostLogic = false;
+                }
+            }
+        }
+
         try {
             // Call CraftBukkit event
             VehicleDamageEvent event = new VehicleDamageEvent(entity.getEntity(), damager, damage);
             if (CommonUtil.callEvent(event).isCancelled()) {
-                return true;
+                return executePostLogic;
             }
             damage = event.getDamage();
             // Play shaking animation and logic
@@ -1266,7 +1298,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(entity.getEntity(), damager);
                 if (CommonUtil.callEvent(destroyEvent).isCancelled()) {
                     entity.setDamage(MAXIMUM_DAMAGE_SUSTAINED);
-                    return true;
+                    return executePostLogic;
                 }
 
                 // Spawn drops and die
@@ -1283,7 +1315,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         } catch (Throwable t) {
             TrainCarts.plugin.handle(t);
         }
-        return true;
+        return executePostLogic;
     }
 
     @Override

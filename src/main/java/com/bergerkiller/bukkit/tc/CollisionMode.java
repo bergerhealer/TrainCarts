@@ -258,4 +258,14 @@ public enum CollisionMode {
     public String getOperationName() {
         return this.operationName;
     }
+
+    /**
+     * Gets whether players can 'push' the Minecart by making use of knockback
+     * effects when damaging, when this collision mode is active.
+     *
+     * @return True if knockback pushing is permitted
+     */
+    public boolean permitsKnockback() {
+        return this == DEFAULT;
+    }
 }
