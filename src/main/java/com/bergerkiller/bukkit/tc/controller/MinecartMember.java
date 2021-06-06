@@ -216,6 +216,16 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
         if (this.group == null) {
             MinecartGroupStore.create(this);
+            if (this.group == null) {
+                if (this.isUnloaded()) {
+                    throw new RuntimeException("Unloaded members do not have groups!");
+                }
+                throw new IllegalStateException("Failed to initialize new group for member at " +
+                        "world=" + entity.loc.getWorld().getName() +
+                        " x=" + entity.loc.getX() +
+                        " y=" + entity.loc.getY() +
+                        " z=" + entity.loc.getZ());
+            }
         }
         return this.group;
     }
