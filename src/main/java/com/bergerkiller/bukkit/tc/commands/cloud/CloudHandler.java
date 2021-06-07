@@ -36,6 +36,7 @@ import cloud.commandframework.arguments.parser.StandardParameters;
 import cloud.commandframework.arguments.standard.StringArgument;
 import cloud.commandframework.brigadier.CloudBrigadierManager;
 import cloud.commandframework.bukkit.BukkitCommandManager;
+import cloud.commandframework.bukkit.BukkitCommandManager.BrigadierFailureException;
 import cloud.commandframework.bukkit.CloudBukkitCapabilities;
 import cloud.commandframework.captions.Caption;
 import cloud.commandframework.captions.SimpleCaptionRegistry;
@@ -73,10 +74,14 @@ public class CloudHandler {
         // Register Brigadier mappings
         // Only do this on PaperSpigot. On base Spigot, this breaks command blocks
         if (manager.queryCapability(CloudBukkitCapabilities.NATIVE_BRIGADIER)) {
-            manager.registerBrigadier();
-
-            CloudBrigadierManager<?, ?> brig = manager.brigadierManager();
-            brig.setNativeNumberSuggestions(false);
+            try {
+                manager.registerBrigadier();
+                CloudBrigadierManager<?, ?> brig = manager.brigadierManager();
+                brig.setNativeNumberSuggestions(false);
+            } catch (BrigadierFailureException ex) {
+                plugin.getLogger().log(Level.WARNING, "Failed to register commands using brigadier, " +
+                        "using fallback instead. Error:", ex);
+            }
         }
 
         // Registers a custom command preprocessor that handles quote-escaping
