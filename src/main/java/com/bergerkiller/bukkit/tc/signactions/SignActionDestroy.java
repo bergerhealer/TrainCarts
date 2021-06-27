@@ -23,7 +23,7 @@ public class SignActionDestroy extends SignAction {
             }
             info.getGroup().destroy();
         } else if (info.isCartSign() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.MEMBER_ENTER) && info.hasMember()) {
-            info.getMember().onDie();
+            info.getMember().onDie(true);
         } else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
             for (MinecartGroup group : info.getRCTrainGroups()) {
                 if (TCConfig.playHissWhenDestroyedBySign) {

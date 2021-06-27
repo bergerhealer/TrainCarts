@@ -40,9 +40,6 @@ public class VirtualItem {
     public void refresh() {
         item.setPositionChanged(true);
         item.setVelocityChanged(true);
-        item.setChunkX(item.loc.x.chunk());
-        item.setChunkY(item.loc.y.chunk());
-        item.setChunkZ(item.loc.z.chunk());
     }
 
     public void die() {

@@ -11,16 +11,16 @@ import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
-import com.bergerkiller.generated.net.minecraft.server.DataWatcherObjectHandle;
-import com.bergerkiller.generated.net.minecraft.server.EntityFishingHookHandle;
-import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityDestroyHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityMetadataHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutEntityTeleportHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutMountHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutNamedEntitySpawnHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutSpawnEntityHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutSpawnEntityLivingHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityTeleportHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutMountHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutNamedEntitySpawnHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityLivingHandle;
+import com.bergerkiller.generated.net.minecraft.network.syncher.DataWatcherObjectHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.projectile.EntityFishingHookHandle;
 import com.bergerkiller.mountiplex.reflection.SafeField;
 
 /**
@@ -165,13 +165,19 @@ public class VirtualFishingLine {
      * @param viewer
      */
     public void destroy(Player viewer) {
-        if (this.holderEntityId == -1) {
-            PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNew(
-                    new int[] { this.hookedEntityId, this.hookEntityId }));
+        int[] entityIds;
+        if (PacketPlayOutEntityDestroyHandle.canDestroyMultiple()) {
+            entityIds = new int[] { this.hookedEntityId, this.hookEntityId };
         } else {
-            PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNew(
-                    new int[] { this.hookedEntityId, this.holderEntityId,
-                            this.holderPlayerEntityId, this.hookEntityId }));
+            entityIds = new int[] { this.hookedEntityId, this.holderEntityId,
+                    this.holderPlayerEntityId, this.hookEntityId };
+        }
+        if (PacketPlayOutEntityDestroyHandle.canDestroyMultiple()) {
+            PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNewMultiple(entityIds));
+        } else {
+            for (int entityId : entityIds) {
+                PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNewSingle(entityId));
+            }
         }
     }
 

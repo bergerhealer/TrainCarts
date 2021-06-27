@@ -30,8 +30,8 @@ import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.item.MapWidgetItemSelector;
-import com.bergerkiller.generated.net.minecraft.server.EntityArmorStandHandle;
-import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
 
 public class CartAttachmentItem extends CartAttachment {
     public static final AttachmentType TYPE = new AttachmentType() {

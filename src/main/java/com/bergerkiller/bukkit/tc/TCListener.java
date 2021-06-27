@@ -34,6 +34,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
+import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
@@ -225,7 +226,7 @@ public class TCListener implements Listener {
                 }
             }
 
-            if (event.getEntity().isDead()) {
+            if (EntityHandle.fromBukkit(event.getEntity()).isDead()) {
                 OfflineGroupManager.removeMember(entityUUID);
             } else {
                 MinecartMember<?> member = MinecartMemberStore.getFromEntity(event.getEntity());

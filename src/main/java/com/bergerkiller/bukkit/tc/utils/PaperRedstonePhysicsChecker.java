@@ -9,7 +9,7 @@ import org.bukkit.World;
 
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.generated.net.minecraft.server.WorldHandle;
+import com.bergerkiller.generated.net.minecraft.world.level.WorldHandle;
 
 /**
  * When 'fire-physics-event-for-redstone' is set to 'false' in the paper.yml of PaperSpigot for a particular

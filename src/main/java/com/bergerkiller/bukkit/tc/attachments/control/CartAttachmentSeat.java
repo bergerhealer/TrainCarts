@@ -38,7 +38,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositi
 import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayOutPositionHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
 
 public class CartAttachmentSeat extends CartAttachment {
     public static final AttachmentType TYPE = new AttachmentType() {

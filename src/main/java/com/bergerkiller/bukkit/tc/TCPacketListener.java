@@ -10,13 +10,12 @@ import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
-import com.bergerkiller.bukkit.common.wrappers.UseAction;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.generated.net.minecraft.server.EntityHumanHandle;
-import com.bergerkiller.generated.net.minecraft.server.EnumHandHandle;
-import com.bergerkiller.generated.net.minecraft.server.PacketPlayInUseEntityHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInUseEntityHandle;
+import com.bergerkiller.generated.net.minecraft.world.EnumHandHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.player.EntityHumanHandle;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -73,11 +72,11 @@ public class TCPacketListener implements PacketListener {
 
             // Since 1.16 this packet has a sneaking property
             // If we're inside a vehicle, disable it
-            if (packet_use.isSneaking()) {
+            if (packet_use.isUsingSecondaryAction()) {
                 if (player.getVehicle() == null) {
                     TCListener.markForUnmounting(player);
                 } else if (!TrainCarts.handlePlayerVehicleChange(player, null)) {
-                    packet_use.setSneaking(false);
+                    packet_use.setUsingSecondaryAction(false);
                 }
             }
 
@@ -112,34 +111,33 @@ public class TCPacketListener implements PacketListener {
                         // The INTERACT only fires for interactable entities, like Minecarts
                         // Since INTERACT_AT also fires for Minecarts, it is easier to ignore INTERACT
                         // and do all handling using INTERACT_AT.
-                        UseAction useAction = packet_use.getAction();
-                        if (useAction == UseAction.INTERACT) {
+                        if (packet_use.isInteract()) {
                             event.setCancelled(true);
                             return;
                         }
 
-                        // For some reason this is needed, though.
-                        if (useAction == UseAction.INTERACT_AT) {
-                            useAction = UseAction.INTERACT;
-                            packet_use.setAction(UseAction.INTERACT);
-                        }
-
-                        // Rewrite the packet
-                        packet_use.setUsedEntityId(member.getEntity().getEntityId());
-
                         // If nearby the player, allow standard interaction. Otherwise, do all of this ourselves.
                         // Minecraft enforces a 3 block radius when not having line of sight, assume this limit.
                         if (member.getEntity().loc.distanceSquared(eyeLoc) < (3.0 * 3.0)) {
+                            
+                            // For some reason this is needed, though.
+                            if (packet_use.isInteractAt()) {
+                                HumanHand hand = packet_use.getInteractHand(event.getPlayer());
+                                packet_use.setInteract(event.getPlayer(), hand);
+                            }
+
+                            // Rewrite the packet
+                            packet_use.setUsedEntityId(member.getEntity().getEntityId());
                             return; // Allow
                         }
 
                         // Cancel the interaction and handle this ourselves.
-                        if (useAction == UseAction.INTERACT) {
+                        if (packet_use.isInteract() || packet_use.isInteractAt()) {
                             // Get hand used for interaction
-                            HumanHand hand = packet_use.getHand(event.getPlayer());
+                            HumanHand hand = packet_use.getInteractHand(event.getPlayer());
                             fakeInteraction(member, event.getPlayer(), hand);
                             event.setCancelled(true);
-                        } else if (useAction == UseAction.ATTACK) {
+                        } else if (packet_use.isAttack()) {
                             // Attack
                             fakeAttack(member, event.getPlayer());
                             event.setCancelled(true);

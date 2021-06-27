@@ -269,10 +269,14 @@ public class OfflineGroupManager {
      * Gets rid of all Minecarts that are stored in the chunk, but not in the World,
      * resolving collision problems. (this should really never happen, but it is there just in case)
      */
-    @SuppressWarnings({"rawtypes", "unchecked"})
     public static void removeBuggedMinecarts(World world) {
         Set<org.bukkit.entity.Entity> toRemove = new HashSet<>();
-        Set worldentities = new HashSet(WorldUtil.getEntities(world));
+        
+        Set<org.bukkit.entity.Entity> worldentities = new HashSet<org.bukkit.entity.Entity>();
+        for (Entity entity : WorldUtil.getEntities(world)) {
+            worldentities.add(entity);
+        }
+
         for (Chunk chunk : WorldUtil.getChunks(world)) {
             // Remove entities that are falsely added
             Iterator<org.bukkit.entity.Entity> iter = WorldUtil.getEntities(chunk).iterator();

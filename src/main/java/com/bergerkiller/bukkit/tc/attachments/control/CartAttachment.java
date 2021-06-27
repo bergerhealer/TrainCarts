@@ -13,7 +13,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
-import com.bergerkiller.generated.net.minecraft.server.EntityShulkerHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.monster.EntityShulkerHandle;
 
 public abstract class CartAttachment implements Attachment {
     private final AttachmentInternalState state = new AttachmentInternalState();

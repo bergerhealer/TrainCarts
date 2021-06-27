@@ -60,7 +60,7 @@ public class CartCommands {
             CartPropertiesStore.remove(properties.getUUID());
             OfflineGroupManager.removeMember(properties.getUUID());
         } else {
-            member.onDie();
+            member.onDie(true);
         }
         sender.sendMessage(ChatColor.YELLOW + "The selected cart has been destroyed!");
     }

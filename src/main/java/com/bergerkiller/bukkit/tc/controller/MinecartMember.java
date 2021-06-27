@@ -98,9 +98,9 @@ import com.bergerkiller.bukkit.tc.utils.Effect;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
-import com.bergerkiller.generated.net.minecraft.server.AxisAlignedBBHandle;
-import com.bergerkiller.generated.net.minecraft.server.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.server.EntityLivingHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.EntityLivingHandle;
+import com.bergerkiller.generated.net.minecraft.world.phys.AxisAlignedBBHandle;
 
 public abstract class MinecartMember<T extends CommonMinecart<?>> extends EntityController<T>
         implements IPropertiesHolder, AttachmentModelOwner, AnimationController {
@@ -190,7 +190,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // It is very important to clean ourselves up here, otherwise a NPE spam occurs
         // with /train destroyall!
         if (entity.isDead()) {
-            this.onDie();
+            this.onDie(false);
         }
     }
 
@@ -866,7 +866,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (entity == null) {
             throw new MemberMissingException();
         } else if (entity.isDead()) {
-            this.onDie();
+            this.onDie(true);
             throw new MemberMissingException();
         } else if (this.isUnloaded()) {
             throw new MemberMissingException();
@@ -1315,7 +1315,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 for (ItemStack stack : drops) {
                     entity.spawnItemDrop(stack, 0.0F);
                 }
-                this.onDie();
+                this.onDie(true);
             } else {
                 // Select the Minecart for editing otherwise
                 if (damager instanceof Player) {
@@ -1329,33 +1329,25 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     @Override
-    public void onDie() {
+    public void onDie(boolean killed) {
         try {
             // Die ignored?
             if (this.ignoreDie.clear()) {
                 return;
             }
             if (!entity.isDead() || !this.died) {
-                {
-                    boolean cancelDropsOriginal = TCListener.cancelNextDrops;
-                    TCListener.cancelNextDrops = !this.getProperties().getSpawnItemDrops();
-                    try {
-                        super.onDie();
-                    } finally {
-                        TCListener.cancelNextDrops = cancelDropsOriginal;
-                    }
-                }
-                this.died = true;
+                // Before we actually die, eject passengers and release the signs
+                // This must be done while the entity is still "alive"
+                boolean cancelDrops = false;
                 if (!this.isUnloaded()) {
                     // Note: No getGroup() calls are allowed here!
                     // They may create new groups!
+                    cancelDrops = !this.getProperties().getSpawnItemDrops();
                     if (entity.hasPassenger()) {
                         this.eject();
                     }
                     if (this.group != null) {
-                        entity.setDead(false);
                         this.getSignTracker().clear();
-                        entity.setDead(true);
                     }
                     if (entity.hasPassenger()) {
                         for (Entity passenger : entity.getPassengers()) {
@@ -1367,6 +1359,17 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                     }
                     CartPropertiesStore.remove(entity.getUniqueId());
                 }
+
+                {
+                    boolean cancelDropsOriginal = TCListener.cancelNextDrops;
+                    TCListener.cancelNextDrops = cancelDrops;
+                    try {
+                        super.onDie(killed);
+                    } finally {
+                        TCListener.cancelNextDrops = cancelDropsOriginal;
+                    }
+                }
+                this.died = true;
             }
         } catch (Throwable t) {
             TrainCarts.plugin.handle(t);
@@ -1872,7 +1875,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // Kill entity if falling into the void
         if (entity.loc.getY() < -64.0D) {
-            this.onDie();
+            this.onDie(true);
             throw new MemberMissingException();
         }
 

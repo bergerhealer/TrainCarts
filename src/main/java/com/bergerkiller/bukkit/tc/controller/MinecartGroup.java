@@ -43,7 +43,7 @@ import com.bergerkiller.bukkit.tc.properties.standard.type.SlowdownMode;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
-import com.bergerkiller.generated.net.minecraft.server.ChunkHandle;
+import com.bergerkiller.generated.net.minecraft.world.level.chunk.ChunkHandle;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -443,7 +443,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         for (MinecartMember<?> mm : this.toArray()) {
             properties.remove(mm.getProperties());
             if (mm.getEntity().isDead()) {
-                mm.onDie();
+                mm.onDie(true);
             } else {
                 // Unassign member from previous group
                 mm.group = null;

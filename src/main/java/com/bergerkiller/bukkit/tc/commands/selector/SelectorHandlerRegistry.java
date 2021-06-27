@@ -22,7 +22,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.server.ServerCommandEvent;
 
-import com.bergerkiller.generated.net.minecraft.server.PlayerConnectionHandle;
+import com.bergerkiller.generated.net.minecraft.server.network.PlayerConnectionHandle;
 
 import net.md_5.bungee.api.ChatColor;
 
