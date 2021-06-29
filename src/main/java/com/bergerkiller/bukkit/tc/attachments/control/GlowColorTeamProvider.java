@@ -42,7 +42,7 @@ public class GlowColorTeamProvider {
                         team.reset();
                     } else if (!team.pendingRemove.isEmpty()) {
                         // Remove the set of entities for this viewer
-                        PacketPlayOutScoreboardTeamHandle packet = team.createPacket(0x4);
+                        PacketPlayOutScoreboardTeamHandle packet = team.createPacket(PacketPlayOutScoreboardTeamHandle.METHOD_LEAVE);
                         packet.setPlayers(team.pendingRemove);
                         team.pendingRemove = Collections.emptySet();
                         PacketUtil.sendPacket(team.state.viewer, packet);
@@ -61,13 +61,13 @@ public class GlowColorTeamProvider {
                         team.teamCreated = true;
 
                         // We are sending all entities for a team for the first time. Create the team with these entities.
-                        PacketPlayOutScoreboardTeamHandle packet = team.createPacket(0x0);
+                        PacketPlayOutScoreboardTeamHandle packet = team.createPacket(PacketPlayOutScoreboardTeamHandle.METHOD_ADD);
                         packet.setPlayers(team.pendingAdd);
                         team.pendingAdd = Collections.emptySet();
                         PacketUtil.sendPacket(team.state.viewer, packet);
                     } else {
                         // Add the set of entities for this viewer
-                        PacketPlayOutScoreboardTeamHandle packet = team.createPacket(0x3);
+                        PacketPlayOutScoreboardTeamHandle packet = team.createPacket(PacketPlayOutScoreboardTeamHandle.METHOD_JOIN);
                         packet.setPlayers(team.pendingAdd);
                         team.pendingAdd = Collections.emptySet();
                         PacketUtil.sendPacket(team.state.viewer, packet);
@@ -257,20 +257,20 @@ public class GlowColorTeamProvider {
                     this.pendingRemove = Collections.emptySet();
                     this.pendingAdd = Collections.emptySet();
                     this.entities.clear();
-                    PacketUtil.sendPacket(this.state.viewer, this.createPacket(0x1));
+                    PacketUtil.sendPacket(this.state.viewer, this.createPacket(PacketPlayOutScoreboardTeamHandle.METHOD_REMOVE));
                 }
             }
 
-            private PacketPlayOutScoreboardTeamHandle createPacket(int mode) {
+            private PacketPlayOutScoreboardTeamHandle createPacket(int method) {
                 PacketPlayOutScoreboardTeamHandle packet = PacketPlayOutScoreboardTeamHandle.createNew();
                 packet.setName(this.name);
-                packet.setMode(mode);
-                if (mode == 0) {
-                    packet.setFriendlyFire(3);
+                packet.setMethod(method);
+                if (method == 0) {
                     packet.setVisibility("always");
                     packet.setCollisionRule("always");
                     packet.setPrefix(this.prefix);
                     packet.setColor(this.color);
+                    packet.setTeamOptionFlags(0x3);
                 }
                 return packet;
             }

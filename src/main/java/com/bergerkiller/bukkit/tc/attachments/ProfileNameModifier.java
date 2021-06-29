@@ -180,15 +180,15 @@ public enum ProfileNameModifier {
         // Send scoreboard team to hide the nametag
         // Only do this once to prevent a client disconnect (duplicate team)
         if (this._teamName != null && this._teamSentPlayers.add(viewer.getUniqueId())) {
-            PacketPlayOutScoreboardTeamHandle teamPacket = PacketPlayOutScoreboardTeamHandle.T.newHandleNull();
+            PacketPlayOutScoreboardTeamHandle teamPacket = PacketPlayOutScoreboardTeamHandle.createNew();
+            teamPacket.setMethod(PacketPlayOutScoreboardTeamHandle.METHOD_ADD);
             teamPacket.setName(this._teamName.getMessage());
             teamPacket.setDisplayName(this._teamName);
             teamPacket.setPrefix(ChatText.fromMessage(""));
             teamPacket.setSuffix(ChatText.fromMessage(""));
             teamPacket.setVisibility("never");
             teamPacket.setCollisionRule("never");
-            teamPacket.setMode(0x0);
-            teamPacket.setFriendlyFire(0x3);
+            teamPacket.setTeamOptionFlags(0x3);
             teamPacket.setPlayers(new ArrayList<String>(Collections.singleton(this._playerName)));
             teamPacket.setColor(ChatColor.RESET);
             PacketUtil.sendPacket(viewer, teamPacket);
