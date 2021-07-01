@@ -47,7 +47,7 @@ public class TCPacketListener implements PacketListener {
         // event. This is a compromise so that other plugins can still freely eject the player, without
         // the player exit property blocking that behavior.
         if (event.getType() == PacketType.IN_ENTITY_ACTION) {
-            String action = ((Enum<?>) packet.read(PacketType.IN_ENTITY_ACTION.actionId)).name();
+            String action = ((Enum<?>) packet.read(PacketType.IN_ENTITY_ACTION.action)).name();
             if (action.equals("START_SNEAKING") || action.equals("PRESS_SHIFT_KEY")) {
                 // Player wants to exit, if inside a vehicle
                 if (player.getVehicle() == null) {
