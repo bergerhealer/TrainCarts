@@ -14,7 +14,7 @@ public class MinecartMemberMobSpawner extends MinecartMember<CommonMinecartMobSp
     @Override
     public void onPhysicsPostMove() throws MemberMissingException, GroupUnloadedException {
         super.onPhysicsPostMove();
-        getEntity().getMobSpawner().onTick();
+        getEntity().getMobSpawner().performTickUpdate(this.entity.loc.toBlock());
     }
 
     /**
