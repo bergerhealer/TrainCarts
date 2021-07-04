@@ -11,7 +11,7 @@ import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.attachments.ProfileNameModifier;
+import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
@@ -105,7 +105,7 @@ public class SeatedEntityElytra extends SeatedEntity {
         }
 
         Consumer<DataWatcher> metaFunction = getMetadataFunction(false);
-        ProfileNameModifier.NO_NAMETAG.spawnPlayer(viewer, (Player) this._entity, this._fakeEntityId, false, this.orientation, metaFunction);
+        FakePlayerSpawner.NO_NAMETAG_SECONDARY.spawnPlayer(viewer, (Player) this._entity, this._fakeEntityId, false, this.orientation, metaFunction);
 
         // Unmount from the original vehicle and mount the new fake entity instead
         VehicleMountController vmh = PlayerUtil.getVehicleMountController(viewer);
@@ -115,7 +115,7 @@ public class SeatedEntityElytra extends SeatedEntity {
         // Also spawn a player entity with pitch flipped for elytra mode to switch between 0 / 180 degrees
         // Mount this fake player too
         Consumer<DataWatcher> metaFunctionFlipped = getMetadataFunction(true);
-        ProfileNameModifier.NO_NAMETAG.spawnPlayer(viewer, (Player) this._entity, this._fakeEntityIdFlipped, true, this.orientation, metaFunctionFlipped);
+        FakePlayerSpawner.NO_NAMETAG.spawnPlayer(viewer, (Player) this._entity, this._fakeEntityIdFlipped, true, this.orientation, metaFunctionFlipped);
         vmh.mount(this.parentMountId, this._fakeEntityIdFlipped);
     }
 
@@ -135,12 +135,11 @@ public class SeatedEntityElytra extends SeatedEntity {
             // Respawn the actual player or clean up the list
             // Only needed when the player is not the viewer
             if (viewer == this._entity) {
-                // Can not respawn yourself! Only undo listing.
-                ProfileNameModifier.NORMAL.sendListInfo(viewer, (Player) this._entity);
+                // Can not respawn yourself!
             } else {
                 // Respawns the player as a normal player
                 vmc.respawn((Player) this._entity, (theViewer, thePlayer) -> {
-                    ProfileNameModifier.NORMAL.spawnPlayer(theViewer, thePlayer, thePlayer.getEntityId(), false, null, meta -> {});
+                    FakePlayerSpawner.NORMAL.spawnPlayer(theViewer, thePlayer, thePlayer.getEntityId(), false, null, meta -> {});
                 });
             }
         }

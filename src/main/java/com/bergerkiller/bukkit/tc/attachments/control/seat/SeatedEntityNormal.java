@@ -15,7 +15,7 @@ import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.attachments.ProfileNameModifier;
+import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
@@ -63,7 +63,7 @@ public class SeatedEntityNormal extends SeatedEntity {
         if (!this.isPlayer() && this._upsideDown) {
             // Apply metadata 'Dinnerbone' with nametag invisible
             DataWatcher metaTmp = new DataWatcher();
-            metaTmp.set(EntityHandle.DATA_CUSTOM_NAME, ProfileNameModifier.UPSIDEDOWN.getPlayerName());
+            metaTmp.set(EntityHandle.DATA_CUSTOM_NAME, FakePlayerSpawner.UPSIDEDOWN.getPlayerName());
             metaTmp.set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, false);
             PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this._entity.getEntityId(), metaTmp, true);
             PacketUtil.sendPacket(viewer, metaPacket);
@@ -81,9 +81,9 @@ public class SeatedEntityNormal extends SeatedEntity {
             metadata.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_FLYING, false);
         };
         if (this._upsideDown) {
-            ProfileNameModifier.UPSIDEDOWN.spawnPlayer(viewer, (Player) this._entity, this._fakeEntityId, false, this.orientation, metaFunction);
+            FakePlayerSpawner.UPSIDEDOWN.spawnPlayer(viewer, (Player) this._entity, this._fakeEntityId, false, this.orientation, metaFunction);
         } else {
-            ProfileNameModifier.NO_NAMETAG.spawnPlayer(viewer, (Player) this._entity, this._fakeEntityId, false, this.orientation, metaFunction);
+            FakePlayerSpawner.NO_NAMETAG.spawnPlayer(viewer, (Player) this._entity, this._fakeEntityId, false, this.orientation, metaFunction);
         }
 
         // Unmount from the original vehicle and mount the new fake entity instead
@@ -106,12 +106,11 @@ public class SeatedEntityNormal extends SeatedEntity {
             // Respawn the actual player or clean up the list
             // Only needed when the player is not the viewer
             if (viewer == this._entity) {
-                // Can not respawn yourself! Only undo listing.
-                ProfileNameModifier.NORMAL.sendListInfo(viewer, (Player) this._entity);
+                // Can not respawn yourself!
             } else {
                 // Respawns the player as a normal player
                 vmc.respawn((Player) this._entity, (theViewer, thePlayer) -> {
-                    ProfileNameModifier.NORMAL.spawnPlayer(theViewer, thePlayer, thePlayer.getEntityId(), false, null, meta -> {});
+                    FakePlayerSpawner.NORMAL.spawnPlayer(theViewer, thePlayer, thePlayer.getEntityId(), false, null, meta -> {});
                 });
             }
         }
@@ -170,7 +169,7 @@ public class SeatedEntityNormal extends SeatedEntity {
             new_isUpsideDown = false;
         } else {
             Quaternion rotation = seat.getTransform().getRotation();
-            double selfPitch = getQuaternionPitch(rotation.getX(), rotation.getY(), rotation.getZ(), rotation.getW());
+            double selfPitch = rotation.getPitch();
 
             // Compute new upside-down state
             new_isUpsideDown = this.isUpsideDown();

@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.sl.API.Variables;
+import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelStore;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
@@ -616,6 +617,9 @@ public class TrainCarts extends PluginBase {
         packetListener = null;
         interactionPacketListener = null;
         smoothCoastersAPI = null;
+
+        //Stop pending tasks for fake player list clearing
+        FakePlayerSpawner.runAndClearCleanupTasks();
 
         //Stop tasks
         Task.stop(signtask);

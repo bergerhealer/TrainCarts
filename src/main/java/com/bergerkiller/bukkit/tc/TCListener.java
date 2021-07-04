@@ -14,7 +14,7 @@ import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
-import com.bergerkiller.bukkit.tc.attachments.ProfileNameModifier;
+import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.control.light.LightAPIController;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
@@ -109,7 +109,7 @@ public class TCListener implements Listener {
         }
 
         // Clean up the fake teams we've sent
-        ProfileNameModifier.onViewerQuit(event.getPlayer());
+        FakePlayerSpawner.onViewerQuit(event.getPlayer());
         TrainCarts.plugin.getGlowColorTeamProvider().reset(event.getPlayer());
     }
 

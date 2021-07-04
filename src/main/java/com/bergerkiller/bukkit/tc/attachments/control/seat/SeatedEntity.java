@@ -203,26 +203,5 @@ public abstract class SeatedEntity {
         ELYTRA_SIT /* Player is in sitting pose while flying in an elytra */
         //ELYTRA /* Player is in elytra flying pose */ //TODO!
     }
-
-    /*
-     * Copied from BKCommonLib 1.15.2 Quaternion getPitch()
-     * Once we depend on 1.15.2 or later, this can be removed and replaced with transform.getRotationPitch()
-     */
-    public static double getQuaternionPitch(double x, double y, double z, double w) {
-        final double test = 2.0 * (w * x - y * z);
-        if (Math.abs(test) < (1.0 - 1E-15)) {
-            double pitch = Math.asin(test);
-            double roll_x = 0.5 - (x * x + z * z);
-            if (roll_x <= 0.0 && (Math.abs((w * z + x * y)) > roll_x)) {
-                pitch = -pitch;
-                pitch += (pitch < 0.0) ? Math.PI : -Math.PI;
-            }
-            return Math.toDegrees(pitch);
-        } else if (test < 0.0) {
-            return -90.0;
-        } else {
-            return 90.0;
-        }
-    }
 }
 
