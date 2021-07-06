@@ -7,7 +7,6 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
@@ -18,10 +17,8 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlay
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutNamedEntitySpawnHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityLivingHandle;
-import com.bergerkiller.generated.net.minecraft.network.syncher.DataWatcherObjectHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.projectile.EntityFishingHookHandle;
-import com.bergerkiller.mountiplex.reflection.SafeField;
 
 /**
  * Tracks and updates a single fishing line connecting two points
@@ -121,7 +118,7 @@ public class VirtualFishingLine {
 
             // Metadata packet
             DataWatcher meta = new DataWatcher();
-            meta.set(DATA_FISHINGHOOK_HOOKED_ENTITY, OptionalInt.of(this.hookedEntityId));
+            meta.set(EntityFishingHookHandle.DATA_HOOKED_ENTITY_ID, OptionalInt.of(this.hookedEntityId));
             meta.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, true);
             PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.hookEntityId, meta, true);
             PacketUtil.sendPacket(viewer, metaPacket);
@@ -178,24 +175,6 @@ public class VirtualFishingLine {
             for (int entityId : entityIds) {
                 PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNewSingle(entityId));
             }
-        }
-    }
-
-    // Note: can be removed once BKCommonLib 1.16.5-v2 or later becomes a dependency
-    private static final DataWatcher.Key<OptionalInt> DATA_FISHINGHOOK_HOOKED_ENTITY;
-    static {
-        if (Common.getVersion() > Common.VERSION ||
-            Common.hasCapability("Common:FishingHookFixes1.16") ||
-            Common.evaluateMCVersion("<=", "1.15.2")
-        ) {
-            // Works fine on 1.15.2 and earlier, and once patched on 1.16 and later.
-            DATA_FISHINGHOOK_HOOKED_ENTITY = EntityFishingHookHandle.DATA_HOOKED_ENTITY_ID;
-        } else {
-            // Was broken in BKCommonLib. Workaround get field using reflection.
-            DATA_FISHINGHOOK_HOOKED_ENTITY = new DataWatcher.Key<OptionalInt>(
-                    SafeField.get(EntityFishingHookHandle.T.getType(),
-                                  Common.evaluateMCVersion(">=", "1.16.5") ? "HOOKED_ENTITY" : "e",
-                                  DataWatcherObjectHandle.T.getType()), DataWatcher.Key.Type.ENTITY_ID);
         }
     }
 }

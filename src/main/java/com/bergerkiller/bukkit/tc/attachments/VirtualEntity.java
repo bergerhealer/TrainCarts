@@ -8,7 +8,6 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
@@ -53,10 +52,6 @@ public class VirtualEntity {
      * The height offset a player sits on top of an armorstand
      */
     public static final double PLAYER_SIT_ARMORSTAND_BUTT_OFFSET = -0.27;
-    /**
-     * Look packet doesn't work on 1.15, glitches out, must send a look + move packet with 0/0/0 movement
-     */
-    private static final boolean IS_LOOK_PACKET_BUGGED = Common.evaluateMCVersion(">=", "1.15");
     /**
      * Legacy was needed for seats when a chicken was used
      */
@@ -534,32 +529,32 @@ public class VirtualEntity {
                 broadcast(packet);
             } else {
                 // Only rotation changed
-                if (IS_LOOK_PACKET_BUGGED) {
-                    // On minecraft 1.15 and later there is a Minecraft client bug
-                    // Sending an Entity Look packet causes the client to cancel/ignore previous movement updates
-                    // This results in the entity position going out of sync
-                    // A workaround is sending a movement + look packet instead, which appears to work around that.
-                    PacketPlayOutRelEntityMoveLookHandle packet = PacketPlayOutRelEntityMoveLookHandle.createNew(
-                            this.entityId,
-                            0.0, 0.0, 0.0,
-                            this.liveYaw,
-                            this.livePitch,
-                            false);
+                for (Player viewer : this.viewers) {
+                    if (PlayerUtil.evaluateGameVersion(viewer, ">=", "1.15")) {
+                        // On minecraft 1.15 and later there is a Minecraft client bug
+                        // Sending an Entity Look packet causes the client to cancel/ignore previous movement updates
+                        // This results in the entity position going out of sync
+                        // A workaround is sending a movement + look packet instead, which appears to work around that.
+                        PacketPlayOutRelEntityMoveLookHandle packet = PacketPlayOutRelEntityMoveLookHandle.createNew(
+                                this.entityId,
+                                0.0, 0.0, 0.0,
+                                this.liveYaw,
+                                this.livePitch,
+                                false);
 
-                    this.syncYaw = this.liveYaw;
-                    this.syncPitch = this.livePitch;
-                    broadcast(packet);
-                } else {
-                    PacketPlayOutEntityLookHandle packet = PacketPlayOutEntityLookHandle.createNew(
-                            this.entityId,
-                            this.liveYaw,
-                            this.livePitch,
-                            false);
+                        PacketUtil.sendPacket(viewer, packet);
+                    } else {
+                        PacketPlayOutEntityLookHandle packet = PacketPlayOutEntityLookHandle.createNew(
+                                this.entityId,
+                                this.liveYaw,
+                                this.livePitch,
+                                false);
 
-                    this.syncYaw = this.liveYaw;
-                    this.syncPitch = this.livePitch;
-                    broadcast(packet);
+                        PacketUtil.sendPacket(viewer, packet);
+                    }
                 }
+                this.syncYaw = this.liveYaw;
+                this.syncPitch = this.livePitch;
             }
         }
     }
