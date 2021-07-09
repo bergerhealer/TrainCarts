@@ -127,7 +127,10 @@ public abstract class SeatedEntity {
         // Spawn fake mount if one is needed
         if (this.parentMountId == -1) {
             // Use parent node for mounting point, unless not possible or we have a position set for the seat
-            if (seat.getParent() != null && seat.getConfiguredPosition().isDefault()) {
+            if (seat.getParent() != null
+                    && seat.getConfiguredPosition().isDefault()
+                    && this._displayMode == DisplayMode.DEFAULT
+            ) {
                 this.parentMountId = ((CartAttachment) seat.getParent()).getMountEntityId();
             }
 
