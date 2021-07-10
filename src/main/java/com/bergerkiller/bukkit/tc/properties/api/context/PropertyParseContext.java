@@ -78,6 +78,19 @@ public final class PropertyParseContext<T> extends PropertyContext {
     }
 
     /**
+     * Parses the input text as a numeric float value. Non-numeric
+     * or "none" makes this method return NaN instead.
+     * 
+     * @return parsed float value, or NaN
+     */
+    public float inputFloatOrNaN() {
+        if (input().equalsIgnoreCase("none")) {
+            return Float.NaN;
+        }
+        return ParseUtil.parseFloat(input(), Float.NaN);
+    }
+
+    /**
      * Parses the input text as a numeric double value.
      * 
      * @return parsed double value

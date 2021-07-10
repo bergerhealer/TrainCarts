@@ -2,17 +2,27 @@ package com.bergerkiller.bukkit.tc.properties.standard.category;
 
 import java.util.Optional;
 
+import org.bukkit.command.CommandSender;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
+import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
+
+import cloud.commandframework.annotations.Argument;
+import cloud.commandframework.annotations.CommandDescription;
+import cloud.commandframework.annotations.CommandMethod;
 
 /**
  * Legacy property, which has become obsolete since exit offsets can be
@@ -20,6 +30,213 @@ import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
  * uses this property instead to eject a player some offset from the cart.
  */
 public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("exitoffset")
+    @CommandMethod("train exit offset <dx> <dy> <dz>")
+    @CommandDescription("Sets an offset relative to the cart where players exit it")
+    private void trainSetOffsetProperty(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("dx") double dx,
+            final @Argument("dy") double dy,
+            final @Argument("dz") double dz
+    ) {
+        ExitOffset old = properties.get(this);
+        properties.set(this, ExitOffset.create(dx, dy, dz, old.getYaw(), old.getPitch()));
+        trainGetProperty(sender, properties);
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("exitrotation")
+    @CommandMethod("train exit rotation <yaw> <pitch>")
+    @CommandDescription("Sets the rotation of the player relative to the cart where players exit it")
+    private void trainSetRotationProperty(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("yaw") float yaw,
+            final @Argument("pitch") float pitch
+    ) {
+        ExitOffset old = properties.get(this);
+        properties.set(this, ExitOffset.create(old.getRelativePosition(), yaw, pitch));
+        trainGetProperty(sender, properties);
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("exitoffset")
+    @CommandMethod("cart exit offset <dx> <dy> <dz>")
+    @CommandDescription("Sets an offset relative to the cart where players exit it")
+    private void cartSetOffsetProperty(
+            final CommandSender sender,
+            final CartProperties properties,
+            final @Argument("dx") double dx,
+            final @Argument("dy") double dy,
+            final @Argument("dz") double dz
+    ) {
+        ExitOffset old = properties.get(this);
+        properties.set(this, ExitOffset.create(dx, dy, dz, old.getYaw(), old.getPitch()));
+        cartGetProperty(sender, properties);
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("exitrotation")
+    @CommandMethod("cart exit rotation <yaw> <pitch>")
+    @CommandDescription("Sets the rotation of the player relative to the cart where players exit it")
+    private void cartSetRotationProperty(
+            final CommandSender sender,
+            final CartProperties properties,
+            final @Argument("yaw") float yaw,
+            final @Argument("pitch") float pitch
+    ) {
+        ExitOffset old = properties.get(this);
+        properties.set(this, ExitOffset.create(old.getRelativePosition(), yaw, pitch));
+        cartGetProperty(sender, properties);
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("exitrotation")
+    @CommandMethod("cart exit yaw <yaw>")
+    @CommandDescription("Sets the yaw rotation relative to the cart exiting players are positioned at")
+    private void cartSetRotationYawProperty(
+            final CommandSender sender,
+            final CartProperties properties,
+            final @Argument("yaw") float yaw
+    ) {
+        ExitOffset old = properties.get(this);
+        properties.set(this, ExitOffset.create(old.getRelativePosition(), yaw, old.getPitch()));
+        cartGetProperty(sender, properties);
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("exitrotation")
+    @CommandMethod("cart exit yaw free")
+    @CommandDescription("Sets the yaw orientation of the player after exiting remains as it was before")
+    private void cartSetRotationYawFreeProperty(
+            final CommandSender sender,
+            final CartProperties properties
+    ) {
+        ExitOffset old = properties.get(this);
+        properties.set(this, ExitOffset.create(old.getRelativePosition(), Float.NaN, old.getPitch()));
+        cartGetProperty(sender, properties);
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("exitrotation")
+    @CommandMethod("cart exit pitch <pitch>")
+    @CommandDescription("Sets the pitch rotation relative to the cart exiting players are positioned at")
+    private void cartSetRotationPitchProperty(
+            final CommandSender sender,
+            final CartProperties properties,
+            final @Argument("pitch") float pitch
+    ) {
+        ExitOffset old = properties.get(this);
+        properties.set(this, ExitOffset.create(old.getRelativePosition(), old.getYaw(), pitch));
+        cartGetProperty(sender, properties);
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("exitrotation")
+    @CommandMethod("cart exit pitch free")
+    @CommandDescription("Sets the pitch orientation of the player after exiting remains as it was before")
+    private void cartSetRotationPitchFreeProperty(
+            final CommandSender sender,
+            final CartProperties properties
+    ) {
+        ExitOffset old = properties.get(this);
+        properties.set(this, ExitOffset.create(old.getRelativePosition(), old.getYaw(), Float.NaN));
+        cartGetProperty(sender, properties);
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("exitrotation")
+    @CommandMethod("train exit yaw <yaw>")
+    @CommandDescription("Sets the yaw rotation relative to the cart exiting players are positioned at")
+    private void trainSetRotationYawProperty(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("yaw") float yaw
+    ) {
+        ExitOffset old = properties.get(this);
+        properties.set(this, ExitOffset.create(old.getRelativePosition(), yaw, old.getPitch()));
+        trainGetProperty(sender, properties);
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("exitrotation")
+    @CommandMethod("train exit yaw free")
+    @CommandDescription("Sets the yaw orientation of the player after exiting remains as it was before")
+    private void trainSetRotationYawFreeProperty(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        ExitOffset old = properties.get(this);
+        properties.set(this, ExitOffset.create(old.getRelativePosition(), Float.NaN, old.getPitch()));
+        trainGetProperty(sender, properties);
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("exitrotation")
+    @CommandMethod("train exit pitch <pitch>")
+    @CommandDescription("Sets the pitch rotation relative to the cart exiting players are positioned at")
+    private void trainSetRotationPitchProperty(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("pitch") float pitch
+    ) {
+        ExitOffset old = properties.get(this);
+        properties.set(this, ExitOffset.create(old.getRelativePosition(), old.getYaw(), pitch));
+        trainGetProperty(sender, properties);
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("exitrotation")
+    @CommandMethod("train exit pitch free")
+    @CommandDescription("Sets the pitch orientation of the player after exiting remains as it was before")
+    private void trainSetRotationPitchFreeProperty(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        ExitOffset old = properties.get(this);
+        properties.set(this, ExitOffset.create(old.getRelativePosition(), old.getYaw(), Float.NaN));
+        trainGetProperty(sender, properties);
+    }
+
+    @CommandMethod("train exit")
+    @CommandDescription("Displays the current exit offset and rotation set for the train")
+    private void trainGetProperty(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        showProperty(sender, "Train", properties.get(this));
+    }
+
+    @CommandMethod("cart exit")
+    @CommandDescription("Displays the current exit offset and rotation set for the cart")
+    private void cartGetProperty(
+            final CommandSender sender,
+            final CartProperties properties
+    ) {
+        showProperty(sender, "Cart", properties.get(this));
+    }
+
+    private void showProperty(CommandSender sender, String prefix, ExitOffset offset) {
+        MessageBuilder builder = new MessageBuilder();
+        builder.yellow(prefix + " exit offset is set to:");
+        builder.newLine().yellow("  Relative X: ").white(offset.getRelativeX());
+        builder.newLine().yellow("  Relative Y: ").white(offset.getRelativeY());
+        builder.newLine().yellow("  Relative Z: ").white(offset.getRelativeZ());
+        if (offset.hasLockedYaw()) {
+            builder.newLine().yellow("  Yaw: ").white(offset.getYaw());
+        } else {
+            builder.newLine().yellow("  Yaw: ").green("Not set (free)");
+        }
+        if (offset.hasLockedPitch()) {
+            builder.newLine().yellow("  Pitch: ").white(offset.getPitch());
+        } else {
+            builder.newLine().yellow("  Pitch: ").green("Not set (free)");
+        }
+        builder.send(sender);
+    }
 
     @PropertyParser(value="exitoffset", processPerCart = true)
     public ExitOffset parseOffset(PropertyParseContext<ExitOffset> context) {
@@ -39,7 +256,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
     @PropertyParser(value="exityaw", processPerCart = true)
     public ExitOffset parseYaw(PropertyParseContext<ExitOffset> context) {
         return ExitOffset.create(context.current().getRelativePosition(),
-                context.inputFloat(),
+                context.inputFloatOrNaN(),
                 context.current().getPitch());
     }
 
@@ -47,7 +264,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
     public ExitOffset parsePitch(PropertyParseContext<ExitOffset> context) {
         return ExitOffset.create(context.current().getRelativePosition(),
                 context.current().getYaw(),
-                context.inputFloat());
+                context.inputFloatOrNaN());
     }
 
     @PropertyParser(value="exitrot|exitrotation", processPerCart = true)
@@ -60,16 +277,10 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
             new_pitch = ParseUtil.parseFloat(angletext[1], Float.NaN);
         } else if (angletext.length == 1) {
             new_yaw = ParseUtil.parseFloat(angletext[0], Float.NaN);
-            new_pitch = 0.0f;
+            new_pitch = Float.NaN;
         } else {
-            new_yaw = 0.0f;
-            new_pitch = 0.0f;
-        }
-        if (Float.isNaN(new_yaw)) {
-            throw new PropertyInvalidInputException("Rotation yaw is not a number");
-        }
-        if (Float.isNaN(new_pitch)) {
-            throw new PropertyInvalidInputException("Rotation pitch is not a number");
+            new_yaw = Float.NaN;
+            new_pitch = Float.NaN;
         }
         return ExitOffset.create(context.current().getRelativePosition(),
                 new_yaw, new_pitch);
@@ -84,8 +295,14 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
     public Optional<ExitOffset> readFromConfig(ConfigurationNode config) {
         if (config.contains("exitOffset") || config.contains("exitYaw") || config.contains("exitPitch")) {
             Vector offset = config.get("exitOffset", new Vector());
-            float yaw = config.get("exitYaw", 0.0f);
-            float pitch = config.get("exitPitch", 0.0f);
+            float yaw = config.get("exitYaw", Float.NaN);
+            float pitch = config.get("exitPitch", Float.NaN);
+            if (!config.get("exitYawLocked", false)) {
+                yaw = Float.NaN;
+            }
+            if (!config.get("exitPitchLocked", false)) {
+                pitch = Float.NaN;
+            }
             return Optional.of(ExitOffset.create(offset, yaw, pitch));
         } else {
             return Optional.empty();
@@ -97,12 +314,26 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
         if (value.isPresent()) {
             ExitOffset data = value.get();
             config.set("exitOffset", data.getRelativePosition());
-            config.set("exitYaw", data.getYaw());
-            config.set("exitPitch", data.getPitch());
+            if (data.hasLockedYaw()) {
+                config.set("exitYawLocked", true);
+                config.set("exitYaw", data.getYaw());
+            } else {
+                config.set("exitYawLocked", false);
+                config.set("exitYaw", 0.0f);
+            }
+            if (data.hasLockedPitch()) {
+                config.set("exitPitchLocked", true);
+                config.set("exitPitch", data.getPitch());
+            } else {
+                config.set("exitPitchLocked", false);
+                config.set("exitPitch", 0.0f);
+            }
         } else {
             config.remove("exitOffset");
             config.remove("exitYaw");
+            config.remove("exitYawLocked");
             config.remove("exitPitch");
+            config.remove("exitPitchLocked");
         }
     }
 }

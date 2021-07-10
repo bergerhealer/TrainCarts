@@ -44,6 +44,14 @@ public final class ExitOffset {
         return this.pitch;
     }
 
+    public boolean hasLockedYaw() {
+        return !Float.isNaN(this.yaw);
+    }
+
+    public boolean hasLockedPitch() {
+        return !Float.isNaN(this.pitch);
+    }
+
     @Override
     public int hashCode() {
         return Double.hashCode(this.rx) ^ Double.hashCode(this.rz);

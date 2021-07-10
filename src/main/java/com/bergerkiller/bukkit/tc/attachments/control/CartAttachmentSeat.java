@@ -35,6 +35,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetToggleButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositionMenu;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
@@ -401,23 +402,8 @@ public class CartAttachmentSeat extends CartAttachment {
         Matrix4x4 tmp = this.getTransform().clone();
         this._ejectPosition.anchor.apply(this, tmp);
 
-        // If this is inside a Minecart, check the exit offset / rotation properties
-        if (this.getManager() instanceof AttachmentControllerMember) {
-            CartProperties cprop = ((AttachmentControllerMember) this.getManager()).getMember().getProperties();
-            ExitOffset cprop_offset = cprop.getExitOffset();
-
-            // Translate eject offset specified in the cart's properties
-            tmp.translate(cprop_offset.getRelativePosition());
-
-            // Apply transformation of eject position (translation, then rotation)
-            tmp.multiply(this._ejectPosition.transform);
-
-            // Apply eject rotation specified in the cart's properties on top
-            tmp.rotateYawPitchRoll(cprop_offset.getPitch(), cprop_offset.getYaw(), 0.0f);
-        } else {
-            // Only use the eject position transform
-            tmp.multiply(this._ejectPosition.transform);
-        }
+        // Rotate based on the relative exit set for the seat
+        tmp.multiply(this._ejectPosition.transform);
 
         org.bukkit.World w = this.getManager().getWorld();
         Vector pos = tmp.toVector();
@@ -435,6 +421,28 @@ public class CartAttachmentSeat extends CartAttachment {
             }
             yaw = curr_loc.getYaw();
             pitch = curr_loc.getPitch();
+        }
+
+        // Apply exit offset property on top of this result, purely based on the
+        // movement direction of the root cart
+        if (this.getManager() instanceof AttachmentControllerMember) {
+            MinecartMember<?> member = ((AttachmentControllerMember) this.getManager()).getMember();
+            ExitOffset cprop_offset = member.getProperties().getExitOffset();
+            Quaternion orientation = member.getOrientation();
+            if (member.isOrientationInverted()) {
+                orientation.rotateY(180.0);
+            }
+            Vector exitpos = cprop_offset.getRelativePosition();
+            exitpos.setX(-exitpos.getX()); // Weird?
+            orientation.transformPoint(exitpos);
+            pos.add(exitpos);
+
+            if (cprop_offset.hasLockedYaw()) {
+                yaw = (float) (orientation.getYaw() + cprop_offset.getYaw());
+            }
+            if (cprop_offset.hasLockedPitch()) {
+                pitch = (float) (orientation.getPitch() + cprop_offset.getPitch());
+            }
         }
 
         return new Location(w, pos.getX(), pos.getY(), pos.getZ(), yaw, pitch);
