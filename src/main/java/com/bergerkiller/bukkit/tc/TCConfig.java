@@ -98,6 +98,7 @@ public class TCConfig {
     public static boolean parseOldSigns;
     public static boolean allowParenthesesFormat = true;
     public static boolean upsideDownSupportedByAll = false;
+    public static boolean trainsCheckSignFacing = true;
     public static int autoSaveInterval = 30 * 20; // autosave every 30 seconds
     public static int attachmentTransformParallelism = -1;
     public static boolean allowExternalTicketImagePaths = false; // Whether images outside of the images subdirectory are allowed
@@ -450,6 +451,11 @@ public class TCConfig {
         config.setHeader("switcherResetCountersOnFirstCart", "\nFor [cart] signs that use counter statements, specifies whether");
         config.addHeader("switcherResetCountersOnFirstCart", "counters reset on the first cart of the train");
         switcherResetCountersOnFirstCart = config.get("switcherResetCountersOnFirstCart", true);
+
+        config.setHeader("trainsCheckSignFacing", "\nWhether trains only activate signs that they can 'see'. This means the text-side of the sign faces");
+        config.addHeader("trainsCheckSignFacing", "the train, or either side does to trigger in either direction. When disabled, trains will instead always");
+        config.addHeader("trainsCheckSignFacing", "activate signs. In both cases the behavior can be controlled with a :direction rule on the first line of the sign");
+        trainsCheckSignFacing = config.get("trainsCheckSignFacing", true);
 
         parsers.clear();
 

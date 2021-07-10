@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.PowerState;
 import com.bergerkiller.bukkit.tc.SignActionHeader;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -873,10 +874,13 @@ public class SignActionEvent extends Event implements Cancellable {
             if (this.header.hasDirections()) {
                 // From first line header ([train:left] -> blockface[] for left)
                 this.watchedDirections = this.header.getFaces(this.getFacing().getOppositeFace());
-            } else {
+            } else if (TCConfig.trainsCheckSignFacing) {
                 // Ask rails, the RailType NONE also handled this function, so no NPE here
                 this.watchedDirections = this.getRailPiece().type().getSignTriggerDirections(
                         this.getRailPiece().block(), this.getBlock(), this.getFacing());
+            } else {
+                // Always
+                this.watchedDirections = FaceUtil.BLOCK_SIDES;
             }
         }
         return this.watchedDirections;
