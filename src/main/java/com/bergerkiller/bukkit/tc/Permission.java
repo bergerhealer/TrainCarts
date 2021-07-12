@@ -71,6 +71,7 @@ public enum Permission implements IPermissionEnum {
     COMMAND_SAVEDTRAIN_IMPORT("train.command.savedtrain.import", PermissionDefault.OP, "Whether the player can import (saved) trains from online using hastebin"),
     COMMAND_SAVEDTRAIN_EXPORT("train.command.savedtrain.export", PermissionDefault.OP, "Whether the player can export (paste) (saved) trains to online using hastebin"),
     COMMAND_ENTER("train.command.enter", PermissionDefault.OP, "Whether the player can use a command to enter the train/cart being edited"),
+    COMMAND_EJECT("train.command.eject", PermissionDefault.OP, "Whether the player can use a command to eject players from the train/cart being edited"),
     COMMAND_LAUNCH("train.command.launch", PermissionDefault.OP, "Whether the player can use a command to launch the train being edited"),
     COMMAND_ANIMATE("train.command.animate", PermissionDefault.OP, "Whether the player can use a command to play an animation"),
     COMMAND_LOCATE("train.command.locate", PermissionDefault.OP, "Whether the player can locate trains, which shows a line from player to trains"),

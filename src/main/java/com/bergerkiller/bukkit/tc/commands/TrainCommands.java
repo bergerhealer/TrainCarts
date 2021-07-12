@@ -258,6 +258,28 @@ public class TrainCommands {
         }
     }
 
+    @CommandTargetTrain
+    @CommandRequiresPermission(Permission.COMMAND_EJECT)
+    @CommandMethod("train eject")
+    @CommandDescription("Ejects the passengers of all the carts of a train, ignoring the allow player exit property")
+    private void commandEject(
+            final Player player,
+            final TrainProperties trainProperties
+    ) {
+        if (!trainProperties.isLoaded()) {
+            player.sendMessage(ChatColor.RED + "Can not eject the train: it is not loaded");
+            return;
+        }
+
+        MinecartGroup group = trainProperties.getHolder();
+        if (group.hasPassenger()) {
+            group.eject();
+            player.sendMessage(ChatColor.GREEN + "Selected train ejected!");
+        } else {
+            player.sendMessage(ChatColor.YELLOW + "Selected train has no passengers!");
+        }
+    }
+
     @CommandRequiresPermission(Permission.COMMAND_LAUNCH)
     @CommandMethod("train launch")
     @CommandDescription("Launches the train forwards at station launch speed")
