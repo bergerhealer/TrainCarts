@@ -2,21 +2,19 @@ package com.bergerkiller.bukkit.tc.debug;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.vehicle.VehicleExitEvent;
-import org.bukkit.inventory.ItemStack;
 
-import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.debug.types.DebugToolTypeListDestinations;
+import com.bergerkiller.bukkit.tc.debug.types.DebugToolTypeRails;
+import com.bergerkiller.bukkit.tc.debug.types.DebugToolTypeTrackDistance;
 import com.bergerkiller.bukkit.tc.utils.EventListenerHook;
 
 import cloud.commandframework.annotations.Argument;
@@ -96,8 +94,16 @@ public class DebugCommands {
     private void commandDebugRails(
             final Player player
     ) {
-        giveDebugItem(player, "Rails", "TrainCarts Rails Debugger");
-        player.sendMessage(ChatColor.GREEN + "Given a rails debug item. Right-click rails and see where a train would go.");
+        (new DebugToolTypeRails()).giveToPlayer(player);
+    }
+
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
+    @CommandMethod("train debug distance")
+    @CommandDescription("Get a debug stick item to display the track distance between two points")
+    private void commandDebugTrackDistance(
+            final Player player
+    ) {
+        (new DebugToolTypeTrackDistance()).giveToPlayer(player);
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
@@ -106,9 +112,7 @@ public class DebugCommands {
     private void commandDebugDestinationAll(
             final Player player
     ) {
-        giveDebugItem(player, "Destinations", "TrainCarts Destination Debugger");
-        player.sendMessage(ChatColor.GREEN + "Given a destination debug item. " +
-                "Right-click rails to see what destinations can be reached from there.");
+        (new DebugToolTypeListDestinations()).giveToPlayer(player);
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
@@ -118,9 +122,7 @@ public class DebugCommands {
             final Player player,
             final @Argument("destination") String destination
     ) {
-        giveDebugItem(player, "Destination " + destination, "TrainCarts Destination Debugger [" + destination + "]");
-        player.sendMessage(ChatColor.GREEN + "Given a destination debug item. " +
-                "Right-click rails to see whether and how a train would travel to " + destination + ".");
+        (new DebugToolTypeListDestinations(destination)).giveToPlayer(player);
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
@@ -173,24 +175,5 @@ public class DebugCommands {
     ) {
         sender.sendMessage(ChatColor.GREEN + "Displaying tracked wheel positions: " +
                 (TCConfig.wheelTrackerDebugEnabled ? "ENABLED" : (ChatColor.RED + "DISABLED")));
-    }
-
-    public static void giveDebugItem(Player player, String debugMode, String debugTitle) {
-        ItemStack item = ItemUtil.createItem(Material.STICK, 1);
-        ItemUtil.getMetaTag(item, true).putValue("TrainCartsDebug", debugMode);
-        ItemUtil.setDisplayName(item, debugTitle);
-
-        // Update item in main hand, if it is a debug item
-        ItemStack inMainHand = HumanHand.getItemInMainHand(player);
-        if (inMainHand != null) {
-            CommonTagCompound tag = ItemUtil.getMetaTag(inMainHand, false);
-            if (tag != null && tag.containsKey("TrainCartsDebug")) {
-                HumanHand.setItemInMainHand(player, item);
-                return;
-            }
-        }
-
-        // Give new item
-        player.getInventory().addItem(item);
     }
 }

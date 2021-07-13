@@ -22,7 +22,7 @@ import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
-import com.bergerkiller.bukkit.tc.debug.DebugTool;
+import com.bergerkiller.bukkit.tc.debug.DebugToolUtil;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
 public class CartAttachmentPlatform extends CartAttachment {
@@ -120,10 +120,10 @@ public class CartAttachmentPlatform extends CartAttachment {
             transform.transformPoint(p2);
             transform.transformPoint(p3);
             transform.transformPoint(p4);
-            DebugTool.showLineParticles(g.player, color, p1, p2);
-            DebugTool.showLineParticles(g.player, color, p2, p3);
-            DebugTool.showLineParticles(g.player, color, p3, p4);
-            DebugTool.showLineParticles(g.player, color, p4, p1);
+            DebugToolUtil.showLineParticles(g.player, color, p1, p2);
+            DebugToolUtil.showLineParticles(g.player, color, p2, p3);
+            DebugToolUtil.showLineParticles(g.player, color, p3, p4);
+            DebugToolUtil.showLineParticles(g.player, color, p4, p1);
 
             Vector p1_mid = new Vector(0.0, 0.0, -half_length);
             Vector p2_mid = new Vector(0.0, 0.0, half_length);
@@ -133,8 +133,8 @@ public class CartAttachmentPlatform extends CartAttachment {
             transform.transformPoint(p2_mid);
             transform.transformPoint(p3_mid);
             transform.transformPoint(p4_mid);
-            DebugTool.showLineParticles(g.player, color, p1_mid, p2_mid);
-            DebugTool.showLineParticles(g.player, color, p3_mid, p4_mid);
+            DebugToolUtil.showLineParticles(g.player, color, p1_mid, p2_mid);
+            DebugToolUtil.showLineParticles(g.player, color, p3_mid, p4_mid);
         }
 
         // Track when viewers go on the platform

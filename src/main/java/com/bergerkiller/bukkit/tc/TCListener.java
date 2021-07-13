@@ -9,7 +9,6 @@ import com.bergerkiller.bukkit.common.events.ChunkLoadEntitiesEvent;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveFromServerEvent;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
-import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.*;
@@ -40,7 +39,6 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -479,6 +477,13 @@ public class TCListener implements Listener {
             return;
         }
 
+        if (event.getAction() == Action.LEFT_CLICK_AIR || event.getAction() == Action.LEFT_CLICK_BLOCK) {
+            if (DebugTool.onDebugInteract(event.getPlayer(), event.getClickedBlock(), event.getItem(), false)) {
+                event.setUseInteractedBlock(Result.DENY);
+                return;
+            }
+        }
+
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK && event.getAction() != Action.RIGHT_CLICK_AIR) {
             return;
         }
@@ -507,18 +512,9 @@ public class TCListener implements Listener {
             }
 
             // Debug tools
-            if (event.getItem() != null) {
-                CommonTagCompound tag = ItemUtil.getMetaTag(event.getItem());
-                if (tag != null) {
-                    String debugType = tag.getValue("TrainCartsDebug", String.class);
-                    if (debugType != null) {
-                        if (Permission.DEBUG_COMMAND_DEBUG.has(event.getPlayer())) {
-                            DebugTool.onDebugInteract(event.getPlayer(), clickedBlock, event.getItem(), debugType);
-                        } else {
-                            event.getPlayer().sendMessage(ChatColor.RED + "No permission to use this item!");
-                        }
-                    }
-                }
+            if (DebugTool.onDebugInteract(event.getPlayer(), clickedBlock, event.getItem(), true)) {
+                event.setUseInteractedBlock(Result.DENY);
+                return;
             }
 
             // No interaction occurred
