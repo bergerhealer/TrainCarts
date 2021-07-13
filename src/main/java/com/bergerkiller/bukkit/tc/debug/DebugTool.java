@@ -134,7 +134,7 @@ public class DebugTool {
         }
 
         Optional<DebugToolType> match = DebugToolTypeRegistry.match(debugType);
-        if (match.isEmpty()) {
+        if (!match.isPresent()) {
             player.sendMessage(ChatColor.RED + "Item has an unknown debug mode: " + debugType);
             return true;
         }
