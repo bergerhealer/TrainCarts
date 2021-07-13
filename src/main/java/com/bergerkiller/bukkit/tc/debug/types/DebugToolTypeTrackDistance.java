@@ -1,15 +1,16 @@
 package com.bergerkiller.bukkit.tc.debug.types;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.Locale;
+
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.tc.controller.components.RailPath.Position;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
@@ -121,15 +122,17 @@ public class DebugToolTypeTrackDistance extends DebugToolTrackWalkerType {
 
             totalDistance = measure.movedTotal;
         }
-
+        NumberFormat df = NumberFormat.getNumberInstance(Locale.ENGLISH);
+        df.setGroupingUsed(false);
+        df.setMinimumFractionDigits(2);
         if (isRightClick) {
             player.sendMessage(ChatColor.GREEN + "Distance from start to " +
                     ChatColor.YELLOW + "end" + ChatColor.GREEN + " is " +
-                    ChatColor.WHITE + totalDistance + ChatColor.GREEN + " blocks");
+                    ChatColor.WHITE + df.format(totalDistance) + ChatColor.GREEN + " blocks");
         } else {
             player.sendMessage(ChatColor.GREEN + "Distance from " +
                     ChatColor.YELLOW + "start" + ChatColor.GREEN + " to end is " +
-                    ChatColor.WHITE + totalDistance + ChatColor.GREEN + " blocks");
+                    ChatColor.WHITE + df.format(totalDistance) + ChatColor.GREEN + " blocks");
         }
     }
 
