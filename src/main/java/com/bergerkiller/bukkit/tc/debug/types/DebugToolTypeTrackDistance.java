@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.debug.types;
 
-import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Locale;
 

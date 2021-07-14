@@ -39,6 +39,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.registry.TCPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
+import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
@@ -414,6 +415,28 @@ public class TrainCarts extends PluginBase {
         return Common.VERSION;
     }
 
+    @Override
+    public void onLoad() {
+        // These things need to be initialized early on so that third-party plugins can register
+        // their own types. They should do this registration in onLoad rather than onEnable so
+        // that Traincarts can pick them up before initializing all the trains.
+
+        // Commands/PropertyRegistry are required for registering properties picked up by trains
+        // Actual registration of property commands is done during enable()
+        commands = new Commands();
+        propertyRegistry = new TCPropertyRegistry(this, commands.getHandler());
+        propertyRegistry.registerAll(StandardProperties.class);
+
+        // Register TrainCarts default attachment types
+        CartAttachment.registerDefaultAttachments();
+
+        // Register TrainCarts default rail types
+        RailType.values();
+
+        //Init signs
+        SignAction.init();
+    }
+
     public void enable() {
         plugin = this;
 
@@ -422,19 +445,16 @@ public class TrainCarts extends PluginBase {
 
         // Initialize commands (Cloud command framework)
         // Must make sure no TrainCarts state is instantly accessed while initializing
-        commands = new Commands();
         commands.enable(this);
 
         // Core properties need to be there before defaults/cart/train properties are loaded
         // Will register commands that properties may define using annotations
-        propertyRegistry = new TCPropertyRegistry(this, commands.getHandler());
-        propertyRegistry.registerAll(StandardProperties.class);
+        propertyRegistry.enable();
 
         // Selector registry, do this early in case a command block triggers during enabling
         selectorHandlerRegistry.enable();
 
         // And this
-        CartAttachment.registerDefaultAttachments();
         {
             // BEFORE we load configurations!
             Plugin lightAPI = Bukkit.getPluginManager().getPlugin("LightAPI");
@@ -487,9 +507,6 @@ public class TrainCarts extends PluginBase {
 
         //init statements
         Statement.init();
-
-        //Init signs
-        SignAction.init();
 
         // Start the path finding task
         this.pathProvider = new PathProvider(this);

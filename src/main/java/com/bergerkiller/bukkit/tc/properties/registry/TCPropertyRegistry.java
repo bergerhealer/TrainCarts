@@ -51,6 +51,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
     private final Map<String, PropertyParserElement<?>> parsersByName = new HashMap<>();
     private final Map<String, PropertyParserElement<?>> parsersByPreProcessedName = new HashMap<>();
     private final List<PropertyParserElement<?>> parsersWithComplexRegex = new ArrayList<>();
+    private final List<IProperty<?>> pendingProperties = new ArrayList<IProperty<?>>();
 
     // Used during parse() to see what property is being parsed currently
     private IProperty<?> currentPropertyBeingParsed = null;
@@ -58,7 +59,9 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
     public TCPropertyRegistry(TrainCarts plugin, CloudHandler commands) {
         this.plugin = plugin;
         this.commands = commands;
+    }
 
+    public void enable() {
         // Register the PropertyCheckPermission annotation, which will run
         // a handler to check various property permissions before executing
         // a command handler.
@@ -69,6 +72,10 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
                 property.handlePermission(context.getSender(), propertyName);
             });
         });
+
+        // Register commands of properties that were added before this registry was enabled
+        pendingProperties.forEach(this::parsePropertyAnnotations);
+        pendingProperties.clear();
     }
 
     private IProperty<?> currentlyParsedProperty() {
@@ -96,6 +103,15 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
         // Register new parsers
         details.parsers.forEach(this::registerParser);
 
+        // Register cloud commands declared inside the property
+        if (this.commands.isEnabled()) {
+            parsePropertyAnnotations(property);
+        } else {
+            this.pendingProperties.add(property);
+        }
+    }
+
+    private void parsePropertyAnnotations(IProperty<?> property) {
         // Register cloud commands declared inside the property
         // Note: does not support unregister!
         this.currentPropertyBeingParsed = property;

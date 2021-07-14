@@ -59,6 +59,10 @@ public class CloudHandler {
     private AnnotationParser<CommandSender> annotationParser;
     private BukkitAudiences bukkitAudiences;
 
+    public boolean isEnabled() {
+        return this.manager != null;
+    }
+
     public void enable(Plugin plugin) {
         try {
             this.manager = new PaperCommandManager<>(
