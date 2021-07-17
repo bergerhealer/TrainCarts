@@ -66,6 +66,15 @@ public class Ticket {
     }
 
     /**
+     * Removes this ticket from the ticket store
+     *
+     * @return True if this ticket still existed and has been removed
+     */
+    public boolean remove() {
+        return TicketStore.removeTicket(this._name);
+    }
+
+    /**
      * Gets the realm for which the tickets can be used.
      * Multiple tickets can belong the same realm, allowing you to set
      * ticket requirements for train in one go using the realm. This avoids

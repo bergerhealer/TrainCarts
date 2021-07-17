@@ -186,6 +186,20 @@ public class TicketCommands {
     }
 
     @CommandRequiresPermission(Permission.TICKET_MANAGE)
+    @CommandMethod("train ticket remove")
+    @CommandDescription("Permanently removes a ticket")
+    private void commandDeleteTicket(
+              final Player sender,
+              final Ticket ticket
+    ) {
+        if (ticket.remove()) {
+            sender.sendMessage(ChatColor.GREEN + "Ticket has been removed!");
+        } else {
+            sender.sendMessage(ChatColor.RED + "Failed to remove ticket: not found!");
+        }
+    }
+
+    @CommandRequiresPermission(Permission.TICKET_MANAGE)
     @CommandMethod("train ticket rename <newname>")
     @CommandDescription("Renames the currently edited ticket")
     private void commandRenameTicket(
