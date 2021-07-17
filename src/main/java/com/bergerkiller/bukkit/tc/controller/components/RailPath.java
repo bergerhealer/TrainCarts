@@ -21,6 +21,7 @@ import com.bergerkiller.bukkit.tc.Util;
  * Paths are immutable to enable optimized performance for simple (two-point) paths.
  */
 public class RailPath {
+    private static final double SMALL_ADVANCE_MIN_MOT = 1e-6;
     public static final RailPath EMPTY = new RailPath(new Point[0]);
     private final Point[] points;
     private final Segment[] segments;
@@ -675,10 +676,31 @@ public class RailPath {
             }
         }
 
+        /**
+         * Moves the position forwards by the most minimal amount possible.
+         * When at block boundaries, this will push the position beyond towards the next
+         * block. The new position will be guaranteed different to the previous
+         * position.<br>
+         * <br>
+         * When the absolute position has very high coordinates, the step moved
+         * is larger than when the absolute position is near 0.
+         */
         public void smallAdvance() {
-            posX += 1e-10 * motX;
-            posY += 1e-10 * motY;
-            posZ += 1e-10 * motZ;
+            if (motX > SMALL_ADVANCE_MIN_MOT) {
+                posX = Math.nextUp(posX);
+            } else if (motX < -SMALL_ADVANCE_MIN_MOT) {
+                posX = Math.nextDown(posX);
+            }
+            if (motY > SMALL_ADVANCE_MIN_MOT) {
+                posY = Math.nextUp(posY);
+            } else if (motY < -SMALL_ADVANCE_MIN_MOT) {
+                posY = Math.nextDown(posY);
+            }
+            if (motZ > SMALL_ADVANCE_MIN_MOT) {
+                posZ = Math.nextUp(posZ);
+            } else if (motZ < -SMALL_ADVANCE_MIN_MOT) {
+                posZ = Math.nextDown(posZ);
+            }
         }
 
         /**
