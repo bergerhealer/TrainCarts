@@ -45,7 +45,7 @@ import org.bukkit.plugin.java.JavaPlugin;
  *
  * @author Irmo van den Berge (bergerkiller) - Feel free to use in this
  *         in your own plugin, I do not care.
- * @version 1.0
+ * @version 1.1
  */
 public class Preloader extends JavaPlugin {
     private final String mainClassName;
@@ -164,10 +164,16 @@ public class Preloader extends JavaPlugin {
                 Field lookupNamesField = manager.getClass().getDeclaredField("lookupNames");
                 lookupNamesField.setAccessible(true);
                 Map<Object, Object> lookupNames = (Map<Object, Object>) lookupNamesField.get(manager);
-                if (lookupNames.get(this.getName()) != this) {
+                boolean found = false;
+                for (Map.Entry<Object, Object> e : lookupNames.entrySet()) {
+                    if (e.getValue() == this) {
+                        e.setValue(mainPlugin);
+                        found = true;
+                    }
+                }
+                if (!found) {
                     throw new IllegalStateException("Preloader does not exist in lookupNames mapping");
                 }
-                lookupNames.put(this.getName(), mainPlugin);
             }
         } catch (Throwable t) {
             throw new IllegalStateException("Failed to load plugin into the server", t);
