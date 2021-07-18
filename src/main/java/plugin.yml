@@ -1,10 +1,16 @@
 name: Train_Carts
 main: com.bergerkiller.bukkit.tc.TrainCarts
-api-version: 1.13
 version: ${project.version}
-build: ${project.build.number}
-authors: [bergerkiller, lenis0012, timstans, bubba1234119, KamikazePlatypus, mg_1999, Friwi, kpaulisse]
-description: Plugin that allows the use of minecart trains with adjustable settings
-depend: [BKCommonLib]
-softdepend: [MinecartManiaCore, SignLink, My_Worlds, LightAPI, Vault]
 dev-url: ${project.url}
+build: ${project.build.number}
+description: Plugin that allows the use of minecart trains with adjustable settings
+authors: [bergerkiller, lenis0012, timstans, bubba1234119, KamikazePlatypus, mg_1999, Friwi, kpaulisse]
+api-version: 1.13
+softdepend: [BKCommonLib, MinecartManiaCore, SignLink, My_Worlds, LightAPI, Vault]
+
+main: com.bergerkiller.bukkit.tc.Preloader
+preloader:
+    main: com.bergerkiller.bukkit.tc.TrainCarts
+    commands: [train, cart, savedtrain]
+    depend:
+        BKCommonLib: https://www.spigotmc.org/resources/bkcommonlib.39590/
