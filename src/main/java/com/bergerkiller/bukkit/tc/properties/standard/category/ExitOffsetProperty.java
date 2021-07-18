@@ -48,6 +48,22 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
     }
 
     @CommandTargetTrain
+    @PropertyCheckPermission("exitoffset")
+    @CommandMethod("train exit location <posX> <posY> <posZ>")
+    @CommandDescription("Sets world coordinates where players are teleported to when exiting")
+    private void trainSetLocationProperty(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("posX") double posX,
+            final @Argument("posY") double posY,
+            final @Argument("posZ") double posZ
+    ) {
+        ExitOffset old = properties.get(this);
+        properties.set(this, ExitOffset.createAbsolute(posX, posY, posZ, old.getYaw(), old.getPitch()));
+        trainGetProperty(sender, properties);
+    }
+
+    @CommandTargetTrain
     @PropertyCheckPermission("exitrotation")
     @CommandMethod("train exit rotation <yaw> <pitch>")
     @CommandDescription("Sets the rotation of the player relative to the cart where players exit it")
@@ -58,8 +74,24 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
             final @Argument("pitch") float pitch
     ) {
         ExitOffset old = properties.get(this);
-        properties.set(this, ExitOffset.create(old.getRelativePosition(), yaw, pitch));
+        properties.set(this, ExitOffset.create(old.getPosition(), yaw, pitch));
         trainGetProperty(sender, properties);
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("exitoffset")
+    @CommandMethod("cart exit location <posX> <posY> <posZ>")
+    @CommandDescription("Sets world coordinates where players are teleported to when exiting")
+    private void cartSetlocationProperty(
+            final CommandSender sender,
+            final CartProperties properties,
+            final @Argument("posX") double posX,
+            final @Argument("posY") double posY,
+            final @Argument("posZ") double posZ
+    ) {
+        ExitOffset old = properties.get(this);
+        properties.set(this, ExitOffset.createAbsolute(posX, posY, posZ, old.getYaw(), old.getPitch()));
+        cartGetProperty(sender, properties);
     }
 
     @CommandTargetTrain
@@ -89,7 +121,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
             final @Argument("pitch") float pitch
     ) {
         ExitOffset old = properties.get(this);
-        properties.set(this, ExitOffset.create(old.getRelativePosition(), yaw, pitch));
+        properties.set(this, ExitOffset.create(old.getPosition(), yaw, pitch));
         cartGetProperty(sender, properties);
     }
 
@@ -103,7 +135,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
             final @Argument("yaw") float yaw
     ) {
         ExitOffset old = properties.get(this);
-        properties.set(this, ExitOffset.create(old.getRelativePosition(), yaw, old.getPitch()));
+        properties.set(this, ExitOffset.create(old.getPosition(), yaw, old.getPitch()));
         cartGetProperty(sender, properties);
     }
 
@@ -116,7 +148,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
             final CartProperties properties
     ) {
         ExitOffset old = properties.get(this);
-        properties.set(this, ExitOffset.create(old.getRelativePosition(), Float.NaN, old.getPitch()));
+        properties.set(this, ExitOffset.create(old.getPosition(), Float.NaN, old.getPitch()));
         cartGetProperty(sender, properties);
     }
 
@@ -130,7 +162,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
             final @Argument("pitch") float pitch
     ) {
         ExitOffset old = properties.get(this);
-        properties.set(this, ExitOffset.create(old.getRelativePosition(), old.getYaw(), pitch));
+        properties.set(this, ExitOffset.create(old.getPosition(), old.getYaw(), pitch));
         cartGetProperty(sender, properties);
     }
 
@@ -143,7 +175,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
             final CartProperties properties
     ) {
         ExitOffset old = properties.get(this);
-        properties.set(this, ExitOffset.create(old.getRelativePosition(), old.getYaw(), Float.NaN));
+        properties.set(this, ExitOffset.create(old.getPosition(), old.getYaw(), Float.NaN));
         cartGetProperty(sender, properties);
     }
 
@@ -157,7 +189,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
             final @Argument("yaw") float yaw
     ) {
         ExitOffset old = properties.get(this);
-        properties.set(this, ExitOffset.create(old.getRelativePosition(), yaw, old.getPitch()));
+        properties.set(this, ExitOffset.create(old.getPosition(), yaw, old.getPitch()));
         trainGetProperty(sender, properties);
     }
 
@@ -170,7 +202,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
             final TrainProperties properties
     ) {
         ExitOffset old = properties.get(this);
-        properties.set(this, ExitOffset.create(old.getRelativePosition(), Float.NaN, old.getPitch()));
+        properties.set(this, ExitOffset.create(old.getPosition(), Float.NaN, old.getPitch()));
         trainGetProperty(sender, properties);
     }
 
@@ -184,7 +216,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
             final @Argument("pitch") float pitch
     ) {
         ExitOffset old = properties.get(this);
-        properties.set(this, ExitOffset.create(old.getRelativePosition(), old.getYaw(), pitch));
+        properties.set(this, ExitOffset.create(old.getPosition(), old.getYaw(), pitch));
         trainGetProperty(sender, properties);
     }
 
@@ -197,7 +229,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
             final TrainProperties properties
     ) {
         ExitOffset old = properties.get(this);
-        properties.set(this, ExitOffset.create(old.getRelativePosition(), old.getYaw(), Float.NaN));
+        properties.set(this, ExitOffset.create(old.getPosition(), old.getYaw(), Float.NaN));
         trainGetProperty(sender, properties);
     }
 
@@ -221,10 +253,17 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
 
     private void showProperty(CommandSender sender, String prefix, ExitOffset offset) {
         MessageBuilder builder = new MessageBuilder();
-        builder.yellow(prefix + " exit offset is set to:");
-        builder.newLine().yellow("  Relative X: ").white(offset.getRelativeX());
-        builder.newLine().yellow("  Relative Y: ").white(offset.getRelativeY());
-        builder.newLine().yellow("  Relative Z: ").white(offset.getRelativeZ());
+        if (offset.isAbsolute()) {
+            builder.yellow(prefix + " exit coordinates are set to:");
+            builder.newLine().yellow("  Location X: ").white(offset.getX());
+            builder.newLine().yellow("  Location Y: ").white(offset.getY());
+            builder.newLine().yellow("  Location Z: ").white(offset.getZ());
+        } else {
+            builder.yellow(prefix + " exit offset is set to:");
+            builder.newLine().yellow("  Relative X: ").white(offset.getX());
+            builder.newLine().yellow("  Relative Y: ").white(offset.getY());
+            builder.newLine().yellow("  Relative Z: ").white(offset.getZ());
+        }
         if (offset.hasLockedYaw()) {
             builder.newLine().yellow("  Yaw: ").white(offset.getYaw());
         } else {
@@ -236,6 +275,18 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
             builder.newLine().yellow("  Pitch: ").green("Not set (free)");
         }
         builder.send(sender);
+    }
+
+    @PropertyParser(value="exitlocation", processPerCart = true)
+    public ExitOffset parseLocation(PropertyParseContext<ExitOffset> context) {
+        final Vector vec = Util.parseVector(context.input(), null);
+        if (vec == null) {
+            throw new PropertyInvalidInputException("Not a vector");
+        }
+
+        return ExitOffset.createAbsolute(vec,
+                context.current().getYaw(),
+                context.current().getPitch());
     }
 
     @PropertyParser(value="exitoffset", processPerCart = true)
@@ -255,14 +306,16 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
 
     @PropertyParser(value="exityaw", processPerCart = true)
     public ExitOffset parseYaw(PropertyParseContext<ExitOffset> context) {
-        return ExitOffset.create(context.current().getRelativePosition(),
+        return ExitOffset.create(context.current().isAbsolute(),
+                context.current().getPosition(),
                 context.inputFloatOrNaN(),
                 context.current().getPitch());
     }
 
     @PropertyParser(value="exitpitch", processPerCart = true)
     public ExitOffset parsePitch(PropertyParseContext<ExitOffset> context) {
-        return ExitOffset.create(context.current().getRelativePosition(),
+        return ExitOffset.create(context.current().isAbsolute(),
+                context.current().getPosition(),
                 context.current().getYaw(),
                 context.inputFloatOrNaN());
     }
@@ -282,7 +335,8 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
             new_yaw = Float.NaN;
             new_pitch = Float.NaN;
         }
-        return ExitOffset.create(context.current().getRelativePosition(),
+        return ExitOffset.create(context.current().isAbsolute(),
+                context.current().getPosition(),
                 new_yaw, new_pitch);
     }
 
@@ -294,7 +348,8 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
     @Override
     public Optional<ExitOffset> readFromConfig(ConfigurationNode config) {
         if (config.contains("exitOffset") || config.contains("exitYaw") || config.contains("exitPitch")) {
-            Vector offset = config.get("exitOffset", new Vector());
+            Vector absoluteCoords = config.get("exitLocation", Vector.class, null);
+            Vector offset = (absoluteCoords == null) ? config.get("exitOffset", new Vector()) : null;
             float yaw = config.get("exitYaw", Float.NaN);
             float pitch = config.get("exitPitch", Float.NaN);
             if (!config.get("exitYawLocked", false)) {
@@ -303,7 +358,11 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
             if (!config.get("exitPitchLocked", false)) {
                 pitch = Float.NaN;
             }
-            return Optional.of(ExitOffset.create(offset, yaw, pitch));
+            if (absoluteCoords != null) {
+                return Optional.of(ExitOffset.createAbsolute(absoluteCoords, yaw, pitch));
+            } else {
+                return Optional.of(ExitOffset.create(offset, yaw, pitch));
+            }
         } else {
             return Optional.empty();
         }
@@ -313,7 +372,13 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
     public void writeToConfig(ConfigurationNode config, Optional<ExitOffset> value) {
         if (value.isPresent()) {
             ExitOffset data = value.get();
-            config.set("exitOffset", data.getRelativePosition());
+            if (data.isAbsolute()) {
+                config.set("exitLocation", data.getPosition());
+                config.remove("exitOffset");
+            } else {
+                config.set("exitOffset", data.getPosition());
+                config.remove("exitLocation");
+            }
             if (data.hasLockedYaw()) {
                 config.set("exitYawLocked", true);
                 config.set("exitYaw", data.getYaw());
@@ -330,6 +395,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
             }
         } else {
             config.remove("exitOffset");
+            config.remove("exitLocation");
             config.remove("exitYaw");
             config.remove("exitYawLocked");
             config.remove("exitPitch");

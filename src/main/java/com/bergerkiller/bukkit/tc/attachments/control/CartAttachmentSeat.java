@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -37,7 +38,6 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetToggleButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositionMenu;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
-import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
 
@@ -428,20 +428,34 @@ public class CartAttachmentSeat extends CartAttachment {
         if (this.getManager() instanceof AttachmentControllerMember) {
             MinecartMember<?> member = ((AttachmentControllerMember) this.getManager()).getMember();
             ExitOffset cprop_offset = member.getProperties().getExitOffset();
-            Quaternion orientation = member.getOrientation();
-            if (member.isOrientationInverted()) {
-                orientation.rotateY(180.0);
-            }
-            Vector exitpos = cprop_offset.getRelativePosition();
-            exitpos.setX(-exitpos.getX()); // Weird?
-            orientation.transformPoint(exitpos);
-            pos.add(exitpos);
 
-            if (cprop_offset.hasLockedYaw()) {
-                yaw = (float) (orientation.getYaw() + cprop_offset.getYaw());
-            }
-            if (cprop_offset.hasLockedPitch()) {
-                pitch = (float) (orientation.getPitch() + cprop_offset.getPitch());
+            if (cprop_offset.isAbsolute()) {
+                // Ignore seat/cart position, teleport to these coordinates
+                MathUtil.setVector(pos, cprop_offset.getPosition());
+                if (cprop_offset.hasLockedYaw()) {
+                    yaw = cprop_offset.getYaw();
+                }
+                if (cprop_offset.hasLockedPitch()) {
+                    pitch = cprop_offset.getPitch();
+                }
+            } else {
+                // Relative to the seat/cart
+                Quaternion orientation = member.getOrientation();
+                if (member.isOrientationInverted()) {
+                    orientation.rotateY(180.0);
+                }
+
+                Vector exitpos = cprop_offset.getPosition();
+                exitpos.setX(-exitpos.getX()); // Weird?
+                orientation.transformPoint(exitpos);
+                pos.add(exitpos);
+
+                if (cprop_offset.hasLockedYaw()) {
+                    yaw = (float) (orientation.getYaw() + cprop_offset.getYaw());
+                }
+                if (cprop_offset.hasLockedPitch()) {
+                    pitch = (float) (orientation.getPitch() + cprop_offset.getPitch());
+                }
             }
         }
 

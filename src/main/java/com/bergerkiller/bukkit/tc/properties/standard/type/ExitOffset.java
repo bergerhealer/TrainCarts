@@ -7,12 +7,14 @@ import org.bukkit.util.Vector;
  * Used when seat attachments don't have one explicitly defined.
  */
 public final class ExitOffset {
-    public static final ExitOffset DEFAULT = new ExitOffset(0.0, 0.0, 0.0, 0.0f, 0.0f);
+    public static final ExitOffset DEFAULT = new ExitOffset(false, 0.0, 0.0, 0.0, 0.0f, 0.0f);
 
+    private final boolean absolute;
     private final double rx, ry, rz;
     private final float yaw, pitch;
 
-    private ExitOffset(double rx, double ry, double rz, float yaw, float pitch) {
+    private ExitOffset(boolean absolute, double rx, double ry, double rz, float yaw, float pitch) {
+        this.absolute = absolute;
         this.rx = rx;
         this.ry = ry;
         this.rz = rz;
@@ -20,24 +22,59 @@ public final class ExitOffset {
         this.pitch = pitch;
     }
 
-    public Vector getRelativePosition() {
+    /**
+     * Gets whether the exit position is absolute (true) or relative to
+     * the seat (false)
+     *
+     * @return True if the exit position is absolute, False if relative
+     */
+    public boolean isAbsolute() {
+        return this.absolute;
+    }
+
+    /**
+     * Gets the relative or absolute exit position
+     *
+     * @return exit position
+     */
+    public Vector getPosition() {
         return new Vector(this.rx, this.ry, this.rz);
     }
 
-    public double getRelativeX() {
+    public double getX() {
         return this.rx;
     }
 
-    public double getRelativeY() {
+    public double getY() {
         return this.ry;
     }
 
-    public double getRelativeZ() {
+    public double getZ() {
         return this.rz;
     }
 
     public float getYaw() {
         return this.yaw;
+    }
+
+    @Deprecated
+    public Vector getRelativePosition() {
+        return getPosition();
+    }
+
+    @Deprecated
+    public double getRelativeX() {
+        return this.rx;
+    }
+
+    @Deprecated
+    public double getRelativeY() {
+        return this.ry;
+    }
+
+    @Deprecated
+    public double getRelativeZ() {
+        return this.rz;
     }
 
     public float getPitch() {
@@ -63,7 +100,8 @@ public final class ExitOffset {
             return true;
         } else if (o instanceof ExitOffset) {
             ExitOffset other = (ExitOffset) o;
-            return this.rx == other.rx &&
+            return this.absolute == other.absolute &&
+                   this.rx == other.rx &&
                    this.ry == other.ry &&
                    this.rz == other.rz &&
                    this.yaw == other.yaw &&
@@ -73,11 +111,23 @@ public final class ExitOffset {
         }
     }
 
+    public static ExitOffset createAbsolute(Vector absolutePosition, float yaw, float pitch) {
+        return createAbsolute(absolutePosition.getX(), absolutePosition.getY(), absolutePosition.getZ(), yaw, pitch);
+    }
+
+    public static ExitOffset createAbsolute(double posX, double posY, double posZ, float yaw, float pitch) {
+        return new ExitOffset(true, posX, posY, posZ, yaw, pitch);
+    }
+
+    public static ExitOffset create(boolean positionIsAbsolute, Vector position, float yaw, float pitch) {
+        return new ExitOffset(positionIsAbsolute, position.getX(), position.getY(), position.getZ(), yaw, pitch);
+    }
+
     public static ExitOffset create(Vector relativePosition, float yaw, float pitch) {
         return create(relativePosition.getX(), relativePosition.getY(), relativePosition.getZ(), yaw, pitch);
     }
 
     public static ExitOffset create(double rx, double ry, double rz, float yaw, float pitch) {
-        return new ExitOffset(rx, ry, rz, yaw, pitch);
+        return new ExitOffset(false, rx, ry, rz, yaw, pitch);
     }
 }
