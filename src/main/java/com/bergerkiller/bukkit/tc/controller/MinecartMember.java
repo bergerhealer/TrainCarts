@@ -84,6 +84,7 @@ import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SlowdownMode;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
@@ -2141,13 +2142,15 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         this.doPostMoveLogic();
         if (!this.isDerailed()) {
             // Slowing down of minecarts
-            if (this.getGroup().getProperties().isSlowingDown(SlowdownMode.FRICTION) && entity.getMaxSpeed() > 0.0) {
+            TrainProperties trainProp = this.getGroup().getProperties();
+            if (trainProp.isSlowingDown(SlowdownMode.FRICTION) && entity.getMaxSpeed() > 0.0) {
                 double factor;
                 if (entity.hasPassenger() || !entity.isSlowWhenEmpty() || !TCConfig.slowDownEmptyCarts) {
                     factor = TCConfig.slowDownMultiplierNormal;
                 } else {
                     factor = TCConfig.slowDownMultiplierSlow;
                 }
+                factor = Math.max(0.0, 1.0 + trainProp.getFriction() * (factor - 1.0));
                 if (this.getGroup().getUpdateStepCount() > 1) {
                     factor = Math.pow(factor, this.getGroup().getUpdateSpeedFactor());
                 }

@@ -68,6 +68,7 @@ public abstract class FieldBackedProperty<T> implements IProperty<T> {
     protected static final class TrainInternalData {
         public double speedLimit;
         public double gravity;
+        public double friction;
         public CollisionOptions collision;
         public Set<SlowdownMode> slowdown;
         public SignSkipOptions signSkipOptionsData;

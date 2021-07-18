@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SlowdownMode;
 
 import org.bukkit.block.BlockFace;
@@ -211,15 +212,17 @@ public class RailLogicAir extends RailLogic {
         CommonMinecart<?> entity = member.getEntity();
 
         // Apply flying friction
-        if (!member.isMovementControlled() && member.getGroup().getProperties().isSlowingDown(SlowdownMode.FRICTION)) {
+        TrainProperties trainProp = member.getGroup().getProperties();
+        if (!member.isMovementControlled() && trainProp.isSlowingDown(SlowdownMode.FRICTION)) {
             Vector flyingMod = entity.getFlyingVelocityMod();
             if (member.getGroup().getUpdateStepCount() > 1) {
-                entity.vel.x.multiply(Math.pow(flyingMod.getX(), member.getGroup().getUpdateSpeedFactor()));
-                entity.vel.y.multiply(Math.pow(flyingMod.getY(), member.getGroup().getUpdateSpeedFactor()));
-                entity.vel.z.multiply(Math.pow(flyingMod.getZ(), member.getGroup().getUpdateSpeedFactor()));
-            } else {
-                entity.vel.multiply(flyingMod);
+                double factor = member.getGroup().getUpdateSpeedFactor();
+                flyingMod = new Vector(Math.pow(flyingMod.getX(), factor),
+                                       Math.pow(flyingMod.getY(), factor),
+                                       Math.pow(flyingMod.getZ(), factor));
             }
+
+            entity.vel.multiply(flyingMod);
         }
     }
 }

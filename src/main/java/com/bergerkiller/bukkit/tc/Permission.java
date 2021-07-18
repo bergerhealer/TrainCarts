@@ -27,6 +27,7 @@ public enum Permission implements IPermissionEnum {
     PROPERTY_PLAYEREXIT("train.property.playerexit", PermissionDefault.TRUE, "The player can change whether players can exit from carts or not"),
     PROPERTY_KEEPCHUNKSLOADED("train.property.keepchunksloaded", PermissionDefault.OP, "The player can change whether the train keeps nearby chunks and itself loaded"),
     PROPERTY_GRAVITY("train.property.gravity", PermissionDefault.TRUE, "The player can change the gravity multiplier of the train"),
+    PROPERTY_FRICTION("train.property.friction", PermissionDefault.TRUE, "The player can change the friction multiplier of the train"),
     PROPERTY_BANKING("train.property.banking", PermissionDefault.TRUE, "The player can change the way trains bank in curves"),
     PROPERTY_DESTINATION("train.property.destination", PermissionDefault.TRUE, "The player can change what destination a train is path-finding to"),
     PROPERTY_ROUTE("train.property.route", PermissionDefault.TRUE, "The player can change what sequence of destinations a train follows"),

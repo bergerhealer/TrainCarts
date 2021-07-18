@@ -294,6 +294,26 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
+     * Gets the friction factor applied to the train, where 1.0 is the default
+     * and 0 disables friction entirely.
+     *
+     * @return friction factor
+     */
+    public double getFriction() {
+        return StandardProperties.FRICTION.getDouble(this);
+    }
+
+    /**
+     * Sets the gravity factor applied to the train, where 1.0 is the default
+     * and 0 disables friction entirely.
+     *
+     * @param gravity
+     */
+    public void setFriction(double friction) {
+        set(StandardProperties.FRICTION, friction);
+    }
+
+    /**
      * Gets whether the Train slows down over time.<br>
      * <b>Deprecated: This returns True if any slowdown mode is true.</b>
      *
