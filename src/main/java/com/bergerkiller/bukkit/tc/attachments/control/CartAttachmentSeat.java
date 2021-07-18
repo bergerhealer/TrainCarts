@@ -177,8 +177,11 @@ public class CartAttachmentSeat extends CartAttachment {
         case ELYTRA_SIT:
             this.seated = new SeatedEntityElytra(this);
             break;
+        case NO_NAMETAG:
+            this.seated = new SeatedEntityNormal(this, true);
+            break;
         default:
-            this.seated = new SeatedEntityNormal(this);
+            this.seated = new SeatedEntityNormal(this, false);
             break;
         }
 

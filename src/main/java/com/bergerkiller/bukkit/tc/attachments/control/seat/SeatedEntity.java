@@ -129,7 +129,7 @@ public abstract class SeatedEntity {
             // Use parent node for mounting point, unless not possible or we have a position set for the seat
             if (seat.getParent() != null
                     && seat.getConfiguredPosition().isDefault()
-                    && this._displayMode == DisplayMode.DEFAULT
+                    && (this._displayMode == DisplayMode.DEFAULT || this._displayMode == DisplayMode.NO_NAMETAG)
             ) {
                 this.parentMountId = ((CartAttachment) seat.getParent()).getMountEntityId();
             }
@@ -203,7 +203,8 @@ public abstract class SeatedEntity {
 
     public static enum DisplayMode {
         DEFAULT, /* Player is displayed either upright or upside-down in a cart */
-        ELYTRA_SIT /* Player is in sitting pose while flying in an elytra */
+        ELYTRA_SIT, /* Player is in sitting pose while flying in an elytra */
+        NO_NAMETAG /* Same as DEFAULT, but no nametags are shown */
         //ELYTRA /* Player is in elytra flying pose */ //TODO!
     }
 }
