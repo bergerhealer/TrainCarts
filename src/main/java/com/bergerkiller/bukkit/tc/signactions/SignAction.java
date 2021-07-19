@@ -104,8 +104,12 @@ public abstract class SignAction {
      * @param action    The sign action instance that represents the sign
      * @param priority  True to have this action override previously registered signs, False otherwise
      * @return input action
+     * @throws NullPointerException If the input action is null
      */
     public static <T extends SignAction> T register(T action, boolean priority) {
+        if (action == null) {
+            throw new NullPointerException("Action is null");
+        }
         if (actions != null) {
             if (priority) {
                 actions.add(0, action);
@@ -115,7 +119,7 @@ public abstract class SignAction {
         }
         return action;
     }
-    
+
     public static void unregister(SignAction action) {
         if (actions == null) return;
         actions.remove(action);
