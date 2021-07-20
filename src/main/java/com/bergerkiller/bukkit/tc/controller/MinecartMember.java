@@ -925,7 +925,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             motionVector = new Vector();
             motionLengthSq = 0.0;
         }
-        if (ignoreVelocity || motionLengthSq <= 1e-5) {
+        if (ignoreVelocity || motionLengthSq <= 1e-20) {
             if (!this.isDerailed() && this.direction != null) {
                 motionVector = FaceUtil.faceToVector(this.direction);
             } else if (!this.isSingle()) {
@@ -2077,7 +2077,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 System.out.println("TOO BIG DISTANCE: " + distanceFromPath);
             }
             */
-
             onMove(MoveType.SELF, vel.getX(), vel.getY(), vel.getZ());
         }
 

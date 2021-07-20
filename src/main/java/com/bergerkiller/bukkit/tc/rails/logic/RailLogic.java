@@ -278,7 +278,7 @@ public abstract class RailLogic {
             // Not on any segment? Simply subtract GRAVITY_MULTIPLIER
             // This case should be handled by the rail logic implementations that lack paths directly
             e.vel.y.subtract(gravityFactorSquared * getGravityMultiplier(member));
-        } else if (segment.dt_norm.y < -1e-6 || segment.dt_norm.y > 1e-6) {
+        } else if (segment.dt_norm.y < -1e-10 || segment.dt_norm.y > 1e-10) {
             // On a non-level segment, gravity must be applied based on the slope the segment is at
             double f = gravityFactorSquared * getGravityMultiplier(member) * segment.dt_norm.y;
             e.vel.subtract(segment.dt_norm.x * f, segment.dt_norm.y * f, segment.dt_norm.z * f);
