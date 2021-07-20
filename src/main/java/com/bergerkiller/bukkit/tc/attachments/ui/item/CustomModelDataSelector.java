@@ -191,7 +191,7 @@ public abstract class CustomModelDataSelector extends MapWidget implements SetVa
 
     @Override
     public String getAcceptedPropertyName() {
-        return "Custom Model Name";
+        return "Custom Model Data";
     }
 
     @Override
