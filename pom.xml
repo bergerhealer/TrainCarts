@@ -69,7 +69,7 @@
         <!-- Repo for access to Multiverse API -->
         <repository>
             <id>onarandombox</id>
-            <url>http://repo.onarandombox.com/content/repositories/multiverse/</url>
+            <url>https://repo.onarandombox.com/content/repositories/multiverse/</url>
         </repository>
     </repositories>
 
