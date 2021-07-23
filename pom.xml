@@ -16,6 +16,7 @@
         <project.mcversion>1.13.2</project.mcversion>
         <project.cbversion>${project.mcversion}-R0.1-SNAPSHOT</project.cbversion>
         <project.bkcversion>1.17.1-v1-SNAPSHOT</project.bkcversion>
+        <project.cloudversion>1.5.0</project.cloudversion>
         <project.slversion>1.11.2-v2-SNAPSHOT</project.slversion>
         <project.mwversion>1.11.2-v2-SNAPSHOT</project.mwversion>
         <junit.version>4.11</junit.version>
@@ -158,22 +159,22 @@
         <dependency>  
             <groupId>org.bergerhealer.cloud.commandframework</groupId>
             <artifactId>cloud-paper</artifactId>
-            <version>1.4.0</version>
+            <version>${project.cloudversion}</version>
         </dependency>
-        <dependency>  
+        <dependency>
             <groupId>org.bergerhealer.cloud.commandframework</groupId>
             <artifactId>cloud-annotations</artifactId>
-            <version>1.4.0</version>
+            <version>${project.cloudversion}</version>
         </dependency>
         <dependency>
             <groupId>org.bergerhealer.cloud.commandframework</groupId>
             <artifactId>cloud-minecraft-extras</artifactId>
-            <version>1.4.0</version>
+            <version>${project.cloudversion}</version>
         </dependency>
         <dependency>
             <groupId>me.lucko</groupId>
             <artifactId>commodore</artifactId>
-            <version>1.9</version>
+            <version>1.10</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
