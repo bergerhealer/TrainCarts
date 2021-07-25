@@ -139,6 +139,7 @@ public class SavedTrainCommands {
 
     @CommandMethod("savedtrain")
     @CommandDescription("Shows command usage of /savedtrain, lists saved trains")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     private void commandUsage(
             final CommandSender sender,
             final TrainCarts plugin
@@ -150,6 +151,7 @@ public class SavedTrainCommands {
 
     @CommandMethod("savedtrain <savedtrainname> info")
     @CommandDescription("Shows detailed information about a saved train")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     private void commandShowInfo(
             final CommandSender sender,
             final @Argument("savedtrainname") SavedTrainProperties savedTrain
@@ -172,6 +174,7 @@ public class SavedTrainCommands {
 
     @CommandMethod("savedtrain <savedtrainname> defaultmodule")
     @CommandDescription("Moves a saved train to the default module")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     private void commandSetDefaultModule(
             final CommandSender sender,
             final TrainCarts plugin,
@@ -187,6 +190,7 @@ public class SavedTrainCommands {
 
     @CommandMethod("savedtrain <savedtrainname> module <newmodulename>")
     @CommandDescription("Moves a saved train to a new or existing module")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     private void commandSetModule(
             final CommandSender sender,
             final TrainCarts plugin,
@@ -203,9 +207,10 @@ public class SavedTrainCommands {
         }
     }
 
-    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_EXPORT)
     @CommandMethod("savedtrain <savedtrainname> export|share|paste|upload")
     @CommandDescription("Exports the saved train configuration to a hastebin server")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_EXPORT)
     private void commandExport(
             final CommandSender sender,
             final @Argument("savedtrainname") SavedTrainProperties savedTrain
@@ -215,9 +220,10 @@ public class SavedTrainCommands {
         Commands.exportTrain(sender, savedTrain.getName(), exportedConfig);
     }
 
-    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_RENAME)
     @CommandMethod("savedtrain <savedtrainname> rename|changename|move <newsavedtrainname>")
     @CommandDescription("Renames a saved train")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_RENAME)
     private void commandRename(
             final CommandSender sender,
             final TrainCarts plugin,
@@ -237,9 +243,10 @@ public class SavedTrainCommands {
                 ChatColor.YELLOW + "'!");
     }
 
-    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_REVERSE)
     @CommandMethod("savedtrain <savedtrainname> reverse|flip")
     @CommandDescription("Reverse and flips the carts so it is moving in reverse when spawned")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_REVERSE)
     private void commandRename(
             final CommandSender sender,
             final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain,
@@ -250,9 +257,10 @@ public class SavedTrainCommands {
                 ChatColor.GREEN + "' has been reversed!");
     }
 
-    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_DELETE)
     @CommandMethod("savedtrain <savedtrainname> delete|remove")
     @CommandDescription("Deletes a saved train permanently")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_DELETE)
     private void commandDelete(
             final CommandSender sender,
             final TrainCarts plugin,
@@ -265,9 +273,10 @@ public class SavedTrainCommands {
                 ChatColor.YELLOW + "' has been deleted!");
     }
 
-    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_CLAIM)
     @CommandMethod("savedtrain <savedtrainname> claim")
     @CommandDescription("Claims a saved train so that the player has exclusive access")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_CLAIM)
     private void commandClaimSelf(
             final Player sender,
             final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain
@@ -288,9 +297,10 @@ public class SavedTrainCommands {
         }
     }
 
-    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_CLAIM)
     @CommandMethod("savedtrain <savedtrainname> claim add <player>")
     @CommandDescription("Adds a claim to a saved train so that the added player has exclusive access")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_CLAIM)
     private void commandClaimAdd(
             final CommandSender sender,
             final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain,
@@ -312,9 +322,10 @@ public class SavedTrainCommands {
         updateClaimList(sender, savedTrain, oldClaims, newClaims);
     }
 
-    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_CLAIM)
     @CommandMethod("savedtrain <savedtrainname> claim remove <player>")
     @CommandDescription("Removes a claim from a saved train so that the player no longer has exclusive access")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_CLAIM)
     private void commandClaimRemove(
             final CommandSender sender,
             final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain,
@@ -336,9 +347,10 @@ public class SavedTrainCommands {
         updateClaimList(sender, savedTrain, oldClaims, newClaims);
     }
 
-    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_CLAIM)
     @CommandMethod("savedtrain <savedtrainname> claim clear")
     @CommandDescription("Clears all the claims set for the saved train, allowing anyone to access it")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_CLAIM)
     private void commandClaimClear(
             final CommandSender sender,
             final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain,
@@ -351,9 +363,10 @@ public class SavedTrainCommands {
         updateClaimList(sender, savedTrain, oldClaims, Collections.emptySet());
     }   
 
-    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_IMPORT)
     @CommandMethod("savedtrain <savedtrainname> import <url>")
     @CommandDescription("Imports a saved train from an online hastebin server by url")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_IMPORT)
     private void commandImport(
             final CommandSender sender,
             final TrainCarts plugin,
@@ -383,6 +396,7 @@ public class SavedTrainCommands {
 
     @CommandMethod("savedtrain list")
     @CommandDescription("Lists all the train that exist on the server that a player can modify")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     private void commandShowInfo(
             final CommandSender sender,
             final TrainCarts plugin,
@@ -417,6 +431,7 @@ public class SavedTrainCommands {
 
     @CommandMethod("savedtrain list modules")
     @CommandDescription("Lists all modules in which saved trains are saved")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     private void commandListModules(
             final CommandSender sender,
             final TrainCarts plugin

@@ -64,6 +64,7 @@ public enum Permission implements IPermissionEnum {
     COMMAND_USE_STORAGE_CHEST("train.command.chest", PermissionDefault.OP, "Whether the player can use and modify a chest item that can store and spawn trains"),
     COMMAND_SAVE_TRAIN("train.command.save", PermissionDefault.OP, "Whether the player can use a command to save a train under a name"),
     COMMAND_SAVE_ROUTE("train.command.route.save", PermissionDefault.OP, "Whether the player can save a train or cart route to name to a global store"),
+    COMMAND_SAVEDTRAIN_LIST("train.command.savedtrain.list", PermissionDefault.TRUE, "Whether the player can view saved trains and modules and use the /savedtrain command at all"),
     COMMAND_SAVEDTRAIN_REVERSE("train.command.savedtrain.reverse", PermissionDefault.OP, "Whether the player can reverse a saved train, so that back becomes front when spawning"),
     COMMAND_SAVEDTRAIN_RENAME("train.command.savedtrain.rename", PermissionDefault.OP, "Whether the player can rename a saved train to a new name"),
     COMMAND_SAVEDTRAIN_DELETE("train.command.savedtrain.delete", PermissionDefault.OP, "Whether the player can delete a previously saved train"),
