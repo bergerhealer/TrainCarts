@@ -241,7 +241,8 @@ public class TrainCommands {
         }
         if (member != null) {
             Location entityLoc = member.getEntity().getLocation();
-            boolean mustTeleport = (player.getLocation().distance(entityLoc) > 64.0);
+            boolean mustTeleport = (player.getWorld() != entityLoc.getWorld())
+                    || (player.getLocation().distance(entityLoc) > 64.0);
             if (!mustTeleport || player.teleport(member.getEntity().getLocation())) {
                 if (member.addPassengerForced(player)) {
                     player.sendMessage(ChatColor.GREEN + "You entered a seat of train '" + trainProperties.getTrainName() + "'!");
