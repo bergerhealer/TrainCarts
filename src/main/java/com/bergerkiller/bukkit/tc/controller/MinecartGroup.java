@@ -10,7 +10,6 @@ import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -129,28 +128,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      */
     public ConfigurationNode saveConfig() {
         // Save train properties getConfig() to a new configuration node copy
-        // Omit cart details
+        // Omit cart details, overwrite with the member configurations
         ConfigurationNode savedConfig = this.getProperties().saveToConfig().clone();
         savedConfig.remove("carts");
-
-        List<ConfigurationNode> cartConfigList = new ArrayList<ConfigurationNode>();
-        for (MinecartMember<?> member : this) {
-            ConfigurationNode savedCartConfig = member.getProperties().saveToConfig().clone();
-
-            savedCartConfig.set("entityType", member.getEntity().getType());
-            savedCartConfig.set("flipped", member.getOrientationForward().dot(FaceUtil.faceToVector(member.getDirection())) < 0.0);
-            savedCartConfig.remove("owners");
-
-            ConfigurationNode data = new ConfigurationNode();
-            member.onTrainSaved(data);
-            if (!data.isEmpty()) {
-                savedCartConfig.set("data", data);
-            }
-
-            cartConfigList.add(savedCartConfig);
-        }
-        savedConfig.setNodeList("carts", cartConfigList);
-
+        savedConfig.setNodeList("carts", this.stream().map(MinecartMember::saveConfig).collect(Collectors.toList()));
         return savedConfig;
     }
 

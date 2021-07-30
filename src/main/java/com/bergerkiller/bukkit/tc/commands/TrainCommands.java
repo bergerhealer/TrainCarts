@@ -151,22 +151,8 @@ public class TrainCommands {
             final @Flag(value="force", description="Force saving when the train is claimed by someone else") boolean force,
             final @Flag(value="module", description="Module to move the saved train to") String module
     ) {
-        if (!plugin.getSavedTrains().hasPermission(sender, name)) {
-            // Check that the player has global editing permission
-            if (!Permission.COMMAND_SAVEDTRAIN_GLOBAL.has(sender)) {
-                sender.sendMessage(ChatColor.RED + "You do not have permission to overwrite saved train " + name);
-                return;
-            }
-
-            // Check that a second argument, 'forced', is specified
-            if (!force) {
-                sender.sendMessage(ChatColor.RED + "The saved train '" + name + "' already exists, but it is not yours!");
-                sender.sendMessage(ChatColor.RED + "Here are some options:");
-                sender.sendMessage(ChatColor.RED + "/savedtrain " + name + " info  -  See who claimed it");
-                sender.sendMessage(ChatColor.RED + "/savedtrain " + name + " claim  -  Claim it yourself");
-                sender.sendMessage(ChatColor.RED + "/train save " + name + " --force  -  Force a save and overwrite");
-                return;
-            }
+        if (!Commands.checkSavePermissions(plugin, sender, name, force)) {
+            return;
         }
 
         boolean wasContained = plugin.getSavedTrains().getConfig(name) != null;

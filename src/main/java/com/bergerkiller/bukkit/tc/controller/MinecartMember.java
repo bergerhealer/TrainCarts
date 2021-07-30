@@ -205,6 +205,28 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
+     * Saves the properties of this cart, including metadata such as the type of entity,
+     * inventory contents and orientation to a YAML configuration node.
+     *
+     * @return saved configuration
+     */
+    public ConfigurationNode saveConfig() {
+        ConfigurationNode savedCartConfig = getProperties().saveToConfig().clone();
+
+        savedCartConfig.set("entityType", getEntity().getType());
+        savedCartConfig.set("flipped", getOrientationForward().dot(FaceUtil.faceToVector(getDirection())) < 0.0);
+        savedCartConfig.remove("owners");
+
+        ConfigurationNode data = new ConfigurationNode();
+        onTrainSaved(data);
+        if (!data.isEmpty()) {
+            savedCartConfig.set("data", data);
+        }
+
+        return savedCartConfig;
+    }
+
+    /**
      * Gets the Minecart Group of this Minecart<br>
      * If this Minecart is unloaded, a runtime exception is thrown<br>
      * If no group was previously set, a group is created

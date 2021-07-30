@@ -2,15 +2,20 @@ package com.bergerkiller.bukkit.tc.commands;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
@@ -33,6 +38,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class CartCommands {
@@ -63,6 +69,66 @@ public class CartCommands {
             member.onDie(true);
         }
         sender.sendMessage(ChatColor.YELLOW + "The selected cart has been destroyed!");
+    }
+
+    @CommandRequiresPermission(Permission.COMMAND_SAVE_TRAIN)
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_EXPORT)
+    @CommandMethod("cart export|share|paste|upload")
+    @CommandDescription("Exports the selected cart's train configuration to a hastebin server")
+    private void commandExport(
+            final CommandSender sender,
+            final MinecartMember<?> member
+    ) {
+        final String name = member.getGroup().getProperties().getTrainName();
+
+        ConfigurationNode exportedConfig = saveMemberConfig(member);
+        exportedConfig.remove("claims");
+        Commands.exportTrain(sender, name, exportedConfig);
+    }
+
+    @CommandTargetTrain
+    @CommandRequiresPermission(Permission.COMMAND_SAVE_TRAIN)
+    @CommandMethod("cart save <name>")
+    @CommandDescription("Saves the selected cart as a train under a name")
+    private void commandSave(
+            final CommandSender sender,
+            final TrainCarts plugin,
+            final MinecartMember<?> member,
+            final @Argument("name") String name,
+            final @Flag(value="force", description="Force saving when the train is claimed by someone else") boolean force,
+            final @Flag(value="module", description="Module to move the saved train to") String module
+    ) {
+        if (!Commands.checkSavePermissions(plugin, sender, name, force)) {
+            return;
+        }
+
+        boolean wasContained = plugin.getSavedTrains().getConfig(name) != null;
+        try {
+            plugin.getSavedTrains().setConfig(name, saveMemberConfig(member));
+            String moduleString = "";
+            if (module != null && !module.isEmpty()) {
+                moduleString = " in module " + module;
+                TrainCarts.plugin.getSavedTrains().setModuleNameOfTrain(name, module);
+            }
+
+            if (wasContained) {
+                sender.sendMessage(ChatColor.GREEN + "The cart was saved as train " + name + moduleString + ", a previous train was overwritten");
+            } else {
+                sender.sendMessage(ChatColor.GREEN + "The cart was saved as train " + name + moduleString);
+                if (TCConfig.claimNewSavedTrains && sender instanceof Player) {
+                    plugin.getSavedTrains().setClaim(name, (Player) sender);
+                }
+            }
+        } catch (IllegalNameException ex) {
+            sender.sendMessage(ChatColor.RED + "The cart could not be saved under this name: " + ex.getMessage());
+        }
+    }
+
+    private ConfigurationNode saveMemberConfig(MinecartMember<?> member) {
+        ConfigurationNode exportedConfig = member.getGroup().getProperties().saveToConfig().clone();
+        exportedConfig.remove("carts");
+        exportedConfig.setNodeList("carts", Collections.singletonList(member.saveConfig()));
+        return exportedConfig;
     }
 
     @CommandTargetTrain
