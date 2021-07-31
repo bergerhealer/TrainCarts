@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.particle;
 
 import java.util.OptionalInt;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -10,6 +11,7 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
+import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityTeleportHandle;
@@ -54,17 +56,14 @@ public class VirtualFishingLine {
         // Spawn the invisible entity that holds the other end of the fishing hook
         // Seems that this must be a player entity, so just spawn clones of the viewer
         if (this.holderPlayerEntityId != -1) {
-            PacketPlayOutNamedEntitySpawnHandle spawnPacket = PacketPlayOutNamedEntitySpawnHandle.T.newHandleNull();
-            spawnPacket.setEntityId(this.holderPlayerEntityId);
-            spawnPacket.setEntityUUID(viewer.getUniqueId());
-            spawnPacket.setPosX(positionA.getX() + OFFSET_PLAYER.getX());
-            spawnPacket.setPosY(positionA.getY() + OFFSET_PLAYER.getY());
-            spawnPacket.setPosZ(positionA.getZ() + OFFSET_PLAYER.getZ());
-
-            DataWatcher meta = new DataWatcher();
-            meta.set(EntityHandle.DATA_NO_GRAVITY, true);
-            meta.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, true);
-            PacketUtil.sendNamedEntitySpawnPacket(viewer, spawnPacket, meta);
+            FakePlayerSpawner.NO_NAMETAG_RANDOM.spawnPlayerSimple(viewer, viewer, this.holderPlayerEntityId, spawnPacket -> {
+                spawnPacket.setPosX(positionA.getX() + OFFSET_PLAYER.getX());
+                spawnPacket.setPosY(positionA.getY() + OFFSET_PLAYER.getY());
+                spawnPacket.setPosZ(positionA.getZ() + OFFSET_PLAYER.getZ());
+            }, meta -> {
+                meta.set(EntityHandle.DATA_NO_GRAVITY, true);
+                meta.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, true);
+            });
         }
 
         // This is a vehicle the fake player entity sits in. We must put the player in
@@ -162,13 +161,10 @@ public class VirtualFishingLine {
      * @param viewer
      */
     public void destroy(Player viewer) {
-        int[] entityIds;
-        if (PacketPlayOutEntityDestroyHandle.canDestroyMultiple()) {
-            entityIds = new int[] { this.hookedEntityId, this.hookEntityId };
-        } else {
-            entityIds = new int[] { this.hookedEntityId, this.holderEntityId,
-                    this.holderPlayerEntityId, this.hookEntityId };
-        }
+        int[] entityIds = IntStream.of(this.hookedEntityId, this.holderEntityId,
+                                       this.holderPlayerEntityId, this.hookEntityId)
+                .filter(id -> id != -1)
+                .toArray();
         if (PacketPlayOutEntityDestroyHandle.canDestroyMultiple()) {
             PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNewMultiple(entityIds));
         } else {
