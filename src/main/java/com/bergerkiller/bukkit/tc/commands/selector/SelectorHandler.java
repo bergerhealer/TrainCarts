@@ -1,7 +1,7 @@
 package com.bergerkiller.bukkit.tc.commands.selector;
 
 import java.util.Collection;
-import java.util.Map;
+import java.util.List;
 
 import org.bukkit.command.CommandSender;
 
@@ -17,9 +17,9 @@ public interface SelectorHandler {
      *
      * @param sender The command sender
      * @param selector The selector name that was hit, that was previously registered
-     * @param arguments The argument for the selector, empty map if none are provided
+     * @param conditions The conditions for the selector, empty list if none were provided
      * @return collection of replacements for the selector
      * @throws SelectorException If something about the provided selector or arguments is wrong
      */
-    Collection<String> handle(CommandSender sender, String selector, Map<String, String> arguments) throws SelectorException;
+    Collection<String> handle(CommandSender sender, String selector, List<SelectorCondition> conditions) throws SelectorException;
 }

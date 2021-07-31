@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -13,6 +12,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandException;
 import org.bukkit.command.CommandSender;
 import org.bukkit.event.Cancellable;
@@ -21,10 +21,9 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.server.ServerCommandEvent;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import com.bergerkiller.generated.net.minecraft.server.network.PlayerConnectionHandle;
-
-import net.md_5.bungee.api.ChatColor;
 
 /**
  * Registry for {@link SelectorHandler} objects. Can perform the selector
@@ -35,9 +34,22 @@ import net.md_5.bungee.api.ChatColor;
  * as a Listener in the Bukkit API.
  */
 public class SelectorHandlerRegistry implements Listener {
-    // (?:[=]|(?<!\S))@([a-zA-Z0-9]+)(\[([\w\d\-\+=,\*]+)\])?(\s|$)
-    private static final Pattern SELECTOR_PATTERN = Pattern.compile("(?:[=]|(?<!\\S))@([a-zA-Z0-9]+)(\\[([\\w\\d\\-\\+=,\\*]+)\\])?(\\s|$)");
+    // (?:[=]|(?<!\S))@([a-zA-Z0-9]+)(\[([\w\d\-\+=,\*\.\!]+)\])?(\s|$)
+    private static final Pattern SELECTOR_PATTERN = Pattern.compile("(?:[=]|(?<!\\S))@([a-zA-Z0-9]+)(\\[([\\w\\d\\-\\+=,\\*\\.\\!]+)\\])?(\\s|$)");
     private final Map<String, SelectorHandler> handlers = new HashMap<>();
+    private final JavaPlugin plugin;
+
+    public SelectorHandlerRegistry(JavaPlugin plugin) {
+        this.plugin = plugin;
+    }
+
+    /**
+     * Enables this selector handler registry so that it will start pre-processing
+     * commands.
+     */
+    public void enable() {
+        Bukkit.getPluginManager().registerEvents(this, this.plugin);
+    }
 
     /**
      * Registers a selector handler by multiple selector names
@@ -85,48 +97,49 @@ public class SelectorHandlerRegistry implements Listener {
                 continue;
             }
 
-            // Decode the arguments
-            final Map<String, String> arguments;
-            final String argumentsString = matcher.group(3);
-            if (argumentsString == null) {
-                arguments = Collections.emptyMap();
+            // Decode the conditions
+            final List<SelectorCondition> conditions;
+            final String conditionsString = matcher.group(3);
+            if (conditionsString == null) {
+                conditions = Collections.emptyList();
             } else {
-                int separator = argumentsString.indexOf(',');
-                final int length = argumentsString.length();
+                int separator = conditionsString.indexOf(',');
+                final int length = conditionsString.length();
                 if (separator == -1) {
-                    // A single argument provided
-                    // Parse as a singleton map, with an expected key=value syntax
+                    // A single condition provided
+                    // Parse as a singleton list, with an expected key=value syntax
                     // Reject invalid matches such as value, =value and value=
-                    int equals = argumentsString.indexOf('=');
+                    int equals = conditionsString.indexOf('=');
                     if (equals == -1 || equals == 0 || equals == (length-1)) {
                         continue;
                     }
-                    arguments = Collections.singletonMap(argumentsString.substring(0, equals),
-                                                         argumentsString.substring(equals+1));
+                    conditions = Collections.singletonList(
+                            SelectorCondition.parse(conditionsString.substring(0, equals),
+                                                conditionsString.substring(equals+1)));
                 } else {
-                    // Multiple arguments provided, build a hashmap with them
-                    arguments = new LinkedHashMap<String, String>();
+                    // Multiple conditions provided, build a hashmap with them
+                    conditions = new ArrayList<SelectorCondition>(10);
                     int argStart = 0;
                     int argEnd = separator;
                     boolean valid = true;
                     while (true) {
-                        int equals = argumentsString.indexOf('=', argStart);
+                        int equals = conditionsString.indexOf('=', argStart);
                         if (equals == -1 || equals == argStart || equals >= (argEnd-1)) {
                             valid = false;
                             break;
                         }
 
-                        arguments.put(argumentsString.substring(argStart, equals),
-                                      argumentsString.substring(equals+1, argEnd));
+                        conditions.add(SelectorCondition.parse(conditionsString.substring(argStart, equals),
+                                                          conditionsString.substring(equals+1, argEnd)));
 
                         // End of String
                         if (argEnd == length) {
                             break;
                         }
 
-                        // Find next separator. If none found, argument is until end of String.
+                        // Find next separator. If none found, condition is until end of String.
                         argStart = argEnd + 1;
-                        argEnd = argumentsString.indexOf(',', argEnd + 1);
+                        argEnd = conditionsString.indexOf(',', argEnd + 1);
                         if (argEnd == -1) {
                             argEnd = length;
                         }
@@ -139,7 +152,7 @@ public class SelectorHandlerRegistry implements Listener {
 
             // With this information, ask the handler to provide replacement values
             // If empty, it ends the chain and an empty result is returned
-            final Collection<String> values = handler.handle(sender, selector, arguments);
+            final Collection<String> values = handler.handle(sender, selector, conditions);
             final int valuesCount = values.size();
             if (valuesCount == 0) {
                 return Collections.emptyList();
@@ -184,7 +197,7 @@ public class SelectorHandlerRegistry implements Listener {
             }
 
             // Label this portion as processed. Ignore trailing space.
-            builderStartPosition = matcher.end((argumentsString != null) ? 2 : 1);
+            builderStartPosition = matcher.end((conditionsString != null) ? 2 : 1);
         }
 
         // If there are results, finalize all result builders

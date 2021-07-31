@@ -51,7 +51,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
      */
     public static Collection<TrainProperties> matchAll(String expression) {
         if (expression != null && !expression.isEmpty()) {
-            final String[] elements = expression.split("\\*");
+            final String[] elements = expression.split("\\*", -1);
             final boolean first = expression.startsWith("*");
             final boolean last = expression.endsWith("*");
             return trainProperties.values().stream()
