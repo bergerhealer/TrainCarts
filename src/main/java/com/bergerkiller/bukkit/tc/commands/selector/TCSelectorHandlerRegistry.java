@@ -31,14 +31,6 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
         super.enable();
         register("ptrain", new PlayersInTrainSelector(this));
         register("train", new TrainNameSelector(this));
-
-        //TODO: Move to Properties system
-        registerCondition("name", (properties, condition) -> {
-            return condition.matchesText(properties.getTrainName());
-        });
-        registerCondition("train", (properties, condition) -> {
-            return condition.matchesText(properties.getTrainName());
-        }); // Note: deprecated!
     }
 
     /**

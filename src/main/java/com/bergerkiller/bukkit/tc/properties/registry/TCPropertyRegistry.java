@@ -17,21 +17,28 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.cloud.CloudHandler;
+import com.bergerkiller.bukkit.tc.commands.selector.SelectorCondition;
+import com.bergerkiller.bukkit.tc.commands.selector.TCSelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
+import com.bergerkiller.bukkit.tc.properties.api.IPropertySelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
+import com.bergerkiller.bukkit.tc.properties.api.PropertySelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.mountiplex.reflection.ReflectionUtil;
+import com.bergerkiller.mountiplex.reflection.util.BoxedType;
 import com.bergerkiller.mountiplex.reflection.util.FastMethod;
 
 /**
@@ -98,10 +105,12 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
         // Unregister a previous property that is overridden
         if (previous != null) {
             previous.parsers.forEach(this::unregisterParser);
+            previous.conditions.forEach(this::unregisterCondition);
         }
 
-        // Register new parsers
+        // Register new property
         details.parsers.forEach(this::registerParser);
+        details.conditions.forEach(this::registerCondition);
 
         // Register cloud commands declared inside the property
         if (this.commands.isEnabled()) {
@@ -139,6 +148,20 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
     @Override
     public Collection<IProperty<Object>> all() {
         return Collections.unmodifiableCollection(properties.keySet());
+    }
+
+    private void registerCondition(PropertySelectorConditionElement<?> condition) {
+        TCSelectorHandlerRegistry registry = (TCSelectorHandlerRegistry) this.plugin.getSelectorHandlerRegistry();
+        for (String name : condition.names) {
+            registry.registerCondition(name, condition);
+        }
+    }
+
+    private void unregisterCondition(PropertySelectorConditionElement<?> condition) {
+        TCSelectorHandlerRegistry registry = (TCSelectorHandlerRegistry) this.plugin.getSelectorHandlerRegistry();
+        for (String name : condition.names) {
+            registry.unregisterCondition(name);
+        }
     }
 
     private <T> void registerParser(final PropertyParserElement<T> parser) {
@@ -206,25 +229,41 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
      */
     private <T> PropertyDetails<T> createDetails(final IProperty<T> property) {
         List<PropertyParserElement<T>> parsers = ReflectionUtil.getAllMethods(property.getClass())
-            .map(method -> {
-                PropertyParser parser = method.getAnnotation(PropertyParser.class);
-                if (parser == null) {
-                    return null;
-                }
-                try {
-                    return new PropertyParserElement<T>(property, parser, method);
-                } catch (PatternSyntaxException ex) {
-                    plugin.getLogger().log(Level.WARNING, "Invalid syntax of property parser " + method.toGenericString(), ex);
-                    return null;
-                } catch (ParserIncorrectSignatureException ex) {
-                    plugin.getLogger().log(Level.WARNING, "Invalid method signature of property parser", ex);
-                    return null;
-                }
-            })
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
+                .map(method -> {
+                    PropertyParser parser = method.getAnnotation(PropertyParser.class);
+                    if (parser == null) {
+                        return null;
+                    }
+                    try {
+                        return new PropertyParserElement<T>(property, parser, method);
+                    } catch (PatternSyntaxException ex) {
+                        plugin.getLogger().log(Level.WARNING, "Invalid syntax of property parser " + method.toGenericString(), ex);
+                        return null;
+                    } catch (ParserIncorrectSignatureException ex) {
+                        plugin.getLogger().log(Level.WARNING, "Invalid method signature of property parser", ex);
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
 
-        return new PropertyDetails<T>(property, parsers);
+        List<PropertySelectorConditionElement<T>> conditions = ReflectionUtil.getAllMethods(property.getClass())
+                .map(method -> {
+                    PropertySelectorCondition[] options = method.getAnnotationsByType(PropertySelectorCondition.class);
+                    if (options.length == 0) {
+                        return null;
+                    }
+                    try {
+                        return new PropertySelectorConditionElement<T>(property, options, method);
+                    } catch (SelectorConditionIncorrectSignatureException ex) {
+                        plugin.getLogger().log(Level.WARNING, "Invalid method signature of property selector condition", ex);
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        return new PropertyDetails<T>(property, parsers, conditions);
     }
 
     /**
@@ -283,10 +322,14 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
     private static class PropertyDetails<T> {
         public final IProperty<T> property;
         public final List<PropertyParserElement<T>> parsers;
+        public final List<PropertySelectorConditionElement<T>> conditions;
 
-        public PropertyDetails(IProperty<T> property, List<PropertyParserElement<T>> parsers) {
+        public PropertyDetails(IProperty<T> property, List<PropertyParserElement<T>> parsers,
+                List<PropertySelectorConditionElement<T>> conditions
+        ) {
             this.property = property;
             this.parsers = parsers;
+            this.conditions = conditions;
         }
     }
 
@@ -352,6 +395,90 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
                 expression = expression + "$";
             }
             return expression;
+        }
+    }
+
+    /**
+     * An initialized selector condition that calls a method in the property instance
+     * to match the expression.
+     */
+    public static class PropertySelectorConditionElement<T> implements IPropertySelectorCondition {
+        public final IProperty<T> property;
+        public final String[] names;
+        private final ArgumentAdapter[] argumentAdapters;
+        private final ReturnAdapter returnAdapter;
+        private final FastMethod<Object> method;
+
+        public PropertySelectorConditionElement(
+                IProperty<T> property,
+                PropertySelectorCondition[] options,
+                Method method) throws SelectorConditionIncorrectSignatureException
+        {
+            // Validate the method is proper
+            if (Modifier.isStatic(method.getModifiers())) {
+                throw new SelectorConditionIncorrectSignatureException(method, "Must not be a static method");
+            } else if (method.getReturnType() == void.class) {
+                throw new SelectorConditionIncorrectSignatureException(method, "Method should return a value, but return type is void");
+            }
+
+            // Adapt all method arguments so they can be filled in
+            // Some may be omitted or swapped places, this takes care of that
+            Class<?>[] argTypes = method.getParameterTypes();
+            this.argumentAdapters = new ArgumentAdapter[argTypes.length];
+            for (int i = 0; i < argTypes.length; i++) {
+                Class<?> argType = argTypes[i];
+                if (argType.isAssignableFrom(TrainProperties.class)) {
+                    this.argumentAdapters[i] = (properties, condition) -> properties;
+                } else if (argType.isAssignableFrom(SelectorCondition.class)) {
+                    this.argumentAdapters[i] = (properties, condition) -> condition;
+                } else {
+                    throw new SelectorConditionIncorrectSignatureException(method, "Method parameter #" + (i+1)
+                            + " has incompatible type " + argType.getName());
+                }
+            }
+
+            // Adapt the value returned by the method. Numbers we can automatically process.
+            Class<?> returnType = BoxedType.getBoxedType(method.getReturnType());
+            if (returnType == null) {
+                returnType = method.getReturnType();
+            }
+            if (returnType == Boolean.class) {
+                this.returnAdapter = (condition, value) -> ((Boolean) value).booleanValue();
+            } else if (returnType == String.class) {
+                this.returnAdapter = (condition, value) -> condition.matchesText((String) value);
+            } else if (returnType == Float.class || returnType == Double.class) {
+                this.returnAdapter = (condition, value) -> condition.matchesNumber(((Number) value).doubleValue());
+            } else if (Number.class.isAssignableFrom(returnType)) {
+                this.returnAdapter = (condition, value) -> condition.matchesNumber(((Number) value).longValue());
+            } else {
+                throw new SelectorConditionIncorrectSignatureException(method, "Method has incompatible return type "
+                        + returnType.getName());
+            }
+
+            this.property = property;
+            this.names = Stream.of(options).map(PropertySelectorCondition::value).toArray(String[]::new);
+            this.method = new FastMethod<Object>();
+            this.method.init(method);
+        }
+
+        @Override
+        public boolean matches(TrainProperties properties, SelectorCondition condition) {
+            Object[] args = new Object[this.argumentAdapters.length];
+            for (int i = 0; i < args.length; i++) {
+                args[i] = this.argumentAdapters[i].adapt(properties, condition);
+            }
+            Object result = this.method.invokeVA(this.property, args);
+            return this.returnAdapter.adapt(condition, result);
+        }
+
+        @FunctionalInterface
+        private static interface ArgumentAdapter {
+            Object adapt(TrainProperties properties, SelectorCondition condition);
+        }
+
+        @FunctionalInterface
+        private static interface ReturnAdapter {
+            boolean adapt(SelectorCondition condition, Object value);
         }
     }
 
@@ -462,6 +589,18 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
 
         public ParserIncorrectSignatureException(Method method, String reason) {
             super("Method " + method.toGenericString() + " has invalid signature for a parser: " + reason);
+        }
+    }
+
+    /**
+     * Exception thrown when a method with a {@link PropertySelectorCondition} annotation
+     * has incorrect method arguments or return type.
+     */
+    public static class SelectorConditionIncorrectSignatureException extends Exception {
+        private static final long serialVersionUID = 9081453776342069335L;
+
+        public SelectorConditionIncorrectSignatureException(Method method, String reason) {
+            super("Method " + method.toGenericString() + " has invalid signature for a selector condition: " + reason);
         }
     }
 }

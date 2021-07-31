@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
+import com.bergerkiller.bukkit.tc.properties.api.PropertySelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
 
 import cloud.commandframework.annotations.Argument;
@@ -96,6 +97,12 @@ public final class TrainNameFormatProperty implements ITrainProperty<TrainNameFo
     @PropertyParser("name|rename|setname|settrainname")
     public TrainNameFormat parseRename(String nameFormat) {
         return TrainNameFormat.parse(nameFormat);
+    }
+
+    @PropertySelectorCondition("name")
+    @PropertySelectorCondition("train") // deprecated!
+    public String getSelectorMatchedTrainName(TrainProperties properties) {
+        return properties.getTrainName();
     }
 
     @Override
