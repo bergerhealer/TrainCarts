@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
+import com.bergerkiller.bukkit.tc.properties.api.PropertySelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
 
@@ -56,6 +57,11 @@ public final class GravityProperty extends FieldBackedStandardTrainProperty.Stan
     @PropertyParser("gravity")
     public double parseGravity(PropertyParseContext<Double> context) {
         return context.inputDouble();
+    }
+
+    @PropertySelectorCondition("gravity")
+    public double selectorgetValue(TrainProperties properties) {
+        return getDouble(properties);
     }
 
     @Override

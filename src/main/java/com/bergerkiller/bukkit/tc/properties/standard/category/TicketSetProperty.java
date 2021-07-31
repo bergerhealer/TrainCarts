@@ -7,8 +7,11 @@ import java.util.Set;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.commands.selector.SelectorCondition;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
+import com.bergerkiller.bukkit.tc.properties.api.PropertySelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 
 /**
@@ -47,6 +50,11 @@ public final class TicketSetProperty implements ITrainProperty<Set<String>> {
             newPerms.remove(context.input());
             return Collections.unmodifiableSet(newPerms);
         }
+    }
+
+    @PropertySelectorCondition("ticket")
+    public boolean selectorMatchesAnyTicket(TrainProperties properties, SelectorCondition condition) {
+        return condition.matchesAnyText(get(properties));
     }
 
     @Override

@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.selector.type.PlayersInTrainSelector;
 import com.bergerkiller.bukkit.tc.commands.selector.type.TrainNameSelector;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertySelectorCondition;
@@ -31,6 +32,18 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
         super.enable();
         register("ptrain", new PlayersInTrainSelector(this));
         register("train", new TrainNameSelector(this));
+
+        // Some special selector conditions that aren't related to a train property
+        {
+            IPropertySelectorCondition speedCondition = (properties, condition) -> {
+                MinecartGroup group = properties.getHolder();
+                double speed = (group == null || group.isEmpty())
+                        ? 0.0 : group.head().getRealSpeedLimited();
+                return condition.matchesNumber(speed);
+            };
+            registerCondition("speed", speedCondition);
+            registerCondition("velocity", speedCondition);
+        }
     }
 
     /**

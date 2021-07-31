@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
+import com.bergerkiller.bukkit.tc.properties.api.PropertySelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 
 import cloud.commandframework.annotations.Argument;
@@ -148,6 +149,7 @@ public final class DestinationProperty implements ICartProperty<String> {
     }
 
     @Override
+    @PropertySelectorCondition("destination")
     public String get(TrainProperties properties) {
         // Return first cart from index=0 that has a destination
         for (CartProperties cprop : properties) {

@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
+import com.bergerkiller.bukkit.tc.properties.api.PropertySelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
 import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
 
@@ -57,6 +58,11 @@ public final class SpeedLimitProperty extends FieldBackedStandardTrainProperty.S
         }
 
         return result;
+    }
+
+    @PropertySelectorCondition("speedlimit")
+    public double getSelectorDoubleValue(TrainProperties properties) {
+        return getDouble(properties);
     }
 
     @Override

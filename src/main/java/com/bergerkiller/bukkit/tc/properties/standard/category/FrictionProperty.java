@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
+import com.bergerkiller.bukkit.tc.properties.api.PropertySelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
 
@@ -57,6 +58,11 @@ public final class FrictionProperty extends FieldBackedStandardTrainProperty.Sta
     @PropertyParser("friction")
     public double parseFriction(PropertyParseContext<Double> context) {
         return context.inputDouble();
+    }
+
+    @PropertySelectorCondition("friction")
+    public double selectorgetValue(TrainProperties properties) {
+        return getDouble(properties);
     }
 
     @Override
