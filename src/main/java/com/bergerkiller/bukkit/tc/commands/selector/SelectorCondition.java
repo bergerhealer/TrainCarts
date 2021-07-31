@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.commands.selector;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
@@ -39,11 +40,24 @@ public class SelectorCondition {
     }
 
     /**
+     * Checks whether any of the given String values matches this selector
+     * value expression
+     *
+     * @param values Text values
+     * @return True if any of the values match
+     * @throws SelectorException If something is wrong with the expression
+     */
+    public boolean matchesAnyText(Collection<String> values) throws SelectorException {
+        return values.contains(this.value);
+    }
+
+    /**
      * Checks whether the given String value matches this selector
      * value expression
      *
      * @param value Text value
      * @return True if the value matches
+     * @throws SelectorException If something is wrong with the expression
      */
     public boolean matchesText(String value) throws SelectorException {
         return this.value.equals(value);
@@ -181,6 +195,11 @@ public class SelectorCondition {
         }
 
         @Override
+        public boolean matchesAnyText(Collection<String> values) throws SelectorException {
+            return !base.matchesAnyText(values);
+        }
+
+        @Override
         public boolean matchesText(String value) throws SelectorException {
             return !base.matchesText(value);
         }
@@ -244,6 +263,11 @@ public class SelectorCondition {
         }
 
         @Override
+        public boolean matchesAnyText(Collection<String> values) throws SelectorException {
+            return min.matchesAnyText(values) || max.matchesAnyText(values);
+        }
+
+        @Override
         public boolean matchesText(String value) throws SelectorException {
             return min.matchesText(value) || max.matchesText(value);
         }
@@ -275,6 +299,16 @@ public class SelectorCondition {
         }
 
         @Override
+        public boolean matchesAnyText(Collection<String> values) throws SelectorException {
+            for (String value : values) {
+                if (matchesText(value)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
         public boolean matchesText(String value) throws SelectorException {
             return Util.matchText(value, this.elements, this.firstAny, this.lastAny);
         }
@@ -289,6 +323,16 @@ public class SelectorCondition {
         public SelectorConditionAnyOfText(String key, String value, SelectorCondition... selectorValues) {
             super(key, value);
             this.selectorValues = selectorValues;
+        }
+
+        @Override
+        public boolean matchesAnyText(Collection<String> values) throws SelectorException {
+            for (SelectorCondition selectorValue : selectorValues) {
+                if (selectorValue.matchesAnyText(values)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         @Override

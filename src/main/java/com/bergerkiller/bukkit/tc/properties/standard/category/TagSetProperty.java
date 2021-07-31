@@ -13,10 +13,12 @@ import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
+import com.bergerkiller.bukkit.tc.commands.selector.SelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
+import com.bergerkiller.bukkit.tc.properties.api.PropertySelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardCartProperty;
 
@@ -276,6 +278,11 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         HashSet<String> newTags = new HashSet<String>(context.current());
         newTags.remove(context.input());
         return Collections.unmodifiableSet(newTags);
+    }
+
+    @PropertySelectorCondition("tag")
+    public boolean selectorMatchesAnyTag(TrainProperties properties, SelectorCondition condition) {
+        return condition.matchesAnyText(get(properties));
     }
 
     @Override
