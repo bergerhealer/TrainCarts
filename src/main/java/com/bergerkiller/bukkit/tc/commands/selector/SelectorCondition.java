@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.utils.BoundingRange;
 
 /**
  * The key-value condition component of a selector query. Supports Minecraft
@@ -61,6 +62,17 @@ public class SelectorCondition {
      */
     public boolean matchesText(String value) throws SelectorException {
         return this.value.equals(value);
+    }
+
+    /**
+     * Gets the bounding range of values specified as a value. Throws a
+     * SelectorException if this value expression does not denote a number.
+     *
+     * @return bounding range
+     * @throws SelectorException
+     */
+    public BoundingRange getBoundingRange() throws SelectorException {
+        throw new SelectorException(key + " value is not a number");
     }
 
     /**
@@ -205,6 +217,11 @@ public class SelectorCondition {
         }
 
         @Override
+        public BoundingRange getBoundingRange() throws SelectorException {
+            return base.getBoundingRange().invert();
+        }
+
+        @Override
         public boolean matchesNumber(double value) throws SelectorException {
             return !base.matchesNumber(value);
         }
@@ -228,6 +245,11 @@ public class SelectorCondition {
             super(key, value);
             this.valueDouble = valueDouble;
             this.valueLong = valueLong;
+        }
+
+        @Override
+        public BoundingRange getBoundingRange() throws SelectorException {
+            return BoundingRange.create(valueDouble, valueDouble);
         }
 
         @Override
@@ -258,8 +280,13 @@ public class SelectorCondition {
 
         public SelectorConditionNumericRange(String key, String value, SelectorConditionNumeric min, SelectorConditionNumeric max) {
             super(key, value);
-            this.min = min;
-            this.max = max;
+            if (min.valueDouble > max.valueDouble) {
+                this.min = max;
+                this.max = min;
+            } else {
+                this.min = min;
+                this.max = max;
+            }
         }
 
         @Override
@@ -270,6 +297,11 @@ public class SelectorCondition {
         @Override
         public boolean matchesText(String value) throws SelectorException {
             return min.matchesText(value) || max.matchesText(value);
+        }
+
+        @Override
+        public BoundingRange getBoundingRange() throws SelectorException {
+            return BoundingRange.create(min.valueDouble, max.valueDouble);
         }
 
         @Override
@@ -343,6 +375,22 @@ public class SelectorCondition {
                 }
             }
             return false;
+        }
+
+        @Override
+        public BoundingRange getBoundingRange() throws SelectorException {
+            double min = Double.MAX_VALUE;
+            double max = -Double.MAX_VALUE;
+            for (SelectorCondition selectorValue : selectorValues) {
+                double value = selectorValue.getBoundingRange().getMin(); // always 1 value
+                if (value < min) {
+                    min = value;
+                }
+                if (value > max) {
+                    max = value;
+                }
+            }
+            return BoundingRange.create(min, max);
         }
 
         @Override

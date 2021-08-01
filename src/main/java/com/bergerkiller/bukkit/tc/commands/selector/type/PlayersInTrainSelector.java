@@ -26,7 +26,7 @@ public class PlayersInTrainSelector implements SelectorHandler {
 
     @Override
     public Collection<String> handle(CommandSender sender, String selector, List<SelectorCondition> conditions) throws SelectorException {
-        List<String> playerNames = this.registry.matchTrains(conditions).stream()
+        List<String> playerNames = this.registry.matchTrains(sender, conditions).stream()
                 .map(TrainProperties::getHolder)
                 .filter(Objects::nonNull)
                 .flatMap(group -> group.stream())

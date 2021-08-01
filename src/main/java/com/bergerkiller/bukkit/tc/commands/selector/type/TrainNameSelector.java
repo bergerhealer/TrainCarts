@@ -24,7 +24,7 @@ public class TrainNameSelector implements SelectorHandler {
 
     @Override
     public Collection<String> handle(CommandSender sender, String selector, List<SelectorCondition> conditions) throws SelectorException {
-        return this.registry.matchTrains(conditions).stream()
+        return this.registry.matchTrains(sender, conditions).stream()
                 .map(TrainProperties::getTrainName)
                 .collect(Collectors.toList());
     }
