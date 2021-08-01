@@ -1183,7 +1183,7 @@ public class Util {
             return null;
         }
         p.next(false);
-        return p.current;
+        return p.currentLocation.getBlock();
     }
 
     /**

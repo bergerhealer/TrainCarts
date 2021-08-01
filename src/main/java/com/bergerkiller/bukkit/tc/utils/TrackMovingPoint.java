@@ -12,15 +12,23 @@ import java.util.NoSuchElementException;
 
 /**
  * Represents a Minecart moving from Block to Block.
- * The current Minecart Block position and track position is maintained.
+ * The current Minecart rail block details can be iterated.
+ * If exact train positions are needed, use {@link TrackWalkingPoint}
+ * instead.
  */
 public class TrackMovingPoint {
     public Block current, next;
-    public Block currentTrack, nextTrack;
     public Vector currentDirection, nextDirection;
+    public Location currentLocation, nextLocation;
     public RailType currentRail, nextRail;
     private boolean hasNext;
     private final TrackWalkingPoint walkingPoint;
+
+    /**
+     * @deprecated Use {@link #current} and {@link #next} instead
+     */
+    @Deprecated
+    public Block currentTrack, nextTrack;
 
     /**
      * Constructs a new Track Moving Point using the initial Minecart position
@@ -58,15 +66,17 @@ public class TrackMovingPoint {
     private TrackMovingPoint(TrackWalkingPoint walkingPoint) {
         this.walkingPoint = walkingPoint;
         if (this.walkingPoint.state.railType() != RailType.NONE) {
-            this.currentTrack = this.nextTrack = this.walkingPoint.state.railBlock();
+            this.current = this.next = this.walkingPoint.state.railBlock();
+            this.currentTrack = this.nextTrack = this.current;
             this.currentDirection = this.nextDirection = this.walkingPoint.state.enterDirection();
-            this.current = this.next = this.walkingPoint.state.positionBlock();
+            this.currentLocation = this.nextLocation = this.walkingPoint.state.positionLocation();
             this.currentRail = this.nextRail = this.walkingPoint.state.railType();
             this.hasNext = true;
         } else {
+            this.current = this.next = null;
             this.currentTrack = this.nextTrack = null;
             this.currentDirection = this.nextDirection = new Vector();
-            this.current = this.next = null;
+            this.currentLocation = this.nextLocation = null;
             this.currentRail = this.nextRail = RailType.NONE;
             this.hasNext = false;
         }
@@ -125,6 +135,7 @@ public class TrackMovingPoint {
         this.current = this.next;
         this.currentTrack = this.nextTrack;
         this.currentDirection = this.nextDirection;
+        this.currentLocation = this.nextLocation;
         this.currentRail = this.nextRail;
         this.hasNext = false;
 
@@ -139,10 +150,11 @@ public class TrackMovingPoint {
             return;
         }
 
-        this.next = this.walkingPoint.state.positionBlock();
-        this.nextTrack = this.walkingPoint.state.railBlock();
+        this.next = this.walkingPoint.state.railBlock();
+        this.nextTrack = this.next; // legacy!
         this.nextRail = this.walkingPoint.state.railType();
         this.nextDirection = this.walkingPoint.state.enterDirection();
+        this.nextLocation = this.walkingPoint.state.positionLocation();
         this.hasNext = true;
     }
 

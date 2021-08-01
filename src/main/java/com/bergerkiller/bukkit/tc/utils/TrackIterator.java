@@ -6,6 +6,8 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
+
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.material.Rails;
@@ -166,8 +168,8 @@ public class TrackIterator implements Iterator<Block> {
     private void genNextBlock() {
         // If specified, be sure to stay within loaded chunks
         if (this.onlyInLoadedChunks) {
-            int x = this.movingPoint.current.getX() + (int) this.movingPoint.currentDirection.getX();
-            int z = this.movingPoint.current.getZ() + (int) this.movingPoint.currentDirection.getZ();
+            int x = (int) (this.movingPoint.current.getX() + this.movingPoint.currentDirection.getX());
+            int z = (int) (this.movingPoint.current.getZ() + this.movingPoint.currentDirection.getZ());
             if (!this.movingPoint.current.getWorld().isChunkLoaded(x >> 4, z >> 4)) {
                 this.movingPoint.next(false);
                 return;
@@ -177,7 +179,7 @@ public class TrackIterator implements Iterator<Block> {
         this.movingPoint.next();
         if (this.movingPoint.hasNext()) {
             // If already contained, skip it
-            if (!this.coordinates.add(new IntVector3(this.movingPoint.nextTrack))) {
+            if (!this.coordinates.add(new IntVector3(this.movingPoint.next))) {
                 this.movingPoint.clearNext();
             }
         }
@@ -191,12 +193,12 @@ public class TrackIterator implements Iterator<Block> {
         return this.movingPoint.currentDirection;
     }
 
-    public Block currentPos() {
-        return this.movingPoint.current;
+    public Location currentLocation() {
+        return this.movingPoint.currentLocation;
     }
 
     public Block current() {
-        return this.movingPoint.currentTrack;
+        return this.movingPoint.current;
     }
 
     public RailType currentRailType() {
@@ -212,7 +214,7 @@ public class TrackIterator implements Iterator<Block> {
     }
 
     public Block peekNext() {
-        return this.movingPoint.nextTrack;
+        return this.movingPoint.next;
     }
 
     @Override
