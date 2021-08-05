@@ -559,13 +559,39 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     @Override
+    public void setOwnerPermissions(Set<String> newOwnerPermissions) {
+        for (CartProperties cprop : this) {
+            cprop.setOwnerPermissions(newOwnerPermissions);
+        }
+    }
+
+    @Override
     public Set<String> getOwners() {
         return get(StandardProperties.OWNERS);
     }
 
     @Override
+    public void setOwners(Set<String> newOwners) {
+        set(StandardProperties.OWNERS, newOwners);
+    }
+
+    @Override
     public void clearOwners() {
         set(StandardProperties.OWNERS, Collections.emptySet());
+    }
+
+    @Override
+    public void addOwners(Collection<String> ownersToAdd) {
+        for (CartProperties cprop : this) {
+            cprop.addOwners(ownersToAdd);
+        }
+    }
+
+    @Override
+    public void removeOwners(Collection<String> ownersToRemove) {
+        for (CartProperties cprop : this) {
+            cprop.removeOwners(ownersToRemove);
+        }
     }
 
     @Override

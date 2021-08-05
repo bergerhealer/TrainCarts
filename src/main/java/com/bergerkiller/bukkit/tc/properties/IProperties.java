@@ -163,6 +163,28 @@ public interface IProperties extends IParsable {
     Set<String> getOwners();
 
     /**
+     * Sets a new set of all player owner names
+     *
+     * @param newOwners New owners to set to
+     */
+    void setOwners(Set<String> newOwners);
+
+    /**
+     * Adds all the owners in the specified collection
+     *
+     * @param ownersToAdd Player names to add as owner
+     */
+    void addOwners(Collection<String> ownersToAdd);
+
+    /**
+     * Removes all the owners specified, making them
+     * no longer owner if added.
+     *
+     * @param ownersToRemove Names of players to add
+     */
+    void removeOwners(Collection<String> ownersToRemove);
+
+    /**
      * Checks whether owner permissions are set for (some of) the carts of this train
      *
      * @return True if owner permissions are set, False if not
@@ -175,6 +197,13 @@ public interface IProperties extends IParsable {
      * @return owner permissions (unmodifiable and immutable)
      */
     Set<String> getOwnerPermissions();
+
+    /**
+     * Sets a new Set of all permission nodes granting players ownership
+     *
+     * @param newOwnerPermissions New owner permission nodes to set
+     */
+    void setOwnerPermissions(Set<String> newOwnerPermissions);
 
     /**
      * Clears all owners set

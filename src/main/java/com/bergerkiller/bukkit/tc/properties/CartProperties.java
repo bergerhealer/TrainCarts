@@ -244,6 +244,11 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         return get(StandardProperties.OWNER_PERMISSIONS);
     }
 
+    @Override
+    public void setOwnerPermissions(Set<String> newOwnerPermissions) {
+        set(StandardProperties.OWNER_PERMISSIONS, newOwnerPermissions);
+    }
+
     public void addOwnerPermission(final String permission) {
         update(StandardProperties.OWNER_PERMISSIONS, curr_perms -> {
             if (curr_perms.contains(permission)) {
@@ -284,8 +289,31 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     }
 
     @Override
+    public void setOwners(Set<String> newOwners) {
+        set(StandardProperties.OWNERS, newOwners);
+    }
+
+    @Override
     public void clearOwners() {
         set(StandardProperties.OWNERS, Collections.emptySet());
+    }
+
+    @Override
+    public void addOwners(Collection<String> ownersToAdd) {
+        update(StandardProperties.OWNERS, curr_owners -> {
+            Set<String> newOwners = new HashSet<String>(curr_owners);
+            newOwners.addAll(curr_owners);
+            return newOwners;
+        });
+    }
+
+    @Override
+    public void removeOwners(Collection<String> ownersToRemove) {
+        update(StandardProperties.OWNERS, curr_owners -> {
+            Set<String> newOwners = new HashSet<String>(curr_owners);
+            newOwners.removeAll(curr_owners);
+            return newOwners;
+        });
     }
 
     @Override
