@@ -1,12 +1,12 @@
 package com.bergerkiller.bukkit.tc.storage;
 
+import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.common.wrappers.LongHashSet.LongIterator;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
@@ -135,36 +135,32 @@ public class OfflineGroupManager {
     }
 
     /**
-     * Checks whether the chunks of a group can be loaded, or loads these
-     * chunks when keepChunksLoaded is set
+     * Asynchronously forces all chunks kept loaded to be loaded.
+     * In the future, once the chunks are loaded, will restore the
+     * associated trains.
      *
-     * @param group to check the chunks of
-     * @param world the group is in
-     * @return True if all the chunks of the group are (now) loaded, False if not
+     * @return List of chunks to keep loaded mapped to the group that does
      */
-    private static boolean checkChunks(OfflineGroup group, World world) {
-        // Check whether all the chunks are loaded for this group
-        if (group.updateLoadedChunks(world)) {
-            return true;
-        }
-        // Keep chunks loaded property
-        {
-            TrainProperties prop = TrainProperties.get(group.name);
-            if (prop == null || !prop.isKeepingChunksLoaded()) {
-                return false;
+    public static Map<OfflineGroup, List<ForcedChunk>> getForceLoadedChunks() {
+        Map<OfflineGroup, List<ForcedChunk>> chunks = new HashMap<>();
+        for (World world : WorldUtil.getWorlds()) {
+            synchronized (managers) {
+                OfflineGroupManager man = managers.get(world.getUID());
+                if (man != null && !man.groupmap.isEmpty()) {
+                    for (OfflineGroup group : man.groupmap.values()) {
+                        TrainProperties prop = TrainProperties.get(group.name);
+                        if (prop == null || !prop.isKeepingChunksLoaded()) {
+                            continue;
+                        }
+                        if (TCConfig.keepChunksLoadedOnlyWhenMoving && !group.isMoving()) {
+                            continue;
+                        }
+                        chunks.put(group, group.forceLoadChunks(world));
+                    }
+                }
             }
         }
-        if (TCConfig.keepChunksLoadedOnlyWhenMoving && !group.isMoving()) {
-            return false;
-        }
-        // Load nearby chunks
-        LongIterator iter = group.chunks.longIterator();
-        long chunk;
-        while (iter.hasNext()) {
-            chunk = iter.next();
-            world.getChunkAt(MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk));
-        }
-        return true;
+        return chunks;
     }
 
     /*
@@ -507,7 +503,7 @@ public class OfflineGroupManager {
                 groupsBuffer.clear();
                 groupsBuffer.addAll(this.groupmap.values());
                 for (OfflineGroup group : groupsBuffer) {
-                    if (checkChunks(group, world)) {
+                    if (group.updateLoadedChunks(world)) {
                         restoreGroup(group, world);
                     }
                 }

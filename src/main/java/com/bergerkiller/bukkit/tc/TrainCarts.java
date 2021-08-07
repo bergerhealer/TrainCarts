@@ -46,6 +46,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
 import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSignManager;
 import com.bergerkiller.bukkit.tc.statements.Statement;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bergerkiller.mountiplex.conversion.Conversion;
@@ -69,6 +70,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.io.File;
 import java.util.*;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 public class TrainCarts extends PluginBase {
     public static TrainCarts plugin;
@@ -76,6 +78,7 @@ public class TrainCarts extends PluginBase {
     private Task autosaveTask;
     private Task cacheCleanupTask;
     private Task mutexZoneUpdateTask;
+    private ChunkPreloadTask chunkPreloadTask;
     private TCPropertyRegistry propertyRegistry;
     private TCPacketListener packetListener;
     private TCInteractionPacketListener interactionPacketListener;
@@ -546,7 +549,26 @@ public class TrainCarts extends PluginBase {
 
         //Restore carts where possible
         TrainCarts.plugin.log(Level.INFO, "Restoring trains and loading nearby chunks...");
-        OfflineGroupManager.refresh();
+        {
+            // Check chunks that are already loaded first
+            OfflineGroupManager.refresh();
+
+            // Get all chunks to be kept loaded and load them right now
+            Map<OfflineGroup, List<ForcedChunk>> chunks = OfflineGroupManager.getForceLoadedChunks();
+            chunks.values().stream().flatMap(list -> list.stream()).forEachOrdered(chunk -> {
+                try {
+                    chunk.getChunk();
+                } catch (Throwable t) {
+                    getLogger().log(Level.SEVERE, "Failed to load chunk " + chunk.getWorld().getName()
+                            + " [" + chunk.getX() + ", " + chunk.getZ() + "]", t);
+                }
+            });
+
+            // Dispatch to the preloader which will keep these loaded for a little while,
+            // until the entities in the chunks have also been loaded soon after.
+            this.chunkPreloadTask = new ChunkPreloadTask(this, chunks);
+            this.chunkPreloadTask.startPreloading();
+        }
 
         //Activate all detector regions with trains that are on it
         DetectorRegion.detectAllMinecarts();
@@ -643,6 +665,11 @@ public class TrainCarts extends PluginBase {
         Task.stop(autosaveTask);
         Task.stop(cacheCleanupTask);
         Task.stop(mutexZoneUpdateTask);
+
+        //Stop preloading chunks (happens when quickly disabling after enabling)
+        if (this.chunkPreloadTask != null) {
+            this.chunkPreloadTask.abortPreloading();
+        }
 
         //stop updating
         trainUpdateController.disable();
@@ -807,6 +834,97 @@ public class TrainCarts extends PluginBase {
         @Override
         public void run() {
             MutexZoneCache.refreshAll();
+        }
+    }
+
+    /**
+     * Keeps chunks with trains in them loaded for a short time
+     * to allow for the asynchronous entity loading to complete.
+     */
+    private static class ChunkPreloadTask extends Task {
+        private final Map<OfflineGroup, List<ForcedChunk>> chunks;
+        private final List<FinishedChunks> finished = new ArrayList<>();
+        private int deadline;
+
+        public ChunkPreloadTask(JavaPlugin plugin, Map<OfflineGroup, List<ForcedChunk>> chunks) {
+            super(plugin);
+            this.chunks = chunks;
+        }
+
+        /**
+         * Starts tracking the groups that have been loaded, and when
+         * loading fails.
+         */
+        public void startPreloading() {
+            this.start(5, 5);
+            this.deadline = CommonUtil.getServerTicks() + (10 * 60 * 20); // after 10 minutes, fail.
+        }
+
+        /**
+         * Aborts further loading of chunks and stops this task entirely
+         */
+        public void abortPreloading() {
+            this.stop();
+            this.finished.forEach(FinishedChunks::close);
+            this.finished.clear();
+            this.chunks.values().forEach(chunks -> chunks.forEach(ForcedChunk::close));
+            this.chunks.clear();
+        }
+
+        @Override
+        public void run() {
+            // If all done, stop the task
+            if (this.finished.isEmpty() && this.chunks.isEmpty()) {
+                this.stop();
+                return;
+            }
+
+            int ticks = CommonUtil.getServerTicks();
+
+            // Check if deadline is exceeded, and stop trying at that point
+            if (!this.chunks.isEmpty() && ticks > this.deadline) {
+                List<String> trainNames = this.chunks.keySet().stream().map(g -> g.name).collect(Collectors.toList());
+                this.getPlugin().getLogger().log(Level.SEVERE, "Failed to restore " + trainNames.size() + " keep-chunks-loaded trains in time!");
+                if (trainNames.size() < 10) {
+                    this.getPlugin().getLogger().log(Level.SEVERE, "Trains: " + StringUtil.combineNames(trainNames));
+                }
+                this.abortPreloading();
+                return;
+            }
+
+            // Cleanup finished chunks
+            for (Iterator<FinishedChunks> iter = this.finished.iterator(); iter.hasNext();) {
+                FinishedChunks chunks = iter.next();
+                if (ticks > chunks.deadline) {
+                    chunks.close();
+                    iter.remove();
+                }
+            }
+
+            // Check if other groups have been loaded
+            for (Iterator<Map.Entry<OfflineGroup, List<ForcedChunk>>> iter = this.chunks.entrySet().iterator(); iter.hasNext();) {
+                Map.Entry<OfflineGroup, List<ForcedChunk>> entry = iter.next();
+                if (entry.getKey().isLoadedAsGroup()) {
+                    this.finished.add(new FinishedChunks(entry.getValue()));
+                    iter.remove();
+                }
+            }
+        }
+
+        private static class FinishedChunks implements AutoCloseable {
+            public final List<ForcedChunk> chunks;
+            public final int deadline;
+
+            public FinishedChunks(List<ForcedChunk> chunks) {
+                this.chunks = chunks;
+                this.deadline = CommonUtil.getServerTicks() + 10; // 10 ticks
+            }
+
+            @Override
+            public void close() {
+                this.chunks.forEach(ForcedChunk::close);
+                this.chunks.clear();
+            }
         }
     }
 }

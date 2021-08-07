@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.storage;
 
+import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
@@ -15,6 +16,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -29,6 +31,7 @@ public class OfflineGroup {
     public OfflineMember[] members;
     public String name;
     public UUID worldUUID;
+    private boolean loaded;
 
     public OfflineGroup(MinecartGroup group) {
         this(group.size());
@@ -37,6 +40,7 @@ public class OfflineGroup {
         }
         this.name = group.getProperties().getTrainName();
         this.worldUUID = group.getWorld().getUID();
+        this.loaded = false;
         if (group.getActions().getCurrentAction() instanceof MemberActionLaunch) {
             double vel = ((MemberActionLaunch) group.getActions().getCurrentAction()).getTargetVelocity();
             for (OfflineMember member : this.members) {
@@ -53,6 +57,7 @@ public class OfflineGroup {
         final int chunkCount = 25 + (int) ((double) (5 / 10) * (double) memberCount);
         this.chunks = new LongHashSet(chunkCount);
         this.loadedChunks = new LongHashSet(chunkCount);
+        this.loaded = false;
     }
 
     public static OfflineGroup readFrom(DataInputStream stream) throws IOException {
@@ -63,6 +68,18 @@ public class OfflineGroup {
         wg.name = stream.readUTF();
         wg.genChunks();
         return wg;
+    }
+
+    /**
+     * Gets whether this offline group has been loaded into the server
+     * as a MinecartGroup. Also returns true if all members of this group
+     * were missing and the offline group was purged. If true, this
+     * offline group no longer exists in the offline group manager.
+     *
+     * @return True if loaded as group
+     */
+    public boolean isLoadedAsGroup() {
+        return this.loaded;
     }
 
     public boolean isMoving() {
@@ -83,7 +100,7 @@ public class OfflineGroup {
         final LongIterator iter = this.chunks.longIterator();
         while (iter.hasNext()) {
             long chunk = iter.next();
-            if (WorldUtil.isLoaded(world, MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk))) {
+            if (WorldUtil.isChunkEntitiesLoaded(world, MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk))) {
                 this.loadedChunks.add(chunk);
             }
         }
@@ -102,6 +119,22 @@ public class OfflineGroup {
                 }
             }
         }
+    }
+
+    /**
+     * Forces all chunks used by this group to become loaded, asynchronously
+     *
+     * @param world World the group is on
+     * @return List of forced chunks, keep these around to allow all chunks to load
+     */
+    public List<ForcedChunk> forceLoadChunks(World world) {
+        List<ForcedChunk> chunks = new ArrayList<>();
+        final LongIterator iter = this.chunks.longIterator();
+        while (iter.hasNext()) {
+            long chunk = iter.next();
+            chunks.add(WorldUtil.forceChunkLoaded(world, MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk)));
+        }
+        return chunks;
     }
 
     /**
@@ -124,6 +157,7 @@ public class OfflineGroup {
         if (missingNo > 0) {
             TrainCarts.plugin.log(Level.WARNING, missingNo + " carts of group '" + this.name + "' are missing! (externally edited?)");
         }
+        this.loaded = true;
         if (rval.isEmpty()) {
             TrainPropertiesStore.remove(this.name);
             return null;
