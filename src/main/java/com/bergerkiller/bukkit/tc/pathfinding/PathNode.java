@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import org.bukkit.block.Block;
 
 import java.util.*;
+import java.util.logging.Level;
 
 public class PathNode {
     private final PathWorld world;
@@ -242,7 +243,7 @@ public class PathNode {
             if (this.names.isEmpty()) {
                 dbg += " AND IS NOW BEING REMOVED (NO NAMES)";
             }
-            System.out.println(dbg);
+            TrainCarts.plugin.log(Level.INFO, dbg);
         }
         if (this.names.isEmpty() && !this.containsSwitcher()) {
             this.remove();
@@ -397,7 +398,7 @@ public class PathNode {
      */
     public void addSwitcher() {
         if (PathProvider.DEBUG_MODE && !this.isRailSwitchable) {
-            System.out.println("NODE AT " + this.location.toString() + " ADDED SWITCHER");
+            TrainCarts.plugin.log(Level.INFO, "NODE AT " + this.location.toString() + " ADDED SWITCHER");
         }
         this.isRailSwitchable = true;
     }
@@ -456,7 +457,7 @@ public class PathNode {
     public void addName(String name) {
         if (this.names.add(name)) {
             if (PathProvider.DEBUG_MODE) {
-                System.out.println("NODE AT " + this.location.toString() + " ADDED DESTINATION " + name);
+                TrainCarts.plugin.log(Level.INFO, "NODE AT " + this.location.toString() + " ADDED DESTINATION " + name);
             }
             world.addNodeName(this, name);
         }

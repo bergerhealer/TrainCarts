@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
@@ -9,6 +10,7 @@ import com.bergerkiller.bukkit.tc.rails.type.RailType;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -253,9 +255,9 @@ public class TrackWalkingPoint {
                 }
             } else if (++infCycleCtr > 100) {
                 // Infinite loop detected. Stop here.
-                System.err.println("[TrackWalkingPoint] Infinite rails loop detected at " + this.state.railBlock());
-                System.err.println("[TrackWalkingPoint] Rail Logic at rail is " + this.currentRailLogic);
-                System.err.println("[TrackWalkingPoint] Rail Type at rail is " + this.state.railType());
+                TrainCarts.plugin.log(Level.SEVERE, "[TrackWalkingPoint] Infinite rails loop detected at " + this.state.railBlock());
+                TrainCarts.plugin.log(Level.SEVERE, "[TrackWalkingPoint] Rail Logic at rail is " + this.currentRailLogic);
+                TrainCarts.plugin.log(Level.SEVERE, "[TrackWalkingPoint] Rail Type at rail is " + this.state.railType());
                 this.moved = (distance - remainingDistance);
                 this.movedTotal += this.moved;
                 this.failReason = FailReason.CYCLIC_PATH;
@@ -289,9 +291,9 @@ public class TrackWalkingPoint {
             this.failReason = FailReason.CYCLIC_PATH;
 
             if (++this._stuckCtr > 20) {
-                System.err.println("[TrackWalkingPoint] Stuck on rails block " + this.state.railBlock());
-                System.err.println("[TrackWalkingPoint] Rail Logic at rail is " + this.currentRailLogic);
-                System.err.println("[TrackWalkingPoint] Rail Type at rail is " + this.state.railType());
+                TrainCarts.plugin.log(Level.SEVERE, "[TrackWalkingPoint] Stuck on rails block " + this.state.railBlock());
+                TrainCarts.plugin.log(Level.SEVERE, "[TrackWalkingPoint] Rail Logic at rail is " + this.currentRailLogic);
+                TrainCarts.plugin.log(Level.SEVERE, "[TrackWalkingPoint] Rail Type at rail is " + this.state.railType());
             }
 
             return false;

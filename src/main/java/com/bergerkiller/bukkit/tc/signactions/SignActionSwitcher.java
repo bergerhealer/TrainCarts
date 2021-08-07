@@ -149,7 +149,6 @@ public class SignActionSwitcher extends SignAction {
                 int maxcount = 0;
                 CounterState signcounter = null;
                 for (DirectionStatement stat : statements) {
-                    //System.out.println(stat.toString());
                     if (stat.hasCounter()) {
                         if (signcounter == null) {
                             signcounter = getSwitchedTimes(info.getBlock());

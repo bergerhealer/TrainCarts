@@ -5,11 +5,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.bukkit.entity.EntityType;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentModel;
@@ -206,10 +208,10 @@ public class AttachmentModel {
             if (entry.getKey().equals("attachments")) {
                 continue;
             }
-            System.out.println(StringUtil.getFilledString("  ", indent) + entry.getKey() + ": " + entry.getValue());
+            TrainCarts.plugin.log(Level.INFO, StringUtil.getFilledString("  ", indent) + entry.getKey() + ": " + entry.getValue());
         }
 
-        System.out.println(StringUtil.getFilledString("  ", indent) + "attachments:");
+        TrainCarts.plugin.log(Level.INFO, StringUtil.getFilledString("  ", indent) + "attachments:");
         for (ConfigurationNode subNode : node.getNodeList("attachments")) {
             log(subNode, indent + 1);
         }

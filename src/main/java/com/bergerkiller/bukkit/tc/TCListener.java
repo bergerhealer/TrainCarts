@@ -522,7 +522,7 @@ public class TCListener implements Listener {
                 return;
             }
 
-            //System.out.println("Interacted with block [" + clickedBlock.getX() + ", " + clickedBlock.getY() + ", " + clickedBlock.getZ() + "]");
+            //TrainCarts.plugin.log(Level.INFO, "Interacted with block [" + clickedBlock.getX() + ", " + clickedBlock.getY() + ", " + clickedBlock.getZ() + "]");
 
             Material m = (event.getItem() == null) ? Material.AIR : event.getItem().getType();
 
@@ -551,7 +551,7 @@ public class TCListener implements Listener {
                     map.next();
                 }
                 for (Block block : map) {
-                    System.out.println("INVISIBLE: " + block);
+                    TrainCarts.plugin.log(Level.INFO, "INVISIBLE: " + block);
                     CommonPacket packet = PacketType.OUT_BLOCK_CHANGE.newInstance();
                     packet.write(PacketType.OUT_BLOCK_CHANGE.position, new IntVector3(block));
                     packet.write(PacketType.OUT_BLOCK_CHANGE.blockData, BlockData.fromMaterial(Material.AIR));

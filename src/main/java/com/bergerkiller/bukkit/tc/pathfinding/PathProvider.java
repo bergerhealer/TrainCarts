@@ -302,7 +302,7 @@ public class PathProvider extends Task {
             PathFindOperation operation = this.pendingOperations.peek();
             done = false;
             if (DEBUG_MODE) {
-                System.out.println("DISCOVERING EVERYTHING FROM " + operation.startNode.getDisplayName() +
+                TrainCarts.plugin.log(Level.INFO, "DISCOVERING EVERYTHING FROM " + operation.startNode.getDisplayName() +
                         " INTO " + operation.getJunctionName());
             }
             // Perform the operations in steps
@@ -370,7 +370,7 @@ public class PathProvider extends Task {
                 }
                 if (node.containsSwitcher()) {
                     if (DEBUG_MODE) {
-                        System.out.println("NODE " + node.getDisplayName() + " CONTAINS A SWITCHER, BRANCHING OFF");
+                        TrainCarts.plugin.log(Level.INFO, "NODE " + node.getDisplayName() + " CONTAINS A SWITCHER, BRANCHING OFF");
                     }
 
                     // Check north-east-south-west for possible routes
@@ -514,7 +514,7 @@ public class PathProvider extends Task {
                 // Add neighbour
                 this.startNode.addNeighbour(foundNode, totalDistance, this.getJunctionName());
                 if (DEBUG_MODE) {
-                    System.out.println("MADE CONNECTION FROM " + startNode.getDisplayName() + " TO " + foundNode.getDisplayName());
+                    TrainCarts.plugin.log(Level.INFO, "MADE CONNECTION FROM " + startNode.getDisplayName() + " TO " + foundNode.getDisplayName());
                 }
             }
             return hasFinished;

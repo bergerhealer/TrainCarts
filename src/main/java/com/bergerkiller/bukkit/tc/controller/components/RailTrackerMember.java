@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.tc.rails.logic.RailLogicAir;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicGround;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.TrackIterator;
+
 import org.bukkit.block.Block;
 import org.bukkit.util.Vector;
 
@@ -206,11 +207,10 @@ public class RailTrackerMember extends RailTracker {
     }
 
     public void refresh(TrackedRail newInfo) {
-        //System.out.println("DIR[" + owner.getIndex() + "] = " + newInfo.direction + " [" +
+        //TrainCarts.plugin.log(Level.INFO, "DIR[" + owner.getIndex() + "] = " + newInfo.direction + " [" +
         //           newInfo.block.getX() + " / " + newInfo.block.getY() + " / " + newInfo.block.getZ() + "]");
 
         // Gather rail information
-
 
         // Refresh
         this.rail = newInfo;

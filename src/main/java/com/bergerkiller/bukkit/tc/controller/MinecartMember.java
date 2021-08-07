@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -2096,7 +2097,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             /*
             double distanceFromPath = preMoveState.loadRailLogic().getPath().distanceSquared(preMoveState.railPosition());
             if (distanceFromPath > 0.1) {
-                System.out.println("TOO BIG DISTANCE: " + distanceFromPath);
+                TrainCarts.plugin.log(Level.INFO, "TOO BIG DISTANCE: " + distanceFromPath);
             }
             */
             onMove(MoveType.SELF, vel.getX(), vel.getY(), vel.getZ());
@@ -2129,7 +2130,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                     p.currentRailLogic.onPostMove(this);
                     p.state.railType().onPostMove(this);
                 } else {
-                    // System.out.println("[Debug] Failed to move on track: " + p.failReason);
+                    // TrainCarts.plugin.log(Level.INFO, "[Debug] Failed to move on track: " + p.failReason);
 
                     // Moved some portion of the track. Assume we're moving the
                     // rest of it forwards in a straight line.

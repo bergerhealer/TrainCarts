@@ -1237,7 +1237,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             msg.append(" - ").append(member.getEntity().vel);
             msg.append("]");
         }
-        System.out.println(msg);
+        TrainCarts.plugin.log(Level.INFO, msg.toString());
     }
 
     /**

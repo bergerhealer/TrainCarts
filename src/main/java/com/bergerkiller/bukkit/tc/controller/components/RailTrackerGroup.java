@@ -200,7 +200,7 @@ public class RailTrackerGroup extends RailTracker {
             for (TrackedRail rail : this.rails) {
                 s += "[" + rail.member.getIndex() + " " + rail.position + "]";
             }
-            System.out.println(s);
+            TrainCarts.plugin.log(Level.INFO, s);
             */
 
             // TODO: Detect when the rails are changed
