@@ -438,6 +438,10 @@ public class TrainCarts extends PluginBase {
 
         //Init signs
         SignAction.init();
+
+        //Initialize early so that others can register handlers
+        //Loading is done in enable()
+        this.pathProvider = new PathProvider(this);
     }
 
     public void enable() {
@@ -512,7 +516,6 @@ public class TrainCarts extends PluginBase {
         Statement.init();
 
         // Start the path finding task
-        this.pathProvider = new PathProvider(this);
         this.pathProvider.enable(getDataFolder() + File.separator + "destinations.dat");
 
         // Initialize train updater task

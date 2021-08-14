@@ -28,6 +28,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -44,6 +45,7 @@ public class PathProvider extends Task {
     private static final int MAX_PROCESSING_PER_TICK = 30; // Maximum processing time in Ms per tick
     public static boolean DEBUG_MODE = false;
     private final Map<String, PathWorld> worlds = new HashMap<String, PathWorld>();
+    private final List<PathRoutingHandler> handlers = new ArrayList<PathRoutingHandler>();
     private Queue<BlockLocation> pendingDiscovery = new LinkedList<BlockLocation>();
     private Set<PathNode> pendingNodes = new LinkedHashSet<>();
     private Queue<PathFindOperation> pendingOperations = new LinkedList<>();
@@ -51,6 +53,63 @@ public class PathProvider extends Task {
 
     public PathProvider(JavaPlugin plugin) {
         super(plugin);
+
+        // Default TrainCarts routing handler - for signs
+        registerRoutingHandler(new PathRoutingHandler() {
+            @Override
+            public void process(PathRouteEvent event) {
+                for (RailSignCache.TrackedSign trackedSign : event.railState().railSigns()) {
+                    // Discover a SignAction at this sign
+                    SignActionEvent signEvent = new SignActionEvent(trackedSign);
+                    signEvent.setAction(SignActionType.GROUP_ENTER);
+                    SignAction action = SignAction.getSignAction(signEvent);
+                    if (action == null) {
+                        continue;
+                    }
+
+                    // Check for blocker signs
+                    if (action.isPathFindingBlocked(signEvent, event.railState())) {
+                        // If blocked, abort
+                        event.setBlocked();
+                        return;
+                    }
+
+                    // Check for switchers and potential (new) destinations
+                    boolean switchable = action.isRailSwitcher(signEvent);
+                    String destinationName = action.getRailDestinationName(signEvent);
+                    if (!switchable && destinationName == null) {
+                        continue; // no pathfinding relevant signs
+                    }
+
+                    // Update the node we found with the information of the current sign
+                    PathNode newFoundNode = event.createNode();
+                    if (switchable) {
+                        newFoundNode.addSwitcher();
+                    }
+                    if (destinationName != null) {
+                        newFoundNode.addName(destinationName);
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Registers a new routing handler
+     *
+     * @param handler The handler to register
+     */
+    public void registerRoutingHandler(PathRoutingHandler handler) {
+        this.handlers.add(handler);
+    }
+
+    /**
+     * Un-registers a previously registered routing handler
+     *
+     * @param handler The handler to un-register
+     */
+    public void unregisterRoutingHandler(PathRoutingHandler handler) {
+        this.handlers.remove(handler);
     }
 
     public void enable(String filename) {
@@ -346,15 +405,11 @@ public class PathProvider extends Task {
                 continue;
             }
 
-            // Discover signs, and process each
-            for (RailSignCache.TrackedSign trackedSign : RailSignCache.getSigns(railType, railBlock)) {
-                SignActionEvent event = new SignActionEvent(trackedSign);
-                SignAction action = SignAction.getSignAction(event);
-                if (action == null) {
-                    continue;
-                }
-
-                initNode(railBlock, event, action);
+            // Process this location
+            RailState initialState = RailState.getSpawnState(RailPiece.create(railType, railBlock));
+            PathRoutingHandler.PathRouteEvent routeEvent = new PathRoutingHandler.PathRouteEvent(this, initialState);
+            for (PathRoutingHandler handler : this.handlers) {
+                handler.process(routeEvent);
             }
         }
     }
@@ -437,17 +492,17 @@ public class PathProvider extends Task {
     }
 
     private static class PathFindOperation {
-        private final PathProvider provider;
         private final TrackWalkingPoint p;
         private final PathNode startNode;
         private final String junctionName;
+        private final PathRoutingHandler.PathRouteEvent routeEvent; // re-used
 
         public PathFindOperation(PathProvider provider, PathNode startNode, RailState state, RailJunction junction) {
-            this.provider = provider;
             this.p = new TrackWalkingPoint(state);
             this.p.setLoopFilter(true);
             this.junctionName = junction.name();
             this.startNode = startNode;
+            this.routeEvent = new PathRoutingHandler.PathRouteEvent(provider, state.railWorld());
 
             // Include distance from spawn position of rails, to the junction start
             Location spawnPos = state.railType().getSpawnLocation(state.railBlock(), state.position().getMotionFace());
@@ -467,42 +522,16 @@ public class PathProvider extends Task {
             if (!this.p.moveFull()) {
                 return true;
             }
-            Block nextRail = p.state.railBlock();
-            boolean hasFinished = false;
-            PathNode foundNode = null;
-            for (RailSignCache.TrackedSign trackedSign : p.state.railSigns()) {
-                // Discover a SignAction at this sign
-                SignActionEvent event = new SignActionEvent(trackedSign);
-                event.setAction(SignActionType.GROUP_ENTER);
-                SignAction action = SignAction.getSignAction(event);
-                if (action == null) {
-                    continue;
-                }
 
-                // Check for blocker signs
-                if (action.isPathFindingBlocked(event, p.state)) {
-                    // If blocked, abort
-                    hasFinished = true;
-                    break;
-                }
-
-                // Update the node we found with the information of the current sign
-                PathNode newFoundNode = provider.initNode(nextRail, event, action);
-                if (newFoundNode == null) {
-                    continue;
-                }
-
-                // Take first
-                // Ignore signs at the start position (same node)
-                // We do refresh the switchers and destination names at the start node
-                if (foundNode == null && !this.startNode.location.equals(newFoundNode.location)) {
-                    foundNode = newFoundNode;
-
-                    // At a switcher/destination sign, stop now, continue looking from points we add
-                    hasFinished = true;
-                }
+            // Handle event
+            routeEvent.reset(this.p.state);
+            for (PathRoutingHandler handler : routeEvent.provider().handlers) {
+                handler.process(routeEvent);
             }
-            if (foundNode != null) {
+
+            // Process results
+            PathNode foundNode = routeEvent.getLastSetNode();
+            if (foundNode != null && !this.startNode.location.equals(foundNode.location)) {
                 // Calculate distance from the start node to this new node
                 // Include distance between spawn position on rail, and the current position with the walker
                 double totalDistance = p.movedTotal;
@@ -516,8 +545,15 @@ public class PathProvider extends Task {
                 if (DEBUG_MODE) {
                     TrainCarts.plugin.log(Level.INFO, "MADE CONNECTION FROM " + startNode.getDisplayName() + " TO " + foundNode.getDisplayName());
                 }
+                return true; // Finished
             }
-            return hasFinished;
+
+            // If route blocked, finish routing here
+            if (routeEvent.isBlocked()) {
+                return true;
+            }
+
+            return false;
         }
     }
 
@@ -529,46 +565,17 @@ public class PathProvider extends Task {
      * @return info
      */
     public PathRailInfo getRailInfo(RailState state) {
-        PathRailInfo result = PathRailInfo.NONE;
-        for (RailSignCache.TrackedSign trackedSign : state.railSigns()) {
-            // Discover a SignAction at this sign
-            SignActionEvent event = new SignActionEvent(trackedSign);
-            event.setAction(SignActionType.GROUP_ENTER);
-            SignAction action = SignAction.getSignAction(event);
-            if (action == null) {
-                continue;
-            }
-
-            // Check for blocker signs
-            if (action.isPathFindingBlocked(event, state)) {
-                return PathRailInfo.BLOCKED;
-            }
-
-            // Update the node we found with the information of the current sign
-            if (initNode(state.railBlock(), event, action) != null) {
-                result = PathRailInfo.NODE;
-            }
-        }
-        return result;
-    }
-
-    private PathNode initNode(Block railBlock, SignActionEvent event, SignAction action) {
-        // Check for switchers and potential (new) destinations
-        boolean switchable = action.isRailSwitcher(event);
-        String destinationName = action.getRailDestinationName(event);
-        if (!switchable && destinationName == null) {
-            return null; // no pathfinding relevant signs
+        PathRoutingHandler.PathRouteEvent routeEvent = new PathRoutingHandler.PathRouteEvent(this, state);
+        for (PathRoutingHandler handler : this.handlers) {
+            handler.process(routeEvent);
         }
 
-        // Update the node we found with the information of the current sign
-        PathNode node = getWorld(railBlock.getWorld()).getOrCreateAtRail(new BlockLocation(railBlock));
-        if (switchable) {
-            node.addSwitcher();
+        if (routeEvent.isBlocked()) {
+            return PathRailInfo.BLOCKED;
+        } else if (routeEvent.getLastSetNode() != null) {
+            return PathRailInfo.NODE;
+        } else {
+            return  PathRailInfo.NONE;
         }
-        if (destinationName != null) {
-            node.addName(destinationName);
-        }
-
-        return node;
     }
 }
