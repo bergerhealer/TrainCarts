@@ -67,6 +67,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
     public synchronized void onDetached() {
         if (this.rootAttachment != null) {
             HelperMethods.perform_onDetached(this.rootAttachment);
+            this.rootAttachment = null;
         }
         this.member.getProperties().getModel().removeOwner(this);
     }
