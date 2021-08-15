@@ -33,7 +33,8 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
      */
     public Attachment getRootAttachment() {
         MinecartMember<?> member = this.getMember();
-        return (member == null) ? null : member.getAttachments().getRootAttachment();
+        return (member != null && member.getAttachments().isAttached())
+                ? member.getAttachments().getRootAttachment() : null;
     }
 
     /**

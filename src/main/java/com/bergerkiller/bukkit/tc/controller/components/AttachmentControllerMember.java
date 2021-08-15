@@ -48,6 +48,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
     private Map<Player, SeatHint> seatHints = new HashMap<Player, SeatHint>();
     private Set<Player> viewers = new HashSet<Player>();
     protected final ToggledState networkInvalid = new ToggledState();
+    private boolean attached = false;
 
     private long animationCurrentTime = 0;
     private double animationDeltaTime = 0.0;
@@ -56,15 +57,27 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
         this.member = member;
     }
 
+    /**
+     * Gets whether this attachment controller is attached. If not attached, it
+     * is not loaded and no attachments exist.
+     *
+     * @return True if attached
+     */
+    public boolean isAttached() {
+        return this.attached;
+    }
+
     // Called by NetworkController
     public synchronized void onAttached() {
         this.animationCurrentTime = System.currentTimeMillis();
         this.animationDeltaTime = 0.0;
+        this.attached = true;
         this.member.getProperties().getModel().addOwner(this);
     }
 
     // Called by NetworkController
     public synchronized void onDetached() {
+        this.attached = false;
         if (this.rootAttachment != null) {
             HelperMethods.perform_onDetached(this.rootAttachment);
             this.rootAttachment = null;
@@ -95,11 +108,17 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
     }
 
     /**
-     * Gets the root attachment, representing the (attachments) based model
+     * Gets the root attachment, representing the (attachments) based model.
+     * Throws an {@link IllegalStateException} if not currently loaded, use
+     * {@link #isAttached()} to check for this.
      * 
      * @return root attachment
      */
     public Attachment getRootAttachment() {
+        // Error
+        if (!this.attached) {
+            throw new IllegalStateException("This member has no network presence and was probably unloaded");
+        }
         // Set attachment to a fallback if for whatever reason it is null
         if (this.rootAttachment == null) {
             this.onModelChanged(AttachmentModel.getDefaultModel(this.member.getEntity().getType()));
@@ -453,6 +472,11 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
 
     @Override
     public synchronized void onModelChanged(AttachmentModel model) {
+        // If not attached don't do anything to prevent bad things from happening
+        if (!this.attached) {
+            return;
+        }
+
         // Store the positions of the players in the previous seats
         // This is used later to re-assign the passengers to seats when the model is changed
         Map<Entity, Vector> oldSeatPositions = new HashMap<Entity, Vector>();

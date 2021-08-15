@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
 
 public class SeatExitPositionMenu extends MapWidgetMenu {
     private SeatMapWidgetNumberBox _positionX, _positionY, _positionZ;
@@ -151,7 +152,12 @@ public class SeatExitPositionMenu extends MapWidgetMenu {
             return;
         }
 
-        Attachment attachment = member.getAttachments().getRootAttachment().findChild(this.attachment.getTargetPath());
+        AttachmentControllerMember controller = member.getAttachments();
+        if (!controller.isAttached()) {
+            return;
+        }
+
+        Attachment attachment = controller.getRootAttachment().findChild(this.attachment.getTargetPath());
         if (!(attachment instanceof CartAttachmentSeat)) {
             return;
         }

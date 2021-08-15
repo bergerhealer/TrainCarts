@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.controller;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -2475,7 +2476,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     @Override
     public List<String> GetAnimationNames() {
-        return this.getAttachments().getRootAttachment().getAnimationNamesRecursive();
+        return this.getAttachments().isAttached() ?
+                this.getAttachments().getRootAttachment().getAnimationNamesRecursive()
+                : Collections.emptyList();
     }
 
     /**
@@ -2531,7 +2534,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      */
     @Override
     public boolean playNamedAnimation(AnimationOptions options) {
-        return this.getAttachments().getRootAttachment().playNamedAnimationRecursive(options);
+        return this.getAttachments().isAttached() &&
+                this.getAttachments().getRootAttachment().playNamedAnimationRecursive(options);
     }
 
     /**
@@ -2542,6 +2546,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return Attachment at this path, or null if not found
      */
     public Attachment findAttachment(int[] targetPath) {
-        return this.getAttachments().getRootAttachment().findChild(targetPath);
+        if (this.getAttachments().isAttached()) {
+            return this.getAttachments().getRootAttachment().findChild(targetPath);
+        } else {
+            return null;
+        }
     }
 }

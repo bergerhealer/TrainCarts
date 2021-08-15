@@ -27,8 +27,10 @@ public class AttachmentControllerGroup {
     public void syncPrePositionUpdate(AttachmentUpdateTransformHelper updater) {
         for (MinecartMember<?> member : this.group) {
             AttachmentControllerMember controller = member.getAttachments();
-            controller.syncPrePositionUpdate();
-            updater.start(controller.getRootAttachment(), controller.getLiveTransform());
+            if (controller.isAttached()) {
+                controller.syncPrePositionUpdate();
+                updater.start(controller.getRootAttachment(), controller.getLiveTransform());
+            }
         }
     }
 
