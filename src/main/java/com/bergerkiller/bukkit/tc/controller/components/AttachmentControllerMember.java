@@ -393,7 +393,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
      */
     public void syncPostPositionUpdate() {
         // Make sure not dead/unloaded
-        if (this.isUnloadedOrDead()) {
+        if (this.rootAttachment == null || this.isUnloadedOrDead()) {
             return;
         }
 
@@ -544,6 +544,11 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
 
     @Override
     public synchronized void onModelNodeChanged(AttachmentModel model, int[] targetPath, ConfigurationNode config) {
+        // If not attached don't do anything to prevent bad things from happening
+        if (!this.attached) {
+            return;
+        }
+
         // Find the child. If not found, just refresh the entire model.
         Attachment attachment = this.getRootAttachment().findChild(targetPath);
         if (attachment == null) {
