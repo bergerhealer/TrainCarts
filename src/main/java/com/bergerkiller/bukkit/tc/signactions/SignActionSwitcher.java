@@ -293,6 +293,9 @@ public class SignActionSwitcher extends SignAction {
 
     @Override
     public boolean isRailSwitcher(SignActionEvent info) {
+        if (TCConfig.onlyPoweredSwitchersDoPathFinding && info.getHeader().isAlwaysOff()) {
+            return false; // Used purely for detecting trains, not actively switching anything
+        }
         return true;
     }
 
