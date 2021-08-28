@@ -30,6 +30,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.plugin.java.JavaPluginLoader;
 
 /**
  * A simple class that uses the 'preloader' section in the plugin.yml
@@ -45,7 +46,7 @@ import org.bukkit.plugin.java.JavaPlugin;
  *
  * @author Irmo van den Berge (bergerkiller) - Feel free to use in this
  *         in your own plugin, I do not care.
- * @version 1.1
+ * @version 1.2
  */
 public class Preloader extends JavaPlugin {
     private final String mainClassName;
@@ -113,6 +114,9 @@ public class Preloader extends JavaPlugin {
             return;
         }
 
+        // Get up-front
+        final String pluginName = this.getName();
+
         // Load the main class as declared in the preloader configuration
         final Class<?> mainClass;
         try {
@@ -126,7 +130,7 @@ public class Preloader extends JavaPlugin {
         // Inside the JavaPlugin constructor it initializes itself using the PluginClassLoader
         // As part of this, it checks that the plugin and pluginInit fields are unset.
         // So before we initialize a new instance, unset these fields.
-        this.setLoaderPluginField(null);
+        this.setLoaderPluginField(null, pluginName);
 
         // Initialize the plugin class the same way this preloader class was initialized
         // This is normally done inside the constructor of PluginClassLoader
@@ -136,12 +140,12 @@ public class Preloader extends JavaPlugin {
         } catch (Throwable t) {
             this.getLogger().log(Level.SEVERE, "Failed to load the plugin", t);
             this.loadError = "Failed to load the plugin - check server log!";
-            this.setLoaderPluginField(this); // Undo this, otherwise state is corrupted
+            this.setLoaderPluginField(this, pluginName); // Undo this, otherwise state is corrupted
             return;
         }
 
         // Normally done inside PluginClassLoader constructor, so do it now
-        setLoaderPluginField(mainPlugin);
+        setLoaderPluginField(mainPlugin, pluginName);
 
         // Initialization successful! Now replace the plugin instance in all other places
         // It's absolutely important we replace it EVERYWHERE or things will probably break!
@@ -227,7 +231,8 @@ public class Preloader extends JavaPlugin {
         }, this);
     }
 
-    private void setLoaderPluginField(JavaPlugin plugin) {
+    @SuppressWarnings("unchecked")
+    private void setLoaderPluginField(JavaPlugin plugin, String pluginName) {
         ClassLoader loader = this.getClassLoader();
         try {
             Field pluginField = loader.getClass().getDeclaredField("plugin");
@@ -242,6 +247,44 @@ public class Preloader extends JavaPlugin {
             pluginInitField.set(loader, plugin);
         } catch (Throwable t) {
             this.getLogger().log(Level.SEVERE, "[Preloader] Failed to update 'pluginInit' field", t);
+        }
+
+        // Make sure that during initialization (null) the PluginClassLoader for this plugin
+        // is not registered in the 'global' JavaPluginLoader loaders field. Having this here
+        // can cause a nullpointer exception because the plugin is initializing. Normally
+        // it is also not registered here while calling the constructor.
+        try {
+            Field globalLoaderField = loader.getClass().getDeclaredField("loader");
+            globalLoaderField.setAccessible(true);
+            JavaPluginLoader globalLoader = (JavaPluginLoader) globalLoaderField.get(loader);
+            Field globalLoaderPluginLoadersField = JavaPluginLoader.class.getDeclaredField("loaders");
+            globalLoaderPluginLoadersField.setAccessible(true);
+            Object rawLoaders = globalLoaderPluginLoadersField.get(globalLoader);
+            if (rawLoaders instanceof List) {
+                // Since Bukkit 1.10 onwards
+                List<Object> pluginLoaders = (List<Object>) rawLoaders;
+                if (plugin == null) {
+                    pluginLoaders.remove(loader);
+                } else if (!pluginLoaders.contains(loader)) {
+                    pluginLoaders.add(loader);
+                }
+            } else if (rawLoaders instanceof Map) {
+                // Bukkit/Minecraft 1.8 to 1.9.4 used a Map by plugin name
+                Map<String, Object> pluginLoaders = (Map<String, Object>) rawLoaders;
+                if (plugin == null) {
+                    if (pluginLoaders.get(pluginName) == loader) {
+                        pluginLoaders.remove(pluginName);
+                    }
+                } else {
+                    if (pluginLoaders.get(pluginName) == null) {
+                        pluginLoaders.put(pluginName, loader);
+                    }
+                }
+            } else {
+                throw new IllegalStateException("Unknown loaders field type: " + rawLoaders.getClass());
+            }
+        } catch (Throwable t) {
+            this.getLogger().log(Level.SEVERE, "[Preloader] Failed to update class loader registry", t);
         }
     }
 
@@ -275,3 +318,4 @@ public class Preloader extends JavaPlugin {
         }
     }
 }
+
