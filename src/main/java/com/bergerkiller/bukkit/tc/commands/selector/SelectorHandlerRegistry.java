@@ -34,8 +34,9 @@ import com.bergerkiller.generated.net.minecraft.server.network.PlayerConnectionH
  * as a Listener in the Bukkit API.
  */
 public class SelectorHandlerRegistry implements Listener {
-    // (?:[=]|(?<!\S))@([a-zA-Z0-9]+)(\[([\w\d\-\+=,\*\.\!]+)\])?(\s|$)
-    private static final Pattern SELECTOR_PATTERN = Pattern.compile("(?:[=]|(?<!\\S))@([a-zA-Z0-9]+)(\\[([\\w\\d\\-\\+=,\\*\\.\\!]+)\\])?(\\s|$)");
+    // ^\[([\w\d\-\+=,\*\.\!]+)\](?:\s|$)
+    private static final Pattern CONDITIONS_PATTERN = Pattern.compile("^\\[([\\w\\d\\-\\+=,\\*\\.\\!]+)\\](?:\\s|$)");
+
     private final Map<String, SelectorHandler> handlers = new HashMap<>();
     private final JavaPlugin plugin;
 
@@ -89,17 +90,86 @@ public class SelectorHandlerRegistry implements Listener {
         List<StringBuilder> resultBuilders = null;
         int builderStartPosition = 0;
 
-        for (Matcher matcher = SELECTOR_PATTERN.matcher(command); matcher.find();) {
-            // Retrieve selector from match and try to find a handler for it
-            final String selector = matcher.group(1);
-            final SelectorHandler handler = handlers.get(selector.toLowerCase(Locale.ENGLISH));
-            if (handler == null) {
-                continue;
+        // Find all instances of @, and check that the character before is permitted
+        // for use of a selector expression.
+        char lastChar = ' ';
+        Matcher conditionsMatcher = null; // re-used for performance
+
+        selectorSearch:
+        for (int searchIndex = 0; searchIndex < commandLength;) {
+            // Check potential start of a selector
+            {
+                char ch = command.charAt(searchIndex);
+                if (ch != '@' || (!Character.isWhitespace(lastChar) &&
+                                  lastChar != '!' &&
+                                  lastChar != '=')
+                ) {
+                    lastChar = ch;
+                    searchIndex++;
+                    continue;
+                }
+            }
+
+            // Identify the selector name
+            final int selectorStartIndex;
+            final String selector;
+            final String conditionsString;
+            final SelectorHandler handler;
+            {
+                boolean hasConditions = false;
+                int nameEndIndex;
+                for (nameEndIndex = searchIndex + 1; nameEndIndex < commandLength; nameEndIndex++) {
+                    char ch = command.charAt(nameEndIndex);
+                    if (Character.isAlphabetic(ch) || Character.isDigit(ch)) {
+                        continue;
+                    } else if (ch == '[') {
+                        // Allowed - there are conditions for this selector
+                        hasConditions = true;
+                        break;
+                    } else if (Character.isWhitespace(ch)) {
+                        // Allowed - there are no conditions for this selector
+                        break;
+                    } else {
+                        // Not allowed - not a valid selector pattern
+                        // Skip this selector entirely past this point
+                        searchIndex = nameEndIndex;
+                        continue selectorSearch;
+                    }
+                }
+
+                // Found selector start - next time, search from beyond the name end at least
+                selectorStartIndex = searchIndex;
+                searchIndex = nameEndIndex;
+                lastChar = ']'; // If next character is @ do not match!
+
+                // Decode the selector name, efficiently, without using regex
+                // See if the found selector has a handler, if not, skip right away
+                selector = command.substring(selectorStartIndex + 1, nameEndIndex);
+                handler = handlers.get(selector.toLowerCase(Locale.ENGLISH));
+                if (handler == null) {
+                    continue;
+                }
+
+                // If we found conditions before, try to decode them
+                // If we cannot find a valid conditions range, skip it
+                if (hasConditions) {
+                    if (conditionsMatcher == null) {
+                        conditionsMatcher = CONDITIONS_PATTERN.matcher(command.subSequence(nameEndIndex, commandLength));
+                    } else {
+                        conditionsMatcher.reset(command.subSequence(nameEndIndex, commandLength));
+                    }
+                    if (!conditionsMatcher.lookingAt()) {
+                        continue;
+                    }
+                    conditionsString = conditionsMatcher.group(1);
+                    searchIndex += conditionsString.length() + 2; // skip conditions in next search
+                } else {
+                    conditionsString = null;
+                }
             }
 
             // Decode the conditions
             final List<SelectorCondition> conditions;
-            final String conditionsString = matcher.group(3);
             if (conditionsString == null) {
                 conditions = Collections.emptyList();
             } else {
@@ -161,12 +231,12 @@ public class SelectorHandlerRegistry implements Listener {
             if (resultBuilders == null) {
                 // First time, initialize resultBuilders
                 StringBuilder builder = new StringBuilder(command.length());
-                builder.append(command, 0, matcher.start(1)-1);
+                builder.append(command, 0, selectorStartIndex);
                 resultBuilders = new ArrayList<>(values.size());
                 resultBuilders.add(builder);
             } else {
                 // Second time, include the text in-between two matches
-                String inbetween = command.substring(builderStartPosition, matcher.start(1)-1);
+                String inbetween = command.substring(builderStartPosition, selectorStartIndex);
                 for (StringBuilder builder : resultBuilders) {
                     builder.append(inbetween);
                 }
@@ -197,7 +267,10 @@ public class SelectorHandlerRegistry implements Listener {
             }
 
             // Label this portion as processed. Ignore trailing space.
-            builderStartPosition = matcher.end((conditionsString != null) ? 2 : 1);
+            builderStartPosition = selectorStartIndex + selector.length() + 1;
+            if (conditionsString != null) {
+                builderStartPosition += conditionsString.length() + 2;
+            }
         }
 
         // If there are results, finalize all result builders
