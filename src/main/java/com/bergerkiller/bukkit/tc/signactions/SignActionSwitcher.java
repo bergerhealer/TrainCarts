@@ -266,7 +266,7 @@ public class SignActionSwitcher extends SignAction {
                             }
                         } else {
                             // Call MissingPathConnectionEvent
-                            CommonUtil.callEvent(new MissingPathConnectionEvent(node, info.getGroup(), destination));
+                            CommonUtil.callEvent(new MissingPathConnectionEvent(info.getRailPiece(), node, info.getGroup(), destination));
                             Localization.PATHING_FAILED.broadcast(info.getGroup(), destination);
                         }
                     }
