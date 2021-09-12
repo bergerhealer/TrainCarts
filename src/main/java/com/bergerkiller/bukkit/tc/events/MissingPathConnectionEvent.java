@@ -26,9 +26,7 @@ public class MissingPathConnectionEvent extends Event {
     }
 
     public RailPiece getRail() { return rail; }
-    public PathNode getPathNode() {
-        return this.node;
-    }
+    public PathNode getPathNode() { return this.node; }
     public MinecartGroup getGroup() { return group; }
     public String getDestination() { return destination; }
 
