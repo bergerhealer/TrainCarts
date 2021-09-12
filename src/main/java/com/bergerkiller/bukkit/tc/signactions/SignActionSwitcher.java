@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import com.bergerkiller.bukkit.common.collections.BlockMap;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.DirectionStatement;
 import com.bergerkiller.bukkit.tc.Localization;
@@ -11,6 +12,7 @@ import com.bergerkiller.bukkit.tc.actions.GroupActionWaitPathFinding;
 import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.events.MissingPathConnectionEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
@@ -263,6 +265,8 @@ public class SignActionSwitcher extends SignAction {
                                 info.setRailsTo(conn.junctionName);
                             }
                         } else {
+                            // Call MissingPathConnectionEvent
+                            CommonUtil.callEvent(new MissingPathConnectionEvent(node, info.getGroup(), destination));
                             Localization.PATHING_FAILED.broadcast(info.getGroup(), destination);
                         }
                     }
