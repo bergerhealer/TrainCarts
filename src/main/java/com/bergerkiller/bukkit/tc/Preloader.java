@@ -16,7 +16,6 @@ import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
@@ -32,6 +31,8 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.java.JavaPluginLoader;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * A simple class that uses the 'preloader' section in the plugin.yml
  * to load the actual plugin. If dependencies declared in this section
@@ -46,7 +47,7 @@ import org.bukkit.plugin.java.JavaPluginLoader;
  *
  * @author Irmo van den Berge (bergerkiller) - Feel free to use in this
  *         in your own plugin, I do not care.
- * @version 1.2
+ * @version 1.3
  */
 public class Preloader extends JavaPlugin {
     private final String mainClassName;
@@ -103,15 +104,32 @@ public class Preloader extends JavaPlugin {
         missingDepends.clear();
         for (Depend depend : dependList) {
             if (this.getServer().getPluginManager().getPlugin(depend.name) == null) {
-                final PluginDescriptionFile desc = this.getDescription();
-                this.getLogger().log(Level.SEVERE, "Plugin " + desc.getName() + " " + desc.getVersion() +
-                        " requires plugin " + depend.name + " to be installed! But it is not!");
-                this.getLogger().log(Level.SEVERE, "Download " + depend.name + " from " + depend.url);
                 missingDepends.add(depend);
             }
         }
         if (!missingDepends.isEmpty()) {
             return;
+        }
+
+        // Now that we know all plugins we need are there we can safely make them hard-dependencies
+        // They cannot be hard-dependencies before, otherwise this preloader cannot handle onEnabled()
+        // It is also a problem if the main plugin class references classes from a hard dependency,
+        // because then class not found exceptions will be thrown when instantiating the plugin.
+        {
+            PluginDescriptionFile description = this.getDescription();
+            List<String> newDepend = new ArrayList<String>(description.getDepend());
+            for (Depend depend : dependList) {
+                if (!newDepend.contains(depend.name)) {
+                    newDepend.add(depend.name);
+                }
+            }
+            try {
+                Field field = PluginDescriptionFile.class.getDeclaredField("depend");
+                field.setAccessible(true);
+                field.set(description, ImmutableList.copyOf(newDepend));
+            } catch (Throwable t) {
+                this.getLogger().log(Level.SEVERE, "Failed to update depend list", t);
+            }
         }
 
         // Get up-front
@@ -122,8 +140,8 @@ public class Preloader extends JavaPlugin {
         try {
             mainClass = this.getClassLoader().loadClass(mainClassName);
         } catch (ClassNotFoundException e) {
-            this.getLogger().log(Level.SEVERE, "Failed to initialize the plugin main class", e);
-            this.loadError = "Failed to initialize the main class - check server log!";
+            this.getLogger().log(Level.SEVERE, "Failed to load the plugin main class", e);
+            this.loadError = "Failed to load the plugin main class - check server log!";
             return;
         }
 
@@ -138,8 +156,8 @@ public class Preloader extends JavaPlugin {
         try {
             mainPlugin = (JavaPlugin) mainClass.newInstance();
         } catch (Throwable t) {
-            this.getLogger().log(Level.SEVERE, "Failed to load the plugin", t);
-            this.loadError = "Failed to load the plugin - check server log!";
+            this.getLogger().log(Level.SEVERE, "Failed to call plugin constructor", t);
+            this.loadError = "Failed to call plugin constructor - check server log!";
             this.setLoaderPluginField(this, pluginName); // Undo this, otherwise state is corrupted
             return;
         }
@@ -190,25 +208,40 @@ public class Preloader extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        // Log about these missing dependencies
+        if (!missingDepends.isEmpty()) {
+            missingDepends.forEach(depend -> {
+                final PluginDescriptionFile desc = getDescription();
+                getLogger().log(Level.SEVERE, "Plugin " + desc.getName() + " " + desc.getVersion() +
+                        " requires plugin " + depend.name + " to be installed! But it is not!");
+                getLogger().log(Level.SEVERE, "Download " + depend.name + " from " + depend.url);
+            });
+        }
+
         // If nothing is wrong, something weird is going on
         // It should never get here...
         if (this.loadError == null && this.missingDepends.isEmpty()) {
             this.loadError = "Preloading failed - unsupported server?";
         }
-
-        // Notify
-        this.getLogger().log(Level.SEVERE, "Not enabled! - Check server log");
+        if (this.loadError != null) {
+            getLogger().log(Level.SEVERE, "Not enabled because plugin could not be loaded! - Check server log");
+        }
 
         // Register commands late if specified
         this.preloaderCommands.forEach(commandName -> {
             try {
-                Command command;
+                PluginCommand command;
                 {
                     Constructor<PluginCommand> constr = PluginCommand.class.getDeclaredConstructor(String.class, Plugin.class);
                     constr.setAccessible(true);
                     command = constr.newInstance(commandName, this);
                     command.setDescription("Plugin " + getName() + " could not be loaded!");
                 }
+
+                command.setExecutor((sender, label, e_cmd, args) -> {
+                    showErrors(sender);
+                    return true;
+                });
 
                 Field commandMapField = Bukkit.getPluginManager().getClass().getDeclaredField("commandMap");
                 commandMapField.setAccessible(true);
@@ -229,6 +262,20 @@ public class Preloader extends JavaPlugin {
                 }
             }
         }, this);
+    }
+
+    private void showErrors(CommandSender sender) {
+        if (this.loadError != null) {
+            sender.sendMessage(ChatColor.RED + "There was a fatal error initializing " + this.getName());
+            sender.sendMessage(ChatColor.RED + this.loadError);
+        } else {
+            sender.sendMessage(ChatColor.RED + "Plugin " + this.getName() + " could not be enabled!");
+            sender.sendMessage(ChatColor.RED + "Please install these additional dependencies:");
+            for (Depend depend : this.missingDepends) {
+                sender.sendMessage(ChatColor.RED + "  ======== " + depend.name + " ========");
+                sender.sendMessage(ChatColor.RED + "  > " + ChatColor.WHITE + ChatColor.UNDERLINE + depend.url);
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -288,26 +335,6 @@ public class Preloader extends JavaPlugin {
         }
     }
 
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        showErrors(sender);
-        return true;
-    }
-
-    private void showErrors(CommandSender sender) {
-        if (this.loadError != null) {
-            sender.sendMessage(ChatColor.RED + "There was a fatal error initializing " + this.getName());
-            sender.sendMessage(ChatColor.RED + this.loadError);
-        } else {
-            sender.sendMessage(ChatColor.RED + "Plugin " + this.getName() + " could not be enabled!");
-            sender.sendMessage(ChatColor.RED + "Please install these additional dependencies:");
-            for (Depend depend : this.missingDepends) {
-                sender.sendMessage(ChatColor.RED + "  ======== " + depend.name + " ========");
-                sender.sendMessage(ChatColor.RED + "  > " + ChatColor.WHITE + ChatColor.UNDERLINE + depend.url);
-            }
-        }
-    }
-
     private static final class Depend {
         public final String name;
         public final String url;
@@ -318,4 +345,3 @@ public class Preloader extends JavaPlugin {
         }
     }
 }
-

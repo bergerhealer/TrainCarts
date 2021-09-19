@@ -11,6 +11,7 @@ softdepend: [BKCommonLib, MinecartManiaCore, SignLink, My_Worlds, LightAPI, Vaul
 main: com.bergerkiller.bukkit.tc.Preloader
 preloader:
     main: com.bergerkiller.bukkit.tc.TrainCarts
+    hastebinServer: https://paste.traincarts.net
     commands: [train, cart, savedtrain]
     depend:
         BKCommonLib: https://www.spigotmc.org/resources/bkcommonlib.39590/

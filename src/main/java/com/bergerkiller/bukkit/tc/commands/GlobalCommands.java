@@ -35,6 +35,7 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.annotations.CommandPermission;
 import cloud.commandframework.annotations.Flag;
 import cloud.commandframework.annotations.Hidden;
 import cloud.commandframework.annotations.specifier.Greedy;
@@ -67,6 +68,16 @@ public class GlobalCommands {
             final TrainCarts plugin
     ) {
         plugin.onVersionCommand("version", sender);
+    }
+
+    @CommandMethod("train startuplog")
+    @CommandDescription("Views everything logged during startup of TrainCarts")
+    @CommandPermission("bkcommonlib.command.startuplog")
+    private void commandShowStartupLog(
+            final CommandSender sender,
+            final TrainCarts plugin
+    ) {
+        plugin.onStartupLogCommand(sender, "startuplog", new String[0]);
     }
 
     @CommandMethod("train list destinations")
