@@ -18,7 +18,6 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 
@@ -175,7 +174,11 @@ public class RailSignCache {
                 }
 
                 // Go to the next block
-                hasSigns = Util.hasAttachedSigns(block);
+                if (MaterialUtil.ISSIGN.get(block)) {
+                    hasSigns = BlockUtil.getAttachedFace(block) == BlockFace.DOWN;
+                } else {
+                    hasSigns = hasAttachedSigns(block);
+                }
             }
         }
         return RailPiece.NONE;
@@ -215,6 +218,16 @@ public class RailSignCache {
             currentBlock = currentBlock.getRelative(signDirection);
             offsetCtr++;
         }
+    }
+
+    private static boolean hasAttachedSigns(final Block middle) {
+        for (BlockFace face : FaceUtil.AXIS) {
+            Block b = middle.getRelative(face);
+            if (MaterialUtil.ISSIGN.get(b) && BlockUtil.getAttachedFace(b) == face.getOppositeFace()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean addAttachedSigns(final Block middle, final Collection<Block> rval) {
