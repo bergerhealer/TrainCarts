@@ -62,6 +62,11 @@ public class SignActionDestination extends SignAction {
             return;
         }
 
+        // Must have rails or nothing will happen (no path finding node)
+        if (!info.hasRails()) {
+            return;
+        }
+
         // Only activate the sign if it is a cart/train sign, and the appropriate enter event is fired (or redstone-triggered)
         if ( !(info.isCartSign() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.MEMBER_ENTER)) &&
              !(info.isTrainSign() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) )

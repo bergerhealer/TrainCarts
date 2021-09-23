@@ -56,6 +56,9 @@ public class PathNode {
     }
 
     public static PathNode getOrCreate(SignActionEvent event) {
+        if (!event.hasRails()) {
+            throw new IllegalArgumentException("Sign has no rails - check hasRails()");
+        }
         if (event.isType("destination")) {
             //get this destination name
             PathNode node = getOrCreate(event.getRails());

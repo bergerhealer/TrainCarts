@@ -128,7 +128,7 @@ public class SignActionSwitcher extends SignAction {
         } else if (info.isAction(SignActionType.GROUP_LEAVE) && info.isTrainSign()) {
             info.setLevers(false);
             return;
-        } else if (hasFromDirections && info.isPowered() && info.isAction(SignActionType.REDSTONE_CHANGE)) {
+        } else if (hasFromDirections && info.isPowered() && info.hasRails() && info.isAction(SignActionType.REDSTONE_CHANGE)) {
             // Redstone change used with from-to directions, to toggle track automatically
             // Used when toggling rails using redstone input
             toggleRails = true;
