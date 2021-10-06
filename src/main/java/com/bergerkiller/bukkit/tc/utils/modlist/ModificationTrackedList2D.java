@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.utils.modlist;
 
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -18,11 +19,18 @@ import com.bergerkiller.bukkit.common.collections.List2DListIterator;
  * @param <E> Element type
  */
 public class ModificationTrackedList2D<E> extends AbstractList<E> implements ModificationTrackedList<E> {
-    private Collection<List<E>> lists = Collections.emptySet();
+    private final ArrayList<List<E>> lists = new ArrayList<List<E>>();
 
-    public void setLists(Collection<List<E>> lists) {
-        this.lists = lists;
+    public void resetLists() {
+        this.lists.clear();
         this.modCount++;
+    }
+
+    public void addListIfNotEmpty(List<E> list) {
+        if (!list.isEmpty()) {
+            this.lists.add(list);
+            this.modCount++;
+        }
     }
 
     @Override

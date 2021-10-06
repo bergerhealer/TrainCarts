@@ -19,7 +19,6 @@ import com.bergerkiller.bukkit.tc.utils.modlist.ModificationTrackedList2D;
 import org.bukkit.block.Block;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Keeps track of the active rails, signs and detector regions below a
@@ -170,10 +169,10 @@ public class SignTrackerGroup extends SignTracker {
                 }
 
                 // Synchronize the list of active signs using the liveActiveSigns of the members
-                this.liveActiveSigns.setLists(owner.stream()
-                    .map(m -> m.getSignTracker().liveActiveSigns)
-                    .filter(list -> !list.isEmpty())
-                    .collect(Collectors.toList()));
+                this.liveActiveSigns.resetLists();
+                for (MinecartMember<?> member : owner) {
+                    this.liveActiveSigns.addListIfNotEmpty(member.getSignTracker().liveActiveSigns);
+                }
 
                 // Filter the list based on sign skip options before returning
                 // This will remove elements from the lists in the member sign tracker!
