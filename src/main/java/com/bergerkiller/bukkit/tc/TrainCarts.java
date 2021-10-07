@@ -308,14 +308,17 @@ public class TrainCarts extends PluginBase {
     }
 
     public static boolean isWorldDisabled(World world) {
-        return isWorldDisabled(world.getName());
+        if(!TCConfig.enabledWorlds.isEmpty())
+            return !TCConfig.enabledWorlds.contains(world);
+
+        return TCConfig.disabledWorlds.contains(world);
     }
 
     public static boolean isWorldDisabled(String worldname) {
         if(!TCConfig.enabledWorlds.isEmpty())
-            return !TCConfig.enabledWorlds.contains(worldname.toLowerCase());
+            return !TCConfig.enabledWorlds.contains(worldname);
 
-        return TCConfig.disabledWorlds.contains(worldname.toLowerCase());
+        return TCConfig.disabledWorlds.contains(worldname);
     }
 
     public static boolean handlePlayerVehicleChange(Player player, Entity newVehicle) {

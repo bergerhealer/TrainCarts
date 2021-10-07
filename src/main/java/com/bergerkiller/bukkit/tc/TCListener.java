@@ -185,6 +185,10 @@ public class TCListener implements Listener {
         if (Bukkit.getPluginManager().isPluginEnabled("LightAPI")) {
             disableLightAPIWorld(event.getWorld());
         }
+
+        // Memory cleanup
+        TCConfig.enabledWorlds.onWorldUnloaded(event.getWorld());
+        TCConfig.disabledWorlds.onWorldUnloaded(event.getWorld());
     }
 
     // Put in its own method to further avoid loading the class when LightAPI is not enabled

@@ -25,6 +25,7 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
+import com.bergerkiller.bukkit.tc.utils.ConfiguredWorldSet;
 
 /**
  * Stores all the settings specified in the TrainCarts config.yml.
@@ -104,8 +105,8 @@ public class TCConfig {
     public static boolean allowExternalTicketImagePaths = false; // Whether images outside of the images subdirectory are allowed
     public static String currencyFormat;
     public static Set<Material> allowedBlockBreakTypes = new HashSet<>();
-    public static Set<String> enabledWorlds = new HashSet<>();
-    public static Set<String> disabledWorlds = new HashSet<>();
+    public static ConfiguredWorldSet enabledWorlds = new ConfiguredWorldSet();
+    public static ConfiguredWorldSet disabledWorlds = new ConfiguredWorldSet();
     public static Map<String, ItemParser[]> parsers = new HashMap<>();
     public static MapResourcePack resourcePack = MapResourcePack.SERVER;
     public static Map<String, Animation> defaultAnimations = new HashMap<>();
@@ -352,7 +353,7 @@ public class TCConfig {
             config.set("enabledWorlds", Collections.emptyList());
         }
         for (String world : config.getList("enabledWorlds", String.class)) {
-            enabledWorlds.add(world.toLowerCase());
+            enabledWorlds.add(world);
         }
 
         config.setHeader("disabledWorlds", "\nA list of world names where TrainCarts should be disabled");
@@ -363,7 +364,7 @@ public class TCConfig {
             config.set("disabledWorlds", Arrays.asList("DefaultWorld1", "DefaultWorld2"));
         }
         for (String world : config.getList("disabledWorlds", String.class)) {
-            disabledWorlds.add(world.toLowerCase());
+            disabledWorlds.add(world);
         }
 
         //set it again
