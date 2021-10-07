@@ -46,6 +46,7 @@ public abstract class RailType {
     public static final RailTypeNone NONE = new RailTypeNone();
     private static final List<RailType> values = new ArrayList<RailType>();
     private final boolean _isComplexRailBlock;
+    private final boolean _isHandlingPhysics;
 
     static {
         for (RailType type : CommonUtil.getClassConstants(RailType.class)) {
@@ -146,16 +147,30 @@ public abstract class RailType {
      */
     public static RailType getType(Block railsBlock, BlockData railsBlockData) {
         for (RailType type : values()) {
-            try {
-                if (type.isComplexRailBlock() ? type.isRail(railsBlock) : type.isRail(railsBlockData)) {
-                    return type;
-                }
-            } catch (Throwable t) {
-                handleCriticalError(type, t);
-                break;
+            if (checkRailTypeIsAt(type, railsBlock, railsBlockData)) {
+                return type;
             }
         }
         return NONE;
+    }
+
+    /**
+     * Helper method to check whether a given RailType matches the provided block and block
+     * data. Will choose the most optimized method, and handle errors in custom implementations
+     * sanely.
+     *
+     * @param type Rail type
+     * @param railsBlock Rail block
+     * @param railsBlockData Block data of Rail block
+     * @return True if the rail type is at the block
+     */
+    public static boolean checkRailTypeIsAt(RailType type, Block railsBlock, BlockData railsBlockData) {
+        try {
+            return type.isComplexRailBlock() ? type.isRail(railsBlock) : type.isRail(railsBlockData);
+        } catch (Throwable t) {
+            handleCriticalError(type, t);
+            return false;
+        }
     }
 
     /**
@@ -267,6 +282,13 @@ public abstract class RailType {
         // If it is not, we can optimize lookup for this rail type
         this._isComplexRailBlock = CommonUtil.isMethodOverrided(RailType.class, getClass(),
                 "isRail", World.class, int.class, int.class, int.class);
+        // Detect whether onBlockPhysics and/or isRailsSupported are overrided
+        // If so, block physics need to be handled, for which a potentially expensive
+        // isRail() check needs to be executed.
+        this._isHandlingPhysics = CommonUtil.isMethodOverrided(RailType.class, getClass(),
+                "onBlockPhysics", org.bukkit.event.block.BlockPhysicsEvent.class) ||
+                                  CommonUtil.isMethodOverrided(RailType.class, getClass(),
+                "isRailsSupported", Block.class);
     }
 
     /**
@@ -337,6 +359,17 @@ public abstract class RailType {
      */
     public final boolean isComplexRailBlock() {
         return this._isComplexRailBlock;
+    }
+
+    /**
+     * Gets whether {@link #onBlockPhysics(BlockPhysicsEvent)} or
+     * {@link #isRailsSupported(Block)} are overrided, indicating this rail type
+     * will need to be notified of physics events.
+     *
+     * @return True if physics are handled by this rail type
+     */
+    public final boolean isHandlingPhysics() {
+        return this._isHandlingPhysics;
     }
 
     /**

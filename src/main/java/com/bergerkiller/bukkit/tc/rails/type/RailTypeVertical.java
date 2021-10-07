@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.rails.type;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -18,6 +19,8 @@ import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVerticalSlopeUpsideDownD;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.material.MaterialData;
+import org.bukkit.material.Rails;
 
 public class RailTypeVertical extends RailType {
     private static final BlockFace[] SIGN_TRIGGER_DIRS = {BlockFace.UP, BlockFace.DOWN};
@@ -173,14 +176,14 @@ public class RailTypeVertical extends RailType {
     }
 
     private boolean isUpsideDownRail(Block railsBlock) {
-        RailType railType = RailType.getType(railsBlock);
-        if (railType instanceof RailTypeRegular) {
-            return ((RailTypeRegular) railType).isUpsideDown(railsBlock);
+        MaterialData materialData = WorldUtil.getBlockData(railsBlock).getMaterialData();
+        if (materialData instanceof Rails) {
+            return RailType.REGULAR.isUpsideDown(railsBlock, (Rails) materialData);
         } else {
             return false;
         }
     }
-    
+
     /**
      * Gets a sloped rail that connects to a vertical rail, if one exists and is connected
      * 

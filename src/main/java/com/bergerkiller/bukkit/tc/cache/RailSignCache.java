@@ -139,7 +139,7 @@ public class RailSignCache {
         BlockData signblock_data = WorldUtil.getBlockData(signblock);
         final Block mainBlock;
         if (signblock_data.isType(WALL_SIGN_TYPE)) {
-            mainBlock = BlockUtil.getAttachedBlock(signblock);
+            mainBlock = signblock.getRelative(signblock_data.getAttachedFace());
         } else if (signblock_data.isType(SIGN_POST_TYPE)) {
             mainBlock = signblock;
         } else {
@@ -156,13 +156,15 @@ public class RailSignCache {
         boolean hasSigns;
         for (BlockFace dir : SIGN_FACES_ORDERED) {
             Block block = mainBlock;
+            BlockData blockData;
             hasSigns = true;
             while (true) {
                 // Go to the next block
                 block = block.getRelative(dir);
+                blockData = WorldUtil.getBlockData(block);
 
                 // Check for rails
-                railType = RailType.getType(block);
+                railType = RailType.getType(block, blockData);
                 BlockFace columnDir = railType.getSignColumnDirection(block);
                 if (dir == columnDir.getOppositeFace()) {
                     return RailPiece.create(railType, block);
@@ -174,8 +176,8 @@ public class RailSignCache {
                 }
 
                 // Go to the next block
-                if (MaterialUtil.ISSIGN.get(block)) {
-                    hasSigns = BlockUtil.getAttachedFace(block) == BlockFace.DOWN;
+                if (MaterialUtil.ISSIGN.get(blockData)) {
+                    hasSigns = blockData.getAttachedFace() == BlockFace.DOWN;
                 } else {
                     hasSigns = hasAttachedSigns(block);
                 }
@@ -223,7 +225,8 @@ public class RailSignCache {
     private static boolean hasAttachedSigns(final Block middle) {
         for (BlockFace face : FaceUtil.AXIS) {
             Block b = middle.getRelative(face);
-            if (MaterialUtil.ISSIGN.get(b) && BlockUtil.getAttachedFace(b) == face.getOppositeFace()) {
+            BlockData blockData = WorldUtil.getBlockData(b);
+            if (MaterialUtil.ISSIGN.get(blockData) && blockData.getAttachedFace() == face.getOppositeFace()) {
                 return true;
             }
         }
@@ -234,7 +237,8 @@ public class RailSignCache {
         boolean found = false;
         for (BlockFace face : FaceUtil.AXIS) {
             Block b = middle.getRelative(face);
-            if (MaterialUtil.ISSIGN.get(b) && BlockUtil.getAttachedFace(b) == face.getOppositeFace()) {
+            BlockData blockData = WorldUtil.getBlockData(b);
+            if (MaterialUtil.ISSIGN.get(blockData) && blockData.getAttachedFace() == face.getOppositeFace()) {
                 found = true;
                 rval.add(b);
             }

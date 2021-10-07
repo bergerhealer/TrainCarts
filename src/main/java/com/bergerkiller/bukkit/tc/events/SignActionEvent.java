@@ -310,11 +310,11 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return junctions
      */
     public List<RailJunction> getJunctions() {
-        Block railBlock = this.getRails();
-        if (railBlock == null) {
+        RailPiece piece = this.getRailPiece();
+        if (piece.isNone()) {
             return Collections.emptyList();
         } else {
-            return RailType.getType(railBlock).getJunctions(railBlock);
+            return piece.type().getJunctions(piece.block());
         }
     }
 

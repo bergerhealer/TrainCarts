@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -132,7 +133,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
         return isUpsideDown(railsBlock, null);
     }
 
-    private boolean isUpsideDown(Block railsBlock, Rails rails) {
+    protected boolean isUpsideDown(Block railsBlock, Rails rails) {
         if (!TCConfig.allowUpsideDownRails) {
             return false;
         }
@@ -160,8 +161,9 @@ public class RailTypeRegular extends RailTypeHorizontal {
         if (rails.isOnSlope()) {
             // Check blocks above-forward - should be valid solid or another upside-down rails
             Block nextBlock = railsBlock.getRelative(rails.getDirection().getOppositeFace());
-            if (!BlockUtil.isSuffocating(nextBlock)) {
-                RailType railType = RailType.getType(nextBlock);
+            BlockData nextBlockData = WorldUtil.getBlockData(nextBlock);
+            if (!nextBlockData.isSuffocating(nextBlock)) {
+                RailType railType = RailType.getType(nextBlock, nextBlockData);
                 if (railType == RailType.NONE) {
                     return false;
                 }

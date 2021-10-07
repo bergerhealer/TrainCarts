@@ -671,9 +671,9 @@ public class TCListener implements Listener {
      */
     public boolean onRightClick(Block clickedBlock, Player player, ItemStack heldItem, long clickInterval) {
         // Handle interaction with minecart or rails onto another Block
-        if (MaterialUtil.ISMINECART.get(heldItem) || Util.ISTCRAIL.get(heldItem)) {
-            BlockData type = clickedBlock == null ? BlockData.AIR : WorldUtil.getBlockData(clickedBlock);
-            RailType railType = RailType.getType(clickedBlock);
+        if (clickedBlock != null && (MaterialUtil.ISMINECART.get(heldItem) || Util.ISTCRAIL.get(heldItem))) {
+            BlockData type = WorldUtil.getBlockData(clickedBlock);
+            RailType railType = RailType.getType(clickedBlock, type);
             if (railType != RailType.NONE) {
                 if (MaterialUtil.ISMINECART.get(heldItem)) {
                     // Handle the interaction with rails while holding a minecart
@@ -849,16 +849,18 @@ public class TCListener implements Listener {
 
         // Check if a rail block is broken
         {
-            RailType railType = RailType.getType(block, blockData);
-            if (railType != RailType.NONE) {
-                // First check that the rails are supported as they are
-                // If not, it will be destroyed either by onBlockPhysics or Vanilla physics
-                if (!railType.isRailsSupported(block)) {
-                    onRailsBreak(block);
-                }
+            for (RailType type : RailType.values()) {
+                if (type.isHandlingPhysics() && RailType.checkRailTypeIsAt(type, block, blockData)) {
+                    // First check that the rails are supported as they are
+                    // If not, it will be destroyed either by onBlockPhysics or Vanilla physics
+                    if (!type.isRailsSupported(block)) {
+                        onRailsBreak(block);
+                    }
 
-                // Let the rail type handle any custom physics
-                railType.onBlockPhysics(event);
+                    // Let the rail type handle any custom physics
+                    type.onBlockPhysics(event);
+                    break;
+                }
             }
         }
 
