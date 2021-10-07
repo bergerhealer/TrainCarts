@@ -845,7 +845,7 @@ public class TCListener implements Listener {
     public void onBlockPhysics(BlockPhysicsEvent event) {
         MinecartGroupStore.notifyPhysicsChange();
         Block block = event.getBlock();
-        BlockData blockData = WorldUtil.getBlockData(block);
+        BlockData blockData = Util.getBlockDataOfPhysicsEvent(event);
 
         // Check if a rail block is broken
         {
