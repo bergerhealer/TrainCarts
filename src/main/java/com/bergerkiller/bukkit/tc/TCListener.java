@@ -93,8 +93,13 @@ public class TCListener implements Listener {
     public static MinecartMember<?> killedByMember = null;
     public static List<Entity> exemptFromEjectOffset = new ArrayList<Entity>();
     private static Map<Player, Integer> markedForUnmounting = new HashMap<Player, Integer>();
+    private final TrainCarts plugin;
     private EntityMap<Player, Long> lastHitTimes = new EntityMap<>();
     private EntityMap<Player, BlockFace> lastClickedDirection = new EntityMap<>();
+
+    public TCListener(TrainCarts plugin) {
+        this.plugin = plugin;
+    }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
@@ -108,7 +113,7 @@ public class TCListener implements Listener {
 
         // Clean up the fake teams we've sent
         FakePlayerSpawner.onViewerQuit(event.getPlayer());
-        TrainCarts.plugin.getGlowColorTeamProvider().reset(event.getPlayer());
+        plugin.getGlowColorTeamProvider().reset(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -151,10 +156,10 @@ public class TCListener implements Listener {
         if (group.canUnload()) {
             group.unload();
         } else if (group.getChunkArea().containsChunk(chunk.getX(), chunk.getZ()))  {
-            TrainCarts.plugin.log(Level.SEVERE, "Chunk " + chunk.getX() + "/" + chunk.getZ() +
+            plugin.log(Level.SEVERE, "Chunk " + chunk.getX() + "/" + chunk.getZ() +
                     " of group " + group.getProperties().getTrainName() + " unloaded unexpectedly!");
         } else {
-            TrainCarts.plugin.log(Level.SEVERE, "Chunk " + chunk.getX() + "/" + chunk.getZ() +
+            plugin.log(Level.SEVERE, "Chunk " + chunk.getX() + "/" + chunk.getZ() +
                     " of group " + group.getProperties().getTrainName() + " unloaded because chunk area wasn't up to date!");
         }
     }
@@ -189,7 +194,7 @@ public class TCListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
-        TrainCarts.plugin.getGlowColorTeamProvider().reset(event.getPlayer());
+        plugin.getGlowColorTeamProvider().reset(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
@@ -239,9 +244,9 @@ public class TCListener implements Listener {
                 // This really should never happen - Chunk/World unload events take care of this
                 // If it does happen, it implies that a chunk unloaded without raising an event
                 if (group.canUnload()) {
-                    TrainCarts.plugin.log(Level.WARNING, "Train '" + group.getProperties().getTrainName() + "' forcibly unloaded!");
+                    plugin.log(Level.WARNING, "Train '" + group.getProperties().getTrainName() + "' forcibly unloaded!");
                 } else {
-                    TrainCarts.plugin.log(Level.WARNING, "Train '" + group.getProperties().getTrainName() + "' had to be restored after unexpected unload");
+                    plugin.log(Level.WARNING, "Train '" + group.getProperties().getTrainName() + "' had to be restored after unexpected unload");
                 }
                 group.unload();
                 // For the next tick: update the storage system to restore trains here and there
@@ -458,7 +463,7 @@ public class TCListener implements Listener {
                 event.setCancelled(!member.onEntityCollision(event.getEntity()));
             }
         } catch (Throwable t) {
-            TrainCarts.plugin.handle(t);
+            plugin.handle(t);
         }
     }
 
@@ -522,7 +527,7 @@ public class TCListener implements Listener {
                 return;
             }
 
-            //TrainCarts.plugin.log(Level.INFO, "Interacted with block [" + clickedBlock.getX() + ", " + clickedBlock.getY() + ", " + clickedBlock.getZ() + "]");
+            //plugin.log(Level.INFO, "Interacted with block [" + clickedBlock.getX() + ", " + clickedBlock.getY() + ", " + clickedBlock.getZ() + "]");
 
             Material m = (event.getItem() == null) ? Material.AIR : event.getItem().getType();
 
@@ -551,7 +556,7 @@ public class TCListener implements Listener {
                     map.next();
                 }
                 for (Block block : map) {
-                    TrainCarts.plugin.log(Level.INFO, "INVISIBLE: " + block);
+                    plugin.log(Level.INFO, "INVISIBLE: " + block);
                     CommonPacket packet = PacketType.OUT_BLOCK_CHANGE.newInstance();
                     packet.write(PacketType.OUT_BLOCK_CHANGE.position, new IntVector3(block));
                     packet.write(PacketType.OUT_BLOCK_CHANGE.blockData, BlockData.fromMaterial(Material.AIR));
@@ -576,7 +581,7 @@ public class TCListener implements Listener {
                 event.setCancelled(true);
             }
         } catch (Throwable t) {
-            TrainCarts.plugin.handle(t);
+            plugin.handle(t);
         }
     }
 
@@ -834,33 +839,41 @@ public class TCListener implements Listener {
     }
 
     /*
-     * Fires the onBlockPhysics handler for Rail Types
+     * Handles all the block physics changes - plugin wide
      */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBlockPhysics(BlockPhysicsEvent event) {
         MinecartGroupStore.notifyPhysicsChange();
-        RailType railType = RailType.getType(event.getBlock());
-        if (railType != RailType.NONE) {
-            // First check that the rails are supported as they are
-            // If not, it will be destroyed either by onBlockPhysics or Vanilla physics
-            if (!railType.isRailsSupported(event.getBlock())) {
-                onRailsBreak(event.getBlock());
-            }
-
-            // Let the rail type handle any custom physics
-            railType.onBlockPhysics(event);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlockPhysicsMonitor(BlockPhysicsEvent event) {
-        // Handle signs being broken because their supporting block got destroyed
         Block block = event.getBlock();
-        if (MaterialUtil.ISSIGN.get(block)) {
-            if (!Util.isSignSupported(event.getBlock())) {
+        BlockData blockData = WorldUtil.getBlockData(block);
+
+        // Check if a rail block is broken
+        {
+            RailType railType = RailType.getType(block, blockData);
+            if (railType != RailType.NONE) {
+                // First check that the rails are supported as they are
+                // If not, it will be destroyed either by onBlockPhysics or Vanilla physics
+                if (!railType.isRailsSupported(block)) {
+                    onRailsBreak(block);
+                }
+
+                // Let the rail type handle any custom physics
+                railType.onBlockPhysics(event);
+            }
+        }
+
+        // Handle signs being broken because their supporting block got destroyed
+        if (MaterialUtil.ISSIGN.get(blockData)) {
+            if (!Util.isSignSupported(block)) {
                 // Sign is no longer supported - clear all sign actions
                 SignAction.handleDestroy(new SignActionEvent(event.getBlock()));
+            } else {
+                // Refresh redstone logic later
+                this.plugin.getRedstoneTracker().trackPhysics(block);
             }
+        } else if (MaterialUtil.ISREDSTONETORCH.get(blockData)) {
+            // Migrated from RedstoneTracker code
+            this.plugin.getRedstoneTracker().trackPhysics(block);
         }
     }
 

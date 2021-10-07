@@ -129,16 +129,30 @@ public abstract class RailType {
      */
     public static RailType getType(Block railsBlock) {
         if (railsBlock != null) {
-            BlockData railsBlockData = WorldUtil.getBlockData(railsBlock);
-            for (RailType type : values()) {
-                try {
-                    if (type.isComplexRailBlock() ? type.isRail(railsBlock) : type.isRail(railsBlockData)) {
-                        return type;
-                    }
-                } catch (Throwable t) {
-                    handleCriticalError(type, t);
-                    break;
+            return getType(railsBlock, WorldUtil.getBlockData(railsBlock));
+        }
+        return NONE;
+    }
+
+    /**
+     * Tries to find the Rail Type a specific rails block represents.
+     * If none is identified, NONE is returned.<br>
+     * <br>
+     * Null input arguments are not allowed.
+     *
+     * @param railsBlock to get the RailType of
+     * @param railsBlockData BlockData of railsBlock, avoids extra lookup
+     * @return the RailType, or NONE if not found
+     */
+    public static RailType getType(Block railsBlock, BlockData railsBlockData) {
+        for (RailType type : values()) {
+            try {
+                if (type.isComplexRailBlock() ? type.isRail(railsBlock) : type.isRail(railsBlockData)) {
+                    return type;
                 }
+            } catch (Throwable t) {
+                handleCriticalError(type, t);
+                break;
             }
         }
         return NONE;

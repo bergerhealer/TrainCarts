@@ -208,6 +208,16 @@ public class TrainCarts extends PluginBase {
     }
 
     /**
+     * Gets the redstone tracker, which monitors block physics changes
+     * to detect when signs get powered or de-powered.
+     *
+     * @return redstone tracker
+     */
+    public RedstoneTracker getRedstoneTracker() {
+        return this.redstoneTracker;
+    }
+
+    /**
      * Gets the Economy manager
      *
      * @return
@@ -594,7 +604,7 @@ public class TrainCarts extends PluginBase {
         // Register listeners
         this.register(packetListener = new TCPacketListener(), TCPacketListener.LISTENED_TYPES);
         this.register(interactionPacketListener = new TCInteractionPacketListener(), TCInteractionPacketListener.TYPES);
-        this.register(TCListener.class);
+        this.register(new TCListener(this));
         this.register(TrainChestListener.class);
         this.register(this.redstoneTracker = new RedstoneTracker(this));
 

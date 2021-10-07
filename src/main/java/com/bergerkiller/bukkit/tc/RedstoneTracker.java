@@ -86,15 +86,17 @@ public class RedstoneTracker implements Listener {
     public void disable() {
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlockPhysics(BlockPhysicsEvent event) {
-        BlockData event_block_type = WorldUtil.getBlockData(event.getBlock());
-        if (MaterialUtil.ISSIGN.get(event_block_type) || MaterialUtil.ISREDSTONETORCH.get(event_block_type)) {
-            if (nextTickPhysicsBlocks.isEmpty()) {
-                CommonUtil.nextTick(nextTickPhysicsHandler);
-            }
-            nextTickPhysicsBlocks.add(event.getBlock());
+    /**
+     * Tracks the blocks that had meaningful physics happen to them.
+     * Only signs and redstone torches are tracked.
+     *
+     * @param block
+     */
+    public void trackPhysics(Block block) {
+        if (nextTickPhysicsBlocks.isEmpty()) {
+            CommonUtil.nextTick(nextTickPhysicsHandler);
         }
+        nextTickPhysicsBlocks.add(block);
     }
 
     /**
