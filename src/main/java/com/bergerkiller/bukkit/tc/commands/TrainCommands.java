@@ -44,6 +44,8 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.*;
 
 public class TrainCommands {
@@ -383,15 +385,21 @@ public class TrainCommands {
         // Display a message. Yay!
         MessageBuilder msg = new MessageBuilder();
         msg.green("Launching the train ").yellow(direction.name().toLowerCase(Locale.ENGLISH));
-        msg.green(" to a speed of ").yellow(velocity);
+        msg.green(" to a speed of ").yellow(formatNumber(velocity));
         if (launchConfig.hasDistance()) {
-            msg.green(" over the course of ").yellow(launchConfig.getDistance()).green(" blocks");
+            msg.green(" over the course of ").yellow(formatNumber(launchConfig.getDistance())).green(" blocks");
         } else if (launchConfig.hasDuration()) {
-            msg.green(" over a period of ").yellow(launchConfig.getDuration()).green(" ticks");
+            msg.green(" over a period of ").yellow(formatNumber(launchConfig.getDuration())).green(" ticks");
         } else if (launchConfig.hasAcceleration()) {
-            msg.green(" at an acceleration of ").yellow(launchConfig.getAcceleration()).green(" b/t\u00B2");
+            msg.green(" at an acceleration of ").yellow(formatNumber(launchConfig.getAcceleration())).green(" b/t\u00B2");
         }
         msg.send(sender);
+    }
+
+    private static String formatNumber(double value) {
+        DecimalFormat df = new DecimalFormat("#.####");
+        df.setRoundingMode(RoundingMode.HALF_UP);
+        return df.format(value);
     }
 
     @CommandTargetTrain
