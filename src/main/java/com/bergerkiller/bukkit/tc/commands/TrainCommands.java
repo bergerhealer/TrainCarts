@@ -276,7 +276,7 @@ public class TrainCommands {
     ) {
         commandTrainLaunch(sender, properties,
                 new DirectionOrFormattedSpeed(Direction.FORWARD),
-                null, null, null);
+                null, null, null, null);
     }
 
     @CommandTargetTrain
@@ -289,6 +289,7 @@ public class TrainCommands {
             final @Argument("speed_or_direction") DirectionOrFormattedSpeed directionOrSpeed,
             final @Flag(value="direction", aliases="d") Direction directionFlag,
             final @Flag(value="speed", aliases="s") FormattedSpeed speedFlag,
+            final @Flag(value="limit", aliases="l") FormattedSpeed speedLimitFlag,
             final @Flag(value="options", aliases="o") String launchOptions
     ) {
         if (!properties.isLoaded()) {
@@ -301,6 +302,7 @@ public class TrainCommands {
                 directionOrSpeed,
                 directionFlag,
                 speedFlag,
+                speedLimitFlag,
                 launchOptions);
     }
 
@@ -313,7 +315,7 @@ public class TrainCommands {
     ) {
         commandCartLaunch(sender, properties,
                 new DirectionOrFormattedSpeed(Direction.FORWARD),
-                null, null, null);
+                null, null, null, null);
     }
 
     @CommandRequiresPermission(Permission.COMMAND_LAUNCH)
@@ -325,6 +327,7 @@ public class TrainCommands {
             final @Argument("speed_or_direction") DirectionOrFormattedSpeed directionOrSpeed,
             final @Flag(value="direction", aliases="d") Direction directionFlag,
             final @Flag(value="speed", aliases="s") FormattedSpeed speedFlag,
+            final @Flag(value="limit", aliases="l") FormattedSpeed speedLimitFlag,
             final @Flag(value="options", aliases="o") String launchOptions
     ) {
         MinecartMember<?> member = properties.getHolder();
@@ -367,7 +370,11 @@ public class TrainCommands {
 
         // Now we have all the pieces put together, actually launch the train
         properties.getGroup().getActions().clear();
-        member.getActions().addActionLaunch(directionFace, launchConfig, velocity);
+        if (speedLimitFlag != null) {
+            member.getActions().addActionLaunch(directionFace, launchConfig, velocity, speedLimitFlag.getValue());
+        } else {
+            member.getActions().addActionLaunch(directionFace, launchConfig, velocity);
+        }
 
         // Display a message. Yay!
         MessageBuilder msg = new MessageBuilder();
