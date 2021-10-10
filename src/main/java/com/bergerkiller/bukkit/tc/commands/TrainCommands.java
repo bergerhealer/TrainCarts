@@ -371,7 +371,11 @@ public class TrainCommands {
         // Now we have all the pieces put together, actually launch the train
         properties.getGroup().getActions().clear();
         if (speedLimitFlag != null) {
-            member.getActions().addActionLaunch(directionFace, launchConfig, velocity, speedLimitFlag.getValue());
+            double newSpeedLimit = speedLimitFlag.getValue();
+            if (speedLimitFlag.isRelative()) {
+                newSpeedLimit += member.getGroup().getProperties().getSpeedLimit();
+            }
+            member.getActions().addActionLaunch(directionFace, launchConfig, velocity, newSpeedLimit);
         } else {
             member.getActions().addActionLaunch(directionFace, launchConfig, velocity);
         }
