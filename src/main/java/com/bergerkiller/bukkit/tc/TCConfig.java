@@ -83,7 +83,6 @@ public class TCConfig {
     public static boolean activatorEjectEnabled = true;
     public static boolean railTrackerDebugEnabled = false;
     public static boolean wheelTrackerDebugEnabled = false;
-    public static boolean initRedstoneWithRadius = true;
     public static boolean animationsUseTickTime = false;
     public static boolean claimNewSavedTrains = true;
     public static boolean onlyPoweredSwitchersDoPathFinding = true;
@@ -417,12 +416,6 @@ public class TCConfig {
         config.setHeader("parseParentheses", "\nEnables parsing signs with (train), as well as [train]" +
                                              "\nThis makes it easier to write signs with a Mac keyboard layout");
         allowParenthesesFormat = config.get("parseParentheses", true);
-
-        config.setHeader("initRedstoneWithRadius", "\nRequires all neighbouring chunks to be loaded too before");
-        config.addHeader("initRedstoneWithRadius", "initializing the redstone state (powered or not) of signs in a chunk");
-        config.addHeader("initRedstoneWithRadius", "True can prevent crashes and helps performance by avoiding recursive chunk loads");
-        config.addHeader("initRedstoneWithRadius", "False will make sure signs initialize sooner and respond to redstone faster");
-        initRedstoneWithRadius = config.get("initRedstoneWithRadius", true);
 
         // Legacy configuration option migration
         if (config.contains("onlyPoweredEmptySwitchersDoPathfinding")) {
