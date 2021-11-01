@@ -817,6 +817,7 @@ public class TCListener implements Listener {
     public void onBlockBreak(BlockBreakEvent event) {
         if (MaterialUtil.ISSIGN.get(event.getBlock())) {
             SignAction.handleDestroy(new SignActionEvent(event.getBlock()));
+            plugin.getOfflineSigns().removeAll(event.getBlock());
         } else if (MaterialUtil.ISRAILS.get(event.getBlock())) {
             onRailsBreak(event.getBlock());
         }
@@ -873,6 +874,8 @@ public class TCListener implements Listener {
             if (!Util.isSignSupported(block)) {
                 // Sign is no longer supported - clear all sign actions
                 SignAction.handleDestroy(new SignActionEvent(event.getBlock()));
+                // Also remove sign metadata
+                plugin.getOfflineSigns().removeAll(event.getBlock());
             } else {
                 // Refresh redstone logic later
                 this.plugin.getRedstoneTracker().trackPhysics(block);

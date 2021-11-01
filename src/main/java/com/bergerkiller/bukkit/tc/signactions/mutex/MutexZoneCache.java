@@ -1,56 +1,84 @@
 package com.bergerkiller.bukkit.tc.signactions.mutex;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.bukkit.Chunk;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.Sign;
-
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.common.collections.BlockMap;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.offline.sign.OfflineSign;
+import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignMetadataHandler;
+import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
+import com.bergerkiller.bukkit.tc.offline.world.OfflineWorld;
+import com.bergerkiller.bukkit.tc.offline.world.OfflineWorldMap;
 
 public class MutexZoneCache {
-    private static final BlockMap<MutexZone> zones = new BlockMap<MutexZone>();
+    private static final OfflineWorldMap<Map<IntVector3, MutexZone>> zones = new OfflineWorldMap<>();
     private static final Map<String, MutexZoneSlot> slotsByName = new HashMap<>();
     private static final List<MutexZoneSlot> slotsList = new ArrayList<>();
 
-    /**
-     * Loads the mutex zones in a Chunk by iterating the signs within
-     * 
-     * @param chunk
-     */
-    public static void loadChunk(Chunk chunk) {
-        for (BlockState state : WorldUtil.getBlockStates(chunk)) {
-            if (!(state instanceof Sign)) {
-                return;
+    public static void init(TrainCarts plugin) {
+        plugin.getOfflineSigns().registerHandler(MutexSignMetadata.class, new OfflineSignMetadataHandler<MutexSignMetadata>() {
+
+            @Override
+            public void onAdded(OfflineSignStore store, OfflineSign sign, MutexSignMetadata metadata) {
+                addMutexSign(sign.getWorld(), sign.getPosition(), metadata);
             }
-        }
+
+            @Override
+            public void onRemoved(OfflineSignStore store, OfflineSign sign, MutexSignMetadata metadata) {
+                removeMutexSign(sign.getWorld(), sign.getPosition());
+            }
+
+            @Override
+            public void onUpdated(OfflineSignStore store, OfflineSign sign, MutexSignMetadata oldValue, MutexSignMetadata newValue) {
+                onRemoved(store, sign, oldValue);
+                onAdded(store, sign, newValue);
+            }
+
+            @Override
+            public void onEncode(DataOutputStream stream, OfflineSign sign, MutexSignMetadata value) throws IOException {
+                stream.writeUTF(value.name);
+                value.start.write(stream);
+                value.end.write(stream);
+                stream.writeUTF(value.statement);
+            }
+
+            @Override
+            public MutexSignMetadata onDecode(DataInputStream stream, OfflineSign sign) throws IOException {
+                String name = stream.readUTF();
+                IntVector3 start = IntVector3.read(stream);
+                IntVector3 end = IntVector3.read(stream);
+                String statement = stream.readUTF();
+                return new MutexSignMetadata(name, start, end, statement);
+            }
+        });
     }
 
-    public static void addMutexSign(SignActionEvent info) {
-        zones.put(info.getBlock(), MutexZone.fromSign(info));
+    public static void deinit(TrainCarts plugin) {
+        plugin.getOfflineSigns().unregisterHandler(MutexSignMetadata.class);
     }
 
-    public static void removeMutexSign(SignActionEvent info) {
+    private static void addMutexSign(OfflineWorld world, IntVector3 signPosition, MutexSignMetadata metadata) {
+        Map<IntVector3, MutexZone> atWorld = zones.computeIfAbsent(world, unused -> new HashMap<>());
+        atWorld.put(signPosition, MutexZone.create(world, signPosition, metadata));
+    }
+
+    private static void removeMutexSign(OfflineWorld world, IntVector3 signPosition) {
         // This causes pain & suffering (chunk unload event - accessing block data doesn't work)
         // zones.remove(info.getWorld(), MutexZone.getPosition(info));
 
         // Instead, a slow way
-        IntVector3 signPos = new IntVector3(info.getBlock());
-        Iterator<MutexZone> zones_iter = zones.values().iterator();
-        while (zones_iter.hasNext()) {
-            MutexZone zone = zones_iter.next();
-            if (zone.sign.equals(signPos)) {
-                zones_iter.remove();
-                removeMutexZone(zone);
-            }
+        MutexZone zone = zones.computeIfAbsent(world, unused -> new HashMap<>())
+                .remove(signPosition);
+        if (zone != null) {
+            removeMutexZone(zone);
         }
     }
 
@@ -61,9 +89,9 @@ public class MutexZoneCache {
      * @param block
      * @return mutex zone, null if not found
      */
-    public static MutexZone find(UUID world, IntVector3 block) {
-        for (MutexZone zone : zones.values()) {
-            if (zone.containsBlock(world, block)) {
+    public static MutexZone find(OfflineWorld world, IntVector3 block) {
+        for (MutexZone zone : zones.getOrDefault(world, Collections.emptyMap()).values()) {
+            if (zone.containsBlock(block)) {
                 return zone;
             }
         }
@@ -80,9 +108,9 @@ public class MutexZoneCache {
      * @param radius
      * @return True if a mutex zone is nearby
      */
-    public static boolean isMutexZoneNearby(UUID world, IntVector3 block, int radius) {
-        for (MutexZone zone : zones.values()) {
-            if (zone.isNearby(world, block, radius)) {
+    public static boolean isMutexZoneNearby(OfflineWorld world, IntVector3 block, int radius) {
+        for (MutexZone zone : zones.getOrDefault(world, Collections.emptyMap()).values()) {
+            if (zone.isNearby(block, radius)) {
                 return true;
             }
         }
@@ -97,10 +125,10 @@ public class MutexZoneCache {
      * @param radius
      * @return
      */
-    public static List<MutexZone> findNearbyZones(UUID world, IntVector3 block, int radius) {
+    public static List<MutexZone> findNearbyZones(OfflineWorld world, IntVector3 block, int radius) {
         List<MutexZone> result = new ArrayList<MutexZone>();
-        for (MutexZone zone : zones.values()) {
-            if (zone.isNearby(world, block, radius)) {
+        for (MutexZone zone : zones.getOrDefault(world, Collections.emptyMap()).values()) {
+            if (zone.isNearby(block, radius)) {
                 result.add(zone);
             }
         }
@@ -115,9 +143,13 @@ public class MutexZoneCache {
      * @return slot
      */
     public static MutexZoneSlot findSlot(String name, MutexZone zone) {
-        MutexZoneSlot slot;
         if (name == null) {
-            slot = new MutexZoneSlot(null);
+            throw new IllegalArgumentException("Name is null");
+        }
+
+        MutexZoneSlot slot;
+        if (name.isEmpty()) {
+            slot = new MutexZoneSlot("");
         } else {
             slot = slotsByName.computeIfAbsent(name, MutexZoneSlot::new);
         }

@@ -1,7 +1,5 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
-import java.util.UUID;
-
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
 
@@ -10,6 +8,7 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.offline.world.OfflineWorld;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZone;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
@@ -195,7 +194,7 @@ public class SpeedAheadWaiter {
 
         // If no wait distance is set and no mutex zones are anywhere close, skip these expensive calculations
         if (distance <= 0.0) {
-            UUID world = group.head().getEntity().getWorld().getUID();
+            OfflineWorld world = OfflineWorld.of(group.head().getEntity().getWorld());
             IntVector3 block = group.head().getBlockPos();
             if (!MutexZoneCache.isMutexZoneNearby(world, block, 8)) {
                 return null;
@@ -224,13 +223,13 @@ public class SpeedAheadWaiter {
         final double mutexDistance = 2.0 + selfCartOffset;
         final double checkDistance = Math.max(mutexDistance, waitDistance);
 
-        UUID worldUUID = group.getWorld().getUID();
+        OfflineWorld world = OfflineWorld.of(group.getWorld());
         TrackWalkingPoint iter = new TrackWalkingPoint(group.head().discoverRail());
         while (iter.movedTotal <= checkDistance && iter.moveFull()) {
 
             // Check for mutex zones the next block. If one is found that is occupied, stop right away
             if (iter.movedTotal <= mutexDistance) {
-                MutexZone zone = MutexZoneCache.find(worldUUID, new IntVector3(iter.state.railBlock()));
+                MutexZone zone = MutexZoneCache.find(world, new IntVector3(iter.state.railBlock()));
                 if (zone != null && !zone.slot.tryEnter(group)) {
                     return new Obstacle(iter.movedTotal, 0.0);
                 }

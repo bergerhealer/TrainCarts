@@ -40,7 +40,7 @@ public class MutexZoneSlot {
     }
 
     public boolean isAnonymous() {
-        return this.name == null;
+        return this.name.isEmpty();
     }
 
     protected MutexZoneSlot addZone(MutexZone zone) {
@@ -80,7 +80,7 @@ public class MutexZoneSlot {
 
     private void refreshStatements() {
         this.statements = this.zones.stream()
-                .sorted((z0, z1) -> z0.sign.compareTo(z1.sign))
+                .sorted((z0, z1) -> z0.signBlock.getPosition().compareTo(z1.signBlock.getPosition()))
                 .map(z -> z.statement)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toList());
@@ -162,7 +162,7 @@ public class MutexZoneSlot {
 
     private boolean containsBlock(Block block) {
         for (MutexZone zone : this.zones) {
-            if (zone.containsBlock(block)) {
+            if (zone.signBlock.getLoadedWorld() == block.getWorld() && zone.containsBlock(block)) {
                 return true;
             }
         }

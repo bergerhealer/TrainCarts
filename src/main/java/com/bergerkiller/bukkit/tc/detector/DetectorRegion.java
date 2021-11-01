@@ -22,6 +22,14 @@ import java.io.IOException;
 import java.util.*;
 import java.util.logging.Level;
 
+/**
+ * Represents a region of rail blocks where the minecarts and trains
+ * that enter/leave it are tracked. Listeners can be registered to
+ * automatically perform logic when this happens.<br>
+ * <br>
+ * Detector regions are used by detector signs, but do not require
+ * actual signs to exist.
+ */
 public final class DetectorRegion {
     private static boolean hasChanges = false;
     private static HashMap<UUID, DetectorRegion> regionsById = new HashMap<>();
@@ -119,10 +127,10 @@ public final class DetectorRegion {
         return regionsById.get(uniqueId);
     }
 
-    public static void init(String filename) {
+    public static void init(TrainCarts plugin) {
         regionsById.clear();
         regions.clear();
-        new DataReader(filename) {
+        new DataReader(plugin, "detectorregions.dat") {
             public void read(DataInputStream stream) throws IOException {
                 int count = stream.readInt();
                 int coordcount;
@@ -139,20 +147,20 @@ public final class DetectorRegion {
                     new DetectorRegion(id, world, coords);
                 }
                 if (regionsById.size() == 1) {
-                    TrainCarts.plugin.log(Level.INFO, regionsById.size() + " detector rail region loaded covering " + regions.size() + " blocks");
+                    plugin.log(Level.INFO, regionsById.size() + " detector rail region loaded covering " + regions.size() + " blocks");
                 } else {
-                    TrainCarts.plugin.log(Level.INFO, regionsById.size() + " detector rail regions loaded covering " + regions.size() + " blocks");
+                    plugin.log(Level.INFO, regionsById.size() + " detector rail regions loaded covering " + regions.size() + " blocks");
                 }
             }
         }.read();
         hasChanges = false;
     }
 
-    public static void save(boolean autosave, String filename) {
+    public static void save(TrainCarts plugin, boolean autosave) {
         if (autosave && !hasChanges) {
             return;
         }
-        new DataWriter(filename) {
+        new DataWriter(plugin, "detectorregions.dat") {
             public void write(DataOutputStream stream) throws IOException {
                 stream.writeInt(regionsById.size());
                 for (DetectorRegion region : regionsById.values()) {
@@ -242,6 +250,11 @@ public final class DetectorRegion {
         listener.onUnregister(this);
     }
 
+    /**
+     * Gets whether any listeners are registered to this detector region
+     *
+     * @return True if one or more listeners is registered
+     */
     public boolean isRegistered() {
         return !this.listeners.isEmpty();
     }

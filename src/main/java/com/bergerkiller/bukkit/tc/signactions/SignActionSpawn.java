@@ -82,8 +82,6 @@ public class SignActionSpawn extends SignAction {
             event.getPlayer().sendMessage(ChatColor.YELLOW + "This spawner will automatically spawn trains every " + Util.getTimeString(sign.getInterval()) + " while powered");
         }
 
-        // If the sign is active, initiate a spawn right away
-        sign.resetSpawnTime();
         return true;
     }
 
@@ -91,13 +89,12 @@ public class SignActionSpawn extends SignAction {
     public void destroy(SignActionEvent info) {
         TrainCarts.plugin.getSpawnSignManager().remove(info);
     }
-    
-    
 
     // only called from spawn sign
     public static SpawnableGroup.SpawnLocationList spawn(SpawnSign spawnSign, SignActionEvent info) {
         if ((info.isTrainSign() || info.isCartSign()) && info.hasRails()) {
-            if (spawnSign.getSpawnableGroup().getMembers().isEmpty()) {
+            SpawnableGroup spawnable = spawnSign.getSpawnableGroup();
+            if (spawnable.getMembers().isEmpty()) {
                 return null;
             }
 
@@ -160,7 +157,6 @@ public class SignActionSpawn extends SignAction {
 
             // If a center mode is defined in the declared spawned train, then adjust the
             // centering rule accordingly.
-            SpawnableGroup spawnable = spawnSign.getSpawnableGroup();
             if (spawnable.getCenterMode() == CenterMode.MIDDLE) {
                 useCentering = true;
             } else if (spawnable.getCenterMode() == CenterMode.LEFT || spawnable.getCenterMode() == CenterMode.RIGHT) {

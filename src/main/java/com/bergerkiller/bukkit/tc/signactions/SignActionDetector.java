@@ -1,35 +1,117 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import com.bergerkiller.bukkit.common.collections.BlockMap;
-import com.bergerkiller.bukkit.common.config.DataReader;
-import com.bergerkiller.bukkit.common.config.DataWriter;
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
-import com.bergerkiller.bukkit.tc.signactions.detector.DetectorSignPair;
+import com.bergerkiller.bukkit.tc.offline.sign.OfflineSign;
+import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignMetadataHandler;
+import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
+import com.bergerkiller.bukkit.tc.offline.world.OfflineBlock;
+import com.bergerkiller.bukkit.tc.signactions.detector.DetectorSign;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.Sign;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
 
 public class SignActionDetector extends SignAction {
-    private static boolean hasChanges = false;
     public static final SignActionDetector INSTANCE = new SignActionDetector();
-    private final BlockMap<DetectorSignPair> detectors = new BlockMap<>();
+
+    /**
+     * Called during loading of TrainCarts to register the detector sign
+     * metadata handler
+     *
+     * @param plugin
+     */
+    public void enable(TrainCarts plugin) {
+        plugin.getOfflineSigns().registerHandler(DetectorSign.Metadata.class, new OfflineSignMetadataHandler<DetectorSign.Metadata>() {
+            @Override
+            public void onUpdated(OfflineSignStore store, OfflineSign sign, DetectorSign.Metadata oldValue, DetectorSign.Metadata newValue) {
+                // If owner changes something pretty bad is going on, perform a full re-add in that case
+                // In other cases the sign owner already tracks it and there's nothing more to do
+                if (oldValue.owner != newValue.owner) {
+                    onRemoved(store, sign, oldValue);
+                    onAdded(store, sign, newValue);
+                }
+            }
+
+            @Override
+            public void onAdded(OfflineSignStore store, OfflineSign sign, DetectorSign.Metadata metadata) {
+                metadata.owner = new DetectorSign(store, sign, metadata);
+                metadata.region.register(metadata.owner);
+            }
+
+            @Override
+            public void onUnloaded(OfflineSignStore store, OfflineSign sign, DetectorSign.Metadata metadata) {
+                if (metadata.owner != null) {
+                    metadata.region.unregister(metadata.owner);
+                    metadata.owner = null; // Mark as removed
+
+                    // We presume/hope that the other sign will also unload at the same time
+                }
+            }
+
+            @Override
+            public void onRemoved(OfflineSignStore store, OfflineSign sign, DetectorSign.Metadata metadata) {
+                if (metadata.owner != null) {
+                    metadata.region.unregister(metadata.owner);
+                    metadata.owner = null; // Mark as removed
+                    if (!metadata.region.isRegistered()) {
+                        metadata.region.remove(); // Remove once both signs/others are all gone
+                    }
+
+                    // See if theres metadata stored for the other sign, and if so, remove that one too
+                    DetectorSign.Metadata otherMeta = store.get(metadata.otherSign, DetectorSign.Metadata.class);
+                    if (otherMeta != null && metadata.region == otherMeta.region) {
+                        store.remove(metadata.otherSign, DetectorSign.Metadata.class);
+                    }
+                }
+            }
+
+            @Override
+            public void onEncode(DataOutputStream stream, OfflineSign sign, DetectorSign.Metadata value) throws IOException {
+                value.otherSign.getPosition().write(stream);
+                StreamUtil.writeUUID(stream, value.region.getUniqueId());
+                stream.writeBoolean(value.isLeverDown);
+            }
+
+            @Override
+            public DetectorSign.Metadata onDecode(DataInputStream stream, OfflineSign sign) throws IOException {
+                OfflineBlock otherSign = sign.getWorld().getBlockAt(IntVector3.read(stream));
+                DetectorRegion region = DetectorRegion.getRegion(StreamUtil.readUUID(stream));
+                boolean isLeverDown = stream.readBoolean();
+
+                if (region == null) {
+                    throw new InvalidMetadataException();
+                }
+
+                return new DetectorSign.Metadata(otherSign, region, isLeverDown);
+            }
+        });
+    }
+
+    /**
+     * Called when TrainCarts disables to disable the detector sign
+     * metadata handler
+     *
+     * @param plugin
+     */
+    public void disable(TrainCarts plugin) {
+        plugin.getOfflineSigns().unregisterHandler(DetectorSign.Metadata.class);
+    }
 
     @Override
     public boolean match(SignActionEvent info) {
@@ -67,57 +149,6 @@ public class SignActionDetector extends SignAction {
         return (index == -1) ? null : data.substring(index + 1).trim();
     }
 
-    /**
-     * Loads all detector sign regions from the state file.
-     * 
-     * @param filename of the file to load the state information from
-     */
-    public void init(String filename) {
-        detectors.clear();
-        new DataReader(filename) {
-            public void read(DataInputStream stream) throws IOException {
-                for (int count = stream.readInt(); count > 0; --count) {
-                    //get required info
-                    UUID id = StreamUtil.readUUID(stream);
-                    //init a new detector
-                    DetectorSignPair det = DetectorSignPair.read(stream);
-                    //register
-                    det.region = DetectorRegion.getRegion(id);
-                    if (det.region == null) continue;
-                    det.region.register(det);
-                    detectors.put(det.region.getWorldName(), det.sign1.getLocation(), det);
-                    detectors.put(det.region.getWorldName(), det.sign2.getLocation(), det);
-                }
-            }
-        }.read();
-        hasChanges = false;
-    }
-
-    /**
-     * Saves all detector sign regions to a state file
-     * 
-     * @param filename of the file to save the state information to
-     */
-    public void save(boolean autosave, String filename) {
-        if (autosave && !hasChanges) {
-            return;
-        }
-        new DataWriter(filename) {
-            public void write(DataOutputStream stream) throws IOException {
-                Set<DetectorSignPair> detectorset = new HashSet<>(detectors.size() / 2);
-                for (DetectorSignPair dec : detectors.values()) {
-                    detectorset.add(dec);
-                }
-                stream.writeInt(detectorset.size());
-                for (DetectorSignPair det : detectorset) {
-                    StreamUtil.writeUUID(stream, det.region.getUniqueId());
-                    det.write(stream);
-                }
-            }
-        }.write();
-        hasChanges = false;
-    }
-
     @Override
     public void execute(SignActionEvent info) {
         //nothing happens here, relies on rail detector events
@@ -125,7 +156,9 @@ public class SignActionDetector extends SignAction {
         // I lied! We have to double-check a detector region for this detector sign exists
         // Just in case data is corrupted, it can be restored by the first train driving over the detector
         if (info.getAction().isRedstone() || info.isAction(SignActionType.GROUP_ENTER)) {
-            handlePlacement(info, false);
+            if (TrainCarts.plugin.getOfflineSigns().get(info.getBlock(), DetectorSign.Metadata.class) == null) {
+                handlePlacement(info);
+            }
         }
     }
 
@@ -150,7 +183,7 @@ public class SignActionDetector extends SignAction {
             event.getPlayer().sendMessage(ChatColor.RED + "No rails are nearby: This detector sign has not been activated!");
             return true;
         }
-        if (!handlePlacement(event, true)) {
+        if (!handlePlacement(event)) {
             event.getPlayer().sendMessage(ChatColor.RED + "Failed to find a second detector sign: No region set.");
             event.getPlayer().sendMessage(ChatColor.YELLOW + "Place a second connected detector sign to finish this region!");
             return true;
@@ -159,29 +192,18 @@ public class SignActionDetector extends SignAction {
         return true;
     }
 
-    @Override
-    public void destroy(SignActionEvent info) {
-        Block at = info.getBlock();
-        DetectorSignPair dec = detectors.get(at);
-        if (dec != null) {
-            detectors.remove(at.getWorld(), dec.sign1.getLocation());
-            detectors.remove(at.getWorld(), dec.sign2.getLocation());
-            dec.region.remove();
-            hasChanges = true;
-        }
-    }
-
-    private boolean handlePlacement(SignActionEvent event, boolean signBuilt) {
+    private boolean handlePlacement(SignActionEvent event) {
         if (!event.hasRails()) {
             return false;
         }
-        Block startsign = event.getBlock();
+        Block startSignBlock = event.getBlock();
+        Sign startSign = event.getSign();
         Block startrails = event.getRails();
         BlockFace dir = event.getFacing();
         String label = getLabel(event);
-        if (!tryBuild(label, startrails, startsign, dir, signBuilt)) {
-            if (!tryBuild(label, startrails, startsign, FaceUtil.rotate(dir, 2), signBuilt)) {
-                if (!tryBuild(label, startrails, startsign, FaceUtil.rotate(dir, -2), signBuilt)) {
+        if (!tryBuild(label, startrails, startSignBlock, startSign, dir)) {
+            if (!tryBuild(label, startrails, startSignBlock, startSign, FaceUtil.rotate(dir, 2))) {
+                if (!tryBuild(label, startrails, startSignBlock, startSign, FaceUtil.rotate(dir, -2))) {
                     return false;
                 }
             }
@@ -189,18 +211,7 @@ public class SignActionDetector extends SignAction {
         return true;
     }
 
-    public boolean tryBuild(String label, Block startrails, Block startsign, BlockFace direction, boolean signBuilt) {
-        DetectorSignPair detector = null;
-        if (!signBuilt) {
-            detector = detectors.get(startsign);
-        }
-        if (detector == null) {
-            detector = createPair(label, startrails, startsign, direction);
-        }
-        return detector != null;
-    }
-
-    private DetectorSignPair createPair(String label, Block startrails, Block startsign, BlockFace direction) {
+    public boolean tryBuild(String label, Block startrails, Block startSignBlock, Sign startSign, BlockFace direction) {
         final TrackMap map = new TrackMap(startrails, direction, TCConfig.maxDetectorLength);
         map.next();
         //now try to find the end rails : find the other sign
@@ -208,29 +219,30 @@ public class SignActionDetector extends SignAction {
         SignActionEvent info;
         while (map.hasNext()) {
             for (Block signblock : Util.getSignsFromRails(map.next())) {
-                if (signblock.equals(startsign)) {
+                if (signblock.equals(startSignBlock)) {
                     continue;
                 }
                 info = new SignActionEvent(signblock);
                 if (matchLabel(info, label)) {
                     endsign = signblock;
 
-                    //start and end found : add it
-                    final DetectorSignPair detector = new DetectorSignPair(startsign, endsign);
-                    detectors.put(startsign, detector);
-                    detectors.put(endsign, detector);
-                    hasChanges = true;
-                    CommonUtil.nextTick(new Runnable() {
-                        public void run() {
-                            DetectorRegion region = DetectorRegion.create(map);
-                            region.register(detector);
-                            region.detectMinecarts();
-                        }
-                    });
-                    return detector;
+                    // Create a new DetectorRegion using the path we found inbetween
+                    DetectorRegion region = DetectorRegion.create(map);
+
+                    // Register detector sign metadata for both start and end sign with this region
+                    // The handler will initialize the rest (listeners, etc.)
+                    OfflineSignStore store = TrainCarts.plugin.getOfflineSigns();
+                    store.put(startSign, new DetectorSign.Metadata(OfflineBlock.of(endsign), region, false));
+                    store.put(endsign, new DetectorSign.Metadata(OfflineBlock.of(startSignBlock), region, false));
+
+                    // Detect minecarts next-tick (don't want to do too much during this logic-)
+                    CommonUtil.nextTick(() -> region.detectMinecarts());
+
+                    return true;
                 }
             }
         }
-        return null;
+
+        return false;
     }
 }

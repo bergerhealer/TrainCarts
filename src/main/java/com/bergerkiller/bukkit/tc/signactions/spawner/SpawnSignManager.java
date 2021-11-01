@@ -4,19 +4,19 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
-import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.common.collections.BlockMap;
-import com.bergerkiller.bukkit.common.config.DataReader;
-import com.bergerkiller.bukkit.common.config.DataWriter;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.offline.sign.OfflineSign;
+import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignMetadataHandler;
+import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
+import com.bergerkiller.bukkit.tc.offline.world.OfflineBlock;
 
 /**
  * Tracks all the spawn signs globally on the server, and tracks the regular
@@ -26,53 +26,68 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 public class SpawnSignManager {
     public static final long SPAWN_WARMUP_TIME = 10000; // give 10 seconds time to load chunks
     public static final long SPAWN_LOAD_DEBOUNCE = 30000; // Keep the area around a spawn sign loaded for at most 30s
+    private final TrainCarts plugin;
     private final UpdateTask updateTask;
-    private final BlockMap<SpawnSign> signs = new BlockMap<SpawnSign>();
+    private final Map<OfflineBlock, SpawnSign> signs = new HashMap<OfflineBlock, SpawnSign>();
     private List<SpawnSign> cachedSortedSigns = null; // when null, is re-sorted
-    private boolean hasChanges = false; // for autosave
 
     public SpawnSignManager(TrainCarts plugin) {
+        this.plugin = plugin;
         this.updateTask = new UpdateTask(plugin);
     }
 
-    public void init() {
-        updateTask.start(1, 1);
-    }
-
-    public void deinit() {
-        updateTask.stop();
-        this.clear();
-    }
-
-    public void load(String filename) {
-        // Load spawn signs from file
-        this.clear();
-        new DataReader(filename) {
-            public void read(DataInputStream stream) throws IOException {
-                int count = stream.readInt();
-                for (; count > 0; --count) {
-                    SpawnSign sign = SpawnSign.read(stream);
-                    SpawnSignManager.this.signs.put(sign.getLocation(), sign);
+    public void load() {
+        this.plugin.getOfflineSigns().registerHandler(SpawnSignMetadata.class, new OfflineSignMetadataHandler<SpawnSignMetadata>() {
+            @Override
+            public void onUpdated(OfflineSignStore store, OfflineSign sign, SpawnSignMetadata oldValue, SpawnSignMetadata newValue) {
+                SpawnSign spawnSign = signs.get(sign.getBlock());
+                if (spawnSign != null) {
+                    spawnSign.updateState(newValue);
+                    notifyChanged();
                 }
             }
-        }.read();
-        hasChanges = false;
+
+            @Override
+            public void onAdded(OfflineSignStore store, OfflineSign sign, SpawnSignMetadata metadata) {
+                SpawnSign newSpawnSign = new SpawnSign(store, sign, metadata);
+                signs.put(sign.getBlock(), newSpawnSign);
+                notifyChanged();
+            }
+
+            @Override
+            public void onRemoved(OfflineSignStore store, OfflineSign sign, SpawnSignMetadata metadata) {
+                SpawnSign removedSign = signs.remove(sign.getBlock());
+                if (removedSign != null) {
+                    removedSign.loadChunksAsyncReset();
+                }
+                notifyChanged();
+            }
+
+            @Override
+            public void onEncode(DataOutputStream stream, OfflineSign sign, SpawnSignMetadata value) throws IOException {
+                stream.writeBoolean(value.active);
+                stream.writeLong(value.intervalMillis);
+                stream.writeLong(value.autoSpawnStartTime);
+            }
+
+            @Override
+            public SpawnSignMetadata onDecode(DataInputStream stream, OfflineSign sign) throws IOException {
+                boolean active = stream.readBoolean();
+                long intervalMillis = stream.readLong();
+                long autoSpawnStartTime = stream.readLong();
+                return new SpawnSignMetadata(intervalMillis, autoSpawnStartTime, active);
+            }
+        });
     }
 
-    public void save(boolean autosave, String filename) {
-        // Save spawn signs to file
-        if (autosave && !hasChanges) {
-            return;
-        }
-        new DataWriter(filename) {
-            public void write(DataOutputStream stream) throws IOException {
-                stream.writeInt(SpawnSignManager.this.signs.size());
-                for (SpawnSign sign : SpawnSignManager.this.signs.values()) {
-                    sign.write(stream);
-                }
-            }
-        }.write();
-        hasChanges = false;
+    public void enable() {
+        this.updateTask.start(1, 1);
+    }
+
+    public void disable() {
+        this.plugin.getOfflineSigns().unregisterHandler(SpawnSignMetadata.class);
+        this.updateTask.stop();
+        this.clear(); // For good measure, but will already be cleaned up
     }
 
     public void clear() {
@@ -84,30 +99,34 @@ public class SpawnSignManager {
     }
 
     public SpawnSign create(SignActionEvent signEvent) {
-        SpawnSign result = this.signs.get(signEvent.getBlock());
-        if (result == null) {
-            result = new SpawnSign(new BlockLocation(signEvent.getBlock()));
-            this.signs.put(result.getLocation(), result);
+        OfflineBlock position = OfflineBlock.of(signEvent.getBlock());
+        SpawnSign result = this.signs.get(position);
+        if (result != null) {
+            result.updateUsingEvent(signEvent);
+        } else {
+            // Install new metadata for this sign
+            SpawnSign.SpawnOptions options = SpawnSign.SpawnOptions.fromEvent(signEvent);
+            SpawnSignMetadata metadata = new SpawnSignMetadata(
+                    /*  interval  */ options.autoSpawnInterval,
+                    /* last spawn */ System.currentTimeMillis() + options.autoSpawnInterval,
+                    /*   active   */ signEvent.isPowered());
+
+            // Put metadata, which will also put an entry in the signs mapping
+            this.plugin.getOfflineSigns().put(signEvent.getSign(), metadata);
+            result = this.signs.get(position);
+            if (result == null) {
+                throw new IllegalStateException("No SpawnSign was put, onAdded() not called");
+            }
         }
-        result.load(signEvent);
-        this.notifyChanged();
         return result;
     }
 
     public void remove(SignActionEvent signEvent) {
-        SpawnSign removed = this.signs.remove(signEvent.getBlock());
-        if (removed != null) {
-            removed.loadChunksAsyncReset();
-            this.notifyChanged();
-        }
+        this.plugin.getOfflineSigns().remove(signEvent.getBlock(), SpawnSignMetadata.class);
     }
 
     public void remove(SpawnSign sign) {
-        SpawnSign removed = this.signs.remove(sign.getLocation());
-        if (removed != null) {
-            removed.loadChunksAsyncReset();
-            this.notifyChanged();
-        }
+        this.plugin.getOfflineSigns().remove(sign.getLocation(), SpawnSignMetadata.class);
     }
 
     /**
@@ -119,12 +138,16 @@ public class SpawnSignManager {
     public List<SpawnSign> getSigns() {
         if (this.cachedSortedSigns == null) {
             this.cachedSortedSigns = new ArrayList<SpawnSign>(this.signs.values());
+
+            // Doesn't appear to be needed anymore.
+            /*
             Collections.sort(this.cachedSortedSigns, new Comparator<SpawnSign>() {
                 @Override
                 public int compare(SpawnSign s1, SpawnSign s2) {
                     return Long.compare(s1.getNextSpawnTime(), s2.getNextSpawnTime());
                 }
             });
+            */
         }
         return this.cachedSortedSigns;
     }
@@ -134,11 +157,11 @@ public class SpawnSignManager {
      * resetting of the sorted list.
      */
     public void notifyChanged() {
-        this.hasChanges = true;
         this.cachedSortedSigns = null;
     }
 
     private class UpdateTask extends Task {
+        private long previousTime = Long.MAX_VALUE;
 
         public UpdateTask(JavaPlugin plugin) {
             super(plugin);
@@ -146,20 +169,42 @@ public class SpawnSignManager {
 
         @Override
         public void run() {
-            long time = System.currentTimeMillis();
-            for (SpawnSign pending : getSigns()) {
-                long remainingMillis = pending.getRemaining(time);
-                if (remainingMillis > SPAWN_LOAD_DEBOUNCE) {
-                    pending.loadChunksAsyncResetAuto();
-                } else if (remainingMillis == 0) {
-                    pending.spawn();
-                    pending.nextSpawnTime();
-                } else if (remainingMillis <= SPAWN_WARMUP_TIME) {
-                    // Warmup! How many chunks are loaded versus should be loaded by now?
-                    pending.loadChunksAsync(1.0 - ((double) (remainingMillis-1000) / (double) SPAWN_WARMUP_TIME));
+            long currentTime = System.currentTimeMillis();
+            if (previousTime != Long.MAX_VALUE) {
+                for (SpawnSign pending : getSigns()) {
+                    long remainingMillis = pending.getRemaining(previousTime, currentTime);
+                    if (remainingMillis > SPAWN_LOAD_DEBOUNCE) {
+                        pending.loadChunksAsyncResetAuto();
+                    } else if (remainingMillis == 0) {
+                        pending.spawn();
+                    } else if (remainingMillis <= SPAWN_WARMUP_TIME) {
+                        // Warmup! How many chunks are loaded versus should be loaded by now?
+                        pending.loadChunksAsync(1.0 - ((double) (remainingMillis-1000) / (double) SPAWN_WARMUP_TIME));
+                    }
                 }
             }
+            previousTime = currentTime;
         }
 
+    }
+
+    public static final class SpawnSignMetadata {
+        public final long intervalMillis;
+        public final long autoSpawnStartTime;
+        public final boolean active;
+
+        public SpawnSignMetadata(long intervalMillis, long autoSpawnStartTime, boolean active) {
+            this.intervalMillis = intervalMillis;
+            this.autoSpawnStartTime = autoSpawnStartTime;
+            this.active = active;
+        }
+
+        public SpawnSignMetadata setAutoSpawnStart(long timestamp) {
+            return new SpawnSignMetadata(this.intervalMillis, timestamp, this.active);
+        }
+
+        public SpawnSignMetadata setActive(boolean active) {
+            return new SpawnSignMetadata(this.intervalMillis, this.autoSpawnStartTime, active);
+        }
     }
 }

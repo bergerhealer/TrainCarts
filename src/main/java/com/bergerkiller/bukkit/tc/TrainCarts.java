@@ -31,6 +31,8 @@ import com.bergerkiller.bukkit.tc.controller.global.TrainUpdateController;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.locator.TrainLocator;
+import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
+import com.bergerkiller.bukkit.tc.offline.world.OfflineWorldLoadedChangeListener;
 import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
 import com.bergerkiller.bukkit.tc.pathfinding.RouteManager;
 import com.bergerkiller.bukkit.tc.portals.TCPortalManager;
@@ -84,7 +86,7 @@ public class TrainCarts extends PluginBase {
     private TCInteractionPacketListener interactionPacketListener;
     private FileConfiguration config;
     private AttachmentModelStore attachmentModels;
-    private SpawnSignManager spawnSignManager;
+    private final SpawnSignManager spawnSignManager = new SpawnSignManager(this);
     private SavedTrainPropertiesStore savedTrainsStore;
     private SeatAttachmentMap seatAttachmentMap;
     private RedstoneTracker redstoneTracker;
@@ -94,6 +96,8 @@ public class TrainCarts extends PluginBase {
     private TrainLocator trainLocator;
     private TrainUpdateController trainUpdateController = new TrainUpdateController(this);
     private final TCSelectorHandlerRegistry selectorHandlerRegistry = new TCSelectorHandlerRegistry(this);
+    private final OfflineSignStore offlineSignStore = new OfflineSignStore(this);
+    private final OfflineWorldLoadedChangeListener offlineWorldLoadedChangeListener = new OfflineWorldLoadedChangeListener();
     private Economy econ = null;
     private SmoothCoastersAPI smoothCoastersAPI;
     private Commands commands;
@@ -215,6 +219,16 @@ public class TrainCarts extends PluginBase {
      */
     public RedstoneTracker getRedstoneTracker() {
         return this.redstoneTracker;
+    }
+
+    /**
+     * Gets the offline sign store, where metadata of signs can be stored
+     * persistently
+     *
+     * @return offline sign metadata store
+     */
+    public OfflineSignStore getOfflineSigns() {
+        return this.offlineSignStore;
     }
 
     /**
@@ -449,15 +463,30 @@ public class TrainCarts extends PluginBase {
         // Register TrainCarts default rail types
         RailType.values();
 
-        //Init signs
+        // Load detector regions from file. These may be required for signs (such as detector signs)
+        DetectorRegion.init(this);
+
+        // Init signs
         SignAction.init();
+
+        // Init offline sign metadata store from disk
+        // Makes metadata available as early as possible
+        this.offlineSignStore.load();
+
+        // Initialize various offline-sign based signs that require info during enabling
+        this.enableOfflineSignHandlers();
 
         //Initialize early so that others can register handlers
         //Loading is done in enable()
         this.pathProvider = new PathProvider(this);
+
+        // We allow other plugins to register stuff during onLoad() as well
+        plugin = this;
     }
 
+    @Override
     public void enable() {
+        // For good measure
         plugin = this;
 
         // Do this first
@@ -498,6 +527,13 @@ public class TrainCarts extends PluginBase {
                 }
             }
         }
+
+        // Register offline world listener - also sets the worlds that are loaded for the first time
+        this.offlineWorldLoadedChangeListener.enable(this);
+
+        //Automatically saves sign metadata to disk in the background
+        //For worlds not already loaded, loads metadata where this is a condition
+        this.offlineSignStore.enable();
 
         //Initialize entity glow color provider
         this.glowColorTeamProvider = new GlowColorTeamProvider(this);
@@ -552,17 +588,6 @@ public class TrainCarts extends PluginBase {
         //Load arrival times
         ArrivalSigns.init(getDataFolder() + File.separator + "arrivaltimes.txt");
 
-        //Load detector regions
-        DetectorRegion.init(getDataFolder() + File.separator + "detectorregions.dat");
-
-        //Load detector sign locations
-        SignActionDetector.INSTANCE.init(getDataFolder() + File.separator + "detectorsigns.dat");
-
-        //Load spawner signs
-        spawnSignManager = new SpawnSignManager(this);
-        spawnSignManager.load(getDataFolder() + File.separator + "spawnsigns.dat");
-        spawnSignManager.init();
-
         //Restore carts where possible
         TrainCarts.plugin.log(Level.INFO, "Restoring trains and loading nearby chunks...");
         {
@@ -595,6 +620,9 @@ public class TrainCarts extends PluginBase {
         // Refreshes mutex signs with trains on it to release state again
         mutexZoneUpdateTask = new MutexZoneUpdateTask(this).start(1, 1);
 
+        // Starts a task to track the auto-spawn timers
+        this.spawnSignManager.enable();
+
         //Properly dispose of partly-referenced carts
         CommonUtil.nextTick(new Runnable() {
             public void run() {
@@ -617,48 +645,7 @@ public class TrainCarts extends PluginBase {
         }
     }
 
-    /**
-     * Saves all traincarts related information to file
-     */
-    public void save(boolean autosave) {
-        //Save properties
-        TrainProperties.save(autosave);
-
-        //Save saved trains
-        this.savedTrainsStore.save(autosave);
-
-        //Save Train tickets
-        TicketStore.save(autosave);
-
-        //Save destinations
-        pathProvider.save(autosave, getDataFolder() + File.separator + "destinations.dat");
-
-        //Save arrival times
-        if (!autosave) {
-            ArrivalSigns.save(getDataFolder() + File.separator + "arrivaltimes.txt");
-        }
-
-        //Save spawn sign locations
-        spawnSignManager.save(autosave, getDataFolder() + File.separator + "spawnsigns.dat");
-
-        //Save detector sign locations
-        SignActionDetector.INSTANCE.save(autosave, getDataFolder() + File.separator + "detectorsigns.dat");
-
-        //Save detector regions
-        DetectorRegion.save(autosave, getDataFolder() + File.separator + "detectorregions.dat");
-
-        //Save attachment models
-        attachmentModels.save(autosave);
-
-        //Save routes
-        routeManager.save(autosave);
-
-        // Save train information
-        if (!autosave) {
-            OfflineGroupManager.save(getDataFolder() + File.separator + "trains.groupdata");
-        }
-    }
-
+    @Override
     public void disable() {
         //Destroy all trains after initializing if specified
         if (TCConfig.destroyAllOnShutdown) {
@@ -768,9 +755,6 @@ public class TrainCarts extends PluginBase {
         //save all data to disk (autosave=false)
         save(false);
 
-        //Disable spawn manager
-        spawnSignManager.deinit();
-
         // Disable path provider before de-initializing path nodes / sign actions
         if (this.pathProvider != null) {
             this.pathProvider.disable();
@@ -799,6 +783,63 @@ public class TrainCarts extends PluginBase {
         this.trainLocator = null;
  
         AttachmentTypeRegistry.instance().unregisterAll();
+
+        // De-register any offline sign handlers
+        this.disableOfflineSignHandlers();
+
+        // Save offline sign metadata to disk (if needed) and stop writing in the background
+        this.offlineSignStore.disable();
+
+        // Stop tracking loaded worlds using an event listener
+        this.offlineWorldLoadedChangeListener.disable();
+    }
+
+    /**
+     * Saves all traincarts related information to file
+     */
+    public void save(boolean autosave) {
+        //Save properties
+        TrainProperties.save(autosave);
+
+        //Save saved trains
+        this.savedTrainsStore.save(autosave);
+
+        //Save Train tickets
+        TicketStore.save(autosave);
+
+        //Save destinations
+        pathProvider.save(autosave, getDataFolder() + File.separator + "destinations.dat");
+
+        //Save arrival times
+        if (!autosave) {
+            ArrivalSigns.save(getDataFolder() + File.separator + "arrivaltimes.txt");
+        }
+
+        //Save detector regions
+        DetectorRegion.save(this, autosave);
+
+        //Save attachment models
+        attachmentModels.save(autosave);
+
+        //Save routes
+        routeManager.save(autosave);
+
+        // Save train information
+        if (!autosave) {
+            OfflineGroupManager.save(getDataFolder() + File.separator + "trains.groupdata");
+        }
+    }
+
+    private void enableOfflineSignHandlers() {
+        MutexZoneCache.init(this);
+        this.spawnSignManager.load();
+        SignActionDetector.INSTANCE.enable(this);
+    }
+
+    private void disableOfflineSignHandlers() {
+        MutexZoneCache.deinit(this);
+        this.spawnSignManager.disable();
+        SignActionDetector.INSTANCE.disable(this);
     }
 
     @Override

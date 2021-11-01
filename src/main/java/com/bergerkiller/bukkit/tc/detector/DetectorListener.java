@@ -3,6 +3,10 @@ package com.bergerkiller.bukkit.tc.detector;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
+/**
+ * Listener for all the events provided by the
+ * {@link DetectorRegion}
+ */
 public interface DetectorListener {
     void onRegister(DetectorRegion region);
 

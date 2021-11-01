@@ -19,6 +19,7 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.offline.world.OfflineWorld;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZone;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
 
@@ -35,7 +36,7 @@ public class DebugTool {
     public static void showMutexZones(final Player player) {
         Location loc = player.getEyeLocation();
         final List<MutexZone> zones = MutexZoneCache.findNearbyZones(
-                loc.getWorld().getUID(),
+                OfflineWorld.of(loc.getWorld()),
                 new IntVector3(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()),
                 32);
 

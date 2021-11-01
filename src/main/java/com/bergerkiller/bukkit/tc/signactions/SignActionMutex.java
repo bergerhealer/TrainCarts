@@ -1,9 +1,10 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
-import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
+import com.bergerkiller.bukkit.tc.signactions.mutex.MutexSignMetadata;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 /**
@@ -35,10 +36,11 @@ public class SignActionMutex extends SignAction {
 
     @Override
     public void loadedChanged(SignActionEvent info, boolean loaded) {
+        // Note: we ignore unloading, it stays active even while the sign chunk isn't loaded
+        // Removal occurs when the offline sign metadata store signals the sign is gone
         if (loaded) {
-            MutexZoneCache.addMutexSign(info);
-        } else {
-            MutexZoneCache.removeMutexSign(info);
+            TrainCarts.plugin.getOfflineSigns().computeIfAbsent(info.getSign(), MutexSignMetadata.class,
+                    offline -> MutexSignMetadata.fromSign(info));
         }
     }
 }

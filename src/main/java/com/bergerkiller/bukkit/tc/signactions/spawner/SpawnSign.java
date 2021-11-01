@@ -1,8 +1,5 @@
 package com.bergerkiller.bukkit.tc.signactions.spawner;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -10,9 +7,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
-import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.Timings;
-import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
 import com.bergerkiller.bukkit.common.utils.ChunkUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -20,40 +15,55 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
 import com.bergerkiller.bukkit.tc.TCTimings;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.offline.sign.OfflineSign;
+import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
+import com.bergerkiller.bukkit.tc.offline.world.OfflineBlock;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 
 public class SpawnSign {
-    private final BlockLocation location;
-    private boolean active = true;
-    private long interval = 0L;
-    private long nextSpawnTime = System.currentTimeMillis();
+    private final OfflineSignStore store;
+    private final OfflineBlock location;
+    private SpawnSignManager.SpawnSignMetadata state;
     private int ticksUntilFreeing = 0;
     private double spawnForce = 0.0;
-    private SpawnableGroup spawnableGroup = new SpawnableGroup();
+    private String spawnFormat;
     private LongHashMap<SignSpawnChunk> chunks = new LongHashMap<SignSpawnChunk>();
     private int num_chunks_loaded = 0;
 
-    public SpawnSign(BlockLocation location) {
-        this.location = location;
-        this.addChunk(MathUtil.toChunk(location.x), MathUtil.toChunk(location.z));
+    SpawnSign(OfflineSignStore store, OfflineSign sign, SpawnSignManager.SpawnSignMetadata metadata) {
+        this.store = store;
+        this.location = sign.getBlock();
+        this.state = metadata;
+        this.spawnForce = SpawnOptions.fromOfflineSign(sign).launchVelocity;
+        this.spawnFormat = sign.getLine(2) + sign.getLine(3);
+
+        // Add the 5x5 area of chunks around the sign as the initial chunks to load
+        int center_cx = MathUtil.toChunk(location.getX());
+        int center_cz = MathUtil.toChunk(location.getZ());
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                int cx = center_cx + dx;
+                int cz = center_cz + dz;
+                this.chunks.put(cx, cz, new SignSpawnChunk(this.location.getWorldUUID(), cx, cz));
+            }
+        }
     }
 
-    /**
-     * Loads spawn sign information by parsing the information stored on a spawn sign
-     * 
-     * @param signEvent of the spawn sign to parse
-     */
-    public void load(SignActionEvent signEvent) {
-        this.active = signEvent.isPowered();
-        this.interval = getSpawnTime(signEvent);
-        this.spawnForce = getSpawnForce(signEvent);
-        this.spawnableGroup = SpawnableGroup.parse(signEvent.getLine(2) + signEvent.getLine(3));
+    void updateState(SpawnSignManager.SpawnSignMetadata metadata) {
+        this.state = metadata;
+    }
+
+    void updateUsingEvent(SignActionEvent event) {
+        // Update active (redstone) state in case it changed without us knowing
+        boolean active = event.isPowered();
+        if (active != this.state.active) {
+            this.store.putIfPresent(this.location, this.state.setActive(active));
+        }
     }
 
     /**
@@ -61,7 +71,7 @@ public class SpawnSign {
      * 
      * @return spawn sign location
      */
-    public BlockLocation getLocation() {
+    public OfflineBlock getLocation() {
         return this.location;
     }
 
@@ -71,7 +81,7 @@ public class SpawnSign {
      * @return True if an interval was set
      */
     public boolean hasInterval() {
-        return this.interval > 0L;
+        return this.state.intervalMillis > 0L;
     }
 
     /**
@@ -81,34 +91,38 @@ public class SpawnSign {
      * @return spawn interval
      */
     public long getInterval() {
-        return this.interval;
+        return this.state.intervalMillis;
     }
 
     /**
      * Gets the duration in milliseconds until this spawn sign should spawn next.
      * Returns 0 when the spawn must occur right now.
      * Returns MAX_VALUE when this spawn sign is inactive.
-     * 
-     * @param currentTime from which to measure remaining time
+     *
+     * @param previousTime Previous spawn 'wave'. Is used to detect skipped
+     *                     spawn intervals during downtime.
+     * @param currentTime Time from which to measure remaining time
      * @return remaining time in milliseconds
      */
-    public long getRemaining(long currentTime) {
+    public long getRemaining(long previousTime, long currentTime) {
         if (!this.isActive() || !this.hasInterval()) {
             return Long.MAX_VALUE;
         }
-        long time = (this.nextSpawnTime - currentTime);
-        return time < 0 ? 0 : time;
-    }
 
-    /**
-     * Gets the timestamp ( currentTimeMillis() ) for when the next spawn occurs.
-     * Returns MAX_VALUE when this spawn sign is inactive.
-     * 
-     * @return timestamp of next spawn
-     */
-    public long getNextSpawnTime() {
-        if (!this.isActive() || !this.hasInterval()) return Long.MAX_VALUE;
-        return this.nextSpawnTime;
+        // Get next spawn time by comparing with the previousTime value
+        long numIntervalsSkipped = (currentTime - state.autoSpawnStartTime) / state.intervalMillis;
+        long nextSpawnTimestamp = state.autoSpawnStartTime + (numIntervalsSkipped * state.intervalMillis);
+        if (nextSpawnTimestamp <= previousTime) {
+            nextSpawnTimestamp += state.intervalMillis;
+        }
+
+        // If current time is beyond the next spawn timestamp, remaining is 0
+        // Then the sign should spawn right now!
+        if (currentTime >= nextSpawnTimestamp) {
+            return 0;
+        } else {
+            return (nextSpawnTimestamp - currentTime);
+        }
     }
 
     /**
@@ -117,7 +131,7 @@ public class SpawnSign {
      * @return True if active
      */
     public boolean isActive() {
-        return this.active;
+        return this.state.active;
     }
 
     /**
@@ -135,27 +149,16 @@ public class SpawnSign {
      * @return spawnable group
      */
     public SpawnableGroup getSpawnableGroup() {
-        return this.spawnableGroup;
+        return SpawnableGroup.parse(this.spawnFormat);
     }
 
     /**
-     * Resets the spawn timer, causing this sign to spawn when the interval elapses.
+     * Resets the spawn timer, causing this sign to spawn when the interval elapses
+     * after the current system time.
      */
     public void resetSpawnTime() {
-        this.nextSpawnTime = System.currentTimeMillis() + this.interval;
-        TrainCarts.plugin.getSpawnSignManager().notifyChanged();
-    }
-
-    /**
-     * Resets the spawn timer right after an interval spawn was performed
-     */
-    public void nextSpawnTime() {
-        long currentTime = System.currentTimeMillis();
-        this.nextSpawnTime += this.interval;
-        if (this.getRemaining(currentTime) == 0) {
-            this.nextSpawnTime = currentTime + this.interval;
-        }
-        TrainCarts.plugin.getSpawnSignManager().notifyChanged();
+        this.store.putIfPresent(this.location, this.state.setAutoSpawnStart(
+                System.currentTimeMillis() + this.state.intervalMillis));
     }
 
     /**
@@ -164,7 +167,7 @@ public class SpawnSign {
      * @return world
      */
     public World getWorld() {
-        return this.location.getWorld();
+        return this.location.getLoadedWorld();
     }
 
     /**
@@ -210,42 +213,28 @@ public class SpawnSign {
         }
     }
 
-    private void addChunk(int x, int z) {
-        World world = this.getWorld();
-        if (world == null) {
-            return;
-        }
-        for (int dx = -2; dx <= 2; dx++) {
-            for (int dz = -2; dz <= 2; dz++) {
-                int cx = x + dx;
-                int cz = z + dz;
-                if (!this.chunks.contains(cx, cz)) {
-                    this.chunks.put(cx, cz, new SignSpawnChunk(world, cx, cz));
-                }
-            }
-        }
-    }
-
     /**
      * Removes this spawn sign from the spawn sign manager
      */
     public void remove() {
-        TrainCarts.plugin.getSpawnSignManager().remove(this);
+        this.store.remove(this.location, SpawnSignManager.SpawnSignMetadata.class);
     }
 
     /**
      * Attempts to spawn a train from this sign right this instant
      */
     public void spawn() {
-        Block signBlock = this.location.getBlock();
+        Block signBlock = this.location.getLoadedBlock();
         if (signBlock != null) {
             SignActionEvent event = new SignActionEvent(signBlock);
             if (isValid(event)) {
-                this.load(event);
+                this.updateUsingEvent(event);
                 this.spawn(event);
             } else {
                 this.remove();
             }
+        } else {
+            this.loadChunksAsyncReset();
         }
     }
 
@@ -260,7 +249,6 @@ public class SpawnSign {
             this.ticksUntilFreeing = 2;
 
             // Ensure all chunks we may need are loaded (getChunk())
-            World world = sign.getWorld();
             for (SignSpawnChunk chunk : this.chunks.getValues()) {
                 chunk.loadSync();
             }
@@ -282,7 +270,7 @@ public class SpawnSign {
                             if (!new_chunks.contains(key)) {
                                 SignSpawnChunk chunk = this.chunks.remove(key);
                                 if (chunk == null) {
-                                    chunk = new SignSpawnChunk(world, cx, cz);
+                                    chunk = new SignSpawnChunk(this.location.getWorldUUID(), cx, cz);
                                     chunk.loadSync();
                                 }
                                 new_chunks.put(key, chunk);
@@ -305,99 +293,84 @@ public class SpawnSign {
 
     @Override
     public String toString() {
+        long currentTime = System.currentTimeMillis();
+
         StringBuilder str = new StringBuilder();
         str.append("{");
         str.append("pos=").append(this.location.toString());
         str.append(", interval=").append(this.getInterval());
-        str.append(", remaining=").append(this.getRemaining(System.currentTimeMillis()));
+        str.append(", remaining=").append(this.getRemaining(currentTime, currentTime));
         str.append(", spawnForce=").append(this.getSpawnForce());
-        str.append(", spawnable=").append(this.spawnableGroup.toString());
+        str.append(", spawnable=").append(this.spawnFormat);
         str.append("}");
         return str.toString();
     }
 
-    /*
-     * Serialization: rules.
-     * interval = 0 -> no autospawn, anything else -> autospawn
-     * remaining time of MAX_VALUE: sign is inactive (not powered)
-     * other remaining time: read/write offset from current timestamp
-     */
-
-    public void write(DataOutputStream stream) throws IOException {
-        this.location.getCoordinates().write(stream);
-        stream.writeUTF(this.location.world);
-        stream.writeLong(this.interval);
-
-        if (this.isActive()) {
-            long remaining = this.nextSpawnTime - System.currentTimeMillis();
-            if (remaining < 0) {
-                remaining = 0;
-            }
-            stream.writeLong(remaining);
-        } else {
-            stream.writeLong(Long.MAX_VALUE);
-        }
-    }
-
-    public static SpawnSign read(DataInputStream stream) throws IOException {
-        IntVector3 coord = IntVector3.read(stream);
-        String world = stream.readUTF();
-        SpawnSign sign = new SpawnSign(new BlockLocation(world, coord));
-        sign.interval = stream.readLong();
-        long remaining = stream.readLong();
-        if (remaining == Long.MAX_VALUE) {
-            sign.nextSpawnTime = System.currentTimeMillis();
-            sign.active = false;
-        } else {
-            sign.nextSpawnTime = System.currentTimeMillis() + remaining;
-            sign.active = true;
-        }
-        return sign;
-    }
-
-    /* ================================================================ */
-
-    private static String[] getArgs(SignActionEvent event) {
-        final String line = event.getLine(1).toLowerCase(Locale.ENGLISH);
-        final int idx = line.indexOf(' ');
-        if (idx == -1) {
-            return StringUtil.EMPTY_ARRAY;
-        }
-        return line.substring(idx + 1).split(" ");
-    }
-
     public static double getSpawnForce(SignActionEvent event) {
-        String[] bits = getArgs(event);
-        if (bits.length >= 2) {
-            // Choose
-            if (!bits[0].contains(":")) {
-                return Util.parseVelocity(bits[0], 0.0);
-            } else {
-                return Util.parseVelocity(bits[1], 0.0);
-            }
-        } else if (bits.length >= 1 && !bits[0].contains(":")) {
-            return Util.parseVelocity(bits[0], 0.0);
-        }
-        return 0.0;
+        return SpawnOptions.fromEvent(event).launchVelocity;
     }
 
     public static long getSpawnTime(SignActionEvent event) {
-        String[] bits = getArgs(event);
-        if (bits.length >= 2) {
-            // Choose
-            if (bits[1].contains(":")) {
-                return ParseUtil.parseTime(bits[1]);
-            } else {
-                return ParseUtil.parseTime(bits[0]);
-            }
-        } else if (bits.length >= 1 && bits[0].contains(":")) {
-            return ParseUtil.parseTime(bits[0]);
-        }
-        return 0;
+        return SpawnOptions.fromEvent(event).autoSpawnInterval;
     }
 
     public static boolean isValid(SignActionEvent event) {
         return event != null && event.getMode() != SignActionMode.NONE && event.isType("spawn");
+    }
+
+    public static class SpawnOptions {
+        public final double launchVelocity;
+        public final long autoSpawnInterval;
+
+        private SpawnOptions(String secondSignLine) {
+            String[] args;
+            final String line = secondSignLine.toLowerCase(Locale.ENGLISH);
+            final int idx = line.indexOf(' ');
+            if (idx == -1) {
+                args = StringUtil.EMPTY_ARRAY;
+            } else {
+                args = line.substring(idx + 1).split(" ");
+            }
+
+            this.launchVelocity = parseVelocity(args);
+            this.autoSpawnInterval = getAutoSpawnInterval(args);
+        }
+
+        public static SpawnOptions fromEvent(SignActionEvent event) {
+            return new SpawnOptions(event.getLine(1));
+        }
+
+        public static SpawnOptions fromOfflineSign(OfflineSign sign) {
+            return new SpawnOptions(sign.getLine(1));
+        }
+
+        private static double parseVelocity(String[] args) {
+            if (args.length >= 2) {
+                // Choose
+                if (!args[0].contains(":")) {
+                    return Util.parseVelocity(args[0], 0.0);
+                } else {
+                    return Util.parseVelocity(args[1], 0.0);
+                }
+            } else if (args.length >= 1 && !args[0].contains(":")) {
+                return Util.parseVelocity(args[0], 0.0);
+            }
+            return 0.0;
+        }
+
+        private static long getAutoSpawnInterval(String[] args) {
+            if (args.length >= 2) {
+                // Choose
+                if (args[1].contains(":")) {
+                    return ParseUtil.parseTime(args[1]);
+                } else {
+                    return ParseUtil.parseTime(args[0]);
+                }
+            } else if (args.length >= 1 && args[0].contains(":")) {
+                return ParseUtil.parseTime(args[0]);
+            }
+            return 0;
+        }
     }
 
     private static class SignSpawnChunk {
@@ -406,9 +379,9 @@ public class SpawnSign {
         public final int x;
         public final int z;
 
-        public SignSpawnChunk(World world, int x, int z) {
+        public SignSpawnChunk(UUID worldUUID, int x, int z) {
             this.chunk = ForcedChunk.none();
-            this.worldUUID = world.getUID();
+            this.worldUUID = worldUUID;
             this.x = x;
             this.z = z;
         }
