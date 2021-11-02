@@ -100,7 +100,7 @@ public class OfflineMember {
 
     public MinecartMember<?> create(World world) {
         Minecart entity = findEntity(world, false);
-        if (entity == null) {
+        if (entity == null || entity.isDead()) {
             return null;
         }
         MinecartMember<?> mm = MinecartMemberStore.convert(entity);

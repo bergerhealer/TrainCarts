@@ -69,25 +69,13 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         }
     }
 
-    /**
-     * Deprecated: does not initialize a full train and is unsafe to use
-     * 
-     * @return new group, registered in global group list
-     */
-    @Deprecated
-    public static MinecartGroup create() {
-        Util.checkMainThread("MinecartGroupStore::create()");
-        MinecartGroup g = new MinecartGroup();
-        groups.add(g);
-        return g;
-    }
-
     public static MinecartGroup create(MinecartMember<?>... members) {
         return create(null, members);
     }
 
     public static MinecartGroup create(String name, MinecartMember<?>... members) {
         Util.checkMainThread("MinecartGroupStore::create(name, members)");
+        validateMembersArray(members);
 
         // There is not a group with this name already?
         MinecartGroup g = new MinecartGroup();
@@ -109,6 +97,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
      */
     public static MinecartGroup createSplitFrom(TrainProperties properties, MinecartMember<?>... members) {
         Util.checkMainThread("MinecartGroupStore::createSplitFrom(from, members)");
+        validateMembersArray(members);
 
         // Create new group and assign it the properties of a split group
         MinecartGroup g = new MinecartGroup();
@@ -118,12 +107,31 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         return g;
     }
 
+    private static void validateMembersArray(MinecartMember<?>[] members) {
+        final int numMembers = members.length;
+        if (numMembers == 0) {
+            throw new IllegalArgumentException("Members array is empty, can't create a train with zero carts");
+        }
+        for (int i = 0; i < numMembers; i++) {
+            MinecartMember<?> member = members[i];
+            if (member == null) {
+                throw new IllegalArgumentException("Member at index " + i + " of members array is null");
+            } else if (member.getEntity() == null) {
+                throw new IllegalArgumentException("Member at index " + i + " of members array was never spawned as an entity");
+            } else if (member.getEntity().isDead()) {
+                Location lastLoc = member.getEntity().getLocation();
+                String worldName = lastLoc.getWorld() == null ? "null" : lastLoc.getWorld().getName();
+                throw new IllegalArgumentException(String.format(
+                        "Member at index %d of members array is dead (world=%s, x=%.3f, y=%.3f, z=%.3f)",
+                        i, worldName, lastLoc.getX(), lastLoc.getY(), lastLoc.getZ()));
+            }
+        }
+    }
+
     private static void addMembersAndFinalize(MinecartGroup group, MinecartMember<?>... members) {
         for (MinecartMember<?> member : members) {
-            if (member != null && member.getEntity() != null && !member.getEntity().isDead()) {
-                member.setUnloaded(false);
-                group.add(member);
-            }
+            member.setUnloaded(false);
+            group.add(member);
         }
         group.updateDirection();
         group.getAverageForce();
@@ -148,6 +156,11 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
     }
 
     public static MinecartGroup spawn(SpawnableGroup spawnableGroup, SpawnableGroup.SpawnLocationList locations) {
+        if (locations.locations.isEmpty()) {
+            throw new IllegalArgumentException("Spawn Location List has zero locations to spawn, " +
+                    "cannot spawn a train with zero carts");
+        }
+
         MinecartGroup group = new MinecartGroup();
         group.setProperties(TrainPropertiesStore.createFromConfig(spawnableGroup.getConfig()));
         groups.add(group);
@@ -171,9 +184,15 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
 
     public static MinecartGroup spawn(Location[] at, EntityType... types) {
         Util.checkMainThread("MinecartGroupStore::spawn(at, types)");
-        if (at.length != types.length || at.length == 0) return null;
+        if (at.length == 0) {
+            throw new IllegalArgumentException("One or more locations must be specified, cannot spawn a train with zero carts");
+        }
+        if (at.length != types.length) {
+            throw new IllegalArgumentException("Number of locations is not equal to the number entity types to spawn");
+        }
+
         MinecartGroup g = new MinecartGroup();
-        for (int i = 0; i < types.length; i++) {
+        for (int i = 0; i < at.length; i++) {
             g.add(MinecartMemberStore.spawn(at[i], types[i]));
         }
         groups.add(g);
