@@ -152,7 +152,7 @@
         <dependency>
             <groupId>me.m56738</groupId>
             <artifactId>SmoothCoastersAPI</artifactId>
-            <version>1.1</version>
+            <version>1.6</version>
         </dependency>
 
         <!-- Cloud command framework -->

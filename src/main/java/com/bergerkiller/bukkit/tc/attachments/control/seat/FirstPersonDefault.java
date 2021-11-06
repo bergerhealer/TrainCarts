@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
+import com.bergerkiller.bukkit.tc.TCConfig;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -52,7 +53,13 @@ public class FirstPersonDefault {
 
         if (this.useSmoothCoasters()) {
             Quaternion rotation = seat.getTransform().getRotation();
+            TrainCarts.plugin.getSmoothCoastersAPI().setRotationMode(
+                    null,
+                    viewer,
+                    TCConfig.smoothCoastersRotationMode
+            );
             TrainCarts.plugin.getSmoothCoastersAPI().setRotation(
+                    null,
                     viewer,
                     (float) rotation.getX(),
                     (float) rotation.getY(),
@@ -101,7 +108,7 @@ public class FirstPersonDefault {
     public void makeHidden(Player viewer) {
         if (TrainCarts.plugin.isEnabled()) {
             // Cannot send plugin messages while the plugin is being disabled
-            TrainCarts.plugin.getSmoothCoastersAPI().resetRotation(viewer);
+            TrainCarts.plugin.getSmoothCoastersAPI().resetRotation(null, viewer);
         }
 
         if (this._fakeCameraMount != null) {
@@ -117,6 +124,7 @@ public class FirstPersonDefault {
         if (this.useSmoothCoasters()) {
             Quaternion rotation = seat.getTransform().getRotation();
             TrainCarts.plugin.getSmoothCoastersAPI().setRotation(
+                    null,
                     _player,
                     (float) rotation.getX(),
                     (float) rotation.getY(),
