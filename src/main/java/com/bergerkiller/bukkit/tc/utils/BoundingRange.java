@@ -181,6 +181,13 @@ public class BoundingRange {
             return dx * dx + dy * dy + dz * dz;
         }
 
+        public double distanceSquared(Location location) {
+            double dx = x.distance(location.getX());
+            double dy = y.distance(location.getY());
+            double dz = z.distance(location.getZ());
+            return dx * dx + dy * dy + dz * dz;
+        }
+
         public static Axis empty() {
             return new Axis();
         }
