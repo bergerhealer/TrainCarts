@@ -209,6 +209,7 @@ public class PathNode {
         // Add a new one
         conn = new PathConnection(to, distance, junctionName);
         addNeighbourFast(conn);
+        world.getProvider().scheduleNodeIfNotRecentlyRouted(to);
         world.getProvider().markChanged();
         return conn;
     }

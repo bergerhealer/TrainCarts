@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -46,9 +47,33 @@ public class PathProvider extends Task {
     public static boolean DEBUG_MODE = false;
     private final Map<String, PathWorld> worlds = new HashMap<String, PathWorld>();
     private final List<PathRoutingHandler> handlers = new ArrayList<PathRoutingHandler>();
+    /**
+     * Block locations where discovery needs to be done to see if there is a pathfinding
+     * node there. If there is, then a node is created and re-routing from that node
+     * is performed.
+     */
     private Queue<BlockLocation> pendingDiscovery = new LinkedList<BlockLocation>();
+    /**
+     * Nodes in the pathfinding graph that need to perform re-discovery. This means checking
+     * all possible directions from which the node can be traveled and seeing what is on the
+     * other end. Regularly these nodes are turned into PathFindOperation instances to perform
+     * processing.
+     */
     private Set<PathNode> pendingNodes = new LinkedHashSet<>();
+    /**
+     * Pending operations from a path node into a given direction, where the route to other
+     * nodes is computed. Each pending node can turn into one or more pending operations.
+     */
     private Queue<PathFindOperation> pendingOperations = new LinkedList<>();
+    /**
+     * All nodes that had re-routing scheduled since the re-routing algorithm fell idle.
+     * This is used to decide whether a node needs further calculations done when a route
+     * to another node is added to it or changed. It avoids re-calculating the same routes
+     * over and over again.<br>
+     * <br>
+     * Once no more operations are being done, then this set is cleared.
+     */
+    private Set<PathNode> scheduledNodesSinceIdle = new HashSet<>();
     private boolean hasChanges = false;
 
     public PathProvider(JavaPlugin plugin) {
@@ -152,6 +177,7 @@ public class PathProvider extends Task {
 
                 // Cancel all scheduled (pending) nodes
                 pendingNodes.clear();
+                scheduledNodesSinceIdle.clear();
             }
         }.read();
 
@@ -295,6 +321,19 @@ public class PathProvider extends Task {
      */
     public void scheduleNode(PathNode startNode) {
         pendingNodes.add(startNode);
+        scheduledNodesSinceIdle.add(startNode);
+    }
+
+    /**
+     * Schedules a node to start calculating all neighboring paths, if this node was not recently re-routed
+     * already.
+     *
+     * @param startNode
+     */
+    public void scheduleNodeIfNotRecentlyRouted(PathNode startNode) {
+        if (scheduledNodesSinceIdle.add(startNode)) {
+            pendingNodes.add(startNode);
+        }
     }
 
     /**
@@ -352,6 +391,7 @@ public class PathProvider extends Task {
             addPendingNodes();
         }
         if (this.pendingOperations.isEmpty()) {
+            this.scheduledNodesSinceIdle.clear();
             return;
         }
         int i;
