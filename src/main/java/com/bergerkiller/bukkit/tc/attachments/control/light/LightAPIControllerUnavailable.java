@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.control.light;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 
-public class LightAPIControllerUnavailable extends LightAPIController {
+class LightAPIControllerUnavailable extends LightAPIController {
     public static final LightAPIControllerUnavailable INSTANCE = new LightAPIControllerUnavailable();
 
     private LightAPIControllerUnavailable() {

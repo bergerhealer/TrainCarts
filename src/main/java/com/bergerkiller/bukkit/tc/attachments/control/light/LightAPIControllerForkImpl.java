@@ -15,23 +15,23 @@ import ru.beykerykt.lightapi.chunks.ChunkInfo;
 
 /**
  * Implementation of the LightAPIController. Contains LightAPI
- * types.
+ * types. This is for LightAPI-Fork.
  */
-public class LightAPIControllerImpl extends LightAPIController {
+class LightAPIControllerForkImpl extends LightAPIController {
     private final World world;
     private final LightType lightType;
     private final Map<IntVector3, LevelList> levels;
     private final Map<IntVector3, LevelList> dirty;
 
     public static LightAPIController forSkyLight(World world) {
-        return new LightAPIControllerImpl(world, LightType.SKY);
+        return new LightAPIControllerForkImpl(world, LightType.SKY);
     }
 
     public static LightAPIController forBlockLight(World world) {
-        return new LightAPIControllerImpl(world, LightType.BLOCK);
+        return new LightAPIControllerForkImpl(world, LightType.BLOCK);
     }
 
-    private LightAPIControllerImpl(World world, LightType lightType) {
+    private LightAPIControllerForkImpl(World world, LightType lightType) {
         this.world = world;
         this.lightType = lightType;
         this.levels = new HashMap<>();

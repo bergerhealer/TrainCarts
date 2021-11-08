@@ -45,21 +45,63 @@ public abstract class LightAPIController {
         Map<World, LightAPIController> map = skyLight ? _skyLightControllers : _blockLightControllers;
         LightAPIController controller = map.get(world);
         if (controller == null) {
+            // See if LightAPI v5.0.0 or newer is installed
+            boolean isLightAPIV5Installed = false;
             try {
-                controller = skyLight ? LightAPIControllerImpl.forSkyLight(world) : LightAPIControllerImpl.forBlockLight(world);
-            } catch (Throwable t) {
-                Plugin plugin = Bukkit.getPluginManager().getPlugin("LightAPI");
-                if (plugin == null) {
-                    // Not loaded
-                    TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to initialize LightAPI handler: LightAPI plugin is not enabled!");
-                } else if (plugin.getDescription().getMain().equals("ru.beykerykt.minecraft.lightapi.bukkit.impl.BukkitPlugin")) {
-                    // LightAPI is used instead of LightAPI-Fork - not supported!
-                    TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to initialize LightAPI handler: LightAPI is installed, but you need LightAPI-fork instead!");
-                } else {
-                    TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to initialize LightAPI handler", t);
-                }
-                controller = LightAPIControllerUnavailable.INSTANCE;
+                // All these types must exist
+                Class<?> typeLightAPI = Class.forName("ru.beykerykt.minecraft.lightapi.common.LightAPI");
+                Class<?> typeEditPolicy = Class.forName("ru.beykerykt.minecraft.lightapi.common.api.engine.EditPolicy");
+                Class<?> typeSendPolicy = Class.forName("ru.beykerykt.minecraft.lightapi.common.api.engine.SendPolicy");
+                Class<?> typeICallBack = Class.forName("ru.beykerykt.minecraft.lightapi.common.api.engine.sched.ICallback");
+
+                // Verify method exists to set light level, as we expect
+                typeLightAPI.getMethod("setLightLevel",
+                        /* world name */ String.class,
+                        /* x/y/z */      int.class, int.class, int.class,
+                        /* lightLevel */ int.class,
+                        /* lightFlags */ int.class,
+                        /* editPolicy */ typeEditPolicy,
+                        /* sendPolicy */ typeSendPolicy,
+                        /* callback */   typeICallBack);
+
+                // Looks good, we can use it!
+                isLightAPIV5Installed = true;
+            } catch (ClassNotFoundException | NoSuchMethodException | SecurityException ex) {
+                // Not found, or is a much too old version.
             }
+
+            if (isLightAPIV5Installed) {
+                try {
+                    controller = skyLight ? LightAPIControllerV5Impl.forSkyLight(world) : LightAPIControllerV5Impl.forBlockLight(world);
+                } catch (Throwable t) {
+                    Plugin plugin = Bukkit.getPluginManager().getPlugin("LightAPI");
+                    if (plugin == null) {
+                        // Not loaded
+                        TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to initialize LightAPI handler: LightAPI plugin is not enabled!");
+                    } else {
+                        TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to initialize LightAPI handler", t);
+                    }
+                    controller = LightAPIControllerUnavailable.INSTANCE;
+                }
+            } else {
+                // LightAPI-Fork or very old LightAPI versions
+                try {
+                    controller = skyLight ? LightAPIControllerForkImpl.forSkyLight(world) : LightAPIControllerForkImpl.forBlockLight(world);
+                } catch (Throwable t) {
+                    Plugin plugin = Bukkit.getPluginManager().getPlugin("LightAPI");
+                    if (plugin == null) {
+                        // Not loaded
+                        TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to initialize LightAPI-Fork handler: LightAPI-Fork plugin is not enabled!");
+                    } else if (plugin.getDescription().getMain().equals("ru.beykerykt.minecraft.lightapi.bukkit.impl.BukkitPlugin")) {
+                        // LightAPI is used instead of LightAPI-Fork - not supported!
+                        TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to initialize LightAPI-Fork handler: LightAPI is installed, but you need LightAPI-Fork instead!");
+                    } else {
+                        TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to initialize LightAPI-Fork handler", t);
+                    }
+                    controller = LightAPIControllerUnavailable.INSTANCE;
+                }
+            }
+
             map.put(world, controller);
         }
         return controller;

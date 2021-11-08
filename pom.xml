@@ -91,11 +91,28 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- LightAPI (optional) for light attachment -->
+        <!-- LightAPI-fork (optional) for light attachment -->
         <dependency>
             <groupId>io.github.qveshn</groupId>
             <artifactId>LightAPI-fork</artifactId>
             <version>3.4.2-SNAPSHOT</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+        <!-- LightAPI v5 (optional) for light attachment -->
+        <dependency>
+            <groupId>ru.beykerykt.minecraft</groupId>
+            <artifactId>lightapi-bukkit-common</artifactId>
+            <version>5.0.0</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>ru.beykerykt.minecraft</groupId>
+            <artifactId>lightapi-common</artifactId>
+            <version>5.0.0</version>
+            <scope>provided</scope>
+            <optional>true</optional>
         </dependency>
 
         <!-- Vault (optional) for Economy integration -->
