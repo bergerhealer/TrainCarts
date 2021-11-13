@@ -640,9 +640,6 @@ public class RailTrackerGroup extends RailTracker {
                 int nrCachedRails = 0; // rails added without certainty of being correct
                 while (true) {
                     if (p.state.isSameRails(nextPos)) {
-                        // If we found the next member for the first time, also update the starting minecart with the correct info
-                        result.numMembers++;
-
                         // We can skip the slow movement steps when the current rail path has only one segment
                         // This helps performance a bit on vanilla rails.
                         boolean useFastMethod = (p.currentRailPath.getSegments().length <= 1);
@@ -663,7 +660,8 @@ public class RailTrackerGroup extends RailTracker {
                             // Move the walking point small steps until no more significant movement occurs
                             // to close the distance between p.state.position() and nextPos.
                             int cycle_limit = 10000;
-                            double curr_distance = p.state.position().distance(nextPos.position());
+                            double initial_distance = p.state.position().distance(nextPos.position());
+                            double curr_distance = initial_distance;
                             do {
                                 if (curr_distance <= 1e-8 || !p.move(curr_distance) || p.moved <= 1e-8) {
                                     break;
@@ -675,11 +673,21 @@ public class RailTrackerGroup extends RailTracker {
                                 curr_distance = new_distance;
                             } while (--cycle_limit > 0);
 
+                            // If we find that the position is diverging away, then there is no connection
+                            // with the other cart and we abort. The next test will try the other direction
+                            // and hopefully correct this.
+                            if (curr_distance > (0.5 * initial_distance)) {
+                                break;
+                            }
+
                             // Update rail state, change rail piece of different
                             RailState currInfoState = p.state.clone();
                             currInfoState.setRailPiece(nextPos.railPiece());
                             currInfo = new TrackedRail(nextMember, currInfoState, false);
                         }
+
+                        // If we found the next member for the first time, also update the starting minecart with the correct info
+                        result.numMembers++;
 
                         // Refresh the next minecart with the information currently iterating at
                         nrCachedRails = 0;
