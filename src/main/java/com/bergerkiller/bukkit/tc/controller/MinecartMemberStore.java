@@ -161,7 +161,7 @@ public abstract class MinecartMemberStore {
 
         // If not stored in the Offline store, this is a new Minecart that we need to
         // setup the default train properties for
-        if (!OfflineGroupManager.containsMinecart(entity.getUniqueId())) {
+        if (!newController.isUnloaded() && !OfflineGroupManager.containsMinecart(entity.getUniqueId())) {
             newController.getGroup().getProperties().setDefault();
         }
 
