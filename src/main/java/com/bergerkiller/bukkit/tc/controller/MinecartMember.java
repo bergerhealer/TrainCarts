@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -34,6 +33,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.ExtendedEntity;
@@ -1899,9 +1899,15 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
 
         // Kill entity if falling into the void
-        if (entity.loc.getY() < -64.0D) {
-            this.onDie(true);
-            throw new MemberMissingException();
+        if (Common.hasCapability("Common:WorldBlockBorder")) {
+            // In a method to avoid errors
+            dieIfOutsideWorldBorder();
+        } else {
+            // Legacy fallback, can be removed once bkcl 1.17.1-v5 or later is a hard dep.
+            if (entity.loc.getY() < -TCConfig.worldBorderKillDistance) {
+                this.onDie(true);
+                throw new MemberMissingException();
+            }
         }
 
         // reset fall distance
@@ -1920,6 +1926,14 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // Update the entity shape
         entity.setPosition(entity.loc.getX(), entity.loc.getY(), entity.loc.getZ());
+    }
+
+    private void dieIfOutsideWorldBorder() {
+        double limitSq = TCConfig.worldBorderKillDistance * TCConfig.worldBorderKillDistance;
+        if (WorldUtil.getBlockBorder(getWorld()).distanceSquared(entity.loc.vector()) > limitSq) {
+            this.onDie(true);
+            throw new MemberMissingException();
+        }
     }
 
     /**

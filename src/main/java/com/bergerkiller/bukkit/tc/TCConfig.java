@@ -48,6 +48,7 @@ public class TCConfig {
     public static double cartDistanceGap;
     public static double cartDistanceForcer;
     public static double cartDistanceForcerConstant;
+    public static double worldBorderKillDistance;
     public static boolean breakCombinedCarts;
     public static double poweredCartBoost;
     public static double poweredRailBoost;
@@ -158,6 +159,11 @@ public class TCConfig {
         cartDistanceGapMax = config.get("linkProperties.cartDistanceGapMax", cartDistanceGap + 2.0);
         cartDistanceForcer = config.get("linkProperties.cartDistanceForcer", 0.1);
         cartDistanceForcerConstant = config.get("linkProperties.cartDistanceForcerConstant", 0.0);
+
+        config.setHeader("worldBorderKillDistance", "\nWhat distance beyond the world border carts get destroyed automatically");
+        config.addHeader("worldBorderKillDistance", "This covers a set world border, as well as falling into the void, or");
+        config.addHeader("worldBorderKillDistance", "flying beyond the height limit of the World");
+        worldBorderKillDistance = config.get("worldBorderKillDistance", 64.0);
 
         config.setHeader("breakCombinedCarts", "\nWhether or not the combined carts (powered/storage minecarts) break up into two items");
         breakCombinedCarts = config.get("breakCombinedCarts", false);
