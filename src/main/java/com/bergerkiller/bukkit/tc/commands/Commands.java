@@ -27,7 +27,8 @@ import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.commands.parsers.TrainNameFormatParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.FormattedSpeedParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.TrainTargetingFlags;
-import com.bergerkiller.bukkit.tc.commands.suggestions.AnimationName;
+import com.bergerkiller.bukkit.tc.commands.suggestions.AnimationNameSuggestionProvider;
+import com.bergerkiller.bukkit.tc.commands.suggestions.TrainNameSuggestionProvider;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.debug.DebugCommands;
@@ -200,17 +201,11 @@ public class Commands {
         });
 
         // Provides names of animations stored in trains/carts
-        cloud.suggest("cartAnimationName", AnimationName.CART_ANIMATION_NAME);
-        cloud.suggest("trainAnimationName", AnimationName.TRAIN_ANIMATION_NAME);
+        cloud.suggest("cartAnimationName", AnimationNameSuggestionProvider.CART_ANIMATION_NAME);
+        cloud.suggest("trainAnimationName", AnimationNameSuggestionProvider.TRAIN_ANIMATION_NAME);
 
         // Register provider for train names a player can edit
-        cloud.suggest("trainnames", (context, input) -> {
-            final CommandSender sender = context.getSender();
-            return TrainProperties.getAll().stream()
-                .filter(p -> !(sender instanceof Player) || p.hasOwnership((Player) sender))
-                .map(TrainProperties::getTrainName)
-                .collect(Collectors.toList());
-        });
+        cloud.suggest("trainnames", new TrainNameSuggestionProvider());
 
         // Register provider for destination names
         cloud.suggest("destinations", (context, input) -> {

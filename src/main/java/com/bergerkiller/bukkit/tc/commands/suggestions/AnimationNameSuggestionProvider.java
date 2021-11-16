@@ -18,13 +18,13 @@ import cloud.commandframework.context.CommandContext;
 /**
  * Suggests animation names used in a train or cart
  */
-public final class AnimationName implements BiFunction<CommandContext<CommandSender>, String, List<String>> {
-    public static final AnimationName TRAIN_ANIMATION_NAME = new AnimationName(true);
-    public static final AnimationName CART_ANIMATION_NAME = new AnimationName(false);
+public final class AnimationNameSuggestionProvider implements BiFunction<CommandContext<CommandSender>, String, List<String>> {
+    public static final AnimationNameSuggestionProvider TRAIN_ANIMATION_NAME = new AnimationNameSuggestionProvider(true);
+    public static final AnimationNameSuggestionProvider CART_ANIMATION_NAME = new AnimationNameSuggestionProvider(false);
 
     private final boolean forTrain;
 
-    private AnimationName(boolean forTrain) {
+    private AnimationNameSuggestionProvider(boolean forTrain) {
         this.forTrain = forTrain;
     }
 

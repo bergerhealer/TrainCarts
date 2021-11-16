@@ -22,4 +22,16 @@ public interface SelectorHandler {
      * @throws SelectorException If something about the provided selector or arguments is wrong
      */
     Collection<String> handle(CommandSender sender, String selector, List<SelectorCondition> conditions) throws SelectorException;
+
+    /**
+     * Gets a list of potential selector conditions that are possible to specify for the
+     * provided selector information.
+     *
+     * @param sender The command sender
+     * @param selector The selector name that was hit, that was previously registered
+     * @param conditions If the player already typed some conditions, this list stores those.
+     *                   Can be used to omit options that are incompatible.
+     * @return list of supported options
+     */
+    List<SelectorHandlerConditionOption> options(CommandSender sender, String selector, List<SelectorCondition> conditions);
 }

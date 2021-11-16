@@ -22,6 +22,7 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
+import com.bergerkiller.bukkit.tc.commands.suggestions.TrainNameSuggestionProvider;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainNearbyException;
@@ -266,6 +267,8 @@ public class TrainTargetingFlags implements BiFunction<CommandTargetTrain, Comma
      * Parses the --train name flag
      */
     private static class TrainFlagParser implements ArgumentParser<CommandSender, TrainProperties> {
+        private final TrainNameSuggestionProvider suggestionProvider = new TrainNameSuggestionProvider();
+
         @Override
         public ArgumentParseResult<TrainProperties> parse(
                 final CommandContext<CommandSender> commandContext,
@@ -287,9 +290,7 @@ public class TrainTargetingFlags implements BiFunction<CommandTargetTrain, Comma
                 final CommandContext<CommandSender> commandContext,
                 final String input
         ) {
-            return TrainPropertiesStore.getAll().stream()
-                    .map(TrainProperties::getTrainName)
-                    .collect(Collectors.toList());
+            return suggestionProvider.apply(commandContext, input);
         }
     }
 

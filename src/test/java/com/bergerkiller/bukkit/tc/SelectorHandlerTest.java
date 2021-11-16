@@ -4,13 +4,18 @@ import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
+import org.bukkit.command.CommandSender;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.bergerkiller.bukkit.tc.commands.selector.SelectorCondition;
 import com.bergerkiller.bukkit.tc.commands.selector.SelectorException;
+import com.bergerkiller.bukkit.tc.commands.selector.SelectorHandler;
+import com.bergerkiller.bukkit.tc.commands.selector.SelectorHandlerConditionOption;
 import com.bergerkiller.bukkit.tc.commands.selector.SelectorHandlerRegistry;
 
 /**
@@ -23,14 +28,23 @@ public class SelectorHandlerTest {
     public void initRegistry() {
         // Simple handler that expands to the selector name and
         // provided arguments. Easy way to verify the entire system works.
-        registry.register("test", (sender, selector, conditions) -> {
-            List<String> replacements = new ArrayList<String>();
-            replacements.add(selector);
-            for (SelectorCondition condition : conditions) {
-                replacements.add(condition.getKey());
-                replacements.add(condition.getValue());
+        registry.register("test", new SelectorHandler() {
+
+            @Override
+            public Collection<String> handle(CommandSender sender, String selector, List<SelectorCondition> conditions) throws SelectorException {
+                List<String> replacements = new ArrayList<String>();
+                replacements.add(selector);
+                for (SelectorCondition condition : conditions) {
+                    replacements.add(condition.getKey());
+                    replacements.add(condition.getValue());
+                }
+                return replacements;
             }
-            return replacements;
+
+            @Override
+            public List<SelectorHandlerConditionOption> options(CommandSender sender, String selector, List<SelectorCondition> conditions) {
+                return Collections.emptyList();
+            }
         });
     }
 

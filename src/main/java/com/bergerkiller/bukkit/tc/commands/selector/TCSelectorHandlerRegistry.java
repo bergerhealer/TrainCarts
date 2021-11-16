@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.commands.selector;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -24,10 +25,18 @@ import com.bergerkiller.bukkit.tc.properties.api.IPropertySelectorCondition;
  */
 public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
     private final Map<String, IPropertySelectorCondition> conditions;
+    private final List<SelectorHandlerConditionOption> options;
 
     public TCSelectorHandlerRegistry(TrainCarts plugin) {
         super(plugin);
         this.conditions = new HashMap<>();
+        this.options = new ArrayList<>();
+
+        // These options always exist - are part of the TCSelectorLocationFilter logic
+        //TODO: Needs special types, such as world name / number expression suggestions
+        for (String s : new String[] {"world", "x", "y", "z", "dx", "dy", "dz", "distance"}) {
+            this.options.add(SelectorHandlerConditionOption.optionString(s));
+        }
     }
 
     @Override
@@ -57,7 +66,14 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
      * @param condition The condition to register
      */
     public void registerCondition(String name, IPropertySelectorCondition condition) {
-        this.conditions.put(name, condition);
+        if (this.conditions.put(name, condition) != null) {
+            removeOption(name); // Overwritten, remove previous
+        }
+
+        //TODO: Is a hack, needs a way to provide aliases/non-important deprecated conditions
+        if (!name.equals("train")) {
+            this.options.add(SelectorHandlerConditionOption.optionString(name));
+        }
     }
 
     /**
@@ -67,7 +83,19 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
      * @param name Name of the condition to un-register
      */
     public void unregisterCondition(String name) {
-        this.conditions.remove(name);
+        if (this.conditions.remove(name) != null) {
+            removeOption(name);
+        }
+    }
+
+    private void removeOption(String name) {
+        Iterator<SelectorHandlerConditionOption> iter = this.options.iterator();
+        while (iter.hasNext()) {
+            if (iter.next().name().equals(name)) {
+                iter.remove();
+                break;
+            }
+        }
     }
 
     /**
@@ -117,5 +145,16 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
         }
 
         return result;
+    }
+
+    /**
+     * Checks the registry what options are compatible to be specified
+     *
+     * @param sender
+     * @param conditions
+     * @return list of options
+     */
+    public List<SelectorHandlerConditionOption> matchOptions(CommandSender sender, List<SelectorCondition> conditions) {
+        return this.options;
     }
 }

@@ -63,13 +63,23 @@ public class SelectorHandlerRegistry implements Listener {
     }
 
     /**
-     * Registers a selector handle used for the selector name
+     * Registers a selector handler used for the selector name
      *
      * @param selectorName The selector name to match in executed commands
      * @param handler Handler to execute when the selector is detected in commands
      */
     public synchronized void register(String selectorName, SelectorHandler handler) {
         handlers.put(selectorName.toLowerCase(Locale.ENGLISH), handler);
+    }
+
+    /**
+     * Finds a previously registered selector handler by selector name
+     *
+     * @param selectorName
+     * @return handler, or null if none by this name is registered
+     */
+    public synchronized SelectorHandler find(String selectorName) {
+        return handlers.get(selectorName.toLowerCase(Locale.ENGLISH));
     }
 
     /**
