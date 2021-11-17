@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.selector.type.PlayersInTrainSelector;
 import com.bergerkiller.bukkit.tc.commands.selector.type.TrainNameSelector;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertySelectorCondition;
@@ -56,6 +57,26 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
             registerCondition("speed", speedCondition);
             registerCondition("velocity", speedCondition);
         }
+        registerCondition("passengers", (properties, condition) -> {
+            MinecartGroup group = properties.getHolder();
+            int passengers = 0;
+            if (group != null) {
+                for (MinecartMember<?> member : group) {
+                    passengers += member.getEntity().getPassengers().size();
+                }
+            }
+            return condition.matchesNumber(passengers);
+        });
+        registerCondition("playerpassengers", (properties, condition) -> {
+            MinecartGroup group = properties.getHolder();
+            int passengers = 0;
+            if (group != null) {
+                for (MinecartMember<?> member : group) {
+                    passengers += member.getEntity().getPlayerPassengers().size();
+                }
+            }
+            return condition.matchesNumber(passengers);
+        });
     }
 
     /**
