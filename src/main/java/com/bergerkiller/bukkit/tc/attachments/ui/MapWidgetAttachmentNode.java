@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
@@ -551,14 +552,20 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
 
     private MapTexture getIcon() {
         if (this.icon == null) {
-            this.icon = this.getType().getIcon(this.getConfig());
+            AttachmentType type = this.getType();
+            if (type == null) {
+                this.icon = MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/missing.png");
+            } else {
+                this.icon = this.getType().getIcon(this.getConfig());
+            }
         }
         return this.icon;
     }
 
     @Override
     public String toString() {
-        String name = this.getType().toString();
+        AttachmentType type = this.getType();
+        String name = (type == null) ? "MISSING_TYPE" : type.toString();
         for (int p : this.getTargetPath()) {
             name += "." + p;
         }
