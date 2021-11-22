@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.block.Block;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.bergerkiller.bukkit.common.Task;
@@ -96,6 +97,16 @@ public class SpawnSignManager {
         }
         this.signs.clear();
         this.cachedSortedSigns = null;
+    }
+
+    /**
+     * Gets the SpawnSign that exists at a specified sign block, if one exists there
+     *
+     * @param signBlock Block of the spawn sign
+     * @return SpawnSign instance, or null if there is no spawn sign here
+     */
+    public SpawnSign get(Block signBlock) {
+        return this.signs.get(OfflineBlock.of(signBlock));
     }
 
     public SpawnSign create(SignActionEvent signEvent) {
