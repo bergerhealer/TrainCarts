@@ -3,7 +3,7 @@ package com.bergerkiller.bukkit.tc.signactions;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Station;
-import com.bergerkiller.bukkit.tc.Station.StationConfig;
+import com.bergerkiller.bukkit.tc.actions.GroupActionWaitStationRouting;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -53,24 +53,54 @@ public class SignActionStation extends SignAction {
                 return;
             }
 
-            //Brake
-            //TODO: ADD CHECK?!
+            // This erases all previous (station/launch) actions scheduled for the train
+            // It allows this station to fully redefine what the train should be doing
             group.getActions().launchReset();
-            BlockFace trainDirection = station.getNextDirectionFace();
-            if (station.getNextDirection() != Direction.NONE) {
-                // Actual launching here
-                if (station.hasDelay()) {
-                    station.centerTrain();
-                    station.waitTrain(station.getDelay());
-                } else if (!info.getMember().isDirectionTo(trainDirection)) {
-                    // Order the train to center prior to launching again
-                    station.centerTrain();
-                }
-                station.launchTo(trainDirection);
-            } else {
+
+            // Train is waiting on top of the station sign indefinitely, with no end-condition
+            if (!station.isAutoRouting() && station.getNextDirection() == Direction.NONE) {
                 station.centerTrain();
                 station.waitTrain(Long.MAX_VALUE);
+                return;
             }
+
+            // If auto-routing, perform auto-routing checks and such
+            // All this logic runs one tick delayed, because it is possible a destination sign
+            // sits on the same block as this station sign. We want the destination sign logic
+            // to execute before the station does routing, otherwise this can go wrong.
+            // It also makes it much easier to wait for path finding to finish, or for
+            // a (valid) destination to be set on the train.
+            if (station.isAutoRouting()) {
+                // If there's a delay, wait for that delay and toggle levers, but do
+                // not toggle levers back up after the delay times out. This is because
+                // the actual station routing logic may want to hold the train for longer.
+                if (station.hasDelay()) {
+                    station.centerTrain();
+                    station.waitTrainKeepLeversDown(station.getDelay());
+                }
+
+                // All the station auto-routing logic occurs in this action, which may spawn
+                // new actions such as centering the train or launching it again.
+                group.getActions().addAction(
+                        new GroupActionWaitStationRouting(station,
+                                info.getRailPiece(), station.hasDelay()))
+                        .addTag(station.getTag());
+                return;
+            }
+
+            // Order the train to center prior to launching again if not launching into the same
+            // direction the train is already moving. Respect any set delay on the sign.
+            // Levers are automatically toggled as part of waiting
+            BlockFace trainDirection = station.getNextDirectionFace();
+            if (station.hasDelay()) {
+                station.centerTrain();
+                station.waitTrain(station.getDelay());
+            } else if (!info.getMember().isDirectionTo(trainDirection)) {
+                station.centerTrain();
+            }
+
+            // Launch into the direction
+            station.launchTo(trainDirection);
         } else {
             //Launch
             group.getActions().launchReset();
@@ -103,6 +133,15 @@ public class SignActionStation extends SignAction {
 
     @Override
     public boolean isRailSwitcher(SignActionEvent info) {
-        return StationConfig.fromSign(info).isAutoRouting();
+        // This causes too many problems because it expects a train
+        //return StationConfig.fromSign(info).isAutoRouting();
+
+        // Check last line of sign for 'route' keyword
+        for (String part : info.getLine(3).split(" ")) {
+            if (part.equalsIgnoreCase("route")) {
+                return true;
+            }
+        }
+        return false;
     }
 }

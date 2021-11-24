@@ -60,6 +60,15 @@ public class Station {
     }
 
     /**
+     * Gets information about the sign that this station is based on
+     *
+     * @return station sign information
+     */
+    public SignActionEvent getSignInfo() {
+        return this.info;
+    }
+
+    /**
      * Gets a tag unique to this station's location.
      * Is applied to all actions executed by this station
      * 
@@ -268,6 +277,19 @@ public class Station {
      * @param delay to wait, use 0 for no delay, MAX_VALUE to wait forever.
      */
     public void waitTrain(long delay) {
+        waitTrainKeepLeversDown(delay);
+        if (delay > 0) {
+            setLevers(false);
+        }
+    }
+
+    /**
+     * Same as {@link #waitTrain(long)} but does not automatically put the levers
+     * up again when the (non-infinite) delay times out.
+     *
+     * @param delay to wait, use 0 for no delay, MAX_VALUE to wait forever.
+     */
+    public void waitTrainKeepLeversDown(long delay) {
         ActionTrackerGroup actions = info.getGroup().getActions();
         if (TCConfig.playHissWhenStopAtStation) {
             actions.addActionSizzle().addTag(this.getTag());
@@ -280,7 +302,6 @@ public class Station {
             actions.addActionWaitForever().addTag(this.getTag());
         } else if (delay > 0) {
             actions.addActionWait(delay).addTag(this.getTag());
-            setLevers(false);
         }
     }
 
@@ -663,7 +684,7 @@ public class Station {
 
             // Parse the (next) launch direction and launch force (speed) on the fourth line
             for (String part : info.getLine(3).split(" ")) {
-                if (part.equalsIgnoreCase("auto") || part.equalsIgnoreCase("autoroute")) {
+                if (part.equalsIgnoreCase("route")) {
                     config.setAutoRouting(true);
                 } else {
                     Direction direction = Direction.parse(part);
