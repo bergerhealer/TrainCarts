@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.signactions;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Station;
+import com.bergerkiller.bukkit.tc.Station.StationConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -98,5 +99,10 @@ public class SignActionStation extends SignAction {
     @Override
     public boolean overrideFacing() {
         return true;
+    }
+
+    @Override
+    public boolean isRailSwitcher(SignActionEvent info) {
+        return StationConfig.fromSign(info).isAutoRouting();
     }
 }

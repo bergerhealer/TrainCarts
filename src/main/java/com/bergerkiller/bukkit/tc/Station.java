@@ -29,6 +29,7 @@ public class Station {
     private final Direction nextDirection;
     private final double centerOffset;
     private boolean wasCentered = false;
+    private boolean autoRoute = false;
 
     /**
      * Initializes a Station for a sign, reading station configuration
@@ -55,6 +56,7 @@ public class Station {
         this.launchConfig = config.getLaunchConfig();
         this.centerOffset = config.getOffsetFromCenter();
         this.nextDirection = config.getNextDirection();
+        this.autoRoute = config.isAutoRouting();
     }
 
     /**
@@ -122,6 +124,18 @@ public class Station {
      */
     public Direction getNextDirection() {
         return this.nextDirection;
+    }
+
+    /**
+     * Gets whether this station performs auto-routing behavior. This automatically
+     * launches trains into the direction that leads to their destination.
+     * 
+     * See also {@link StationConfig#setAutoRouting(boolean)}
+     *
+     * @return True if this station does auto-routing
+     */
+    public boolean isAutoRouting() {
+        return this.autoRoute;
     }
 
     /**
@@ -430,6 +444,7 @@ public class Station {
         private LauncherConfig _launchConfig = LauncherConfig.createDefault();
         private BlockFace _instruction = null;
         private long _delay = 0;
+        private boolean _autoRoute = false;
 
         public double getOffsetFromCenter() {
             return this._offsetFromCenter;
@@ -469,6 +484,31 @@ public class Station {
 
         public void setDelay(long delay) {
             this._delay = delay;
+        }
+
+        /**
+         * See {@link #setAutoRouting(boolean)}
+         *
+         * @return True if auto-routing is active
+         */
+        public boolean isAutoRouting() {
+            return this._autoRoute;
+        }
+
+        /**
+         * Sets whether this station performs auto-routing logic. This causes
+         * the train to automatically be launched into the direction that leads
+         * to the destination set for the train.
+         *
+         * If a train has no destination set,
+         * and no fallback instruction is set, the train is stopped on top of the
+         * station sign until a destination is set. If a destination cannot be
+         * reached, the train is also stopped.
+         *
+         * @param autoRoute True to perform auto-routing
+         */
+        public void setAutoRouting(boolean autoRoute) {
+            this._autoRoute = autoRoute;
         }
 
         /**
@@ -623,11 +663,15 @@ public class Station {
 
             // Parse the (next) launch direction and launch force (speed) on the fourth line
             for (String part : info.getLine(3).split(" ")) {
-                Direction direction = Direction.parse(part);
-                if (direction != Direction.NONE) {
-                    config.setNextDirection(direction);
+                if (part.equalsIgnoreCase("auto") || part.equalsIgnoreCase("autoroute")) {
+                    config.setAutoRouting(true);
                 } else {
-                    config.setLaunchSpeed(parseLaunchForce(part, info));
+                    Direction direction = Direction.parse(part);
+                    if (direction != Direction.NONE) {
+                        config.setNextDirection(direction);
+                    } else {
+                        config.setLaunchSpeed(parseLaunchForce(part, info));
+                    }
                 }
             }
 
