@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
@@ -17,6 +18,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
     private final AnimationNode _average;
     private List<Node> _nodes;
+    private MapWidgetSubmitText sceneMarkerSubmit = null;
 
     public ConfigureAnimationNodeDialog(List<AnimationNode> nodes) {
         this.setBackgroundColor(MapColorPalette.COLOR_GREEN);
@@ -85,6 +87,26 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         int x_offset = 32;
         int y_offset = 4;
         int y_step = 10;
+        int mtmpx = x_offset + 6;
+        final int mtmpx_step = 12;
+
+        // Assign a scene marker to this node, so the animation can be played from this node onwards
+        // Clicking will open an anvil dialog to enter a marker name - or empty to clear it
+        MapWidgetSceneBlinkyButton sceneMarkerButton = this.addWidget(new MapWidgetSceneBlinkyButton());
+        sceneMarkerButton.setTooltip("Scene marker").setPosition(x_offset - 5, y_offset);
+        sceneMarkerSubmit = this.addWidget(new MapWidgetSubmitText() {
+            @Override
+            public void onAttached() {
+                super.onAttached();
+                setDescription("Enter a scene start marker name - put spaces to reset");
+            }
+
+            @Override
+            public void onAccept(String text) {
+                updateScene(text);
+                sceneMarkerButton.updateIcon();
+            }
+        });
 
         // Activate/de-activate the node - checkbox or slider?
         this.addWidget(new MapWidgetBlinkyButton() {
@@ -123,8 +145,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         }.setPosition(x_offset + 7, y_offset));
 
         // Select a range of animation frames from the currently selected node
-        int mtmpx = x_offset + 18;
-        final int mtmpx_step = 12;
+        mtmpx += mtmpx_step;
         this.addWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onClick() {
@@ -347,6 +368,17 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         this.onChanged();
     }
 
+    private void updateScene(String newSceneName) {
+        for (int i = 0; i < this._nodes.size(); i++) {
+            if (i == 0) {
+                this._nodes.get(i).updateScene(newSceneName);
+            } else {
+                this._nodes.get(i).updateScene(null);
+            }
+        }
+        this.onChanged();
+    }
+
     private static enum ChangeMode {
         POS_X, POS_Y, POS_Z,
         ROT_X, ROT_Y, ROT_Z,
@@ -360,6 +392,10 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         public Node(AnimationNode node) {
             this.original = node.clone();
             this.node = node;
+        }
+
+        public void updateScene(String newSceneName) {
+            this.node = this.node.setSceneMarker(newSceneName);
         }
 
         public void update(ChangeMode mode, double new_value) {
@@ -399,6 +435,27 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             }
 
             this.node = new AnimationNode(pos, rot, active, duration, this.node.getSceneMarker());
+        }
+    }
+
+    private class MapWidgetSceneBlinkyButton extends MapWidgetBlinkyButton {
+
+        @Override
+        public void onAttached() {
+            updateIcon();
+        }
+
+        @Override
+        public void onClick() {
+            sceneMarkerSubmit.activate();
+        }
+
+        public void updateIcon() {
+            if (!_nodes.isEmpty() && _nodes.get(0).node.hasSceneMarker()) {
+                setIcon("attachments/anim_node_scene_set.png");
+            } else {
+                setIcon("attachments/anim_node_scene.png");
+            }
         }
     }
 }

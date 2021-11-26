@@ -113,8 +113,13 @@ public class AnimationNode implements Cloneable {
             return this;
         }
 
-        sceneName = sceneName.replace(' ', '_');
-        sceneName = sceneName.replace('\t', '_');
+        sceneName = sceneName.trim();
+        if (sceneName.isEmpty()) {
+            sceneName = null;
+        } else {
+            sceneName = sceneName.replace(' ', '_');
+            sceneName = sceneName.replace('\t', '_');
+        }
         return new AnimationNode(this._position, this._rotationVec,
                 this._active, this._duration, sceneName);
     }
