@@ -512,9 +512,9 @@ public class MapWidgetAnimationView extends MapWidget {
     private void updateSceneMarkerTooltip() {
         // Remove from previous, add to new (if it has a marker)
         sceneMarkerTooltip.removeWidget();
-        int index = this.getSelectedIndex();
-        if (index >= 0 && index < this._nodes.length) {
-            MapWidgetAnimationNode nodeWidget = this._nodes[index];
+        int relIndex = this._selectedNodeIndex - this._scrollOffset;
+        if (relIndex >= 0 && relIndex < this._nodes.length) {
+            MapWidgetAnimationNode nodeWidget = this._nodes[relIndex];
             AnimationNode node = nodeWidget.getValue();
             if (node != null && node.hasSceneMarker()) {
                 sceneMarkerTooltip.setText(node.getSceneMarker());
