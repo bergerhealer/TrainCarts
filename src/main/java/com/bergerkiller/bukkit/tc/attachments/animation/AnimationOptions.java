@@ -16,6 +16,7 @@ public class AnimationOptions implements Cloneable {
     private String _name;
     private String _sceneBegin;
     private String _sceneEnd;
+    private boolean _hasSceneOption;
     private double _speed;
     private double _delay;
     private boolean _looped;
@@ -27,6 +28,7 @@ public class AnimationOptions implements Cloneable {
         this._name = source._name;
         this._sceneBegin = source._sceneBegin;
         this._sceneEnd = source._sceneEnd;
+        this._hasSceneOption = source._hasSceneOption;
         this._speed = source._speed;
         this._delay = source._delay;
         this._looped = source._looped;
@@ -43,6 +45,7 @@ public class AnimationOptions implements Cloneable {
         this._name = name;
         this._sceneBegin = null;
         this._sceneEnd = null;
+        this._hasSceneOption = false;
         this._speed = 1.0;
         this._delay = 0.0;
         this._looped = false;
@@ -79,6 +82,7 @@ public class AnimationOptions implements Cloneable {
     public void setScene(String scene) {
         this._sceneBegin = scene;
         this._sceneEnd = scene;
+        this._hasSceneOption = true;
     }
 
     /**
@@ -92,6 +96,17 @@ public class AnimationOptions implements Cloneable {
     public void setScene(String sceneBegin, String sceneEnd) {
         this._sceneBegin = sceneBegin;
         this._sceneEnd = sceneEnd;
+        this._hasSceneOption = true;
+    }
+
+    /**
+     * Resets the scene option so that none will be set when playing the
+     * animation
+     */
+    public void resetScene() {
+        this._sceneBegin = null;
+        this._sceneEnd = null;
+        this._hasSceneOption = false;
     }
 
     /**
@@ -121,6 +136,29 @@ public class AnimationOptions implements Cloneable {
      */
     public String getSceneEnd() {
         return this._sceneEnd;
+    }
+
+    /**
+     * Gets whether only a single scene is specified to be played. This
+     * means only this one scene needs to be played without playing the
+     * frames before or after. If looped is also set, then this scene is
+     * played looped over and over.
+     *
+     * @return True if a single scene name is specified (both begin and end)
+     */
+    public boolean isSingleScene() {
+        return this._sceneBegin != null && this._sceneBegin.equals(this._sceneEnd);
+    }
+
+    /**
+     * Gets whether a scene has been set. May also return true if
+     * an explicit null scene was set for both beginning and end. This
+     * is used to reset the scene if one was set before.
+     *
+     * @return True if {@link #setScene(String)} was called to set a scene.
+     */
+    public boolean hasSceneOption() {
+        return this._hasSceneOption;
     }
 
     /**
@@ -260,6 +298,9 @@ public class AnimationOptions implements Cloneable {
         this.setSpeed(this.getSpeed() * options.getSpeed());
         if (options.hasLoopOption()) {
             this.setLooped(options.isLooped());
+        }
+        if (options.hasSceneOption()) {
+            this.setScene(options.getSceneBegin(), options.getSceneEnd());
         }
         this.setReset(options.getReset());
         this.setQueue(options.getQueue());

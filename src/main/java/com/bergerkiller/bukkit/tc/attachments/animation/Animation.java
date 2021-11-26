@@ -19,7 +19,8 @@ public class Animation implements Cloneable {
     private AnimationOptions _options;
     private final AnimationNode[] _nodes;
     private final Map<String, Scene> _scenes;
-    private final double _loopDuration;
+    private final Scene _entireAnimationScene;
+    private Scene _currentScene;
     private double _time;
     private boolean _reachedEnd;
 
@@ -27,7 +28,8 @@ public class Animation implements Cloneable {
         this._options = source._options.clone();
         this._nodes = source._nodes;
         this._scenes = source._scenes;
-        this._loopDuration = source._loopDuration;
+        this._entireAnimationScene = source._entireAnimationScene;
+        this._currentScene = source._currentScene;
         this._time = source._time;
         this._reachedEnd = source._reachedEnd;
     }
@@ -51,30 +53,37 @@ public class Animation implements Cloneable {
         {
             String lastSceneName = null;
             int lastSceneBegin = -1;
+            double lastSceneDuration = 0.0;
             for (int i = 0; i < nodes.length; i++) {
                 AnimationNode node = nodes[i];
                 if (node.hasSceneMarker() && !node.getSceneMarker().equals(lastSceneName)) {
                     if (lastSceneName != null) {
-                        this._scenes.put(lastSceneName, new Scene(lastSceneBegin, i-1));
+                        this._scenes.put(lastSceneName, new Scene(lastSceneBegin, i-1, lastSceneDuration));
                     }
 
                     lastSceneName = node.getSceneMarker();
+                    lastSceneDuration = node.getDuration();
                     lastSceneBegin = i;
+                } else {
+                    lastSceneDuration += node.getDuration();
                 }
             }
             if (lastSceneName != null) {
-                this._scenes.put(lastSceneName, new Scene(lastSceneBegin, nodes.length - 1));
+                this._scenes.put(lastSceneName, new Scene(lastSceneBegin, nodes.length - 1, lastSceneDuration));
             }
         }
 
-        // Calculate loop duration from the nodes
-        {
+        // Calculate loop duration when playing the entire animation
+        if (nodes.length > 0) {
             double total = 0.0;
             for (AnimationNode node : nodes) {
                 total += node.getDuration();
             }
-            this._loopDuration = total;
+            this._entireAnimationScene = new Scene(0, nodes.length - 1, total);
+        } else {
+            this._entireAnimationScene = new Scene(0, 0, 0.0);
         }
+        this._currentScene = this._entireAnimationScene;
     }
 
     /**
@@ -108,6 +117,7 @@ public class Animation implements Cloneable {
         double old_delay = this._options.getDelay();
         this._options = options;
         this._time -= (this._options.getDelay() - old_delay);
+        this.updateScene(this.createScene(options));
         this._reachedEnd = false;
         return this;
     }
@@ -133,6 +143,7 @@ public class Animation implements Cloneable {
         double old_delay = this._options.getDelay();
         this._options.apply(options);
         this._time -= (this._options.getDelay() - old_delay);
+        this.updateScene(this.createScene(options));
         this._reachedEnd = false;
         return this;
     }
@@ -144,9 +155,9 @@ public class Animation implements Cloneable {
      */
     public void start() {
         if (this._options.isReversed()) {
-            this._time = this._loopDuration;
+            this._time = this._currentScene.duration();
             if (this._nodes.length >= 1) {
-                this._time -= this._nodes[this._nodes.length - 1].getDuration();
+                this._time -= this._nodes[this._currentScene.nodeEndIndex()].getDuration();
             }
         } else {
             this._time = 0.0;
@@ -212,18 +223,19 @@ public class Animation implements Cloneable {
             return null; // animation missing
         }
 
+        Scene scene = this._currentScene;
         boolean animationStarted = true;
         if (this._options.isLooped()) {
             // When animation is too short, always return node 0.
-            if (this._nodes.length == 1 || this._loopDuration <= 1e-20) {
+            if (this._currentScene.isSingleFrame()) {
                 this._reachedEnd = true;
-                return this._nodes[0];
+                return this._nodes[scene.nodeBeginIndex()];
             }
 
         } else {
 
-            AnimationNode endNode = this._nodes[this._nodes.length - 1];
-            double animEnd = this._loopDuration - endNode.getDuration();
+            AnimationNode endNode = this._nodes[scene.nodeEndIndex()];
+            double animEnd = scene.duration() - endNode.getDuration();
 
             // When not looped, check whether the animation finished playing fully,
             // or whether the animation is yet to start
@@ -260,21 +272,20 @@ public class Animation implements Cloneable {
         // Take modulo of time vs loop duration in order for it to loop around
         // This causes any sort of delay to act more like a phase shift
         if (this._options.isLooped()) {
-            this._time = (this._time % this._loopDuration);
+            this._time = (this._time % scene.duration());
             if (this._time < 0.0) {
-                this._time += this._loopDuration; // nega
+                this._time += scene.duration(); // nega
             }
         }
 
         // Only 1 node? Return that, no weird interpolation please.
-        if (this._nodes.length == 1) {
+        if (scene.nodeCount() == 1) {
             this._reachedEnd = true;
-            return this._nodes[0];
+            return this._nodes[scene.nodeBeginIndex()];
         }
 
         // Interpolate to find the correct animation node
-        int nodes_cnt = this._nodes.length;
-        for (int i = 0; i < nodes_cnt; i++) {
+        for (int i = scene.nodeBeginIndex(); i <= scene.nodeEndIndex(); i++) {
             AnimationNode node = this._nodes[i];
             double duration = node.getDuration();
             if (curr_time > duration) {
@@ -282,15 +293,74 @@ public class Animation implements Cloneable {
                 continue;
             }
 
-            int next_i = i + 1;
-            if (next_i == nodes_cnt) {
-                next_i = 0;
-            }
+            int next_i = (i == scene.nodeEndIndex()) ? scene.nodeBeginIndex() : (i + 1);
             return AnimationNode.interpolate(this._nodes[i], this._nodes[next_i], curr_time/duration);
         }
 
         // Should never be reached
-        return this._nodes[nodes_cnt - 1];
+        return this._nodes[scene.nodeEndIndex()];
+    }
+
+    /**
+     * Updates the scene being played while preserving the time moment
+     * of playback.
+     *
+     * @param scene
+     */
+    private void updateScene(Scene scene) {
+        // Start duration offset
+        if (scene.nodeBeginIndex() < this._currentScene.nodeBeginIndex()) {
+            for (int i = scene.nodeBeginIndex(); i < this._currentScene.nodeBeginIndex(); i++) {
+                this._time += this._nodes[i].getDuration();
+            }
+        } else if (scene.nodeBeginIndex() > this._currentScene.nodeBeginIndex()) {
+            for (int i = this._currentScene.nodeBeginIndex(); i < scene.nodeBeginIndex(); i++) {
+                this._time -= this._nodes[i].getDuration();
+            }
+        }
+
+        // Clamp if beyond range of animation
+        if (this._time > scene.duration()) {
+            this._time = scene.duration();
+        }
+
+        // Assign
+        this._currentScene = scene;
+    }
+
+    /**
+     * Uses the animation options to define the scene being played.
+     *
+     * @param options Options
+     * @return Scene to play
+     */
+    private Scene createScene(AnimationOptions options) {
+        // Don't bother.
+        if (this._nodes.length == 0 || !options.hasSceneOption()) {
+            return this._entireAnimationScene;
+        }
+
+        // Single scene
+        if (options.isSingleScene()) {
+            return this._scenes.getOrDefault(options.getSceneBegin(), this._entireAnimationScene);
+        }
+
+        // Range of scenes, potentially
+        int beginIndex = 0;
+        int endIndex = this._nodes.length - 1;
+        if (options.getSceneBegin() != null) {
+            beginIndex = this._scenes.getOrDefault(options.getSceneBegin(), this._entireAnimationScene)
+                    .nodeBeginIndex();
+        }
+        if (options.getSceneEnd() != null) {
+            endIndex = this._scenes.getOrDefault(options.getSceneEnd(), this._entireAnimationScene)
+                    .nodeEndIndex();
+        }
+        double duration = 0.0;
+        for (int n = beginIndex; n <= endIndex; n++) {
+            duration += this._nodes[n].getDuration();
+        }
+        return new Scene(beginIndex, endIndex, duration);
     }
 
     /**
@@ -332,21 +402,44 @@ public class Animation implements Cloneable {
         return animation;
     }
 
+    /**
+     * A single range of an animation to play
+     */
     public static final class Scene {
-        private final int nodeBegin;
-        private final int nodeEnd;
+        private final int _nodeBegin;
+        private final int _nodeEnd;
+        private final double _duration;
 
-        public Scene(int nodeBegin, int nodeEnd) {
-            this.nodeBegin = nodeBegin;
-            this.nodeEnd = nodeEnd;
+        public Scene(int nodeBegin, int nodeEnd, double duration) {
+            this._nodeBegin = nodeBegin;
+            this._nodeEnd = nodeEnd;
+            this._duration = duration;
         }
 
-        public int getNodeBeginIndex() {
-            return this.nodeBegin;
+        public int nodeBeginIndex() {
+            return this._nodeBegin;
         }
 
-        public int getNodeEndIndex() {
-            return this.nodeEnd;
+        public int nodeEndIndex() {
+            return this._nodeEnd;
+        }
+
+        public int nodeCount() {
+            return this._nodeEnd - this._nodeBegin + 1;
+        }
+
+        public double duration() {
+            return this._duration;
+        }
+
+        /**
+         * Whether this scene is only a single frame. In that case no animation
+         * is being played, and just this one frame is updated.
+         *
+         * @return True if this is a single-frame animation
+         */
+        public boolean isSingleFrame() {
+            return this._nodeBegin == this._nodeEnd || this._duration <= 1e-20;
         }
     }
 }
