@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetTooltip;
 
 /**
  * Displays all animation nodes, a header and a scrollbar
@@ -31,6 +32,7 @@ public class MapWidgetAnimationView extends MapWidget {
     private boolean _reorderActive = false;
     private Animation _animation = null;
     private MapTexture _scrollbarBG = MapTexture.createEmpty();
+    private final MapWidgetTooltip sceneMarkerTooltip = new MapWidgetTooltip();
 
     /**
      * Called when the player activates (presses spacebar) with a node selected
@@ -171,7 +173,8 @@ public class MapWidgetAnimationView extends MapWidget {
     public void onActivate() {
         super.onActivate();
 
-        updateSelectedNodes();
+        this.updateSelectedNodes();
+        this.updateSceneMarkerTooltip();
         this.onSelectionChanged();
     }
 
@@ -188,6 +191,7 @@ public class MapWidgetAnimationView extends MapWidget {
         for (MapWidgetAnimationNode node : this._nodes) {
             node.setSelected(false);
         }
+        this.sceneMarkerTooltip.removeWidget();
     }
 
     @Override
@@ -294,6 +298,7 @@ public class MapWidgetAnimationView extends MapWidget {
         if (index != this._selectedNodeIndex) {
             this._selectedNodeIndex = index;
             this.updateView();
+            this.updateSceneMarkerTooltip();
             this.onSelectionChanged();
             display.playSound(SoundEffect.CLICK_WOOD);
         }
@@ -336,6 +341,7 @@ public class MapWidgetAnimationView extends MapWidget {
         if (count != this._selectedNodeRange) {
             this._selectedNodeRange = count;
             this.updateView();
+            this.updateSceneMarkerTooltip();
             this.onSelectionChanged();
             display.playSound(SoundEffect.CLICK_WOOD);
         }
@@ -499,6 +505,20 @@ public class MapWidgetAnimationView extends MapWidget {
             for (int i = 0; i < this._nodes.length; i++) {
                 this._nodes[i].setIsMultiSelectRoot(false);
                 this._nodes[i].setSelected(false);
+            }
+        }
+    }
+
+    private void updateSceneMarkerTooltip() {
+        // Remove from previous, add to new (if it has a marker)
+        sceneMarkerTooltip.removeWidget();
+        int index = this.getSelectedIndex();
+        if (index >= 0 && index < this._nodes.length) {
+            MapWidgetAnimationNode nodeWidget = this._nodes[index];
+            AnimationNode node = nodeWidget.getValue();
+            if (node != null && node.hasSceneMarker()) {
+                sceneMarkerTooltip.setText(node.getSceneMarker());
+                nodeWidget.addWidget(sceneMarkerTooltip);
             }
         }
     }

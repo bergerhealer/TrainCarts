@@ -7,6 +7,7 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 
 /**
@@ -18,6 +19,7 @@ public class AnimationNode implements Cloneable {
     private Quaternion _rotationQuat; // rotation as Quaternion
     private final boolean _active;
     private final double _duration;
+    private final String _scene; // null if not a scene start marker
 
     /**
      * Initializes a new Animation Node with a position, rotation and duration to the next node.
@@ -35,6 +37,7 @@ public class AnimationNode implements Cloneable {
         this._rotationQuat = rotationQuaternion;
         this._active = active;
         this._duration = duration;
+        this._scene = null;
     }
 
     /**
@@ -53,6 +56,67 @@ public class AnimationNode implements Cloneable {
         this._rotationQuat = null;
         this._active = active;
         this._duration = duration;
+        this._scene = null;
+    }
+
+    /**
+     * Initializes a new Animation Node with a position, rotation and duration to the next node.
+     * The rotation is initialized using a yaw/pitch/roll vector, with the quaternion rotation
+     * initialized on first use.
+     * 
+     * @param position, null to deactivate the attachment
+     * @param rotationVector
+     * @param active whether the attachment is active (and visible) when this node is reached
+     * @param duration
+     * @param scene Scene start marker, null for none
+     */
+    public AnimationNode(Vector position, Vector rotationVector, boolean active, double duration, String scene) {
+        this._position = position;
+        this._rotationVec = rotationVector;
+        this._rotationQuat = null;
+        this._active = active;
+        this._duration = duration;
+        this._scene = scene;
+    }
+
+    /**
+     * Gets the scene marker name assigned to this animation node. If this node
+     * is not the start of a scene, returns null.
+     *
+     * @return scene marker name, or null if none is assigned
+     */
+    public String getSceneMarker() {
+        return this._scene;
+    }
+
+    /**
+     * Gets whether a scene start marker name has been set for this node
+     *
+     * @return True if this node has a scene start marker
+     */
+    public boolean hasSceneMarker() {
+        return this._scene != null;
+    }
+
+    /**
+     * Sets a scene start marker name for this animation node. If the name changed,
+     * a new animation node is returned with the scene name updated.<br>
+     * <br>
+     * Spaces and tabs are automatically removed from the scene name to avoid
+     * glitches during serializing/de-serializing.
+     *
+     * @param sceneName
+     * @return this or an updated animation node
+     */
+    public AnimationNode setSceneMarker(String sceneName) {
+        if (LogicUtil.bothNullOrEqual(this._scene, sceneName)) {
+            return this;
+        }
+
+        sceneName = sceneName.replace(' ', '_');
+        sceneName = sceneName.replace('\t', '_');
+        return new AnimationNode(this._position, this._rotationVec,
+                this._active, this._duration, sceneName);
     }
 
     /**
@@ -134,6 +198,7 @@ public class AnimationNode implements Cloneable {
         ypr.setX(MathUtil.round(ypr.getX(), 6));
         ypr.setY(MathUtil.round(ypr.getY(), 6));
         ypr.setZ(MathUtil.round(ypr.getZ(), 6));
+        String scene = this.getSceneMarker();
 
         StringBuilder builder = new StringBuilder(90);
         builder.append("t=").append(this._duration);
@@ -145,13 +210,30 @@ public class AnimationNode implements Cloneable {
         if (ypr.getX() != 0.0) builder.append(" pitch=").append(ypr.getX());
         if (ypr.getY() != 0.0) builder.append(" yaw=").append(ypr.getY());
         if (ypr.getZ() != 0.0) builder.append(" roll=").append(ypr.getZ());
+        if (scene != null) builder.append(" scene=" + scene);
 
         return builder.toString();
     }
 
+    /**
+     * Clones this animation node, but omits the scene start marker option if that was set
+     *
+     * @return cloned node
+     */
+    public AnimationNode cloneWithoutSceneMarker() {
+        return new AnimationNode(this._position.clone(), this._rotationVec.clone(),
+                this._active, this._duration);
+    }
+
     @Override
     public AnimationNode clone() {
-        return new AnimationNode(this._position.clone(), this._rotationVec.clone(), this._active, this._duration);
+        return new AnimationNode(this._position.clone(), this._rotationVec.clone(),
+                this._active, this._duration, this._scene);
+    }
+
+    @Override
+    public String toString() {
+        return serializeToString();
     }
 
     /**
@@ -162,75 +244,7 @@ public class AnimationNode implements Cloneable {
      * @return animation node
      */
     public static AnimationNode parseFromString(String config) {
-        // x=50.3 y=30.2 z=0.63 yaw=0.32 pitch=330.2 roll=-332.3
-        // x50.3z0.63yaw0.32pitch330.2roll-332.3y=30.2
-        // Parsing is very robust, handling lack (or over-abundance) of spaces or =
-        // Out of order works too.
-        Vector position = new Vector();
-        Vector rotation = new Vector();
-        boolean active = true;
-        double time = 1.0;
-        int index = 0;
-        int name_start, name_len, value_start, value_end;
-        double value;
-        int config_length = config.length();
-        while (true) {
-
-            // Find start of name, skipping non-letters
-            while (index < config_length && !Character.isLetter(config.charAt(index))) {
-                index++;
-            }
-            name_start = index;
-
-            // Find end of word
-            while (index < config_length && Character.isLetter(config.charAt(index))) {
-                index++;
-            }
-            name_len = index - name_start;
-
-            // Find start of value, skipping non-numeric and non-.
-            while (index < config_length && !isNumericChar(config.charAt(index))) {
-                index++;
-            }
-            value_start = index;
-
-            // Find end of value
-            while (index < config_length && isNumericChar(config.charAt(index))) {
-                index++;
-            }
-            value_end = index;
-
-            // Abort if index is out of range somehow. Should never happen, but to be safe...
-            if (value_start >= config_length) {
-                break;
-            }
-
-            // Parse value
-            try {
-                value = Double.parseDouble(config.substring(value_start, value_end));
-            } catch (NumberFormatException ex) {
-                value = 0.0; // meh.
-            }
-
-            if ("t".regionMatches(0, config, name_start, name_len)) {
-                time = value;
-            } else if ("x".regionMatches(0, config, name_start, name_len)) {
-                position.setX(value);
-            } else if ("y".regionMatches(0, config, name_start, name_len)) {
-                position.setY(value);
-            } else if ("z".regionMatches(0, config, name_start, name_len)) {
-                position.setZ(value);
-            } else if ("pitch".regionMatches(0, config, name_start, name_len)) {
-                rotation.setX(value);
-            } else if ("yaw".regionMatches(0, config, name_start, name_len)) {
-                rotation.setY(value);
-            } else if ("roll".regionMatches(0, config, name_start, name_len)) {
-                rotation.setZ(value);
-            } else if ("active".regionMatches(0, config, name_start, name_len)) {
-                active = (value != 0.0);
-            }
-        }
-        return new AnimationNode(position, rotation, active, time);
+        return (new Parser(config)).parse();
     }
 
     /**
@@ -319,4 +333,135 @@ public class AnimationNode implements Cloneable {
         return Character.isDigit(ch) || ch == '.' || ch == '-';
     }
 
+    /**
+     * Parses the serialized animation node configuration String into
+     * an AnimationNode. Is very lenient with space/= requirements
+     * so that also user-specified configurations parse properly.<br>
+     * <br>
+     * The scene parameter, being non-numeric, should always be
+     * put at the end of the configuration, or otherwise be
+     * separated by spaces. Spaces are not allowed in the scene
+     * name. Scene should always have a = after it to avoid confusion.
+     *
+     * Examples:
+     * <ul>
+     * <li>x=50.3 y=30.2 z=0.63 yaw=0.32 pitch=330.2 roll=-332.3
+     * <li> x50.3z0.63yaw0.32pitch330.2roll-332.3y=30.2
+     * <li>x=50 y=30 scene=myscene yaw=20.0
+     * <li>x5 y7 z=7 scene=12helloworld
+     * </ul>
+     */
+    private static class Parser {
+        private final String config;
+        private final int config_length;
+        private int index = 0;
+        private Vector position = new Vector();
+        private Vector rotation = new Vector();
+        private String scene = null;
+        private boolean active = true;
+        private double time = 1.0;
+
+        public Parser(String config) {
+            this.config = config;
+            this.config_length = config.length();
+        }
+
+        private void skip(CharFilter filter) {
+            while (index < config_length && filter.filter(config.charAt(index))) {
+                index++;
+            }
+        }
+
+        private String nextName() {
+            // Find start of name, skipping non-letters
+            skip(ch -> !Character.isLetter(ch));
+            int name_start = index;
+
+            // Find end of word
+            skip(Character::isLetter);
+
+            return config.substring(name_start, index);
+        }
+
+        public AnimationNode parse() {
+            while (index < config_length) {
+                String name = nextName();
+                if (name.isEmpty()) {
+                    continue;
+                }
+
+                // All parameters are numbers except for 'scene' which can be any number of characters
+                // For this reason scene is typically put at the end of the configuration
+                if ("scene".equals(name)) {
+                    // Skip all spaces
+                    skip(ch -> (ch == ' ' || ch == '\t'));
+                    if (index >= config_length) {
+                        break;
+                    }
+
+                    // If starts with =, omit. Then skip all spaces after.
+                    if (config.charAt(index) == '=') {
+                        index++;
+                    }
+                    skip(ch -> (ch == ' ' || ch == '\t'));
+
+                    // Remainder, up until the next space, is considered the scene name
+                    int valueStart = index;
+                    skip(ch -> (ch != ' ' && ch != '\t'));
+                    scene = config.substring(valueStart, index);
+                    if (scene.isEmpty()) {
+                        scene = null;
+                    }
+                } else {
+                    int value_start, value_end;
+                    double value;
+
+                    // Find start of value, skipping non-numeric and non-.
+                    skip(ch -> !AnimationNode.isNumericChar(ch));
+                    value_start = index;
+
+                    // Find end of value
+                    skip(AnimationNode::isNumericChar);
+                    value_end = index;
+
+                    // Abort if index is out of range somehow. Should never happen, but to be safe...
+                    if (value_start >= config_length) {
+                        break;
+                    }
+
+                    // Parse value
+                    try {
+                        value = Double.parseDouble(config.substring(value_start, value_end));
+                    } catch (NumberFormatException ex) {
+                        value = 0.0; // meh.
+                    }
+
+                    if ("t".equals(name)) {
+                        time = value;
+                    } else if ("x".equals(name)) {
+                        position.setX(value);
+                    } else if ("y".equals(name)) {
+                        position.setY(value);
+                    } else if ("z".equals(name)) {
+                        position.setZ(value);
+                    } else if ("pitch".equals(name)) {
+                        rotation.setX(value);
+                    } else if ("yaw".equals(name)) {
+                        rotation.setY(value);
+                    } else if ("roll".equals(name)) {
+                        rotation.setZ(value);
+                    } else if ("active".equals(name)) {
+                        active = (value != 0.0);
+                    }
+                }
+            }
+
+            return new AnimationNode(position, rotation, active, time, scene);
+        }
+
+        @FunctionalInterface
+        private static interface CharFilter {
+            boolean filter(char ch);
+        }
+    }
 }

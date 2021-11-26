@@ -398,7 +398,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
                 }
             }
 
-            this.node = new AnimationNode(pos, rot, active, duration);
+            this.node = new AnimationNode(pos, rot, active, duration, this.node.getSceneMarker());
         }
     }
 }

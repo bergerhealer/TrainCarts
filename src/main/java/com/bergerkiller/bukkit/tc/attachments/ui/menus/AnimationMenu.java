@@ -373,7 +373,7 @@ public class AnimationMenu extends MapWidgetMenu {
 
         ArrayList<AnimationNode> tmp = new ArrayList<AnimationNode>(Arrays.asList(old_anim.getNodeArray()));
         for (int i = start; i <= end; i++) {
-            tmp.add(i+count, tmp.get(i).clone());
+            tmp.add(i+count, tmp.get(i).cloneWithoutSceneMarker());
         }
 
         AnimationNode[] new_nodes = LogicUtil.toArray(tmp, AnimationNode.class);

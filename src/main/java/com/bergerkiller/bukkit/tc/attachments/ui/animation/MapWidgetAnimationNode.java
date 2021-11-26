@@ -104,10 +104,18 @@ public class MapWidgetAnimationNode extends MapWidget {
             top_color = MapColorPalette.getColor(219, 145, 92);
             mid_color = MapColorPalette.getColor(188, 124, 79);
             btm_color = MapColorPalette.getColor(154, 101, 64);
-        } else if (this.isSelected()) {
+        } else if (this.isSelected() && !this._node.hasSceneMarker()) {
             top_color = MapColorPalette.getColor(213, 219, 92);
             mid_color = MapColorPalette.getColor(183, 188, 79);
             btm_color = MapColorPalette.getColor(150, 154, 64);
+        } else if (this.isSelected() && this._node.hasSceneMarker()) {
+            top_color = MapColorPalette.getColor(216, 76, 178);
+            mid_color = MapColorPalette.getColor(186, 65, 153);
+            btm_color = MapColorPalette.getColor(178, 63, 127);
+        } else if (this._node.hasSceneMarker()) {
+            top_color = MapColorPalette.getColor(97, 63, 148);
+            mid_color = MapColorPalette.getColor(83, 54, 127);
+            btm_color = MapColorPalette.getColor(68, 44, 104);
         } else {
             top_color = MapColorPalette.getColor(51, 127, 216);
             mid_color = MapColorPalette.getColor(44, 109, 186);
@@ -134,6 +142,9 @@ public class MapWidgetAnimationNode extends MapWidget {
             // Above the limit we show '9999'
             String timeStr = Util.stringifyAnimationNodeTime(time);
             byte light_green_color = MapColorPalette.getColor(56, 178, 127);
+            byte dt_color = this._node.hasSceneMarker()
+                    ? MapColorPalette.getColor(133, 180, 20) : light_green_color;
+
             int drawTimeOffset = 1;
             int numDigits = 0;
             for (int ch_idx = 0; ch_idx < timeStr.length(); ch_idx++) {
@@ -143,7 +154,7 @@ public class MapWidgetAnimationNode extends MapWidget {
 
                     // Draw single digit
                     MapTexture sprite = MapFont.TINY.getSprite(c);
-                    this.view.draw(sprite, drawTimeOffset, 0, light_green_color);
+                    this.view.draw(sprite, drawTimeOffset, 0, dt_color);
                     drawTimeOffset += sprite.getWidth();
 
                     // Last digit
@@ -152,7 +163,7 @@ public class MapWidgetAnimationNode extends MapWidget {
                     }
                 } else if (numDigits <= 3) {
                     // Draw a dot, if a digit will follow
-                    this.view.drawPixel(drawTimeOffset, 4, light_green_color);
+                    this.view.drawPixel(drawTimeOffset, 4, dt_color);
                     drawTimeOffset += 2;
                 }
             }
