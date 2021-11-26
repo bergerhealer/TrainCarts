@@ -60,6 +60,7 @@ import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -691,16 +692,29 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     @Override
-    public List<String> GetAnimationNames() {
+    public List<String> getAnimationNames() {
         if (this.isEmpty()) {
             return Collections.emptyList();
         } else if (this.size() == 1) {
-            return this.get(0).GetAnimationNames();
+            return this.get(0).getAnimationNames();
         } else {
             return Collections.unmodifiableList(this.stream()
-                    .flatMap(m -> m.GetAnimationNames().stream())
+                    .flatMap(m -> m.getAnimationNames().stream())
                     .distinct()
                     .collect(Collectors.toList()));
+        }
+    }
+
+    @Override
+    public Set<String> getAnimationScenes(String animationName) {
+        if (this.isEmpty()) {
+            return Collections.emptySet();
+        } else if (this.size() == 1) {
+            return this.get(0).getAnimationScenes(animationName);
+        } else {
+            return Collections.unmodifiableSet(this.stream()
+                    .flatMap(m -> m.getAnimationScenes(animationName).stream())
+                    .collect(Collectors.toSet()));
         }
     }
 

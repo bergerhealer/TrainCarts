@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.bukkit.entity.Player;
 
@@ -332,6 +334,17 @@ public interface Attachment {
     }
 
     /**
+     * Gets a set of animation scenes defined for an animation of this attachment
+     *
+     * @param animationName Name of the animation to get the scenes for
+     * @return unmodifiable set of registered animation scenes. Sorted by play order.
+     */
+    default Set<String> getAnimationScenes(String animationName) {
+        Animation animation = this.getInternalState().animations.get(animationName);
+        return (animation == null) ? Collections.emptySet() : animation.getSceneNames();
+    }
+
+    /**
      * Gets a list of animation names defined for this attachment, or any of the child
      * attachments, recursively. The list only contains the unique animation names.
      *
@@ -339,9 +352,22 @@ public interface Attachment {
      *         and all children recursively. Unsorted.
      */
     default List<String> getAnimationNamesRecursive() {
-        HashSet<String> tmp = new HashSet<String>();
-        HelperMethods.addAnimationNamesToListRecursive(tmp, this);
+        HashSet<String> tmp = new LinkedHashSet<String>();
+        HelperMethods.addAnimationNamesToSetRecursive(tmp, this);
         return Collections.unmodifiableList(new ArrayList<String>(tmp));
+    }
+
+    /**
+     * Gets a set of scenes of an animation defined for this attachment, or any of
+     * the child attachments, recursively. The set is ordered by order of occurance.
+     *
+     * @param animationName Name of the animation to get scenes for
+     * @return Set of scenes
+     */
+    default Set<String> getAnimationScenesRecursive(String animationName) {
+        HashSet<String> tmp = new LinkedHashSet<String>();
+        HelperMethods.addAnimationScenesToSetRecursive(tmp, animationName, this);
+        return Collections.unmodifiableSet(tmp);
     }
 
     /**

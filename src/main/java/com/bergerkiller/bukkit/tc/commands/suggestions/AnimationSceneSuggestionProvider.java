@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
 import com.bergerkiller.bukkit.tc.controller.components.AnimationController;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -18,18 +19,24 @@ import cloud.commandframework.context.CommandContext;
 /**
  * Suggests animation names used in a train or cart
  */
-public final class AnimationNameSuggestionProvider implements BiFunction<CommandContext<CommandSender>, String, List<String>> {
-    public static final AnimationNameSuggestionProvider TRAIN_ANIMATION_NAME = new AnimationNameSuggestionProvider(true);
-    public static final AnimationNameSuggestionProvider CART_ANIMATION_NAME = new AnimationNameSuggestionProvider(false);
+public final class AnimationSceneSuggestionProvider implements BiFunction<CommandContext<CommandSender>, String, List<String>> {
+    public static final AnimationSceneSuggestionProvider TRAIN_ANIMATION_SCENE = new AnimationSceneSuggestionProvider(true);
+    public static final AnimationSceneSuggestionProvider CART_ANIMATION_SCENE = new AnimationSceneSuggestionProvider(false);
 
     private final boolean forTrain;
 
-    private AnimationNameSuggestionProvider(boolean forTrain) {
+    private AnimationSceneSuggestionProvider(boolean forTrain) {
         this.forTrain = forTrain;
     }
 
     @Override
     public List<String> apply(CommandContext<CommandSender> context, String input) {
+        // Animation name is input before the scene is specified
+        String animationName = context.getOrDefault("animation_name", "");
+        if (animationName.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         AnimationController holder;
 
         // Get list of animation names for the train or cart
@@ -52,14 +59,16 @@ public final class AnimationNameSuggestionProvider implements BiFunction<Command
         }
 
         // Get all animation names defined, if result list is empty, try the default TC animation names
-        List<String> filtered = holder.getAnimationNames().stream()
+        List<String> filtered = holder.getAnimationScenes(animationName).stream()
                 .filter(name -> name.startsWith(input))
                 .collect(Collectors.toList());
         if (!filtered.isEmpty()) {
             return filtered;
         }
 
-        // Default names
-        return new ArrayList<String>(TCConfig.defaultAnimations.keySet());
+        // Default animation names have scenes too!
+        Animation defaultAnim = TCConfig.defaultAnimations.get(animationName);
+        return (defaultAnim == null) ? Collections.emptyList()
+                : new ArrayList<String>(defaultAnim.getSceneNames());
     }
 }

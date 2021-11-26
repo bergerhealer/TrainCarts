@@ -2,7 +2,11 @@ package com.bergerkiller.bukkit.tc.attachments.animation;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 
@@ -14,6 +18,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 public class Animation implements Cloneable {
     private AnimationOptions _options;
     private final AnimationNode[] _nodes;
+    private final Map<String, Scene> _scenes;
     private final double _loopDuration;
     private double _time;
     private boolean _reachedEnd;
@@ -21,6 +26,7 @@ public class Animation implements Cloneable {
     protected Animation(Animation source) {
         this._options = source._options.clone();
         this._nodes = source._nodes;
+        this._scenes = source._scenes;
         this._loopDuration = source._loopDuration;
         this._time = source._time;
         this._reachedEnd = source._reachedEnd;
@@ -40,6 +46,27 @@ public class Animation implements Cloneable {
         this._time = 0.0;
         this._reachedEnd = false;
 
+        // Compute scenes mapping using the nodes
+        this._scenes = new LinkedHashMap<>();
+        {
+            String lastSceneName = null;
+            int lastSceneBegin = -1;
+            for (int i = 0; i < nodes.length; i++) {
+                AnimationNode node = nodes[i];
+                if (node.hasSceneMarker() && !node.getSceneMarker().equals(lastSceneName)) {
+                    if (lastSceneName != null) {
+                        this._scenes.put(lastSceneName, new Scene(lastSceneBegin, i-1));
+                    }
+
+                    lastSceneName = node.getSceneMarker();
+                    lastSceneBegin = i;
+                }
+            }
+            if (lastSceneName != null) {
+                this._scenes.put(lastSceneName, new Scene(lastSceneBegin, nodes.length - 1));
+            }
+        }
+
         // Calculate loop duration from the nodes
         {
             double total = 0.0;
@@ -58,6 +85,15 @@ public class Animation implements Cloneable {
      */
     public final AnimationOptions getOptions() {
         return this._options;
+    }
+
+    /**
+     * Gets all the names of scenes defined for this animation
+     *
+     * @return set of animation scene names
+     */
+    public final Set<String> getSceneNames() {
+        return Collections.unmodifiableSet(this._scenes.keySet());
     }
 
     /**
@@ -294,5 +330,23 @@ public class Animation implements Cloneable {
         Animation animation = new Animation(name, nodes_str);
         animation.getOptions().loadFromConfig(config);
         return animation;
+    }
+
+    public static final class Scene {
+        private final int nodeBegin;
+        private final int nodeEnd;
+
+        public Scene(int nodeBegin, int nodeEnd) {
+            this.nodeBegin = nodeBegin;
+            this.nodeEnd = nodeEnd;
+        }
+
+        public int getNodeBeginIndex() {
+            return this.nodeBegin;
+        }
+
+        public int getNodeEndIndex() {
+            return this.nodeEnd;
+        }
     }
 }

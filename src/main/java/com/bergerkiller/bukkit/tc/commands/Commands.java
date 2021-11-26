@@ -28,6 +28,7 @@ import com.bergerkiller.bukkit.tc.commands.parsers.TrainNameFormatParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.FormattedSpeedParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.TrainTargetingFlags;
 import com.bergerkiller.bukkit.tc.commands.suggestions.AnimationNameSuggestionProvider;
+import com.bergerkiller.bukkit.tc.commands.suggestions.AnimationSceneSuggestionProvider;
 import com.bergerkiller.bukkit.tc.commands.suggestions.TrainNameSuggestionProvider;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -203,6 +204,8 @@ public class Commands {
         // Provides names of animations stored in trains/carts
         cloud.suggest("cartAnimationName", AnimationNameSuggestionProvider.CART_ANIMATION_NAME);
         cloud.suggest("trainAnimationName", AnimationNameSuggestionProvider.TRAIN_ANIMATION_NAME);
+        cloud.suggest("cartAnimationScene", AnimationSceneSuggestionProvider.CART_ANIMATION_SCENE);
+        cloud.suggest("trainAnimationScene", AnimationSceneSuggestionProvider.TRAIN_ANIMATION_SCENE);
 
         // Register provider for train names a player can edit
         cloud.suggest("trainnames", new TrainNameSuggestionProvider());

@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -2489,10 +2490,17 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     @Override
-    public List<String> GetAnimationNames() {
+    public List<String> getAnimationNames() {
         return this.getAttachments().isAttached() ?
                 this.getAttachments().getRootAttachment().getAnimationNamesRecursive()
                 : Collections.emptyList();
+    }
+
+    @Override
+    public Set<String> getAnimationScenes(String animationName) {
+        return this.getAttachments().isAttached() ?
+                this.getAttachments().getRootAttachment().getAnimationScenesRecursive(animationName)
+                : Collections.emptySet();
     }
 
     /**

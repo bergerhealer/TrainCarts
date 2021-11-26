@@ -13,7 +13,6 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
-import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
@@ -166,7 +165,10 @@ public class CartCommands {
             final @Flag(value="loop", aliases="l", description="Loop the animation") boolean setLooping,
             final @Flag(value="noloop", description="Disable looping the animation") boolean setNotLooping,
             final @Flag(value="reset", aliases="r", description="Reset the animation to the beginning") boolean setReset,
-            final @Flag(value="queue", aliases="q", description="Play the animation once previous animations have finished") boolean setQueued
+            final @Flag(value="queue", aliases="q", description="Play the animation once previous animations have finished") boolean setQueued,
+            final @Flag(value="scene", suggestions="cartAnimationScene", aliases="m", description="Sets the scene marker name of the animation to play") String sceneMarker,
+            final @Flag(value="scene_begin", suggestions="cartAnimationScene", description="Sets the scene marker name from which to start playing") String sceneMarkerBegin,
+            final @Flag(value="scene_end", suggestions="cartAnimationScene", description="Sets the scene marker name at which to stop playing (inclusive)") String sceneMarkerEnd
     ) {
         if (!properties.hasHolder()) {
             sender.sendMessage(ChatColor.RED + "Can not animate the minecart: it is not loaded");
@@ -181,6 +183,16 @@ public class CartCommands {
         if (setQueued) opt.setQueue(true);
         if (setLooping) opt.setLooped(true);
         if (setNotLooping) opt.setLooped(false);
+
+        if (sceneMarker != null) {
+            opt.setScene(sceneMarker);
+        }
+        if (sceneMarkerBegin != null) {
+            opt.setScene(sceneMarkerBegin, opt.getSceneEnd());
+        }
+        if (sceneMarkerEnd != null) {
+            opt.setScene(opt.getSceneBegin(), sceneMarkerEnd);
+        }
 
         if (properties.getHolder().playNamedAnimation(opt)) {
             sender.sendMessage(opt.getCommandSuccessMessage());

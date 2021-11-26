@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
+import java.util.Collection;
 import java.util.List;
 
 import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
@@ -17,7 +18,17 @@ public interface AnimationController {
      *
      * @return unmodifiable list of unique animation names
      */
-    List<String> GetAnimationNames();
+    List<String> getAnimationNames();
+
+    /**
+     * Gets a collection of scene names that are defined inside the animation
+     * by the name specified. If the animation does not exist, returns an empty
+     * collection.
+     *
+     * @param animationName Name of the animation to get the scene names of
+     * @return Scene names
+     */
+    Collection<String> getAnimationScenes(String animationName);
 
     /**
      * Plays an animation for a single attachment node. Only the

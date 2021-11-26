@@ -415,7 +415,10 @@ public class TrainCommands {
             final @Flag(value="loop", aliases="l", description="Loop the animation") boolean setLooping,
             final @Flag(value="noloop", description="Disable looping the animation") boolean setNotLooping,
             final @Flag(value="reset", aliases="r", description="Reset the animation to the beginning") boolean setReset,
-            final @Flag(value="queue", aliases="q", description="Play the animation once previous animations have finished") boolean setQueued
+            final @Flag(value="queue", aliases="q", description="Play the animation once previous animations have finished") boolean setQueued,
+            final @Flag(value="scene", suggestions="trainAnimationScene", aliases="m", description="Sets the scene marker name of the animation to play") String sceneMarker,
+            final @Flag(value="scene_begin", suggestions="trainAnimationScene", description="Sets the scene marker name from which to start playing") String sceneMarkerBegin,
+            final @Flag(value="scene_end", suggestions="trainAnimationScene", description="Sets the scene marker name at which to stop playing (inclusive)") String sceneMarkerEnd
     ) {
         if (!properties.isLoaded()) {
             sender.sendMessage(ChatColor.RED + "Can not animate the train: it is not loaded");
@@ -430,6 +433,16 @@ public class TrainCommands {
         if (setQueued) opt.setQueue(true);
         if (setLooping) opt.setLooped(true);
         if (setNotLooping) opt.setLooped(false);
+
+        if (sceneMarker != null) {
+            opt.setScene(sceneMarker);
+        }
+        if (sceneMarkerBegin != null) {
+            opt.setScene(sceneMarkerBegin, opt.getSceneEnd());
+        }
+        if (sceneMarkerEnd != null) {
+            opt.setScene(opt.getSceneBegin(), sceneMarkerEnd);
+        }
 
         if (properties.getHolder().playNamedAnimation(opt)) {
             sender.sendMessage(opt.getCommandSuccessMessage());

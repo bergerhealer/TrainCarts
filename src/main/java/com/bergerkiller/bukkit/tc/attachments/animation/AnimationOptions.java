@@ -7,12 +7,15 @@ import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.google.common.base.Objects;
 
 /**
  * Options for playing an animation to one or more attachments
  */
 public class AnimationOptions implements Cloneable {
     private String _name;
+    private String _sceneBegin;
+    private String _sceneEnd;
     private double _speed;
     private double _delay;
     private boolean _looped;
@@ -22,6 +25,8 @@ public class AnimationOptions implements Cloneable {
 
     protected AnimationOptions(AnimationOptions source) {
         this._name = source._name;
+        this._sceneBegin = source._sceneBegin;
+        this._sceneEnd = source._sceneEnd;
         this._speed = source._speed;
         this._delay = source._delay;
         this._looped = source._looped;
@@ -36,6 +41,8 @@ public class AnimationOptions implements Cloneable {
 
     public AnimationOptions(String name) {
         this._name = name;
+        this._sceneBegin = null;
+        this._sceneEnd = null;
         this._speed = 1.0;
         this._delay = 0.0;
         this._looped = false;
@@ -60,6 +67,60 @@ public class AnimationOptions implements Cloneable {
      */
     public String getName() {
         return this._name;
+    }
+
+    /**
+     * Configures the scene to play. Will skip the current animation
+     * being played and go straight to this scene. If looped is set,
+     * will loop this scene over and over.
+     *
+     * @param scene Scene to play
+     */
+    public void setScene(String scene) {
+        this._sceneBegin = scene;
+        this._sceneEnd = scene;
+    }
+
+    /**
+     * Configures a beginning and ending scene to play. Look at the
+     * descriptions of {@link #getSceneBegin()} and {@link #getSceneEnd()}
+     * for more information.
+     *
+     * @param sceneBegin Scene to start playing at, null for beginning
+     * @param sceneEnd Scene to stop playing at, null for the end
+     */
+    public void setScene(String sceneBegin, String sceneEnd) {
+        this._sceneBegin = sceneBegin;
+        this._sceneEnd = sceneEnd;
+    }
+
+    /**
+     * Gets the name of the scene marker from which the animation
+     * should start playing, inclusive.<br>
+     * <br>
+     * If null and {@link #getSceneEnd()} is not null, then the animation
+     * will start playing from the beginning of the animation, but stop
+     * at the end scene. If looped is also set, then the animation will
+     * loop between the start and the end marker over and over.
+     *
+     * @return Scene start marker, null to play from the beginning
+     */
+    public String getSceneBegin() {
+        return this._sceneBegin;
+    }
+
+    /**
+     * Gets the name of the scene marker where the animation should
+     * stop playing, inclusive.<br>
+     * <br>
+     * If null and {@link #getSceneBegin()} is not null, then the animation
+     * will keep on playing after this point. If looped is also set, then
+     * the animation will loop from the start marker to the end over and over.
+     *
+     * @return Scene end marker, null to continue playing past it
+     */
+    public String getSceneEnd() {
+        return this._sceneEnd;
     }
 
     /**
@@ -206,7 +267,7 @@ public class AnimationOptions implements Cloneable {
 
     /**
      * Loads the contents of these options from configuration.
-     * The animation name is not loaded.
+     * The animation name and scenes are not loaded.
      * 
      * @param config to load from
      */
@@ -225,7 +286,7 @@ public class AnimationOptions implements Cloneable {
 
     /**
      * Saves the contents of these options to configuration.
-     * The animation name is not saved.
+     * The animation name and scenes are not saved.
      * This is only used when saving animations to train properties,
      * so it should not save things like 'reset' or 'queue' which are
      * part of starting animations.
@@ -324,6 +385,19 @@ public class AnimationOptions implements Cloneable {
      */
     public String getCommandSuccessMessage() {
         String name = this.getName();
+        if (this.getSceneBegin() != null || this.getSceneEnd() != null) {
+            name += " [";
+            if (Objects.equal(this.getSceneBegin(), this.getSceneEnd())) {
+                name += this.getSceneBegin();
+            } else if (this.getSceneBegin() == null) {
+                name += ".. > " + this.getSceneEnd();
+            } else if (this.getSceneEnd() == null) {
+                name += this.getSceneBegin() + " > ..";
+            } else {
+                name += this.getSceneBegin() + " > " + this.getSceneEnd();
+            }
+            name += "]";
+        }
         if (this.hasLoopOption()) {
             if (this.isLooped()) {
                 name += " (looped)";

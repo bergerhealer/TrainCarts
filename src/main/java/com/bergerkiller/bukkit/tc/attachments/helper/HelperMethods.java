@@ -241,10 +241,25 @@ public class HelperMethods {
      * @param out_names Set of names to fill
      * @param attachment Root attachment
      */
-    public static void addAnimationNamesToListRecursive(Set<String> out_names, Attachment attachment) {
+    public static void addAnimationNamesToSetRecursive(Set<String> out_names, Attachment attachment) {
         out_names.addAll(attachment.getAnimationNames());
         for (Attachment child : attachment.getChildren()) {
-            addAnimationNamesToListRecursive(out_names,  child);
+            addAnimationNamesToSetRecursive(out_names, child);
+        }
+    }
+
+    /**
+     * Adds all the scene names of an animation defined by an attachment and its children, recursively,
+     * to an output set.
+     *
+     * @param out_names Set of names to fill
+     * @param animationName Name of the animation to get the scenes for
+     * @param attachment Root attachment
+     */
+    public static void addAnimationScenesToSetRecursive(Set<String> out_names, String animationName, Attachment attachment) {
+        out_names.addAll(attachment.getAnimationScenes(animationName));
+        for (Attachment child : attachment.getChildren()) {
+            addAnimationScenesToSetRecursive(out_names, animationName, child);
         }
     }
 
