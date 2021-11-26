@@ -22,7 +22,7 @@ import com.bergerkiller.bukkit.tc.utils.BoundingRange;
  * Filters the train properties by world and/or coordinates specified in
  * the selector query
  */
-public class TCSelectorLocationFilter {
+class TCSelectorLocationFilter {
     private static final Map<String, SelectorConsumer> CONSUMERS = new HashMap<>();
     static {
         CONSUMERS.put("world", (filter, condition) -> {
@@ -111,19 +111,49 @@ public class TCSelectorLocationFilter {
     }
 
     public boolean filter(TrainProperties properties) {
+        // If only world name and no range filter was specified, only check those
+        if (range == null) {
+            return isOnWorld(properties, world);
+        } else {
+            return forAllCartPositions(properties, world, this::matchCart);
+        }
+    }
+
+    public static boolean isOnWorld(TrainProperties properties, World world) {
+        // Easy mode: train is loaded
+        MinecartGroup group = properties.getHolder();
+        if (group != null) {
+            return group.getWorld() == world;
+        }
+
+        // Hard mode: check offline train storage
+        OfflineGroup offlineGroup = OfflineGroupManager.findGroup(properties.getTrainName());
+        return offlineGroup != null && world.getUID().equals(offlineGroup.worldUUID);
+    }
+
+    /**
+     * Sends all cart positions of a train past a position-accepting sink. If the sink function
+     * returns true, then the loop is cut short and this function returns true as well. If no
+     * carts were found, they're on the wrong world, or none match sink true, then this
+     * function returns false
+     *
+     * @param properties TrainProperties to iterate the cart positions of
+     * @param world World to filter by
+     * @param func Sink function
+     * @return True if one or more cart was accepted by the sink
+     */
+    public static boolean forAllCartPositions(TrainProperties properties, World world, CartPositionSink func) {
+        // Checks world and range
         MinecartGroup group = properties.getHolder();
         if (group != null) {
             // Easy mode: train is loaded
             if (group.getWorld() != world) {
                 return false;
             }
-            if (range == null) {
-                return true;
-            }
 
             // If any of the carts of the train are within range, pass
             for (MinecartMember<?> member : group) {
-                if (matchCart(member.getEntity().loc.vector())) {
+                if (func.apply(member.getEntity().loc.vector())) {
                     return true;
                 }
             }
@@ -137,9 +167,6 @@ public class TCSelectorLocationFilter {
             if (!world.getUID().equals(offlineGroup.worldUUID)) {
                 return false;
             }
-            if (range == null) {
-                return true;
-            }
 
             // if any of the carts of the train are within range, pass
             // Assume middle of the chunk at y = 128.
@@ -148,7 +175,7 @@ public class TCSelectorLocationFilter {
                 Vector cartPosition = new Vector((member.cx << 4) + 8, /* x */
                                                  128.0, /* y */
                                                  (member.cz << 4) + 8 /* z */ );
-                if (matchCart(cartPosition)) {
+                if (func.apply(cartPosition)) {
                     return true;
                 }
             }
@@ -169,5 +196,10 @@ public class TCSelectorLocationFilter {
     @FunctionalInterface
     private static interface SelectorConsumer {
         void accept(TCSelectorLocationFilter filter, SelectorCondition condition) throws SelectorException;
+    }
+
+    @FunctionalInterface
+    public static interface CartPositionSink {
+        boolean apply(Vector position);
     }
 }

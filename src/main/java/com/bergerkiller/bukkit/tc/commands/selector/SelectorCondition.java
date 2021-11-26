@@ -65,7 +65,7 @@ public class SelectorCondition {
     }
 
     /**
-     * Gets the bounding range of values specified as a value. Throws a
+     * Gets the bounding range of values specified. Throws a
      * SelectorException if this value expression does not denote a number.
      *
      * @return bounding range
@@ -73,6 +73,23 @@ public class SelectorCondition {
      */
     public BoundingRange getBoundingRange() throws SelectorException {
         throw new SelectorException(key + " value is not a number");
+    }
+
+    /**
+     * Gets the argument value specified as a floating point value.
+     * Throws a SelectorException if this value expression does not denote
+     * a number, or specifies a range of numbers instead of a single number.
+     *
+     * @return value
+     * @throws SelectorException
+     */
+    public double getDouble() throws SelectorException {
+        BoundingRange range = this.getBoundingRange();
+        if (range.isZeroLength()) {
+            return range.getMin();
+        } else {
+            throw new SelectorException(key + " value is a range, expected a single number");
+        }
     }
 
     /**

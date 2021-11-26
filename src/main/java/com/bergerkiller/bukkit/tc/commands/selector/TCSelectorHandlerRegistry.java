@@ -35,7 +35,7 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
 
         // These options always exist - are part of the TCSelectorLocationFilter logic
         //TODO: Needs special types, such as world name / number expression suggestions
-        for (String s : new String[] {"world", "x", "y", "z", "dx", "dy", "dz", "distance"}) {
+        for (String s : new String[] {"world", "x", "y", "z", "dx", "dy", "dz", "distance", "sort", "limit"}) {
             this.options.add(SelectorHandlerConditionOption.optionString(s));
         }
     }
@@ -149,6 +149,11 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
             stream = stream.filter(locationFilter::filter);
         }
 
+        // Sort the stream by the sort and limit parameters
+        // Just read the inputs for it first (avoids unknown condition errors)
+        TCSelectorSortLimitFilter sortLimitFilter = new TCSelectorSortLimitFilter();
+        sortLimitFilter.read(sender, conditions);
+
         // Filter the stream by all remaining conditions in sequence
         for (SelectorCondition selectorCondition : conditions) {
             IPropertySelectorCondition condition = this.conditions.get(selectorCondition.getKey());
@@ -158,6 +163,9 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
                 throw new SelectorException("Unknown condition: " + selectorCondition.getKey());
             }
         }
+
+        // Apply sorting/limit rules
+        stream = sortLimitFilter.apply(stream);
 
         // Obtain the results, check if there are any
         List<TrainProperties> result = stream.collect(Collectors.toList());
