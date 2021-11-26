@@ -374,8 +374,27 @@ public class AnimationOptions implements Cloneable {
             }
         }
 
-        // Name
-        this.setName(info.getLine(2));
+        // Name and, optionally, the begin/end scene
+        String nameAndScenes = info.getLine(2).trim();
+        int sceneStart = nameAndScenes.indexOf('[');
+        if (sceneStart != -1 && nameAndScenes.endsWith("]")) {
+            // Name of the animation
+            this.setName(nameAndScenes.substring(0, sceneStart).trim());
+
+            // Parse scene names, split by ':'
+            int sceneSplitIdx = nameAndScenes.indexOf(':', sceneStart + 1);
+            if (sceneSplitIdx == -1) {
+                this.setScene(nameAndScenes.substring(sceneStart+1,
+                        nameAndScenes.length()-1).trim());
+            } else {
+                String begin = nameAndScenes.substring(sceneStart+1, sceneSplitIdx).trim();
+                String end = nameAndScenes.substring(sceneSplitIdx+1, nameAndScenes.length()-1).trim();
+                this.setScene(begin, end);
+            }
+        } else {
+            // Not specified
+            this.setName(nameAndScenes);
+        }
 
         // Speed/delay
         if (!info.getLine(3).isEmpty()) {
