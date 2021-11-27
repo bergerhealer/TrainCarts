@@ -773,6 +773,9 @@ public class TrainCarts extends PluginBase {
         RailSignCache.reset();
         RailMemberCache.reset();
 
+        // Now plugin is mostly shut down, de-register all MinecartMember controllers from the server
+        undoAllTCControllers();
+
         this.glowColorTeamProvider.disable();
         this.glowColorTeamProvider = null;
 
@@ -792,6 +795,22 @@ public class TrainCarts extends PluginBase {
 
         // Stop tracking loaded worlds using an event listener
         this.offlineWorldLoadedChangeListener.disable();
+    }
+
+    @SuppressWarnings({"rawtypes", "deprecation", "unchecked"})
+    private void undoAllTCControllers() {
+        List<Entity> entities = new ArrayList<Entity>();
+        for (World world : WorldUtil.getWorlds()) {
+            for (Entity entity : WorldUtil.getEntities(world)) {
+                CommonEntity ce = CommonEntity.get(entity);
+                if (ce.getController(MinecartMember.class) != null ||
+                    ce.getNetworkController() instanceof MinecartMemberNetwork
+                ) {
+                    entities.add(entity);
+                }
+            }
+        }
+        entities.forEach(CommonEntity::clearControllers);
     }
 
     /**
