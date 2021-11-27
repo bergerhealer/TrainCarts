@@ -356,6 +356,14 @@ public class Animation implements Cloneable {
             endIndex = this._scenes.getOrDefault(options.getSceneEnd(), this._entireAnimationScene)
                     .nodeEndIndex();
         }
+
+        // Swap around if scenes are specified the wrong way around to avoid trouble
+        if (beginIndex > endIndex) {
+            int tmp = beginIndex;
+            beginIndex = endIndex;
+            endIndex = tmp;
+        }
+
         double duration = 0.0;
         for (int n = beginIndex; n <= endIndex; n++) {
             duration += this._nodes[n].getDuration();
