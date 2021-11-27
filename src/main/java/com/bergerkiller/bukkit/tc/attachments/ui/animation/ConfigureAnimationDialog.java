@@ -14,7 +14,7 @@ public class ConfigureAnimationDialog extends MapWidgetMenu {
 
     public ConfigureAnimationDialog(AnimationMenu menu) {
         this.setBackgroundColor(MapColorPalette.COLOR_ORANGE);
-        this.setBounds(5, 15, 105, 88);
+        this.setBounds(14, 18, 88, 80);
         this.menu = menu;
     }
 
@@ -24,7 +24,7 @@ public class ConfigureAnimationDialog extends MapWidgetMenu {
 
         byte lblColor = MapColorPalette.getColor(152, 89, 36);
 
-        this.addWidget(new MapWidgetText()).setColor(lblColor).setText("Speed").setPosition(20, 8);
+        this.addWidget(new MapWidgetText()).setColor(lblColor).setText("Speed").setPosition(13, 8);
         this.addWidget(new MapWidgetNumberBox() { // Speed
             @Override
             public void onAttached() {
@@ -53,9 +53,9 @@ public class ConfigureAnimationDialog extends MapWidgetMenu {
                     menu.playAnimation(false, anim.getOptions().isLooped());
                 }
             }
-        }).setBounds(10, 17, 80, 11);
+        }).setBounds(4, 17, 80, 11);
 
-        this.addWidget(new MapWidgetText()).setColor(lblColor).setText("Delay").setPosition(20, 33);
+        this.addWidget(new MapWidgetText()).setColor(lblColor).setText("Delay").setPosition(13, 33);
         this.addWidget(new MapWidgetNumberBox() { // Delay
             @Override
             public void onAttached() {
@@ -79,7 +79,7 @@ public class ConfigureAnimationDialog extends MapWidgetMenu {
                     menu.playAnimation(false, anim.getOptions().isLooped());
                 }
             }
-        }).setBounds(10, 42, 80, 11);
+        }).setBounds(4, 42, 80, 11);
 
         this.addWidget(new MapWidgetButton() { // Looped
             @Override
@@ -103,6 +103,6 @@ public class ConfigureAnimationDialog extends MapWidgetMenu {
                 this.setText("Looped: " +
                     (menu.getAnimation().getOptions().isLooped() ? "YES" : "NO"));
             }
-        }).setBounds(15, 65, 75, 13);
+        }).setBounds(7, 60, 74, 13);
     }
 }

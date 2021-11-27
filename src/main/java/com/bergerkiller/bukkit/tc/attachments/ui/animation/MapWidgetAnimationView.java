@@ -23,6 +23,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetTooltip;
  */
 public class MapWidgetAnimationView extends MapWidget {
     private static final int SCROLL_WIDTH = 3;
+    private static final int LOOP_TICK_DELAY = 20;
     private MapWidgetAnimationHeader _header;
     private MapWidgetAnimationNode[] _nodes;
     private int _scrollOffset = 0;
@@ -30,6 +31,7 @@ public class MapWidgetAnimationView extends MapWidget {
     private int _selectedNodeRange = 0;
     private boolean _multiSelectActive = false;
     private boolean _reorderActive = false;
+    private boolean _isLoopingAnimation = false;
     private Animation _animation = null;
     private MapTexture _scrollbarBG = MapTexture.createEmpty();
     private final MapWidgetTooltip sceneMarkerTooltip = new MapWidgetTooltip();
@@ -44,6 +46,15 @@ public class MapWidgetAnimationView extends MapWidget {
      * Called when the selected node is changed
      */
     public void onSelectionChanged() {
+    }
+
+    /**
+     * Called when pressing left or right while in the menu
+     * 
+     * @param reverse Whether to play in reverse
+     * @param looped Whether held down for long to loop it
+     */
+    public void onPlayAnimation(boolean reverse, boolean looped) {
     }
 
     /**
@@ -202,6 +213,28 @@ public class MapWidgetAnimationView extends MapWidget {
             return;
         }
 
+        // Left/right plays the animation forwards or in reverse
+        if (event.getKey() == MapPlayerInput.Key.LEFT ||
+            event.getKey() == MapPlayerInput.Key.RIGHT
+        ) {
+            boolean loopModeActivated = (event.getRepeat() == LOOP_TICK_DELAY);
+            if (event.getRepeat() == 1 || loopModeActivated) {
+                if (loopModeActivated) {
+                    display.playSound(SoundEffect.CLICK);
+                    _isLoopingAnimation = true;
+                } else {
+                    display.playSound(SoundEffect.EXTINGUISH);
+                }
+                if (event.getKey() == MapPlayerInput.Key.LEFT) {
+                    onPlayAnimation(true, loopModeActivated);
+                } else if (event.getKey() == MapPlayerInput.Key.RIGHT) {
+                    onPlayAnimation(false, loopModeActivated);
+                }
+            }
+            return;
+        }
+
+        // Up/down/enter have special UI actions
         if (this._reorderActive) {
             if (event.getKey() == MapPlayerInput.Key.UP) {
                 if (this.getSelectionStart() >= 1) {
@@ -235,6 +268,22 @@ public class MapWidgetAnimationView extends MapWidget {
         }
     }
 
+    @Override
+    public void onKeyReleased(MapKeyEvent event) {
+        super.onKeyReleased(event);
+
+        // When releasing, stop looping
+        if (_isLoopingAnimation) {
+            _isLoopingAnimation = false;
+            display.playSound(SoundEffect.CLICK_WOOD);
+            if (event.getKey() == MapPlayerInput.Key.LEFT) {
+                onPlayAnimation(true, false);
+            } else if (event.getKey() == MapPlayerInput.Key.RIGHT) {
+                onPlayAnimation(false, false);
+            }
+        }
+    }
+
     /**
      * Gets the selected node index
      * 
@@ -254,6 +303,25 @@ public class MapWidgetAnimationView extends MapWidget {
         if (this._selectedNodeIndex >= this._animation.getNodeCount()) return null;
         if (this._selectedNodeIndex < 0) return null;
         return this._animation.getNode(this._selectedNodeIndex);
+    }
+
+    /**
+     * Gets the name of the scene the player has currently selected, or is
+     * below of.
+     *
+     * @return Selected node scene name it is part of, or null if none
+     */
+    public String getSelectedScene() {
+        for (int i = this._selectedNodeIndex; i >= 0; i--) {
+            if (i >= this._animation.getNodeCount()) {
+                continue;
+            }
+            AnimationNode node = this._animation.getNode(i);
+            if (node.hasSceneMarker()) {
+                return node.getSceneMarker();
+            }
+        }
+        return null;
     }
 
     /**

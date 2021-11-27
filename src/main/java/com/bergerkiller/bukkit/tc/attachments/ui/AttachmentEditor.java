@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.events.map.MapStatusEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
+import com.bergerkiller.bukkit.common.map.MapDisplayProperties;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.MapSessionMode;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
@@ -45,6 +46,10 @@ public class AttachmentEditor extends MapDisplay {
             AttachmentEditor.this.addWidget(menu.createMenu(node));
         }
     };
+
+    public MapDisplayProperties getProperties() {
+        return this.properties;
+    }
 
     @Override
     public void onTick() {

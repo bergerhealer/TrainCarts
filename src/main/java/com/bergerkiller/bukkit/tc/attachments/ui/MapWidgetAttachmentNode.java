@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.bukkit.inventory.ItemStack;
 
@@ -587,27 +588,22 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     }
 
     public static enum MenuItem {
-        APPEARANCE(AppearanceMenu.class),
-        POSITION(PositionMenu.class),
-        ANIMATION(AnimationMenu.class),
-        GENERAL(GeneralMenu.class),
-        PHYSICAL(PhysicalMenu.class);
+        APPEARANCE(AppearanceMenu::new),
+        POSITION(PositionMenu::new),
+        ANIMATION(AnimationMenu::new),
+        GENERAL(GeneralMenu::new),
+        PHYSICAL(PhysicalMenu::new);
 
-        private final Class<? extends MapWidgetMenu> _menuClass;
+        private final Supplier<? extends MapWidgetMenu> _menuConstructor;
 
-        private MenuItem(Class<? extends MapWidgetMenu> menuClass) {
-            this._menuClass = menuClass;
+        private MenuItem(Supplier<? extends MapWidgetMenu> menuConstructor) {
+            this._menuConstructor = menuConstructor;
         }
 
         public MapWidgetMenu createMenu(MapWidgetAttachmentNode attachmentNode) {
-            MapWidgetMenu menu;
-            try {
-                menu = this._menuClass.newInstance();
-                menu.setAttachment(attachmentNode);
-                return menu;
-            } catch (Throwable t) {
-                throw MountiplexUtil.uncheckedRethrow(t);
-            }
+            MapWidgetMenu menu = this._menuConstructor.get();
+            menu.setAttachment(attachmentNode);
+            return menu;
         }
     }
 

@@ -3,11 +3,15 @@ package com.bergerkiller.bukkit.tc.attachments.ui.menus;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
+import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
@@ -17,6 +21,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetToggleButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.animation.ConfigureAnimationDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.animation.ConfigureAnimationNodeDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.animation.ConfirmAnimationDeleteDialog;
@@ -24,6 +29,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.animation.MapWidgetAnimationVie
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public class AnimationMenu extends MapWidgetMenu {
+    private PlaybackMode playbackMode = PlaybackMode.ENTIRE_ANIMATION;
     private boolean playForAll = false;
     private final MapWidgetSelectionBox animSelectionBox = new MapWidgetSelectionBox() { // anchor
         @Override
@@ -45,7 +51,7 @@ public class AnimationMenu extends MapWidgetMenu {
             animView.setAnimation(loadAnimation());
             animDelete.setEnabled(menuEnabled);
             animConfig.setEnabled(menuEnabled);
-            animManyMode.setEnabled(menuEnabled);
+            //animManyMode.setEnabled(menuEnabled);
             animPlayFwd.setEnabled(menuEnabled);
             animPlayRev.setEnabled(menuEnabled);
         }
@@ -109,6 +115,11 @@ public class AnimationMenu extends MapWidgetMenu {
         }
 
         @Override
+        public void onPlayAnimation(boolean reverse, boolean looped) {
+            playAnimation(reverse, looped);
+        }
+
+        @Override
         public void onReorder(int offset) {
             moveAnimationNodes(offset);
         }
@@ -158,23 +169,6 @@ public class AnimationMenu extends MapWidgetMenu {
             AnimationMenu.this.addWidget(dialog);
         }
     };
-    private final MapWidgetBlinkyButton animManyMode = new MapWidgetBlinkyButton() {
-        @Override
-        public void onAttached() {
-            this.updateIcon();
-        }
-
-        @Override
-        public void onClick() {
-            playForAll = !playForAll;
-            this.updateIcon();
-        }
-
-        private void updateIcon() {
-            setIcon(playForAll ? "attachments/anim_many.png" : "attachments/anim_single.png");
-            setTooltip(playForAll ? "Play all" : "Play self");
-        }
-    };
     private final MapWidgetBlinkyButton animPlayRev = new MapWidgetBlinkyButton() {
         @Override
         public void onAttached() {
@@ -219,6 +213,12 @@ public class AnimationMenu extends MapWidgetMenu {
             this.onClick(); // plays once to restore
         }
     };
+    private final MapWidgetBlinkyButton animPlayOpt = new MapWidgetBlinkyButton() {
+        @Override
+        public void onClick() {
+            AnimationMenu.this.addWidget(new MapWidgetPlaybackOptionsMenu());
+        }
+    };
     /* ============================================================== */
 
     public AnimationMenu() {
@@ -229,6 +229,15 @@ public class AnimationMenu extends MapWidgetMenu {
     @Override
     public void onAttached() {
         super.onAttached();
+
+        // Load current options that are set
+        // Note: we're not using the value default function because of a bug in an older BKCL
+        // Once BKCL 1.17.1-v5 or later is a hard dependency this can be switched
+        playbackMode = ((AttachmentEditor) display).getProperties().get("tcAnimPlaybackMode", PlaybackMode.class);
+        if (playbackMode == null) {
+            playbackMode = PlaybackMode.ENTIRE_ANIMATION;
+        }
+        playForAll = ((AttachmentEditor) display).getProperties().get("tcAnimPlayForAll", false);
 
         int top_menu_x = 3;
         int top_menu_y = 3;
@@ -254,9 +263,12 @@ public class AnimationMenu extends MapWidgetMenu {
         this.addWidget(this.animConfig.setTooltip("Configure").setIcon("attachments/anim_config.png").setPosition(top_menu_x, top_menu_y));
         top_menu_x += 17;
 
+        // Add a small gap between the config and playback buttons
+        top_menu_x += 5;
+
         // Button to switch between playing just this node, or all nodes of the (cart) model
-        this.addWidget(this.animManyMode.setPosition(top_menu_x, top_menu_y));
-        top_menu_x += 17;
+        //this.addWidget(this.animManyMode.setPosition(top_menu_x, top_menu_y));
+        //top_menu_x += 17;
 
         // Button to play the current animation (in reverse)
         this.addWidget(this.animPlayRev.setTooltip("Play in reverse").setIcon("attachments/anim_play_rev.png").setPosition(top_menu_x, top_menu_y));
@@ -265,6 +277,9 @@ public class AnimationMenu extends MapWidgetMenu {
         // Button to play the current animation (forwards)
         this.addWidget(this.animPlayFwd.setTooltip("Play forwards").setIcon("attachments/anim_play_fwd.png").setPosition(top_menu_x, top_menu_y));
         top_menu_x += 17;
+
+        // Button to configure how the current animation is played (many mode, scene playback)
+        this.addWidget(this.animPlayOpt.setTooltip("Playback options").setIcon("attachments/anim_play_opt.png").setPosition(top_menu_x, top_menu_y));
 
         top_menu_x = 3;
         top_menu_y += 18;
@@ -291,6 +306,7 @@ public class AnimationMenu extends MapWidgetMenu {
         options.setSpeed(reverse ? -1.0 : 1.0);
         options.setLooped(looped);
         options.setReset(!looped);
+        this.playbackMode.applyOptions(options, this.animView::getSelectedScene);
         if (this.playForAll) {
             // Target the entire model
             member.playNamedAnimation(options);
@@ -565,4 +581,86 @@ public class AnimationMenu extends MapWidgetMenu {
         return this.attachment;
     }
 
+    private class MapWidgetPlaybackOptionsMenu extends MapWidgetMenu {
+
+        public MapWidgetPlaybackOptionsMenu() {
+            this.setBounds(8, 31, 100, 64);
+            this.setBackgroundColor(MapColorPalette.COLOR_ORANGE);
+        }
+
+        @Override
+        public void onAttached() {
+            this.addWidget(new MapWidgetText())
+                .setFont(MapFont.MINECRAFT)
+                .setText("Playback mode:")
+                .setColor(MapColorPalette.COLOR_BLACK)
+                .setPosition(6, 5);
+
+            this.addWidget(new MapWidgetToggleButton<PlaybackMode>() {
+                @Override
+                public void onSelectionChanged() {
+                    playbackMode = this.getSelectedOption();
+                    ((AttachmentEditor) display).getProperties().set("tcAnimPlaybackMode", playbackMode);
+                    display.playSound(SoundEffect.CLICK);
+                }
+            }).addOptions(PlaybackMode::description, PlaybackMode.class)
+              .setSelectedOption(playbackMode)
+              .setBounds(5, 15, 90, 13);
+
+            this.addWidget(new MapWidgetText())
+                .setFont(MapFont.MINECRAFT)
+                .setText("Play for:")
+                .setColor(MapColorPalette.COLOR_BLACK)
+                .setPosition(6, 36);
+
+            this.addWidget(new MapWidgetToggleButton<Boolean>() {
+                @Override
+                public void onSelectionChanged() {
+                    playForAll = this.getSelectedOption();
+                    ((AttachmentEditor) display).getProperties().set("tcAnimPlayForAll", playForAll);
+                    display.playSound(SoundEffect.CLICK);
+                }
+            }).addOptions(opt -> opt ? "All attachments" : "This attachment", true, false)
+              .setSelectedOption(playForAll)
+              .setBounds(5, 46, 90, 13);
+
+            super.onAttached();
+        }
+    }
+
+    private static enum PlaybackMode {
+        ENTIRE_ANIMATION("Entire animation") {
+            public void applyOptions(AnimationOptions options, Supplier<String> sceneGetter) {
+                options.resetScene();
+            }
+        },
+        SCENE("Current scene") {
+            public void applyOptions(AnimationOptions options, Supplier<String> sceneGetter) {
+                String scene = sceneGetter.get();
+                options.setScene(scene, scene);
+            }
+        },
+        BEGIN_TO_SCENE("Begin-to-scene") {
+            public void applyOptions(AnimationOptions options, Supplier<String> sceneGetter) {
+                options.setScene(null, sceneGetter.get());
+            }
+        },
+        SCENE_TO_END("Scene-to-end") {
+            public void applyOptions(AnimationOptions options, Supplier<String> sceneGetter) {
+                options.setScene(sceneGetter.get(), null);
+            }
+        };
+
+        private final String _desc;
+
+        private PlaybackMode(String description) {
+            this._desc = description;
+        }
+
+        public String description() {
+            return this._desc;
+        }
+
+        public abstract void applyOptions(AnimationOptions options, Supplier<String> sceneGetter);
+    }
 }
