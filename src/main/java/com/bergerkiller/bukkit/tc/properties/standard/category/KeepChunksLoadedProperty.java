@@ -108,7 +108,7 @@ public final class KeepChunksLoadedProperty extends FieldBackedStandardTrainProp
                 if (result) {
                     MinecartGroup group = properties.getHolder();
                     if (group != null) {
-                        group.keepChunksLoaded(true);
+                        group.keepChunksLoaded(group.getProperties().isKeepingChunksLoaded());
                     }
                 }
             });
