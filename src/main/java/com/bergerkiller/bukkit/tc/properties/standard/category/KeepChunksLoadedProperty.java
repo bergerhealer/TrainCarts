@@ -100,13 +100,24 @@ public final class KeepChunksLoadedProperty extends FieldBackedStandardTrainProp
 
     private void updateState(TrainProperties properties, boolean keepLoaded) {
         // When turning keep chunks loaded on, load the train if presently unloaded
+        // We don't have to wait for that
         if (keepLoaded) {
-            properties.restore();
-        }
-
-        MinecartGroup group = properties.getHolder();
-        if (group != null) {
-            group.keepChunksLoaded(keepLoaded);
+            // If kept loaded, load in the train and once loaded (or already loaded),
+            // apply the change to start keeping the chunks loaded
+            properties.restore().thenAccept(result -> {
+                if (result) {
+                    MinecartGroup group = properties.getHolder();
+                    if (group != null) {
+                        group.keepChunksLoaded(true);
+                    }
+                }
+            });
+        } else {
+            // If loaded, tell group to no longer keep loaded
+            MinecartGroup group = properties.getHolder();
+            if (group != null) {
+                group.keepChunksLoaded(false);
+            }
         }
     }
 }

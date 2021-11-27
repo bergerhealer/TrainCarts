@@ -11,6 +11,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
@@ -20,11 +21,15 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
+import com.bergerkiller.bukkit.common.Common;
+import com.bergerkiller.bukkit.common.chunk.ChunkFutureProvider;
+import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -146,22 +151,57 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     @Override
-    public boolean restore() {
+    public CompletableFuture<Boolean> restore() {
         if (this.isLoaded()) {
-            return true;
+            return CompletableFuture.completedFuture(true);
         }
         // Load all the chunks of this group to trigger a restore
         OfflineGroup group = OfflineGroupManager.findGroup(this.trainname);
         if (group == null) {
-            return false;
+            return CompletableFuture.completedFuture(false);
         }
+
+        List<ForcedChunk> chunksOfTrain = new ArrayList<>();
         World world = Bukkit.getWorld(group.worldUUID);
         if (world != null) {
             for (long chunk : group.chunks) {
-                world.getChunkAt(MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk));
+                chunksOfTrain.add(WorldUtil.forceChunkLoaded(world,
+                        MathUtil.longHashMsw(chunk),
+                        MathUtil.longHashLsw(chunk)));
             }
         }
-        return this.hasHolder();
+        CompletableFuture<Void> whenAllChunkEntitiesLoaded;
+        if (Common.hasCapability("Common:Chunk:FutureProvider")) {
+            whenAllChunkEntitiesLoaded = loadChunkFutureWithFutureProvider(chunksOfTrain);
+        } else {
+            whenAllChunkEntitiesLoaded = loadChunkFutureFallback(chunksOfTrain);
+        }
+
+        final CompletableFuture<Boolean> result = new CompletableFuture<Boolean>();
+        whenAllChunkEntitiesLoaded.thenAccept(unused -> {
+            result.complete(hasHolder());
+            chunksOfTrain.forEach(ForcedChunk::close);
+        }).exceptionally(err -> {
+            TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to load chunks of train", err);
+            result.complete(false);
+            chunksOfTrain.forEach(ForcedChunk::close);
+            return null;
+        });
+
+        return result;
+    }
+
+    private static CompletableFuture<Void> loadChunkFutureWithFutureProvider(List<ForcedChunk> chunks) {
+        ChunkFutureProvider provider = ChunkFutureProvider.of(TrainCarts.plugin);
+        return CompletableFuture.allOf(chunks.stream()
+            .map(c -> provider.whenEntitiesLoaded(c.getWorld(), c.getX(), c.getZ()))
+            .toArray(CompletableFuture[]::new));
+    }
+
+    private static CompletableFuture<Void> loadChunkFutureFallback(List<ForcedChunk> chunks) {
+        return CompletableFuture.allOf(chunks.stream()
+            .map(ForcedChunk::getChunkAsync)
+            .toArray(CompletableFuture[]::new));
     }
 
     /**

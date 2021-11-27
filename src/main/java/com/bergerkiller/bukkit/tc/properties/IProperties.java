@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 /**
@@ -442,11 +443,16 @@ public interface IProperties extends IParsable {
 
     /**
      * Restores the Train of these properties if it is not already loaded.
-     * After this call a holder is available, if there is not, then the train or cart is gone.
+     * Returns a future completed once the required chunks have been loaded.
      *
-     * @return True if the train or cart was really restored, False if it got lost
+     * Will asynchronously start loading the chunks this train or member is at,
+     * wait for the train to be loaded in, and then completes the future with
+     * either true or false depending on whether the train was found.
+     *
+     * @return Future completed with true if the train or cart was really restored,
+     *         or False if it got lost and no longer exists
      */
-    boolean restore();
+    CompletableFuture<Boolean> restore();
 
     /**
      * Gets whether these properties have a valid (loaded) owner

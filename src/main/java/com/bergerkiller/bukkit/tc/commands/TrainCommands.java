@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.commands;
 
-import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
@@ -26,6 +25,7 @@ import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
@@ -36,10 +36,10 @@ import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.annotations.Flag;
 import cloud.commandframework.annotations.specifier.Greedy;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -187,18 +187,26 @@ public class TrainCommands {
             final Player player,
             final TrainProperties properties
     ) {
-        if (!properties.restore()) {
-            player.sendMessage(ChatColor.RED + "Train location could not be found: Train is lost");
-        } else {
-            BlockLocation bloc = properties.getLocation();
-            World world = bloc.getWorld();
-            if (world == null) {
-                player.sendMessage(ChatColor.RED + "Train is on a world that is not loaded (" + bloc.world + ")");
-            } else {
-                EntityUtil.teleport(player, new Location(world, bloc.x + 0.5, bloc.y + 0.5, bloc.z + 0.5));
-                player.sendMessage(ChatColor.YELLOW + "Teleported to train '" + properties.getTrainName() + "'");
+        // Check this first, as we cannot load the chunks of an unloaded train
+        {
+            OfflineGroup group = OfflineGroupManager.findGroup(properties.getTrainName());
+            if (group != null && Bukkit.getWorld(group.worldUUID) == null) {
+                player.sendMessage(ChatColor.RED + "Train is on a world that is not loaded");
+                return;
             }
         }
+
+        // Try to load the chunks and when the train is loaded in, teleport to it
+        properties.restore().thenAccept(success -> {
+            MinecartGroup group = properties.getHolder();
+            if (!success || group.isEmpty()) {
+                player.sendMessage(ChatColor.RED + "Train location could not be found: Train is lost");
+            } else {
+                Location location = group.head().getEntity().getLocation();
+                EntityUtil.teleport(player, location);
+                player.sendMessage(ChatColor.YELLOW + "Teleported to train '" + properties.getTrainName() + "'");
+            }
+        });
     }
 
     @CommandTargetTrain

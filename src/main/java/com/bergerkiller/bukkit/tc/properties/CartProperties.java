@@ -29,6 +29,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 public class CartProperties extends CartPropertiesStore implements IProperties {
     private SoftReference<MinecartMember<?>> member = new SoftReference<>();
@@ -119,8 +120,8 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     }
 
     @Override
-    public boolean restore() {
-        return getTrainProperties().restore() && hasHolder();
+    public CompletableFuture<Boolean> restore() {
+        return getTrainProperties().restore();
     }
 
     public MinecartGroup getGroup() {
