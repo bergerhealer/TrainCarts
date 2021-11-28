@@ -52,11 +52,14 @@ public class SignActionDestination extends SignAction {
 
     @Override
     public void execute(SignActionEvent info) {
-        if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
-            for (TrainProperties prop : info.getRCTrainProperties()) {
-                for (CartProperties cprop : prop) {
-                    // Set the cart destination to what is on the fourth line
-                    cprop.setDestination(info.getLine(3));
+        // Remote control logic
+        if (info.isRCSign()) {
+            if (info.isAction(SignActionType.REDSTONE_ON)) {
+                for (TrainProperties prop : info.getRCTrainProperties()) {
+                    for (CartProperties cprop : prop) {
+                        // Set the cart destination to what is on the fourth line
+                        cprop.setDestination(info.getLine(3));
+                    }
                 }
             }
             return;
@@ -99,10 +102,16 @@ public class SignActionDestination extends SignAction {
      * @return next destination to set, empty to clear, null to do nothing
      */
     private String getNextDestination(CartProperties cart, SignActionEvent info) {
+        // Parse new destination to set. If empty, returns null (set nothing)
+        String newDestination = info.getLine(3).trim();
+        if (newDestination.isEmpty()) {
+            newDestination = null;
+        }
+
         // If this sign was triggered using a redstone-on signal, set the destination on this sign at all times
         // This ignores route and whether or not the destination on the sign matches that of the train
         if (info.isAction(SignActionType.REDSTONE_ON)) {
-            return info.getLine(3);
+            return newDestination;
         }
 
         // If sign is not powered, this sign does nothing
@@ -114,7 +123,7 @@ public class SignActionDestination extends SignAction {
         // always sets the destination to what is on the sign.
         // This acts similar to the property destination sign
         if (info.getLine(2).isEmpty()) {
-            return info.getLine(3);
+            return newDestination;
         }
 
         // If the destination of this sign is not one the train is going for,
@@ -125,7 +134,7 @@ public class SignActionDestination extends SignAction {
 
         // Use next destination on route if one is used, otherwise use the fourth line for it
         String nextOnRoute = cart.getNextDestinationOnRoute();
-        return nextOnRoute.isEmpty() ? info.getLine(3) : nextOnRoute;
+        return nextOnRoute.isEmpty() ? newDestination : nextOnRoute;
     }
 
     @Override
