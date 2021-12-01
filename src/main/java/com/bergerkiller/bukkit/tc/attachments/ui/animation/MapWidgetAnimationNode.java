@@ -104,15 +104,15 @@ public class MapWidgetAnimationNode extends MapWidget {
             top_color = MapColorPalette.getColor(219, 145, 92);
             mid_color = MapColorPalette.getColor(188, 124, 79);
             btm_color = MapColorPalette.getColor(154, 101, 64);
-        } else if (this.isSelected() && !this._node.hasSceneMarker()) {
+        } else if (this._node != null && this.isSelected() && !this._node.hasSceneMarker()) {
             top_color = MapColorPalette.getColor(213, 219, 92);
             mid_color = MapColorPalette.getColor(183, 188, 79);
             btm_color = MapColorPalette.getColor(150, 154, 64);
-        } else if (this.isSelected() && this._node.hasSceneMarker()) {
+        } else if (this._node != null && this.isSelected() && this._node.hasSceneMarker()) {
             top_color = MapColorPalette.getColor(216, 76, 178);
             mid_color = MapColorPalette.getColor(186, 65, 153);
             btm_color = MapColorPalette.getColor(178, 63, 127);
-        } else if (this._node.hasSceneMarker()) {
+        } else if (this._node != null && this._node.hasSceneMarker()) {
             top_color = MapColorPalette.getColor(97, 63, 148);
             mid_color = MapColorPalette.getColor(83, 54, 127);
             btm_color = MapColorPalette.getColor(68, 44, 104);
