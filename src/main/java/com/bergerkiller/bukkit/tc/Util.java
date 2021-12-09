@@ -552,58 +552,20 @@ public class Util {
         return entity instanceof HumanEntity && EntityPropertyUtil.getAbilities((HumanEntity) entity).canInstantlyBuild();
     }
 
-    /**
-     * Checks whether a Block supports placement/attachment of solid blocks on a particular face. Note that signs do not use
-     * this logic - they allow pretty much any sort of attachment.
-     *
-     * @param block to check
-     * @param face  to check
-     * @return True if supported, False if not
-     */
-    public static boolean isSupportedFace(Block block, BlockFace face) {
-        BlockData block_data = WorldUtil.getBlockData(block);
-        if (block_data.isOccluding(block)) {
-            return true;
-        }
+    public static boolean isSignSupported(Block block, BlockData blockDataOfBlock) {
+        BlockFace face = blockDataOfBlock.getAttachedFace();
+        return WorldUtil.getBlockData(block.getWorld(), block.getX() + face.getModX(),
+                                                        block.getY() + face.getModY(),
+                                                        block.getZ() + face.getModZ()).isBuildable(); // isSolid() >= 1.18
 
-        // Special block types that only support one face at a time
-        MaterialData data = block_data.getMaterialData();
-
-        // Steps only support TOP or BOTTOM
-        if (data instanceof Step) {
-            return face == FaceUtil.getVertical(((Step) data).isInverted());
-        }
-
-        // Stairs only support the non-exit side + the up/down
-        if (data instanceof Stairs) {
-            if (FaceUtil.isVertical(face)) {
-                return face == FaceUtil.getVertical(((Stairs) data).isInverted());
-            } else {
-                // For some strange reason...stairs don't support attachments to the back
-                // return face == ((Stairs) data).getFacing().getOppositeFace();
-                return false;
-            }
-        }
-
-        // Unsupported/unknown Block
-        return false;
+        // Note: does not work with signs as those can be placed anywhere it seems
+        // Block att = block.getRelative(face);
+        // BlockData attData = WorldUtil.getBlockData(att);
+        // return attData.canSupportOnFace(att, face.getOppositeFace());
     }
 
     public static boolean isSignSupported(Block block) {
-        Block attached = BlockUtil.getAttachedBlock(block);
-        return WorldUtil.getBlockData(attached).isBuildable();
-    }
-
-    public static boolean isSupported(Block block) {
-        if (MaterialUtil.ISSIGN.get(block)) {
-            return isSignSupported(block);
-        }
-
-        BlockFace attachedFace = BlockUtil.getAttachedFace(block);
-        Block attached = block.getRelative(attachedFace);
-
-        // For all other cases, check whether the side is properly supported
-        return isSupportedFace(attached, attachedFace.getOppositeFace());
+        return isSignSupported(block, WorldUtil.getBlockData(block));
     }
 
     /**

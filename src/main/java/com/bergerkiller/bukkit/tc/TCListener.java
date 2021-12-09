@@ -871,7 +871,7 @@ public class TCListener implements Listener {
 
         // Handle signs being broken because their supporting block got destroyed
         if (MaterialUtil.ISSIGN.get(blockData)) {
-            if (!Util.isSignSupported(block)) {
+            if (!Util.isSignSupported(block, blockData)) {
                 // Sign is no longer supported - clear all sign actions
                 SignAction.handleDestroy(new SignActionEvent(event.getBlock()));
                 // Also remove sign metadata
