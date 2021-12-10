@@ -240,7 +240,8 @@ public class AttachmentEditor extends MapDisplay {
         }
     }
 
-    public boolean acceptItem(ItemStack item) {
+    @Override
+    public boolean onItemDrop(Player player, ItemStack item) {
         if (item == null) {
             return false;
         }

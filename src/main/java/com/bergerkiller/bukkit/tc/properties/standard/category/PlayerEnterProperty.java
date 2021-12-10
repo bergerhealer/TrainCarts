@@ -34,7 +34,7 @@ public final class PlayerEnterProperty implements ICartProperty<Boolean> {
             final CommandSender sender,
             final TrainProperties properties,
             final @Argument("allow") boolean allow
-    ) {
+    ) throws Throwable {
         properties.setPlayersEnter(allow);
         commandGetProperty(sender, properties);
     }

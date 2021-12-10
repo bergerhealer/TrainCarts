@@ -7,7 +7,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 
 /**
@@ -55,7 +54,8 @@ public class RailsTexture {
      * @return this
      */
     public RailsTexture setOpposites(BlockFace face, MapTexture texture) {
-        return set(face, texture).set(face.getOppositeFace(), FaceUtil.isVertical(face) ? flipV(texture) : flipH(texture));
+        return set(face, texture).set(face.getOppositeFace(), FaceUtil.isVertical(face)
+                ? MapTexture.flipV(texture) : MapTexture.flipH(texture));
     }
 
     public RailsTexture set(BlockFace face, String filename) {
@@ -86,76 +86,4 @@ public class RailsTexture {
         default: return 0;
         }
     }
-
-    /**
-     * Flips the map texture horizontally
-     * TODO: Move this to BKCommonLib
-     * 
-     * @param input texture
-     * @return flipped texture
-     */
-    public static MapTexture flipH(MapTexture input) {
-        MapTexture result = MapTexture.createEmpty(input.getWidth(), input.getHeight());
-        for (int x = 0; x < result.getWidth(); x++) {
-            for (int y = 0; y < result.getHeight(); y++) {
-                result.writePixel(x, y, input.readPixel(result.getWidth() - x - 1, y));
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Flips the map texture vertically
-     * TODO: Move this to BKCommonLib
-     * 
-     * @param input texture
-     * @return flipped texture
-     */
-    public static MapTexture flipV(MapTexture input) {
-        MapTexture result = MapTexture.createEmpty(input.getWidth(), input.getHeight());
-        for (int x = 0; x < result.getWidth(); x++) {
-            for (int y = 0; y < result.getHeight(); y++) {
-                result.writePixel(x, y, input.readPixel(x, result.getHeight() - y - 1));
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Rotates a texture 0, 90, 180, or 270 degrees.
-     * TODO: Move this to BKCommonLib
-     * 
-     * @param input texture
-     * @param angle to rotate
-     * @return rotated texture
-     */
-    public static MapTexture rotate(MapTexture input, int angle) {
-        MapTexture result;
-        if (MathUtil.getAngleDifference(angle, 90) <= 45) {
-            result = MapTexture.createEmpty(input.getHeight(), input.getWidth());
-            for (int x = 0; x < result.getWidth(); x++) {
-                for (int y = 0; y < result.getHeight(); y++) {
-                    result.writePixel(x, result.getHeight() - y - 1, input.readPixel(y, x));
-                }
-            }
-        } else if (MathUtil.getAngleDifference(angle, 180) <= 45) {
-            result = MapTexture.createEmpty(input.getWidth(), input.getHeight());
-            for (int x = 0; x < result.getWidth(); x++) {
-                for (int y = 0; y < result.getHeight(); y++) {
-                    result.writePixel(x, y, input.readPixel(result.getWidth() - x - 1, result.getHeight() - y - 1));
-                }
-            }
-        } else if (MathUtil.getAngleDifference(angle, 270) <= 45) {
-            result = MapTexture.createEmpty(input.getHeight(), input.getWidth());
-            for (int x = 0; x < result.getWidth(); x++) {
-                for (int y = 0; y < result.getHeight(); y++) {
-                    result.writePixel(result.getWidth() - x - 1, y, input.readPixel(y, x));
-                }
-            }
-        } else {
-            result = input.clone(); // no rotation
-        }
-        return result;
-    }
-
 }

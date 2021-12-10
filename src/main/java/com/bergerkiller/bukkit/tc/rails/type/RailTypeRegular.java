@@ -410,15 +410,15 @@ public class RailTypeRegular extends RailTypeHorizontal {
         BlockFace direction = rails.getDirection();
         if (FaceUtil.isSubCardinal(direction)) {
             int yaw = 45 - FaceUtil.faceToYaw(direction);
-            MapTexture top = RailsTexture.rotate(getResource(rails, "top"), yaw);
+            MapTexture top = MapTexture.rotate(getResource(rails, "top"), yaw);
             MapTexture back = top.clone();
             back.setBlendMode(MapBlendMode.MULTIPLY).fill(MapColorPalette.getColor(160, 160, 160));
-            back = RailsTexture.flipV(back);
+            back = MapTexture.flipV(back);
             RailsTexture result = new RailsTexture()
                     .set(BlockFace.UP, top)
                     .set(BlockFace.DOWN, back);
             for (BlockFace face : FaceUtil.AXIS) {
-                result.set(face, RailsTexture.rotate(top, FaceUtil.faceToYaw(face)));
+                result.set(face, MapTexture.rotate(top, FaceUtil.faceToYaw(face)));
             }
             return result;
         } else if (rails.isOnSlope()) {
@@ -428,15 +428,15 @@ public class RailTypeRegular extends RailTypeHorizontal {
             back.setBlendMode(MapBlendMode.MULTIPLY).fill(MapColorPalette.getColor(160, 160, 160));
             return new RailsTexture()
                     .set(direction.getOppositeFace(), top)
-                    .set(direction, RailsTexture.flipV(back))
-                    .set(BlockFace.UP, RailsTexture.rotate(top, -FaceUtil.faceToYaw(direction)))
-                    .set(BlockFace.DOWN, RailsTexture.rotate(back, FaceUtil.faceToYaw(direction)))
+                    .set(direction, MapTexture.flipV(back))
+                    .set(BlockFace.UP, MapTexture.rotate(top, -FaceUtil.faceToYaw(direction)))
+                    .set(BlockFace.DOWN, MapTexture.rotate(back, FaceUtil.faceToYaw(direction)))
                     .setOpposites(FaceUtil.rotate(direction, 2), side);
             
         } else {
             MapTexture front = getResource(rails, "front");
             MapTexture side = getResource(rails, "side");
-            MapTexture top = RailsTexture.rotate(getResource(rails, "top"), FaceUtil.faceToYaw(direction));
+            MapTexture top = MapTexture.rotate(getResource(rails, "top"), FaceUtil.faceToYaw(direction));
             MapTexture back = top.clone();
             back.setBlendMode(MapBlendMode.MULTIPLY).fill(MapColorPalette.getColor(160, 160, 160));
             return new RailsTexture()

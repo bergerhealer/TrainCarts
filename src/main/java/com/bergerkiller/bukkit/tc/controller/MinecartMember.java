@@ -1434,9 +1434,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         return true;
     }
 
-    // Since BKCommonLib 1.15.2-v4: custom bump code
     // This prevents the player bumping the cart sideways, causing the
     // rail physics to think the minecart is taking a curve
+    @Override
     public void onEntityBump(org.bukkit.entity.Entity e) {
         // Note: required, is in original implementation also
         VehicleEntityCollisionEvent collisionEvent = new VehicleEntityCollisionEvent(entity.getEntity(), e);
@@ -1900,16 +1900,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
 
         // Kill entity if falling into the void
-        if (Common.hasCapability("Common:WorldBlockBorder")) {
-            // In a method to avoid errors
-            dieIfOutsideWorldBorder();
-        } else {
-            // Legacy fallback, can be removed once bkcl 1.17.1-v5 or later is a hard dep.
-            if (entity.loc.getY() < -TCConfig.worldBorderKillDistance) {
-                this.onDie(true);
-                throw new MemberMissingException();
-            }
-        }
+        dieIfOutsideWorldBorder();
 
         // reset fall distance
         if (!this.isDerailed()) {

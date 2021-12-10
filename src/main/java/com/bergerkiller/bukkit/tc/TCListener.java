@@ -8,7 +8,6 @@ import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.events.ChunkLoadEntitiesEvent;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveFromServerEvent;
-import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.*;
@@ -16,7 +15,6 @@ import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.control.light.LightAPIController;
-import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
@@ -468,15 +466,6 @@ public class TCListener implements Listener {
             }
         } catch (Throwable t) {
             plugin.handle(t);
-        }
-    }
-
-    // Note: obsoleted by onItemDrop after BKCommonLib 1.15.2-v3 or later is the minimum required dependency!
-    @EventHandler(priority = EventPriority.LOWEST)
-    public void onPlayerItemDrop(PlayerDropItemEvent event) {
-        AttachmentEditor editor = MapDisplay.getHeldDisplay(event.getPlayer(), AttachmentEditor.class);
-        if (editor != null && editor.acceptItem(event.getItemDrop().getItemStack())) {
-            event.setCancelled(true);
         }
     }
 
@@ -990,9 +979,11 @@ public class TCListener implements Listener {
 
         // Find out the actual location we are teleporting to
         Location loc = event.getTo();
+        /*
         if (event.getPortalTravelAgent() != null && loc != null) {
             loc = event.getPortalTravelAgent().findPortal(loc);
         }
+        */
         if (loc == null) {
             return;
         }

@@ -21,7 +21,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.chunk.ChunkFutureProvider;
 import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -171,11 +170,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         }
         CompletableFuture<Void> whenAllChunkEntitiesLoaded;
-        if (Common.hasCapability("Common:Chunk:FutureProvider")) {
-            whenAllChunkEntitiesLoaded = loadChunkFutureWithFutureProvider(chunksOfTrain);
-        } else {
-            whenAllChunkEntitiesLoaded = loadChunkFutureFallback(chunksOfTrain);
-        }
+        whenAllChunkEntitiesLoaded = loadChunkFutureWithFutureProvider(chunksOfTrain);
 
         final CompletableFuture<Boolean> result = new CompletableFuture<Boolean>();
         whenAllChunkEntitiesLoaded.thenAccept(unused -> {
@@ -195,12 +190,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         ChunkFutureProvider provider = ChunkFutureProvider.of(TrainCarts.plugin);
         return CompletableFuture.allOf(chunks.stream()
             .map(c -> provider.whenEntitiesLoaded(c.getWorld(), c.getX(), c.getZ()))
-            .toArray(CompletableFuture[]::new));
-    }
-
-    private static CompletableFuture<Void> loadChunkFutureFallback(List<ForcedChunk> chunks) {
-        return CompletableFuture.allOf(chunks.stream()
-            .map(ForcedChunk::getChunkAsync)
             .toArray(CompletableFuture[]::new));
     }
 

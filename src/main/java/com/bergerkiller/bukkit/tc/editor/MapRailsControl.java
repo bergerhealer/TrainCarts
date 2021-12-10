@@ -9,7 +9,6 @@ import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapBlendMode;
-import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
@@ -107,7 +106,7 @@ public class MapRailsControl extends MapControl {
 
     @Override
     public void onDraw() {
-        MapTexture texture = RailsTexture.rotate(this._texture.get(this.face), this.rotation);
+        MapTexture texture = MapTexture.rotate(this._texture.get(this.face), this.rotation);
         display.getLayer(2).setBlendMode(MapBlendMode.NONE);
         display.getLayer(2).draw(texture, x, y);
 
@@ -134,7 +133,7 @@ public class MapRailsControl extends MapControl {
             }
 
             if (tex != null) {
-                tex = RailsTexture.rotate(tex, 270 - FaceUtil.faceToYaw(markerFace));
+                tex = MapTexture.rotate(tex, 270 - FaceUtil.faceToYaw(markerFace));
                 int arrow_dx = (texture.getWidth() - tex.getWidth()) / 2;
                 int arrow_dy = (texture.getHeight() - tex.getHeight()) / 2;
                 

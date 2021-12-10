@@ -31,8 +31,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.MaterialData;
 import org.bukkit.material.Rails;
-import org.bukkit.material.Stairs;
-import org.bukkit.material.Step;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
@@ -556,7 +554,7 @@ public class Util {
         BlockFace face = blockDataOfBlock.getAttachedFace();
         return WorldUtil.getBlockData(block.getWorld(), block.getX() + face.getModX(),
                                                         block.getY() + face.getModY(),
-                                                        block.getZ() + face.getModZ()).isBuildable(); // isSolid() >= 1.18
+                                                        block.getZ() + face.getModZ()).isSolid();
 
         // Note: does not work with signs as those can be placed anywhere it seems
         // Block att = block.getRelative(face);

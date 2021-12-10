@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.chunk.ChunkFutureProvider;
 import com.bergerkiller.bukkit.common.chunk.ChunkFutureProvider.ChunkNeighbourList;
 import com.bergerkiller.bukkit.common.chunk.ChunkFutureProvider.ChunkStateListener;
@@ -85,11 +84,7 @@ public class RedstoneTracker implements Listener {
     };
 
     public RedstoneTracker(TrainCarts plugin) {
-        if (Common.hasCapability("Common:Chunk:FutureProvider")) {
-            this.chunkLoadHandler = new ChunkLoadHandlerFutureProvider(plugin);
-        } else {
-            this.chunkLoadHandler = new ChunkLoadHandlerLegacy();
-        }
+        this.chunkLoadHandler = new ChunkLoadHandlerFutureProvider(plugin);
 
         initPowerLevels();
     }
@@ -181,27 +176,6 @@ public class RedstoneTracker implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onChunkUnload(ChunkUnloadEvent event) {
         this.chunkLoadHandler.onChunkUnloaded(event.getChunk(), false);
-    }
-
-    // Checks that all neighbouring chunks, except one, are loaded
-    private static boolean checkAllNeighboursLoadedExcept(Chunk chunk, Chunk except) {
-        for (int dcx = -1; dcx <= 1; dcx++) {
-            for (int dcz = -1; dcz <= 1; dcz++) {
-                if (dcx == 0 && dcz == 0) {
-                    continue;
-                }
-
-                int cx = chunk.getX() + dcx;
-                int cz = chunk.getZ() + dcz;
-                if (cx == except.getX() && cz == except.getZ()) {
-                    continue;
-                }
-                if (!WorldUtil.isLoaded(chunk.getWorld(), cx, cz)) {
-                    return false;
-                }
-            }
-        }
-        return true;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -323,71 +297,6 @@ public class RedstoneTracker implements Listener {
 
         @Override
         public void onChunkUnloaded(Chunk chunk, boolean isWorldUnload) {
-        }
-    }
-
-    private final class ChunkLoadHandlerLegacy implements ChunkLoadHandler {
-
-        @Override
-        public void onChunkLoaded(Chunk chunk, boolean isWorldLoad) {
-            // Check all neighbouring chunks are loaded too
-            // Only load once all neighbours are loaded as well
-            // If a neighbouring chunk has all <its> neighbours loaded,
-            // load that one's signs as well. Checking all these neighbours is kinda
-            // slow, so the provider callback method is preferred.
-            boolean isAllNeighboursLoaded;
-            if (isWorldLoad) {
-                isAllNeighboursLoaded = checkAllNeighboursLoadedExcept(chunk, chunk);
-            } else {
-                isAllNeighboursLoaded = true;
-                for (int cx = -1; cx <= 1; cx++) {
-                    for (int cz = -1; cz <= 1; cz++) {
-                        if (cx == 0 && cz == 0) {
-                            continue;
-                        }
-
-                        Chunk neigh_chunk = WorldUtil.getChunk(chunk.getWorld(), chunk.getX()+cx, chunk.getZ()+cz);
-                        if (neigh_chunk == null) {
-                            isAllNeighboursLoaded = false;
-                        } else if (checkAllNeighboursLoadedExcept(neigh_chunk, chunk)) {
-                            loadSignsInChunk(neigh_chunk);
-                        }
-                    }
-                }
-            }
-
-            // If all 8 chunks around it are loaded too, load this chunk's signs
-            if (isAllNeighboursLoaded) {
-                loadSignsInChunk(chunk);
-            }
-        }
-
-        @Override
-        public void onChunkUnloaded(Chunk chunk, boolean isWorldUnload) {
-            boolean isAllNeighboursLoaded = true;
-            if (!isWorldUnload) {
-                // All neighbouring chunks unload when their loaded neighbouring chunk count is 8
-                for (int cx = -1; cx <= 1; cx++) {
-                    for (int cz = -1; cz <= 1; cz++) {
-                        if (cx == 0 && cz == 0) {
-                            continue;
-                        }
-
-                        Chunk neigh_chunk = WorldUtil.getChunk(chunk.getWorld(), chunk.getX()+cx, chunk.getZ()+cz);
-                        if (neigh_chunk == null) {
-                            // Neighbour not loaded, which means the chunk unloading already has all signs unloaded
-                            isAllNeighboursLoaded = false;
-                        } else if (checkAllNeighboursLoadedExcept(neigh_chunk, chunk)) {
-                            // When the chunk unloads, this neighbour no longer has all 8 neighbours loaded
-                            // Unloads the chunk!
-                            unloadSignsInChunk(neigh_chunk);
-                        }
-                    }
-                }
-            }
-            if (isAllNeighboursLoaded) {
-                unloadSignsInChunk(chunk);
-            }
         }
     }
 }

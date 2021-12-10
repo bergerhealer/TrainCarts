@@ -19,10 +19,10 @@ import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.bergerkiller.bukkit.common.cloud.CloudSimpleHandler;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.commands.cloud.CloudHandler;
 import com.bergerkiller.bukkit.tc.commands.selector.SelectorCondition;
 import com.bergerkiller.bukkit.tc.commands.selector.TCSelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
@@ -49,7 +49,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
     private static final Pattern LITERALS_PATTERN = Pattern.compile("([\\w\\s]+)\\|?");
 
     private final TrainCarts plugin;
-    private final CloudHandler commands;
+    private final CloudSimpleHandler commands;
 
     // All registered properties and their metadata
     private final Map<IProperty<Object>, PropertyDetails<Object>> properties = new HashMap<>();
@@ -63,7 +63,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
     // Used during parse() to see what property is being parsed currently
     private IProperty<?> currentPropertyBeingParsed = null;
 
-    public TCPropertyRegistry(TrainCarts plugin, CloudHandler commands) {
+    public TCPropertyRegistry(TrainCarts plugin, CloudSimpleHandler commands) {
         this.plugin = plugin;
         this.commands = commands;
     }

@@ -4,7 +4,7 @@
 
     <groupId>com.bergerkiller.bukkit</groupId>
     <artifactId>TrainCarts</artifactId>
-    <version>1.18-v1-SNAPSHOT</version>
+    <version>1.18.1-v1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>TrainCarts</name>
@@ -13,10 +13,9 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.number>NO-CI</project.build.number>
-        <project.mcversion>1.13.2</project.mcversion>
+        <project.mcversion>1.18.1</project.mcversion>
         <project.cbversion>${project.mcversion}-R0.1-SNAPSHOT</project.cbversion>
-        <project.bkcversion>1.17.1-v5</project.bkcversion>
-        <project.cloudversion>1.5.0</project.cloudversion>
+        <project.bkcversion>1.18.1-v1-SNAPSHOT</project.bkcversion>
         <project.slversion>1.11.2-v2-SNAPSHOT</project.slversion>
         <project.mwversion>1.11.2-v2-SNAPSHOT</project.mwversion>
         <junit.version>4.11</junit.version>
@@ -172,40 +171,6 @@
             <version>1.6</version>
         </dependency>
 
-        <!-- Cloud command framework -->
-        <dependency>  
-            <groupId>org.bergerhealer.cloud.commandframework</groupId>
-            <artifactId>cloud-paper</artifactId>
-            <version>${project.cloudversion}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.bergerhealer.cloud.commandframework</groupId>
-            <artifactId>cloud-annotations</artifactId>
-            <version>${project.cloudversion}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.bergerhealer.cloud.commandframework</groupId>
-            <artifactId>cloud-minecraft-extras</artifactId>
-            <version>${project.cloudversion}</version>
-        </dependency>
-        <dependency>
-            <groupId>me.lucko</groupId>
-            <artifactId>commodore</artifactId>
-            <version>1.10</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>net.kyori</groupId>
-            <artifactId>adventure-api</artifactId>
-            <version>4.9.1</version>
-        </dependency>
-        <dependency>
-            <groupId>net.kyori</groupId>
-            <artifactId>adventure-platform-bukkit</artifactId>
-            <version>4.0.0-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
-
         <dependency>
             <groupId>com.googlecode.openpojo</groupId>
             <artifactId>openpojo</artifactId>
@@ -248,6 +213,7 @@
 
         <!-- Plugins -->
         <plugins>
+            <!-- Relocates references to the Cloud command framework to where they are in BKCommonLib -->
             <!-- Shades dependencies into a final jar -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -260,30 +226,28 @@
                             <pattern>me.m56738</pattern>
                             <shadedPattern>com.bergerkiller.bukkit.tc.dep.me.m56738</shadedPattern>
                         </relocation>
+
+                        <!-- BKCommonLib relocations of Cloud command framework -->
                         <relocation>
                             <pattern>cloud.commandframework</pattern>
-                            <shadedPattern>com.bergerkiller.bukkit.tc.dep.cloud</shadedPattern>
+                            <shadedPattern>com.bergerkiller.bukkit.common.dep.cloud</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>io.leangen.geantyref</pattern>
-                            <shadedPattern>com.bergerkiller.bukkit.tc.dep.typetoken</shadedPattern>
+                            <shadedPattern>com.bergerkiller.bukkit.common.dep.typetoken</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>me.lucko.commodore</pattern>
-                            <shadedPattern>com.bergerkiller.bukkit.tc.dep.commodore</shadedPattern>
+                            <shadedPattern>com.bergerkiller.bukkit.common.dep.me.lucko.commodore</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>net.kyori</pattern>
-                            <shadedPattern>com.bergerkiller.bukkit.tc.dep.net.kyori</shadedPattern>
+                            <shadedPattern>com.bergerkiller.bukkit.common.dep.net.kyori</shadedPattern>
                         </relocation>
                     </relocations>
                     <artifactSet>
                         <includes>
                             <include>me.m56738</include>
-                            <include>org.bergerhealer.cloud.commandframework</include>
-                            <include>io.leangen.geantyref</include>
-                            <include>me.lucko:commodore</include>
-                            <include>net.kyori</include>
                         </includes>
                     </artifactSet>
                 </configuration>

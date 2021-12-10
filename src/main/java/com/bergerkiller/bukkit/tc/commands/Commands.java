@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.commands;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
+import com.bergerkiller.bukkit.common.cloud.CloudSimpleHandler;
 import com.bergerkiller.bukkit.common.config.BasicConfiguration;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.Hastebin.DownloadResult;
@@ -19,7 +20,6 @@ import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresMultiplePe
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.commands.argument.DirectionOrFormattedSpeed;
-import com.bergerkiller.bukkit.tc.commands.cloud.CloudHandler;
 import com.bergerkiller.bukkit.tc.commands.parsers.AccelerationParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.DirectionOrFormattedSpeedParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.DirectionParser;
@@ -73,7 +73,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 public class Commands {
-    private final CloudHandler cloud = new CloudHandler();
+    private final CloudSimpleHandler cloud = new CloudSimpleHandler();
 
     // Command handlers
     private final CartCommands commands_cart = new CartCommands();
@@ -85,7 +85,7 @@ public class Commands {
     private final TicketCommands commands_train_ticket = new TicketCommands();
     private final SavedTrainCommands commands_savedtrain = new SavedTrainCommands();
 
-    public CloudHandler getHandler() {
+    public CloudSimpleHandler getHandler() {
         return cloud;
     }
 
@@ -112,9 +112,6 @@ public class Commands {
                 return true;
             });
         });
-
-        // Plugin instance
-        cloud.inject(TrainCarts.class, plugin);
 
         // Target a cart or train using added flags at the end of the command
         cloud.getParser().registerBuilderModifier(CommandTargetTrain.class, TrainTargetingFlags.INSTANCE);
