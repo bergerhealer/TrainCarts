@@ -44,7 +44,7 @@ public abstract class RailType {
     public static final RailTypePowered BRAKE = new RailTypePowered(false);
     public static final RailTypePowered BOOST = new RailTypePowered(true);
     public static final RailTypeNone NONE = new RailTypeNone();
-    private static final List<RailType> values = new ArrayList<RailType>();
+    private static List<RailType> values = new ArrayList<RailType>();
     private final boolean _isComplexRailBlock;
     private final boolean _isHandlingPhysics;
 
@@ -91,7 +91,9 @@ public abstract class RailType {
      * @param type to unregister
      */
     public static void unregister(RailType type) {
-        if (values.remove(type)) {
+        ArrayList<RailType> newValues = new ArrayList<RailType>(values);
+        if (newValues.remove(type)) {
+            values = newValues;
             RailPieceCache.reset();
         }
     }
@@ -103,11 +105,13 @@ public abstract class RailType {
      * @param withPriority - True to make it activate prior to other types, False after
      */
     public static void register(RailType type, boolean withPriority) {
+        ArrayList<RailType> newValues = new ArrayList<RailType>(values);
         if (withPriority) {
-            values.add(0, type);
+            newValues.add(0, type);
         } else {
-            values.add(type);
+            newValues.add(type);
         }
+        values = newValues;
         RailPieceCache.reset();
     }
 
