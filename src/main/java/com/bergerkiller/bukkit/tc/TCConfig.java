@@ -63,6 +63,7 @@ public class TCConfig {
     public static int maxMinecartStackSize;
     public static int defaultTransferRadius;
     public static int maxTransferRadius;
+    public static double maxTrainEditdistance;
     public static boolean optimizeInteraction;
     public static boolean showTransferAnimations;
     public static boolean craftingRequireWorkbench;
@@ -188,6 +189,9 @@ public class TCConfig {
         
         config.setHeader("maxEjectDistance", "\nThe maximum allowed ejection distance for eject signs");
         maxEjectDistance = config.get("maxEjectDistance", 10.0);
+
+        config.setHeader("maxTrainEditdistance", "\nMaximum distance from which /train edit can select trains");
+        maxTrainEditdistance = config.get("maxTrainEditdistance", 64.0);
 
         config.setHeader("launchForce", "\nThe amount of velocity stations give when launching trains");
         launchForce = config.get("launchForce", 10.0);

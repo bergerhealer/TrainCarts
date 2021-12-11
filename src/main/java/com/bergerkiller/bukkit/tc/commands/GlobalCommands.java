@@ -367,6 +367,11 @@ public class GlobalCommands {
                     continue;
                 }
 
+                // Too far away
+                if (pos.getZ() > TCConfig.maxTrainEditdistance) {
+                    continue;
+                }
+
                 // Check if position is allowed
                 double lim = Math.max(1.0, MathUtil.HALFROOTOFTWO * pos.getZ());
                 if (Math.abs(pos.getX()) > lim || Math.abs(pos.getY()) > lim) {
