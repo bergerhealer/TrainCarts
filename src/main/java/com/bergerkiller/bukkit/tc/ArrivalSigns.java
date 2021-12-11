@@ -161,7 +161,7 @@ public class ArrivalSigns {
         public void setTime() {
             long duration = System.currentTimeMillis() - startTime;
             if (MaterialUtil.ISSIGN.get(this.signblock)) {
-                Sign sign = BlockUtil.getSign(this.signblock);
+                Sign sign = (Sign) this.signblock.getState(); //BlockUtil.getSign(this.signblock);
                 String dur = timeFormat.format(duration);
                 sign.setLine(3, dur);
                 sign.update(true);
