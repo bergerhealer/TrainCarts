@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.commands.selector;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.selector.type.PlayersInTrainSelector;
@@ -69,13 +71,22 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
         });
         registerCondition("playerpassengers", (properties, condition) -> {
             MinecartGroup group = properties.getHolder();
-            int passengers = 0;
-            if (group != null) {
-                for (MinecartMember<?> member : group) {
-                    passengers += member.getEntity().getPlayerPassengers().size();
+            if (condition.isNumber()) {
+                int passengers = 0;
+                if (group != null) {
+                    for (MinecartMember<?> member : group) {
+                        passengers += member.getEntity().getPlayerPassengers().size();
+                    }
                 }
+                return condition.matchesNumber(passengers);
+            } else if (group != null) {
+                return condition.matchesAnyText(group.stream()
+                        .flatMap(m -> m.getEntity().getPassengers().stream())
+                        .filter(e -> e instanceof Player)
+                        .map(e -> ((Player) e).getName()));
+            } else {
+                return condition.matchesAnyText(Collections.emptyList());
             }
-            return condition.matchesNumber(passengers);
         });
     }
 

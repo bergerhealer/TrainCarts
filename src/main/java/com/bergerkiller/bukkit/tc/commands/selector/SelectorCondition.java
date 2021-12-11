@@ -3,6 +3,9 @@ package com.bergerkiller.bukkit.tc.commands.selector;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Util;
@@ -42,7 +45,8 @@ public class SelectorCondition {
 
     /**
      * Checks whether any of the given String values matches this selector
-     * value expression
+     * value expression. If this is an inversion expression, it inverts the entire
+     * match, so !name means that 'name' is not contained in the collection.
      *
      * @param values Text values
      * @return True if any of the values match
@@ -50,6 +54,19 @@ public class SelectorCondition {
      */
     public boolean matchesAnyText(Collection<String> values) throws SelectorException {
         return values.contains(this.value);
+    }
+
+    /**
+     * Checks whether any of the String values in the stream matches this selector
+     * value expression. If this is an inversion expression, it inverts the entire
+     * match, so !name means that 'name' is not contained in the stream.
+     *
+     * @param values
+     * @return True if any of the values match
+     * @throws SelectorException If something is wrong with the expression
+     */
+    public boolean matchesAnyText(Stream<String> values) throws SelectorException {
+        return values.anyMatch(Predicate.isEqual(this.value));
     }
 
     /**
@@ -114,6 +131,16 @@ public class SelectorCondition {
      */
     public boolean matchesNumber(long value) throws SelectorException {
         throw new SelectorException(key + " value is not a number");
+    }
+
+    /**
+     * Whether this selector condition represents a number or a range of
+     * numbers.
+     *
+     * @return True if a number was specified
+     */
+    public boolean isNumber() {
+        return false;
     }
 
     /**
@@ -229,6 +256,11 @@ public class SelectorCondition {
         }
 
         @Override
+        public boolean matchesAnyText(Stream<String> values) throws SelectorException {
+            return !base.matchesAnyText(values);
+        }
+
+        @Override
         public boolean matchesText(String value) throws SelectorException {
             return !base.matchesText(value);
         }
@@ -246,6 +278,11 @@ public class SelectorCondition {
         @Override
         public boolean matchesNumber(long value) throws SelectorException {
             return !base.matchesNumber(value);
+        }
+
+        @Override
+        public boolean isNumber() {
+            return base.isNumber();
         }
     }
 
@@ -277,6 +314,11 @@ public class SelectorCondition {
         @Override
         public boolean matchesNumber(long value) throws SelectorException {
             return value == valueLong;
+        }
+
+        @Override
+        public boolean isNumber() {
+            return true;
         }
 
         public static SelectorConditionNumeric tryParse(String key, String value) {
@@ -312,6 +354,12 @@ public class SelectorCondition {
         }
 
         @Override
+        public boolean matchesAnyText(Stream<String> values) throws SelectorException {
+            Collection<String> tmp = values.collect(Collectors.toList());
+            return min.matchesAnyText(tmp) || max.matchesAnyText(tmp);
+        }
+
+        @Override
         public boolean matchesText(String value) throws SelectorException {
             return min.matchesText(value) || max.matchesText(value);
         }
@@ -329,6 +377,11 @@ public class SelectorCondition {
         @Override
         public boolean matchesNumber(long value) throws SelectorException {
             return value >= min.valueLong && value <= max.valueLong;
+        }
+
+        @Override
+        public boolean isNumber() {
+            return true;
         }
     }
 
@@ -358,6 +411,11 @@ public class SelectorCondition {
         }
 
         @Override
+        public boolean matchesAnyText(Stream<String> values) throws SelectorException {
+            return values.anyMatch(this::matchesText);
+        }
+
+        @Override
         public boolean matchesText(String value) throws SelectorException {
             return Util.matchText(value, this.elements, this.firstAny, this.lastAny);
         }
@@ -382,6 +440,19 @@ public class SelectorCondition {
                 }
             }
             return false;
+        }
+
+        @Override
+        public boolean matchesAnyText(Stream<String> values) throws SelectorException {
+            //TODO: Could alternatively collect to a List and use matchesAnyText on that instead
+            return values.anyMatch(s -> {
+                for (SelectorCondition selectorValue : selectorValues) {
+                    if (selectorValue.matchesText(s)) {
+                        return true;
+                    }
+                }
+                return false;
+            });
         }
 
         @Override
