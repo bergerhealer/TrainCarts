@@ -7,12 +7,14 @@ import java.util.List;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
@@ -509,6 +511,24 @@ public class SpawnableGroup {
         SpawnableGroup result = new SpawnableGroup();
         result.applyConfig(savedConfig);
         return result;
+    }
+
+    /**
+     * Verifies whether the player can spawn this train, based on the individual carts being spawned.
+     * If the player can not, the player is told why this is, and this method returns false.
+     *
+     * @param player
+     * @return True if spawning is permitted
+     */
+    public boolean checkSpawnPermissions(Player player) {
+        for (SpawnableMember member : getMembers()) {
+            if (!member.getPermission().handleMsg(player,
+                    Localization.SPAWN_DISALLOWED_TYPE.get(member.toString()))
+            ) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

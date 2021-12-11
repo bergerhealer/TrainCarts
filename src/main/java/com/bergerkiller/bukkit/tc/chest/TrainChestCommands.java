@@ -34,6 +34,12 @@ public class TrainChestCommands {
         // Create a new item and give it to the player
         ItemStack item = TrainChestItemUtil.createItem();
         if (spawnConfig != null && !spawnConfig.isEmpty()) {
+            // Types permission check
+            if (!SpawnableGroup.parse(spawnConfig).checkSpawnPermissions(sender)) {
+                return;
+            }
+
+            // Store config
             TrainChestItemUtil.store(item, spawnConfig);
         }
         sender.getInventory().addItem(item);
@@ -66,6 +72,12 @@ public class TrainChestCommands {
             final Player player,
             final @Argument("spawnconfig") @Greedy String spawnConfig
     ) {
+        if (spawnConfig != null && !spawnConfig.isEmpty() &&
+                !SpawnableGroup.parse(spawnConfig).checkSpawnPermissions(player)
+        ) {
+            return;
+        }
+
         updateChestItemInInventory(player, item -> {
             TrainChestItemUtil.store(item, spawnConfig==null ? "" : spawnConfig);
         });

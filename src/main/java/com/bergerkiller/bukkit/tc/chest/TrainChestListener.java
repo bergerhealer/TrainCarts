@@ -85,6 +85,9 @@ public class TrainChestListener implements Listener {
         if (group == null) {
             // Invalid item, or empty item
             result = TrainChestItemUtil.SpawnResult.FAIL_EMPTY;
+        } else if (!group.checkSpawnPermissions(event.getPlayer())) {
+            // No permission to spawn a train with these types of carts
+            result = TrainChestItemUtil.SpawnResult.FAIL_NO_PERM;
         } else if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             // Clicked on a block that could be a rails block itself
             result = TrainChestItemUtil.spawnAtBlock(group, event.getPlayer(), event.getClickedBlock());
@@ -96,7 +99,10 @@ public class TrainChestListener implements Listener {
             result = TrainChestItemUtil.SpawnResult.FAIL_NORAIL;
         }
 
-        result.getLocale().message(event.getPlayer());
+        if (result.hasMessage()) {
+            result.getLocale().message(event.getPlayer());
+        }
+
         if (result == TrainChestItemUtil.SpawnResult.SUCCESS) {
             TrainChestItemUtil.playSoundSpawn(event.getPlayer());
         }

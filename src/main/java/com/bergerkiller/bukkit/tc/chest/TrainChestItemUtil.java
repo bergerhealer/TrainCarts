@@ -342,12 +342,17 @@ public class TrainChestItemUtil {
         SUCCESS(Localization.CHEST_SPAWN_SUCCESS),
         FAIL_EMPTY(Localization.CHEST_SPAWN_EMPTY),
         FAIL_NORAIL(Localization.CHEST_SPAWN_NORAIL),
-        FAIL_BLOCKED(Localization.CHEST_SPAWN_BLOCKED);
+        FAIL_BLOCKED(Localization.CHEST_SPAWN_BLOCKED),
+        FAIL_NO_PERM(null);
 
         private final Localization locale;
 
         private SpawnResult(Localization locale) {
             this.locale = locale;
+        }
+
+        public boolean hasMessage() {
+            return this.locale != null;
         }
 
         public Localization getLocale() {

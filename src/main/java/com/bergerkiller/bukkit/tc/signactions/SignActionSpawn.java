@@ -70,11 +70,9 @@ public class SignActionSpawn extends SignAction {
 
         // Check for all minecart types specified, whether the player has permission for it.
         // No permission? Cancel the building of the sign.
-        for (SpawnableMember member : sign.getSpawnableGroup().getMembers()) {
-            if (!member.getPermission().handleMsg(event.getPlayer(), ChatColor.RED + "You do not have permission to create minecarts of type " + member.toString())) {
-                sign.remove();
-                return false;
-            }
+        if (!sign.getSpawnableGroup().checkSpawnPermissions(event.getPlayer())) {
+            sign.remove();
+            return false;
         }
 
         // Success!
