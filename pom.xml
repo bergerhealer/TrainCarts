@@ -18,6 +18,7 @@
         <project.bkcversion>1.18.1-v1-SNAPSHOT</project.bkcversion>
         <project.slversion>1.11.2-v2-SNAPSHOT</project.slversion>
         <project.mwversion>1.11.2-v2-SNAPSHOT</project.mwversion>
+        <project.preloaderversion>1.5</project.preloaderversion>
         <junit.version>4.11</junit.version>
     </properties>
 
@@ -166,6 +167,12 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>com.bergerkiller.bukkit.preloader</groupId>
+            <artifactId>PluginPreloader</artifactId>
+            <version>${project.preloaderversion}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>me.m56738</groupId>
             <artifactId>SmoothCoastersAPI</artifactId>
             <version>1.6</version>
@@ -227,6 +234,12 @@
                             <shadedPattern>com.bergerkiller.bukkit.tc.dep.me.m56738</shadedPattern>
                         </relocation>
 
+                        <!-- Preloader -->
+                        <relocation>
+                            <pattern>com.bergerkiller.bukkit.preloader</pattern>
+                            <shadedPattern>com.bergerkiller.bukkit.tc</shadedPattern>
+                        </relocation>
+
                         <!-- BKCommonLib relocations of Cloud command framework -->
                         <relocation>
                             <pattern>cloud.commandframework</pattern>
@@ -248,6 +261,7 @@
                     <artifactSet>
                         <includes>
                             <include>me.m56738</include>
+                            <include>com.bergerkiller.bukkit.preloader</include>
                         </includes>
                     </artifactSet>
                 </configuration>
