@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TCListener;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
@@ -141,7 +142,13 @@ public class TrainChestListener implements Listener {
             TrainChestItemUtil.playSoundStore(event.getPlayer());
 
             if (!event.getPlayer().isSneaking()) {
-                member.getGroup().destroy();
+                boolean wasCancelled = TCListener.cancelNextDrops;
+                try {
+                    TCListener.cancelNextDrops = true;
+                    member.getGroup().destroy();
+                } finally {
+                    TCListener.cancelNextDrops = wasCancelled;
+                }
             }
 
             return;

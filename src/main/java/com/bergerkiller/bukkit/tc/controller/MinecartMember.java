@@ -1388,7 +1388,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
                 {
                     boolean cancelDropsOriginal = TCListener.cancelNextDrops;
-                    TCListener.cancelNextDrops = cancelDrops;
+                    TCListener.cancelNextDrops |= cancelDrops;
                     try {
                         super.onDie(killed);
                     } finally {
