@@ -659,12 +659,16 @@ public class RailTrackerGroup extends RailTracker {
                         } else {
                             // Move the walking point small steps until no more significant movement occurs
                             // to close the distance between p.state.position() and nextPos.
+                            final double ERR_EPSILON = 1e-8;
                             int cycle_limit = 10000;
                             double initial_distance = p.state.position().distance(nextPos.position());
                             double curr_distance = initial_distance;
                             do {
-                                if (curr_distance <= 1e-8 || !p.move(curr_distance) || p.moved <= 1e-8) {
-                                    break;
+                                if (curr_distance <= ERR_EPSILON) {
+                                    break; // Good enough
+                                } else if (!p.move(curr_distance) || p.moved <= ERR_EPSILON) {
+                                    curr_distance = p.state.position().distance(nextPos.position());
+                                    break; // End of track reached
                                 }
                                 double new_distance = p.state.position().distance(nextPos.position());
                                 if (new_distance >= curr_distance) {
@@ -676,7 +680,7 @@ public class RailTrackerGroup extends RailTracker {
                             // If we find that the position is diverging away, then there is no connection
                             // with the other cart and we abort. The next test will try the other direction
                             // and hopefully correct this.
-                            if (curr_distance > (0.5 * initial_distance)) {
+                            if (curr_distance > ERR_EPSILON && curr_distance > (0.5 * initial_distance)) {
                                 break;
                             }
 
