@@ -360,9 +360,20 @@ public class CartCommands {
         Commands.info(message, prop);
 
         // Loaded?
-        if (prop.getHolder() == null) {
+        MinecartMember<?> member = prop.getHolder();
+        if (member == null) {
             message.newLine().red("The train of this cart is unloaded! To keep it loaded, use:");
             message.newLine().yellow("   /train keepchunksloaded true");
+        }
+
+        // Derailment information
+        if (member != null) {
+            Location loc = member.getFirstKnownDerailedPosition();
+            if (loc != null) {
+                message.newLine().red("This cart is derailed!");
+                message.newLine().yellow("   It likely happened at x=", loc.getBlockX(),
+                        " y=", loc.getBlockY(), " z=", loc.getBlockZ());
+            }
         }
 
         // Send

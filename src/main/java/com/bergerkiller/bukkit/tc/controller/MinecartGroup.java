@@ -1578,6 +1578,34 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // Refresh wheel position information, important to do it AFTER updateDirection()
             this.updateWheels();
 
+            // If keeping chunks loaded, verify none of the members of this train as derailed
+            // and flying off into nowhere. When this happens, forcibly unload the train and
+            // log a warning.
+            if (!this.isEmpty() && this.getProperties().isKeepingChunksLoaded()) {
+                double thres = TCConfig.unloadRunawayTrainDistance * TCConfig.unloadRunawayTrainDistance;
+                for (MinecartMember<?> member : this) {
+                    Location derailedStartPos = member.getFirstKnownDerailedPosition();
+                    if (derailedStartPos != null) {
+                        double distanceSqSinceDerailed = member.getEntity().loc.distanceSquared(derailedStartPos);
+                        if (distanceSqSinceDerailed > thres) {
+                            Location loc = member.getEntity().getLocation();
+                            TrainCarts.plugin.getLogger().log(Level.WARNING, "A cart of train " +
+                                    this.getProperties().getTrainName() + " at world=" +
+                                    loc.getWorld().getName() + " x=" + loc.getBlockX() +
+                                    " y=" + loc.getBlockY() + " z=" + loc.getBlockZ() +
+                                    " derailed and went moving/flying off into nowhere!");
+                            TrainCarts.plugin.getLogger().log(Level.WARNING, "The train's keepChunksLoaded property has been " +
+                                    " reset to false to prevent endless chunks being generated");
+                            TrainCarts.plugin.getLogger().log(Level.WARNING, "The derailment likely occurred at " +
+                                    "x=" + derailedStartPos.getBlockX() + " y=" + derailedStartPos.getBlockY() +
+                                    " z=" + derailedStartPos.getBlockZ());
+                            getProperties().setKeepChunksLoaded(false);
+                            break;
+                        }
+                    }
+                }
+            }
+
             return true;
         } catch (MemberMissingException ex) {
             return false;

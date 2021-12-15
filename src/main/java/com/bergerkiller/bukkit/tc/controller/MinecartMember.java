@@ -34,7 +34,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.ExtendedEntity;
@@ -141,6 +140,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private boolean hasLinkedFarMinecarts = false;
     private Vector lastRailRefreshPosition = null;
     private Vector lastRailRefreshDirection = null;
+    private Location firstKnownDerailedPosition = null;
     private List<Entity> enterForced = new ArrayList<Entity>(1);
     private boolean wasMoving = false; // for starting driveSound property. TODO: Attachment?
 
@@ -1073,6 +1073,19 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     public boolean isDerailed() {
         return getRailType() == RailType.NONE;
+    }
+
+    /**
+     * Gets the World and coordinates that this MinecartMember was first at after
+     * derailing from the rails. Returns a <i>null</i> Location if this member
+     * is currently railed.
+     *
+     * @return First known position after derailing. May not be the actual position
+     *         if the train unloaded or reloaded after a server restart.
+     *         Is <i>null</i> if this member is currently railed.
+     */
+    public Location getFirstKnownDerailedPosition() {
+        return this.firstKnownDerailedPosition;
     }
 
     /**
@@ -2232,6 +2245,16 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                     }
                 }
             }
+        }
+
+        // If this member is derailed, track the first known position it derailed
+        // If not derailed, reset it again
+        if (!this.isDerailed()) {
+            this.firstKnownDerailedPosition = null;
+        } else if (this.firstKnownDerailedPosition == null ||
+                   this.firstKnownDerailedPosition.getWorld() != entity.getWorld()
+        ) {
+            this.firstKnownDerailedPosition = entity.getLocation();
         }
 
         // Performs linkage with nearby minecarts

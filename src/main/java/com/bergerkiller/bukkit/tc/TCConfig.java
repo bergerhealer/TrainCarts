@@ -102,6 +102,7 @@ public class TCConfig {
     public static boolean allowParenthesesFormat = true;
     public static boolean upsideDownSupportedByAll = false;
     public static boolean trainsCheckSignFacing = true;
+    public static double unloadRunawayTrainDistance = 160.0;
     public static int autoSaveInterval = 30 * 20; // autosave every 30 seconds
     public static int attachmentTransformParallelism = -1;
     public static boolean allowExternalTicketImagePaths = false; // Whether images outside of the images subdirectory are allowed
@@ -579,6 +580,13 @@ public class TCConfig {
         config.addHeader("smoothCoastersRotationMode", "PLAYER: Rotate the whole player");
         config.addHeader("smoothCoastersRotationMode", "CAMERA: Rotate the camera without affecting player yaw/pitch");
         smoothCoastersRotationMode = config.get("smoothCoastersRotationMode", RotationMode.class, RotationMode.PLAYER);
+
+        config.setHeader("unloadRunawayTrainDistance", "\nWhen trains that keep chunks loaded around them derail, they can end up");
+        config.addHeader("unloadRunawayTrainDistance", "flying off into nowhere. This results in thousands of chunks being generated,");
+        config.addHeader("unloadRunawayTrainDistance", "with no clear indication other than server performance tanking. To combat this,");
+        config.addHeader("unloadRunawayTrainDistance", "carts that derail and move this distance threshold away while derailed, automatically");
+        config.addHeader("unloadRunawayTrainDistance", "unload (by setting keep chunks loaded to false again). A warning with details is logged.");
+        unloadRunawayTrainDistance = config.get("unloadRunawayTrainDistance", 160.0);
     }
 
     public static void putParsers(String key, ItemParser[] parsersArr) {

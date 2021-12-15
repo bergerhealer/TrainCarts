@@ -99,9 +99,22 @@ public class TrainCommands {
         Commands.info(message, properties);
 
         // Loaded message
-        if (properties.getHolder() == null) {
+        MinecartGroup group = properties.getHolder();
+        if (group == null) {
             message.newLine().red("This train is unloaded! To keep it loaded, use:");
             message.newLine().yellow("   /train keepchunksloaded true");
+        }
+
+        // Derailment information
+        if (group != null) {
+            for (MinecartMember<?> member : group) {
+                Location loc = member.getFirstKnownDerailedPosition();
+                if (loc != null) {
+                    message.newLine().red("A cart of this train is derailed!");
+                    message.newLine().yellow("   It likely happened at x=", loc.getBlockX(),
+                            " y=", loc.getBlockY(), " z=", loc.getBlockZ());
+                }
+            }
         }
 
         // Send

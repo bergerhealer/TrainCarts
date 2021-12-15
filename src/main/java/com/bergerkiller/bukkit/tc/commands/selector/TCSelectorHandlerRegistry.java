@@ -88,6 +88,20 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
                 return condition.matchesAnyText(Collections.emptyList());
             }
         });
+        registerCondition("derailed", (properties, condition) -> {
+            MinecartGroup group = properties.getHolder();
+            boolean derailed = false;
+            if (group == null) {
+                return false;
+            }
+            for (MinecartMember<?> member : group) {
+                if (member.isDerailed()) {
+                    derailed = true;
+                    break;
+                }
+            }
+            return condition.matchesBoolean(derailed);
+        });
     }
 
     /**

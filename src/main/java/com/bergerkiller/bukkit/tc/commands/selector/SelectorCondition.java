@@ -2,7 +2,10 @@ package com.bergerkiller.bukkit.tc.commands.selector;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -134,6 +137,20 @@ public class SelectorCondition {
     }
 
     /**
+     * Checks whether the given boolean matches this selector value
+     * expression. This depends on how the selector was specified. It
+     * supports number notation (condition=1 or condition=0), boolean
+     * notation (condition=yes, condition=true, etc.) and no value
+     * expression at all (condition or !condition).
+     *
+     * @param value Value to compare
+     * @return True if the boolean matches
+     */
+    public boolean matchesBoolean(boolean value) throws SelectorException {
+        throw new SelectorException(key + " value is not a boolean flag");
+    }
+
+    /**
      * Whether this selector condition represents a number or a range of
      * numbers.
      *
@@ -235,6 +252,12 @@ public class SelectorCondition {
             return new SelectorConditionWildcardText(key, value, elements, firstAny, lastAny);
         }
 
+        // Truthy value
+        SelectorConditionTruthy truthy = SelectorConditionTruthy.tryParse(key, value);
+        if (truthy != null) {
+            return truthy;
+        }
+
         // Normal text value, nothing special
         return new SelectorCondition(key, value);
     }
@@ -281,6 +304,11 @@ public class SelectorCondition {
         }
 
         @Override
+        public boolean matchesBoolean(boolean value) throws SelectorException {
+            return !base.matchesBoolean(value);
+        }
+
+        @Override
         public boolean isNumber() {
             return base.isNumber();
         }
@@ -314,6 +342,16 @@ public class SelectorCondition {
         @Override
         public boolean matchesNumber(long value) throws SelectorException {
             return value == valueLong;
+        }
+
+        @Override
+        public boolean matchesBoolean(boolean value) throws SelectorException {
+            if (valueLong == 0)
+                return !value;
+            else if (valueLong == 1)
+                return value;
+            else
+                throw new SelectorException(getKey() + " value must be truthy (0, 1, true, etc.)");
         }
 
         @Override
@@ -499,6 +537,43 @@ public class SelectorCondition {
                 }
             }
             return false;
+        }
+    }
+
+    /**
+     * A text expression that can indicate text, or a true/false condition
+     */
+    private static class SelectorConditionTruthy extends SelectorCondition {
+        private static final Map<String, Boolean> truthyValues = new HashMap<>();
+        static {
+            register("yes", Boolean.TRUE);
+            register("true", Boolean.TRUE);
+            register("no", Boolean.FALSE);
+            register("false", Boolean.FALSE);
+        }
+
+        private static void register(String key, Boolean value) {
+            truthyValues.put(key, value); // true
+            truthyValues.put(key.toLowerCase(Locale.ENGLISH), value); // TRUE
+            truthyValues.put(key.substring(0, 1).toUpperCase(Locale.ENGLISH) +
+                    key.substring(1), value); // True
+        }
+
+        private final boolean truthyValue;
+
+        protected SelectorConditionTruthy(String key, String value, boolean truthyValue) {
+            super(key, value);
+            this.truthyValue = truthyValue;
+        }
+
+        @Override
+        public boolean matchesBoolean(boolean value) throws SelectorException {
+            return value == truthyValue;
+        }
+
+        public static SelectorConditionTruthy tryParse(String key, String value) {
+            Boolean truthy = truthyValues.get(value);
+            return (truthy == null) ? null : new SelectorConditionTruthy(key, value, truthy.booleanValue());
         }
     }
 }
