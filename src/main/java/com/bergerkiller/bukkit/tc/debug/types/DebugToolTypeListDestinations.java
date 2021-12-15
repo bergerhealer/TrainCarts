@@ -177,7 +177,7 @@ public class DebugToolTypeListDestinations extends DebugToolTrackWalkerType {
         if (destinationName != null) {
             PathNode destination = node.getWorld().getNodeByName(destinationName);
             if (destination == null) {
-                player.sendMessage(ChatColor.RED + "Destination " + destinationName + " does not exist. Try rerouting");
+                player.sendMessage(ChatColor.RED + "Destination " + destinationName + " does not exist. Try rerouting (sneak-click)");
                 return;
             }
             debugShowRouteFromTo(player, node, state.railBlock(), destination, initialDistance);

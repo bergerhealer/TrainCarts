@@ -218,6 +218,10 @@ public class PathNode {
         this.neighbors.add(connection);
     }
 
+    /**
+     * Clears the destinations known from this node to other nodes. The
+     * connection from those other nodes to this node are forgotten too.
+     */
     public void clear() {
         this.neighbors.clear();
         for (PathNode node : world.getNodes()) {
@@ -349,9 +353,12 @@ public class PathNode {
 
     /**
      * Schedules this node and all nodes that can be reached from here for recalculation.
-     * Nodes that have a one-way route to this node are rerouted too.
+     * Nodes that have a one-way route to this node are rerouted too.<br>
+     * <br>
+     * Is deeply recursive, meaning all nodes are rerouted that can currently be reached
+     * from this one node. This might cause performance problems for very large networks.
      */
-    public void rerouteConnected() {
+    public void rerouteConnectedDeepRecursive() {
         HashSet<PathNode> reachable = new HashSet<PathNode>();
         this.addReachable(reachable);
 
@@ -378,6 +385,17 @@ public class PathNode {
             world.removeFromMapping(node);
             world.getProvider().discoverFromRail(node.location);
         }
+    }
+
+    /**
+     * Rediscovers the connections from this node to all connected nodes,
+     * and from those connected nodes outwards so long more connections are
+     * found.
+     */
+    public void rerouteConnected() {
+        this.clear();
+        world.removeFromMapping(this);
+        world.getProvider().discoverFromRail(location);
     }
 
     private void addReachable(Set<PathNode> reachable) {
