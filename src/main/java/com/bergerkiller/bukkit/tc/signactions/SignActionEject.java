@@ -82,7 +82,8 @@ public class SignActionEject extends SignAction {
 
             // Actually eject
             if (isAbsolute) {
-                Location at = new Location(info.getWorld(), offset.getX(), offset.getY(), offset.getZ());
+                Location at = new Location(info.getWorld(), offset.getX(), offset.getY(), offset.getZ(),
+                        yaw, pitch);
                 for (MinecartMember<?> mm : info.getMembers()) {
                     if (usePlayerRotation) {
                         at.setYaw(0.0f);
