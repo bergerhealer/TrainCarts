@@ -297,6 +297,17 @@ public class PathProvider extends Task {
     }
 
     /**
+     * Stops all currently scheduled and pending path finding operations.
+     * Existing routing information is kept.
+     */
+    public void stopRouting() {
+        this.pendingDiscovery.clear();
+        this.pendingNodes.clear();
+        this.pendingOperations.clear();
+        this.scheduledNodesSinceIdle.clear();
+    }
+
+    /**
      * Tells this provider that node information has changed and needs to be saved again to file
      */
     protected void markChanged() {

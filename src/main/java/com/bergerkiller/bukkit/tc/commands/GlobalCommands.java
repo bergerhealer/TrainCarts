@@ -252,9 +252,14 @@ public class GlobalCommands {
     @CommandDescription("Recalculates all path finding information on the server")
     private void commandReroute(
             final CommandSender sender,
-            final @Flag(value="lazy", description="Delays recalculating routes until a train needs it") boolean lazy
+            final TrainCarts plugin,
+            final @Flag(value="lazy", description="Delays recalculating routes until a train needs it") boolean lazy,
+            final @Flag(value="stop", description="Stops all ongoing path route discovery operations") boolean stop
     ) {
-        if (lazy) {
+        if (stop) {
+            plugin.getPathProvider().stopRouting();
+            sender.sendMessage(ChatColor.YELLOW + "Cancelled all ongoing train route discovery operations");
+        } else if (lazy) {
             PathNode.clearAll();
             sender.sendMessage(ChatColor.YELLOW + "All train routings will be recalculated when needed");
         } else {
