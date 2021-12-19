@@ -185,20 +185,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     @Override
-    public void onDetached() {
-        super.onDetached();
-
-        // Sometimes dead is set to true, which does not get handled until much too late
-        // But BKCommonLib does fire onDetached() when that happens. After this call the
-        // entity will be gone.
-        // It is very important to clean ourselves up here, otherwise a NPE spam occurs
-        // with /train destroyall!
-        if (entity.isDead()) {
-            this.onDie(false);
-        }
-    }
-
-    @Override
     public CartProperties getProperties() {
         if (this.properties == null) {
             this.properties = CartPropertiesStore.createForMember(this);
