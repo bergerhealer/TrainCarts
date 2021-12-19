@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -22,6 +23,7 @@ import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
+import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -60,13 +62,19 @@ public class TrainChestItemUtil {
         if (!name.isEmpty()) {
             displayTitle += " (" + name + ")";
         }
+        ItemUtil.setDisplayName(item, displayTitle);
+
+        ItemUtil.clearLoreNames(item);
         if (isEmpty(item)) {
-            displayTitle += " (Empty)";
+            ItemUtil.addLoreChatText(item, ChatText.fromMessage(ChatColor.RED + "Empty"));
+        } else if (isFiniteSpawns(item)) {
+            ItemUtil.addLoreChatText(item, ChatText.fromMessage(ChatColor.BLUE + "Single-use"));
+        } else {
+            ItemUtil.addLoreChatText(item, ChatText.fromMessage(ChatColor.DARK_PURPLE + "Infinite uses"));
         }
         if (isLocked(item)) {
-            displayTitle += " (Locked)";
+            ItemUtil.addLoreChatText(item, ChatText.fromMessage(ChatColor.RED + "Locked"));
         }
-        ItemUtil.setDisplayName(item, displayTitle);
     }
 
     public static boolean isItem(ItemStack item) {
