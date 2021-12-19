@@ -1356,10 +1356,12 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     @Override
     public void onDie(boolean killed) {
         try {
-            // Die ignored?
+            // Only used on versions of BKCommonLib 1.18.1 and before
+            // This was used to prevent entity death/drops during cross-world teleport
             if (this.ignoreDie.clear()) {
                 return;
             }
+
             if (!entity.isDead() || !this.died) {
                 // Before we actually die, eject passengers and release the signs
                 // This must be done while the entity is still "alive"
