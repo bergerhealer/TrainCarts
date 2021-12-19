@@ -77,7 +77,7 @@ public class TrainChestCommands {
     @CommandDescription("Gives a new train-storing chest item to the sender, train information to store can be specified")
     private void commandGiveChestItem(
             final Player sender,
-            final @Argument(value="spawnconfig", suggestions="trainspawnpattern") @Greedy String spawnConfig
+            final @Argument("spawnconfig") @Greedy String spawnConfig
     ) {
         // Create a new item and give it to the player
         ItemStack item = TrainChestItemUtil.createItem();
