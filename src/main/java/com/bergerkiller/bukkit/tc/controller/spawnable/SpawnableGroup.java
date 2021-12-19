@@ -614,22 +614,47 @@ public class SpawnableGroup {
     }
 
     private static EntityType findVanillaCartType(char c) {
-        if (c == 'm' || c == 'M') {
-            return EntityType.MINECART;
-        } else if (c == 's' || c == 'S') {
-            return EntityType.MINECART_CHEST;
-        } else if (c == 'p' || c == 'P') {
-            return EntityType.MINECART_FURNACE;
-        } else if (c == 'h' || c == 'H') {
-            return EntityType.MINECART_HOPPER;
-        } else if (c == 't' || c == 'T') {
-            return EntityType.MINECART_TNT;
-        } else if (c == 'e' || c == 'E') {
-            return EntityType.MINECART_MOB_SPAWNER;
-        } else if (c == 'c' || c == 'C') {
-            return EntityType.MINECART_COMMAND;
-        } else {
-            return null;
+        c = Character.toLowerCase(c); //Note: might fail for turkish!
+        for (VanillaCartType type : VanillaCartType.values()) {
+            if (type.getCode() == c) {
+                return type.getType();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Vanilla cart types that can be spawned with default properties by specifying
+     * the single-character "code".
+     */
+    public static enum VanillaCartType {
+        RIDEABLE('m', EntityType.MINECART),
+        STORAGE('s', EntityType.MINECART_CHEST),
+        POWERED('p', EntityType.MINECART_FURNACE),
+        HOPPER('h', EntityType.MINECART_HOPPER),
+        TNT('t', EntityType.MINECART_TNT),
+        ENTITY_SPAWNER('e', EntityType.MINECART_MOB_SPAWNER),
+        COMMAND('c', EntityType.MINECART_COMMAND);
+
+        private final char code;
+        private final EntityType type;
+
+        private VanillaCartType(char code, EntityType type) {
+            this.code = code;
+            this.type = type;
+        }
+
+        public char getCode() {
+            return this.code;
+        }
+
+        public EntityType getType() {
+            return this.type;
+        }
+
+        @Override
+        public String toString() {
+            return Character.toString(this.code);
         }
     }
 

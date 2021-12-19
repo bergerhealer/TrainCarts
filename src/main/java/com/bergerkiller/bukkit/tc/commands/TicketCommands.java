@@ -17,6 +17,7 @@ import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTicketSelectedException;
@@ -138,7 +139,7 @@ public class TicketCommands {
     private void commandGiveTicket(
               final CommandSender sender,
               final @Argument("ticket") String ticketName,
-              final @Argument("players") String[] playerNames
+              final @Argument(value="players", suggestions="targetplayer") String[] playerNames
     ) {
         Ticket ticket = TicketStore.getTicket(ticketName);
         if (ticket == null) {
@@ -147,46 +148,13 @@ public class TicketCommands {
         }
 
         for (String playerName : playerNames) {
-            Player player = findPlayer(sender, playerName);
+            Player player = Util.findPlayer(sender, playerName);
             if (player != null) {
                 ItemStack item = ticket.createItem(player);
                 player.getInventory().addItem(item);
                 sender.sendMessage(ChatColor.GREEN + "Ticket " + ChatColor.YELLOW + ticket.getName() + ChatColor.GREEN + 
                         " given to player " + ChatColor.YELLOW + player.getName());
             }
-        }
-    }
-
-    private static Player findPlayer(CommandSender sender, String name) {
-        if (name.equals("@p")) {
-            BoundingRange.Axis axis = BoundingRange.Axis.forSender(sender);
-            if (axis.world == null) {
-                sender.sendMessage(ChatColor.RED + "Can only use @p executing as a Player or CommandBlock");
-                return null;
-            }
-            Iterator<Player> iter = axis.world.getPlayers().iterator();
-            if (!iter.hasNext()) {
-                sender.sendMessage(ChatColor.RED + "There is no player nearby");
-                return null;
-            }
-            Player result = iter.next();
-            final Location tmpLoc = result.getLocation();
-            double lowestDistance = axis.distanceSquared(tmpLoc);
-            while (iter.hasNext()) {
-                Player p = iter.next();
-                double distance = axis.distanceSquared(p.getLocation(tmpLoc));
-                if (distance < lowestDistance) {
-                    lowestDistance = distance;
-                    result = p;
-                }
-            }
-            return result;
-        } else {
-            Player p = Bukkit.getPlayer(name);
-            if (p == null) {
-                sender.sendMessage(ChatColor.RED + "Failed to give ticket to player " + name + ": not online");
-            }
-            return p;
         }
     }
 

@@ -79,6 +79,13 @@ public class TrainChestItemUtil {
         return false;
     }
 
+    public static void setFiniteSpawns(ItemStack item, boolean finite) {
+        if (isItem(item)) {
+            ItemUtil.getMetaTag(item, true).putValue("finite", finite);
+            updateTitle(item);
+        }
+    }
+
     public static void setLocked(ItemStack item, boolean locked) {
         if (isItem(item)) {
             ItemUtil.getMetaTag(item, true).putValue("locked", locked);
@@ -88,6 +95,10 @@ public class TrainChestItemUtil {
 
     public static boolean isLocked(ItemStack item) {
         return isItem(item) && ItemUtil.getMetaTag(item).getValue("locked", false);
+    }
+
+    public static boolean isFiniteSpawns(ItemStack item) {
+        return isItem(item) && ItemUtil.getMetaTag(item).getValue("finite", false);
     }
 
     public static void setName(ItemStack item, String name) {

@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -13,6 +14,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -21,6 +24,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
@@ -59,6 +63,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
+import com.bergerkiller.bukkit.tc.utils.BoundingRange;
 import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
 import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
@@ -1645,5 +1650,45 @@ public class Util {
      */
     public static BlockData getBlockDataOfPhysicsEvent(BlockPhysicsEvent event) {
         return blockPhysicsEventAccessor.get(event);
+    }
+
+    /**
+     * Parses a Player name, or @p, into an online Player
+     *
+     * @param sender Sender
+     * @param name Name of the player, or @p
+     * @return Player
+     */
+    public static Player findPlayer(CommandSender sender, String name) {
+        if (name.equals("@p")) {
+            BoundingRange.Axis axis = BoundingRange.Axis.forSender(sender);
+            if (axis.world == null) {
+                sender.sendMessage(ChatColor.RED + "Can only use @p executing as a Player or CommandBlock");
+                return null;
+            }
+            Iterator<Player> iter = axis.world.getPlayers().iterator();
+            if (!iter.hasNext()) {
+                sender.sendMessage(ChatColor.RED + "There is no player nearby");
+                return null;
+            }
+            Player result = iter.next();
+            final Location tmpLoc = result.getLocation();
+            double lowestDistance = axis.distanceSquared(tmpLoc);
+            while (iter.hasNext()) {
+                Player p = iter.next();
+                double distance = axis.distanceSquared(p.getLocation(tmpLoc));
+                if (distance < lowestDistance) {
+                    lowestDistance = distance;
+                    result = p;
+                }
+            }
+            return result;
+        } else {
+            Player p = Bukkit.getPlayer(name);
+            if (p == null) {
+                sender.sendMessage(ChatColor.RED + "Failed to find player with name " + name + ": not online");
+            }
+            return p;
+        }
     }
 }

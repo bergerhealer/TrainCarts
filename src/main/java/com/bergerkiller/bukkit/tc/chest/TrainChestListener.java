@@ -12,6 +12,7 @@ import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.collections.EntityMap;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -75,7 +76,7 @@ public class TrainChestListener implements Listener {
         }
 
         // Perm check
-        if (!Permission.COMMAND_USE_STORAGE_CHEST.has(event.getPlayer())) {
+        if (!Permission.COMMAND_STORAGE_CHEST_USE.has(event.getPlayer())) {
             Localization.CHEST_NOPERM.message(event.getPlayer());
             return;
         }
@@ -100,6 +101,13 @@ public class TrainChestListener implements Listener {
             result = TrainChestItemUtil.SpawnResult.FAIL_NORAIL;
         }
 
+        // Swap out for an empty chest item if finite
+        if (result == TrainChestItemUtil.SpawnResult.SUCCESS && TrainChestItemUtil.isFiniteSpawns(heldItem)) {
+            heldItem = ItemUtil.cloneItem(heldItem);
+            TrainChestItemUtil.clear(heldItem);
+            HumanHand.setItemInMainHand(event.getPlayer(), heldItem);
+        }
+
         if (result.hasMessage()) {
             result.getLocale().message(event.getPlayer());
         }
@@ -121,7 +129,7 @@ public class TrainChestListener implements Listener {
                 return;
             }
 
-            if (!Permission.COMMAND_USE_STORAGE_CHEST.has(event.getPlayer())) {
+            if (!Permission.COMMAND_STORAGE_CHEST_USE.has(event.getPlayer())) {
                 Localization.CHEST_NOPERM.message(event.getPlayer());
                 return;
             }
@@ -129,9 +137,17 @@ public class TrainChestListener implements Listener {
                 Localization.CHEST_LOCKED.message(event.getPlayer());
                 return;
             }
+            if (!TrainChestItemUtil.isEmpty(heldItem) && TrainChestItemUtil.isFiniteSpawns(heldItem)) {
+                Localization.CHEST_FULL.message(event.getPlayer());
+                return;
+            }
 
             MinecartMember<?> member = MinecartMemberStore.getFromEntity(event.getRightClicked());
             if (member == null || member.isUnloaded() || member.getGroup() == null) {
+                return;
+            }
+            if (!member.getProperties().hasOwnership(event.getPlayer())) {
+                Localization.EDIT_NOTOWNED.message(event.getPlayer());
                 return;
             }
 
@@ -141,7 +157,7 @@ public class TrainChestListener implements Listener {
             Localization.CHEST_PICKUP.message(event.getPlayer());
             TrainChestItemUtil.playSoundStore(event.getPlayer());
 
-            if (!event.getPlayer().isSneaking()) {
+            if (!event.getPlayer().isSneaking() || TrainChestItemUtil.isFiniteSpawns(heldItem)) {
                 boolean wasCancelled = TCListener.cancelNextDrops;
                 try {
                     TCListener.cancelNextDrops = true;

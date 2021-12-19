@@ -72,9 +72,11 @@ public class Localization extends LocalizationEnum {
     public static final Localization CHEST_NOPERM = new Localization("chest.noperm", ChatColor.RED + "You do not have permission to use the train storage chest!");
     public static final Localization CHEST_NOITEM = new Localization("chest.noitem", ChatColor.RED + "You are not currently holding a train storage chest item!");
     public static final Localization CHEST_GIVE = new Localization("chest.give", ChatColor.GREEN + "You have been given a train storage chest item. Use it to store and spawn trains");
+    public static final Localization CHEST_GIVE_TO = new Localization("chest.giveto", ChatColor.GREEN + "Gave a train storage chest item to player %0%");
     public static final Localization CHEST_UPDATE = new Localization("chest.update", ChatColor.GREEN + "Your train storage chest item has been updated");
     public static final Localization CHEST_LOCKED = new Localization("chest.locked", ChatColor.RED + "Your train storage chest item is locked and can not pick up the train");
     public static final Localization CHEST_PICKUP = new Localization("chest.pickup", ChatColor.GREEN + "Train picked up and stored inside the item!");
+    public static final Localization CHEST_FULL = new Localization("chest.full", ChatColor.RED + "Your train storage chest item is full and can not pick up the train");
     public static final Localization CHEST_IMPORTED = new Localization("chest.imported", ChatColor.GREEN + "The train was imported into the chest item");
     public static final Localization CHEST_SPAWN_SUCCESS = new Localization("chest.spawn.success", ChatColor.GREEN + "Train stored inside the item has been spawned on the rails!");
     public static final Localization CHEST_SPAWN_EMPTY = new Localization("chest.spawn.empty", ChatColor.RED + "Train can not be spawned, no train is stored in the item!");

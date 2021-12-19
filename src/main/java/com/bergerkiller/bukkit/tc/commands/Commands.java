@@ -30,6 +30,7 @@ import com.bergerkiller.bukkit.tc.commands.parsers.TrainTargetingFlags;
 import com.bergerkiller.bukkit.tc.commands.suggestions.AnimationNameSuggestionProvider;
 import com.bergerkiller.bukkit.tc.commands.suggestions.AnimationSceneSuggestionProvider;
 import com.bergerkiller.bukkit.tc.commands.suggestions.TrainNameSuggestionProvider;
+import com.bergerkiller.bukkit.tc.commands.suggestions.TrainSpawnPatternSuggestionProvider;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.debug.DebugCommands;
@@ -59,14 +60,17 @@ import cloud.commandframework.arguments.parser.StandardParameters;
 import cloud.commandframework.meta.CommandMeta;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
@@ -207,6 +211,9 @@ public class Commands {
         // Register provider for train names a player can edit
         cloud.suggest("trainnames", new TrainNameSuggestionProvider());
 
+        // Register provider for spawn patterns
+        cloud.suggest("trainspawnpattern", new TrainSpawnPatternSuggestionProvider());
+
         // Register provider for destination names
         cloud.suggest("destinations", (context, input) -> {
             Stream<PathWorld> worlds;
@@ -222,6 +229,15 @@ public class Commands {
                          .flatMap(node -> node.getNames().stream())
                          .distinct()
                          .collect(Collectors.toList());
+        });
+
+        // Suggests a player name of a player currently online, or @p
+        cloud.suggest("targetplayer", (context, input) -> {
+            List<String> result = Bukkit.getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .collect(Collectors.toCollection(ArrayList::new));
+            result.add("@p");
+            return result;
         });
 
         // Register all the commands
