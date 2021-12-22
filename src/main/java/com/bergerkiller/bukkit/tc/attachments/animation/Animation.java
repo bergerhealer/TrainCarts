@@ -22,6 +22,7 @@ public class Animation implements Cloneable {
     private final Scene _entireAnimationScene;
     private Scene _currentScene;
     private double _time;
+    private boolean _startedPlaying;
     private boolean _reachedEnd;
 
     protected Animation(Animation source) {
@@ -31,6 +32,7 @@ public class Animation implements Cloneable {
         this._entireAnimationScene = source._entireAnimationScene;
         this._currentScene = source._currentScene;
         this._time = source._time;
+        this._startedPlaying = source._startedPlaying;
         this._reachedEnd = source._reachedEnd;
     }
 
@@ -46,6 +48,7 @@ public class Animation implements Cloneable {
         this._options = new AnimationOptions(name);
         this._nodes = nodes;
         this._time = 0.0;
+        this._startedPlaying = false;
         this._reachedEnd = false;
 
         // Compute scenes mapping using the nodes
@@ -163,6 +166,7 @@ public class Animation implements Cloneable {
             this._time = 0.0;
         }
         this._time -= this._options.getDelay();
+        this._startedPlaying = false;
         this._reachedEnd = false;
     }
 
@@ -218,70 +222,103 @@ public class Animation implements Cloneable {
      * @return animation node, null if animation is disabled at this time
      */
     public AnimationNode update(double dt) {
+        // Missing animation check - do nothing
         if (this._nodes.length == 0) {
+            this._startedPlaying = false;
             this._reachedEnd = true;
-            return null; // animation missing
-        }
-
-        Scene scene = this._currentScene;
-        boolean animationStarted = true;
-        if (this._options.isLooped()) {
-            // When animation is too short, always return node 0.
-            if (this._currentScene.isSingleFrame()) {
-                this._reachedEnd = true;
-                return this._nodes[scene.nodeBeginIndex()];
-            }
-
-        } else {
-
-            AnimationNode endNode = this._nodes[scene.nodeEndIndex()];
-            double animEnd = scene.duration() - endNode.getDuration();
-
-            // When not looped, check whether the animation finished playing fully,
-            // or whether the animation is yet to start
-            // Clamp time to the end-time when this happens (!)
-            if (this._options.isReversed()) {
-                if (this._time <= 0.0) {
-                    this._time = 0.0;
-                    this._reachedEnd = true;
-                    return this._nodes[0];
-                } else if (this._time > animEnd) {
-                    animationStarted = false;
-                }
-            } else {
-                if (this._time >= animEnd) {
-                    this._time = animEnd;
-                    this._reachedEnd = true;
-                    return endNode;
-                } else if (this._time < 0.0) {
-                    animationStarted = false;
-                }
-            }
-        }
-
-        // Use time before the update to allow t=0 to display
-        double curr_time = this._time;
-        this._time += dt * this._options.getSpeed();
-
-        // Not started yet
-        if (!animationStarted) {
             return null;
         }
 
-        // Looped:
-        // Take modulo of time vs loop duration in order for it to loop around
-        // This causes any sort of delay to act more like a phase shift
+        Scene scene = this._currentScene;
+
+        // When animation is too short, always return node 0.
+        if (scene.isSingleFrame()) {
+            this._startedPlaying = true;
+            this._reachedEnd = true;
+        }
+
+        // If reached end, don't do any more time updates
+        if (this._reachedEnd) {
+            return this._nodes[this._options.isReversed() ? scene.nodeBeginIndex() : scene.nodeEndIndex()];
+        }
+
+        // Use time before the update to allow for t=0 to display
+        double curr_time = this._time;
+        this._time += dt * this._options.getSpeed();
+
+        // Check if we have started playing yet
+        // This returns null until the start delay has elapsed
+        if (!this._startedPlaying) {
+            if (!this._options.isLooped()) {
+                AnimationNode endNode = this._nodes[scene.nodeEndIndex()];
+                double animEnd = scene.duration() - endNode.getDuration();
+                if (this._options.isReversed()) {
+                    if (curr_time > animEnd) {
+                        // Keep within range
+                        if (this._time < 0.0) {
+                            this._time = 0.0;
+                        }
+                        return null;
+                    }
+                } else {
+                    if (curr_time < 0.0) {
+                        // Keep within range
+                        if (this._time > animEnd) {
+                            this._time = animEnd;
+                        }
+                        return null;
+                    }
+                }
+            }
+
+            // No longer waiting for a pre-start delay to elapse
+            this._startedPlaying = true;
+        }
+
         if (this._options.isLooped()) {
+            // Looped:
+            // Take modulo of time vs loop duration in order for it to loop around
+            // This causes any sort of delay to act more like a phase shift
             this._time = (this._time % scene.duration());
             if (this._time < 0.0) {
                 this._time += scene.duration(); // nega
             }
-        }
-
-        // Only 1 node? Return that, no weird interpolation please.
-        if (scene.nodeCount() == 1) {
-            this._reachedEnd = true;
-            return this._nodes[scene.nodeBeginIndex()];
+        } else {
+            // When not looped, check whether the animation finished playing fully,
+            // or whether the animation is yet to start
+            // Clamp time to the end-time when this happens (!)
+            if (this._options.isReversed()) {
+                if (curr_time == 0.0) {
+                    // Reached the beginning of the animation, stop playing
+                    this._time = 0.0;
+                    this._reachedEnd = true;
+                    return this._nodes[scene.nodeBeginIndex()];
+                } else if (this._time < 0.0) {
+                    // Clamp at t=0, next time it will stop playing
+                    this._time = 0.0;
+                }
+            } else {
+                AnimationNode endNode = this._nodes[scene.nodeEndIndex()];
+                double animEnd = scene.duration() - endNode.getDuration();
+                if (curr_time == animEnd) {
+                    // Reached the end of the animation, stop playing
+                    this._time = animEnd;
+                    this._reachedEnd = true;
+                    return endNode;
+                } else if (curr_time > animEnd) {
+                    // When beyond the end of the animation, it resumes playing to the beginning
+                    // Make sure to wrap around the time back to 0 when this happens
+                    if (this._time >= scene.duration()) {
+                        this._time -= scene.duration();
+                        if (this._time > animEnd) {
+                            this._time = animEnd;
+                        }
+                    }
+                } else if (this._time > animEnd) {
+                    // Clamp to end, next time it will stop playing
+                    this._time = animEnd;
+                }
+            }
         }
 
         // Interpolate to find the correct animation node
@@ -292,8 +329,10 @@ public class Animation implements Cloneable {
                 curr_time -= duration;
                 continue;
             }
-
             int next_i = (i == scene.nodeEndIndex()) ? scene.nodeBeginIndex() : (i + 1);
+            if (duration == 0.0) {
+                return this._nodes[this._options.isReversed() ? i : next_i]; // Bugs otherwise
+            }
             return AnimationNode.interpolate(this._nodes[i], this._nodes[next_i], curr_time/duration);
         }
 
@@ -319,9 +358,12 @@ public class Animation implements Cloneable {
             }
         }
 
-        // Clamp if beyond range of animation
-        if (this._time > scene.duration()) {
-            this._time = scene.duration();
+        // If already playing, ensure time stays within range (phase), loop or no loop
+        if (this._startedPlaying && (this._time < 0.0 || this._time > scene.duration())) {
+            this._time = (this._time % scene.duration());
+            if (this._time < 0.0) {
+                this._time += scene.duration(); // nega
+            }
         }
 
         // Assign
