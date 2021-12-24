@@ -978,13 +978,8 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     public void setLine(int index, String line) {
-        // Note: Bugged BKCommonLib 1.18.1-v1 and before
-        //this.sign.setLine(index, line);
-        //this.sign.update(true);
-
-        Sign sign = (Sign) this.signblock.getState();
-        sign.setLine(index, line);
-        sign.update(true);
+        this.sign.setLine(index, line);
+        this.sign.update(true);
     }
 
     /**

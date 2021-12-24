@@ -11,12 +11,12 @@ import java.util.Map;
 import java.util.UUID;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.offline.OfflineWorld;
+import com.bergerkiller.bukkit.common.offline.OfflineWorldMap;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSign;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignMetadataHandler;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
-import com.bergerkiller.bukkit.tc.offline.world.OfflineWorld;
-import com.bergerkiller.bukkit.tc.offline.world.OfflineWorldMap;
 
 public class MutexZoneCache {
     private static final OfflineWorldMap<Map<IntVector3, MutexZone>> zones = new OfflineWorldMap<>();

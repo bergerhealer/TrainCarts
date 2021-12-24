@@ -9,6 +9,7 @@ import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
+import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.ChunkUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
@@ -21,7 +22,6 @@ import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSign;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
-import com.bergerkiller.bukkit.tc.offline.world.OfflineBlock;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 

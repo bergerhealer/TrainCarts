@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.signactions.detector;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -11,7 +12,6 @@ import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSign;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
-import com.bergerkiller.bukkit.tc.offline.world.OfflineBlock;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 

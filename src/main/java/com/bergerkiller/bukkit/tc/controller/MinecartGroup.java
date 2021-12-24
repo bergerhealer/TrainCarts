@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.controller;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
@@ -641,19 +640,11 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     private void teleportMember(MinecartMember<?> member, Location location) {
-        // This fix is only required for BKCommonLib 1.18.1-v2 and prior
-        // Without this, on Minecraft 1.8 - 1.13.2, it would fire onDie() when
-        // teleporting between worlds. It has since been fixed.
-        if (!Common.hasCapability("Common:EntityController:FixedOnDieDuringTeleport")) {
-            member.ignoreDie.set();
-        }
-
         if (member.isOrientationInverted()) {
             location = Util.invertRotation(location.clone());
         }
         member.getWheels().startTeleport();
         member.getEntity().teleport(location);
-        member.ignoreDie.clear();
     }
 
     /**

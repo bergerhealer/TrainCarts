@@ -111,7 +111,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public static final double GRAVITY_MULTIPLIER = 0.04;
     public static final int MAXIMUM_DAMAGE_SUSTAINED = 40;
     protected final ToggledState forcedBlockUpdate = new ToggledState(true);
-    protected final ToggledState ignoreDie = new ToggledState(false);
     private final SignTrackerMember signTracker = new SignTrackerMember(this);
     private final ActionTrackerMember actionTracker = new ActionTrackerMember(this);
     private final RailTrackerMember railTrackerMember = new RailTrackerMember(this);
@@ -1356,12 +1355,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     @Override
     public void onDie(boolean killed) {
         try {
-            // Only used on versions of BKCommonLib 1.18.1 and before
-            // This was used to prevent entity death/drops during cross-world teleport
-            if (this.ignoreDie.clear()) {
-                return;
-            }
-
             if (!entity.isDead() || !this.died) {
                 // Before we actually die, eject passengers and release the signs
                 // This must be done while the entity is still "alive"

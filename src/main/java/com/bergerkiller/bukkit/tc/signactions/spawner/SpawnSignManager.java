@@ -12,12 +12,12 @@ import org.bukkit.block.Block;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSign;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignMetadataHandler;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
-import com.bergerkiller.bukkit.tc.offline.world.OfflineBlock;
 
 /**
  * Tracks all the spawn signs globally on the server, and tracks the regular

@@ -24,13 +24,13 @@ import org.bukkit.event.world.WorldLoadEvent;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
+import com.bergerkiller.bukkit.common.offline.OfflineBlock;
+import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
-import com.bergerkiller.bukkit.tc.offline.world.OfflineBlock;
-import com.bergerkiller.bukkit.tc.offline.world.OfflineWorld;
 import com.bergerkiller.bukkit.tc.signactions.detector.DetectorSign;
 import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSignManager;
 

@@ -10,8 +10,8 @@ import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.tc.offline.world.OfflineBlock;
-import com.bergerkiller.bukkit.tc.offline.world.OfflineWorld;
+import com.bergerkiller.bukkit.common.offline.OfflineBlock;
+import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 
 /**
  * A single offline sign and the last-known associated metadata of it.

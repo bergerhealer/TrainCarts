@@ -32,7 +32,6 @@ import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.locator.TrainLocator;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
-import com.bergerkiller.bukkit.tc.offline.world.OfflineWorldLoadedChangeListener;
 import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
 import com.bergerkiller.bukkit.tc.pathfinding.RouteManager;
 import com.bergerkiller.bukkit.tc.portals.TCPortalManager;
@@ -97,7 +96,6 @@ public class TrainCarts extends PluginBase {
     private TrainUpdateController trainUpdateController = new TrainUpdateController(this);
     private final TCSelectorHandlerRegistry selectorHandlerRegistry = new TCSelectorHandlerRegistry(this);
     private final OfflineSignStore offlineSignStore = new OfflineSignStore(this);
-    private final OfflineWorldLoadedChangeListener offlineWorldLoadedChangeListener = new OfflineWorldLoadedChangeListener();
     private Economy econ = null;
     private SmoothCoastersAPI smoothCoastersAPI;
     private Commands commands;
@@ -528,9 +526,6 @@ public class TrainCarts extends PluginBase {
             }
         }
 
-        // Register offline world listener - also sets the worlds that are loaded for the first time
-        this.offlineWorldLoadedChangeListener.enable(this);
-
         //Automatically saves sign metadata to disk in the background
         //For worlds not already loaded, loads metadata where this is a condition
         this.offlineSignStore.enable();
@@ -792,9 +787,6 @@ public class TrainCarts extends PluginBase {
 
         // Save offline sign metadata to disk (if needed) and stop writing in the background
         this.offlineSignStore.disable();
-
-        // Stop tracking loaded worlds using an event listener
-        this.offlineWorldLoadedChangeListener.disable();
     }
 
     @SuppressWarnings({"rawtypes", "deprecation", "unchecked"})
