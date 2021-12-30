@@ -131,7 +131,7 @@ public class FirstPersonDefault {
 
     public void onTick() {
         // Move player view relatively
-        if (this._lock == FirstPersonViewLockMode.MOVE && this.seat.seated.isPlayer()) {
+        if (this._lock == FirstPersonViewLockMode.MOVE && this.seat.seated.isPlayer() && !this.useSmoothCoasters()) {
             // Every now and then, rotate the player view by the amount the seat itself rotated
             Vector player_pyr;
             {
