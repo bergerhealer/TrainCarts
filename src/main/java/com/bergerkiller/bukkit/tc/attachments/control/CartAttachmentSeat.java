@@ -35,6 +35,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityElytra;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityNormal;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.ThirdPersonDefault;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonDefault;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewLockMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
@@ -43,7 +44,6 @@ import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositi
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
 import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
 
 public class CartAttachmentSeat extends CartAttachment {
     public static final AttachmentType TYPE = new AttachmentType() {
@@ -84,6 +84,29 @@ public class CartAttachmentSeat extends CartAttachment {
                  }).addOptions(FirstPersonViewMode::name, FirstPersonViewMode.class)
                    .setSelectedOption(attachment.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC))
                    .setBounds(0, 9, 84, 14);
+
+                 tab.addWidget(new MapWidgetBlinkyButton() {
+                     @Override
+                     public void onAttached() {
+                         updateIcon();
+                     }
+
+                     @Override
+                     public void onClick() {
+                         FirstPersonViewLockMode lockMode = attachment.getConfig().get("firstPersonViewLockMode", FirstPersonViewLockMode.OFF);
+                         lockMode = FirstPersonViewLockMode.values()[(lockMode.ordinal()+1) % FirstPersonViewLockMode.values().length];
+                         attachment.getConfig().set("firstPersonViewLockMode", lockMode);
+                         sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                         updateIcon();
+                         display.playSound(SoundEffect.CLICK);
+                     }
+
+                     public void updateIcon() {
+                         FirstPersonViewLockMode lockMode = attachment.getConfig().get("firstPersonViewLockMode", FirstPersonViewLockMode.OFF);
+                         setIcon(lockMode.getIconPath());
+                         setTooltip(lockMode.getTooltip());
+                     }
+                 }).setPosition(86, 9);
             }
 
             // Passenger display configuration and whether body rotation is locked
@@ -177,13 +200,7 @@ public class CartAttachmentSeat extends CartAttachment {
     // During makeVisible(viewer) this is set to that viewer, to ignore it when refreshing
     private Player _makeVisibleCurrent = null;
 
-    // Remainder yaw and pitch when moving player view orientation along with the seat
-    // This remainder is here because Minecraft has only limited yaw/pitch granularity
-    private double _playerYawRemainder = 0.0;
-    private double _playerPitchRemainder = 0.0;
-
     // Seat configuration
-    private ViewLockMode _viewLockMode = ViewLockMode.OFF;
     private ObjectPosition _ejectPosition = new ObjectPosition();
     private boolean _ejectLockRotation = false;
     private String _enterPermission = null;
@@ -224,7 +241,7 @@ public class CartAttachmentSeat extends CartAttachment {
 
         this.seated.orientation.setLocked(this.getConfig().get("lockRotation", false));
         this.firstPerson.setMode(this.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC));
-        this._viewLockMode = ViewLockMode.OFF; // Disabled, is broken
+        this.firstPerson.setLockMode(this.getConfig().get("firstPersonViewLockMode", FirstPersonViewLockMode.OFF));
         this._enterPermission = this.getConfig().get("enterPermission", String.class, null);
         this.seated.setDisplayMode(this.getConfig().get("displayMode", DisplayMode.DEFAULT));
 
@@ -374,41 +391,7 @@ public class CartAttachmentSeat extends CartAttachment {
         this.seated.updateMode(false);
 
         // Move player view relatively
-        if (this._viewLockMode == ViewLockMode.MOVE && this.seated.isPlayer()) {
-            Vector old_pyr;
-            {
-                Location eye_loc = ((Player) this.seated.getEntity()).getEyeLocation();
-                old_pyr = new Vector(eye_loc.getPitch(),
-                                     eye_loc.getYaw(),
-                                     0.0);
-                old_pyr.setX(-old_pyr.getX());
-            }
-
-            // Find the rotation transformation to go from the previous transformation to pyr
-            // Multiplying getPreviousTransform() with this rotation should result in old_pyr exactly
-            Quaternion diff = Quaternion.diff(this.getPreviousTransform().getRotation(), Quaternion.fromYawPitchRoll(old_pyr));
-
-            // Transform the new seat transform with this diff to obtain the expected rotation after moving
-            Quaternion new_rotation = this.getTransform().getRotation();
-            new_rotation.multiply(diff);
-            Vector new_pyr = new_rotation.getYawPitchRoll();
-
-            // Compute difference, also include a remainder we haven't synchronized yet
-            Vector pyr = new_pyr.clone().subtract(old_pyr);
-            pyr.setX(pyr.getX() + this._playerPitchRemainder);
-            pyr.setY(pyr.getY() + this._playerYawRemainder);
-
-            // Refresh this change in pitch/yaw/roll to the player
-            if (Math.abs(pyr.getX()) > 1e-5 || Math.abs(pyr.getY()) > 1e-5) {
-                PacketPlayOutPositionHandle p = PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, (float) pyr.getY(), (float) pyr.getX());
-                this._playerPitchRemainder = (pyr.getX() - p.getPitch());
-                this._playerYawRemainder = (pyr.getY() - p.getYaw());
-                PacketUtil.sendPacket((Player) this.seated.getEntity(), p);
-            } else {
-                this._playerPitchRemainder = pyr.getX();
-                this._playerYawRemainder = pyr.getY();
-            }
-        }
+        this.firstPerson.onTick();
     }
 
     /**
@@ -525,11 +508,5 @@ public class CartAttachmentSeat extends CartAttachment {
             }
         }
         return true;
-    }
-
-    public static enum ViewLockMode {
-        OFF, /* Player view orientation is not changed */
-        MOVE, /* Player view orientation moves along as the seat moves */
-        //LOCK /* Player view is locked to look forwards in the seat direction at all times */
     }
 }

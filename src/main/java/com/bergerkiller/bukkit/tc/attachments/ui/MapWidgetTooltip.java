@@ -49,7 +49,7 @@ public class MapWidgetTooltip extends MapWidget {
 
         // Draw text in the middle
         view.setAlignment(MapFont.Alignment.MIDDLE);
-        view.draw(MapFont.MINECRAFT, getWidth()/2, (getHeight()-7)/2, MapColorPalette.COLOR_WHITE, this._text);
+        view.draw(MapFont.MINECRAFT, getWidth()/2, 0, MapColorPalette.COLOR_WHITE, this._text);
     }
 
     private void calcBounds() {

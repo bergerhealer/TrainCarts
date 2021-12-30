@@ -1,6 +1,8 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
 import com.bergerkiller.bukkit.tc.TCConfig;
+
+import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -13,6 +15,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutUpdateAttributesHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityLivingHandle;
@@ -26,8 +29,14 @@ public class FirstPersonDefault {
     private Player _player;
     private FirstPersonViewMode _liveMode = FirstPersonViewMode.DEFAULT;
     private FirstPersonViewMode _mode = FirstPersonViewMode.DYNAMIC;
+    private FirstPersonViewLockMode _lock = FirstPersonViewLockMode.MOVE;
     private boolean _useSmoothCoasters = false;
     private VirtualEntity _fakeCameraMount = null;
+
+    // Remainder yaw and pitch when moving player view orientation along with the seat
+    // This remainder is here because Minecraft has only limited yaw/pitch granularity
+    private double _playerYawRemainder = 0.0;
+    private double _playerPitchRemainder = 0.0;
 
     public FirstPersonDefault(CartAttachmentSeat seat) {
         this.seat = seat;
@@ -120,6 +129,46 @@ public class FirstPersonDefault {
         seat.seated.makeHidden(viewer, this._liveMode.hasFakePlayer());
     }
 
+    public void onTick() {
+        // Move player view relatively
+        if (this._lock == FirstPersonViewLockMode.MOVE && this.seat.seated.isPlayer()) {
+            // Every now and then, rotate the player view by the amount the seat itself rotated
+            Vector player_pyr;
+            {
+                Location eye_loc = ((Player) this.seat.seated.getEntity()).getEyeLocation();
+                player_pyr = new Vector(eye_loc.getPitch(),
+                                     eye_loc.getYaw(),
+                                     0.0);
+                player_pyr.setX(-player_pyr.getX());
+            }
+
+            // Find the rotation transformation to go from the previous transformation to pyr
+            // Multiplying the previous transform with this rotation should result in player_pyr exactly
+            Quaternion diff = Quaternion.diff(this.seat.getPreviousTransform().getRotation(), Quaternion.fromYawPitchRoll(player_pyr));
+
+            // Calculate what player pyr would be with the rotation changes that have since occurred
+            Quaternion new_rotation = this.seat.getTransform().getRotation();
+            new_rotation.multiply(diff);
+
+            // Compute difference, also include a remainder we haven't synchronized yet
+            Vector new_pyr = new_rotation.getYawPitchRoll();
+            Vector pyr = new_pyr.clone().subtract(player_pyr);
+            pyr.setX(pyr.getX() + this._playerPitchRemainder);
+            pyr.setY(pyr.getY() + this._playerYawRemainder);
+
+            // Refresh this change in pitch/yaw/roll to the player
+            if (Math.abs(pyr.getX()) > 1e-5 || Math.abs(pyr.getY()) > 1e-5) {
+                PacketPlayOutPositionHandle p = PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, (float) pyr.getY(), (float) pyr.getX());
+                this._playerPitchRemainder = (pyr.getX() - p.getPitch());
+                this._playerYawRemainder = (pyr.getY() - p.getYaw());
+                PacketUtil.sendPacket((Player) this.seat.seated.getEntity(), p);
+            } else {
+                this._playerPitchRemainder = pyr.getX();
+                this._playerYawRemainder = pyr.getY();
+            }
+        }
+    }
+
     public void onMove(boolean absolute) {
         if (this.useSmoothCoasters()) {
             Quaternion rotation = seat.getTransform().getRotation();
@@ -186,5 +235,23 @@ public class FirstPersonDefault {
      */
     public void setMode(FirstPersonViewMode mode) {
         this._mode = mode;
+    }
+
+    /**
+     * Gets the way the first person view camera is locked
+     *
+     * @return lock mode
+     */
+    public FirstPersonViewLockMode getLockMode() {
+        return this._lock;
+    }
+
+    /**
+     * Sets the view lock mode to use
+     *
+     * @param lock
+     */
+    public void setLockMode(FirstPersonViewLockMode lock) {
+        this._lock = lock;
     }
 }
