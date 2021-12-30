@@ -10,11 +10,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
+import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
@@ -34,6 +37,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.ThirdPersonDefault;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonDefault;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetToggleButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositionMenu;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -60,41 +64,74 @@ public class CartAttachmentSeat extends CartAttachment {
 
         @Override
         public void createAppearanceTab(MapWidgetTabView.Tab tab, MapWidgetAttachmentNode attachment) {
-            tab.addWidget(new MapWidgetToggleButton<Boolean>() {
-                @Override
-                public void onSelectionChanged() {
-                    attachment.getConfig().set("lockRotation", this.getSelectedOption());
-                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
-                    attachment.resetIcon();
-                    display.playSound(SoundEffect.CLICK);
-                }
-            }).addOptions(b -> "Lock Rotation: " + (b ? "ON" : "OFF"), Boolean.TRUE, Boolean.FALSE)
-              .setSelectedOption(attachment.getConfig().get("lockRotation", false))
-              .setBounds(0, 4, 100, 14);
+            // First person view mode and whether FPV is locked (spectator mode)
+            // TODO: In future, a toggle for smoothcoasters could be added. Is now always-on.
+            {
+                tab.addWidget(new MapWidgetText())
+                   .setText("FIRST PERSON VIEW")
+                   .setFont(MapFont.TINY)
+                   .setColor(MapColorPalette.COLOR_RED)
+                   .setPosition(20, 2);
 
-            tab.addWidget(new MapWidgetToggleButton<FirstPersonViewMode>() {
-                @Override
-                public void onSelectionChanged() {
-                    attachment.getConfig().set("firstPersonViewMode", this.getSelectedOption());
-                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
-                    attachment.resetIcon();
-                    display.playSound(SoundEffect.CLICK);
-                }
-            }).addOptions(o -> "FPV: " + o.name(), FirstPersonViewMode.class)
-              .setSelectedOption(attachment.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC))
-              .setBounds(0, 20, 100, 14);
+                 tab.addWidget(new MapWidgetToggleButton<FirstPersonViewMode>() {
+                     @Override
+                     public void onSelectionChanged() {
+                         attachment.getConfig().set("firstPersonViewMode", this.getSelectedOption());
+                         sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                         attachment.resetIcon();
+                         display.playSound(SoundEffect.CLICK);
+                     }
+                 }).addOptions(FirstPersonViewMode::name, FirstPersonViewMode.class)
+                   .setSelectedOption(attachment.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC))
+                   .setBounds(0, 9, 84, 14);
+            }
 
-            tab.addWidget(new MapWidgetToggleButton<DisplayMode>() {
-                @Override
-                public void onSelectionChanged() {
-                    attachment.getConfig().set("displayMode", this.getSelectedOption());
-                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
-                    attachment.resetIcon();
-                    display.playSound(SoundEffect.CLICK);
-                }
-            }).addOptions(o -> "Display: " + o.name(), DisplayMode.class)
-              .setSelectedOption(attachment.getConfig().get("displayMode", DisplayMode.DEFAULT))
-              .setBounds(0, 36, 100, 14);
+            // Passenger display configuration and whether body rotation is locked
+            {
+                tab.addWidget(new MapWidgetText())
+                   .setText("PASSENGER DISPLAY")
+                   .setFont(MapFont.TINY)
+                   .setColor(MapColorPalette.COLOR_RED)
+                   .setPosition(20, 26);
+
+                 tab.addWidget(new MapWidgetToggleButton<DisplayMode>() {
+                     @Override
+                     public void onSelectionChanged() {
+                         attachment.getConfig().set("displayMode", this.getSelectedOption());
+                         sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                         attachment.resetIcon();
+                         display.playSound(SoundEffect.CLICK);
+                     }
+                 }).addOptions(DisplayMode::name, DisplayMode.class)
+                   .setSelectedOption(attachment.getConfig().get("displayMode", DisplayMode.DEFAULT))
+                   .setBounds(0, 33, 84, 14);
+
+                 tab.addWidget(new MapWidgetBlinkyButton() {
+                     @Override
+                     public void onAttached() {
+                         updateIcon();
+                     }
+
+                     @Override
+                     public void onClick() {
+                         attachment.getConfig().set("lockRotation", !attachment.getConfig().get("lockRotation", false));
+                         sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                         updateIcon();
+                         display.playSound(SoundEffect.CLICK);
+                     }
+
+                     public void updateIcon() {
+                         boolean isPassengerLocked = attachment.getConfig().get("lockRotation", false);
+                         if (isPassengerLocked) {
+                             setIcon("attachments/seat_body_locked.png");
+                             setTooltip("No body rotation");
+                         } else {
+                             setIcon("attachments/seat_body_unlocked.png");
+                             setTooltip("Body can rotate");
+                         }
+                     }
+                 }).setPosition(86, 33);
+            }
 
             tab.addWidget(new MapWidgetButton() { // Change exit position button
                 @Override
