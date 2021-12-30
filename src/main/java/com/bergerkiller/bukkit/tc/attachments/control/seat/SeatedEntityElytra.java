@@ -189,7 +189,7 @@ public class SeatedEntityElytra extends SeatedEntity {
         boolean new_smoothCoasters;
 
         // Whether a fake entity is used to represent this seated entity
-        if (seat.isRotationLocked() && this.isPlayer()) {
+        if (this.isPlayer()) {
             new_smoothCoasters = TrainCarts.plugin.getSmoothCoastersAPI().isEnabled((Player) this.getEntity());
         } else {
             new_smoothCoasters = false;

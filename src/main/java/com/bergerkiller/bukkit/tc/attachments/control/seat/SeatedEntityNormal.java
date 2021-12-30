@@ -160,7 +160,7 @@ public class SeatedEntityNormal extends SeatedEntity {
         // Whether the (fake) entity is displayed upside-down
         boolean new_isUpsideDown;
 
-        if (seat.isRotationLocked() && this.isPlayer()) {
+        if (this.isPlayer()) {
             new_smoothCoasters = TrainCarts.plugin.getSmoothCoastersAPI().isEnabled((Player) this.getEntity());
         } else {
             new_smoothCoasters = false;
