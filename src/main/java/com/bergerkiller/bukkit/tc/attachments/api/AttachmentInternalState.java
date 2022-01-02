@@ -125,6 +125,14 @@ public class AttachmentInternalState {
         // Reset prior
         this.reset();
 
+        // Migrations
+        try {
+            attachmentType.migrateConfiguration(config);
+        } catch (Throwable t) {
+            TrainCarts.plugin.getLogger().log(Level.SEVERE,
+                    "Failed to migrate attachment configuration of " + attachmentType.getName(), t);
+        }
+
         // Store it
         this.config = config;
 

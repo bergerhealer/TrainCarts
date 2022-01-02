@@ -48,6 +48,18 @@ public interface AttachmentType {
     }
 
     /**
+     * Called before configuration is loaded in by attachments, and before
+     * {@link #createAppearanceTab(tab, attachment)}
+     * is called, to perform any needed configuration migrations. If your attachment
+     * includes older configurations that have since changed, migrate those to the
+     * new configuration format here. By default this method is a no-op.
+     *
+     * @param config Configuration to migrate
+     */
+    default void migrateConfiguration(ConfigurationNode config) {
+    }
+
+    /**
      * Retrieves the default configuration when creating this attachment type from the editor
      * 
      * @param config The configuration to fill with default values

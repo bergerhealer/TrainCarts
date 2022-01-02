@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -566,6 +567,12 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
         }
 
         // Reload the configuration of just this one attachment
+        try {
+            newAttachmentType.migrateConfiguration(config);
+        } catch (Throwable t) {
+            TrainCarts.plugin.getLogger().log(Level.SEVERE,
+                    "Failed to migrate attachment configuration of " + newAttachmentType.getName(), t);
+        }
         attachment.getInternalState().onLoad(this.getClass(), newAttachmentType, config);
         attachment.onLoad(config);
 
