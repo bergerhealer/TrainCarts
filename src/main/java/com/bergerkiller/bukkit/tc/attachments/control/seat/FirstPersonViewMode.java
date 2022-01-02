@@ -19,10 +19,13 @@ public enum FirstPersonViewMode {
     DEFAULT(Double.NaN, false),
     /**
      * Player floats an offset away from the seat, making sure the player head
-     * is exactly where it would be if perfectly rotated. Anchors the eyes of
-     * the player a fixed distance of 1 from the seat position.
+     * is exactly where it would be if perfectly rotated. The same can be achieved
+     * with DEFAULT and an eye-position offset of y=1.
+     *
+     * This is used when the player uses smooth coasters, because mount switching
+     * doesn't work very well there.
      */
-    FLOATING(1.0, false),
+    SMOOTHCOASTERS_FIX(1.0, false, false),
     /**
      * The player can not see himself sitting, but the camera is positioned
      * where the player head would be in floating mode.
@@ -37,10 +40,16 @@ public enum FirstPersonViewMode {
 
     private final double _cameraOffset;
     private final boolean _fakePlayer;
+    private final boolean _selectable;
 
     private FirstPersonViewMode(double cameraOffset, boolean fakePlayer) {
+        this(cameraOffset, fakePlayer, true);
+    }
+
+    private FirstPersonViewMode(double cameraOffset, boolean fakePlayer, boolean selectable) {
         this._cameraOffset = cameraOffset;
         this._fakePlayer = fakePlayer;
+        this._selectable = selectable;
     }
 
     /**
@@ -70,5 +79,14 @@ public enum FirstPersonViewMode {
      */
     public boolean hasFakePlayer() {
         return this._fakePlayer;
+    }
+
+    /**
+     * Whether this view mode is selectable in the editor
+     *
+     * @return True if selectable
+     */
+    public boolean isSelectable() {
+        return _selectable;
     }
 }

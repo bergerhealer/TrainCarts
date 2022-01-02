@@ -195,7 +195,7 @@ public class SeatedEntityNormal extends SeatedEntity {
                 else if (new_smoothCoasters) {
                     // Smooth coasters can't deal well switching between mounts
                     // Stay in the virtual camera view mode
-                    new_firstPersonMode = FirstPersonViewMode.FLOATING;
+                    new_firstPersonMode = FirstPersonViewMode.SMOOTHCOASTERS_FIX;
                 } else {
                     new_firstPersonMode = FirstPersonViewMode.DEFAULT;
                 }

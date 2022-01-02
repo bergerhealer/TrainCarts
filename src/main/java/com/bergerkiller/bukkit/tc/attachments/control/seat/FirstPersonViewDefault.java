@@ -74,12 +74,12 @@ public class FirstPersonViewDefault extends FirstPersonView {
 
                     if (this._eyePosition.isDefault()) {
                         // Compute automatically using the view modes used
-                        double y_offset = -VirtualEntity.PLAYER_SIT_ARMORSTAND_BUTT_OFFSET;
+                        double y_offset = VirtualEntity.PLAYER_SIT_ARMORSTAND_BUTT_OFFSET;
                         if (this.getLiveMode().isVirtual()) {
-                            y_offset -= VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT;
+                            y_offset += VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT;
                             this._fakeCameraMount.setPosition(new Vector(0.0, this.getLiveMode().getVirtualOffset(), 0.0));
                         }
-                        this._fakeCameraMount.setRelativeOffset(0.0, y_offset, 0.0);
+                        this._fakeCameraMount.setRelativeOffset(0.0, -y_offset, 0.0);
                     } else {
                         // Position exactly at the seat transform x the eye position
                         // Add a relative offset so that this position is where the eyes are

@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.control;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.stream.Stream;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -65,6 +66,24 @@ public class CartAttachmentSeat extends CartAttachment {
         }
 
         @Override
+        public void migrateConfiguration(ConfigurationNode config) {
+            // FLOATING was removed now that the eye position configuration made it redundant
+            if ("FLOATING".equals(config.get("firstPersonViewMode", String.class))) {
+                config.set("firstPersonViewMode", "DEFAULT");
+
+                // Position the eye at a y-offset similar to what would be used in floating mode
+                config.remove("firstPersonViewPosition");
+                ConfigurationNode eye = config.getNode("firstPersonViewPosition");
+                eye.set("posX", 0.0);
+                eye.set("posY", 1.0);
+                eye.set("posZ", 0.0);
+                eye.set("rotX", 0.0);
+                eye.set("rotY", 0.0);
+                eye.set("rotZ", 0.0);
+            }
+        }
+
+        @Override
         public void createAppearanceTab(MapWidgetTabView.Tab tab, MapWidgetAttachmentNode attachment) {
             // First person view mode and whether FPV is locked (spectator mode)
             // TODO: In future, a toggle for smoothcoasters could be added. Is now always-on.
@@ -83,7 +102,10 @@ public class CartAttachmentSeat extends CartAttachment {
                          attachment.resetIcon();
                          display.playSound(SoundEffect.CLICK);
                      }
-                 }).addOptions(FirstPersonViewMode::name, FirstPersonViewMode.class)
+                 }).addOptions(FirstPersonViewMode::name,
+                         Stream.of(FirstPersonViewMode.values())
+                               .filter(FirstPersonViewMode::isSelectable)
+                               .toArray(FirstPersonViewMode[]::new))
                    .setSelectedOption(attachment.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC))
                    .setBounds(0, 9, 68, 14);
 
