@@ -22,7 +22,6 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
@@ -35,6 +34,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityElytra;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityNormal;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.ThirdPersonDefault;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonDefault;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonSpectator;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewLockMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
@@ -238,10 +238,18 @@ public class CartAttachmentSeat extends CartAttachment {
             this.seated = new SeatedEntityNormal(this, false);
             break;
         }
-
         this.seated.orientation.setLocked(this.getConfig().get("lockRotation", false));
-        this.firstPerson.setMode(this.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC));
-        this.firstPerson.setLockMode(this.getConfig().get("firstPersonViewLockMode", FirstPersonViewLockMode.OFF));
+
+        FirstPersonViewMode viewMode = this.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC);
+        FirstPersonViewLockMode viewLockMode = this.getConfig().get("firstPersonViewLockMode", FirstPersonViewLockMode.OFF);
+        if (viewLockMode.isSpectator()) {
+            this.firstPerson = new FirstPersonSpectator(this);
+        } else {
+            this.firstPerson = new FirstPersonDefault(this);
+        }
+        this.firstPerson.setMode(viewMode);
+        this.firstPerson.setLockMode(viewLockMode);
+
         this._enterPermission = this.getConfig().get("enterPermission", String.class, null);
         this.seated.setDisplayMode(this.getConfig().get("displayMode", DisplayMode.DEFAULT));
 
@@ -321,6 +329,8 @@ public class CartAttachmentSeat extends CartAttachment {
         }
         if (mode.isVirtual()) {
             transform.translate(0.0, -mode.getVirtualOffset(), 0.0);
+        } else {
+            transform.translate(0.0, -1.0, 0.0);
         }
     }
 

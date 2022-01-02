@@ -25,7 +25,7 @@ import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityAr
  * Synchronizes the seat to the player sitting in the seat
  */
 public class FirstPersonDefault {
-    private final CartAttachmentSeat seat;
+    protected final CartAttachmentSeat seat;
     private Player _player;
     private FirstPersonViewMode _liveMode = FirstPersonViewMode.DEFAULT;
     private FirstPersonViewMode _mode = FirstPersonViewMode.DYNAMIC;

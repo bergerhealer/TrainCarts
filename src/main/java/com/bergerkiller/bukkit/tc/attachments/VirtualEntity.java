@@ -60,7 +60,7 @@ public class VirtualEntity {
     private final AttachmentManager manager;
     private final int entityId;
     private final UUID entityUUID;
-    private final DataWatcher metaData;
+    private DataWatcher metaData;
     private double posX, posY, posZ;
     private boolean posSet;
     private double liveAbsX, liveAbsY, liveAbsZ;
@@ -97,6 +97,10 @@ public class VirtualEntity {
 
     public DataWatcher getMetaData() {
         return this.metaData;
+    }
+
+    public void useMetadata(DataWatcher metadata) {
+        this.metaData = metadata;
     }
 
     public UUID getEntityUUID() {
@@ -180,6 +184,14 @@ public class VirtualEntity {
 
     public Vector getSyncPos() {
         return new Vector(this.syncAbsX, this.syncAbsY, this.syncAbsZ);
+    }
+
+    public float getLivePitch() {
+        return this.livePitch;
+    }
+
+    public float getSyncPitch() {
+        return this.syncPitch;
     }
 
     /**
@@ -322,6 +334,12 @@ public class VirtualEntity {
      */
     public void setUseParentMetadata(boolean use) {
         this.useParentMetadata = use;
+    }
+
+    public void addViewerWithoutSpawning(Player viewer) {
+        if (!this.viewers.contains(viewer)) {
+            this.viewers.add(viewer);
+        }
     }
 
     public void spawn(Player viewer, Vector motion) {
