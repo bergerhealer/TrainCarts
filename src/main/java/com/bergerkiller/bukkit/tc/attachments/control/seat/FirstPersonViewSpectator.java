@@ -16,10 +16,10 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
  * Makes the player spectate an Entity and then moves that Entity to
  * move the camera around.
  */
-public class FirstPersonSpectator extends FirstPersonDefault {
+public class FirstPersonViewSpectator extends FirstPersonView {
     private FirstPersonSpectatedEntity _spectatedEntity = null;
 
-    public FirstPersonSpectator(CartAttachmentSeat seat) {
+    public FirstPersonViewSpectator(CartAttachmentSeat seat) {
         super(seat);
     }
 
@@ -30,7 +30,6 @@ public class FirstPersonSpectator extends FirstPersonDefault {
 
     @Override
     public void makeVisible(Player viewer) {
-        super.makeVisible(viewer); // Puts the viewer in a fake mount, out of view
         setSelfVisible(viewer, false); // Make the viewer completely invisible to himself
 
         this._spectatedEntity = new FirstPersonSpectatedEntityPlayer(seat, viewer);
@@ -40,7 +39,6 @@ public class FirstPersonSpectator extends FirstPersonDefault {
     @Override
     public void makeHidden(Player viewer) {
         setSelfVisible(viewer, true); // Make viewer visible to himself again (restore)
-        super.makeHidden(viewer); // Release viewer from the fake mount
 
         // Release camera of spectated entity & destroy it
         if (_spectatedEntity != null) {
@@ -64,8 +62,6 @@ public class FirstPersonSpectator extends FirstPersonDefault {
 
     @Override
     public void onMove(boolean absolute) {
-        super.onMove(absolute); // Moves the real, actual player around
-
         // Move the spectated entity
         if (_spectatedEntity != null) {
             _spectatedEntity.syncPosition(absolute);

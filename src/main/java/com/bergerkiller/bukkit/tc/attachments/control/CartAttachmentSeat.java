@@ -33,14 +33,14 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity.DisplayM
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityElytra;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityNormal;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.ThirdPersonDefault;
-import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonDefault;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonView;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewDefault;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonEyePositionDialog;
-import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonSpectator;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewLockMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
-import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetToggleButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositionMenu;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -213,7 +213,7 @@ public class CartAttachmentSeat extends CartAttachment {
 
     // Houses the logic for synchronizing this seat to players viewing the entity in first person
     // That is, the viewer is the one inside this seat
-    public FirstPersonDefault firstPerson = new FirstPersonDefault(this);
+    public FirstPersonView firstPerson = new FirstPersonViewDefault(this);
     // Houses the logic for synchronizing this seat to players viewing the entity in third person
     // That is, the viewer is not the one inside this seat
     public ThirdPersonDefault thirdPerson = new ThirdPersonDefault(this);
@@ -269,9 +269,9 @@ public class CartAttachmentSeat extends CartAttachment {
         FirstPersonViewMode viewMode = this.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC);
         FirstPersonViewLockMode viewLockMode = this.getConfig().get("firstPersonViewLockMode", FirstPersonViewLockMode.OFF);
         if (viewLockMode.isSpectator()) {
-            this.firstPerson = new FirstPersonSpectator(this);
+            this.firstPerson = new FirstPersonViewSpectator(this);
         } else {
-            this.firstPerson = new FirstPersonDefault(this);
+            this.firstPerson = new FirstPersonViewDefault(this);
         }
         this.firstPerson.setMode(viewMode);
         this.firstPerson.setLockMode(viewLockMode);
