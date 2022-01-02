@@ -1002,6 +1002,18 @@ public class Util {
     }
 
     /**
+     * Gets the pitch angle opposite to the angle specified. When rotating the angle
+     * results in a glitch, this boundary should be used as a starting point for a valid
+     * rotation
+     *
+     * @param angle
+     * @return Opposite rotation boundary
+     */
+    public static float atOppositeRotationGlitchBoundary(float angle) {
+        return (angle >= 180.0f) ? 179.0f : 181.0f;
+    }
+
+    /**
      * For debugging: spawns a particle at a particular location
      * 
      * @param loc      to spawn at

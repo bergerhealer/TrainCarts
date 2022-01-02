@@ -24,6 +24,7 @@ import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatOrientation;
 import com.bergerkiller.generated.com.mojang.authlib.GameProfileHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutNamedEntitySpawnHandle;
@@ -97,55 +98,50 @@ public enum FakePlayerSpawner {
      * @param viewer Player to spawn all this for
      * @param player The player whose metadata to use to define the player's appearance
      * @param entityId the Id for the newly spawned entity
+     * @param fakeFlipPitch Whether to flip the pitch value when beyond 180
+     * @param orientation Seat source for player orientation
      * @param metaFunction Applies changes to the metadata of the spawned player
      */
     public void spawnPlayer(Player viewer, Player player, int entityId, boolean fakeFlipPitch, SeatOrientation orientation, Consumer<DataWatcher> metaFunction) {
-        EntityHandle playerHandle = EntityHandle.fromBukkit(player);
-
-        // Calculate yaw/pitch/head-yaw
-        final float yaw, pitch, headRot;
-        {
-            float pitch_tmp, headRot_tmp;
-
-            if (orientation == null) {
-                yaw = playerHandle.getYaw();
-                pitch_tmp = playerHandle.getPitch();
-                headRot_tmp = playerHandle.getHeadRotation();
-                if (this == UPSIDEDOWN) {
-                    pitch_tmp = -pitch_tmp;
-                    headRot_tmp = -headRot_tmp + 2.0f * yaw;
-                }
-            } else {
-                yaw = orientation.getPassengerYaw();
-                pitch_tmp = orientation.getPassengerPitch();
-                headRot_tmp = orientation.getPassengerHeadYaw();
-            }
-
-            // If fake pitch flip is used, then make the pitch the opposite, right at the edge
-            if (fakeFlipPitch) {
-                if (pitch_tmp >= 180.0f) {
-                    pitch_tmp = 179.0f;
-                } else {
-                    pitch_tmp = 181.0f;
-                }
-            }
-
-            pitch = pitch_tmp;
-            headRot = headRot_tmp;
+        FakePlayerOrientation fpo;
+        if (orientation == null) {
+            fpo = (this == UPSIDEDOWN) ? FakePlayerOrientation.ofPlayerUpsideDown(player) : FakePlayerOrientation.ofPlayer(player);
+        } else {
+            fpo = FakePlayerOrientation.create(orientation.getPassengerYaw(),
+                    orientation.getPassengerPitch(), orientation.getPassengerHeadYaw());
         }
 
+        // If fake pitch flip is used, then make the pitch the opposite, right at the edge
+        if (fakeFlipPitch) {
+            fpo = fpo.atOppositePitchBoundary();
+        }
+
+        spawnPlayer(viewer, player, entityId, fpo, metaFunction);
+    }
+
+    /**
+     * (Re)spawns the player for a viewer with this profile name modifier applied
+     * 
+     * @param viewer Player to spawn all this for
+     * @param player The player whose metadata to use to define the player's appearance
+     * @param entityId the Id for the newly spawned entity
+     * @param fakeFlipPitch Whether to flip the pitch value when beyond 180
+     * @param metaFunction Applies changes to the metadata of the spawned player
+     */
+    public void spawnPlayer(Player viewer, Player player, int entityId, FakePlayerOrientation orientation, Consumer<DataWatcher> metaFunction) {
+        EntityHandle playerHandle = EntityHandle.fromBukkit(player);
         spawnPlayerSimple(viewer, player, entityId, fakePlayerSpawnPacket -> {
             fakePlayerSpawnPacket.setPosX(playerHandle.getLocX());
             fakePlayerSpawnPacket.setPosY(playerHandle.getLocY());
             fakePlayerSpawnPacket.setPosZ(playerHandle.getLocZ());
-            fakePlayerSpawnPacket.setYaw(yaw);
-            fakePlayerSpawnPacket.setPitch(pitch);
+            fakePlayerSpawnPacket.setYaw(orientation.getYaw());
+            fakePlayerSpawnPacket.setPitch(orientation.getPitch());
         }, metaFunction);
 
         // Also synchronize the head rotation for this player
         CommonPacket headPacket = PacketType.OUT_ENTITY_HEAD_ROTATION.newInstance();
         headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId, entityId);
-        headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, headRot);
+        headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, orientation.getHeadYaw());
         PacketUtil.sendPacket(viewer, headPacket);
     }
 
@@ -348,6 +344,45 @@ public enum FakePlayerSpawner {
                 // Cleanup ourselves from the list
                 this.state.pendingCleanup.remove(this);
             }
+        }
+    }
+
+    /**
+     * Provides information (at spawn) of the heat/body rotation of a Player
+     */
+    public static class FakePlayerOrientation {
+        private final float yaw, pitch, headyaw;
+
+        private FakePlayerOrientation(float yaw, float pitch, float headyaw) {
+            this.yaw = yaw;
+            this.pitch = pitch;
+            this.headyaw = headyaw;
+        }
+
+        public float getYaw() { return yaw; }
+        public float getPitch() { return pitch; }
+        public float getHeadYaw() { return headyaw; }
+
+        public FakePlayerOrientation atOppositePitchBoundary() {
+            return create(yaw, Util.atOppositeRotationGlitchBoundary(pitch), headyaw);
+        }
+
+        public static FakePlayerOrientation ofPlayer(Player player) {
+            EntityHandle playerHandle = EntityHandle.fromBukkit(player);
+            return new FakePlayerOrientation(playerHandle.getYaw(),
+                    playerHandle.getPitch(), playerHandle.getHeadRotation());
+        }
+
+        public static FakePlayerOrientation ofPlayerUpsideDown(Player player) {
+            EntityHandle playerHandle = EntityHandle.fromBukkit(player);
+            float yaw = playerHandle.getYaw();
+            return new FakePlayerOrientation(yaw,
+                    -playerHandle.getPitch(),
+                    -playerHandle.getHeadRotation() + 2.0f * yaw);
+        }
+
+        public static FakePlayerOrientation create(float yaw, float pitch, float headyaw) {
+            return new FakePlayerOrientation(yaw, pitch, headyaw);
         }
     }
 }
