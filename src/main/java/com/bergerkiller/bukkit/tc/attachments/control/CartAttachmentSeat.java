@@ -34,11 +34,13 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityElytra;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityNormal;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.ThirdPersonDefault;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonDefault;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonEyePositionDialog;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonSpectator;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewLockMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetToggleButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositionMenu;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -83,7 +85,31 @@ public class CartAttachmentSeat extends CartAttachment {
                      }
                  }).addOptions(FirstPersonViewMode::name, FirstPersonViewMode.class)
                    .setSelectedOption(attachment.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC))
-                   .setBounds(0, 9, 84, 14);
+                   .setBounds(0, 9, 68, 14);
+
+                 tab.addWidget(new MapWidgetBlinkyButton() {
+                     @Override
+                     public void onAttached() {
+                         updateIcon();
+                     }
+
+                     @Override
+                     public void onClick() {
+                         tab.addWidget(new FirstPersonEyePositionDialog(attachment) {
+                             @Override
+                             public void close() {
+                                 super.close();
+                                 updateIcon();
+                             }
+                         });
+                     }
+
+                     public void updateIcon() {
+                         boolean configured = attachment.getConfig().isNode("firstPersonViewPosition");
+                         setIcon(configured ? "attachments/view_camera_configured.png" : "attachments/view_camera_auto.png");
+                         setTooltip(configured ? "Set eye position\n  (Configured)" : "Set eye position\n   (Automatic)");
+                     }
+                 }).setPosition(70, 9);
 
                  tab.addWidget(new MapWidgetBlinkyButton() {
                      @Override
@@ -256,6 +282,21 @@ public class CartAttachmentSeat extends CartAttachment {
         ConfigurationNode ejectPosition = this.getConfig().getNode("ejectPosition");
         this._ejectPosition.load(this.getManager().getClass(), TYPE, ejectPosition);
         this._ejectLockRotation = ejectPosition.get("lockRotation", false);
+    }
+
+    // Note: Only load things here that can be live-modified in the editor, such as positions
+    //       Things that require a re-initialization shouldn't be done here.
+    @Override
+    public void onLoad(ConfigurationNode config) {
+        super.onLoad(config);
+
+        // Eye position
+        if (config.contains("firstPersonViewPosition")) {
+            this.firstPerson.getEyePosition().load(this.getManager().getClass(), TYPE,
+                    config.getNode("firstPersonViewPosition"));
+        } else {
+            this.firstPerson.getEyePosition().reset();
+        }
     }
 
     @Override

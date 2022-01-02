@@ -8,12 +8,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
+import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutUpdateAttributesHandle;
@@ -32,6 +34,7 @@ public class FirstPersonDefault {
     private FirstPersonViewLockMode _lock = FirstPersonViewLockMode.MOVE;
     private boolean _useSmoothCoasters = false;
     private VirtualEntity _fakeCameraMount = null;
+    private ObjectPosition _eyePosition = new ObjectPosition();
 
     // Remainder yaw and pitch when moving player view orientation along with the seat
     // This remainder is here because Minecraft has only limited yaw/pitch granularity
@@ -42,7 +45,14 @@ public class FirstPersonDefault {
         this.seat = seat;
     }
 
+    public ObjectPosition getEyePosition() {
+        return this._eyePosition;
+    }
+
     public boolean isFakeCameraUsed() {
+        if (!this._eyePosition.isDefault()) {
+            return true;
+        }
         if (this._liveMode.isVirtual()) {
             return true;
         }
@@ -84,16 +94,23 @@ public class FirstPersonDefault {
                 this._fakeCameraMount.setEntityType(EntityType.ARMOR_STAND);
                 this._fakeCameraMount.setSyncMode(SyncMode.SEAT);
 
-                double y_offset = VirtualEntity.PLAYER_SIT_ARMORSTAND_BUTT_OFFSET;
-                if (this._liveMode.isVirtual()) {
-                    y_offset -= VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT;
-                    this._fakeCameraMount.setPosition(new Vector(0.0, this._liveMode.getVirtualOffset(), 0.0));
+                if (this._eyePosition.isDefault()) {
+                    // Compute automatically using the view modes used
+                    double y_offset = -VirtualEntity.PLAYER_SIT_ARMORSTAND_BUTT_OFFSET;
+                    if (this._liveMode.isVirtual()) {
+                        y_offset -= VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT;
+                        this._fakeCameraMount.setPosition(new Vector(0.0, this._liveMode.getVirtualOffset(), 0.0));
+                    }
+                    this._fakeCameraMount.setRelativeOffset(0.0, y_offset, 0.0);
+                } else {
+                    // Position exactly at the seat transform x the eye position
+                    // Add a relative offset so that this position is where the eyes are
+                    double y_offset = VirtualEntity.PLAYER_SIT_ARMORSTAND_BUTT_OFFSET + VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT;
+                    this._fakeCameraMount.setRelativeOffset(0.0, -y_offset, 0.0);
                 }
-                this._fakeCameraMount.setRelativeOffset(0.0, y_offset, 0.0);
 
                 // When synchronizing passenger to himself, we put him on a fake mount to alter where the camera is at
-                this._fakeCameraMount.updatePosition(seat.getTransform());
-                this._fakeCameraMount.syncPosition(true);
+                syncFakeCameraMount(true);
                 this._fakeCameraMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
                 this._fakeCameraMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
                 this._fakeCameraMount.getMetaData().set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
@@ -184,9 +201,17 @@ public class FirstPersonDefault {
         }
 
         if (this._fakeCameraMount != null) {
-            this._fakeCameraMount.updatePosition(seat.getTransform());
-            this._fakeCameraMount.syncPosition(absolute);
+            syncFakeCameraMount(absolute);
         }
+    }
+
+    private void syncFakeCameraMount(boolean absolute) {
+        if (this._eyePosition.isDefault()) {
+            this._fakeCameraMount.updatePosition(seat.getTransform());
+        } else {
+            this._fakeCameraMount.updatePosition(Matrix4x4.multiply(seat.getTransform(), this._eyePosition.transform));
+        }
+        this._fakeCameraMount.syncPosition(absolute);
     }
 
     public boolean useSmoothCoasters() {

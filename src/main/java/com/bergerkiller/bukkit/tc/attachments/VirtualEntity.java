@@ -51,7 +51,7 @@ public class VirtualEntity {
     /**
      * The height offset a player sits on top of an armorstand
      */
-    public static final double PLAYER_SIT_ARMORSTAND_BUTT_OFFSET = -0.27;
+    public static final double PLAYER_SIT_ARMORSTAND_BUTT_OFFSET = 0.27;
     /**
      * Legacy was needed for seats when a chicken was used
      */

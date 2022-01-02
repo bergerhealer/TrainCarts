@@ -86,7 +86,7 @@ public class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity
             this.fakeMount = new VirtualEntity(seat.getManager());
             this.fakeMount.setEntityType(EntityType.ARMOR_STAND);
             this.fakeMount.setSyncMode(SyncMode.SEAT);
-            this.fakeMount.setRelativeOffset(0.0, VirtualEntity.PLAYER_SIT_ARMORSTAND_BUTT_OFFSET, 0.0);
+            this.fakeMount.setRelativeOffset(0.0, -VirtualEntity.PLAYER_SIT_ARMORSTAND_BUTT_OFFSET, 0.0);
 
             // Put the entity on a fake mount that we move around at an offset
             this.fakeMount.updatePosition(seat.getTransform(), new Vector(0.0, (double) orientation.getYaw(), 0.0));

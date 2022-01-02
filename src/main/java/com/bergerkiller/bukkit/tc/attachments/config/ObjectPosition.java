@@ -61,7 +61,11 @@ public class ObjectPosition {
      */
     public void load(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType, ConfigurationNode config) {
         if (!config.isEmpty()) {
-            this.anchor = AttachmentAnchor.find(managerType, attachmentType, config.get("anchor", AttachmentAnchor.DEFAULT.getName()));
+            if (config.contains("anchor")) {
+                this.anchor = AttachmentAnchor.find(managerType, attachmentType, config.get("anchor", AttachmentAnchor.DEFAULT.getName()));
+            } else {
+                this.anchor = AttachmentAnchor.DEFAULT;
+            }
             if (this.anchor != AttachmentAnchor.SEAT_PARENT) {
                 this._isDefault = false;
                 this.position.x = config.get("posX", 0.0);
