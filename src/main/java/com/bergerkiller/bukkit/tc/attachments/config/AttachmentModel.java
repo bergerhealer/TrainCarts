@@ -173,7 +173,7 @@ public class AttachmentModel {
      * @param newConfig for the leaf
      */
     public void updateNode(int[] targetPath, ConfigurationNode newConfig) {
-        this.updateNode(targetPath, newConfig);
+        this.updateNode(targetPath, newConfig, true);
     }
 
     /**
@@ -182,7 +182,7 @@ public class AttachmentModel {
      * 
      * @param targetPath to the leaf that changed
      * @param newConfig for the leaf
-     * @param notify True to not notify the changes, False for a silent update
+     * @param notify True to notify the changes, False for a silent update
      */
     public void updateNode(int[] targetPath, ConfigurationNode newConfig, boolean notify) {
         ConfigurationNode changedNode = this.config;
