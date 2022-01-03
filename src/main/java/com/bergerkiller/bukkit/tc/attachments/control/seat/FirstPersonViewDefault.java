@@ -26,8 +26,6 @@ import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityAr
  * itself, or a third-person fake camera is used.
  */
 public class FirstPersonViewDefault extends FirstPersonView {
-    // Player that's used
-    private Player _player;
     // If used, a mount the player is riding to adjust the player camera/view/position
     private VirtualEntity _fakeCameraMount = null;
     // Remainder yaw and pitch when moving player view orientation along with the seat
@@ -41,8 +39,6 @@ public class FirstPersonViewDefault extends FirstPersonView {
 
     @Override
     public void makeVisible(Player viewer) {
-        _player = viewer;
-
         boolean useFakeCamera = this.isFakeCameraUsed();
         if (useFakeCamera || this.useSmoothCoasters()) {
             // In these two cases special initialization needs to be done
@@ -125,8 +121,6 @@ public class FirstPersonViewDefault extends FirstPersonView {
         }
 
         seat.seated.makeHidden(viewer, this.getLiveMode().hasFakePlayer());
-
-        _player = null;
     }
 
     @Override
@@ -181,7 +175,7 @@ public class FirstPersonViewDefault extends FirstPersonView {
                 Quaternion rotation = baseTransform.getRotation();
                 TrainCarts.plugin.getSmoothCoastersAPI().setRotation(
                         null,
-                        _player,
+                        player,
                         (float) rotation.getX(),
                         (float) rotation.getY(),
                         (float) rotation.getZ(),

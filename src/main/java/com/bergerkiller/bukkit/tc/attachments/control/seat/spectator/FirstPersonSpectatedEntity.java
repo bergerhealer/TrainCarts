@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutCameraHandle;
 
 /**
@@ -13,24 +14,35 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlay
  */
 public abstract class FirstPersonSpectatedEntity {
     protected final CartAttachmentSeat seat;
+    protected final FirstPersonViewSpectator view;
     protected final Player player;
 
-    public FirstPersonSpectatedEntity(CartAttachmentSeat seat, Player player) {
+    public FirstPersonSpectatedEntity(CartAttachmentSeat seat, FirstPersonViewSpectator view, Player player) {
         this.seat = seat;
+        this.view = view;
         this.player = player;
     }
 
     /**
      * Spawns whatever entity needs to be spectated, and starts spectating that entity
+     *
+     * @param baseTransform Base transformation matrix. If an eye transformation was 
+     *                      configured, this is included in this transformation.
      */
-    public abstract void start();
+    public abstract void start(Matrix4x4 baseTransform);
 
     /**
      * Stops spectating and despawns the entity/others used for spectating
      */
     public abstract void stop();
 
-    public abstract void updatePosition(Matrix4x4 transform);
+    /**
+     * Updates the first-person view
+     *
+     * @param baseTransform Base transformation matrix. If an eye transformation was 
+     *                      configured, this is included in this transformation.
+     */
+    public abstract void updatePosition(Matrix4x4 baseTransform);
 
     public abstract void syncPosition(boolean absolute);
 

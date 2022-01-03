@@ -60,7 +60,7 @@ public class VirtualEntity {
     private final AttachmentManager manager;
     private final int entityId;
     private final UUID entityUUID;
-    private DataWatcher metaData;
+    protected DataWatcher metaData;
     private double posX, posY, posZ;
     private boolean posSet;
     private double liveAbsX, liveAbsY, liveAbsZ;
@@ -97,10 +97,6 @@ public class VirtualEntity {
 
     public DataWatcher getMetaData() {
         return this.metaData;
-    }
-
-    public void useMetadata(DataWatcher metadata) {
-        this.metaData = metadata;
     }
 
     public UUID getEntityUUID() {

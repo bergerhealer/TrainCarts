@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityLivingHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
@@ -20,12 +21,12 @@ import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityAr
 public class FirstPersonSpectatedEntityInvisible extends FirstPersonSpectatedEntity {
     private VirtualEntity entity;
 
-    public FirstPersonSpectatedEntityInvisible(CartAttachmentSeat seat, Player player) {
-        super(seat, player);
+    public FirstPersonSpectatedEntityInvisible(CartAttachmentSeat seat, FirstPersonViewSpectator view, Player player) {
+        super(seat, view, player);
     }
 
     @Override
-    public void start() {
+    public void start(Matrix4x4 baseTransform) {
         this.entity = new VirtualEntity(seat.getManager());
         this.entity.setEntityType(EntityType.ARMOR_STAND);
         this.entity.setSyncMode(SyncMode.NORMAL);
@@ -33,7 +34,7 @@ public class FirstPersonSpectatedEntityInvisible extends FirstPersonSpectatedEnt
 
         // We spectate an invisible armorstand that has MARKER set
         // This causes the spectator to view from 0/0/0, avoiding having to do any extra offsets
-        this.entity.updatePosition(seat.getTransform());
+        this.entity.updatePosition(baseTransform);
         this.entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
         this.entity.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
         this.entity.getMetaData().set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
@@ -56,8 +57,8 @@ public class FirstPersonSpectatedEntityInvisible extends FirstPersonSpectatedEnt
     }
 
     @Override
-    public void updatePosition(Matrix4x4 transform) {
-        entity.updatePosition(transform);
+    public void updatePosition(Matrix4x4 baseTransform) {
+        entity.updatePosition(baseTransform);
     }
 
     @Override

@@ -5,6 +5,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
@@ -94,10 +95,7 @@ public abstract class SeatedEntity {
     protected void hideRealPlayer(Player viewer) {
         if (this._entity == viewer) {
             // Sync to self: make the real player invisible using a metadata change
-            DataWatcher metaTmp = new DataWatcher();
-            metaTmp.set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
-            PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(viewer.getEntityId(), metaTmp, true);
-            PacketUtil.sendPacket(viewer, metaPacket);
+            FirstPersonView.setPlayerVisible(viewer, false);
         } else {
             // Sync to others: destroy the original player
             PlayerUtil.getVehicleMountController(viewer).despawn(this._entity.getEntityId());
@@ -123,7 +121,14 @@ public abstract class SeatedEntity {
         PacketUtil.sendPacket(viewer, PacketPlayOutEntityMetadataHandle.createNew(this._entity.getEntityId(), metaTmp, true));
     }
 
-    public void makeVisible(Player viewer, boolean fake) {
+    /**
+     * If needed, spawns a vehicle mount to make an Entity id available for mounting
+     * a passenger directly to the vehicle.
+     *
+     * @param viewer
+     * @return vehicle mount id to which a passenger can be mounted
+     */
+    public int spawnVehicleMount(Player viewer) {
         // Spawn fake mount if one is needed
         if (this.parentMountId == -1) {
             // Use parent node for mounting point, unless not possible or we have a position set for the seat
@@ -165,6 +170,39 @@ public abstract class SeatedEntity {
                 PacketUtil.sendPacket(viewer, PacketPlayOutUpdateAttributesHandle.createZeroMaxHealth(this.fakeMount.getEntityId()));
             }
         }
+
+        return this.parentMountId;
+    }
+
+    public Matrix4x4 getVehicleMountTransform() {
+        // Use parent node for mounting point, unless not possible or we have a position set for the seat
+        if (seat.getParent() != null
+                && seat.getConfiguredPosition().isDefault()
+                && (this._displayMode == DisplayMode.DEFAULT || this._displayMode == DisplayMode.NO_NAMETAG)
+        ) {
+            Matrix4x4 transform = seat.getParent().getTransform().clone();
+            ((CartAttachment) seat.getParent()).applyDefaultSeatTransform(transform);
+            return transform;
+        }
+
+        // Fake mount is used - predictable stuff
+        return seat.getTransform();
+    }
+
+    /**
+     * If a fake mount was created by {@link #spawnVehicleMount(Player)}, despawns
+     * that fake mount. Otherwise does nothing.
+     *
+     * @param viewer
+     */
+    public void despawnVehicleMount(Player viewer) {
+        if (this.fakeMount != null) {
+            this.fakeMount.destroy(viewer);
+        }
+    }
+
+    public void makeVisible(Player viewer, boolean fake) {
+        spawnVehicleMount(viewer);
     }
 
     public void makeHidden(Player viewer, boolean fake) {
@@ -174,9 +212,7 @@ public abstract class SeatedEntity {
             PlayerUtil.getVehicleMountController(viewer).unmount(this.parentMountId, this._entity.getEntityId());
         }
 
-        if (this.fakeMount != null) {
-            this.fakeMount.destroy(viewer);
-        }
+        despawnVehicleMount(viewer);
     }
 
     /**

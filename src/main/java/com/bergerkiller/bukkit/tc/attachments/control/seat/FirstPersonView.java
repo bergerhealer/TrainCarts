@@ -3,14 +3,20 @@ package com.bergerkiller.bukkit.tc.attachments.control.seat;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.PacketUtil;
+import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
 /**
  * Synchronizes the seat to the player sitting in the seat
  */
 public abstract class FirstPersonView {
     protected final CartAttachmentSeat seat;
+    public Player player;
     private FirstPersonViewMode _liveMode = FirstPersonViewMode.DEFAULT;
     private FirstPersonViewMode _mode = FirstPersonViewMode.DYNAMIC;
     private FirstPersonViewLockMode _lock = FirstPersonViewLockMode.MOVE;
@@ -25,6 +31,12 @@ public abstract class FirstPersonView {
         return this._eyePosition;
     }
 
+    /**
+     * Whether the player is mounted on a fake entity as part of this first-person view.
+     * If this is the case, then the player shouldn't be mounted to the actual vehicle.
+     *
+     * @return True if a fake mount is used in this first-person view
+     */
     public boolean isFakeCameraUsed() {
         if (!this._eyePosition.isDefault()) {
             return true;
@@ -151,5 +163,13 @@ public abstract class FirstPersonView {
      */
     public void setLockMode(FirstPersonViewLockMode lock) {
         this._lock = lock;
+    }
+
+    protected static void setPlayerVisible(Player player, boolean visible) {
+        DataWatcher metaTmp = new DataWatcher();
+        metaTmp.set(EntityHandle.DATA_FLAGS, EntityUtil.getDataWatcher(player).get(EntityHandle.DATA_FLAGS));
+        metaTmp.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, !visible);
+        PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(player.getEntityId(), metaTmp, false);
+        PacketUtil.sendPacket(player, metaPacket);
     }
 }
