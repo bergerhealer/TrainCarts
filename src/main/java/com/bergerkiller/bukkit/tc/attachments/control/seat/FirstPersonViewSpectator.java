@@ -6,14 +6,11 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.spectator.FirstPersonSpectatedEntity;
-import com.bergerkiller.bukkit.tc.attachments.control.seat.spectator.FirstPersonSpectatedEntityPlayer;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutCameraHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityLivingHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
@@ -54,6 +51,11 @@ public class FirstPersonViewSpectator extends FirstPersonView {
     }
 
     @Override
+    public boolean doesViewModeChangeRequireReset(FirstPersonViewMode newViewMode) {
+        return false;
+    }
+
+    @Override
     public void makeVisible(Player viewer) {
         // Make the player invisible - we don't want it to get in view
         setPlayerVisible(viewer, false);
@@ -63,7 +65,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
         Matrix4x4 baseTransform = this.getBaseTransform();
 
         // Start spectator mode
-        this._spectatedEntity = new FirstPersonSpectatedEntityPlayer(seat, this, viewer);
+        this._spectatedEntity = FirstPersonSpectatedEntity.create(seat, this, viewer);
         this._spectatedEntity.start(baseTransform);
 
         // Mount the player itself off-screen on a mount somewhere
@@ -105,11 +107,6 @@ public class FirstPersonViewSpectator extends FirstPersonView {
         if (_spectatedEntity != null) {
             _spectatedEntity.stop();
             _spectatedEntity = null;
-
-            // Stop spectating by spectating the player itself
-            PacketPlayOutCameraHandle packet = PacketPlayOutCameraHandle.T.newHandleNull();
-            packet.setEntityId(viewer.getEntityId());
-            PacketUtil.sendPacket(viewer, packet, false);
         }
 
         // Hide any fake mount previously used

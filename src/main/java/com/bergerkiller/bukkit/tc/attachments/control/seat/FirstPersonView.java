@@ -56,6 +56,17 @@ public abstract class FirstPersonView {
     }
 
     /**
+     * Gets whether because of a view mode change, this first person view will have to be
+     * reset or not. If reset, the view is de-initialized (hidden) and re-initialized (visible).
+     *
+     * @param newViewMode
+     * @return True if view should be reset when switching to this new live view mode
+     */
+    public boolean doesViewModeChangeRequireReset(FirstPersonViewMode newViewMode) {
+        return newViewMode != getLiveMode() || newViewMode.hasFakePlayer();
+    }
+
+    /**
      * Gets the base transform for use with eye/view logic. If an eye position is set, returns the
      * seat transform transformed with this eye. Otherwise, returns the seat transform. It is up
      * to the caller to perform further appropriate adjustments.
@@ -169,7 +180,7 @@ public abstract class FirstPersonView {
         DataWatcher metaTmp = new DataWatcher();
         metaTmp.set(EntityHandle.DATA_FLAGS, EntityUtil.getDataWatcher(player).get(EntityHandle.DATA_FLAGS));
         metaTmp.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, !visible);
-        PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(player.getEntityId(), metaTmp, false);
+        PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(player.getEntityId(), metaTmp, true);
         PacketUtil.sendPacket(player, metaPacket);
     }
 }

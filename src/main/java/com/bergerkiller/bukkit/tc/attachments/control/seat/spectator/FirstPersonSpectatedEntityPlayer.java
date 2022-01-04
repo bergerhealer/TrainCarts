@@ -8,7 +8,6 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.Util;
@@ -27,10 +26,10 @@ import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityAr
  * Spawns a duplicate of the player and spectates that player. The player is seated into
  * the seat like any other player is as viewed in third-person.
  */
-public class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
+class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
     // A fake invisible mount that positions the player correctly and moves it around
     private VirtualEntity fakeMount;
-    // The entity it to which the fake player is mounted
+    // The entity ID to which the fake player is mounted
     private int mountedVehicleId = -1;
     // Fake player entity currently displayed and riding the cart, being spectated
     private FakeVirtualPlayer fakePlayer;
@@ -58,7 +57,7 @@ public class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity
         // Also spawn an invisible fake alt player which has the head rotated exactly at pitch 180
         // When the player head pitches beyond 180 we swap the two fake players so that the movement is smooth
         fakePlayerAlt = new FakeVirtualPlayer(seat.getManager(), FakePlayerSpawner.NO_NAMETAG_SECONDARY);
-        fakePlayerAlt.updatePosition(baseTransform, new Vector(
+        fakePlayerAlt.updatePosition(fakePlayer.getPos(), new Vector(
                 computeAltPitch(fakePlayer.getYawPitchRoll().getX(), 179.0f),
                 fakePlayer.getYawPitchRoll().getY(),
                 0.0));
@@ -146,7 +145,7 @@ public class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity
     public void updatePosition(Matrix4x4 baseTransform) {
         // While blind, also move the fake spectated entity around
         if (blindRespawn != null) {
-            if (--blindRespawn.timer == 0) {
+            if (System.currentTimeMillis() > blindRespawn.timeout) {
                 // Spectate the actual player, despawn the fake blind entity
                 // Make the player visible again
 
@@ -195,7 +194,7 @@ public class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity
             boolean isAltPitchDifferent = (newAltPitch != this.fakePlayerAlt.getLivePitch());
 
             // Keep the alt nearby ready to be used. Keep head yaw in check so no weird spazzing out happens there
-            this.fakePlayerAlt.updatePosition(new Vector(fakePlayer.getPosX(), fakePlayer.getPosY(), fakePlayer.getPosZ()), new Vector(
+            this.fakePlayerAlt.updatePosition(fakePlayer.getPos(), new Vector(
                     newAltPitch, this.fakePlayer.getYawPitchRoll().getY(), 0.0));
 
             if (isAltPitchDifferent) {
@@ -209,18 +208,6 @@ public class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity
         // Move the vehicle itself, which moves the fake player around
         if (this.fakeMount != null) {
             this.fakeMount.updatePosition(baseTransform);
-        }
-    }
-
-    private static float computeAltPitch(double currPitch, float currAltPitch) {
-        currPitch = MathUtil.wrapAngle(currPitch); // Wrap between -180 and 180 degrees
-
-        if (currPitch > 90.0) {
-            return 181.0f;
-        } else if (currPitch < -90.0) {
-            return 179.0f;
-        } else {
-            return currAltPitch;
         }
     }
 
@@ -244,7 +231,7 @@ public class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity
      */
     private class BlindRespawn {
         public final VirtualEntity spectated;
-        public int timer = 6; //TODO: Millis
+        public final long timeout;
         private final boolean useVehicleTransform;
 
         public BlindRespawn() {
@@ -267,6 +254,8 @@ public class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity
                 // Note: is -0.65 when seated in a minecart directly - something is off!
                 spectated.setRelativeOffset(0.0, -0.62, 0.0);
             }
+
+            timeout = System.currentTimeMillis() + (6 * 50); // 6 (client) ticks
         }
 
         public void spawn(Matrix4x4 baseTransform) {

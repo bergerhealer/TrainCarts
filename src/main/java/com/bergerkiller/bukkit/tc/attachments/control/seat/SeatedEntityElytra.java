@@ -208,7 +208,7 @@ public class SeatedEntityElytra extends SeatedEntity {
             return;
         }
 
-        if (new_firstPersonMode != seat.firstPerson.getLiveMode()) {
+        if (seat.firstPerson.doesViewModeChangeRequireReset(new_firstPersonMode)) {
             // Only first-person view useVirtualCamera changed
             Collection<Player> viewers = seat.getViewersSynced();
             if (viewers.contains(this.getEntity())) {

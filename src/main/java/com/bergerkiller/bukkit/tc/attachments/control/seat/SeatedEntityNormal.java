@@ -217,10 +217,7 @@ public class SeatedEntityNormal extends SeatedEntity {
 
         if (new_isFake != this.isFake() || (this.isPlayer() && new_isUpsideDown != this.isUpsideDown())) {
             // Do we refresh the first player view as well?
-            boolean refreshFPV = false;
-            if (new_firstPersonMode != seat.firstPerson.getLiveMode() || new_firstPersonMode.hasFakePlayer()) {
-                refreshFPV = true;
-            }
+            boolean refreshFPV = seat.firstPerson.doesViewModeChangeRequireReset(new_firstPersonMode);
 
             // Fake entity changed, this requires the entity to be respawned for everyone
             Entity entity = this.getEntity();

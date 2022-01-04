@@ -119,6 +119,10 @@ public class VirtualEntity {
         return this.liveAbsZ;
     }
 
+    public Vector getPos() {
+        return new Vector(this.liveAbsX, this.liveAbsY, this.liveAbsZ);
+    }
+
     public boolean isMountable() {
         switch (this.entityType) {
         case HORSE:
