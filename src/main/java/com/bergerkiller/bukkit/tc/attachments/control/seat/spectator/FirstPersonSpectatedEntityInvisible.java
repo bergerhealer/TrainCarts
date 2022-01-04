@@ -9,7 +9,6 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityLivingHandle;
@@ -18,6 +17,8 @@ import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityAr
 /**
  * An invisible entity that is spectated. The player sees nobody sitting in the
  * seat he is occupying.
+ * Also used for the third-person view mode, as the mechanics are identical except
+ * that a different offset is used (potentially).
  */
 class FirstPersonSpectatedEntityInvisible extends FirstPersonSpectatedEntity {
     private VirtualEntity entity;
@@ -59,7 +60,7 @@ class FirstPersonSpectatedEntityInvisible extends FirstPersonSpectatedEntity {
         if (!view.getEyePosition().isDefault()) {
             // No offset required because of MARKER mode
         } else {
-            entity.setPosition(new Vector(0.0, FirstPersonViewMode.INVISIBLE.getVirtualOffset(), 0.0));
+            entity.setPosition(new Vector(0.0, view.getLiveMode().getVirtualOffset(), 0.0));
         }
 
         // We spectate an invisible armorstand that has MARKER set

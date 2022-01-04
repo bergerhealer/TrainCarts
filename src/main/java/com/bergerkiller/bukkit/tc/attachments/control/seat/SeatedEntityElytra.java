@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
-import java.util.Collection;
 import java.util.function.Consumer;
 
 import org.bukkit.entity.Player;
@@ -200,29 +199,29 @@ public class SeatedEntityElytra extends SeatedEntity {
             new_firstPersonMode = FirstPersonViewMode.THIRD_P;
         }
 
-        // When we change whether a fake entity is displayed, hide for everyone and make visible again
-        if (silent) {
-            // Explicitly requested we do not send any packets
-            seat.firstPerson.setLiveMode(new_firstPersonMode);
-            seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
+        // If unchanged, do nothing
+        if (new_smoothCoasters == seat.firstPerson.useSmoothCoasters() &&
+            new_firstPersonMode == seat.firstPerson.getLiveMode())
+        {
             return;
         }
 
-        if (seat.firstPerson.doesViewModeChangeRequireReset(new_firstPersonMode)) {
-            // Only first-person view useVirtualCamera changed
-            Collection<Player> viewers = seat.getViewersSynced();
-            if (viewers.contains(this.getEntity())) {
-                // Hide, change, and make visible again, just for the first-player-view player
-                Player viewer = (Player) this.getEntity();
-                seat.makeHidden(viewer);
-                seat.firstPerson.setLiveMode(new_firstPersonMode);
-                seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
-                seat.makeVisibleImpl(viewer);
-            } else {
-                // Silent
-                seat.firstPerson.setLiveMode(new_firstPersonMode);
-                seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
-            }
+        // Sometimes a full reset of the FPV controller is required. Avoid when silent.
+        if (!silent &&
+            seat.firstPerson.doesViewModeChangeRequireReset(new_firstPersonMode) &&
+            seat.getViewersSynced().contains(this.getEntity()))
+        {
+            // Hide, change, and make visible again, just for the first-player-view player
+            Player viewer = (Player) this.getEntity();
+            seat.makeHidden(viewer);
+            seat.firstPerson.setLiveMode(new_firstPersonMode);
+            seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
+            seat.makeVisibleImpl(viewer);
+            return;
         }
+
+        // Silent update
+        seat.firstPerson.setLiveMode(new_firstPersonMode);
+        seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
     }
 }

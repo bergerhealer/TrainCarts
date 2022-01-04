@@ -72,7 +72,9 @@ public abstract class FirstPersonSpectatedEntity {
     }
 
     public static FirstPersonSpectatedEntity create(CartAttachmentSeat seat, FirstPersonViewSpectator view, Player player) {
-        if (view.getLiveMode() == FirstPersonViewMode.INVISIBLE) {
+        if (view.getLiveMode() == FirstPersonViewMode.INVISIBLE ||
+            view.getLiveMode() == FirstPersonViewMode.THIRD_P)
+        {
             return new FirstPersonSpectatedEntityInvisible(seat, view, player);
         } else {
             return new FirstPersonSpectatedEntityPlayer(seat, view, player);

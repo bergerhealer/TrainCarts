@@ -52,7 +52,9 @@ public class FirstPersonViewSpectator extends FirstPersonView {
 
     @Override
     public boolean doesViewModeChangeRequireReset(FirstPersonViewMode newViewMode) {
-        return false;
+        // Respawns the seated entity in third-person, so a reset is needed
+        return newViewMode == FirstPersonViewMode.THIRD_P ||
+               this.getLiveMode() == FirstPersonViewMode.THIRD_P;
     }
 
     @Override
@@ -90,10 +92,20 @@ public class FirstPersonViewSpectator extends FirstPersonView {
             VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
             vmc.mount(this._playerMount.getEntityId(), viewer.getEntityId());
         }
+
+        // If third-person mode is used, also spawn the real seated entity for this viewer
+        if (this.getLiveMode() == FirstPersonViewMode.THIRD_P) {
+            seat.seated.makeVisible(viewer, true);
+        }
     }
 
     @Override
     public void makeHidden(Player viewer) {
+        // If third-person mode is used, also despawn the real seated entity for this viewer
+        if (this.getLiveMode() == FirstPersonViewMode.THIRD_P) {
+            seat.seated.makeHidden(viewer, true);
+        }
+
         // Remove player from the temporary mount
         if (_playerMount != null) {
             VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
