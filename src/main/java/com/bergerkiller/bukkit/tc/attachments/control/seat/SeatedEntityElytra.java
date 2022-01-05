@@ -22,7 +22,7 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
  * To deal with a smooth rotation transition at 180-degree pitch,
  * there are two fake entities used to represent the player, switched between.
  */
-public class SeatedEntityElytra extends SeatedEntity {
+class SeatedEntityElytra extends SeatedEntity {
     private int _fakeEntityId = -1;
     private int _fakeEntityIdFlipped = -1; // Fix for the 180 pitch rotation bug, swaps entities instead
 

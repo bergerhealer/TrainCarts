@@ -31,8 +31,6 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity.DisplayMode;
-import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityElytra;
-import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityNormal;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.ThirdPersonDefault;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonView;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewDefault;
@@ -274,18 +272,7 @@ public class CartAttachmentSeat extends CartAttachment {
     public void onAttached() {
         super.onAttached();
 
-        DisplayMode displayMode = this.getConfig().get("displayMode", DisplayMode.DEFAULT);
-        switch (displayMode) {
-        case ELYTRA_SIT:
-            this.seated = new SeatedEntityElytra(this);
-            break;
-        case NO_NAMETAG:
-            this.seated = new SeatedEntityNormal(this, true);
-            break;
-        default:
-            this.seated = new SeatedEntityNormal(this, false);
-            break;
-        }
+        this.seated = this.getConfig().get("displayMode", DisplayMode.DEFAULT).create(this);
         this.seated.orientation.setLocked(this.getConfig().get("lockRotation", false));
 
         FirstPersonViewMode viewMode = this.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC);
@@ -299,7 +286,6 @@ public class CartAttachmentSeat extends CartAttachment {
         this.firstPerson.setLockMode(viewLockMode);
 
         this._enterPermission = this.getConfig().get("enterPermission", String.class, null);
-        this.seated.setDisplayMode(this.getConfig().get("displayMode", DisplayMode.DEFAULT));
 
         ConfigurationNode ejectPosition = this.getConfig().getNode("ejectPosition");
         this._ejectPosition.load(this.getManager().getClass(), TYPE, ejectPosition);

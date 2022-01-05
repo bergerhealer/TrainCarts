@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
+import java.util.function.Function;
+
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -245,10 +247,22 @@ public abstract class SeatedEntity {
     }
 
     public static enum DisplayMode {
-        DEFAULT, /* Player is displayed either upright or upside-down in a cart */
-        ELYTRA_SIT, /* Player is in sitting pose while flying in an elytra */
-        NO_NAMETAG /* Same as DEFAULT, but no nametags are shown */
+        DEFAULT(SeatedEntityNormal::new), /* Player is displayed either upright or upside-down in a cart */
+        ELYTRA_SIT(SeatedEntityElytra::new), /* Player is in sitting pose while flying in an elytra */
+        NO_NAMETAG(SeatedEntityNormal::new); /* Same as DEFAULT, but no nametags are shown */
         //ELYTRA /* Player is in elytra flying pose */ //TODO!
+
+        private final Function<CartAttachmentSeat, SeatedEntity> _constructor;
+
+        private DisplayMode(Function<CartAttachmentSeat, SeatedEntity> constructor) {
+            this._constructor = constructor;
+        }
+
+        public SeatedEntity create(CartAttachmentSeat seat) {
+            SeatedEntity seated = _constructor.apply(seat);
+            seated.setDisplayMode(this);
+            return seated;
+        }
     }
 }
 

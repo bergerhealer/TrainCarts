@@ -26,15 +26,13 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
  * Information for a seated entity in a 'normal' way. The entity can only be
  * upright or upside-down. This is the classic behavior seats have in Traincarts.
  */
-public class SeatedEntityNormal extends SeatedEntity {
-    private final boolean _noNametag;
+class SeatedEntityNormal extends SeatedEntity {
     private boolean _upsideDown = false;
     private int _fakeEntityId = -1;
     private boolean _fake = false;
 
-    public SeatedEntityNormal(CartAttachmentSeat seat, boolean noNametag) {
+    public SeatedEntityNormal(CartAttachmentSeat seat) {
         super(seat);
-        this._noNametag = noNametag;
     }
 
     public boolean isUpsideDown() {
@@ -203,7 +201,8 @@ public class SeatedEntityNormal extends SeatedEntity {
             }
 
             // Whether a fake entity is used to represent this seated entity
-            new_isFake = this.isPlayer() && (this._noNametag || new_isUpsideDown || new_firstPersonMode.hasFakePlayer());
+            boolean noNametag = (this._displayMode == DisplayMode.NO_NAMETAG);
+            new_isFake = this.isPlayer() && (noNametag || new_isUpsideDown || new_firstPersonMode.hasFakePlayer());
         }
 
         // When we change whether a fake entity is displayed, hide for everyone and make visible again
