@@ -5,6 +5,7 @@ import java.util.function.Consumer;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
@@ -223,5 +224,10 @@ public class SeatedEntityElytra extends SeatedEntity {
         // Silent update
         seat.firstPerson.setLiveMode(new_firstPersonMode);
         seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
+    }
+
+    @Override
+    protected void synchronizeOrientation(Matrix4x4 transform) {
+        orientation.synchronizeElytra(seat, transform, this);
     }
 }

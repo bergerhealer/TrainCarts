@@ -71,7 +71,7 @@ public class SeatOrientation {
         }
     }
 
-    private void synchronizeElytra(CartAttachmentSeat seat, Matrix4x4 transform, SeatedEntityElytra seated) {
+    protected void synchronizeElytra(CartAttachmentSeat seat, Matrix4x4 transform, SeatedEntityElytra seated) {
         Vector pyr = transform.getYawPitchRoll();
 
         // Compute the actual position of the butt using yaw/pitch
@@ -193,7 +193,7 @@ public class SeatOrientation {
         }
     }
 
-    private void synchronizeNormal(CartAttachmentSeat seat, Matrix4x4 transform, SeatedEntityNormal seated) {
+    protected void synchronizeNormal(CartAttachmentSeat seat, Matrix4x4 transform, SeatedEntityNormal seated) {
         if (seated.isUpsideDown()) {
             _mountOffset.setY(-VirtualEntity.PLAYER_SIT_ARMORSTAND_BUTT_OFFSET - 0.65);
         } else {
@@ -302,11 +302,7 @@ public class SeatOrientation {
 
     public void synchronize(CartAttachmentSeat seat, Matrix4x4 transform, SeatedEntity seated) {
         if (!seated.isEmpty()) {
-            if (seated instanceof SeatedEntityElytra) {
-                synchronizeElytra(seat, transform, (SeatedEntityElytra) seated);
-            } else if (seated instanceof SeatedEntityNormal) {
-                synchronizeNormal(seat, transform, (SeatedEntityNormal) seated);
-            }
+            seated.synchronizeOrientation(transform);
         }
 
         // Apply rotation to fake mount, if needed

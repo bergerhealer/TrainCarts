@@ -7,6 +7,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -264,5 +265,10 @@ public class SeatedEntityNormal extends SeatedEntity {
                 }
             }
         }
+    }
+
+    @Override
+    protected void synchronizeOrientation(Matrix4x4 transform) {
+        orientation.synchronizeNormal(seat, transform, this);
     }
 }

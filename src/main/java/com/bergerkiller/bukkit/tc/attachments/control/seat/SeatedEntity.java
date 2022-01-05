@@ -227,6 +227,13 @@ public abstract class SeatedEntity {
     public abstract void updateMode(boolean silent);
 
     /**
+     * Called to synchronize the third-person viewed orientation of this seated entity
+     *
+     * @param transform
+     */
+    protected abstract void synchronizeOrientation( Matrix4x4 transform);
+
+    /**
      * Gets whether this seat is invisible to a viewer. This is the case if the viewer
      * is the entity inside this seat and the INVISIBLE first person view mode is used.
      * 
