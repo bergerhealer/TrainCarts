@@ -28,10 +28,10 @@ public abstract class FirstPersonSpectatedEntity {
     /**
      * Spawns whatever entity needs to be spectated, and starts spectating that entity
      *
-     * @param baseTransform Base transformation matrix. If an eye transformation was 
-     *                      configured, this is included in this transformation.
+     * @param eyeTransform Transformation matrix defining the position and orientation of
+     *                     the camera/eye view.
      */
-    public abstract void start(Matrix4x4 baseTransform);
+    public abstract void start(Matrix4x4 eyeTransform);
 
     /**
      * Stops spectating and despawns the entity/others used for spectating
@@ -41,10 +41,10 @@ public abstract class FirstPersonSpectatedEntity {
     /**
      * Updates the first-person view
      *
-     * @param baseTransform Base transformation matrix. If an eye transformation was 
-     *                      configured, this is included in this transformation.
+     * @param eyeTransform Transformation matrix defining the position and orientation of
+     *                     the camera/eye view.
      */
-    public abstract void updatePosition(Matrix4x4 baseTransform);
+    public abstract void updatePosition(Matrix4x4 eyeTransform);
 
     public abstract void syncPosition(boolean absolute);
 

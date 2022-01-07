@@ -26,6 +26,7 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
@@ -298,6 +299,15 @@ public class CartAttachmentSeat extends CartAttachment {
     public void onLoad(ConfigurationNode config) {
         super.onLoad(config);
 
+        // If the position is default, change the anchor to seat_parent so that logic works correctly
+        // This is technically legacy behavior, but we're stuck with it now...
+        {
+            AttachmentInternalState state = getInternalState();
+            if (state.position.isDefault() && state.position.anchor == AttachmentAnchor.DEFAULT) {
+                state.position.anchor = AttachmentAnchor.SEAT_PARENT;
+            }
+        }
+
         // Eye position
         if (config.contains("firstPersonViewPosition")) {
             this.firstPerson.getEyePosition().load(this.getManager().getClass(), TYPE,
@@ -335,9 +345,6 @@ public class CartAttachmentSeat extends CartAttachment {
         } else {
             this.thirdPerson.makeVisible(viewer);
         }
-
-        // If rotation locked, send the rotation of the passenger if available
-        this.seated.orientation.makeVisible(viewer, this.seated);
     }
 
     @Override
@@ -357,14 +364,17 @@ public class CartAttachmentSeat extends CartAttachment {
         return pos_new.subtract(pos_old);
     }
 
-    @Override
-    public void onTransformChanged(Matrix4x4 transform) {
-        if (this.seated.fakeMount != null &&
-            this.getConfiguredPosition().isDefault() &&
-            this.getParent() != null)
-        {
-            this.getParent().applyDefaultSeatTransform(transform);
-        }
+    /**
+     * Gets whether movement updates use minecart interpolation, which unlike other entities, update over
+     * 5 ticks instead of 3.
+     * This happens when the parent is also using minecart interpolation, and SEAT_PARENT anchor is used.
+     *
+     * @return True if Minecart interpolation is used
+     */
+    public boolean isMinecartInterpolation() {
+        return getConfiguredPosition().anchor == AttachmentAnchor.SEAT_PARENT &&
+               getParent() instanceof CartAttachmentEntity &&
+               ((CartAttachmentEntity) getParent()).isMinecartInterpolation();
     }
 
     /**
@@ -374,12 +384,21 @@ public class CartAttachmentSeat extends CartAttachment {
      * @param transform
      */
     public void transformToEyes(Matrix4x4 transform) {
+        // If an eye position is set, use that
+        if (!this.firstPerson.getEyePosition().isDefault()) {
+            Matrix4x4 tmp = this.firstPerson.getEyePosition().transform.clone();
+            tmp.invert();
+            transform.multiply(tmp);
+            return;
+        }
+
         FirstPersonViewMode mode = this.firstPerson.getMode();
         if (mode == FirstPersonViewMode.DYNAMIC) {
-            mode = FirstPersonViewMode.THIRD_P;
+            mode = FirstPersonViewMode.THIRD_P; // Oh god...
         }
-        if (mode.isVirtual()) {
-            transform.translate(0.0, -mode.getVirtualOffset(), 0.0);
+
+        if (mode == FirstPersonViewMode.THIRD_P) {
+            transform.translate(seated.getThirdPersonCameraOffset().clone().multiply(-1.0));
         } else {
             transform.translate(0.0, -1.0, 0.0);
         }
@@ -393,9 +412,7 @@ public class CartAttachmentSeat extends CartAttachment {
         }
 
         // If not parented to a parent attachment, move the fake mount to move the seat
-        if (this.seated.fakeMount != null) {
-            this.seated.fakeMount.syncPosition(absolute);
-        }
+        this.seated.syncPosition(absolute);
     }
 
     /**
@@ -446,7 +463,7 @@ public class CartAttachmentSeat extends CartAttachment {
     @Override
     public void onTick() {
         // Synchronize orientation of the entity inside this seat
-        this.seated.orientation.synchronize(this, this.getTransform(), this.seated);
+        this.seated.updatePosition(this.getTransform());
 
         // Only needed when there is a passenger
         this.seated.updateMode(false);

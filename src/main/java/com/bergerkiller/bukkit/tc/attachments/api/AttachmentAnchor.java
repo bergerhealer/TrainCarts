@@ -31,6 +31,25 @@ public abstract class AttachmentAnchor {
     });
 
     /**
+     * Marker attachment anchor for seat attachments to indicate the position of the seat should be
+     * set to the parent attachment's default passenger position. This will position this attachment to
+     * the seat position of the parent, if possible.
+     */
+    public static AttachmentAnchor SEAT_PARENT = register(new AttachmentAnchor("seat parent") {
+        @Override
+        public boolean supports(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType) {
+            return attachmentType == CartAttachmentSeat.TYPE;
+        }
+
+        @Override
+        public void apply(Attachment attachment, Matrix4x4 transform) {
+            if (attachment.getParent() != null) {
+                attachment.getParent().applyPassengerSeatTransform(transform);
+            }
+        }
+    });
+
+    /**
      * Disables all rotation information that comes from the parent attachment (or cart).
      * This will cause the attachment to always point in the same direction.
      */
@@ -80,22 +99,6 @@ public abstract class AttachmentAnchor {
             if (attachment instanceof CartAttachmentSeat) {
                 ((CartAttachmentSeat) attachment).transformToEyes(transform);
             }
-        }
-    });
-
-    /**
-     * Marker attachment anchor for seat attachments to indicate the position of the seat should be
-     * set to the parent attachment's default passenger position. This will attach this attachment
-     * to the parent attachment, if possible, or use a 0/0/0 transform otherwise.
-     */
-    public static AttachmentAnchor SEAT_PARENT = register(new AttachmentAnchor("seat parent") {
-        @Override
-        public boolean supports(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType) {
-            return attachmentType == CartAttachmentSeat.TYPE;
-        }
-
-        @Override
-        public void apply(Attachment attachment, Matrix4x4 transform) {
         }
     });
 

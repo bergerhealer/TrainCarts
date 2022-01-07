@@ -7,12 +7,15 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
+import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
@@ -28,15 +31,20 @@ import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityAr
  */
 public abstract class SeatedEntity {
     protected Entity _entity = null;
-    protected DisplayMode _displayMode = DisplayMode.DEFAULT;
+    protected DisplayMode displayMode = DisplayMode.DEFAULT;
     protected final CartAttachmentSeat seat;
     public final SeatOrientation orientation = new SeatOrientation();
 
     // The fake mount is used when this seat has a position set, or otherwise cannot
     // mount the passenger to a parent attachment. The parentMountId is set to the
     // entity id of the vehicle this passenger is mounted to.
-    public VirtualEntity fakeMount = null;
+    private VirtualEntity fakeMount = null;
     public int parentMountId = -1;
+
+    // Whether this seated entity was spawned to the player itself
+    // This is the case when it is displayed in first-person, as a third-person view mode
+    // This is set/unset when makeVisibleFirstPerson and makeHiddenFirstPerson are called.
+    private boolean madeVisibleInFirstPerson = false;
 
     public SeatedEntity(CartAttachmentSeat seat) {
         this.seat = seat;
@@ -79,20 +87,12 @@ public abstract class SeatedEntity {
     }
 
     public DisplayMode getDisplayMode() {
-        return this._displayMode;
+        return this.displayMode;
     }
 
     public void setDisplayMode(DisplayMode displayMode) {
-        this._displayMode = displayMode;
+        this.displayMode = displayMode;
     }
-
-    /**
-     * Gets the entity id of the visible, seated entity. If a fake entity representation is used,
-     * then the fake entity id is returned instead.
-     * 
-     * @return seated entity id
-     */
-    public abstract int getId();
 
     protected void hideRealPlayer(Player viewer) {
         if (this._entity == viewer) {
@@ -104,13 +104,19 @@ public abstract class SeatedEntity {
         }
     }
 
-    /**
-     * Sends the metadata information for the seated entity
-     * 
-     * @param viewer
-     */
-    public void refreshMetadata(Player viewer) {
-        resetMetadata(viewer);
+    protected void showRealPlayer(Player viewer) {
+        // Respawn the actual player or clean up the list
+        // Only needed when the player is not the viewer
+        if (viewer == this._entity) {
+            // Can not respawn yourself! Make visible using metadata.
+            FirstPersonView.setPlayerVisible(viewer, true);
+        } else {
+            // Respawns the player as a normal player
+            VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
+            vmc.respawn((Player) this._entity, (theViewer, thePlayer) -> {
+                FakePlayerSpawner.NORMAL.spawnPlayer(theViewer, thePlayer, thePlayer.getEntityId(), false, null, meta -> {});
+            });
+        }
     }
 
     /**
@@ -130,34 +136,24 @@ public abstract class SeatedEntity {
      * @param viewer
      * @return vehicle mount id to which a passenger can be mounted
      */
-    public int spawnVehicleMount(Player viewer) {
+    public int spawnVehicleMount(Player viewer) {        
         // Spawn fake mount if one is needed
         if (this.parentMountId == -1) {
-            // Use parent node for mounting point, unless not possible or we have a position set for the seat
-            if (seat.getParent() != null
-                    && seat.getConfiguredPosition().isDefault()
-                    && (this._displayMode == DisplayMode.DEFAULT || this._displayMode == DisplayMode.NO_NAMETAG)
-            ) {
+            // Use parent node for mounting point, unless not possible
+            // Making use of SEAT_PARENT will disable any additional transforms
+            if (seat.getConfiguredPosition().anchor == AttachmentAnchor.SEAT_PARENT &&
+                seat.getConfiguredPosition().isIdentity() &&
+                seat.getParent() != null)
+            {
                 this.parentMountId = ((CartAttachment) seat.getParent()).getMountEntityId();
             }
 
             // No parent node mount is used, create a fake mount
             if (this.parentMountId == -1) {
                 if (this.fakeMount == null) {
-                    this.fakeMount = new VirtualEntity(seat.getManager());
-                    this.fakeMount.setEntityType(EntityType.ARMOR_STAND);
-                    this.fakeMount.setSyncMode(SyncMode.SEAT);
-                    this.fakeMount.setRelativeOffset(this.orientation.getMountOffset());
-
-                    // Put the entity on a fake mount that we move around at an offset
+                    this.fakeMount = createPassengerVehicle();
                     this.fakeMount.updatePosition(seat.getTransform(), new Vector(0.0, (double) this.orientation.getMountYaw(), 0.0));
                     this.fakeMount.syncPosition(true);
-                    this.fakeMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
-                    this.fakeMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
-                    this.fakeMount.getMetaData().set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
-                            EntityArmorStandHandle.DATA_FLAG_SET_MARKER |
-                            EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
-                            EntityArmorStandHandle.DATA_FLAG_IS_SMALL));
                 }
                 this.parentMountId = this.fakeMount.getEntityId();
             }
@@ -176,21 +172,6 @@ public abstract class SeatedEntity {
         return this.parentMountId;
     }
 
-    public Matrix4x4 getVehicleMountTransform() {
-        // Use parent node for mounting point, unless not possible or we have a position set for the seat
-        if (seat.getParent() != null
-                && seat.getConfiguredPosition().isDefault()
-                && (this._displayMode == DisplayMode.DEFAULT || this._displayMode == DisplayMode.NO_NAMETAG)
-        ) {
-            Matrix4x4 transform = seat.getParent().getTransform().clone();
-            ((CartAttachment) seat.getParent()).applyDefaultSeatTransform(transform);
-            return transform;
-        }
-
-        // Fake mount is used - predictable stuff
-        return seat.getTransform();
-    }
-
     /**
      * If a fake mount was created by {@link #spawnVehicleMount(Player)}, despawns
      * that fake mount. Otherwise does nothing.
@@ -198,24 +179,74 @@ public abstract class SeatedEntity {
      * @param viewer
      */
     public void despawnVehicleMount(Player viewer) {
-        if (this.fakeMount != null) {
-            this.fakeMount.destroy(viewer);
+        if (fakeMount != null) {
+            fakeMount.destroy(viewer);
+
+            // If no more viewers use it, reset
+            if (!fakeMount.hasViewers()) {
+                fakeMount = null;
+                parentMountId = -1;
+            }
         }
     }
 
-    public void makeVisible(Player viewer, boolean fake) {
-        spawnVehicleMount(viewer);
-    }
-
-    public void makeHidden(Player viewer, boolean fake) {
-        // Resend the correct metadata for the entity/player
-        if (!isEmpty()) {
-            resetMetadata(viewer);
-            PlayerUtil.getVehicleMountController(viewer).unmount(this.parentMountId, this._entity.getEntityId());
+    protected void updateVehicleMountPosition(Matrix4x4 transform) {
+        if (fakeMount != null) {
+            fakeMount.updatePosition(transform, new Vector(0.0, (double) this.orientation.getMountYaw(), 0.0));
         }
-
-        despawnVehicleMount(viewer);
     }
+
+    protected void syncVehicleMountPosition(boolean absolute) {
+        if (fakeMount != null) {
+            fakeMount.syncPosition(absolute);
+        }
+    }
+
+    public final void makeVisibleFirstPerson(Player viewer) {
+        madeVisibleInFirstPerson = true;
+        makeVisible(viewer);
+    }
+
+    public final void makeHiddenFirstPerson(Player viewer) {
+        makeHidden(viewer);
+        madeVisibleInFirstPerson = false;
+    }
+
+    /**
+     * Whether this seated entity is spawned to itself - the entity being a Player.
+     * This is true when the player can view himself sitting from a third-person
+     * perspective.
+     *
+     * @return True if made visible in first-person
+     */
+    public final boolean isMadeVisibleInFirstPerson() {
+        return madeVisibleInFirstPerson;
+    }
+
+    /**
+     * Gets the seat-relative x/y/z offset away from the seat cameras should be positioned
+     * to view this seated entity in third-person. For large entities, this should be
+     * further away than closer-by ones.
+     *
+     * @return camera offset for viewing this entity in THIRD_P mode
+     */
+    public abstract Vector getThirdPersonCameraOffset();
+
+    /**
+     * Spawns this seated entity for a viewer. Mounts any real entity
+     * into its seat.
+     *
+     * @param viewer
+     */
+    public abstract void makeVisible(Player viewer);
+
+    /**
+     * De-spawns this seated entity for a viewer. Unmounts any real entity
+     * from the seat.
+     *
+     * @param viewer
+     */
+    public abstract void makeHidden(Player viewer);
 
     /**
      * Updates the display mode of the Entity. Display-specific operations can occur here.
@@ -229,28 +260,43 @@ public abstract class SeatedEntity {
     public abstract void updateMode(boolean silent);
 
     /**
-     * Called to synchronize the third-person viewed orientation of this seated entity
+     * Called to update the third-person viewed orientation of this seated entity
      *
      * @param transform
      */
-    protected abstract void synchronizeOrientation( Matrix4x4 transform);
+    public abstract void updatePosition(Matrix4x4 transform);
 
     /**
-     * Gets whether this seat is invisible to a viewer. This is the case if the viewer
-     * is the entity inside this seat and the INVISIBLE first person view mode is used.
-     * 
-     * @param viewer
-     * @return True if the viewer can not see the entity inside this seat
+     * Called to send periodic movement update packets
+     *
+     * @param absolute True if this is an absolute position update
      */
-    public boolean isInvisibleTo(Player viewer) {
-        return this._entity == viewer && this.seat.firstPerson.getLiveMode() == FirstPersonViewMode.INVISIBLE;
+    public abstract void syncPosition(boolean absolute);
+
+    /**
+     * Creates a new suitable vehicle for putting passengers in. Passengers mounted to
+     * this entity will be positioned so their butt is at the input transform.
+     *
+     * @return New vehicle
+     */
+    protected VirtualEntity createPassengerVehicle() {
+        VirtualEntity mount = new VirtualEntity(seat.getManager());
+        mount.setEntityType(EntityType.ARMOR_STAND);
+        mount.setSyncMode(seat.isMinecartInterpolation() ? SyncMode.SEAT_MINECART_FIX : SyncMode.SEAT);
+        mount.setRelativeOffset(0.0, -VirtualEntity.ARMORSTAND_BUTT_OFFSET, 0.0);
+        mount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
+        mount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
+        mount.getMetaData().set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
+                EntityArmorStandHandle.DATA_FLAG_SET_MARKER |
+                EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
+                EntityArmorStandHandle.DATA_FLAG_IS_SMALL));
+        return mount;
     }
 
     public static enum DisplayMode {
         DEFAULT(SeatedEntityNormal::new), /* Player is displayed either upright or upside-down in a cart */
         ELYTRA_SIT(SeatedEntityElytra::new), /* Player is in sitting pose while flying in an elytra */
         NO_NAMETAG(SeatedEntityNormal::new); /* Same as DEFAULT, but no nametags are shown */
-        //ELYTRA /* Player is in elytra flying pose */ //TODO!
 
         private final Function<CartAttachmentSeat, SeatedEntity> _constructor;
 

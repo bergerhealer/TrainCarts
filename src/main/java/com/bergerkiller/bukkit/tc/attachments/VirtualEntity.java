@@ -1,7 +1,13 @@
 package com.bergerkiller.bukkit.tc.attachments;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -49,13 +55,9 @@ public class VirtualEntity {
      */
     public static final double PLAYER_SIT_CHICKEN_BUTT_OFFSET = -0.62;
     /**
-     * The height offset a player sits on top of an armorstand
+     * The height offset above which a butt rests on top of a MARKER armor stand
      */
-    public static final double PLAYER_SIT_ARMORSTAND_BUTT_OFFSET = 0.27;
-    /**
-     * Legacy was needed for seats when a chicken was used
-     */
-    private static final boolean NEEDS_UNSTUCK_VECTOR = Boolean.FALSE.booleanValue();
+    public static final double ARMORSTAND_BUTT_OFFSET = 0.27;
 
     private final AttachmentManager manager;
     private final int entityId;
@@ -63,14 +65,14 @@ public class VirtualEntity {
     protected DataWatcher metaData;
     private double posX, posY, posZ;
     private boolean posSet;
-    private double liveAbsX, liveAbsY, liveAbsZ;
-    private double syncAbsX, syncAbsY, syncAbsZ;
-    private double velSyncAbsX, velSyncAbsY, velSyncAbsZ;
+    private final Vector liveAbsPos;
+    private final Vector syncAbsPos;
+    private final Vector velSyncAbsPos;
     private float liveYaw, livePitch;
     private float syncYaw, syncPitch;
     private double liveVel;
     private double syncVel;
-    private double relDx, relDy, relDz;
+    private Vector relativePos = new Vector();
     private EntityType entityType = EntityType.CHICKEN;
     private boolean entityTypeIsMinecart = false;
     private int rotateCtr = 0;
@@ -88,8 +90,9 @@ public class VirtualEntity {
         this.entityId = entityId;
         this.entityUUID = entityUUID;
         this.metaData = new DataWatcher();
-        this.syncAbsX = this.syncAbsY = this.syncAbsZ = Double.NaN;
-        this.velSyncAbsX = this.velSyncAbsY = this.velSyncAbsZ = Double.NaN;
+        this.liveAbsPos = new Vector();
+        this.syncAbsPos = new Vector(Double.NaN, Double.NaN, Double.NaN);
+        this.velSyncAbsPos = new Vector(Double.NaN, Double.NaN, Double.NaN);
         this.syncVel = 0.0;
         this.posX = this.posY = this.posZ = 0.0;
         this.posSet = false;
@@ -108,43 +111,27 @@ public class VirtualEntity {
     }
 
     public double getPosX() {
-        return this.liveAbsX;
+        return this.liveAbsPos.getX();
     }
 
     public double getPosY() {
-        return this.liveAbsY;
+        return this.liveAbsPos.getY();
     }
 
     public double getPosZ() {
-        return this.liveAbsZ;
+        return this.liveAbsPos.getZ();
     }
 
     public Vector getPos() {
-        return new Vector(this.liveAbsX, this.liveAbsY, this.liveAbsZ);
+        return this.liveAbsPos;
     }
 
     public boolean isMountable() {
-        switch (this.entityType) {
-        case HORSE:
-        case BOAT:
-            return false;
-        default:
-            return true;
-        }
+        return VehicleMountRegistry.isMountable(this.entityType);
     }
 
     public double getMountOffset() {
-        if (this.entityType.name().contains("MINECART")) {
-            return 0.3;
-        }
-        switch (this.entityType) {
-        case HORSE:
-            return 1.4;
-        case BOAT:
-            return 0.2;
-        default:
-            return 1.0;
-        }
+        return VehicleMountRegistry.getOffset(this.entityType);
     }
 
     /**
@@ -159,21 +146,29 @@ public class VirtualEntity {
         this.posSet = true;
     }
 
+    public Vector getRelativeOffset() {
+        return relativePos;
+    }
+
     public void setRelativeOffset(Vector offset) {
-        this.relDx = offset.getX();
-        this.relDy = offset.getY();
-        this.relDz = offset.getZ();
+        MathUtil.setVector(relativePos, offset);
     }
 
     public void setRelativeOffset(double dx, double dy, double dz) {
-        this.relDx = dx;
-        this.relDy = dy;
-        this.relDz = dz;
+        MathUtil.setVector(relativePos, dx, dy, dz);
+    }
+
+    public void addRelativeOffset(Vector offset) {
+        relativePos.add(offset);
+    }
+
+    public void addRelativeOffset(double dx, double dy, double dz) {
+        MathUtil.addToVector(relativePos, dx, dy, dz);
     }
 
     public void setSyncMode(SyncMode mode) {
         this.syncMode = mode;
-        if (mode == SyncMode.SEAT) {
+        if (mode == SyncMode.SEAT || mode == SyncMode.SEAT_MINECART_FIX) {
             this.livePitch = this.syncPitch = 0.0f;
         }
     }
@@ -183,7 +178,7 @@ public class VirtualEntity {
     }
 
     public Vector getSyncPos() {
-        return new Vector(this.syncAbsX, this.syncAbsY, this.syncAbsZ);
+        return this.syncAbsPos;
     }
 
     public float getLivePitch() {
@@ -277,13 +272,12 @@ public class VirtualEntity {
      * @param yawPitchRoll rotation
      */
     public void updatePosition(Vector position, Vector yawPitchRoll) {
-        liveAbsX = position.getX() + this.relDx;
-        liveAbsY = position.getY() + this.relDy;
-        liveAbsZ = position.getZ() + this.relDz;
+        MathUtil.setVector(this.liveAbsPos, position);
+        this.liveAbsPos.add(this.relativePos);
 
         this.yawPitchRoll = yawPitchRoll;
         this.liveYaw = (float) this.yawPitchRoll.getY();
-        if (this.syncMode != SyncMode.SEAT && this.hasPitch()) {
+        if ((this.syncMode != SyncMode.SEAT && this.syncMode != SyncMode.SEAT_MINECART_FIX) && this.hasPitch()) {
             livePitch = (float) this.yawPitchRoll.getX();
         } else {
             livePitch = 0.0f;
@@ -293,7 +287,7 @@ public class VirtualEntity {
         }
 
         // If sync is not yet set, set it to live
-        if (Double.isNaN(this.syncAbsX)) {
+        if (Double.isNaN(this.syncAbsPos.getX())) {
             this.refreshSyncPos();
         }
 
@@ -306,12 +300,10 @@ public class VirtualEntity {
         if (this.entityTypeIsMinecart && this.manager instanceof AttachmentControllerMember) {
             MinecartMember<?> member = ((AttachmentControllerMember) manager).getMember();
             if (!member.isUnloaded() && member.getGroup().getProperties().isSoundEnabled() && !member.isDerailed()) {
-                if (!Double.isNaN(velSyncAbsX)) {
-                    liveVel = MathUtil.distance(liveAbsX, liveAbsY, liveAbsZ, velSyncAbsX, velSyncAbsY, velSyncAbsZ);
+                if (!Double.isNaN(this.velSyncAbsPos.getX())) {
+                    liveVel = this.liveAbsPos.distance(this.velSyncAbsPos);
                 }
-                velSyncAbsX = liveAbsX;
-                velSyncAbsY = liveAbsY;
-                velSyncAbsZ = liveAbsZ;
+                MathUtil.setVector(this.velSyncAbsPos, this.liveAbsPos);
 
                 // Limit to a maximum of 1.0, above this it's kind of pointless
                 if (liveVel > 1.0) liveVel = 1.0;
@@ -325,6 +317,14 @@ public class VirtualEntity {
     public void setEntityType(EntityType entityType) {
         this.entityType = entityType;
         this.entityTypeIsMinecart = isMinecart(entityType);
+    }
+
+    public EntityType getEntityType() {
+        return this.entityType;
+    }
+
+    public boolean isMinecart() {
+        return this.entityTypeIsMinecart;
     }
 
     /**
@@ -342,6 +342,10 @@ public class VirtualEntity {
         }
     }
 
+    public boolean hasViewers() {
+        return !this.viewers.isEmpty();
+    }
+
     public void spawn(Player viewer, Vector motion) {
         // Destroy first if needed. Shouldn't happen, but just in case.
         if (this.viewers.contains(viewer)) {
@@ -357,27 +361,16 @@ public class VirtualEntity {
 
         //System.out.println("SPAWN " + this.syncAbsX + "/" + this.syncAbsY + "/" + this.syncAbsZ + " ID=" + this.entityUUID);
 
-        // Ensure we spawn with a little bit of movement when we are a seat
-        if (NEEDS_UNSTUCK_VECTOR && this.syncMode == SyncMode.SEAT) {
-            double xzls = (motion.getX() * motion.getX()) + (motion.getZ() * motion.getZ());
-            if (xzls < (0.002 * 0.002)) {
-                double y = motion.getY();
-                motion = this.getUnstuckVector();
-                motion.setY(y);
-            }
-        }
-
         // Create a spawn packet appropriate for the type of entity being spawned
         if (isLivingEntity()) {
             // Spawn living entity
-            //Vector us_vector = (this.syncMode == SyncMode.SEAT) ? getUnstuckVector() : new Vector();
             PacketPlayOutSpawnEntityLivingHandle spawnPacket = PacketPlayOutSpawnEntityLivingHandle.createNew();
             spawnPacket.setEntityId(this.entityId);
             spawnPacket.setEntityUUID(this.entityUUID);
             spawnPacket.setEntityType(this.entityType);
-            spawnPacket.setPosX(this.syncAbsX - motion.getX());
-            spawnPacket.setPosY(this.syncAbsY - motion.getY());
-            spawnPacket.setPosZ(this.syncAbsZ - motion.getZ());
+            spawnPacket.setPosX(this.syncAbsPos.getX() - motion.getX());
+            spawnPacket.setPosY(this.syncAbsPos.getY() - motion.getY());
+            spawnPacket.setPosZ(this.syncAbsPos.getZ() - motion.getZ());
             spawnPacket.setMotX(motion.getX());
             spawnPacket.setMotY(motion.getY());
             spawnPacket.setMotZ(motion.getZ());
@@ -391,9 +384,9 @@ public class VirtualEntity {
             spawnPacket.setEntityId(this.entityId);
             spawnPacket.setEntityUUID(this.entityUUID);
             spawnPacket.setEntityType(this.entityType);
-            spawnPacket.setPosX(this.syncAbsX - motion.getX());
-            spawnPacket.setPosY(this.syncAbsY - motion.getY());
-            spawnPacket.setPosZ(this.syncAbsZ - motion.getZ());
+            spawnPacket.setPosX(this.syncAbsPos.getX() - motion.getX());
+            spawnPacket.setPosY(this.syncAbsPos.getY() - motion.getY());
+            spawnPacket.setPosZ(this.syncAbsPos.getZ() - motion.getZ());
             spawnPacket.setMotX(motion.getX());
             spawnPacket.setMotY(motion.getY());
             spawnPacket.setMotZ(motion.getZ());
@@ -405,7 +398,7 @@ public class VirtualEntity {
             PacketUtil.sendPacket(viewer, metaPacket.toCommonPacket());
         }
 
-        if (this.syncMode == SyncMode.SEAT) {
+        if (this.syncMode == SyncMode.SEAT || this.syncMode == SyncMode.SEAT_MINECART_FIX) {
             PacketPlayOutRelEntityMoveLookHandle movePacket = PacketPlayOutRelEntityMoveLookHandle.createNew(
                     this.entityId,
                     motion.getX(), motion.getY(), motion.getZ(),
@@ -452,14 +445,14 @@ public class VirtualEntity {
         this.syncMetadata();
 
         // Live motion. Check if the distance change is too large.
-        double dx = (this.liveAbsX - this.syncAbsX);
-        double dy = (this.liveAbsY - this.syncAbsY);
-        double dz = (this.liveAbsZ - this.syncAbsZ);
+        double dx = (this.liveAbsPos.getX() - this.syncAbsPos.getX());
+        double dy = (this.liveAbsPos.getY() - this.syncAbsPos.getY());
+        double dz = (this.liveAbsPos.getZ() - this.syncAbsPos.getZ());
         double abs_delta = Math.max(Math.max(Math.abs(dx), Math.abs(dy)), Math.abs(dz));
         boolean largeChange = (abs_delta > EntityNetworkController.MAX_RELATIVE_DISTANCE);
 
         // Detect a glitched pitch rotation, and perform a respawn then
-        if (this.syncMode == SyncMode.NORMAL && this.syncPitch != this.livePitch && Util.isProtocolRotationGlitched(this.syncPitch, this.livePitch)) {
+        if (this.syncMode.isNormal() && this.syncPitch != this.livePitch && Util.isProtocolRotationGlitched(this.syncPitch, this.livePitch)) {
             for (Player viewer : this.viewers) {
                 this.sendDestroyPackets(viewer);
             }
@@ -472,7 +465,9 @@ public class VirtualEntity {
 
         // When an absolute update is required, send a teleport packet and refresh the synchronized position instantly
         if (absolute || largeChange) {
-            broadcast(PacketPlayOutEntityTeleportHandle.createNew(this.entityId, this.liveAbsX, this.liveAbsY, this.liveAbsZ, this.liveYaw, this.livePitch, false));
+            broadcast(PacketPlayOutEntityTeleportHandle.createNew(this.entityId,
+                    this.liveAbsPos.getX(), this.liveAbsPos.getY(), this.liveAbsPos.getZ(),
+                    this.liveYaw, this.livePitch, false));
             refreshSyncPos();
             refreshHeadRotation();
             return;
@@ -503,6 +498,14 @@ public class VirtualEntity {
             this.refreshHeadRotation();
         }
 
+        // When trying to imitate the minecart's update rate, perform less delta movement than reality
+        if (this.syncMode == SyncMode.SEAT_MINECART_FIX || this.syncMode == SyncMode.NORMAL_MINECART_FIX) {
+            final double FACTOR = 3.0 / 5.0;
+            dx *= FACTOR;
+            dy *= FACTOR;
+            dz *= FACTOR;
+        }
+
         if (moved && rotated) {
             // Position and rotation changed
             PacketPlayOutRelEntityMoveLookHandle packet = PacketPlayOutRelEntityMoveLookHandle.createNew(
@@ -514,9 +517,7 @@ public class VirtualEntity {
 
             this.syncYaw = this.liveYaw;
             this.syncPitch = this.livePitch;
-            this.syncAbsX += packet.getDeltaX();
-            this.syncAbsY += packet.getDeltaY();
-            this.syncAbsZ += packet.getDeltaZ();
+            MathUtil.addToVector(this.syncAbsPos, packet.getDeltaX(), packet.getDeltaY(), packet.getDeltaZ());
             broadcast(packet);
         } else if (moved) {
             // Only position changed
@@ -525,61 +526,42 @@ public class VirtualEntity {
                     dx, dy, dz,
                     false);
 
-            this.syncAbsX += packet.getDeltaX();
-            this.syncAbsY += packet.getDeltaY();
-            this.syncAbsZ += packet.getDeltaZ();
+            MathUtil.addToVector(this.syncAbsPos, packet.getDeltaX(), packet.getDeltaY(), packet.getDeltaZ());
             broadcast(packet);
         } else if (rotated) {
-            if (NEEDS_UNSTUCK_VECTOR && this.syncMode == SyncMode.SEAT && rotatedNow) {
-                // Send a very small movement change to correct rotation in a pulse
-                Vector v = getUnstuckVector();
-                PacketPlayOutRelEntityMoveLookHandle packet = PacketPlayOutRelEntityMoveLookHandle.createNew(
-                        this.entityId,
-                        v.getX(), 0.0, v.getZ(),
-                        this.liveYaw,
-                        this.livePitch,
-                        false);
-                this.syncYaw = this.liveYaw;
-                this.syncPitch = this.livePitch;
-                this.syncAbsX += packet.getDeltaX();
-                this.syncAbsY += packet.getDeltaY();
-                this.syncAbsZ += packet.getDeltaZ();
-                broadcast(packet);
-            } else {
-                // Only rotation changed
-                for (Player viewer : this.viewers) {
-                    if (PlayerUtil.evaluateGameVersion(viewer, ">=", "1.15")) {
-                        // On minecraft 1.15 and later there is a Minecraft client bug
-                        // Sending an Entity Look packet causes the client to cancel/ignore previous movement updates
-                        // This results in the entity position going out of sync
-                        // A workaround is sending a movement + look packet instead, which appears to work around that.
-                        PacketPlayOutRelEntityMoveLookHandle packet = PacketPlayOutRelEntityMoveLookHandle.createNew(
-                                this.entityId,
-                                0.0, 0.0, 0.0,
-                                this.liveYaw,
-                                this.livePitch,
-                                false);
+            // Only rotation changed
+            for (Player viewer : this.viewers) {
+                if (PlayerUtil.evaluateGameVersion(viewer, ">=", "1.15")) {
+                    // On minecraft 1.15 and later there is a Minecraft client bug
+                    // Sending an Entity Look packet causes the client to cancel/ignore previous movement updates
+                    // This results in the entity position going out of sync
+                    // A workaround is sending a movement + look packet instead, which appears to work around that.
+                    PacketPlayOutRelEntityMoveLookHandle packet = PacketPlayOutRelEntityMoveLookHandle.createNew(
+                            this.entityId,
+                            0.0, 0.0, 0.0,
+                            this.liveYaw,
+                            this.livePitch,
+                            false);
 
-                        PacketUtil.sendPacket(viewer, packet);
-                    } else {
-                        PacketPlayOutEntityLookHandle packet = PacketPlayOutEntityLookHandle.createNew(
-                                this.entityId,
-                                this.liveYaw,
-                                this.livePitch,
-                                false);
+                    PacketUtil.sendPacket(viewer, packet);
+                } else {
+                    PacketPlayOutEntityLookHandle packet = PacketPlayOutEntityLookHandle.createNew(
+                            this.entityId,
+                            this.liveYaw,
+                            this.livePitch,
+                            false);
 
-                        PacketUtil.sendPacket(viewer, packet);
-                    }
+                    PacketUtil.sendPacket(viewer, packet);
                 }
-                this.syncYaw = this.liveYaw;
-                this.syncPitch = this.livePitch;
             }
+            this.syncYaw = this.liveYaw;
+            this.syncPitch = this.livePitch;
         }
     }
 
     private void refreshHeadRotation() {
         // Refresh head rotation first
-        if (this.syncMode == SyncMode.NORMAL && isLivingEntity()) {
+        if (this.syncMode.isNormal() && isLivingEntity()) {
             CommonPacket packet = PacketType.OUT_ENTITY_HEAD_ROTATION.newInstance();
             packet.write(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId, this.entityId);
             packet.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, this.liveYaw);
@@ -596,19 +578,8 @@ public class VirtualEntity {
         return isLivingEntity(this.entityType);
     }
 
-    // this vector is used to fix up the rotation of passengers in seats
-    // by moving a very tiny amount (and back), the rotation is 'unstuck'
-    private Vector getUnstuckVector() {
-        double yawRad = Math.toRadians(this.liveYaw);
-        double unstuck_dx = 0.002 * -Math.sin(yawRad);
-        double unstuck_dz = 0.002 * Math.cos(yawRad);
-        return new Vector(unstuck_dx, 0.0, unstuck_dz);
-    }
-
     private void refreshSyncPos() {
-        this.syncAbsX = this.liveAbsX;
-        this.syncAbsY = this.liveAbsY;
-        this.syncAbsZ = this.liveAbsZ;
+        MathUtil.setVector(this.syncAbsPos, this.liveAbsPos);
         this.syncYaw = this.liveYaw;
         this.syncPitch = this.livePitch;
         this.syncVel = this.liveVel;
@@ -668,8 +639,151 @@ public class VirtualEntity {
     }
 
     public static enum SyncMode {
-        ITEM,
-        NORMAL,
-        SEAT
+        /** Only position is updated */
+        ITEM(false),
+        /** Position and rotation is updated */
+        NORMAL(true),
+        /** Position and rotation is updated, making use of 5-tick minecart interpolation time */
+        NORMAL_MINECART_FIX(true),
+        /** Only position and vehicle yaw is updated */
+        SEAT(false),
+        /** Same as SEAT, but changes the update rate to match the 5-tick minecart interpolation time */
+        SEAT_MINECART_FIX(false);
+
+        private final boolean _normal;
+
+        private SyncMode(boolean normal) {
+            this._normal = normal;
+        }
+
+        public boolean isNormal() {
+            return this._normal;
+        }
+    }
+
+    /**
+     * Stores the vertical offset where passengers are mounted inside other entities.
+     * Some entities, like horses, shouldn't be mounted directly because they are
+     * controlled by the player riding it.
+     */
+    private static class VehicleMountRegistry {
+        private static final Map<EntityType, Double> _lookup = new EnumMap<>(EntityType.class);
+        private static final Set<EntityType> _unmountable = EnumSet.noneOf(EntityType.class);
+        private static final Double DEFAULT_OFFSET = 1.0;
+        static {
+            register("AXOLOTL", 0.59);
+            register("BAT", 1.0);
+            register("BEE", 0.7);
+            register("BLAZE", 1.6);
+            register("BOAT", 0.2, false);
+            register("CAT", 0.8);
+            register("CAVE_SPIDER", 0.5);
+            register("CHICKEN", 0.62);
+            register("COD", 0.5);
+            register("COW", 1.3);
+            register("CREEPER", 1.55);
+            register("DOLPHIN", 0.75);
+            register("DONKEY", 1.15);
+            register("DROWNED", 1.75);
+            register("ENDERMAN", 2.45);
+            register("ENDERMITE", 0.5);
+            register("ENDER_DRAGON", 3.4, false);
+            register("EVOKER", 1.75);
+            register("FALLING_BLOCK", 1.0);
+            register("FOX", 0.8);
+            register("GHAST", 4.0, false);
+            register("GIANT", 12.0, false);
+            register("GLOW_SQUID", 0.9);
+            register("GOAT", 1.25);
+            register("GUARDIAN", 0.92);
+            register("HOGLIN", 1.5);
+            register("HORSE", 1.4, false);
+            register("HUSK", 1.75);
+            register("ILLUSIONER", 1.75);
+            register("IRON_GOLEM", 2.3);
+            register("LEASH_HITCH", 0.97);
+            register("LLAMA", 1.37, false);
+            register(e -> e.name().contains("MINECART"), 0.27);
+            register("MULE", 1.22);
+            register("MUSHROOM_COW", 1.3);
+            register("OCELOT", 0.8);
+            register("PANDA", 1.2);
+            register("PARROT", 0.96);
+            register("PHANTOM", 0.67);
+            register("PIG", 0.965);
+            register("PIGLIN", 2.05);
+            register("PIGLIN_BRUTE", 1.75);
+            register("PILLAGER", 1.75);
+            register("POLAR_BEAR", 1.305);
+            register("PRIMED_TNT", 1.0);
+            register("PUFFERFISH", 0.55);
+            register("RABBIT", 0.63);
+            register("RAVAGER", 2.4);
+            register("SALMON", 0.58);
+            register("SHEEP", 1.25);
+            register("SHULKER", 1.0, false);
+            register("SHULKER_BULLET", 0.52);
+            register("SILVERFISH", 0.51);
+            register("SKELETON", 1.75);
+            register("SKELETON_HORSE", 1.3, false);
+            register("SMALL_FIREBALL", 0.52);
+            register("SNOWMAN", 1.67);
+            register("SPIDER", 0.73);
+            register("SQUID", 0.88);
+            register("STRAY", 1.775);
+            register("STRIDER", 1.79, false);
+            register("TRADER_LLAMA", 1.36);
+            register("TURTLE", 0.58);
+            register("VEX", 0.88);
+            register("VILLAGER", 1.75);
+            register("VINDICATOR", 1.75);
+            register("WANDERING_TRADER", 1.75);
+            register("WITCH", 1.75);
+            register("WITHER", 3.5, false);
+            register("WITHER_SKELETON", 2.07);
+            register("WITHER_SKULL", 0.52);
+            register("WOLF", 0.92);
+            register("ZOGLIN", 1.53);
+            register("ZOMBIE", 1.75);
+            register("ZOMBIE_HORSE", 1.47);
+            register("ZOMBIE_VILLAGER", 1.75);
+            register("ZOMBIFIED_PIGLIN", 1.75);
+            register("ZOMBIE_VILLAGER", 1.75);
+        }
+
+        public static double getOffset(EntityType type) {
+            return _lookup.getOrDefault(type, DEFAULT_OFFSET);
+        }
+
+        public static boolean isMountable(EntityType type) {
+            return !_unmountable.contains(type);
+        }
+
+        private static void register(Predicate<EntityType> condition, double offset) {
+            register(condition, offset, true);
+        }
+
+        private static void register(Predicate<EntityType> condition, double offset, boolean mountable) {
+            Stream.of(EntityType.values()).filter(condition).forEachOrdered(type -> {
+                _lookup.put(type, offset);
+                if (!mountable) {
+                    _unmountable.add(type);
+                }
+            });
+        }
+
+        private static void register(String name, double offset) {
+            register(name, offset, true);
+        }
+
+        private static void register(String name, double offset, boolean mountable) {
+            try {
+                EntityType type = EntityType.valueOf(name);
+                _lookup.put(type, offset);
+                if (!mountable) {
+                    _unmountable.add(type);
+                }
+            } catch (IllegalArgumentException ex) { /* ignore */ }
+        }
     }
 }

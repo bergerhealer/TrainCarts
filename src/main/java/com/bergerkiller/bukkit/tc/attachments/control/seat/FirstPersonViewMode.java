@@ -9,14 +9,14 @@ public enum FirstPersonViewMode {
      * mode when the seat is vertical or upside-down. This is default legacy
      * behavior.
      */
-    DYNAMIC(Double.NaN, false),
+    DYNAMIC(false),
     /**
      * Default mode: player sits in the seat, and sees himself
      * sitting there always upright. The player head is always
      * above the position of the seat. Anchors the butt of the player
      * where the seat position is.
      */
-    DEFAULT(Double.NaN, false),
+    DEFAULT(false),
     /**
      * Player floats an offset away from the seat, making sure the player head
      * is exactly where it would be if perfectly rotated. The same can be achieved
@@ -25,50 +25,29 @@ public enum FirstPersonViewMode {
      * This is used when the player uses smooth coasters, because mount switching
      * doesn't work very well there.
      */
-    SMOOTHCOASTERS_FIX(1.0, false, false),
+    SMOOTHCOASTERS_FIX(false, false),
     /**
      * The player can not see himself sitting, but the camera is positioned
      * where the player head would be in floating mode.
      */
-    INVISIBLE(1.0, true),
+    INVISIBLE(true),
     /**
      * The player can see himself sit in third-person, the camera hovering
      * slightly above where the head is located. Similar to floating,
      * but the player is visible as a separate entity.
      */
-    THIRD_P(1.4, true);
+    THIRD_P(true);
 
-    private final double _cameraOffset;
     private final boolean _fakePlayer;
     private final boolean _selectable;
 
-    private FirstPersonViewMode(double cameraOffset, boolean fakePlayer) {
-        this(cameraOffset, fakePlayer, true);
+    private FirstPersonViewMode(boolean fakePlayer) {
+        this(fakePlayer, true);
     }
 
-    private FirstPersonViewMode(double cameraOffset, boolean fakePlayer, boolean selectable) {
-        this._cameraOffset = cameraOffset;
+    private FirstPersonViewMode(boolean fakePlayer, boolean selectable) {
         this._fakePlayer = fakePlayer;
         this._selectable = selectable;
-    }
-
-    /**
-     * Gets whether for this mode a virtual entity is used to move
-     * the player around
-     * 
-     * @return True if virtual
-     */
-    public boolean isVirtual() {
-        return !Double.isNaN(this._cameraOffset);
-    }
-
-    /**
-     * Gets the Y-offset of the camera
-     * 
-     * @return virtual camera offset
-     */
-    public double getVirtualOffset() {
-        return this._cameraOffset;
     }
 
     /**

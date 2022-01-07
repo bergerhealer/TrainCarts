@@ -316,8 +316,31 @@ public class CartAttachmentEntity extends CartAttachment {
     }
 
     @Override
-    public void applyDefaultSeatTransform(Matrix4x4 transform) {
-        transform.translate(0.0, this.entity.getMountOffset(), 0.0);
+    public void applyPassengerSeatTransform(Matrix4x4 transform) {
+        // Minecarts can uniquely pitch - so here we perform the transformation a little differently
+        VirtualEntity displayed = (this.actual != null) ? this.actual : this.entity;
+        if (displayed.isMinecart()) {
+            transform.translate(0.0, displayed.getMountOffset(), 0.0);
+            return;
+        }
+
+        // Position on top of the entity is relative - so create a matrix for that purpose
+        Matrix4x4 relativeMatrix = new Matrix4x4();
+        relativeMatrix.translate(0.0, displayed.getMountOffset(), 0.0);
+
+        // Perform a multiplication with the relative matrix on the left-hand side
+        Matrix4x4.multiply(relativeMatrix, transform, transform);
+    }
+
+    /**
+     * Gets whether movement updates use minecart interpolation, which unlike other entities,
+     * update over 5 ticks instead of 3.
+     * If seated inside another entity that isn't a Minecart, then this will be false.
+     *
+     * @return True if this attachment entity is using minecart interpolation
+     */
+    public boolean isMinecartInterpolation() {
+        return this.actual == null && this.entity.isMinecart();
     }
 
     @Override

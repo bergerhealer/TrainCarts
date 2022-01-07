@@ -29,12 +29,12 @@ class FirstPersonSpectatedEntityInvisible extends FirstPersonSpectatedEntity {
     }
 
     @Override
-    public void start(Matrix4x4 baseTransform) {
+    public void start(Matrix4x4 eyeTransform) {
         entity = createEntity();
         entityAlt = createEntity();
 
         // Position primary entity in the normal way
-        entity.updatePosition(baseTransform);
+        entity.updatePosition(eyeTransform);
         entity.syncPosition(true);
 
         // Position the alt entity with head/body 180 degrees rotated at pitch 180
@@ -54,14 +54,7 @@ class FirstPersonSpectatedEntityInvisible extends FirstPersonSpectatedEntity {
     private VirtualEntity createEntity() {
         VirtualEntity entity = new VirtualEntity(seat.getManager());
         entity.setEntityType(EntityType.ARMOR_STAND);
-        entity.setSyncMode(SyncMode.NORMAL);
-
-        // Different offsets depending on view mode, or if eye position is set
-        if (!view.getEyePosition().isDefault()) {
-            // No offset required because of MARKER mode
-        } else {
-            entity.setPosition(new Vector(0.0, view.getLiveMode().getVirtualOffset(), 0.0));
-        }
+        entity.setSyncMode(seat.isMinecartInterpolation() ? SyncMode.NORMAL_MINECART_FIX : SyncMode.NORMAL);
 
         // We spectate an invisible armorstand that has MARKER set
         // This causes the spectator to view from 0/0/0, avoiding having to do any extra offsets
@@ -83,8 +76,8 @@ class FirstPersonSpectatedEntityInvisible extends FirstPersonSpectatedEntity {
     }
 
     @Override
-    public void updatePosition(Matrix4x4 baseTransform) {
-        entity.updatePosition(baseTransform);
+    public void updatePosition(Matrix4x4 eyeTransform) {
+        entity.updatePosition(eyeTransform);
 
         // If pitch went from < 180 to > 180 or other way around, we must swap fake and alt
         if (Util.isProtocolRotationGlitched(this.entity.getSyncPitch(), this.entity.getLivePitch())) {
@@ -99,7 +92,7 @@ class FirstPersonSpectatedEntityInvisible extends FirstPersonSpectatedEntity {
             }
 
             // Give the fake player full sync pitch
-            entity.updatePosition(baseTransform);
+            entity.updatePosition(eyeTransform);
         }
 
         // Calculate what new alt-pitch should be used. This swaps over at the 180-degree mark

@@ -32,11 +32,6 @@ public class FirstPersonViewSpectator extends FirstPersonView {
         super(seat);
     }
 
-    @Override
-    public boolean isFakeCameraUsed() {
-        return true;
-    }
-
     /**
      * If not already spawned, spawns a fake vehicle, or otherwise returns the Entity ID
      * to which passengers can be mounted directly into the vehicle.
@@ -64,11 +59,11 @@ public class FirstPersonViewSpectator extends FirstPersonView {
         vehicleEntityId = -1;
 
         // Position used to compute where the eye/camera view is at
-        Matrix4x4 baseTransform = this.getBaseTransform();
+        Matrix4x4 eyeTransform = this.getEyeTransform();
 
         // Start spectator mode
         this._spectatedEntity = FirstPersonSpectatedEntity.create(seat, this, viewer);
-        this._spectatedEntity.start(baseTransform);
+        this._spectatedEntity.start(eyeTransform);
 
         // Mount the player itself off-screen on a mount somewhere
         // We want it to stay out of clickable range to prevent player d/c
@@ -79,7 +74,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
 
             // Put the Player somewhere high up there in the sky
             this._playerMount.setRelativeOffset(0.0, 64.0, 0.0);
-            this._playerMount.updatePosition(baseTransform);
+            this._playerMount.updatePosition(eyeTransform);
             this._playerMount.syncPosition(true);
             this._playerMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
             this._playerMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
@@ -95,7 +90,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
 
         // If third-person mode is used, also spawn the real seated entity for this viewer
         if (this.getLiveMode() == FirstPersonViewMode.THIRD_P) {
-            seat.seated.makeVisible(viewer, true);
+            seat.seated.makeVisibleFirstPerson(viewer);
         }
     }
 
@@ -103,7 +98,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
     public void makeHidden(Player viewer) {
         // If third-person mode is used, also despawn the real seated entity for this viewer
         if (this.getLiveMode() == FirstPersonViewMode.THIRD_P) {
-            seat.seated.makeHidden(viewer, true);
+            seat.seated.makeHiddenFirstPerson(viewer);
         }
 
         // Remove player from the temporary mount
@@ -128,14 +123,16 @@ public class FirstPersonViewSpectator extends FirstPersonView {
         }
 
         // Make viewer visible to himself again (restore)
-        setPlayerVisible(viewer, true);
+        if (this.getLiveMode() != FirstPersonViewMode.THIRD_P) {
+            setPlayerVisible(viewer, true);
+        }
     }
 
     @Override
     public void onTick() {
         // Update spectated entity
         if (_spectatedEntity != null) {
-            Matrix4x4 baseTransform = getBaseTransform();
+            Matrix4x4 baseTransform = getEyeTransform();
             _playerMount.updatePosition(baseTransform);
             _spectatedEntity.updatePosition(baseTransform);
         }

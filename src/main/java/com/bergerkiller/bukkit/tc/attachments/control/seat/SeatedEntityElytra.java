@@ -3,15 +3,18 @@ package com.bergerkiller.bukkit.tc.attachments.control.seat;
 import java.util.function.Consumer;
 
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
+import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
@@ -25,13 +28,14 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 class SeatedEntityElytra extends SeatedEntity {
     private int _fakeEntityId = -1;
     private int _fakeEntityIdFlipped = -1; // Fix for the 180 pitch rotation bug, swaps entities instead
+    private VirtualEntity fakeVehicle = null; // Vehicle in which the two fake entities sit
+    private Vector fakeVehicleInitialOffset = new Vector(); // Initial relative offset of the fake vehicle
 
     public SeatedEntityElytra(CartAttachmentSeat seat) {
         super(seat);
     }
 
-    @Override
-    public int getId() {
+    protected int getFakePlayerId() {
         return this._fakeEntityId;
     }
 
@@ -40,7 +44,7 @@ class SeatedEntityElytra extends SeatedEntity {
      * 
      * @return pitch-flipped entity id
      */
-    public int getFlippedId() {
+    protected int getFlippedFakePlayerId() {
         return this._fakeEntityIdFlipped;
     }
 
@@ -59,7 +63,7 @@ class SeatedEntityElytra extends SeatedEntity {
             getMetadataFunction(true).accept(meta);
             PacketPlayOutEntityMetadataHandle packet = PacketPlayOutEntityMetadataHandle.createNew(this._fakeEntityId, meta, true);
             for (Player viewer : seat.getViewers()) {
-                if (!this.isInvisibleTo(viewer)) {
+                if (this._entity != viewer || isMadeVisibleInFirstPerson()) {
                     PacketUtil.sendPacket(viewer, packet);
                 }
             }
@@ -71,7 +75,7 @@ class SeatedEntityElytra extends SeatedEntity {
             getMetadataFunction(false).accept(meta);
             PacketPlayOutEntityMetadataHandle packet = PacketPlayOutEntityMetadataHandle.createNew(this._fakeEntityIdFlipped, meta, true);
             for (Player viewer : seat.getViewers()) {
-                if (!this.isInvisibleTo(viewer)) {
+                if (this._entity != viewer || isMadeVisibleInFirstPerson()) {
                     PacketUtil.sendPacket(viewer, packet);
                 }
             }
@@ -85,16 +89,16 @@ class SeatedEntityElytra extends SeatedEntity {
         }
     }
 
-    @Override
-    public boolean isInvisibleTo(Player viewer) {
-        return super.isInvisibleTo(viewer) ||
-                (this._entity == viewer && this.seat.firstPerson.getLiveMode() == FirstPersonViewMode.DEFAULT);
-    }
-
-    public void makeFakePlayerVisible(Player viewer) {
-        if (isInvisibleTo(viewer)) {
-            return;
+    public void makeFakePlayerVisible(VehicleMountController vmc, Player viewer) {
+        // Spawn a vehicle for the two elytra-mode fake player entities
+        if (this.fakeVehicle == null) {
+            this.fakeVehicle = this.createPassengerVehicle();
+            MathUtil.setVector(this.fakeVehicleInitialOffset, this.fakeVehicle.getRelativeOffset());
+            this.fakeVehicle.addRelativeOffset(orientation.computeElytraRelativeOffset(seat.getTransform().getYawPitchRoll()));
+            this.fakeVehicle.updatePosition(seat.getTransform());
+            this.fakeVehicle.syncPosition(true);
         }
+        this.fakeVehicle.spawn(viewer, seat.calcMotion());
 
         // Initialize entity id's the first time
         if (this._fakeEntityId == -1) {
@@ -104,43 +108,36 @@ class SeatedEntityElytra extends SeatedEntity {
             this._fakeEntityIdFlipped = EntityUtil.getUniqueEntityId();
         }
 
+        // Spawn and mount a fake elytra-pose player into an invisible vehicle
         Consumer<DataWatcher> metaFunction = getMetadataFunction(false);
         FakePlayerSpawner.NO_NAMETAG_SECONDARY.spawnPlayer(viewer, (Player) this._entity, this._fakeEntityId, false, this.orientation, metaFunction);
-
-        // Unmount from the original vehicle and mount the new fake entity instead
-        VehicleMountController vmh = PlayerUtil.getVehicleMountController(viewer);
-        vmh.unmount(this.parentMountId, this._entity.getEntityId());
-        vmh.mount(this.parentMountId, this._fakeEntityId);
+        vmc.mount(this.fakeVehicle.getEntityId(), this._fakeEntityId);
 
         // Also spawn a player entity with pitch flipped for elytra mode to switch between 0 / 180 degrees
         // Mount this fake player too
         Consumer<DataWatcher> metaFunctionFlipped = getMetadataFunction(true);
         FakePlayerSpawner.NO_NAMETAG.spawnPlayer(viewer, (Player) this._entity, this._fakeEntityIdFlipped, true, this.orientation, metaFunctionFlipped);
-        vmh.mount(this.parentMountId, this._fakeEntityIdFlipped);
+        vmc.mount(this.fakeVehicle.getEntityId(), this._fakeEntityIdFlipped);
+
+        // Sync initial rotations of these entities, if locked
+        if (this.orientation.isLocked()) {
+            this.orientation.sendLockedRotations(viewer, this._fakeEntityId);
+        }
     }
 
-    public void makeFakePlayerHidden(Player viewer) {
-        if (isInvisibleTo(viewer)) {
-            return;
-        }
-
+    public void makeFakePlayerHidden(VehicleMountController vmc, Player viewer) {
         if (this._fakeEntityId != -1 && isPlayer()) {
             // Destroy old fake player entity
-            VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
             PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNewSingle(this._fakeEntityId));
             PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNewSingle(this._fakeEntityIdFlipped));
+            this.fakeVehicle.destroy(viewer);
             vmc.remove(this._fakeEntityId);
             vmc.remove(this._fakeEntityIdFlipped);
+            vmc.remove(this.fakeVehicle.getEntityId());
 
-            // Respawn the actual player or clean up the list
-            // Only needed when the player is not the viewer
-            if (viewer == this._entity) {
-                // Can not respawn yourself!
-            } else {
-                // Respawns the player as a normal player
-                vmc.respawn((Player) this._entity, (theViewer, thePlayer) -> {
-                    FakePlayerSpawner.NORMAL.spawnPlayer(theViewer, thePlayer, thePlayer.getEntityId(), false, null, meta -> {});
-                });
+            // Remove vehicle if no more viewers for it exist
+            if (!this.fakeVehicle.hasViewers()) {
+                this.fakeVehicle = null;
             }
         }
     }
@@ -153,33 +150,46 @@ class SeatedEntityElytra extends SeatedEntity {
     }
 
     @Override
-    public void makeVisible(Player viewer, boolean fake) {
-        super.makeVisible(viewer, fake);
+    public Vector getThirdPersonCameraOffset() {
+        return new Vector(0.0, 1.4, 0.0);
+    }
 
-        if (fake) {
+    @Override
+    public void makeVisible(Player viewer) {
+        VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
+        if (this._entity == viewer) {
+            // Don't hide the player, that's up to the first-person view mode to take care of
+            // Only show the fake player
+            makeFakePlayerVisible(vmc, viewer);
+        } else if (this.isPlayer()) {
             // Despawn/hide original player entity
             hideRealPlayer(viewer);
 
-            // Respawn an upside-down player in its place
-            makeFakePlayerVisible(viewer);
-        } else {
-            // Send metadata
-            refreshMetadata(viewer);
-
-            // Mount entity in vehicle, unless a camera is used
-            if (this._entity != viewer || !seat.firstPerson.isFakeCameraUsed()) {
-                VehicleMountController vmh = PlayerUtil.getVehicleMountController(viewer);
-                vmh.mount(this.parentMountId, this._entity.getEntityId());
-            }
+            // Show a fake player
+            makeFakePlayerVisible(vmc, viewer);
+        } else if (!this.isEmpty()) {
+            // Default behavior for non-player entities is just to mount them
+            vmc.mount(this.spawnVehicleMount(viewer), this._entity.getEntityId());
         }
     }
 
     @Override
-    public void makeHidden(Player viewer, boolean fake) {
-        if (fake) {
-            makeFakePlayerHidden(viewer);
+    public void makeHidden(Player viewer) {
+        VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
+        if (this._entity == viewer) {
+            // Just hide the fake players
+            makeFakePlayerHidden(vmc, viewer);
+        } else if (this.isPlayer()) {
+            // Hide fake player
+            makeFakePlayerHidden(vmc, viewer);
+
+            // Show real player
+            showRealPlayer(viewer);
+        } else if (!this.isEmpty()) {
+            // Unmount for generic entities
+            vmc.unmount(this.parentMountId, this._entity.getEntityId());
+            despawnVehicleMount(viewer);
         }
-        super.makeHidden(viewer, fake);
     }
 
     @Override
@@ -227,7 +237,24 @@ class SeatedEntityElytra extends SeatedEntity {
     }
 
     @Override
-    protected void synchronizeOrientation(Matrix4x4 transform) {
-        orientation.synchronizeElytra(seat, transform, this);
+    public void updatePosition(Matrix4x4 transform) {
+        if (!isEmpty()) {
+            Vector pyr = transform.getYawPitchRoll();
+            orientation.synchronizeElytra(seat, transform, pyr, this);
+            if (this.fakeVehicle != null) {
+                this.fakeVehicle.setRelativeOffset(this.fakeVehicleInitialOffset);
+                this.fakeVehicle.addRelativeOffset(orientation.computeElytraRelativeOffset(pyr));
+                this.fakeVehicle.updatePosition(transform, new Vector(0.0, this.orientation.getMountYaw(), 0.0));
+            }
+        }
+        updateVehicleMountPosition(transform);
+    }
+
+    @Override
+    public void syncPosition(boolean absolute) {
+        if (this.fakeVehicle != null) {
+            this.fakeVehicle.syncPosition(absolute);
+        }
+        syncVehicleMountPosition(absolute);
     }
 }

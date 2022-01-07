@@ -45,12 +45,12 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
     }
 
     @Override
-    public void start(Matrix4x4 baseTransform) {
+    public void start(Matrix4x4 eyeTransform) {
         // Spawn the fake player using the FakePlayerSpawner. Initially the player is made invisible,
         // because the head is still rotating awkwardly. We spectate a different entity during this time,
         // and we don't want this player obscuring the view.
         fakePlayer = new FakeVirtualPlayer(seat.getManager(), FakePlayerSpawner.NO_NAMETAG);
-        fakePlayer.updatePosition(baseTransform);
+        fakePlayer.updatePosition(eyeTransform);
         fakePlayer.syncPosition(true);
         fakePlayer.spawn(player, new Vector());
 
@@ -68,8 +68,8 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
         // Or, depending on configuration, just mount it in the vehicle directly
         if (!seat.firstPerson.getEyePosition().isDefault()) {
             // Player must be put into the seat so the eye position is at the baseTransform
-            prepareFakeMount(baseTransform, mount -> {
-                double y_offset = VirtualEntity.PLAYER_SIT_ARMORSTAND_BUTT_OFFSET + VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT;
+            prepareFakeMount(eyeTransform, mount -> {
+                double y_offset = VirtualEntity.ARMORSTAND_BUTT_OFFSET + VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT;
                 mount.setRelativeOffset(0.0, -y_offset, 0.0);
             });
         } else {
@@ -79,7 +79,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
 
         // Initialize, spawn and spectate a temporary entity while the fake player head spins
         blindRespawn = new BlindRespawn();
-        blindRespawn.spawn(baseTransform);
+        blindRespawn.spawn(eyeTransform);
     }
 
     private void mountInVehicle() {
@@ -91,7 +91,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
     private void prepareFakeMount(Matrix4x4 baseTransform, Consumer<VirtualEntity> manipulator) {
         this.fakeMount = new VirtualEntity(seat.getManager());
         this.fakeMount.setEntityType(EntityType.ARMOR_STAND);
-        this.fakeMount.setSyncMode(SyncMode.SEAT);
+        this.fakeMount.setSyncMode(seat.isMinecartInterpolation() ? SyncMode.SEAT_MINECART_FIX : SyncMode.SEAT);
 
         // Put the entity on a fake mount that we move around at an offset
         manipulator.accept(this.fakeMount);
@@ -142,7 +142,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
     }
 
     @Override
-    public void updatePosition(Matrix4x4 baseTransform) {
+    public void updatePosition(Matrix4x4 eyeTransform) {
         // While blind, also move the fake spectated entity around
         if (blindRespawn != null) {
             if (System.currentTimeMillis() > blindRespawn.timeout) {
@@ -155,12 +155,12 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
                 blindRespawn.despawn();
                 blindRespawn = null;
             } else {
-                blindRespawn.updatePosition(baseTransform);
+                blindRespawn.updatePosition(eyeTransform);
             }
         }
 
         // Move/update the fake player
-        this.fakePlayer.updatePosition(baseTransform);
+        this.fakePlayer.updatePosition(eyeTransform);
 
         // If pitch went from < 180 to > 180 or other way around, we must swap fake and alt
         if (Util.isProtocolRotationGlitched(this.fakePlayer.getSyncPitch(), this.fakePlayer.getLivePitch())) {
@@ -184,7 +184,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             }
 
             // Give the fake player full sync pitch
-            this.fakePlayer.updatePosition(baseTransform);
+            this.fakePlayer.updatePosition(eyeTransform);
         }
 
         // Calculate what new alt-pitch should be used. This swaps over at the 180-degree mark
@@ -207,7 +207,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
 
         // Move the vehicle itself, which moves the fake player around
         if (this.fakeMount != null) {
-            this.fakeMount.updatePosition(baseTransform);
+            this.fakeMount.updatePosition(eyeTransform);
         }
     }
 
@@ -239,7 +239,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             // This causes the spectator to view from 0/0/0, avoiding having to do any extra offsets
             spectated = new VirtualEntity(seat.getManager());
             spectated.setEntityType(EntityType.VILLAGER);
-            spectated.setSyncMode(SyncMode.NORMAL);
+            spectated.setSyncMode(seat.isMinecartInterpolation() ? SyncMode.NORMAL_MINECART_FIX : SyncMode.NORMAL);
             spectated.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
             spectated.getMetaData().set(EntityHandle.DATA_NO_GRAVITY, true);
 
@@ -251,15 +251,15 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
                 // Use vehicle transform for everything
                 // The extra relative offset is to account for villager head height
                 useVehicleTransform = true;
-                // Note: is -0.65 when seated in a minecart directly - something is off!
-                spectated.setRelativeOffset(0.0, -0.62, 0.0);
+                // Note: is -1.65 when seated in a minecart directly - something is off!
+                spectated.setRelativeOffset(0.0, -1.62, 0.0);
             }
 
             timeout = System.currentTimeMillis() + (6 * 50); // 6 (client) ticks
         }
 
-        public void spawn(Matrix4x4 baseTransform) {
-            spectated.updatePosition(useVehicleTransform ? seat.seated.getVehicleMountTransform() : baseTransform);
+        public void spawn(Matrix4x4 eyeTransform) {
+            spectated.updatePosition(eyeTransform);
             spectated.syncPosition(true);
             spectated.spawn(player, seat.calcMotion());
             spectate(spectated.getEntityId());
@@ -269,8 +269,8 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             spectated.destroy(player);
         }
 
-        public void updatePosition(Matrix4x4 baseTransform) {
-            spectated.updatePosition(useVehicleTransform ? seat.seated.getVehicleMountTransform() : baseTransform);
+        public void updatePosition(Matrix4x4 eyeTransform) {
+            spectated.updatePosition(eyeTransform);
         }
 
         public void syncPosition(boolean absolute) {

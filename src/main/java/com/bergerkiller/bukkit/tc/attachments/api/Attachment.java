@@ -306,13 +306,19 @@ public interface Attachment {
 
     /**
      * Some attachment types, like entities, will have a default position relative
-     * to it where the player is normally seated. Implement this method to specify
-     * exactly where the player sits on top of this attachment.
-     * 
-     * @param transform to apply the transformation to. The input transform will be the current
-     *        position of this attachment.
+     * to it where passengers are normally seated. Implement this method to specify
+     * exactly where a passenger sits on top of this attachment, if directly mounted.<br>
+     * <br>
+     * The input transform is the current position of this attachment. It should
+     * be modified, such as with relative translations, to where the seat is positioned.<br>
+     * <br>
+     * Doing nothing in this method will effectively result in the seat being exactly
+     * where this attachment is located.
+     *
+     * @param transform Transformation matrix to write the seat position changes to
      */
-    default void applyDefaultSeatTransform(Matrix4x4 transform) {}
+    default void applyPassengerSeatTransform(Matrix4x4 transform) {
+    }
 
     /**
      * Adds a new animation to this attachment, which can then be played

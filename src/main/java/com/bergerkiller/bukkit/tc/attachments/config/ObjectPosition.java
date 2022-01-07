@@ -18,12 +18,14 @@ public class ObjectPosition {
     public Vector3 rotation = new Vector3();
     public Matrix4x4 transform = new Matrix4x4();
     private boolean _isDefault = true;
+    private boolean _isIdentity = true;
 
     /**
      * Resets to the default configuration
      */
     public void reset() {
         this._isDefault = true;
+        this._isIdentity = true;
         this.position.x = 0.0;
         this.position.y = 0.0;
         this.position.z = 0.0;
@@ -66,20 +68,24 @@ public class ObjectPosition {
             } else {
                 this.anchor = AttachmentAnchor.DEFAULT;
             }
-            if (this.anchor != AttachmentAnchor.SEAT_PARENT) {
-                this._isDefault = false;
-                this.position.x = config.get("posX", 0.0);
-                this.position.y = config.get("posY", 0.0);
-                this.position.z = config.get("posZ", 0.0);
-                this.rotation.x = config.get("rotX", 0.0);
-                this.rotation.y = config.get("rotY", 0.0);
-                this.rotation.z = config.get("rotZ", 0.0);
-                this.initTransform();
-                return;
-            }
+            this._isDefault = false;
+            this.position.x = config.get("posX", 0.0);
+            this.position.y = config.get("posY", 0.0);
+            this.position.z = config.get("posZ", 0.0);
+            this.rotation.x = config.get("rotX", 0.0);
+            this.rotation.y = config.get("rotY", 0.0);
+            this.rotation.z = config.get("rotZ", 0.0);
+            this._isIdentity = this.position.x == 0.0 &&
+                               this.position.y == 0.0 &&
+                               this.position.z == 0.0 &&
+                               this.rotation.x == 0.0 &&
+                               this.rotation.y == 0.0 &&
+                               this.rotation.z == 0.0;
+            this.initTransform();
+            return;
         }
 
-        // Default (seat in parent or 0/0/0)
+        // Default (seat in parent or 0/0/0 and never set)
         this.reset();
     }
 
@@ -101,5 +107,15 @@ public class ObjectPosition {
      */
     public boolean isDefault() {
         return this._isDefault;
+    }
+
+    /**
+     * Gets whether the object's position is the identity position and rotation.
+     * This makes it have the same exact position as whatever the anchor is.
+     *
+     * @return True if this position defines an identity transformation
+     */
+    public boolean isIdentity() {
+        return this._isIdentity;
     }
 }

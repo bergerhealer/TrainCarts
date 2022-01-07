@@ -5,6 +5,7 @@ import java.util.function.Consumer;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
@@ -17,6 +18,7 @@ import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
+import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
@@ -31,6 +33,9 @@ class SeatedEntityNormal extends SeatedEntity {
     private int _fakeEntityId = -1;
     private boolean _fake = false;
 
+    // Is initialized when the player needs to be displayed upside-down
+    private VirtualEntity _upsideDownVehicle = null;
+
     public SeatedEntityNormal(CartAttachmentSeat seat) {
         super(seat);
     }
@@ -43,25 +48,26 @@ class SeatedEntityNormal extends SeatedEntity {
         this._upsideDown = upsideDown;
     }
 
-    @Override
-    public int getId() {
-        return this._fake ? this._fakeEntityId : ((this._entity == null) ? -1 : this._entity.getEntityId());
-    }
-
     public boolean isFake() {
         return this._fake;
     }
 
     public void setFake(boolean fake) {
         this._fake = fake;
-        if (fake && this._fakeEntityId == -1) {
-            this._fakeEntityId = EntityUtil.getUniqueEntityId();
-        }
     }
 
-    @Override
-    public void refreshMetadata(Player viewer) {
-        if (!this.isPlayer() && this._upsideDown) {
+    /**
+     * Sends the correct current metadata information the seated entity should have.
+     * 
+     * @param viewer
+     */
+    public void refreshUpsideDownMetadata(Player viewer, boolean upsideDown) {
+        // We don't use the dinnerbone tag for players at all
+        if (this.isEmpty() || this.isPlayer()) {
+            return;
+        }
+
+        if (upsideDown) {
             // Apply metadata 'Dinnerbone' with nametag invisible
             DataWatcher metaTmp = new DataWatcher();
             metaTmp.set(EntityHandle.DATA_CUSTOM_NAME, FakePlayerSpawner.UPSIDEDOWN.getPlayerName());
@@ -69,82 +75,120 @@ class SeatedEntityNormal extends SeatedEntity {
             PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this._entity.getEntityId(), metaTmp, true);
             PacketUtil.sendPacket(viewer, metaPacket);
         } else {
-            super.refreshMetadata(viewer);
+            // Send the default metadata of this entity
+            DataWatcher metaTmp = EntityHandle.fromBukkit(this._entity).getDataWatcher();
+            PacketUtil.sendPacket(viewer, PacketPlayOutEntityMetadataHandle.createNew(this._entity.getEntityId(), metaTmp, true));
         }
     }
 
-    public void makeFakePlayerVisible(Player viewer) {
-        if (isInvisibleTo(viewer)) {
-            return;
+    private void makeFakePlayerVisible(VehicleMountController vmc, Player viewer) {
+        // Generate an entity id if needed for the first time
+        if (this._fakeEntityId == -1) {
+            this._fakeEntityId = EntityUtil.getUniqueEntityId();
         }
 
         Consumer<DataWatcher> metaFunction = metadata -> {
             metadata.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_FLYING, false);
         };
         if (this._upsideDown) {
+            // Player must be mounted inside the upside-down vehicle, which has a special offset so that the
+            // upside-down butt is where the transform is at.
+            if (this._upsideDownVehicle == null) {
+                this._upsideDownVehicle = createPassengerVehicle();
+                this._upsideDownVehicle.addRelativeOffset(0.0, -0.65, 0.0);
+                this._upsideDownVehicle.updatePosition(seat.getTransform(),
+                        new Vector(0.0, (double) this.orientation.getMountYaw(), 0.0));
+                this._upsideDownVehicle.syncPosition(true);
+            }
+            this._upsideDownVehicle.spawn(viewer, seat.calcMotion());
+
+            // Spawn player as upside-down
             FakePlayerSpawner.UPSIDEDOWN.spawnPlayer(viewer, (Player) this._entity, this._fakeEntityId, false, this.orientation, metaFunction);
+
+            // Mount player inside the upside-down carrier vehicle
+            vmc.mount(this._upsideDownVehicle.getEntityId(), this._fakeEntityId);
         } else {
             FakePlayerSpawner.NO_NAMETAG.spawnPlayer(viewer, (Player) this._entity, this._fakeEntityId, false, this.orientation, metaFunction);
+
+            // Upright fake players can be put into the vehicle mount
+            vmc.mount(this.parentMountId, this._fakeEntityId);
         }
 
-        // Unmount from the original vehicle and mount the new fake entity instead
-        VehicleMountController vmh = PlayerUtil.getVehicleMountController(viewer);
-        vmh.unmount(this.parentMountId, this._entity.getEntityId());
-        vmh.mount(this.parentMountId, this._fakeEntityId);
+        // Sync initial rotations of these entities, if locked
+        if (this.orientation.isLocked()) {
+            this.orientation.sendLockedRotations(viewer, this._fakeEntityId);
+        }
     }
 
-    public void makeFakePlayerHidden(Player viewer) {
-        if (isInvisibleTo(viewer)) {
-            return;
-        }
+    private void makeFakePlayerInvisible(VehicleMountController vmc, Player viewer) {
+        // De-spawn the fake player itself
+        PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNewSingle(this._fakeEntityId));
+        vmc.remove(this._fakeEntityId);
 
-        if (this._fake && isPlayer()) {
-            // Destroy old fake player entity
-            VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
-            PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNewSingle(this._fakeEntityId));
-            vmc.remove(this._fakeEntityId);
-
-            // Respawn the actual player or clean up the list
-            // Only needed when the player is not the viewer
-            if (viewer == this._entity) {
-                // Can not respawn yourself!
-            } else {
-                // Respawns the player as a normal player
-                vmc.respawn((Player) this._entity, (theViewer, thePlayer) -> {
-                    FakePlayerSpawner.NORMAL.spawnPlayer(theViewer, thePlayer, thePlayer.getEntityId(), false, null, meta -> {});
-                });
-            }
+        // If used, de-spawn the upside-down vehicle too
+        if (this._upsideDown && this._upsideDownVehicle != null) {
+            this._upsideDownVehicle.destroy(viewer);
+            vmc.remove(this._upsideDownVehicle.getEntityId());
         }
     }
 
     @Override
-    public void makeVisible(Player viewer, boolean fake) {
-        super.makeVisible(viewer, fake);
+    public Vector getThirdPersonCameraOffset() {
+        return new Vector(0.0, 1.6, 0.0);
+    }
 
-        if (this._fake && fake) {
+    @Override
+    public void makeVisible(Player viewer) {
+        VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
+
+        spawnVehicleMount(viewer); // Makes parentMountId valid
+
+        if (this._entity == viewer) {
+            // In first-person, show the fake player, but do not mount the viewer in anything
+            // That is up to the first-person controller to deal with.
+            makeFakePlayerVisible(vmc, viewer);
+        } else if (this._fake && this.isPlayer()) {
             // Despawn/hide original player entity
-            hideRealPlayer(viewer);
+            vmc.despawn(this._entity.getEntityId());
 
-            // Respawn an upside-down player in its place
-            makeFakePlayerVisible(viewer);
-        } else {
+            // Respawn an upside-down player in its place, mounted into the vehicle
+            makeFakePlayerVisible(vmc, viewer);
+        } else if (!this.isEmpty()) {
             // Send metadata
-            refreshMetadata(viewer);
-
-            // Mount entity in vehicle, unless a camera is used
-            if (this._entity != viewer || !seat.firstPerson.isFakeCameraUsed()) {
-                VehicleMountController vmh = PlayerUtil.getVehicleMountController(viewer);
-                vmh.mount(this.parentMountId, this._entity.getEntityId());
+            if (this._upsideDown) {
+                refreshUpsideDownMetadata(viewer, true);
             }
+
+            // Mount entity in vehicle
+            vmc.mount(this.parentMountId, this._entity.getEntityId());
         }
     }
 
     @Override
-    public void makeHidden(Player viewer, boolean fake) {
-        if (fake) {
-            makeFakePlayerHidden(viewer);
+    public void makeHidden(Player viewer) {
+        VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
+
+        if (this._entity == viewer) {
+            // De-spawn a fake player
+            makeFakePlayerInvisible(vmc, viewer);
+        } else if (this._fake && this.isPlayer()) {
+            // De-spawn a fake player, if any
+            makeFakePlayerInvisible(vmc, viewer);
+
+            // Respawn original player
+            showRealPlayer(viewer);
+        } else if (!this.isEmpty()) {
+            // For non-player passengers, resend correct metadata to remove dinnerbone tags
+            if (this._upsideDown) {
+                refreshUpsideDownMetadata(viewer, false);
+            }
+
+            // Unmount original entity from the mount
+            vmc.unmount(this.parentMountId, this._entity.getEntityId());
         }
-        super.makeHidden(viewer, fake);
+
+        // De-spawn the fake mount being used, if any
+        despawnVehicleMount(viewer);
     }
 
     @Override
@@ -201,7 +245,7 @@ class SeatedEntityNormal extends SeatedEntity {
             }
 
             // Whether a fake entity is used to represent this seated entity
-            boolean noNametag = (this._displayMode == DisplayMode.NO_NAMETAG);
+            boolean noNametag = (this.displayMode == DisplayMode.NO_NAMETAG);
             new_isFake = this.isPlayer() && (noNametag || new_isUpsideDown || new_firstPersonMode.hasFakePlayer());
         }
 
@@ -243,7 +287,7 @@ class SeatedEntityNormal extends SeatedEntity {
                 this.setUpsideDown(new_isUpsideDown);
                 if (!this.isEmpty()) {
                     for (Player viewer : seat.getViewersSynced()) {
-                        this.refreshMetadata(viewer);
+                        this.refreshUpsideDownMetadata(viewer, new_isUpsideDown);
                     }
                 }
             }
@@ -267,7 +311,25 @@ class SeatedEntityNormal extends SeatedEntity {
     }
 
     @Override
-    protected void synchronizeOrientation(Matrix4x4 transform) {
-        orientation.synchronizeNormal(seat, transform, this);
+    public void updatePosition(Matrix4x4 transform) {
+        if (!isEmpty()) {
+            // Entity id is that of a fake entity if used, otherwise uses entity id
+            // If in first-person the fake entity is not used, then we're sending packets
+            // about an entity that does not exist. Is this bad?
+            int entityId = this._fake ? this._fakeEntityId : ((this._entity == null) ? -1 : this._entity.getEntityId());
+            orientation.synchronizeNormal(seat, transform, this, entityId);
+        }
+        updateVehicleMountPosition(transform);
+        if (this._upsideDownVehicle != null) {
+            this._upsideDownVehicle.updatePosition(transform);
+        }
+    }
+
+    @Override
+    public void syncPosition(boolean absolute) {
+        syncVehicleMountPosition(absolute);
+        if (this._upsideDownVehicle != null) {
+            this._upsideDownVehicle.syncPosition(absolute);
+        }
     }
 }

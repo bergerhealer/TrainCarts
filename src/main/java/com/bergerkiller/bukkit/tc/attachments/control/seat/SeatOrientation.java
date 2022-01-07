@@ -4,11 +4,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityHeadRotationHandle;
@@ -25,7 +23,6 @@ public class SeatOrientation {
     private float _entityLastHeadYaw = 0;
     private float _mountYaw = 0;
     private int _entityRotationCtr = 0;
-    private final Vector _mountOffset = new Vector(0.0, -VirtualEntity.PLAYER_SIT_ARMORSTAND_BUTT_OFFSET, 0.0);
 
     public float getPassengerYaw() {
         return this._entityLastYaw;
@@ -43,10 +40,6 @@ public class SeatOrientation {
         return this._mountYaw;
     }
 
-    public Vector getMountOffset() {
-        return this._mountOffset;
-    }
-    
     public boolean isLocked() {
         return this._locked;
     }
@@ -55,60 +48,47 @@ public class SeatOrientation {
         this._locked = locked;
     }
 
-    public void makeVisible(Player viewer, SeatedEntity seated) {
-        if (this.isLocked() && !seated.isEmpty()) {
-            int entityId = seated.getId();
+    public void sendLockedRotations(Player viewer, int entityId) {
+        // Do not send viewer to self - bad things happen
+        if (entityId != viewer.getEntityId()) {
+            PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, getPassengerHeadYaw());
+            PacketUtil.sendPacket(viewer, headPacket);
 
-            // Do not send viewer to self - bad things happen
-            if (entityId != viewer.getEntityId()) {
-                PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, getPassengerHeadYaw());
-                PacketUtil.sendPacket(viewer, headPacket);
-
-                PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(
-                        entityId, getPassengerYaw(), getPassengerPitch(), false);
-                PacketUtil.sendPacket(viewer, lookPacket);
-            }
+            PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(
+                    entityId, getPassengerYaw(), getPassengerPitch(), false);
+            PacketUtil.sendPacket(viewer, lookPacket);
         }
     }
 
-    protected void synchronizeElytra(CartAttachmentSeat seat, Matrix4x4 transform, SeatedEntityElytra seated) {
-        Vector pyr = transform.getYawPitchRoll();
+    // Compute the actual position of the butt using yaw/pitch
+    // Subtract this offset from the mount offset to correct for it
+    // This makes sure the player is seated where the seat is
+    protected Vector computeElytraRelativeOffset(Vector pyr) {
+        double yaw_sin = Math.sin(Math.toRadians(pyr.getY()));
+        double yaw_cos = Math.cos(Math.toRadians(pyr.getY()));
+        double pitch_sin = Math.sin(Math.toRadians(pyr.getX()));
+        double pitch_cos = Math.cos(Math.toRadians(pyr.getX()));
 
-        // Compute the actual position of the butt using yaw/pitch
-        // Subtract this offset from the mount offset to correct for it
-        // This makes sure the player is seated where the seat is
-        {
-            double yaw_sin = Math.sin(Math.toRadians(pyr.getY()));
-            double yaw_cos = Math.cos(Math.toRadians(pyr.getY()));
-            double pitch_sin = Math.sin(Math.toRadians(pyr.getX()));
-            double pitch_cos = Math.cos(Math.toRadians(pyr.getX()));
+        final double l = 0.6;
+        final double m = 0.1;
 
-            final double l = 0.6;
-            final double m = 0.1;
+        double rx = (l * pitch_sin) + (m * pitch_cos - m);
+        double ry = (l * pitch_cos - l) - (m * pitch_sin);
 
-            double rx = (l * pitch_sin) + (m * pitch_cos - m);
-            double ry = (l * pitch_cos - l) - (m * pitch_sin);
+        double off_x = -yaw_sin * rx;
+        double off_y = ry;
+        double off_z = yaw_cos * rx;
 
-            double off_x = -yaw_sin * rx;
-            double off_y = ry;
-            double off_z = yaw_cos * rx;
+        // Subtracts butt position to correct the mount offset
+        return new Vector(-off_x, -off_y, -off_z);
+    }
 
-            // Subtracts butt position to correct the mount offset
-            _mountOffset.setX(-off_x);
-            _mountOffset.setY(-VirtualEntity.PLAYER_SIT_ARMORSTAND_BUTT_OFFSET - off_y);
-            _mountOffset.setZ(-off_z);
-
-            // Shows a green particle where the player's butt is expected to be
-            // Shows a red particle where the seat is supposed to be
-            // Make sure to uncomment the mount offset when testing!
-            /*
-            Vector wow = transform.toVector().add(new Vector(off_x, off_y, off_z));
-            for (Player viewer : seat.getViewers()) {
-                PlayerUtil.spawnDustParticles(viewer, transform.toVector(), org.bukkit.Color.RED);
-                PlayerUtil.spawnDustParticles(viewer, wow, org.bukkit.Color.GREEN);
-            }
-            */
-        }
+    protected void synchronizeElytra(CartAttachmentSeat seat, Matrix4x4 transform, Vector pyr, SeatedEntityElytra seated) {
+        // Should not send updates if this elytra entity is not visible to the player
+        // This is the case when it's about the player itself, and the player has
+        // not enabled a third-person perspective.
+        Player viewerToIgnore = (seated.isPlayer() && !seated.isMadeVisibleInFirstPerson())
+                ? (Player) seated.getEntity() : null;
 
         // Yaw of vehicle player is on = yaw, player will rotate along
         _mountYaw = (float) pyr.getY();
@@ -135,19 +115,19 @@ public class SeatOrientation {
         // Entity id is that of a fake entity if used, otherwise uses entity id
         // If in first-person the fake entity is not used, then we're sending packets
         // about an entity that does not exist. Is this bad?
-        int entityId = seated.getId();
+        int entityId = seated.getFakePlayerId();
 
         // Refresh head rotation
         if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(headRot, this._entityLastHeadYaw)) {
             PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, headRot);
             PacketPlayOutEntityHeadRotationHandle headPacketFlipped = null;
-            if (seated.getFlippedId() != -1) {
-                headPacketFlipped = PacketPlayOutEntityHeadRotationHandle.createNew(seated.getFlippedId(), headRot);
+            if (seated.getFlippedFakePlayerId() != -1) {
+                headPacketFlipped = PacketPlayOutEntityHeadRotationHandle.createNew(seated.getFlippedFakePlayerId(), headRot);
             }
 
             this._entityLastHeadYaw = headPacket.getHeadYaw();
             for (Player viewer : seat.getViewers()) {
-                if (!seated.isInvisibleTo(viewer)) {
+                if (viewer != viewerToIgnore) {
                     PacketUtil.sendPacket(viewer, headPacket);
                     if (headPacketFlipped != null) {
                         PacketUtil.sendPacket(viewer, headPacketFlipped);
@@ -170,20 +150,20 @@ public class SeatOrientation {
             this._entityLastYaw = lookPacket.getYaw();
             this._entityLastPitch = lookPacket.getPitch();
             for (Player viewer : seat.getViewers()) {
-                if (!seated.isInvisibleTo(viewer)) {
+                if (viewer != viewerToIgnore) {
                     PacketUtil.sendPacket(viewer, lookPacket);
                 }
             }
 
             // Also prep the flipped entity yaw and right flipped pitch, if used
-            int flippedId = seated.getFlippedId();
+            int flippedId = seated.getFlippedFakePlayerId();
             if (flippedId != -1) {
-                float k = DebugUtil.getFloatValue("a", 180.0);
-                float f = DebugUtil.getFloatValue("b", 10.0);
+                float k = 180.0f;
+                float f = 10.0f;
                 float flippedPitch = (this._entityLastPitch >= k) ? k+f : k-f;
                 PacketPlayOutEntityLookHandle flipLookPacket = PacketPlayOutEntityLookHandle.createNew(flippedId, this._entityLastYaw, flippedPitch, false);
                 for (Player viewer : seat.getViewers()) {
-                    if (!seated.isInvisibleTo(viewer)) {
+                    if (viewer != viewerToIgnore) {
                         PacketUtil.sendPacket(viewer, flipLookPacket);
                     }
                 }
@@ -193,12 +173,12 @@ public class SeatOrientation {
         }
     }
 
-    protected void synchronizeNormal(CartAttachmentSeat seat, Matrix4x4 transform, SeatedEntityNormal seated) {
-        if (seated.isUpsideDown()) {
-            _mountOffset.setY(-VirtualEntity.PLAYER_SIT_ARMORSTAND_BUTT_OFFSET - 0.65);
-        } else {
-            _mountOffset.setY(-VirtualEntity.PLAYER_SIT_ARMORSTAND_BUTT_OFFSET);
-        }
+    protected void synchronizeNormal(CartAttachmentSeat seat, Matrix4x4 transform, SeatedEntityNormal seated, int entityId) {
+        // Should not send updates if this normal/upside-down entity is not visible to the player
+        // This is the case when it's about the player itself, and the player has
+        // not enabled a third-person perspective.
+        Player viewerToIgnore = (seated.isPlayer() && !seated.isMadeVisibleInFirstPerson())
+                ? (Player) seated.getEntity() : null;
 
         if (this._locked) {
             EntityHandle realPlayer = EntityHandle.fromBukkit(seated.getEntity());
@@ -224,17 +204,12 @@ public class SeatOrientation {
                 }
             }
 
-            // Entity id is that of a fake entity if used, otherwise uses entity id
-            // If in first-person the fake entity is not used, then we're sending packets
-            // about an entity that does not exist. Is this bad?
-            int entityId = seated.getId();
-
             // Refresh head rotation
             if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(headRot, this._entityLastHeadYaw)) {
                 PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, headRot);
                 this._entityLastHeadYaw = headPacket.getHeadYaw();
                 for (Player viewer : seat.getViewers()) {
-                    if (viewer.getEntityId() != entityId) {
+                    if (viewer != viewerToIgnore) {
                         PacketUtil.sendPacket(viewer, headPacket);
                     }
                 }
@@ -254,7 +229,7 @@ public class SeatOrientation {
                 this._entityLastYaw = lookPacket.getYaw();
                 this._entityLastPitch = lookPacket.getPitch();
                 for (Player viewer : seat.getViewers()) {
-                    if (viewer.getEntityId() != entityId) {
+                    if (viewer != viewerToIgnore) {
                         PacketUtil.sendPacket(viewer, lookPacket);
                     }
                 }
@@ -281,34 +256,26 @@ public class SeatOrientation {
                 if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(yaw, this._entityLastYaw) ||
                     EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pitch, this._entityLastPitch))
                 {
-                    PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(seated.getId(), yaw, pitch, false);
+                    PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(entityId, yaw, pitch, false);
                     this._entityLastYaw = lookPacket.getYaw();
                     this._entityLastPitch = lookPacket.getPitch();
                     for (Player viewer : seat.getViewers()) {
-                        PacketUtil.sendPacket(viewer, lookPacket);
+                        if (viewer != viewerToIgnore) {
+                            PacketUtil.sendPacket(viewer, lookPacket);
+                        }
                     }
                 }
 
                 if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(headRot, this._entityLastHeadYaw)) {
-                    PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(seated.getId(), headRot);
+                    PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, headRot);
                     this._entityLastHeadYaw = headPacket.getHeadYaw();
                     for (Player viewer : seat.getViewers()) {
-                        PacketUtil.sendPacket(viewer, headPacket);
+                        if (viewer != viewerToIgnore) {
+                            PacketUtil.sendPacket(viewer, headPacket);
+                        }
                     }
                 }
             }
-        }
-    }
-
-    public void synchronize(CartAttachmentSeat seat, Matrix4x4 transform, SeatedEntity seated) {
-        if (!seated.isEmpty()) {
-            seated.synchronizeOrientation(transform);
-        }
-
-        // Apply rotation to fake mount, if needed
-        if (seated.fakeMount != null) {
-            seated.fakeMount.setRelativeOffset(this.getMountOffset());
-            seated.fakeMount.updatePosition(transform, new Vector(0.0, (double) this.getMountYaw(), 0.0));
         }
     }
 

@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
+import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
@@ -32,30 +33,6 @@ public abstract class FirstPersonView {
     }
 
     /**
-     * Whether the player is mounted on a fake entity as part of this first-person view.
-     * If this is the case, then the player shouldn't be mounted to the actual vehicle.
-     *
-     * @return True if a fake mount is used in this first-person view
-     */
-    public boolean isFakeCameraUsed() {
-        if (!this._eyePosition.isDefault()) {
-            return true;
-        }
-        if (this._liveMode.isVirtual()) {
-            return true;
-        }
-
-        // The elytra has a 'weird' mount position to make it work in third-person
-        // This causes the default camera, mounted for the same entity, to no longer work
-        // To fix this, make use of the virtual camera mount
-        if (this._liveMode == FirstPersonViewMode.DEFAULT && this.seat.seated instanceof SeatedEntityElytra) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
      * Gets whether because of a view mode change, this first person view will have to be
      * reset or not. If reset, the view is de-initialized (hidden) and re-initialized (visible).
      *
@@ -68,16 +45,27 @@ public abstract class FirstPersonView {
 
     /**
      * Gets the base transform for use with eye/view logic. If an eye position is set, returns the
-     * seat transform transformed with this eye. Otherwise, returns the seat transform. It is up
-     * to the caller to perform further appropriate adjustments.
+     * seat transform transformed with this eye. Otherwise, returns the seat transform with a
+     * third-person view offset. It is up to the caller to perform further appropriate adjustments.
      *
-     * @return First-person base transform
+     * @return First-person base eye/view transform
      */
-    protected Matrix4x4 getBaseTransform() {
-        if (this._eyePosition.isDefault()) {
-            return seat.getTransform();
-        } else {
+    protected Matrix4x4 getEyeTransform() {
+        if (!this._eyePosition.isDefault()) {
+            // Eye configured
             return Matrix4x4.multiply(seat.getTransform(), this._eyePosition.transform);
+        } else if (this.getLiveMode() == FirstPersonViewMode.THIRD_P) {
+            // Seat, with a third-person view offset from it based on the seated entity
+            Matrix4x4 transform = seat.getTransform().clone();
+            transform.translate(seat.seated.getThirdPersonCameraOffset());
+            return transform;
+        } else {
+            // Return seat transform with a player butt-to-eye offset included
+            // This offset is not rotated when the seat rotates, it is always y + 1
+            Matrix4x4 eye = new Matrix4x4();
+            eye.translate(0.0, VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT, 0.0);
+            eye.multiply(seat.getTransform());
+            return eye;
         }
     }
 

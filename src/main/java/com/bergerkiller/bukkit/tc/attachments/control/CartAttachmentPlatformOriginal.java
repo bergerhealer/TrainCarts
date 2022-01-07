@@ -74,8 +74,10 @@ public class CartAttachmentPlatformOriginal extends CartAttachment {
     }
 
     @Override
-    public void applyDefaultSeatTransform(Matrix4x4 transform) {
-        transform.translate(0.0, 1.0, 0.0);
+    public void applyPassengerSeatTransform(Matrix4x4 transform) {
+        Matrix4x4 relativeMatrix = new Matrix4x4();
+        relativeMatrix.translate(0.0, 1.0, 0.0);
+        Matrix4x4.multiply(relativeMatrix, transform, transform);
     }
 
     @Override
