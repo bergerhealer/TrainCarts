@@ -63,7 +63,7 @@ class SeatedEntityElytra extends SeatedEntity {
             getMetadataFunction(true).accept(meta);
             PacketPlayOutEntityMetadataHandle packet = PacketPlayOutEntityMetadataHandle.createNew(this._fakeEntityId, meta, true);
             for (Player viewer : seat.getViewers()) {
-                if (this._entity != viewer || isMadeVisibleInFirstPerson()) {
+                if (this.entity != viewer || isMadeVisibleInFirstPerson()) {
                     PacketUtil.sendPacket(viewer, packet);
                 }
             }
@@ -75,7 +75,7 @@ class SeatedEntityElytra extends SeatedEntity {
             getMetadataFunction(false).accept(meta);
             PacketPlayOutEntityMetadataHandle packet = PacketPlayOutEntityMetadataHandle.createNew(this._fakeEntityIdFlipped, meta, true);
             for (Player viewer : seat.getViewers()) {
-                if (this._entity != viewer || isMadeVisibleInFirstPerson()) {
+                if (this.entity != viewer || isMadeVisibleInFirstPerson()) {
                     PacketUtil.sendPacket(viewer, packet);
                 }
             }
@@ -110,13 +110,13 @@ class SeatedEntityElytra extends SeatedEntity {
 
         // Spawn and mount a fake elytra-pose player into an invisible vehicle
         Consumer<DataWatcher> metaFunction = getMetadataFunction(false);
-        FakePlayerSpawner.NO_NAMETAG_SECONDARY.spawnPlayer(viewer, (Player) this._entity, this._fakeEntityId, false, this.orientation, metaFunction);
+        FakePlayerSpawner.NO_NAMETAG_SECONDARY.spawnPlayer(viewer, (Player) this.entity, this._fakeEntityId, false, this.orientation, metaFunction);
         vmc.mount(this.fakeVehicle.getEntityId(), this._fakeEntityId);
 
         // Also spawn a player entity with pitch flipped for elytra mode to switch between 0 / 180 degrees
         // Mount this fake player too
         Consumer<DataWatcher> metaFunctionFlipped = getMetadataFunction(true);
-        FakePlayerSpawner.NO_NAMETAG.spawnPlayer(viewer, (Player) this._entity, this._fakeEntityIdFlipped, true, this.orientation, metaFunctionFlipped);
+        FakePlayerSpawner.NO_NAMETAG.spawnPlayer(viewer, (Player) this.entity, this._fakeEntityIdFlipped, true, this.orientation, metaFunctionFlipped);
         vmc.mount(this.fakeVehicle.getEntityId(), this._fakeEntityIdFlipped);
 
         // Sync initial rotations of these entities, if locked
@@ -159,13 +159,13 @@ class SeatedEntityElytra extends SeatedEntity {
         VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
         if (this.isPlayer()) {
             // Show the fake player, and if not first-person, hide the real player
-            if (this._entity != viewer) {
+            if (this.entity != viewer) {
                 hideRealPlayer(viewer);
             }
             makeFakePlayerVisible(vmc, viewer);
         } else if (!this.isEmpty()) {
             // Default behavior for non-player entities is just to mount them
-            vmc.mount(this.spawnVehicleMount(viewer), this._entity.getEntityId());
+            vmc.mount(this.spawnVehicleMount(viewer), this.entity.getEntityId());
         }
     }
 
@@ -175,12 +175,12 @@ class SeatedEntityElytra extends SeatedEntity {
         if (this.isPlayer()) {
             // Hide the fake player, and if not first-person, re-show the real player too
             makeFakePlayerHidden(vmc, viewer);
-            if (this._entity != viewer) {
+            if (this.entity != viewer) {
                 showRealPlayer(viewer);
             }
         } else if (!this.isEmpty()) {
             // Unmount for generic entities
-            vmc.unmount(this.parentMountId, this._entity.getEntityId());
+            vmc.unmount(this.parentMountId, this.entity.getEntityId());
             despawnVehicleMount(viewer);
         }
     }

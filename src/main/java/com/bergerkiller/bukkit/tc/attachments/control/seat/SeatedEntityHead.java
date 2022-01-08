@@ -45,7 +45,7 @@ class SeatedEntityHead extends SeatedEntity {
     public void makeVisible(Player viewer) {
         if (isPlayer()) {
             // Despawn/hide original entity
-            if (_entity != viewer) {
+            if (entity != viewer) {
                 hideRealPlayer(viewer);
             }
 
@@ -69,7 +69,7 @@ class SeatedEntityHead extends SeatedEntity {
                 //TODO: Older versions only supported the player name (MC 1.8)
                 skullItem = new ItemStack(Material.PLAYER_HEAD);
                 SkullMeta meta = (SkullMeta) skullItem.getItemMeta();
-                meta.setOwningPlayer((Player) _entity);
+                meta.setOwningPlayer((Player) entity);
                 skullItem.setItemMeta(meta);
             }
 
@@ -78,7 +78,7 @@ class SeatedEntityHead extends SeatedEntity {
             PacketUtil.sendPacket(viewer, ItemTransformType.HEAD.createEquipmentPacket(skull.getEntityId(), skullItem));
         } else if (!isEmpty()) {
             // Default behavior for non-player entities is just to mount them
-            PlayerUtil.getVehicleMountController(viewer).mount(this.spawnVehicleMount(viewer), this._entity.getEntityId());
+            PlayerUtil.getVehicleMountController(viewer).mount(this.spawnVehicleMount(viewer), this.entity.getEntityId());
         }
     }
 
@@ -96,12 +96,12 @@ class SeatedEntityHead extends SeatedEntity {
             }
 
             // Show real player again
-            if (viewer != _entity) {
+            if (viewer != entity) {
                 showRealPlayer(viewer);
             }
         } else if (!isEmpty()) {
             // Unmount for generic entities
-            PlayerUtil.getVehicleMountController(viewer).unmount(this.parentMountId, this._entity.getEntityId());
+            PlayerUtil.getVehicleMountController(viewer).unmount(this.parentMountId, this.entity.getEntityId());
             despawnVehicleMount(viewer);
         }
     }

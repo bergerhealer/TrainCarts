@@ -72,12 +72,12 @@ class SeatedEntityNormal extends SeatedEntity {
             DataWatcher metaTmp = new DataWatcher();
             metaTmp.set(EntityHandle.DATA_CUSTOM_NAME, FakePlayerSpawner.UPSIDEDOWN.getPlayerName());
             metaTmp.set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, false);
-            PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this._entity.getEntityId(), metaTmp, true);
+            PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.entity.getEntityId(), metaTmp, true);
             PacketUtil.sendPacket(viewer, metaPacket);
         } else {
             // Send the default metadata of this entity
-            DataWatcher metaTmp = EntityHandle.fromBukkit(this._entity).getDataWatcher();
-            PacketUtil.sendPacket(viewer, PacketPlayOutEntityMetadataHandle.createNew(this._entity.getEntityId(), metaTmp, true));
+            DataWatcher metaTmp = EntityHandle.fromBukkit(this.entity).getDataWatcher();
+            PacketUtil.sendPacket(viewer, PacketPlayOutEntityMetadataHandle.createNew(this.entity.getEntityId(), metaTmp, true));
         }
     }
 
@@ -103,12 +103,12 @@ class SeatedEntityNormal extends SeatedEntity {
             this._upsideDownVehicle.spawn(viewer, seat.calcMotion());
 
             // Spawn player as upside-down
-            FakePlayerSpawner.UPSIDEDOWN.spawnPlayer(viewer, (Player) this._entity, this._fakeEntityId, false, this.orientation, metaFunction);
+            FakePlayerSpawner.UPSIDEDOWN.spawnPlayer(viewer, (Player) this.entity, this._fakeEntityId, false, this.orientation, metaFunction);
 
             // Mount player inside the upside-down carrier vehicle
             vmc.mount(this._upsideDownVehicle.getEntityId(), this._fakeEntityId);
         } else {
-            FakePlayerSpawner.NO_NAMETAG.spawnPlayer(viewer, (Player) this._entity, this._fakeEntityId, false, this.orientation, metaFunction);
+            FakePlayerSpawner.NO_NAMETAG.spawnPlayer(viewer, (Player) this.entity, this._fakeEntityId, false, this.orientation, metaFunction);
 
             // Upright fake players can be put into the vehicle mount
             vmc.mount(this.parentMountId, this._fakeEntityId);
@@ -143,13 +143,13 @@ class SeatedEntityNormal extends SeatedEntity {
 
         spawnVehicleMount(viewer); // Makes parentMountId valid
 
-        if (this._entity == viewer) {
+        if (this.entity == viewer) {
             // In first-person, show the fake player, but do not mount the viewer in anything
             // That is up to the first-person controller to deal with.
             makeFakePlayerVisible(vmc, viewer);
         } else if (this._fake && this.isPlayer()) {
             // Despawn/hide original player entity
-            vmc.despawn(this._entity.getEntityId());
+            vmc.despawn(this.entity.getEntityId());
 
             // Respawn an upside-down player in its place, mounted into the vehicle
             makeFakePlayerVisible(vmc, viewer);
@@ -160,7 +160,7 @@ class SeatedEntityNormal extends SeatedEntity {
             }
 
             // Mount entity in vehicle
-            vmc.mount(this.parentMountId, this._entity.getEntityId());
+            vmc.mount(this.parentMountId, this.entity.getEntityId());
         }
     }
 
@@ -168,7 +168,7 @@ class SeatedEntityNormal extends SeatedEntity {
     public void makeHidden(Player viewer) {
         VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
 
-        if (this._entity == viewer) {
+        if (this.entity == viewer) {
             // De-spawn a fake player
             makeFakePlayerInvisible(vmc, viewer);
         } else if (this._fake && this.isPlayer()) {
@@ -184,7 +184,7 @@ class SeatedEntityNormal extends SeatedEntity {
             }
 
             // Unmount original entity from the mount
-            vmc.unmount(this.parentMountId, this._entity.getEntityId());
+            vmc.unmount(this.parentMountId, this.entity.getEntityId());
         }
 
         // De-spawn the fake mount being used, if any
@@ -316,7 +316,7 @@ class SeatedEntityNormal extends SeatedEntity {
             // Entity id is that of a fake entity if used, otherwise uses entity id
             // If in first-person the fake entity is not used, then we're sending packets
             // about an entity that does not exist. Is this bad?
-            int entityId = this._fake ? this._fakeEntityId : ((this._entity == null) ? -1 : this._entity.getEntityId());
+            int entityId = this._fake ? this._fakeEntityId : ((this.entity == null) ? -1 : this.entity.getEntityId());
             orientation.synchronizeNormal(seat, transform, this, entityId);
         }
         updateVehicleMountPosition(transform);

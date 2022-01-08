@@ -30,7 +30,7 @@ import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityAr
  * without the actual player entity sending packets that can corrupt it.
  */
 public abstract class SeatedEntity {
-    protected Entity _entity = null;
+    protected Entity entity = null;
     protected DisplayMode displayMode = DisplayMode.DEFAULT;
     protected final CartAttachmentSeat seat;
     public final SeatOrientation orientation = new SeatOrientation();
@@ -56,7 +56,7 @@ public abstract class SeatedEntity {
      * @return True if empty
      */
     public boolean isEmpty() {
-        return this._entity == null;
+        return this.entity == null;
     }
 
     /**
@@ -65,7 +65,7 @@ public abstract class SeatedEntity {
      * @return True if the seated entity is a Player
      */
     public boolean isPlayer() {
-        return this._entity instanceof Player;
+        return this.entity instanceof Player;
     }
 
     /**
@@ -74,7 +74,7 @@ public abstract class SeatedEntity {
      * @return seated entity
      */
     public Entity getEntity() {
-        return this._entity;
+        return this.entity;
     }
 
     /**
@@ -83,7 +83,7 @@ public abstract class SeatedEntity {
      * @param entity
      */
     public void setEntity(Entity entity) {
-        this._entity = entity;
+        this.entity = entity;
     }
 
     public DisplayMode getDisplayMode() {
@@ -95,25 +95,25 @@ public abstract class SeatedEntity {
     }
 
     protected void hideRealPlayer(Player viewer) {
-        if (this._entity == viewer) {
+        if (this.entity == viewer) {
             // Sync to self: make the real player invisible using a metadata change
             FirstPersonView.setPlayerVisible(viewer, false);
         } else {
             // Sync to others: destroy the original player
-            PlayerUtil.getVehicleMountController(viewer).despawn(this._entity.getEntityId());
+            PlayerUtil.getVehicleMountController(viewer).despawn(this.entity.getEntityId());
         }
     }
 
     protected void showRealPlayer(Player viewer) {
         // Respawn the actual player or clean up the list
         // Only needed when the player is not the viewer
-        if (viewer == this._entity) {
+        if (viewer == this.entity) {
             // Can not respawn yourself! Make visible using metadata.
             FirstPersonView.setPlayerVisible(viewer, true);
         } else {
             // Respawns the player as a normal player
             VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
-            vmc.respawn((Player) this._entity, (theViewer, thePlayer) -> {
+            vmc.respawn((Player) this.entity, (theViewer, thePlayer) -> {
                 FakePlayerSpawner.NORMAL.spawnPlayer(theViewer, thePlayer, thePlayer.getEntityId(), false, null, meta -> {});
             });
         }
@@ -125,8 +125,8 @@ public abstract class SeatedEntity {
      * @param viewer
      */
     public void resetMetadata(Player viewer) {
-        DataWatcher metaTmp = EntityHandle.fromBukkit(this._entity).getDataWatcher();
-        PacketUtil.sendPacket(viewer, PacketPlayOutEntityMetadataHandle.createNew(this._entity.getEntityId(), metaTmp, true));
+        DataWatcher metaTmp = EntityHandle.fromBukkit(this.entity).getDataWatcher();
+        PacketUtil.sendPacket(viewer, PacketPlayOutEntityMetadataHandle.createNew(this.entity.getEntityId(), metaTmp, true));
     }
 
     /**
@@ -164,7 +164,7 @@ public abstract class SeatedEntity {
             this.fakeMount.spawn(viewer, seat.calcMotion());
 
             // Also send zero-max-health if the viewer is the one sitting in the entity
-            if (this._entity == viewer) {
+            if (this.entity == viewer) {
                 PacketUtil.sendPacket(viewer, PacketPlayOutUpdateAttributesHandle.createZeroMaxHealth(this.fakeMount.getEntityId()));
             }
         }
