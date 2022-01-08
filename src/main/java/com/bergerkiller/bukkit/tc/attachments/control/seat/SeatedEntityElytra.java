@@ -157,15 +157,11 @@ class SeatedEntityElytra extends SeatedEntity {
     @Override
     public void makeVisible(Player viewer) {
         VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
-        if (this._entity == viewer) {
-            // Don't hide the player, that's up to the first-person view mode to take care of
-            // Only show the fake player
-            makeFakePlayerVisible(vmc, viewer);
-        } else if (this.isPlayer()) {
-            // Despawn/hide original player entity
-            hideRealPlayer(viewer);
-
-            // Show a fake player
+        if (this.isPlayer()) {
+            // Show the fake player, and if not first-person, hide the real player
+            if (this._entity != viewer) {
+                hideRealPlayer(viewer);
+            }
             makeFakePlayerVisible(vmc, viewer);
         } else if (!this.isEmpty()) {
             // Default behavior for non-player entities is just to mount them
@@ -176,15 +172,12 @@ class SeatedEntityElytra extends SeatedEntity {
     @Override
     public void makeHidden(Player viewer) {
         VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
-        if (this._entity == viewer) {
-            // Just hide the fake players
+        if (this.isPlayer()) {
+            // Hide the fake player, and if not first-person, re-show the real player too
             makeFakePlayerHidden(vmc, viewer);
-        } else if (this.isPlayer()) {
-            // Hide fake player
-            makeFakePlayerHidden(vmc, viewer);
-
-            // Show real player
-            showRealPlayer(viewer);
+            if (this._entity != viewer) {
+                showRealPlayer(viewer);
+            }
         } else if (!this.isEmpty()) {
             // Unmount for generic entities
             vmc.unmount(this.parentMountId, this._entity.getEntityId());

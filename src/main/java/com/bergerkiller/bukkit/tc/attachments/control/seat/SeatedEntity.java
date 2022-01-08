@@ -296,6 +296,7 @@ public abstract class SeatedEntity {
     public static enum DisplayMode {
         DEFAULT(SeatedEntityNormal::new), /* Player is displayed either upright or upside-down in a cart */
         ELYTRA_SIT(SeatedEntityElytra::new), /* Player is in sitting pose while flying in an elytra */
+        HEAD(SeatedEntityHead::new), /* Players are replaced with player skulls with their face */
         NO_NAMETAG(SeatedEntityNormal::new); /* Same as DEFAULT, but no nametags are shown */
 
         private final Function<CartAttachmentSeat, SeatedEntity> _constructor;
