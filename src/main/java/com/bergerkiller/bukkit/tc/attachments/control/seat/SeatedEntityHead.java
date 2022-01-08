@@ -1,32 +1,25 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
 import org.bukkit.Material;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
+import com.bergerkiller.bukkit.tc.attachments.VirtualArmorStandItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.EntityLivingHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
 
 /**
  * Seated entity that is using flying skull with a player skin on an
  * armor stand. Some types of mobs are also supported as skulls.
  */
 class SeatedEntityHead extends SeatedEntity {
-    private VirtualEntity skull;
-    private ItemStack skullItem;
+    private VirtualArmorStandItemEntity skull;
 
     public SeatedEntityHead(CartAttachmentSeat seat) {
         super(seat);
@@ -50,32 +43,21 @@ class SeatedEntityHead extends SeatedEntity {
             }
 
             if (skull == null) {
-                skull = new VirtualEntity(seat.getManager());
-                skull.setEntityType(EntityType.ARMOR_STAND);
-                skull.setSyncMode(seat.isMinecartInterpolation() ? SyncMode.NORMAL_MINECART_FIX : SyncMode.NORMAL);
-                skull.setRelativeOffset(0.0, -0.72, 0.0);
-                skull.updatePosition(seat.getTransform(), new Vector());
-                skull.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
-                skull.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
-                skull.getMetaData().set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
-                        EntityArmorStandHandle.DATA_FLAG_SET_MARKER |
-                        EntityArmorStandHandle.DATA_FLAG_IS_SMALL |
-                        EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE));
-
-                skull.getMetaData().set(EntityArmorStandHandle.DATA_POSE_HEAD, Util.getArmorStandPose(seat.getTransform().getRotation()));
-                skull.syncPosition(true);
-            }
-            if (skullItem == null) {
-                //TODO: Older versions only supported the player name (MC 1.8)
-                skullItem = new ItemStack(Material.PLAYER_HEAD);
+                ItemStack skullItem = new ItemStack(Material.PLAYER_HEAD);
                 SkullMeta meta = (SkullMeta) skullItem.getItemMeta();
                 meta.setOwningPlayer((Player) entity);
                 skullItem.setItemMeta(meta);
+
+                skull = new VirtualArmorStandItemEntity(seat.getManager());
+                skull.setSyncMode(seat.isMinecartInterpolation() ? SyncMode.NORMAL_MINECART_FIX : SyncMode.NORMAL);
+                skull.setItem(ItemTransformType.SMALL_HEAD, skullItem);
+                skull.setRelativeOffset(0.0, -0.72, 0.0);
+                skull.updatePosition(seat.getTransform());
+                skull.syncPosition(true);
             }
 
             // Spawn and send head equipment
             skull.spawn(viewer, seat.calcMotion());
-            PacketUtil.sendPacket(viewer, ItemTransformType.HEAD.createEquipmentPacket(skull.getEntityId(), skullItem));
         } else if (!isEmpty()) {
             // Default behavior for non-player entities is just to mount them
             PlayerUtil.getVehicleMountController(viewer).mount(this.spawnVehicleMount(viewer), this.entity.getEntityId());
@@ -91,7 +73,6 @@ class SeatedEntityHead extends SeatedEntity {
                 // Force a reset when the passenger changes
                 if (!skull.hasViewers()) {
                     skull = null;
-                    skullItem = null;
                 }
             }
 
@@ -153,8 +134,7 @@ class SeatedEntityHead extends SeatedEntity {
     @Override
     public void updatePosition(Matrix4x4 transform) {
         if (skull != null) {
-            skull.updatePosition(transform, new Vector());
-            skull.getMetaData().set(EntityArmorStandHandle.DATA_POSE_HEAD, Util.getArmorStandPose(transform.getRotation()));
+            skull.updatePosition(transform);
         }
         updateVehicleMountPosition(transform);
     }

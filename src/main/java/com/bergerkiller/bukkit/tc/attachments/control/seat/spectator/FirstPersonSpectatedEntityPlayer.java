@@ -232,7 +232,6 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
     private class BlindRespawn {
         public final VirtualEntity spectated;
         public final long timeout;
-        private final boolean useVehicleTransform;
 
         public BlindRespawn() {
             // We spectate an invisible armorstand that has MARKER set
@@ -240,21 +239,9 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             spectated = new VirtualEntity(seat.getManager());
             spectated.setEntityType(EntityType.VILLAGER);
             spectated.setSyncMode(seat.isMinecartInterpolation() ? SyncMode.NORMAL_MINECART_FIX : SyncMode.NORMAL);
+            spectated.setRelativeOffset(0.0, -1.62, 0.0);
             spectated.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
             spectated.getMetaData().set(EntityHandle.DATA_NO_GRAVITY, true);
-
-            if (!view.getEyePosition().isDefault()) {
-                // Base transform is the eye transform - adjust
-                useVehicleTransform = false;
-                spectated.setRelativeOffset(0.0, -1.62, 0.0);
-            } else {
-                // Use vehicle transform for everything
-                // The extra relative offset is to account for villager head height
-                useVehicleTransform = true;
-                // Note: is -1.65 when seated in a minecart directly - something is off!
-                spectated.setRelativeOffset(0.0, -1.62, 0.0);
-            }
-
             timeout = System.currentTimeMillis() + (6 * 50); // 6 (client) ticks
         }
 
@@ -292,7 +279,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
         }
 
         @Override
-        public void spawn(Player viewer, Vector motion) {
+        protected void sendSpawnPackets(Player viewer, Vector motion) {
             FakePlayerSpawner.FakePlayerOrientation orientation = FakePlayerSpawner.FakePlayerOrientation.create(
                     (float) this.getYawPitchRoll().getY(),
                     this.getLivePitch(),

@@ -346,7 +346,7 @@ public class VirtualEntity {
         return !this.viewers.isEmpty();
     }
 
-    public void spawn(Player viewer, Vector motion) {
+    public final void spawn(Player viewer, Vector motion) {
         // Destroy first if needed. Shouldn't happen, but just in case.
         if (this.viewers.contains(viewer)) {
             this.destroy(viewer);
@@ -356,7 +356,7 @@ public class VirtualEntity {
         this.sendSpawnPackets(viewer, motion);
     }
 
-    private void sendSpawnPackets(Player viewer, Vector motion) {
+    protected void sendSpawnPackets(Player viewer, Vector motion) {
         //motX = motY = motZ = 0.0;
 
         //System.out.println("SPAWN " + this.syncAbsX + "/" + this.syncAbsY + "/" + this.syncAbsZ + " ID=" + this.entityUUID);
