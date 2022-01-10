@@ -91,7 +91,8 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
     private void prepareFakeMount(Matrix4x4 baseTransform, Consumer<VirtualEntity> manipulator) {
         this.fakeMount = new VirtualEntity(seat.getManager());
         this.fakeMount.setEntityType(EntityType.ARMOR_STAND);
-        this.fakeMount.setSyncMode(seat.isMinecartInterpolation() ? SyncMode.SEAT_MINECART_FIX : SyncMode.SEAT);
+        this.fakeMount.setSyncMode(SyncMode.SEAT);
+        this.fakeMount.setUseMinecartInterpolation(seat.isMinecartInterpolation());
 
         // Put the entity on a fake mount that we move around at an offset
         manipulator.accept(this.fakeMount);
@@ -238,7 +239,8 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             // This causes the spectator to view from 0/0/0, avoiding having to do any extra offsets
             spectated = new VirtualEntity(seat.getManager());
             spectated.setEntityType(EntityType.VILLAGER);
-            spectated.setSyncMode(seat.isMinecartInterpolation() ? SyncMode.NORMAL_MINECART_FIX : SyncMode.NORMAL);
+            spectated.setSyncMode(SyncMode.NORMAL);
+            spectated.setUseMinecartInterpolation(seat.isMinecartInterpolation());
             spectated.setRelativeOffset(0.0, -1.62, 0.0);
             spectated.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
             spectated.getMetaData().set(EntityHandle.DATA_NO_GRAVITY, true);

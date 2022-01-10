@@ -282,7 +282,8 @@ public abstract class SeatedEntity {
     protected VirtualEntity createPassengerVehicle() {
         VirtualEntity mount = new VirtualEntity(seat.getManager());
         mount.setEntityType(EntityType.ARMOR_STAND);
-        mount.setSyncMode(seat.isMinecartInterpolation() ? SyncMode.SEAT_MINECART_FIX : SyncMode.SEAT);
+        mount.setSyncMode(SyncMode.SEAT);
+        mount.setUseMinecartInterpolation(seat.isMinecartInterpolation());
         mount.setRelativeOffset(0.0, -VirtualEntity.ARMORSTAND_BUTT_OFFSET, 0.0);
         mount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
         mount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);

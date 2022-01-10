@@ -77,6 +77,7 @@ public class VirtualEntity {
     private boolean entityTypeIsMinecart = false;
     private int rotateCtr = 0;
     private SyncMode syncMode = SyncMode.NORMAL;
+    private boolean minecartInterpolation = false;
     private boolean useParentMetadata = false;
     private final ArrayList<Player> viewers = new ArrayList<Player>();
     private Vector yawPitchRoll = new Vector(0.0, 0.0, 0.0);
@@ -168,9 +169,20 @@ public class VirtualEntity {
 
     public void setSyncMode(SyncMode mode) {
         this.syncMode = mode;
-        if (mode == SyncMode.SEAT || mode == SyncMode.SEAT_MINECART_FIX) {
+        if (mode == SyncMode.SEAT) {
             this.livePitch = this.syncPitch = 0.0f;
         }
+    }
+
+    /**
+     * Sets whether to use minecart movement interpolation. This makes this entity move
+     * at roughly the same speed as Minecart entities do, even though this entity is not
+     * a minecart.
+     *
+     * @param use
+     */
+    public void setUseMinecartInterpolation(boolean use) {
+        this.minecartInterpolation = use;
     }
 
     public Vector getYawPitchRoll() {
@@ -277,7 +289,7 @@ public class VirtualEntity {
 
         this.yawPitchRoll = yawPitchRoll;
         this.liveYaw = (float) this.yawPitchRoll.getY();
-        if ((this.syncMode != SyncMode.SEAT && this.syncMode != SyncMode.SEAT_MINECART_FIX) && this.hasPitch()) {
+        if (this.syncMode != SyncMode.SEAT && this.hasPitch()) {
             livePitch = (float) this.yawPitchRoll.getX();
         } else {
             livePitch = 0.0f;
@@ -398,7 +410,7 @@ public class VirtualEntity {
             PacketUtil.sendPacket(viewer, metaPacket.toCommonPacket());
         }
 
-        if (this.syncMode == SyncMode.SEAT || this.syncMode == SyncMode.SEAT_MINECART_FIX) {
+        if (this.syncMode == SyncMode.SEAT) {
             PacketPlayOutRelEntityMoveLookHandle movePacket = PacketPlayOutRelEntityMoveLookHandle.createNew(
                     this.entityId,
                     motion.getX(), motion.getY(), motion.getZ(),
@@ -499,7 +511,7 @@ public class VirtualEntity {
         }
 
         // When trying to imitate the minecart's update rate, perform less delta movement than reality
-        if (this.syncMode == SyncMode.SEAT_MINECART_FIX || this.syncMode == SyncMode.NORMAL_MINECART_FIX) {
+        if (this.minecartInterpolation) {
             final double FACTOR = 3.0 / 5.0;
             dx *= FACTOR;
             dy *= FACTOR;
@@ -639,16 +651,12 @@ public class VirtualEntity {
     }
 
     public static enum SyncMode {
-        /** Only position is updated */
+        /** Omits all information except what is required for displaying an item in an ArmorStand */
         ITEM(false),
         /** Position and rotation is updated */
         NORMAL(true),
-        /** Position and rotation is updated, making use of 5-tick minecart interpolation time */
-        NORMAL_MINECART_FIX(true),
         /** Only position and vehicle yaw is updated */
-        SEAT(false),
-        /** Same as SEAT, but changes the update rate to match the 5-tick minecart interpolation time */
-        SEAT_MINECART_FIX(false);
+        SEAT(false);
 
         private final boolean _normal;
 

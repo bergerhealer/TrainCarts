@@ -54,7 +54,8 @@ class FirstPersonSpectatedEntityInvisible extends FirstPersonSpectatedEntity {
     private VirtualEntity createEntity() {
         VirtualEntity entity = new VirtualEntity(seat.getManager());
         entity.setEntityType(EntityType.ARMOR_STAND);
-        entity.setSyncMode(seat.isMinecartInterpolation() ? SyncMode.NORMAL_MINECART_FIX : SyncMode.NORMAL);
+        entity.setSyncMode(SyncMode.NORMAL);
+        entity.setUseMinecartInterpolation(seat.isMinecartInterpolation());
 
         // We spectate an invisible armorstand that has MARKER set
         // This causes the spectator to view from 0/0/0, avoiding having to do any extra offsets

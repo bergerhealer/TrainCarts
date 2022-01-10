@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
 import org.bukkit.Material;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -9,16 +10,18 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualArmorStandItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
+import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
 /**
  * Seated entity that is using flying skull with a player skin on an
  * armor stand. Some types of mobs are also supported as skulls.
  */
-class SeatedEntityHead extends SeatedEntity {
+public class SeatedEntityHead extends SeatedEntity {
     private VirtualArmorStandItemEntity skull;
 
     public SeatedEntityHead(CartAttachmentSeat seat) {
@@ -43,15 +46,13 @@ class SeatedEntityHead extends SeatedEntity {
             }
 
             if (skull == null) {
-                ItemStack skullItem = new ItemStack(Material.PLAYER_HEAD);
-                SkullMeta meta = (SkullMeta) skullItem.getItemMeta();
-                meta.setOwningPlayer((Player) entity);
-                skullItem.setItemMeta(meta);
-
                 skull = new VirtualArmorStandItemEntity(seat.getManager());
-                skull.setSyncMode(seat.isMinecartInterpolation() ? SyncMode.NORMAL_MINECART_FIX : SyncMode.NORMAL);
-                skull.setItem(ItemTransformType.SMALL_HEAD, skullItem);
+                skull.setSyncMode(SyncMode.ITEM);
+                skull.setUseMinecartInterpolation(seat.isMinecartInterpolation());
+                skull.setItem(ItemTransformType.SMALL_HEAD, createSkullItem(entity));
                 skull.setRelativeOffset(0.0, -0.72, 0.0);
+                skull.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, FakePlayerSpawner.UPSIDEDOWN.getPlayerName());
+                skull.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, false);
                 skull.updatePosition(seat.getTransform());
                 skull.syncPosition(true);
             }
@@ -145,5 +146,25 @@ class SeatedEntityHead extends SeatedEntity {
             skull.syncPosition(absolute);
         }
         syncVehicleMountPosition(absolute);
+    }
+
+    /**
+     * Creates a skull item representing an Entity. If not possible, returns null.
+     *
+     * @param entity
+     * @return skull item best representing this entity, null otherwise
+     */
+    public static ItemStack createSkullItem(Entity entity) {
+        if (entity instanceof Player) {
+            //TODO: API not supported on old (MC 1.8) servers
+            ItemStack skullItem = new ItemStack(Material.PLAYER_HEAD);
+            SkullMeta meta = (SkullMeta) skullItem.getItemMeta();
+            meta.setOwningPlayer((Player) entity);
+            skullItem.setItemMeta(meta);
+            return skullItem;
+        } else {
+            //TODO: Skeleton and such maybe?
+            return null;
+        }
     }
 }

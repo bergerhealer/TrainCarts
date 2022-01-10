@@ -28,7 +28,12 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
     public VirtualArmorStandItemEntity(AttachmentManager manager) {
         super(manager);
         this.setEntityType(EntityType.ARMOR_STAND);
+
+        // By default. NORMAL and NORMAL_MINECART_FIX are also supported!
+        // Then it also sends correct head yaw information, so that spectating the
+        // armorstand works as expected.
         this.setSyncMode(SyncMode.ITEM);
+
         this.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
         this.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
                 EntityArmorStandHandle.DATA_FLAG_HAS_ARMS, true);

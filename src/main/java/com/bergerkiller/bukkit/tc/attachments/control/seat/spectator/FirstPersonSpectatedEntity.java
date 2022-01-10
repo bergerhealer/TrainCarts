@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityHead;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutCameraHandle;
 
 /**
@@ -72,12 +73,14 @@ public abstract class FirstPersonSpectatedEntity {
     }
 
     public static FirstPersonSpectatedEntity create(CartAttachmentSeat seat, FirstPersonViewSpectator view, Player player) {
+        // In these two modes the actual player is made invisible
         if (view.getLiveMode() == FirstPersonViewMode.INVISIBLE ||
             view.getLiveMode() == FirstPersonViewMode.THIRD_P)
         {
             return new FirstPersonSpectatedEntityInvisible(seat, view, player);
-        } else {
-            return new FirstPersonSpectatedEntityPlayer(seat, view, player);
         }
+
+        // Default mode of showing the player itself
+        return new FirstPersonSpectatedEntityPlayer(seat, view, player);
     }
 }
