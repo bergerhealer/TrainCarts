@@ -411,6 +411,12 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         //Remove this train if now empty
         if (!this.isValid()) {
             this.remove();
+        } else {
+            // Refresh chunk area after the split, and fire property changed (switcher)
+            // The new train was already created, with the chunks kept loaded
+            // by it marked, so it's safe to remove chunks not part of the
+            // remaining train without chunks unloading.
+            this.onGroupCreated();
         }
         //Remove if empty or not allowed, else add
         return gnew;
