@@ -138,6 +138,11 @@ class SeatedEntityNormal extends SeatedEntity {
     }
 
     @Override
+    public Vector getFirstPersonCameraOffset() {
+        return new Vector(0.0, VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT, 0.0);
+    }
+
+    @Override
     public void makeVisible(Player viewer) {
         VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
 

@@ -34,7 +34,12 @@ public class SeatedEntityHead extends SeatedEntity {
 
     @Override
     public Vector getThirdPersonCameraOffset() {
-        return new Vector(0.0, 1.2, 0.0);
+        return new Vector(0.0, 1.0, 0.0);
+    }
+
+    @Override
+    public Vector getFirstPersonCameraOffset() {
+        return new Vector(0.0, 0.215, 0.0);
     }
 
     @Override
@@ -50,7 +55,6 @@ public class SeatedEntityHead extends SeatedEntity {
                 skull.setSyncMode(SyncMode.ITEM);
                 skull.setUseMinecartInterpolation(seat.isMinecartInterpolation());
                 skull.setItem(ItemTransformType.SMALL_HEAD, createSkullItem(entity));
-                skull.setRelativeOffset(0.0, -0.72, 0.0);
                 skull.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, FakePlayerSpawner.UPSIDEDOWN.getPlayerName());
                 skull.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, false);
                 skull.updatePosition(seat.getTransform());

@@ -48,16 +48,10 @@ public class FirstPersonViewDefault extends FirstPersonView {
         case SMOOTHCOASTERS_FIX:
         case THIRD_P:
             return true;
-        case DEFAULT:
-            // The elytra has a 'weird' mount position to make it work in third-person
-            // This causes the default camera, mounted for the same entity, to no longer work
-            // To fix this, make use of the virtual camera mount
-            if (this.seat.seated instanceof SeatedEntityElytra) {
-                return true;
-            }
-            return false;
         default:
-            return false;
+            // Only do it when the seat (butt) to camera (eye) offset is exactly vanilla
+            // If not, we must use a fake mount to position it properly
+            return this.seat.seated.getFirstPersonCameraOffset().getY() != VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT;
         }
     }
 
@@ -103,12 +97,12 @@ public class FirstPersonViewDefault extends FirstPersonView {
             }
         }
 
-        if (!useFakeCamera) {
-            // If mode is INVISIBLE, then also make the player itself invisible using a metadata update
-            if (this.getLiveMode() == FirstPersonViewMode.INVISIBLE) {
-                setPlayerVisible(viewer, false);
-            }
+        // If mode is INVISIBLE, then also make the player itself invisible using a metadata update
+        if (this.getLiveMode() == FirstPersonViewMode.INVISIBLE) {
+            setPlayerVisible(viewer, false);
+        }
 
+        if (!useFakeCamera) {
             // If no fake camera mount is used, make sure to mount the player in the vehicle mount
             vmc.mount(seat.seated.spawnVehicleMount(viewer), viewer.getEntityId());
         } else if (this.getLiveMode() == FirstPersonViewMode.THIRD_P) {

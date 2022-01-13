@@ -80,6 +80,12 @@ public abstract class FirstPersonSpectatedEntity {
             return new FirstPersonSpectatedEntityInvisible(seat, view, player);
         }
 
+        // View through a floating armorstand. Head will be slightly above where the
+        // camera view is.
+        if (seat.seated instanceof SeatedEntityHead) {
+            return new FirstPersonSpectatedEntityHead(seat, view, player);
+        }
+
         // Default mode of showing the player itself
         return new FirstPersonSpectatedEntityPlayer(seat, view, player);
     }

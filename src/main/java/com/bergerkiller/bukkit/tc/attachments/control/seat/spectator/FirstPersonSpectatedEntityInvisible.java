@@ -42,6 +42,7 @@ class FirstPersonSpectatedEntityInvisible extends FirstPersonSpectatedEntity {
                 computeAltPitch(entity.getYawPitchRoll().getX(), 179.0f),
                 entity.getYawPitchRoll().getY(),
                 0.0));
+        entityAlt.syncPosition(true);
 
         // Spawn the entities for the Player
         entity.spawn(player, seat.calcMotion());

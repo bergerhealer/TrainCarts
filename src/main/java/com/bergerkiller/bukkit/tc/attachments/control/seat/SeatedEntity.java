@@ -233,6 +233,14 @@ public abstract class SeatedEntity {
     public abstract Vector getThirdPersonCameraOffset();
 
     /**
+     * Gets the seat-relative x/y/z offset away from the seat cameras should be positioned
+     * to look exactly from where the player would normally look as this entity.
+     *
+     * @return camera offset for viewing from this entity in first-person
+     */
+    public abstract Vector getFirstPersonCameraOffset();
+
+    /**
      * Spawns this seated entity for a viewer. Mounts any real entity
      * into its seat.
      *

@@ -68,8 +68,8 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
 
     @Override
     public void updatePosition(Matrix4x4 transform) {
-        // Debug mode makes models look at the viewer to test orientation
         Quaternion q_rotation = transform.getRotation();
+        Vector new_entity_ypr;
 
         // Detect changes in yaw that we can apply to the entity directly
         // The remainder or 'error' is applied to the pose of the model
@@ -84,13 +84,22 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
         last_rot = q_rotation;
 
         // Apply when the yaw change isn't too extreme (does not cause a flip) and has a significant change
-        Vector new_entity_ypr = this.getYawPitchRoll().clone();
+        new_entity_ypr = this.getYawPitchRoll().clone();
         new_entity_ypr.setY(Util.getNextEntityYaw((float) new_entity_ypr.getY(), yaw_change));
 
+        updateArmorStandPosition(transform, new_entity_ypr, q_rotation);
+    }
+
+    @Override
+    public void updatePosition(Matrix4x4 transform, Vector yawPitchRoll) {
+        updateArmorStandPosition(transform, yawPitchRoll, transform.getRotation());
+    }
+
+    private void updateArmorStandPosition(Matrix4x4 transform, Vector entityYawPitchRoll, Quaternion poseOrientation) {
         // Subtract rotation of Entity (keep protocol error into account)
         Quaternion q = new Quaternion();
-        q.rotateY(new_entity_ypr.getY());
-        q_rotation = Quaternion.multiply(q, q_rotation);
+        q.rotateY(entityYawPitchRoll.getY());
+        poseOrientation = Quaternion.multiply(q, poseOrientation);
 
         // Adjust relative offset of the armorstand entity to take shoulder angle into account
         // This doesn't apply for head, and only matters for the left/right hand
@@ -99,21 +108,21 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
         double ver_offset = this.transformType.getVerticalOffset();
         Vector original_offset = super.getRelativeOffset().clone();
         if (hor_offset != 0.0) {
-            this.setRelativeOffset(
-                    -hor_offset * Math.cos(Math.toRadians(new_entity_ypr.getY())),
+            this.addRelativeOffset(
+                    -hor_offset * Math.cos(Math.toRadians(entityYawPitchRoll.getY())),
                     -ver_offset,
-                    -hor_offset * Math.sin(Math.toRadians(new_entity_ypr.getY())));
+                    -hor_offset * Math.sin(Math.toRadians(entityYawPitchRoll.getY())));
         } else {
-            this.setRelativeOffset(0.0, -ver_offset, 0.0);
+            this.addRelativeOffset(0.0, -ver_offset, 0.0);
         }
 
         // Apply the transform to the entity position and pose of the model
-        super.updatePosition(transform, new_entity_ypr);
+        super.updatePosition(transform, entityYawPitchRoll);
 
         // Restore this
         this.setRelativeOffset(original_offset);
 
-        Vector rotation = Util.getArmorStandPose(q_rotation);
+        Vector rotation = Util.getArmorStandPose(poseOrientation);
         DataWatcher meta = this.getMetaData();
         if (this.transformType.isHead()) {
             meta.set(EntityArmorStandHandle.DATA_POSE_HEAD, rotation);

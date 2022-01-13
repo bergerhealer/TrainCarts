@@ -6,7 +6,6 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
-import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
@@ -63,7 +62,7 @@ public abstract class FirstPersonView {
             // Return seat transform with a player butt-to-eye offset included
             // This offset is not rotated when the seat rotates, it is always y + 1
             Matrix4x4 eye = new Matrix4x4();
-            eye.translate(0.0, VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT, 0.0);
+            eye.translate(seat.seated.getFirstPersonCameraOffset());
             eye.multiply(seat.getTransform());
             return eye;
         }
