@@ -26,7 +26,6 @@ import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.generated.com.mojang.authlib.GameProfileHandle;
-import com.bergerkiller.generated.com.mojang.authlib.properties.PropertyHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutNamedEntitySpawnHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPlayerInfoHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutScoreboardTeamHandle;
@@ -281,7 +280,7 @@ public enum FakePlayerSpawner {
             // Schedule a new one
             CleanupPlayerListEntryTask task = new CleanupPlayerListEntryTask(TrainCarts.plugin, this, viewer, playerName, playerUUID);
             this.pendingCleanup.add(task);
-            task.start(TAB_LIST_CLEANUP_DELAY);
+            task.start(TAB_LIST_CLEANUP_DELAY, 1);
         }
 
         /**
@@ -292,7 +291,7 @@ public enum FakePlayerSpawner {
                 List<CleanupPlayerListEntryTask> all = new ArrayList<>(pendingCleanup);
                 pendingCleanup.clear();
                 for (CleanupPlayerListEntryTask task : all) {
-                    task.run();
+                    task.finish();
                 }
             }
         }
@@ -304,6 +303,7 @@ public enum FakePlayerSpawner {
     private static class CleanupPlayerListEntryTask extends Task {
         private final ProfileState state;
         private final Player viewer;
+        private final long runWhen;
         public final String playerName;
         public final UUID playerUUID;
 
@@ -313,10 +313,17 @@ public enum FakePlayerSpawner {
             this.viewer = viewer;
             this.playerName = playerName;
             this.playerUUID = playerUUID;
+            this.runWhen = System.currentTimeMillis() + TAB_LIST_CLEANUP_DELAY * 50; // game client ticks
         }
 
         @Override
         public void run() {
+            if (System.currentTimeMillis() >= runWhen) {
+                finish();
+            }
+        }
+
+        public void finish() {
             try {
                 if (this.viewer.isOnline()) {
                     GameProfileHandle oldFakeGameProfile = GameProfileHandle.createNew(this.playerUUID, this.playerName);
@@ -334,6 +341,7 @@ public enum FakePlayerSpawner {
                 }
             } finally {
                 // Cleanup ourselves from the list
+                stop();
                 this.state.pendingCleanup.remove(this);
             }
         }
