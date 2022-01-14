@@ -99,6 +99,16 @@ public abstract class SeatedEntity {
     }
 
     /**
+     * Gets whether a dummy player is actually being displayed. If dummy
+     * mode is active but a player is in the seat, returns false.
+     *
+     * @return True if the dummy player is displayed
+     */
+    public boolean isDummyPlayerDisplayed() {
+        return this.showDummy && this.entity == null;
+    }
+
+    /**
      * Sets a player to act as a dummy entity displayed sitting in the seat
      *
      * @param dummyPlayer

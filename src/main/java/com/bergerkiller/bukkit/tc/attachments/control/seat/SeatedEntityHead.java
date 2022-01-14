@@ -48,9 +48,9 @@ public class SeatedEntityHead extends SeatedEntity {
 
     @Override
     public void makeVisible(Player viewer) {
-        if (isPlayer() || (isDummyPlayer() && isEmpty())) {
+        if (isPlayer() || isDummyPlayerDisplayed()) {
             // Despawn/hide original entity
-            if (entity != viewer && !isDummyPlayer()) {
+            if (entity != viewer && !isDummyPlayerDisplayed()) {
                 hideRealPlayer(viewer);
             }
 
@@ -76,7 +76,7 @@ public class SeatedEntityHead extends SeatedEntity {
 
     @Override
     public void makeHidden(Player viewer) {
-        if (isPlayer() || (isDummyPlayer() && isEmpty())) {
+        if (isPlayer() || isDummyPlayerDisplayed()) {
             if (skull != null) {
                 skull.destroy(viewer);
 
@@ -87,7 +87,7 @@ public class SeatedEntityHead extends SeatedEntity {
             }
 
             // Show real player again
-            if (viewer != entity && !isDummyPlayer()) {
+            if (viewer != entity && !isDummyPlayerDisplayed()) {
                 showRealPlayer(viewer);
             }
         } else if (!isEmpty()) {
@@ -160,7 +160,7 @@ public class SeatedEntityHead extends SeatedEntity {
     @Override
     public void updateFocus(boolean focused) {
         if (skull != null) {
-            skull.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, focused);
+            skull.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING | EntityHandle.DATA_FLAG_ON_FIRE, focused);
             skull.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
                     EntityArmorStandHandle.DATA_FLAG_SET_MARKER, focused);
         }

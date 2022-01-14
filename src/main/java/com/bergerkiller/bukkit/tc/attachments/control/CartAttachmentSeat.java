@@ -356,7 +356,7 @@ public class CartAttachmentSeat extends CartAttachment {
             return;
         }
 
-        if (viewer == this.seated.getEntity() && !this.seated.isDummyPlayer()) {
+        if (viewer == this.seated.getEntity()) {
             this.firstPerson.player = viewer;
             this.firstPerson.makeVisible(viewer);
         } else {
@@ -365,7 +365,7 @@ public class CartAttachmentSeat extends CartAttachment {
     }
 
     public void makeHiddenImpl(Player viewer) {
-        if (this.seated.getEntity() == viewer && !this.seated.isDummyPlayer()) {
+        if (this.seated.getEntity() == viewer) {
             this.firstPerson.makeHidden(viewer);
             this.firstPerson.player = null;
         } else {
