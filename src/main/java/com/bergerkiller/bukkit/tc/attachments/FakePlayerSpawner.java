@@ -26,6 +26,7 @@ import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.generated.com.mojang.authlib.GameProfileHandle;
+import com.bergerkiller.generated.com.mojang.authlib.properties.PropertyHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutNamedEntitySpawnHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPlayerInfoHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutScoreboardTeamHandle;
@@ -160,16 +161,17 @@ public enum FakePlayerSpawner {
         // Send a tab list entry for this new (fake) player to be spawned
         final UUID uuid = state.getUUID(this);
         {
-            GameProfileHandle newFakeGameProfile = GameProfileHandle.createNew(uuid, this._playerName);
-            ChatText playerListName;
+            final GameProfileHandle newFakeGameProfile;
+            final ChatText playerListName;
             if (player == null) {
                 // Send game profile information of a dummy player
-                // TODO: Dummy player texture?
+                newFakeGameProfile = createDummyPlayerProfile(uuid, this._playerName);
                 playerListName = ChatText.fromMessage("Dummy");
             } else {
                 // Send game profile information of the online player
-                playerListName = ChatText.fromMessage(player.getPlayerListName()); //TODO: Use components
+                newFakeGameProfile = GameProfileHandle.createNew(uuid, this._playerName);
                 newFakeGameProfile.setAllProperties(GameProfileHandle.getForPlayer(player));
+                playerListName = ChatText.fromMessage(player.getPlayerListName()); //TODO: Use components
             }
             PacketPlayOutPlayerInfoHandle newInfoPacket = PacketPlayOutPlayerInfoHandle.createNew();
             newInfoPacket.setAction(EnumPlayerInfoActionHandle.ADD_PLAYER);
@@ -248,6 +250,31 @@ public enum FakePlayerSpawner {
     private static UUID generateNPCUUID() {
         UUID uuid = UUID.randomUUID();
         return new UUID((uuid.getMostSignificantBits() & ~0xF000L) | 0x2000L, uuid.getLeastSignificantBits());
+    }
+
+    /**
+     * Creates a Game Profile instance for a dummy player. Mostly useful for skull items.
+     *
+     * @return game profile
+     */
+    public static GameProfileHandle createDummyPlayerProfile() {
+        return createDummyPlayerProfile(generateNPCUUID(), "Dummy");
+    }
+
+    /**
+     * Creates a Game Profile instance for a dummy player
+     *
+     * @param uuid
+     * @param playerName
+     * @return game profile
+     */
+    public static GameProfileHandle createDummyPlayerProfile(UUID uuid, String playerName) {
+        GameProfileHandle newFakeGameProfile = GameProfileHandle.createNew(uuid, playerName);
+        newFakeGameProfile.putProperty("textures", PropertyHandle.createNew(
+                "textures",
+                "ewogICJ0aW1lc3RhbXAiIDogMTU5MzU0NTI1NjM4OSwKICAicHJvZmlsZUlkIiA6ICIyNmM1MmQzZjgxMzQ0ZjUzYmNhYzA0Mjc4ODBiZDVjNCIsCiAgInByb2ZpbGVOYW1lIiA6ICJBbWJpZ3VvdXNCaXZhbHZlIiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzg3NzdiY2JjNjc3ODBmMDE4YThjMjcwMWQ0NjFmNjU0Yjk4ZDc0ZWJmMWE2YThkOGUyZTUzNDI4MDZmYjkwNTciCiAgICB9CiAgfQp9",
+                "xFWwJjNxf0bB0+o4JTczgZsG+s77dBR3VTWmEg7jypBTiE9qtibcu1LRAG2CgT7a2Ga+zZiE+mvtu/jeiTSntw0ySytXSyVicrqnpOaHhK6aBxkXzGSpV/CNGzHABFoy1bwwOREirke6VU65tfCFcTqmQrTY5Z9xUn4PJYqkSMJbARIqlMdUAspU0OLltz3AiW4qIATeC3AOX0DWlbKA/lTrRi2Cm1qDbpopaW5oeu1tEoHWoebwF1L3OXSeIh/J3P3U4UpRpgkWWCp4sVebhS0FnRAJOkltJqvPajVpebALIUU9QqqvZ2erItVKC10d1m/btzd8I57MVibeJ2sGyOu9Eq2SBn3uYrSk7VJUWLakghHWSFRC5SrbbTOwesck6IZ8DYEPrYcWMnvHJ1Wg4fcNjhDQGPmkx1pTl0qsh9aHKNrfjbzYUyn5l40FJ55N1gNFjo1F8w+LFsW9l7tPBRxBD/0gDfdEfqKAl3AFcYH+z48bihoA9aj1Wd2vgw3wQfZ/8hQOTAk3/NsTglcu2sjLNdSDARDnEVMDRczuKDMLD26S1oUx8BjBXVlHUQufP4iaS8fla4sDOwo05e2U2m7YkaDUL9HC6B4j7zvwTEJU5c1leLB6RgI305tOmgWW3+gCVRqZChxtQY0vdCRhrkBG0Bcj3lcPvrmvFizs1pI="));
+        return newFakeGameProfile;
     }
 
     private static class ProfileState {
