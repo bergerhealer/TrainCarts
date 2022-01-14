@@ -73,13 +73,14 @@ public class AttachmentEditor extends MapDisplay {
         // Update blink counter, toggle between showing focused and not
         if (this._lastSelectedAttachment != null) {
             this.blinkCounter++;
-            if (this.blinkCounter == 10) {
-                updateFocus(FocusMode.SELECTED);
-            } else if (this.blinkCounter == 12) {
-                updateFocus(FocusMode.SELECTED_AND_CHILDREN);
-            } else if (this.blinkCounter == 20) {
-                updateFocus(FocusMode.NONE);
-                this.blinkCounter = 0;
+            for (FocusMode mode : FocusMode.values()) {
+                if (mode.phase == this.blinkCounter) {
+                    updateFocus(mode);
+                    if (mode == FocusMode.NONE) {
+                        this.blinkCounter = 0; // Loop
+                    }
+                    break;
+                }
             }
         }
     }
@@ -124,6 +125,9 @@ public class AttachmentEditor extends MapDisplay {
             } else {
                 this.tree.updateModel(!event.isName("changed_silent"));
             }
+
+            // Resend focus
+            sendFocus();
         } else if (event.isName("reset")) {
             // Completely re-initialize the model
             this.tree.updateView();
@@ -131,6 +135,17 @@ public class AttachmentEditor extends MapDisplay {
 
             // Do not blink for a little while, with focused=false
             this.pauseBlinking(FocusMode.NONE, 30);
+        }
+    }
+
+    private void sendFocus() {
+        Attachment attachment = this.tree.getSelectedNode().getAttachment();
+        if (attachment != this._lastSelectedAttachment && this._lastSelectedAttachment != null) {
+            onSelectedNodeChanged();
+        } else {
+            this._lastSelectedAttachment = attachment;
+            this.updateFocus(FocusMode.SELECTED);
+            this.blinkCounter = FocusMode.SELECTED.phase;
         }
     }
 
@@ -217,6 +232,7 @@ public class AttachmentEditor extends MapDisplay {
                 this.tree.setModel(this.model);
                 this.tree.setBounds(5, 13, 7 * 17, 6 * 17);
                 this.window.addWidget(this.tree);
+                sendFocus();
             } else {
                 this.setReceiveInputWhenHolding(false);
                 this.model = AttachmentModel.getDefaultModel(EntityType.MINECART);
@@ -273,6 +289,14 @@ public class AttachmentEditor extends MapDisplay {
     }
 
     private static enum FocusMode {
-        NONE, SELECTED, SELECTED_AND_CHILDREN
+        SELECTED(10),
+        SELECTED_AND_CHILDREN(12),
+        NONE(20);
+
+        public final int phase;
+
+        private FocusMode(int phase) {
+            this.phase = phase;
+        }
     }
 }

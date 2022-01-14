@@ -151,7 +151,7 @@ public interface Attachment {
         AttachmentInternalState state = this.getInternalState();
         if (state.focused != focused) {
             state.focused = focused;
-            if (this.isAttached()) {
+            if (state.attached) {
                 if (focused) {
                     onFocus();
                 } else {
