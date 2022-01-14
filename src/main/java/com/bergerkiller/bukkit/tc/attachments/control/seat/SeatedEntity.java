@@ -31,6 +31,7 @@ import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityAr
  */
 public abstract class SeatedEntity {
     protected Entity entity = null;
+    protected boolean showDummy = false; // Whether to show a dummy player sitting in the seat
     protected DisplayMode displayMode = DisplayMode.DEFAULT;
     protected final CartAttachmentSeat seat;
     public final SeatOrientation orientation = new SeatOrientation();
@@ -56,16 +57,26 @@ public abstract class SeatedEntity {
      * @return True if empty
      */
     public boolean isEmpty() {
-        return this.entity == null;
+        return entity == null;
     }
 
     /**
-     * Gets whether there is a player inside this seat
+     * Gets whether this seated entity displays anything. This is the case
+     * when an entity is occupying this seat, or when debug display is active.
+     *
+     * @return True if this seated entity is displayed
+     */
+    public boolean isDisplayed() {
+        return entity != null || showDummy;
+    }
+
+    /**
+     * Gets whether a Player entity is inside this seat.
      * 
      * @return True if the seated entity is a Player
      */
     public boolean isPlayer() {
-        return this.entity instanceof Player;
+        return entity instanceof Player;
     }
 
     /**
@@ -78,12 +89,37 @@ public abstract class SeatedEntity {
     }
 
     /**
+     * Gets whether a dummy player is being displayed, providing no other
+     * entity is inside the seat.
+     *
+     * @return Whether dummy player mode is active
+     */
+    public boolean isDummyPlayer() {
+        return this.showDummy;
+    }
+
+    /**
+     * Sets a player to act as a dummy entity displayed sitting in the seat
+     *
+     * @param dummyPlayer
+     */
+    public final void setShowDummyPlayer(boolean show) {
+        if (this.showDummy != show) {
+            this.showDummy = show;
+            if (this.entity == null) {
+                this.updateMode(true);
+            }
+        }
+    }
+
+    /**
      * Sets the entity currently inside the seat
      * 
      * @param entity
      */
-    public void setEntity(Entity entity) {
+    public final void setEntity(Entity entity) {
         this.entity = entity;
+        this.updateMode(true);
     }
 
     public DisplayMode getDisplayMode() {
@@ -114,7 +150,9 @@ public abstract class SeatedEntity {
             // Respawns the player as a normal player
             VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
             vmc.respawn((Player) this.entity, (theViewer, thePlayer) -> {
-                FakePlayerSpawner.NORMAL.spawnPlayer(theViewer, thePlayer, thePlayer.getEntityId(), false, null, meta -> {});
+                FakePlayerSpawner.NORMAL.spawnPlayer(theViewer, thePlayer, thePlayer.getEntityId(),
+                        FakePlayerSpawner.FakePlayerPosition.ofPlayer(thePlayer),
+                        meta -> {});
             });
         }
     }
@@ -280,6 +318,14 @@ public abstract class SeatedEntity {
      * @param absolute True if this is an absolute position update
      */
     public abstract void syncPosition(boolean absolute);
+
+    /**
+     * Called every time the attachment receives or loses focus.
+     * This is the glowing effect that 'blinks'.
+     *
+     * @param focused
+     */
+    public abstract void updateFocus(boolean focused);
 
     /**
      * Creates a new suitable vehicle for putting passengers in. Passengers mounted to

@@ -95,7 +95,7 @@ public class SeatOrientation {
 
         // Limit head rotation within range of yaw
         float pitch = (float) (pyr.getX() - 90.0);
-        float headRot = EntityHandle.fromBukkit(seated.getEntity()).getHeadRotation();
+        float headRot = seated.isDummyPlayer() ? _mountYaw : EntityHandle.fromBukkit(seated.getEntity()).getHeadRotation();
         final float HEAD_ROT_LIM = 30.0f;
         if (MathUtil.getAngleDifference(headRot, _mountYaw) > HEAD_ROT_LIM) {
             if (MathUtil.getAngleDifference(headRot, _mountYaw + HEAD_ROT_LIM) <
@@ -116,22 +116,18 @@ public class SeatOrientation {
         // If in first-person the fake entity is not used, then we're sending packets
         // about an entity that does not exist. Is this bad?
         int entityId = seated.getFakePlayerId();
+        int flippedId = seated.getFlippedFakePlayerId();
 
         // Refresh head rotation
         if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(headRot, this._entityLastHeadYaw)) {
             PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, headRot);
-            PacketPlayOutEntityHeadRotationHandle headPacketFlipped = null;
-            if (seated.getFlippedFakePlayerId() != -1) {
-                headPacketFlipped = PacketPlayOutEntityHeadRotationHandle.createNew(seated.getFlippedFakePlayerId(), headRot);
-            }
+            PacketPlayOutEntityHeadRotationHandle headPacketFlipped =  PacketPlayOutEntityHeadRotationHandle.createNew(flippedId, headRot);
 
             this._entityLastHeadYaw = headPacket.getHeadYaw();
             for (Player viewer : seat.getViewers()) {
                 if (viewer != viewerToIgnore) {
                     PacketUtil.sendPacket(viewer, headPacket);
-                    if (headPacketFlipped != null) {
-                        PacketUtil.sendPacket(viewer, headPacketFlipped);
-                    }
+                    PacketUtil.sendPacket(viewer, headPacketFlipped);
                 }
             }
         }
@@ -156,16 +152,13 @@ public class SeatOrientation {
             }
 
             // Also prep the flipped entity yaw and right flipped pitch, if used
-            int flippedId = seated.getFlippedFakePlayerId();
-            if (flippedId != -1) {
-                float k = 180.0f;
-                float f = 10.0f;
-                float flippedPitch = (this._entityLastPitch >= k) ? k+f : k-f;
-                PacketPlayOutEntityLookHandle flipLookPacket = PacketPlayOutEntityLookHandle.createNew(flippedId, this._entityLastYaw, flippedPitch, false);
-                for (Player viewer : seat.getViewers()) {
-                    if (viewer != viewerToIgnore) {
-                        PacketUtil.sendPacket(viewer, flipLookPacket);
-                    }
+            float k = 180.0f;
+            float f = 10.0f;
+            float flippedPitch = (this._entityLastPitch >= k) ? k+f : k-f;
+            PacketPlayOutEntityLookHandle flipLookPacket = PacketPlayOutEntityLookHandle.createNew(flippedId, this._entityLastYaw, flippedPitch, false);
+            for (Player viewer : seat.getViewers()) {
+                if (viewer != viewerToIgnore) {
+                    PacketUtil.sendPacket(viewer, flipLookPacket);
                 }
             }
         } else {
@@ -180,12 +173,21 @@ public class SeatOrientation {
         Player viewerToIgnore = (seated.isPlayer() && !seated.isMadeVisibleInFirstPerson())
                 ? (Player) seated.getEntity() : null;
 
-        if (this._locked) {
+        if (this._locked || seated.isDummyPlayer()) {
             EntityHandle realPlayer = EntityHandle.fromBukkit(seated.getEntity());
 
-            float yaw = this._mountYaw = getMountYaw(transform);
-            float pitch = realPlayer.getPitch();
-            float headRot = realPlayer.getHeadRotation();
+            float yaw, pitch, headRot;
+
+            if (seated.isDummyPlayer()) {
+                // Always show facing where the seat points
+                Vector pyr = transform.getYawPitchRoll();
+                yaw = headRot = this._mountYaw = (float) pyr.getY();
+                pitch = (float) pyr.getX();
+            } else {
+                yaw = this._mountYaw = getMountYaw(transform);
+                pitch = realPlayer.getPitch();
+                headRot = realPlayer.getHeadRotation();
+            }
 
             // Reverse the values and correct head yaw, because the player is upside-down
             if (seated.isUpsideDown()) {

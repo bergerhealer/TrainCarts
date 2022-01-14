@@ -282,7 +282,8 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
 
         @Override
         protected void sendSpawnPackets(Player viewer, Vector motion) {
-            FakePlayerSpawner.FakePlayerOrientation orientation = FakePlayerSpawner.FakePlayerOrientation.create(
+            FakePlayerSpawner.FakePlayerPosition orientation = FakePlayerSpawner.FakePlayerPosition.create(
+                    this.getPosX(), this.getPosY(), this.getPosZ(),
                     (float) this.getYawPitchRoll().getY(),
                     this.getLivePitch(),
                     (float) this.getYawPitchRoll().getY());

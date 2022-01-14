@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
 
 /**
  * Seated entity that is using flying skull with a player skin on an
@@ -44,9 +45,9 @@ public class SeatedEntityHead extends SeatedEntity {
 
     @Override
     public void makeVisible(Player viewer) {
-        if (isPlayer()) {
+        if (isPlayer() || (isDummyPlayer() && isEmpty())) {
             // Despawn/hide original entity
-            if (entity != viewer) {
+            if (entity != viewer && !isDummyPlayer()) {
                 hideRealPlayer(viewer);
             }
 
@@ -57,6 +58,7 @@ public class SeatedEntityHead extends SeatedEntity {
                 skull.setItem(ItemTransformType.SMALL_HEAD, createSkullItem(entity));
                 skull.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, FakePlayerSpawner.UPSIDEDOWN.getPlayerName());
                 skull.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, false);
+                updateFocus(seat.isFocused());
                 skull.updatePosition(seat.getTransform());
                 skull.syncPosition(true);
             }
@@ -71,7 +73,7 @@ public class SeatedEntityHead extends SeatedEntity {
 
     @Override
     public void makeHidden(Player viewer) {
-        if (isPlayer()) {
+        if (isPlayer() || (isDummyPlayer() && isEmpty())) {
             if (skull != null) {
                 skull.destroy(viewer);
 
@@ -82,7 +84,7 @@ public class SeatedEntityHead extends SeatedEntity {
             }
 
             // Show real player again
-            if (viewer != entity) {
+            if (viewer != entity && !isDummyPlayer()) {
                 showRealPlayer(viewer);
             }
         } else if (!isEmpty()) {
@@ -124,7 +126,7 @@ public class SeatedEntityHead extends SeatedEntity {
         {
             // Hide, change, and make visible again, just for the first-player-view player
             Player viewer = (Player) this.getEntity();
-            seat.makeHidden(viewer);
+            seat.makeHiddenImpl(viewer);
             seat.firstPerson.setLiveMode(new_firstPersonMode);
             seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
             seat.makeVisibleImpl(viewer);
@@ -152,6 +154,15 @@ public class SeatedEntityHead extends SeatedEntity {
         syncVehicleMountPosition(absolute);
     }
 
+    @Override
+    public void updateFocus(boolean focused) {
+        if (skull != null) {
+            skull.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, focused);
+            skull.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
+                    EntityArmorStandHandle.DATA_FLAG_SET_MARKER, focused);
+        }
+    }
+
     /**
      * Creates a skull item representing an Entity. If not possible, returns null.
      *
@@ -159,7 +170,11 @@ public class SeatedEntityHead extends SeatedEntity {
      * @return skull item best representing this entity, null otherwise
      */
     public static ItemStack createSkullItem(Entity entity) {
-        if (entity instanceof Player) {
+        if (entity == null) {
+            //TODO: Dummy player skin, somehow?
+            ItemStack skullItem = new ItemStack(Material.PLAYER_HEAD);
+            return skullItem;
+        } else if (entity instanceof Player) {
             //TODO: API not supported on old (MC 1.8) servers
             ItemStack skullItem = new ItemStack(Material.PLAYER_HEAD);
             SkullMeta meta = (SkullMeta) skullItem.getItemMeta();

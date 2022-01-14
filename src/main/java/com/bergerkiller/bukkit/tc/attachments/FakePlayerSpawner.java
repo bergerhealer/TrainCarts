@@ -25,8 +25,8 @@ import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatOrientation;
 import com.bergerkiller.generated.com.mojang.authlib.GameProfileHandle;
+import com.bergerkiller.generated.com.mojang.authlib.properties.PropertyHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutNamedEntitySpawnHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPlayerInfoHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutScoreboardTeamHandle;
@@ -72,6 +72,7 @@ public enum FakePlayerSpawner {
     // We need this to remove the previous entry from the tab list
     // TODO: We should listen for packets to automatically obtain this!
     // Right now external plugins can break it! Duplicate entries may occur.
+    private static final Map<UUID, ProfileState> _dummyProfileStates = new HashMap<>();
     private static final Map<UUID, Map<UUID, ProfileState>> _profileStates = new HashMap<UUID, Map<UUID, ProfileState>>();
 
     // After this number of ticks temporary player list entries are removed from viewer's tab view
@@ -96,52 +97,25 @@ public enum FakePlayerSpawner {
      * (Re)spawns the player for a viewer with this profile name modifier applied
      * 
      * @param viewer Player to spawn all this for
-     * @param player The player whose metadata to use to define the player's appearance
+     * @param player The player whose metadata to use to define the player's appearance.
+     *               Specify <i>null</i> to spawn a dummy player with a random UUID.
      * @param entityId the Id for the newly spawned entity
-     * @param fakeFlipPitch Whether to flip the pitch value when beyond 180
-     * @param orientation Seat source for player orientation
+     * @param position Position and orientation of where to spawn the player
      * @param metaFunction Applies changes to the metadata of the spawned player
      */
-    public void spawnPlayer(Player viewer, Player player, int entityId, boolean fakeFlipPitch, SeatOrientation orientation, Consumer<DataWatcher> metaFunction) {
-        FakePlayerOrientation fpo;
-        if (orientation == null) {
-            fpo = (this == UPSIDEDOWN) ? FakePlayerOrientation.ofPlayerUpsideDown(player) : FakePlayerOrientation.ofPlayer(player);
-        } else {
-            fpo = FakePlayerOrientation.create(orientation.getPassengerYaw(),
-                    orientation.getPassengerPitch(), orientation.getPassengerHeadYaw());
-        }
-
-        // If fake pitch flip is used, then make the pitch the opposite, right at the edge
-        if (fakeFlipPitch) {
-            fpo = fpo.atOppositePitchBoundary();
-        }
-
-        spawnPlayer(viewer, player, entityId, fpo, metaFunction);
-    }
-
-    /**
-     * (Re)spawns the player for a viewer with this profile name modifier applied
-     * 
-     * @param viewer Player to spawn all this for
-     * @param player The player whose metadata to use to define the player's appearance
-     * @param entityId the Id for the newly spawned entity
-     * @param fakeFlipPitch Whether to flip the pitch value when beyond 180
-     * @param metaFunction Applies changes to the metadata of the spawned player
-     */
-    public void spawnPlayer(Player viewer, Player player, int entityId, FakePlayerOrientation orientation, Consumer<DataWatcher> metaFunction) {
-        EntityHandle playerHandle = EntityHandle.fromBukkit(player);
+    public void spawnPlayer(Player viewer, Player player, int entityId, FakePlayerPosition position, Consumer<DataWatcher> metaFunction) {
         spawnPlayerSimple(viewer, player, entityId, fakePlayerSpawnPacket -> {
-            fakePlayerSpawnPacket.setPosX(playerHandle.getLocX());
-            fakePlayerSpawnPacket.setPosY(playerHandle.getLocY());
-            fakePlayerSpawnPacket.setPosZ(playerHandle.getLocZ());
-            fakePlayerSpawnPacket.setYaw(orientation.getYaw());
-            fakePlayerSpawnPacket.setPitch(orientation.getPitch());
+            fakePlayerSpawnPacket.setPosX(position.getX());
+            fakePlayerSpawnPacket.setPosY(position.getY());
+            fakePlayerSpawnPacket.setPosZ(position.getZ());
+            fakePlayerSpawnPacket.setYaw(position.getYaw());
+            fakePlayerSpawnPacket.setPitch(position.getPitch());
         }, metaFunction);
 
         // Also synchronize the head rotation for this player
         CommonPacket headPacket = PacketType.OUT_ENTITY_HEAD_ROTATION.newInstance();
         headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId, entityId);
-        headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, orientation.getHeadYaw());
+        headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, position.getHeadYaw());
         PacketUtil.sendPacket(viewer, headPacket);
     }
 
@@ -151,7 +125,8 @@ public enum FakePlayerSpawner {
      * using the applier function.
      * 
      * @param viewer Player to spawn all this for
-     * @param player The player whose metadata to use to define the player's appearance
+     * @param player The player whose metadata to use to define the player's appearance.
+     *               Specify <i>null</i> to spawn a dummy player with a random UUID.
      * @param entityId the Id for the newly spawned entity
      * @param applier Applies other options to the created spawn packet
      * @param metaFunction Applies changes to the metadata of the spawned player
@@ -171,7 +146,7 @@ public enum FakePlayerSpawner {
         // Copy data watcher data from the original player
         // Make the spawned player invisible initially
         // This reduces the glitchy effects before the player is mounted
-        DataWatcher metaData = EntityUtil.getDataWatcher(player).clone();
+        DataWatcher metaData = (player == null) ? new DataWatcher() : EntityUtil.getDataWatcher(player).clone();
         //setMetaVisibility(metaData, false);
         metaFunction.accept(metaData);
         PacketUtil.sendNamedEntitySpawnPacket(viewer, fakePlayerSpawnPacket, metaData);
@@ -179,16 +154,24 @@ public enum FakePlayerSpawner {
 
     private UUID sendPlayerProfileInfo(Player viewer, Player player, ProfileState state) {
         // For normal players there is nothing to do - those tab list entries aren't modified
-        if (this == NORMAL) {
+        if (this == NORMAL && player != null) {
             return player.getUniqueId();
         }
 
         // Send a tab list entry for this new (fake) player to be spawned
-        final UUID uuid = (this == NO_NAMETAG_RANDOM) ? generateNPCUUID()
-                : ((this == NO_NAMETAG_SECONDARY) ? state.npcUUID2 : state.npcUUID);
+        final UUID uuid = state.getUUID(this);
         {
             GameProfileHandle newFakeGameProfile = GameProfileHandle.createNew(uuid, this._playerName);
-            newFakeGameProfile.setAllProperties(GameProfileHandle.getForPlayer(player));
+            ChatText playerListName;
+            if (player == null) {
+                // Send game profile information of a dummy player
+                // TODO: Dummy player texture?
+                playerListName = ChatText.fromMessage("Dummy");
+            } else {
+                // Send game profile information of the online player
+                playerListName = ChatText.fromMessage(player.getPlayerListName()); //TODO: Use components
+                newFakeGameProfile.setAllProperties(GameProfileHandle.getForPlayer(player));
+            }
             PacketPlayOutPlayerInfoHandle newInfoPacket = PacketPlayOutPlayerInfoHandle.createNew();
             newInfoPacket.setAction(EnumPlayerInfoActionHandle.ADD_PLAYER);
             PlayerInfoDataHandle playerInfo = PlayerInfoDataHandle.createNew(
@@ -196,7 +179,7 @@ public enum FakePlayerSpawner {
                     newFakeGameProfile,
                     50,
                     GameMode.CREATIVE,
-                    ChatText.fromMessage(player.getPlayerListName()) //TODO: Use components
+                    playerListName
             );
             newInfoPacket.getPlayers().add(playerInfo);
             PacketUtil.sendPacket(viewer, newInfoPacket);
@@ -227,8 +210,11 @@ public enum FakePlayerSpawner {
     }
 
     private final ProfileState getProfileState(Player player, Player viewer) {
+        if (player == null) {
+            return _dummyProfileStates.computeIfAbsent(viewer.getUniqueId(), uuid -> new ProfileState(true));
+        }
         return _profileStates.computeIfAbsent(player.getUniqueId(), uuid -> new HashMap<UUID, ProfileState>(1))
-                .computeIfAbsent(viewer.getUniqueId(), uuid -> new ProfileState(player.getName(), uuid));
+                .computeIfAbsent(viewer.getUniqueId(), uuid -> new ProfileState(false));
     }
 
     /**
@@ -251,6 +237,7 @@ public enum FakePlayerSpawner {
         _profileStates.values().stream()
             .flatMap(e -> e.values().stream())
             .forEach(ProfileState::runAndClearCleanupTasks);
+        _dummyProfileStates.values().forEach(ProfileState::runAndClearCleanupTasks);
     }
 
     /**
@@ -265,14 +252,19 @@ public enum FakePlayerSpawner {
     }
 
     private static class ProfileState {
-        public final UUID npcUUID;
-        public final UUID npcUUID2;
+        private final UUID npcUUID;
+        private final UUID npcUUID2;
         public final List<CleanupPlayerListEntryTask> pendingCleanup;
 
-        public ProfileState(String playerName, UUID uuid) {
-            this.npcUUID = generateNPCUUID();
-            this.npcUUID2 = generateNPCUUID();
+        public ProfileState(boolean dummy) {
+            this.npcUUID = dummy ? null : generateNPCUUID();
+            this.npcUUID2 = dummy ? null : generateNPCUUID();
             this.pendingCleanup = new ArrayList<>();
+        }
+
+        public UUID getUUID(FakePlayerSpawner type) {
+            return (type == NO_NAMETAG_RANDOM || npcUUID == null) ? generateNPCUUID()
+                    : ((type == NO_NAMETAG_SECONDARY) ? npcUUID2 : npcUUID);
         }
 
         public void scheduleCleanupTask(Player viewer, String playerName, UUID playerUUID) {
@@ -350,39 +342,58 @@ public enum FakePlayerSpawner {
     /**
      * Provides information (at spawn) of the heat/body rotation of a Player
      */
-    public static class FakePlayerOrientation {
+    public static class FakePlayerPosition {
+        private final double x, y, z;
         private final float yaw, pitch, headyaw;
 
-        private FakePlayerOrientation(float yaw, float pitch, float headyaw) {
+        private FakePlayerPosition(double x, double y, double z, float yaw, float pitch, float headyaw) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
             this.yaw = yaw;
             this.pitch = pitch;
             this.headyaw = headyaw;
         }
 
+        public double getX() { return x; }
+        public double getY() { return y; }
+        public double getZ() { return z; }
         public float getYaw() { return yaw; }
         public float getPitch() { return pitch; }
         public float getHeadYaw() { return headyaw; }
 
-        public FakePlayerOrientation atOppositePitchBoundary() {
-            return create(yaw, Util.atOppositeRotationGlitchBoundary(pitch), headyaw);
+        public FakePlayerPosition atOppositePitchBoundary() {
+            return create(x, y, z, yaw, Util.atOppositeRotationGlitchBoundary(pitch), headyaw);
         }
 
-        public static FakePlayerOrientation ofPlayer(Player player) {
+        public static FakePlayerPosition ofPlayer(Player player) {
             EntityHandle playerHandle = EntityHandle.fromBukkit(player);
-            return new FakePlayerOrientation(playerHandle.getYaw(),
+            return new FakePlayerPosition(
+                    playerHandle.getLocX(), playerHandle.getLocY(), playerHandle.getLocZ(),
+                    playerHandle.getYaw(),
                     playerHandle.getPitch(), playerHandle.getHeadRotation());
         }
 
-        public static FakePlayerOrientation ofPlayerUpsideDown(Player player) {
+        public static FakePlayerPosition ofPlayer(double x, double y, double z, Player player) {
+            EntityHandle playerHandle = EntityHandle.fromBukkit(player);
+            return new FakePlayerPosition(
+                    x, y, z,
+                    playerHandle.getYaw(),
+                    playerHandle.getPitch(), playerHandle.getHeadRotation());
+        }
+
+        public static FakePlayerPosition ofPlayerUpsideDown(double x, double y, double z, Player player) {
             EntityHandle playerHandle = EntityHandle.fromBukkit(player);
             float yaw = playerHandle.getYaw();
-            return new FakePlayerOrientation(yaw,
+            return new FakePlayerPosition(
+                    x, y, z,
+                    yaw,
                     -playerHandle.getPitch(),
                     -playerHandle.getHeadRotation() + 2.0f * yaw);
         }
 
-        public static FakePlayerOrientation create(float yaw, float pitch, float headyaw) {
-            return new FakePlayerOrientation(yaw, pitch, headyaw);
+        public static FakePlayerPosition create(double x, double y, double z, float yaw, float pitch, float headyaw) {
+            return new FakePlayerPosition(x, y, z, yaw, pitch, headyaw);
         }
     }
 }

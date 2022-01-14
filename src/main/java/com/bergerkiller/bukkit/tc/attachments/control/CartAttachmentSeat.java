@@ -23,7 +23,6 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
@@ -252,6 +251,14 @@ public class CartAttachmentSeat extends CartAttachment {
     private boolean _ejectLockRotation = false;
     private String _enterPermission = null;
 
+    // When onFocus() or other changes happen, a dummy player is displayed sitting in the seat
+    // if no player is currently displayed. This normally blinks in some menus, which looks bad.
+    // We debounce that here, leaving the player displayed for a little longer while the player
+    // is in the menu.
+    // If 0, the attachment is not focused and no dummy player should be displayed.
+    private static final int FOCUS_DEBOUNCE_TICKS = 40; //2s
+    private int _focusDebounceTimer = 0;
+
     /**
      * Gets the viewers of this seat that have already had makeVisible processed.
      * The entity passed to makeVisible() is removed from the list during
@@ -315,6 +322,11 @@ public class CartAttachmentSeat extends CartAttachment {
         } else {
             this.firstPerson.getEyePosition().reset();
         }
+
+        // Reset (player modifying attachment position or other stuff)
+        if (_focusDebounceTimer > 0) {
+            _focusDebounceTimer = FOCUS_DEBOUNCE_TICKS;
+        }
     }
 
     @Override
@@ -334,12 +346,17 @@ public class CartAttachmentSeat extends CartAttachment {
         }
     }
 
+    @Override
+    public void makeHidden(Player viewer) {
+        makeHiddenImpl(viewer);
+    }
+
     public void makeVisibleImpl(Player viewer) {
-        if (seated.isEmpty()) {
+        if (!seated.isDisplayed()) {
             return;
         }
 
-        if (viewer == this.seated.getEntity()) {
+        if (viewer == this.seated.getEntity() && !this.seated.isDummyPlayer()) {
             this.firstPerson.player = viewer;
             this.firstPerson.makeVisible(viewer);
         } else {
@@ -347,9 +364,8 @@ public class CartAttachmentSeat extends CartAttachment {
         }
     }
 
-    @Override
-    public void makeHidden(Player viewer) {
-        if (this.seated.getEntity() == viewer) {
+    public void makeHiddenImpl(Player viewer) {
+        if (this.seated.getEntity() == viewer && !this.seated.isDummyPlayer()) {
             this.firstPerson.makeHidden(viewer);
             this.firstPerson.player = null;
         } else {
@@ -436,24 +452,24 @@ public class CartAttachmentSeat extends CartAttachment {
             return;
         }
 
-        if (!this.seated.isEmpty()) {
+        if (this.seated.isDisplayed()) {
             // If a previous entity was set, unseat it
             for (Player viewer : this.getViewers()) {
-                PlayerUtil.getVehicleMountController(viewer).unmount(this.seated.parentMountId, this.seated.getEntity().getEntityId());
-                this.makeHidden(viewer);
+                this.makeHiddenImpl(viewer);
             }
+        }
+        if (!this.seated.isEmpty()) {
             TrainCarts.plugin.getSeatAttachmentMap().remove(this.seated.getEntity().getEntityId(), this);
         }
 
         // Switch entity
         this.seated.setEntity(entity);
 
-        // Initialize mode with this new Entity
-        this.seated.updateMode(true);
-
         // Re-seat new entity
         if (!this.seated.isEmpty()) {
             TrainCarts.plugin.getSeatAttachmentMap().set(this.seated.getEntity().getEntityId(), this);
+        }
+        if (this.seated.isDisplayed()) {
             for (Player viewer : this.getViewers()) {
                 this.makeVisibleImpl(viewer);
             }
@@ -462,6 +478,11 @@ public class CartAttachmentSeat extends CartAttachment {
 
     @Override
     public void onTick() {
+        // When focus timer expires, hide the dummy player again
+        if (this._focusDebounceTimer > 0 && --this._focusDebounceTimer == 0) {
+            hideDummyPlayer();
+        }
+
         // Synchronize orientation of the entity inside this seat
         this.seated.updatePosition(this.getTransform());
 
@@ -470,6 +491,53 @@ public class CartAttachmentSeat extends CartAttachment {
 
         // Move player view relatively
         this.firstPerson.onTick();
+    }
+
+    @Override
+    public void onFocus() {
+        if (this._focusDebounceTimer == 0) {
+            showDummyPlayer();
+        }
+        this._focusDebounceTimer = FOCUS_DEBOUNCE_TICKS;
+        this.seated.updateFocus(true);
+    }
+
+    @Override
+    public void onBlur() {
+        if (this._focusDebounceTimer > 0) {
+            this._focusDebounceTimer = FOCUS_DEBOUNCE_TICKS;
+        }
+        this.seated.updateFocus(false);
+    }
+
+    /**
+     * Shows the dummy player, if no entity is in the seat yet
+     */
+    private void showDummyPlayer() {
+        if (!seated.isDummyPlayer()) {
+            seated.setShowDummyPlayer(true);
+            if (seated.isEmpty()) {
+                for (Player viewer : this.getViewers()) {
+                    this.makeVisibleImpl(viewer);
+                }
+            }
+        }
+    }
+
+    /**
+     * Hides the dummy player again
+     */
+    private void hideDummyPlayer() {
+        // Make dummy player hidden, if it was displayed
+        if (seated.isDummyPlayer()) {
+            // Hide them all, don't show again
+            if (seated.isEmpty()) {
+                for (Player viewer : this.getViewers()) {
+                    this.makeHiddenImpl(viewer);
+                }
+            }
+            seated.setShowDummyPlayer(false);
+        }
     }
 
     /**
