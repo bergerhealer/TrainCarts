@@ -47,7 +47,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
     private Attachment rootAttachment;
     private List<CartAttachmentSeat> seatAttachments = new ArrayList<CartAttachmentSeat>();
     private Map<Player, SeatHint> seatHints = new HashMap<Player, SeatHint>();
-    private Set<Player> viewers = new HashSet<Player>();
+    private final Set<Player> viewers = new HashSet<Player>();
     protected final ToggledState networkInvalid = new ToggledState();
     private boolean attached = false;
 
@@ -491,13 +491,21 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
         //TODO: Detect when only a single element is changed, and only update that element
         // This allows for a cleaner update when repositioning/etc.
 
+        // Use a temporary set for the players, so that we can clear them after hiding it for viewers
+        // This makes sure getViewers() stays in sync with what makeVisible/makeHidden does
+        Set<Player> originalViewers = new HashSet<Player>(this.viewers);
+
         // Detach old attachments - after this viewers see nothing anymore
         if (this.rootAttachment != null) {
-            for (Player oldViewer : this.getViewers()) {
-                HelperMethods.makeHiddenRecursive(this.rootAttachment, true, oldViewer);
+            for (Iterator<Player> iter = this.viewers.iterator(); iter.hasNext();) {
+                HelperMethods.makeHiddenRecursive(this.rootAttachment, true, iter.next());
+                iter.remove();
             }
+
             HelperMethods.perform_onDetached(this.rootAttachment);
             this.rootAttachment = null;
+        } else {
+            this.viewers.clear(); // Silent
         }
 
         // Attach new attachments - after this viewers see everything but passengers are not 'in'
@@ -509,8 +517,10 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
         this.seatAttachments.clear();
         this.discoverSeats(this.rootAttachment);
 
-        for (Player viewer : this.getViewers()) {
+        // Re-show the attachments and repopulate the viewers set
+        for (Player viewer : originalViewers) {
             HelperMethods.makeVisibleRecursive(this.rootAttachment, true, viewer);
+            this.viewers.add(viewer);
         }
 
         // Let all passengers re-enter us
