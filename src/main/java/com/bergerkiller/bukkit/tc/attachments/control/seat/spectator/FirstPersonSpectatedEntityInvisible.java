@@ -1,9 +1,9 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat.spectator;
 
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
@@ -24,8 +24,8 @@ class FirstPersonSpectatedEntityInvisible extends FirstPersonSpectatedEntity {
     private VirtualEntity entity;
     private VirtualEntity entityAlt; // 180 degree rotation glitch
 
-    public FirstPersonSpectatedEntityInvisible(CartAttachmentSeat seat, FirstPersonViewSpectator view, Player player) {
-        super(seat, view, player);
+    public FirstPersonSpectatedEntityInvisible(CartAttachmentSeat seat, FirstPersonViewSpectator view, VehicleMountController vmc) {
+        super(seat, view, vmc);
     }
 
     @Override
@@ -49,7 +49,7 @@ class FirstPersonSpectatedEntityInvisible extends FirstPersonSpectatedEntity {
         entityAlt.spawn(player, new Vector());
 
         // Spectate primary entity
-        spectate(entity.getEntityId());
+        Util.startSpectating(vmc, entity.getEntityId());
     }
 
     private VirtualEntity createEntity() {
@@ -72,7 +72,7 @@ class FirstPersonSpectatedEntityInvisible extends FirstPersonSpectatedEntity {
 
     @Override
     public void stop() {
-        spectate(-1);
+        Util.stopSpectating(vmc, entity.getEntityId());
         entity.destroy(player);
         entityAlt.destroy(player);
     }
@@ -84,7 +84,7 @@ class FirstPersonSpectatedEntityInvisible extends FirstPersonSpectatedEntity {
         // If pitch went from < 180 to > 180 or other way around, we must swap fake and alt
         if (Util.isProtocolRotationGlitched(this.entity.getSyncPitch(), this.entity.getLivePitch())) {
             // Spectate other entity
-            spectate(entityAlt.getEntityId());
+            Util.swapSpectating(vmc, entity.getEntityId(), entityAlt.getEntityId());
 
             // Swap them out, continue working with alt
             {

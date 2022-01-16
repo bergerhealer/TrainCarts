@@ -62,7 +62,8 @@ public class FirstPersonViewSpectator extends FirstPersonView {
         Matrix4x4 eyeTransform = this.getEyeTransform();
 
         // Start spectator mode
-        this._spectatedEntity = FirstPersonSpectatedEntity.create(seat, this, viewer);
+        VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
+        this._spectatedEntity = FirstPersonSpectatedEntity.create(seat, this, vmc);
         this._spectatedEntity.start(eyeTransform);
 
         // Mount the player itself off-screen on a mount somewhere
@@ -84,7 +85,6 @@ public class FirstPersonViewSpectator extends FirstPersonView {
                     EntityArmorStandHandle.DATA_FLAG_IS_SMALL));
             this._playerMount.spawn(viewer, new Vector());
 
-            VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
             vmc.mount(this._playerMount.getEntityId(), viewer.getEntityId());
         }
 

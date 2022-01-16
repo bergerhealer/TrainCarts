@@ -2,14 +2,13 @@ package com.bergerkiller.bukkit.tc.attachments.control.seat.spectator;
 
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityHead;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutCameraHandle;
 
 /**
  * A type of entity that can be spectated, that has a particular appearance
@@ -18,12 +17,14 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlay
 public abstract class FirstPersonSpectatedEntity {
     protected final CartAttachmentSeat seat;
     protected final FirstPersonViewSpectator view;
+    protected final VehicleMountController vmc;
     protected final Player player;
 
-    public FirstPersonSpectatedEntity(CartAttachmentSeat seat, FirstPersonViewSpectator view, Player player) {
+    public FirstPersonSpectatedEntity(CartAttachmentSeat seat, FirstPersonViewSpectator view, VehicleMountController vmc) {
         this.seat = seat;
         this.view = view;
-        this.player = player;
+        this.vmc = vmc;
+        this.player = vmc.getPlayer();
     }
 
     /**
@@ -49,17 +50,6 @@ public abstract class FirstPersonSpectatedEntity {
 
     public abstract void syncPosition(boolean absolute);
 
-    /**
-     * Makes the player spectate a certain entity
-     *
-     * @param entityId ID of the entity to spectate, -1 to stop spectating
-     */
-    protected void spectate(int entityId) {
-        PacketPlayOutCameraHandle packet = PacketPlayOutCameraHandle.T.newHandleNull();
-        packet.setEntityId((entityId == -1) ? player.getEntityId() : entityId);
-        PacketUtil.sendPacket(player, packet, false);
-    }
-
     protected static float computeAltPitch(double currPitch, float currAltPitch) {
         currPitch = MathUtil.wrapAngle(currPitch); // Wrap between -180 and 180 degrees
 
@@ -72,21 +62,21 @@ public abstract class FirstPersonSpectatedEntity {
         }
     }
 
-    public static FirstPersonSpectatedEntity create(CartAttachmentSeat seat, FirstPersonViewSpectator view, Player player) {
+    public static FirstPersonSpectatedEntity create(CartAttachmentSeat seat, FirstPersonViewSpectator view, VehicleMountController vmc) {
         // In these two modes the actual player is made invisible
         if (view.getLiveMode() == FirstPersonViewMode.INVISIBLE ||
             view.getLiveMode() == FirstPersonViewMode.THIRD_P)
         {
-            return new FirstPersonSpectatedEntityInvisible(seat, view, player);
+            return new FirstPersonSpectatedEntityInvisible(seat, view, vmc);
         }
 
         // View through a floating armorstand. Head will be slightly above where the
         // camera view is.
         if (seat.seated instanceof SeatedEntityHead) {
-            return new FirstPersonSpectatedEntityHead(seat, view, player);
+            return new FirstPersonSpectatedEntityHead(seat, view, vmc);
         }
 
         // Default mode of showing the player itself
-        return new FirstPersonSpectatedEntityPlayer(seat, view, player);
+        return new FirstPersonSpectatedEntityPlayer(seat, view, vmc);
     }
 }

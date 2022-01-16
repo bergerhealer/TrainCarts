@@ -40,8 +40,8 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
     // and after this rotating has cleaned up spectate the actual player instead.
     private BlindRespawn blindRespawn = null;
 
-    public FirstPersonSpectatedEntityPlayer(CartAttachmentSeat seat, FirstPersonViewSpectator view, Player player) {
-        super(seat, view, player);
+    public FirstPersonSpectatedEntityPlayer(CartAttachmentSeat seat, FirstPersonViewSpectator view, VehicleMountController vmc) {
+        super(seat, view, vmc);
     }
 
     @Override
@@ -120,8 +120,6 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
 
     @Override
     public void stop() {
-        spectate(-1);
-
         // If initial blind period, despawn that one too
         if (blindRespawn != null) {
             blindRespawn.despawn();
@@ -138,6 +136,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
         }
 
         // Despawn both
+        Util.stopSpectating(vmc, fakePlayer.getEntityId());
         this.fakePlayer.destroy(player);
         this.fakePlayerAlt.destroy(player);
     }
@@ -149,8 +148,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             if (System.currentTimeMillis() > blindRespawn.timeout) {
                 // Spectate the actual player, despawn the fake blind entity
                 // Make the player visible again
-
-                spectate(fakePlayer.getEntityId());
+                Util.swapSpectating(vmc, blindRespawn.spectated.getEntityId(), fakePlayer.getEntityId());
                 fakePlayer.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, false);
 
                 blindRespawn.despawn();
@@ -169,7 +167,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             VehicleMountController vmh = PlayerUtil.getVehicleMountController(player);
             vmh.unmount(this.mountedVehicleId, this.fakePlayer.getEntityId());
             vmh.mount(this.mountedVehicleId, this.fakePlayerAlt.getEntityId());
-            spectate(this.fakePlayerAlt.getEntityId());
+            Util.swapSpectating(vmc, this.fakePlayer.getEntityId(), this.fakePlayerAlt.getEntityId());
 
             // Make previous player invisible, make new player visible
             fakePlayer.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, true);
@@ -251,10 +249,11 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             spectated.updatePosition(eyeTransform);
             spectated.syncPosition(true);
             spectated.spawn(player, seat.calcMotion());
-            spectate(spectated.getEntityId());
+            Util.startSpectating(vmc, spectated.getEntityId());
         }
 
         public void despawn() {
+            Util.stopSpectating(vmc, spectated.getEntityId());
             spectated.destroy(player);
         }
 

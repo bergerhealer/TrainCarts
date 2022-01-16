@@ -1,9 +1,9 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat.spectator;
 
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
@@ -26,8 +26,8 @@ class FirstPersonSpectatedEntityHead extends FirstPersonSpectatedEntity {
     private VirtualArmorStandItemEntity skull;
     private VirtualArmorStandItemEntity skullAlt; // 180 degree flip
 
-    public FirstPersonSpectatedEntityHead(CartAttachmentSeat seat, FirstPersonViewSpectator view, Player player) {
-        super(seat, view, player);
+    public FirstPersonSpectatedEntityHead(CartAttachmentSeat seat, FirstPersonViewSpectator view, VehicleMountController vmc) {
+        super(seat, view, vmc);
         this.skullItem = SeatedEntityHead.createSkullItem(player);
     }
 
@@ -54,7 +54,7 @@ class FirstPersonSpectatedEntityHead extends FirstPersonSpectatedEntity {
         skullAlt.spawn(player, new Vector());
 
         // Spectate primary entity
-        spectate(skull.getEntityId());
+        Util.startSpectating(vmc, skull.getEntityId());
     }
 
     private VirtualArmorStandItemEntity createSkull() {
@@ -77,7 +77,7 @@ class FirstPersonSpectatedEntityHead extends FirstPersonSpectatedEntity {
 
     @Override
     public void stop() {
-        spectate(-1);
+        Util.stopSpectating(vmc, skull.getEntityId());
         skull.destroy(player);
         skullAlt.destroy(player);
     }
@@ -89,7 +89,7 @@ class FirstPersonSpectatedEntityHead extends FirstPersonSpectatedEntity {
         // If pitch went from < 180 to > 180 or other way around, we must swap fake and alt
         if (Util.isProtocolRotationGlitched(this.skull.getSyncPitch(), this.skull.getLivePitch())) {
             // Spectate other entity
-            spectate(skullAlt.getEntityId());
+            Util.swapSpectating(vmc, skull.getEntityId(), skullAlt.getEntityId());
 
             // Make original invisible, make alt visible
             skull.setItem(ItemTransformType.SMALL_HEAD, null);

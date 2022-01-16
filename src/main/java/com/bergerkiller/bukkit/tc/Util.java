@@ -37,9 +37,11 @@ import org.bukkit.material.MaterialData;
 import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
+import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.math.Quaternion;
@@ -51,6 +53,7 @@ import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
@@ -67,6 +70,7 @@ import com.bergerkiller.bukkit.tc.utils.BoundingRange;
 import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
 import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutCameraHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.EntityTrackerEntryHandle;
 import com.bergerkiller.generated.net.minecraft.world.level.chunk.ChunkHandle;
 import com.bergerkiller.generated.net.minecraft.world.phys.AxisAlignedBBHandle;
@@ -1702,5 +1706,51 @@ public class Util {
             }
             return p;
         }
+    }
+
+    // Wrapper around BKCL-added api
+    // All this can be removed once BKCommonLib 1.18.1-v3 or later is a hard-dep.
+
+    public static void startSpectating(VehicleMountController vmc, int entityId) {
+        if (Common.hasCapability("Common:VehicleMountController:Spectating")) {
+            System.out.println("GO!");
+            startSpectatingVMC(vmc, entityId);
+        } else {
+            PacketPlayOutCameraHandle packet = PacketPlayOutCameraHandle.T.newHandleNull();
+            packet.setEntityId(entityId);
+            PacketUtil.sendPacket(vmc.getPlayer(), packet, false);
+        }
+    }
+
+    public static void stopSpectating(VehicleMountController vmc, int entityId) {
+        if (Common.hasCapability("Common:VehicleMountController:Spectating")) {
+            stopSpectatingVMC(vmc, entityId);
+        } else {
+            PacketPlayOutCameraHandle packet = PacketPlayOutCameraHandle.T.newHandleNull();
+            packet.setEntityId(vmc.getPlayer().getEntityId());
+            PacketUtil.sendPacket(vmc.getPlayer(), packet, false);
+        }
+    }
+
+    public static void swapSpectating(VehicleMountController vmc, int oldEntityId, int newEntityId) {
+        if (Common.hasCapability("Common:VehicleMountController:Spectating")) {
+            swapSpectatingVMC(vmc, oldEntityId, newEntityId);
+        } else {
+            PacketPlayOutCameraHandle packet = PacketPlayOutCameraHandle.T.newHandleNull();
+            packet.setEntityId(newEntityId);
+            PacketUtil.sendPacket(vmc.getPlayer(), packet, false);
+        }
+    }
+
+    private static void startSpectatingVMC(VehicleMountController vmc, int entityId) {
+        vmc.startSpectating(entityId);
+    }
+
+    private static void stopSpectatingVMC(VehicleMountController vmc, int entityId) {
+        vmc.stopSpectating(entityId);
+    }
+
+    private static void swapSpectatingVMC(VehicleMountController vmc, int oldEntityId, int newEntityId) {
+        vmc.swapSpectating(oldEntityId, newEntityId);
     }
 }
