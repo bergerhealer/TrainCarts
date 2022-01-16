@@ -1713,7 +1713,6 @@ public class Util {
 
     public static void startSpectating(VehicleMountController vmc, int entityId) {
         if (Common.hasCapability("Common:VehicleMountController:Spectating")) {
-            System.out.println("GO!");
             startSpectatingVMC(vmc, entityId);
         } else {
             PacketPlayOutCameraHandle packet = PacketPlayOutCameraHandle.T.newHandleNull();
