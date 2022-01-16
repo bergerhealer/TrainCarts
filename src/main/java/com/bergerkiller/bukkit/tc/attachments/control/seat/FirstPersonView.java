@@ -1,5 +1,9 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
@@ -8,6 +12,7 @@ import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.spectator.FirstPersonEyePreview;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
@@ -22,6 +27,7 @@ public abstract class FirstPersonView {
     private FirstPersonViewLockMode _lock = FirstPersonViewLockMode.MOVE;
     private boolean _useSmoothCoasters = false;
     protected ObjectPosition _eyePosition = new ObjectPosition();
+    private final Map<Player, FirstPersonEyePreview> _eyePreviews = new HashMap<>();
 
     public FirstPersonView(CartAttachmentSeat seat) {
         this.seat = seat;
@@ -161,6 +167,111 @@ public abstract class FirstPersonView {
      */
     public void setLockMode(FirstPersonViewLockMode lock) {
         this._lock = lock;
+    }
+
+    /**
+     * Previews the exact position of the eye for a Player by using spectator mode.
+     * The preview is displayed for the number of ticks specified. 0 ticks disables
+     * the preview.
+     *
+     * @param player Player to make preview
+     * @param numTicks Number of ticks to preview
+     * @return True if the preview was started
+     */
+    public void previewEye(Player player, int numTicks) {
+        // Don't allow for this, that's messy
+        if (this.player == player || !player.isOnline()) {
+            return;
+        }
+
+        if (numTicks <= 0) {
+            FirstPersonEyePreview preview = this._eyePreviews.remove(player);
+            if (preview != null) {
+                preview.stop();
+                onEyePreviewStopped(preview.player);
+            }
+        } else if (this._eyePreviews.computeIfAbsent(player, p -> new FirstPersonEyePreview(seat, p))
+                    .start(numTicks, getEyeTransform())
+        ) {
+            onEyePreviewStarted(player);
+        }
+    }
+
+    /**
+     * Updates the eye preview, if a preview is active
+     */
+    public void updateEyePreview() {
+        if (!this._eyePreviews.isEmpty()) {
+            Matrix4x4 eyeTransform = this.getEyeTransform();
+            Iterator<FirstPersonEyePreview> iter = this._eyePreviews.values().iterator();
+            do {
+                FirstPersonEyePreview preview = iter.next();
+                if (!preview.updateRemaining()) {
+                    // Stopped
+                    iter.remove();
+                    onEyePreviewStopped(preview.player);
+                } else if (!preview.player.isOnline()) {
+                    // Just remove
+                    iter.remove();
+                } else {
+                    // Update
+                    preview.updatePosition(eyeTransform);
+                }
+            } while (iter.hasNext());
+        }
+    }
+
+    private void onEyePreviewStarted(Player player) {
+        // If player is also viewing the entity, make that entity invisible
+        // This prevents things looking all glitched
+        // Only needed when not viewed in third-p mode
+        if (seat.seated.isDisplayed() && getLiveMode() != FirstPersonViewMode.THIRD_P) {
+            seat.seated.makeHidden(player);
+        }
+    }
+
+    private void onEyePreviewStopped(Player player) {
+        // Stopped the preview, can re-spawn any third person view
+        if (seat.seated.isDisplayed() && getLiveMode() != FirstPersonViewMode.THIRD_P) {
+            seat.seated.makeVisible(player);
+        }
+    }
+
+    /**
+     * Synchronizes new positions to the players
+     *
+     * @param absolute
+     */
+    public void syncEyePreviews(boolean absolute) {
+        if (!this._eyePreviews.isEmpty()) {
+            for (FirstPersonEyePreview preview : this._eyePreviews.values()) {
+                preview.syncPosition(absolute);
+            }
+        }
+    }
+
+    /**
+     * Aborts all ongoing eye previews
+     */
+    public void stopEyePreviews() {
+        if (!this._eyePreviews.isEmpty()) {
+            for (FirstPersonEyePreview preview : this._eyePreviews.values()) {
+                preview.stop();
+            }
+            this._eyePreviews.clear();
+        }
+    }
+
+    /**
+     * Gets whether the seated entity is hidden (made invisible) because of an
+     * active eye preview.
+     *
+     * @param player
+     * @return True if active
+     */
+    public boolean isSeatedEntityHiddenBecauseOfPreview(Player player) {
+        return this._eyePreviews.containsKey(player) &&
+                seat.seated.isDisplayed() && getLiveMode() != FirstPersonViewMode.THIRD_P;
     }
 
     protected static void setPlayerVisible(Player player, boolean visible) {

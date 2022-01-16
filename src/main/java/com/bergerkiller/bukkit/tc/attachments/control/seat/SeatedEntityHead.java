@@ -172,6 +172,7 @@ public class SeatedEntityHead extends SeatedEntity {
      * @param entity Entity for which the skull is. Null creates a dummy one.
      * @return skull item best representing this entity, null otherwise
      */
+    @SuppressWarnings("deprecation")
     public static ItemStack createSkullItem(Entity entity) {
         if (entity == null || entity instanceof Player) {
             // For players, or the dummy player skin

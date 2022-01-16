@@ -1,12 +1,17 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
+import org.bukkit.entity.Player;
+
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetTooltip;
@@ -102,7 +107,46 @@ public class FirstPersonEyePositionDialog extends MapWidgetMenu {
         }).setText("Automatic")
           .setBounds(33, y_offset, 61, 13);
 
+        this.addWidget(new MapWidgetBlinkyButton() {
+            @Override
+            public void onClick() {
+                previewEye(20); // Preview for a second
+            }
+
+            @Override
+            public void onRepeatClick() {
+                previewEye(2); // Preview for a very short time
+            }
+
+            @Override
+            public void onClickHoldRelease() {
+                previewEye(0); // Stop
+            }
+        }).setRepeatClickEnabled(true)
+          .setTooltip("Preview")
+          .setIcon("attachments/view_camera_preview.png")
+          .setPosition(17, y_offset);
+
         isLoadingWidgets = false;
+    }
+
+    @Override
+    public void onDetached() {
+        super.onDetached();
+
+        // Stop previewing the eye
+        previewEye(0);
+    }
+
+    private void previewEye(int numTicks) {
+        Attachment liveAttachment = this.attachment.getAttachment();
+        if (liveAttachment instanceof CartAttachmentSeat) {
+            for (Player player : display.getOwners()) {
+                if (display.isControlling(player)) {
+                    ((CartAttachmentSeat) liveAttachment).previewEye(player, numTicks);
+                }
+            }
+        }
     }
 
     public boolean isAutomatic() {

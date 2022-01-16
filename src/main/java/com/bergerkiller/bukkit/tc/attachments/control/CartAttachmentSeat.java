@@ -332,6 +332,7 @@ public class CartAttachmentSeat extends CartAttachment {
     @Override
     public void onDetached() {
         super.onDetached();
+        this.firstPerson.stopEyePreviews();
         this.setEntity(null);
     }
 
@@ -427,8 +428,11 @@ public class CartAttachmentSeat extends CartAttachment {
             firstPerson.onMove(absolute);
         }
 
+        // Sync eye previews
+        firstPerson.syncEyePreviews(absolute);
+
         // If not parented to a parent attachment, move the fake mount to move the seat
-        this.seated.syncPosition(absolute);
+        seated.syncPosition(absolute);
     }
 
     /**
@@ -491,6 +495,7 @@ public class CartAttachmentSeat extends CartAttachment {
 
         // Move player view relatively
         this.firstPerson.onTick();
+        this.firstPerson.updateEyePreview();
     }
 
     @Override
@@ -629,6 +634,20 @@ public class CartAttachmentSeat extends CartAttachment {
         }
 
         return new Location(w, pos.getX(), pos.getY(), pos.getZ(), yaw, pitch);
+    }
+
+    /**
+     * Previews the exact position of the eye for a Player by using spectator mode.
+     * The preview is displayed for the number of ticks specified. 0 ticks disables
+     * the preview.
+     *
+     * @param player Player to make preview
+     * @param numTicks Number of ticks to preview
+     */
+    public void previewEye(Player player, int numTicks) {
+        if (this.isAttached()) {
+            this.firstPerson.previewEye(player, numTicks);
+        }
     }
 
     @Override
