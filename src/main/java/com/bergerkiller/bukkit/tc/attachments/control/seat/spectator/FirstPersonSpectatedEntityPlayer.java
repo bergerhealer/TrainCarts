@@ -1,7 +1,5 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat.spectator;
 
-import java.util.function.Consumer;
-
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -32,9 +30,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
     // The entity ID to which the fake player is mounted
     private int mountedVehicleId = -1;
     // Fake player entity currently displayed and riding the cart, being spectated
-    private FakeVirtualPlayer fakePlayer;
-    // On standby in case it goes beyond 180 pitch
-    private FakeVirtualPlayer fakePlayerAlt;
+    private PitchSwappedEntity<FakeVirtualPlayer> fakePlayer;
     // Right after the fake player spawns, the head is in the process of rotating from 0.0
     // To prevent a glitch when stepping in we spectate a different entity when starting,
     // and after this rotating has cleaned up spectate the actual player instead.
@@ -49,29 +45,26 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
         // Spawn the fake player using the FakePlayerSpawner. Initially the player is made invisible,
         // because the head is still rotating awkwardly. We spectate a different entity during this time,
         // and we don't want this player obscuring the view.
-        fakePlayer = new FakeVirtualPlayer(seat.getManager(), FakePlayerSpawner.NO_NAMETAG);
-        fakePlayer.updatePosition(eyeTransform);
-        fakePlayer.syncPosition(true);
-        fakePlayer.spawn(player, new Vector());
+        fakePlayer = PitchSwappedEntity.create(vmc,
+                new FakeVirtualPlayer(seat.getManager(), FakePlayerSpawner.NO_NAMETAG),
+                new FakeVirtualPlayer(seat.getManager(), FakePlayerSpawner.NO_NAMETAG_SECONDARY));
+        fakePlayer.beforeSwap(() -> {
+            // Swap in vehicle mount
+            vmc.unmount(this.mountedVehicleId, this.fakePlayer.entity.getEntityId());
+            vmc.mount(this.mountedVehicleId, this.fakePlayer.entityAlt.getEntityId());
 
-        // Also spawn an invisible fake alt player which has the head rotated exactly at pitch 180
-        // When the player head pitches beyond 180 we swap the two fake players so that the movement is smooth
-        fakePlayerAlt = new FakeVirtualPlayer(seat.getManager(), FakePlayerSpawner.NO_NAMETAG_SECONDARY);
-        fakePlayerAlt.updatePosition(fakePlayer.getPos(), new Vector(
-                computeAltPitch(fakePlayer.getYawPitchRoll().getX(), 179.0f),
-                fakePlayer.getYawPitchRoll().getY(),
-                0.0));
-        fakePlayerAlt.syncPosition(true);
-        fakePlayerAlt.spawn(player, new Vector());
+            // If not still in the blind respawn mode, swap visibility too
+            if (blindRespawn == null) {
+                fakePlayer.swapVisibility();
+            }
+        });
+        fakePlayer.spawn(eyeTransform, seat.calcMotion());
 
         // Spawn an invisible holder entity inside which the fake player sits
         // Or, depending on configuration, just mount it in the vehicle directly
         if (!seat.firstPerson.getEyePosition().isDefault()) {
             // Player must be put into the seat so the eye position is at the baseTransform
-            prepareFakeMount(eyeTransform, mount -> {
-                double y_offset = VirtualEntity.ARMORSTAND_BUTT_OFFSET + VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT;
-                mount.setRelativeOffset(0.0, -y_offset, 0.0);
-            });
+            prepareFakeMount(eyeTransform);
         } else {
             // Player is put into a vehicle, we don't really care
             mountInVehicle();
@@ -88,14 +81,15 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
         vmh.mount(this.mountedVehicleId, this.fakePlayer.getEntityId());
     }
 
-    private void prepareFakeMount(Matrix4x4 baseTransform, Consumer<VirtualEntity> manipulator) {
+    private void prepareFakeMount(Matrix4x4 baseTransform) {
         this.fakeMount = new VirtualEntity(seat.getManager());
         this.fakeMount.setEntityType(EntityType.ARMOR_STAND);
         this.fakeMount.setSyncMode(SyncMode.SEAT);
         this.fakeMount.setUseMinecartInterpolation(seat.isMinecartInterpolation());
 
         // Put the entity on a fake mount that we move around at an offset
-        manipulator.accept(this.fakeMount);
+        double y_offset = VirtualEntity.ARMORSTAND_BUTT_OFFSET + VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT;
+        this.fakeMount.setRelativeOffset(0.0, -y_offset, 0.0);
         this.fakeMount.updatePosition(baseTransform);
         this.fakeMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
         this.fakeMount.getMetaData().set(EntityHandle.DATA_NO_GRAVITY, true);
@@ -135,10 +129,8 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             this.fakeMount.destroy(player);
         }
 
-        // Despawn both
-        Util.stopSpectating(vmc, fakePlayer.getEntityId());
-        this.fakePlayer.destroy(player);
-        this.fakePlayerAlt.destroy(player);
+        // Despawn fake player
+        this.fakePlayer.destroy();
     }
 
     @Override
@@ -148,8 +140,8 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             if (System.currentTimeMillis() > blindRespawn.timeout) {
                 // Spectate the actual player, despawn the fake blind entity
                 // Make the player visible again
-                Util.swapSpectating(vmc, blindRespawn.spectated.getEntityId(), fakePlayer.getEntityId());
-                fakePlayer.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, false);
+                fakePlayer.spectateFrom(blindRespawn.spectated.getEntityId());
+                fakePlayer.entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, false);
 
                 blindRespawn.despawn();
                 blindRespawn = null;
@@ -160,49 +152,6 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
 
         // Move/update the fake player
         this.fakePlayer.updatePosition(eyeTransform);
-
-        // If pitch went from < 180 to > 180 or other way around, we must swap fake and alt
-        if (Util.isProtocolRotationGlitched(this.fakePlayer.getSyncPitch(), this.fakePlayer.getLivePitch())) {
-            // Remount and spectate the new player
-            VehicleMountController vmh = PlayerUtil.getVehicleMountController(player);
-            vmh.unmount(this.mountedVehicleId, this.fakePlayer.getEntityId());
-            vmh.mount(this.mountedVehicleId, this.fakePlayerAlt.getEntityId());
-            Util.swapSpectating(vmc, this.fakePlayer.getEntityId(), this.fakePlayerAlt.getEntityId());
-
-            // Make previous player invisible, make new player visible
-            fakePlayer.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, true);
-            fakePlayer.syncMetadata(); // do early
-            fakePlayerAlt.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, false);
-            fakePlayerAlt.syncMetadata(); // do early
-
-            // Swap them out, continue working with alt
-            {
-                FakeVirtualPlayer tmp = this.fakePlayer;
-                this.fakePlayer = this.fakePlayerAlt;
-                this.fakePlayerAlt = tmp;
-            }
-
-            // Give the fake player full sync pitch
-            this.fakePlayer.updatePosition(eyeTransform);
-        }
-
-        // Calculate what new alt-pitch should be used. This swaps over at the 180-degree mark
-        {
-            float newAltPitch = computeAltPitch(this.fakePlayer.getYawPitchRoll().getX(),
-                                                this.fakePlayerAlt.getLivePitch());
-            boolean isAltPitchDifferent = (newAltPitch != this.fakePlayerAlt.getLivePitch());
-
-            // Keep the alt nearby ready to be used. Keep head yaw in check so no weird spazzing out happens there
-            this.fakePlayerAlt.updatePosition(fakePlayer.getPos(), new Vector(
-                    newAltPitch, this.fakePlayer.getYawPitchRoll().getY(), 0.0));
-
-            if (isAltPitchDifferent) {
-                // We cannot safely rotate between these two - it requires a respawn to do this quickly
-                this.fakePlayerAlt.destroy(player);
-                this.fakePlayerAlt.syncPosition(true);
-                this.fakePlayerAlt.spawn(player, new Vector());
-            }
-        }
 
         // Move the vehicle itself, which moves the fake player around
         if (this.fakeMount != null) {
@@ -217,7 +166,6 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
         }
 
         this.fakePlayer.syncPosition(absolute);
-        this.fakePlayerAlt.syncPosition(absolute);
 
         if (blindRespawn != null) {
             blindRespawn.syncPosition(absolute);

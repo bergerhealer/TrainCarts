@@ -4,7 +4,6 @@ import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
@@ -49,18 +48,6 @@ public abstract class FirstPersonSpectatedEntity {
     public abstract void updatePosition(Matrix4x4 eyeTransform);
 
     public abstract void syncPosition(boolean absolute);
-
-    protected static float computeAltPitch(double currPitch, float currAltPitch) {
-        currPitch = MathUtil.wrapAngle(currPitch); // Wrap between -180 and 180 degrees
-
-        if (currPitch > 90.0) {
-            return 181.0f;
-        } else if (currPitch < -90.0) {
-            return 179.0f;
-        } else {
-            return currAltPitch;
-        }
-    }
 
     public static FirstPersonSpectatedEntity create(CartAttachmentSeat seat, FirstPersonViewSpectator view, VehicleMountController vmc) {
         // In these two modes the actual player is made invisible
