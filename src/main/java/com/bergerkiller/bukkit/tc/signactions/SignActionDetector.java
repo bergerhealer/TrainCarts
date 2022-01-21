@@ -44,7 +44,11 @@ public class SignActionDetector extends SignAction {
                 // In other cases the sign owner already tracks it and there's nothing more to do
                 if (oldValue.owner != newValue.owner) {
                     onUnloaded(store, sign, oldValue);
-                    onAdded(store, sign, newValue);
+
+                    // Only do this when the new metadata has no owner associated with it yet
+                    if (newValue.owner == null) {
+                        onAdded(store, sign, newValue);
+                    }
                 }
             }
 
