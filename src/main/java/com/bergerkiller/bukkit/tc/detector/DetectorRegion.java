@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.detector;
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.collections.BlockMap;
+import com.bergerkiller.bukkit.common.collections.ImplicitlySharedList;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -38,7 +39,7 @@ public final class DetectorRegion {
     private final String world;
     private final Set<IntVector3> coordinates;
     private final Set<MinecartMember<?>> members = new HashSet<>();
-    private final List<DetectorListener> listeners = new ArrayList<>(1);
+    private final ImplicitlySharedList<DetectorListener> listeners = new ImplicitlySharedList<>();
 
     private DetectorRegion(final UUID uniqueId, final String world, final Set<IntVector3> coordinates) {
         this.world = world;
@@ -260,7 +261,7 @@ public final class DetectorRegion {
     }
 
     private void onLeave(MinecartMember<?> mm) {
-        for (DetectorListener listener : getListeners()) {
+        for (DetectorListener listener : listeners.cloneAsIterable()) {
             listener.onLeave(mm);
         }
         if (mm.isUnloaded()) {
@@ -273,13 +274,13 @@ public final class DetectorRegion {
                 return;
             }
         }
-        for (DetectorListener listener : getListeners()) {
+        for (DetectorListener listener : listeners.cloneAsIterable()) {
             listener.onLeave(group);
         }
     }
 
     private void onEnter(MinecartMember<?> mm) {
-        for (DetectorListener listener : getListeners()) {
+        for (DetectorListener listener : listeners.cloneAsIterable()) {
             listener.onEnter(mm);
         }
         if (mm.isUnloaded()) {
@@ -292,14 +293,14 @@ public final class DetectorRegion {
                 return;
             }
         }
-        for (DetectorListener listener : getListeners()) {
+        for (DetectorListener listener : listeners.cloneAsIterable()) {
             listener.onEnter(group);
         }
     }
 
     public void unload(MinecartGroup group) {
         if (this.members.removeAll(group)) {
-            for (DetectorListener listener : getListeners()) {
+            for (DetectorListener listener : listeners.cloneAsIterable()) {
                 listener.onUnload(group);
             }
         }
@@ -320,18 +321,14 @@ public final class DetectorRegion {
         }
     }
 
-    private List<DetectorListener> getListeners() {
-        return new ArrayList<DetectorListener>(this.listeners);
-    }
-
     public void update(MinecartMember<?> member) {
-        for (DetectorListener list : this.listeners) {
+        for (DetectorListener list : listeners.cloneAsIterable()) {
             list.onUpdate(member);
         }
     }
 
     public void update(MinecartGroup group) {
-        for (DetectorListener list : this.listeners) {
+        for (DetectorListener list : listeners.cloneAsIterable()) {
             list.onUpdate(group);
         }
     }
