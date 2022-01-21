@@ -651,10 +651,23 @@ public class OfflineSignStore {
     }
 
     private <T> void initHandler(OfflineMetadataEntry<T> entry, MetadataHandlerEntry<T> handler) {
-        if (!entry.setHandler(handler)) {
-            // Something went wrong decoding - remove this entry again
-            OfflineSignWorldStore atWorld = forWorld(entry.sign.getWorld());
-            Iterator<OfflineMetadataEntry<Object>> iter = atWorld.at(entry.sign.getPosition()).iterator();
+        OfflineSignWorldStore atWorld = forWorld(entry.sign.getWorld());
+        List<OfflineMetadataEntry<Object>> entriesAtBlock = atWorld.at(entry.sign.getPosition());
+
+        // Before initializing, verify there is not another entry already added that uses the same handler
+        // This is not allowed, so we'll have to discard it in that case
+        // In practise this can't happen unless someone corrupted the sign data file.
+        boolean hasDuplicateEntry = false;
+        for (OfflineMetadataEntry<Object> existingEntry : entriesAtBlock) {
+            if (existingEntry != entry && existingEntry.handlerEntry == handler) {
+                hasDuplicateEntry = true;
+                break;
+            }
+        }
+
+        if (hasDuplicateEntry || !entry.setHandler(handler)) {
+            // Something went wrong decoding, or duplicate entry - remove this entry again
+            Iterator<OfflineMetadataEntry<Object>> iter = entriesAtBlock.iterator();
             while (iter.hasNext()) {
                 if (iter.next() == entry) {
                     iter.remove();
