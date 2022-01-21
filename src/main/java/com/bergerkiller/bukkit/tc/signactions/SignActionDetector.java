@@ -43,7 +43,7 @@ public class SignActionDetector extends SignAction {
                 // If owner changes something pretty bad is going on, perform a full re-add in that case
                 // In other cases the sign owner already tracks it and there's nothing more to do
                 if (oldValue.owner != newValue.owner) {
-                    onRemoved(store, sign, oldValue);
+                    onUnloaded(store, sign, oldValue);
                     onAdded(store, sign, newValue);
                 }
             }
@@ -56,9 +56,10 @@ public class SignActionDetector extends SignAction {
 
             @Override
             public void onUnloaded(OfflineSignStore store, OfflineSign sign, DetectorSign.Metadata metadata) {
-                if (metadata.owner != null) {
-                    metadata.region.unregister(metadata.owner);
-                    metadata.owner = null; // Mark as removed
+                DetectorSign prevOwner = metadata.owner;
+                if (prevOwner != null) {
+                    metadata.owner = null; // Mark as removed so no further store updates are done
+                    metadata.region.unregister(prevOwner);
 
                     // We presume/hope that the other sign will also unload at the same time
                 }
@@ -66,9 +67,11 @@ public class SignActionDetector extends SignAction {
 
             @Override
             public void onRemoved(OfflineSignStore store, OfflineSign sign, DetectorSign.Metadata metadata) {
-                if (metadata.owner != null) {
-                    metadata.region.unregister(metadata.owner);
-                    metadata.owner = null; // Mark as removed
+                DetectorSign prevOwner = metadata.owner;
+                if (prevOwner != null) {
+                    metadata.owner = null; // Mark as removed so no further store updates are done
+                    metadata.region.unregister(prevOwner);
+
                     if (!metadata.region.isRegistered()) {
                         metadata.region.remove(); // Remove once both signs/others are all gone
                     }

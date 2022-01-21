@@ -100,7 +100,7 @@ public class DetectorSign implements DetectorListener {
 
     @Override
     public void onEnter(MinecartGroup group) {
-        if (!this.metadata.isLeverDown) {
+        if (!this.metadata.isLeverDown && !isRemoved()) {
             SignActionEvent event = initSignEvent();
             if (event != null && event.isTrainSign() && isDown(event, null, group)) {
                 this.store.putIfPresent(this.sign.getBlock(),
@@ -122,7 +122,7 @@ public class DetectorSign implements DetectorListener {
 
     @Override
     public void onEnter(MinecartMember<?> member) {
-        if (!this.metadata.isLeverDown) {
+        if (!this.metadata.isLeverDown && !isRemoved()) {
             SignActionEvent event = initSignEvent();
             if (event != null && event.isCartSign() && isDown(event, member, null)) {
                 this.store.putIfPresent(this.sign.getBlock(),
@@ -133,6 +133,11 @@ public class DetectorSign implements DetectorListener {
     }
 
     public boolean updateMembers(SignActionEvent event) {
+        if (isRemoved()) {
+            event.setLevers(false);
+            return false;
+        }
+
         for (MinecartMember<?> mm : this.metadata.region.getMembers()) {
             if (isDown(event, mm, null)) {
                 this.store.putIfPresent(this.sign.getBlock(),
@@ -148,6 +153,11 @@ public class DetectorSign implements DetectorListener {
     }
 
     public boolean updateGroups(SignActionEvent event) {
+        if (isRemoved()) {
+            event.setLevers(false);
+            return false;
+        }
+
         for (MinecartGroup g : this.metadata.region.getGroups()) {
             if (isDown(event, null, g)) {
                 this.store.putIfPresent(this.sign.getBlock(),
