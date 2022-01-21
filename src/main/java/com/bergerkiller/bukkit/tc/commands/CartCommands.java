@@ -287,20 +287,20 @@ public class CartCommands {
     @CommandMethod("cart eject")
     @CommandDescription("Ejects the passengers of a cart, ignoring the allow player exit property")
     private void commandEject(
-            final Player player,
+            final CommandSender sender,
             final CartProperties cartProperties
     ) {
         MinecartMember<?> member = cartProperties.getHolder();
         if (member == null || member.isUnloaded()) {
-            player.sendMessage(ChatColor.RED + "Can not eject the cart: it is not loaded");
+            sender.sendMessage(ChatColor.RED + "Can not eject the cart: it is not loaded");
             return;
         }
 
         if (member.getEntity().hasPassenger()) {
             member.eject();
-            player.sendMessage(ChatColor.GREEN + "Selected cart ejected!");
+            sender.sendMessage(ChatColor.GREEN + "Selected cart ejected!");
         } else {
-            player.sendMessage(ChatColor.YELLOW + "Selected cart has no passengers!");
+            sender.sendMessage(ChatColor.YELLOW + "Selected cart has no passengers!");
         }
     }
 

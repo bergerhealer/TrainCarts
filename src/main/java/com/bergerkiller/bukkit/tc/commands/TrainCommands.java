@@ -273,20 +273,20 @@ public class TrainCommands {
     @CommandMethod("train eject")
     @CommandDescription("Ejects the passengers of all the carts of a train, ignoring the allow player exit property")
     private void commandEject(
-            final Player player,
+            final CommandSender sender,
             final TrainProperties trainProperties
     ) {
         if (!trainProperties.isLoaded()) {
-            player.sendMessage(ChatColor.RED + "Can not eject the train: it is not loaded");
+            sender.sendMessage(ChatColor.RED + "Can not eject the train: it is not loaded");
             return;
         }
 
         MinecartGroup group = trainProperties.getHolder();
         if (group.hasPassenger()) {
             group.eject();
-            player.sendMessage(ChatColor.GREEN + "Selected train ejected!");
+            sender.sendMessage(ChatColor.GREEN + "Selected train ejected!");
         } else {
-            player.sendMessage(ChatColor.YELLOW + "Selected train has no passengers!");
+            sender.sendMessage(ChatColor.YELLOW + "Selected train has no passengers!");
         }
     }
 
