@@ -103,6 +103,9 @@ public class FirstPersonEyePositionDialog extends MapWidgetMenu {
 
                 // Set all number box widgets to auto
                 setAutomaticDisplayed(true);
+
+                // Show preview arrow
+                showArrowPreview(true);
             }
         }).setText("Automatic")
           .setBounds(33, y_offset, 61, 13);
@@ -136,6 +139,7 @@ public class FirstPersonEyePositionDialog extends MapWidgetMenu {
 
         // Stop previewing the eye
         previewEye(0);
+        showArrowPreview(false);
     }
 
     private void previewEye(int numTicks) {
@@ -199,6 +203,21 @@ public class FirstPersonEyePositionDialog extends MapWidgetMenu {
             // Make all number widgets no longer show 'auto'
             setAutomaticDisplayed(false);
             sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+        }
+
+        // Preview with an arrow
+        showArrowPreview(true);
+    }
+
+    private void showArrowPreview(boolean show) {
+        final int numTicks = show ? (5 * 20) : 0; // 5s
+        Attachment liveAttachment = this.attachment.getAttachment();
+        if (liveAttachment instanceof CartAttachmentSeat) {
+            for (Player player : display.getOwners()) {
+                if (display.isControlling(player)) {
+                    ((CartAttachmentSeat) liveAttachment).showEyeArrow(player, numTicks);
+                }
+            }
         }
     }
 

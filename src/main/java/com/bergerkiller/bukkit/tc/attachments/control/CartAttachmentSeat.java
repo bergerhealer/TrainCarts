@@ -650,6 +650,19 @@ public class CartAttachmentSeat extends CartAttachment {
         }
     }
 
+    /**
+     * Shows a floating arrow where the eye views from for a Player. The arrow is displayed
+     * for the number of ticks specified. 0 ticks disables the arrow for this player.
+     *
+     * @param player Player to show the arrow to
+     * @param numTicks Number of ticks to display it
+     */
+    public void showEyeArrow(Player player, int numTicks) {
+        if (this.isAttached()) {
+            this.firstPerson.showEyeArrow(player, numTicks);
+        }
+    }
+
     @Override
     public boolean isHiddenWhenInactive() {
         return false;

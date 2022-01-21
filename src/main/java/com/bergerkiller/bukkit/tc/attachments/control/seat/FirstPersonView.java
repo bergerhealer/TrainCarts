@@ -27,7 +27,11 @@ public abstract class FirstPersonView {
     private FirstPersonViewLockMode _lock = FirstPersonViewLockMode.MOVE;
     private boolean _useSmoothCoasters = false;
     protected ObjectPosition _eyePosition = new ObjectPosition();
+
+    // Uses spectator mode to display exactly how a player would view from inside the seat
     private final Map<Player, FirstPersonEyePreview> _eyePreviews = new HashMap<>();
+    // Displays a floating arrow pointing where the eyes are at
+    private final FirstPersonEyePositionArrow _eyeArrow = new FirstPersonEyePositionArrow(this);
 
     public FirstPersonView(CartAttachmentSeat seat) {
         this.seat = seat;
@@ -198,6 +202,27 @@ public abstract class FirstPersonView {
     }
 
     /**
+     * Shows an eye arrow where the eyes are for a Player.
+     * Does nothing if the player is in first-person already or is not online,
+     * or is previewing the eye.
+     *
+     * @param player Player to show the arrow to
+     * @param numTicks Number of ticks to display
+     */
+    public void showEyeArrow(Player player, int numTicks) {
+        // Don't allow for this, that's messy
+        if (this.player == player || !player.isOnline() || this._eyePreviews.containsKey(player)) {
+            return;
+        }
+
+        if (numTicks <= 0) {
+            this._eyeArrow.stop(player);
+        } else {
+            this._eyeArrow.start(player, numTicks);
+        }
+    }
+
+    /**
      * Updates the eye preview, if a preview is active
      */
     public void updateEyePreview() {
@@ -219,6 +244,8 @@ public abstract class FirstPersonView {
                 }
             } while (iter.hasNext());
         }
+
+        this._eyeArrow.updatePosition();
     }
 
     private void onEyePreviewStarted(Player player) {
@@ -228,6 +255,9 @@ public abstract class FirstPersonView {
         if (seat.seated.isDisplayed() && getLiveMode() != FirstPersonViewMode.THIRD_P) {
             seat.seated.makeHidden(player);
         }
+
+        // Disable the preview arrow - gets in the way
+        _eyeArrow.stop(player);
     }
 
     private void onEyePreviewStopped(Player player) {
@@ -248,6 +278,7 @@ public abstract class FirstPersonView {
                 preview.syncPosition(absolute);
             }
         }
+        this._eyeArrow.syncPosition(absolute);
     }
 
     /**
@@ -260,6 +291,7 @@ public abstract class FirstPersonView {
             }
             this._eyePreviews.clear();
         }
+        this._eyeArrow.stop();
     }
 
     /**

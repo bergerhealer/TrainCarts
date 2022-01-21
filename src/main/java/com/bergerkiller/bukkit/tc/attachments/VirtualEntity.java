@@ -358,6 +358,10 @@ public class VirtualEntity {
         return !this.viewers.isEmpty();
     }
 
+    public boolean isViewer(Player viewer) {
+        return this.viewers.contains(viewer);
+    }
+
     public final void spawn(Player viewer, Vector motion) {
         // Destroy first if needed. Shouldn't happen, but just in case.
         if (this.viewers.contains(viewer)) {
@@ -595,6 +599,14 @@ public class VirtualEntity {
         this.syncYaw = this.liveYaw;
         this.syncPitch = this.livePitch;
         this.syncVel = this.liveVel;
+    }
+
+    public void destroyForAll() {
+        for (Player viewer : this.viewers) {
+            this.sendDestroyPackets(viewer);
+            PlayerUtil.getVehicleMountController(viewer).remove(this.entityId);
+        }
+        this.viewers.clear();
     }
 
     public void destroy(Player viewer) {
