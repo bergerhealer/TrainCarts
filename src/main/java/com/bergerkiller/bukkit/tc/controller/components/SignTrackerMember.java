@@ -62,7 +62,7 @@ public class SignTrackerMember extends SignTracker {
     public void clear() {
         super.clear();
         if (!detectorRegions.isEmpty()) {
-            for (DetectorRegion region : detectorRegions) {
+            for (DetectorRegion region : detectorRegions.cloneAsIterable()) {
                 region.remove(owner);
             }
             detectorRegions.clear();

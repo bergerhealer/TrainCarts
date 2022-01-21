@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
 import com.bergerkiller.bukkit.common.ToggledState;
+import com.bergerkiller.bukkit.common.collections.ImplicitlySharedList;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
@@ -19,7 +20,7 @@ import java.util.logging.Level;
 public abstract class SignTracker {
     protected static final Set<TrackedSign> blockBuffer = new HashSet<TrackedSign>();
     protected final Map<Block, TrackedSign> activeSigns = new LinkedHashMap<Block, TrackedSign>();
-    protected final List<DetectorRegion> detectorRegions = new ArrayList<>(0);
+    protected ImplicitlySharedList<DetectorRegion> detectorRegions = new ImplicitlySharedList<>();
     protected final ToggledState needsUpdate = new ToggledState();
     protected final SignSkipTracker signSkipTracker;
 

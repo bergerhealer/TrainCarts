@@ -226,7 +226,7 @@ public class SignTrackerGroup extends SignTracker {
 
                     // For all detector regions we already know, re-add those for members on them
                     for (TrackedRail rail : rails) {
-                        for (DetectorRegion region : this.detectorRegions) {
+                        for (DetectorRegion region : this.detectorRegions.cloneAsIterable()) {
                             if (region.getCoordinates().contains(rail.position)) {
                                 List<DetectorRegion> memberRegions = rail.member.getSignTracker().detectorRegions;
                                 if (!memberRegions.contains(region)) {
@@ -269,7 +269,7 @@ public class SignTrackerGroup extends SignTracker {
                 for (TrackedSign sign : getActiveTrackedSigns()) {
                     SignAction.executeAll(new SignActionEvent(sign, owner), SignActionType.GROUP_UPDATE);
                 }
-                for (DetectorRegion region : getActiveDetectorRegions()) {
+                for (DetectorRegion region : detectorRegions.cloneAsIterable()) {
                     region.update(owner);
                 }
                 // Member updates
@@ -279,7 +279,7 @@ public class SignTrackerGroup extends SignTracker {
                         for (Block signBlock : tracker.getActiveSigns()) {
                             SignAction.executeAll(new SignActionEvent(signBlock, tracker.getOwner()), SignActionType.MEMBER_UPDATE);
                         }
-                        for (DetectorRegion region : tracker.getActiveDetectorRegions()) {
+                        for (DetectorRegion region : tracker.detectorRegions.cloneAsIterable()) {
                             region.update(tracker.getOwner());
                         }
                     }
