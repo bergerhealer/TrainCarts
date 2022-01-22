@@ -1,21 +1,20 @@
-package com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance;
+package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
-import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
+import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
-import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
 
 public class SeatExitPositionMenu extends MapWidgetMenu {
     private SeatMapWidgetNumberBox _positionX, _positionY, _positionZ;
@@ -50,8 +49,8 @@ public class SeatExitPositionMenu extends MapWidgetMenu {
             @Override
             public void onSelectedItemChanged() {
                 getConfig().set("anchor", getSelectedItem());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
-                previewViewer();
+                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
+                previewEjectPosition();
             }
         }).setBounds(30, y_offset, slider_width, 11);
         addLabel(5, y_offset + 3, "Anchor");
@@ -77,7 +76,7 @@ public class SeatExitPositionMenu extends MapWidgetMenu {
             @Override
             public void onActivate() {
                 setRotationLocked(!isRotationLocked());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
             }
 
             @Override
@@ -94,7 +93,7 @@ public class SeatExitPositionMenu extends MapWidgetMenu {
             @Override
             public void onActivate() {
                 setRotationLocked(!isRotationLocked());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
             }
 
             @Override
@@ -111,7 +110,7 @@ public class SeatExitPositionMenu extends MapWidgetMenu {
             @Override
             public void onActivate() {
                 setRotationLocked(!isRotationLocked());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
             }
 
             @Override
@@ -143,42 +142,59 @@ public class SeatExitPositionMenu extends MapWidgetMenu {
         _rotationZ.setTextOverride(overrideStr);
     }
 
+    public ConfigurationNode getConfig() {
+        return this.attachment.getConfig().getNode("ejectPosition");
+    }
+
     // Teleports the player that is editing to where the current exit position is at
     // If the player is seated, only changes the look-angle
-    public void previewViewer() {
-        AttachmentEditor editor = ((AttachmentEditor) this.display);
-        MinecartMember<?> member = editor.editedCart.getHolder();
-        if (member == null) {
-            return;
-        }
-
-        AttachmentControllerMember controller = member.getAttachments();
-        if (!controller.isAttached()) {
-            return;
-        }
-
-        Attachment attachment = controller.getRootAttachment().findChild(this.attachment.getTargetPath());
+    private void previewEjectPosition() {
+        Attachment attachment = this.attachment.getAttachment();
         if (!(attachment instanceof CartAttachmentSeat)) {
             return;
         }
 
-        Player player = editor.getViewers().get(0);
-        Location ejectPos = ((CartAttachmentSeat) attachment).getEjectPosition(player);
-        if (player.getWorld() != member.getEntity().getWorld()) {
-            return; // Why would you do this?
+        for (Player viewer : ((AttachmentEditor) this.display).getViewers()) {
+            Location ejectPos = ((CartAttachmentSeat) attachment).getEjectPosition(viewer);
+            PlayerUtil.spawnDustParticles(viewer, ejectPos.toVector(), Color.BLUE);
         }
-        if (player.getVehicle() != null) {
-            // Preserve player position, only change look direction
-            Location playerPos = player.getLocation();
-            ejectPos.setX(playerPos.getX());
-            ejectPos.setY(playerPos.getY());
-            ejectPos.setZ(playerPos.getZ());
-        }
-        Util.correctTeleportPosition(ejectPos);
-        player.teleport(ejectPos, TeleportCause.PLUGIN);
     }
 
-    public ConfigurationNode getConfig() {
-        return this.attachment.getConfig().getNode("ejectPosition");
+    private class SeatMapWidgetNumberBox extends MapWidgetNumberBox {
+        private final String field;
+        private boolean ignoreValueChange = true;
+
+        public SeatMapWidgetNumberBox(SeatExitPositionMenu menu, String field) {
+            this.field = field;
+        }
+
+        @Override
+        public void onAttached() {
+            super.onAttached();
+            this.setValue(getConfig().get(this.field, 0.0));
+            this.ignoreValueChange = false;
+        }
+
+        @Override
+        public void onValueChanged() {
+            if (this.ignoreValueChange) {
+                return;
+            }
+
+            getConfig().set(this.field, getValue());
+            sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
+            if (this.getChangeRepeat() <= 1) {
+                onValueChangeStart();
+            }
+
+            previewEjectPosition();
+        }
+
+        public void onValueChangeStart() {
+        }
+
+        @Override
+        public void onValueChangeEnd() {
+        }
     }
 }

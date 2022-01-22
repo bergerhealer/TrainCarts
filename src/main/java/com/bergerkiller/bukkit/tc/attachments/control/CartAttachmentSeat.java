@@ -36,12 +36,12 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonView;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewDefault;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonEyePositionDialog;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatExitPositionMenu;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewLockMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetToggleButton;
-import com.bergerkiller.bukkit.tc.attachments.ui.menus.appearance.SeatExitPositionMenu;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
 import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
@@ -294,10 +294,6 @@ public class CartAttachmentSeat extends CartAttachment {
         this.firstPerson.setLockMode(viewLockMode);
 
         this._enterPermission = this.getConfig().get("enterPermission", String.class, null);
-
-        ConfigurationNode ejectPosition = this.getConfig().getNode("ejectPosition");
-        this._ejectPosition.load(this.getManager().getClass(), TYPE, ejectPosition);
-        this._ejectLockRotation = ejectPosition.get("lockRotation", false);
     }
 
     // Note: Only load things here that can be live-modified in the editor, such as positions
@@ -321,6 +317,13 @@ public class CartAttachmentSeat extends CartAttachment {
                     config.getNode("firstPersonViewPosition"));
         } else {
             this.firstPerson.getEyePosition().reset();
+        }
+
+        // Eject position
+        {
+            ConfigurationNode ejectPosition = this.getConfig().getNode("ejectPosition");
+            this._ejectPosition.load(this.getManager().getClass(), TYPE, ejectPosition);
+            this._ejectLockRotation = ejectPosition.get("lockRotation", false);
         }
 
         // Reset (player modifying attachment position or other stuff)
