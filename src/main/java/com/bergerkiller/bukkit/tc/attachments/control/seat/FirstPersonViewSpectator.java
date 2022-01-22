@@ -27,6 +27,8 @@ public class FirstPersonViewSpectator extends FirstPersonView {
     // Holds the player nearby, off-screen, while spectating. Out of the way of the
     // spectated entity to prevent self-interaction-caused player d/c.
     private VirtualEntity _playerMount = null;
+    // Tracks player input while inside this FPV mode
+    private final SpectatorInput _input = new SpectatorInput();
 
     public FirstPersonViewSpectator(CartAttachmentSeat seat) {
         super(seat);
@@ -53,10 +55,22 @@ public class FirstPersonViewSpectator extends FirstPersonView {
     }
 
     @Override
+    protected Matrix4x4 getEyeTransform() {
+        Matrix4x4 base = super.getEyeTransform();
+        _input.update(base);
+        return base;
+    }
+
+    @Override
     public void makeVisible(Player viewer) {
         // Make the player invisible - we don't want it to get in view
         setPlayerVisible(viewer, false);
         vehicleEntityId = -1;
+
+        // Start tracking player input
+        if (this.getLockMode() == FirstPersonViewLockMode.SPECTATOR_FREE) {
+            _input.start(viewer);
+        }
 
         // Position used to compute where the eye/camera view is at
         Matrix4x4 eyeTransform = this.getEyeTransform();
@@ -126,6 +140,9 @@ public class FirstPersonViewSpectator extends FirstPersonView {
         if (this.getLiveMode() != FirstPersonViewMode.THIRD_P) {
             setPlayerVisible(viewer, true);
         }
+
+        // Cleanup
+        _input.stop();
     }
 
     @Override

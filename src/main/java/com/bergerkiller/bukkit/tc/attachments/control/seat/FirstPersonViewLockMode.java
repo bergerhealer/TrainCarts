@@ -10,7 +10,9 @@ public enum FirstPersonViewLockMode {
     /** Relative movement updates are sent so the player camera rotates when the seat rotates */
     MOVE("attachments/view_lock_move.png", "Move view when\nseat moves (Choppy!)", false),
     /** Spectator mode with the Player unable to look freely */
-    SPECTATOR_LOCKED("attachments/view_lock_spectator.png", "View locked in\nSpectator mode", true);
+    SPECTATOR_LOCKED("attachments/view_lock_spectator.png", "View locked in\nSpectator mode", true),
+    /** Spectator mode with the Player being able to look around */
+    SPECTATOR_FREE("attachments/view_lock_spectator_free.png", "Free look in\nSpectator mode", true);
 
     private final String _icon;
     private final String _tooltip;
