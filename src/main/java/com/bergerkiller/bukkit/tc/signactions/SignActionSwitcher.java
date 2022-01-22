@@ -104,47 +104,209 @@ public class SignActionSwitcher extends SignAction {
 
     @Override
     public void execute(SignActionEvent info) {
-        List<DirectionStatement> statements = parseDirectionStatements(info);
-        boolean hasFromDirections = false;
-        for (DirectionStatement statement : statements) {
-            if (!statement.isSwitchedFromSelf()) {
-                hasFromDirections = true;
-                break;
+        (new SwitcherLogic(info)).run();
+    }
+
+    @Override
+    public boolean build(SignChangeActionEvent event) {
+        if (event.isCartSign()) {
+            return SignBuildOptions.create()
+                    .setPermission(Permission.BUILD_SWITCHER)
+                    .setName("cart switcher")
+                    .setDescription("switch between tracks based on properties of the cart above")
+                    .setTraincartsWIKIHelp("TrainCarts/Signs/Switcher")
+                    .handle(event.getPlayer());
+        } else if (event.isTrainSign()) {
+            return SignBuildOptions.create()
+                    .setPermission(Permission.BUILD_SWITCHER)
+                    .setName("train switcher")
+                    .setDescription("switch between tracks based on properties of the train above")
+                    .setTraincartsWIKIHelp("TrainCarts/Signs/Switcher")
+                    .handle(event.getPlayer());
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isRailSwitcher(SignActionEvent info) {
+        if (TCConfig.onlyPoweredSwitchersDoPathFinding && info.getHeader().isAlwaysOff()) {
+            return false; // Used purely for detecting trains, not actively switching anything
+        }
+        return true;
+    }
+
+    @Override
+    public boolean overrideFacing() {
+        return true;
+    }
+
+    /**
+     * Stores all the switcher-related logic routines
+     */
+    private class SwitcherLogic {
+        private final SignActionEvent info;
+        private final List<DirectionStatement> statements;
+        private final boolean hasFromDirections;
+        private final boolean doCart;
+        private final boolean doTrain;
+        private final boolean canToggleRails;
+
+        public SwitcherLogic(SignActionEvent info) {
+            this.info = info;
+            this.statements = parseDirectionStatements(info);
+
+            {
+                boolean calcHasFromDirections = false;
+                for (DirectionStatement statement : statements) {
+                    if (!statement.isSwitchedFromSelf()) {
+                        calcHasFromDirections = true;
+                        break;
+                    }
+                }
+                this.hasFromDirections = calcHasFromDirections;
+            }
+
+            // Whether to update the switcher (lever) state
+            this.doTrain = info.isTrainSign() && info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_UPDATE);
+            this.doCart = info.isCartSign() && info.isAction(SignActionType.MEMBER_ENTER, SignActionType.MEMBER_UPDATE);
+
+            // Only toggles the rails itself when trains or carts enter the sign, or when a redstone change
+            // can do so because from-directions are always specified.
+            this.canToggleRails = (info.isCartSign() ? info.isAction(SignActionType.MEMBER_ENTER) : info.isAction(SignActionType.GROUP_ENTER)) ||
+                    (hasFromDirections && info.isAction(SignActionType.REDSTONE_CHANGE) && info.hasRails() && info.isPowered());
+        }
+
+        public void run() {
+            cleanupCountersOnLeave(info);
+
+            if (doTrain || doCart) {
+                // Member/train enter or update logic
+            } else if (info.isAction(SignActionType.MEMBER_LEAVE) && info.isCartSign()) {
+                info.setLevers(false);
+                return;
+            } else if (info.isAction(SignActionType.GROUP_LEAVE) && info.isTrainSign()) {
+                info.setLevers(false);
+                return;
+            } else if (!canToggleRails) {
+                return; // Nothing to do here
+            }
+
+            final boolean hasMember = info.hasRailedMember();
+            final boolean facing = !hasMember || info.isFacing();
+
+            DirectionStatement activeDirection = null;
+            if (facing) {
+                if (statements.isEmpty()) {
+                    // When no statements are specified, only toggle lever
+                    if (hasMember) {
+                        info.setLevers(true);
+                    }
+                } else {
+                    activeDirection = this.selectStatement();
+
+                    // Only set levers down when a non-default statement condition matches and a cart is on the sign
+                    if (hasMember) {
+                        info.setLevers(activeDirection != null && !activeDirection.isDefault());
+                    }
+
+                    // If not powered or rails cannot be switched, don't switch rails at all
+                    // Also don't do this after the path finding logic has concluded.
+                    if (activeDirection != null && (!canToggleRails || !info.isPowered())) {
+                        activeDirection = null;
+                    }
+
+                    // If the active direction is non-default, activate it right away
+                    // Skip path finding logic in that case
+                    if (activeDirection != null && !activeDirection.isDefault()) {
+                        switchRails(activeDirection);
+                        return; //don't do destination stuff
+                    }
+                }
+            }
+
+            // Pathfinding or nah?
+            boolean handlePathfinding = true;
+            if (TCConfig.onlyPoweredSwitchersDoPathFinding && !info.isPowered()) {
+                handlePathfinding = false;
+            }
+            if (TCConfig.onlyEmptySwitchersDoPathFinding && !statements.isEmpty()) {
+                handlePathfinding = false;
+            }
+
+            // Handle path finding. If switching occurred, don't do anything more
+            if (handlePathfinding && this.handlePathFinding(facing)) {
+                return;
+            }
+
+            // If a default direction was specified, switch that now that path finding also says nope
+            if (activeDirection != null) {
+                switchRails(activeDirection);
             }
         }
 
-        cleanupCountersOnLeave(info);
-
-        boolean toggleRails = info.isCartSign() ? info.isAction(SignActionType.MEMBER_ENTER) : info.isAction(SignActionType.GROUP_ENTER);
-        boolean doCart = false;
-        boolean doTrain = false;
-        if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_UPDATE) && info.isTrainSign()) {
-            doTrain = true;
-        } else if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.MEMBER_UPDATE) && info.isCartSign()) {
-            doCart = true;
-        } else if (info.isAction(SignActionType.MEMBER_LEAVE) && info.isCartSign()) {
-            info.setLevers(false);
-            return;
-        } else if (info.isAction(SignActionType.GROUP_LEAVE) && info.isTrainSign()) {
-            info.setLevers(false);
-            return;
-        } else if (hasFromDirections && info.isPowered() && info.hasRails() && info.isAction(SignActionType.REDSTONE_CHANGE)) {
-            // Redstone change used with from-to directions, to toggle track automatically
-            // Used when toggling rails using redstone input
-            toggleRails = true;
-        } else {
-            return;
+        private void switchRails(DirectionStatement direction) {
+            if (direction.isSwitchedFromSelf()) {
+                info.setRailsTo(direction.direction);
+            } else {
+                info.setRailsFromTo(direction.directionFrom, direction.direction);
+            }
         }
 
-        final boolean hasMember = info.hasRailedMember();
-        final boolean facing = !hasMember || info.isFacing();
+        private boolean handlePathFinding(boolean facing) {
+            if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER) && (facing || !info.isWatchedDirectionsDefined())) {
+                PathNode node = PathNode.getOrCreate(info);
+                if (node != null) {
+                    String destination = null;
+                    IProperties prop = null;
+                    if (doCart && info.hasMember()) {
+                        prop = info.getMember().getProperties();
+                    } else if (doTrain && info.hasGroup()) {
+                        prop = info.getGroup().getProperties();
+                    }
+                    if (prop != null) {
+                        destination = prop.getDestination();
+                        prop.setLastPathNode(node.getName());
+                    }
+                    // Continue with path finding if a valid destination is specified
+                    // If the current node denotes the destination - don't switch!
+                    if (!LogicUtil.nullOrEmpty(destination) && !node.containsName(destination)) {
+                        if (TrainCarts.plugin.getPathProvider().isProcessing()) {
+                            double currentForce = info.getGroup().getAverageForce();
+                            // Add an action to let the train wait until the node IS explored
+                            info.getGroup().getActions().addAction(new GroupActionWaitPathFinding(info, node, destination));
+                            info.getMember().getActions().addActionLaunch(info.getMember().getDirectionFrom(), 1.0, currentForce);
+                            info.getGroup().stop();
+                        } else {
+                            // Switch the rails to the right direction
+                            PathConnection conn = node.findConnection(destination);
+                            if (conn != null) {
+                                if (this.canToggleRails) {
+                                    info.setRailsTo(conn.junctionName);
+                                }
+                            } else {
+                                // Call MissingPathConnectionEvent
+                                CommonUtil.callEvent(new MissingPathConnectionEvent(info.getRailPiece(), node, info.getGroup(), destination));
+                                Localization.PATHING_FAILED.broadcast(info.getGroup(), destination);
+                            }
+                        }
+                        
+                        // Successfully handled, don't switch the track!
+                        return true;
+                    }
+                }
+            }
 
-        if (facing) {
+            return false;
+        }
+
+        private DirectionStatement selectStatement() {
+            boolean hasMember = info.hasRailedMember();
             if (statements.isEmpty()) {
                 // If no directions are at all specified, all we do is toggle the lever
                 if (hasMember) {
                     info.setLevers(true);
                 }
+                return null;
             } else {
                 //parse all of the statements
                 //are we going to use a counter?
@@ -195,9 +357,9 @@ public class SignActionSwitcher extends SignAction {
                         break;
                     }
                 }
-                boolean foundDirection = (dir != null);
-                if (!foundDirection) {
-                    // Check if any direction is marked "default"
+
+                // Check if any direction is marked "default"
+                if (dir == null) {
                     for (DirectionStatement stat : statements) {
                         if (stat.isDefault() && (hasMember || !stat.isSwitchedFromSelf())) {
                             dir = stat;
@@ -206,106 +368,14 @@ public class SignActionSwitcher extends SignAction {
                     }
                 }
 
-                if (hasMember) {
-                    info.setLevers(foundDirection || statements.isEmpty());
+                // If direction itself is null, return null, which acts as a 'do nothing'
+                if (dir != null && dir.direction.isEmpty()) {
+                    dir = null;
                 }
 
-                if (dir != null && !dir.direction.isEmpty() && info.isPowered()) {
-                    //handle this direction
-                    if (toggleRails) {
-                        if (dir.isSwitchedFromSelf()) {
-                            info.setRailsTo(dir.direction);
-                        } else {
-                            info.setRailsFromTo(dir.directionFrom, dir.direction);
-                        }
-                    }
-                    return; //don't do destination stuff
-                }
+                return dir;
             }
         }
-
-        // Pathfinding or nah?
-        boolean handlePathfinding = true;
-        if (TCConfig.onlyPoweredSwitchersDoPathFinding && !info.isPowered()) {
-            handlePathfinding = false;
-        }
-        if (TCConfig.onlyEmptySwitchersDoPathFinding && !statements.isEmpty()) {
-            handlePathfinding = false;
-        }
-
-        // Handle path finding
-        if (handlePathfinding && info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER) && (facing || !info.isWatchedDirectionsDefined())) {
-            PathNode node = PathNode.getOrCreate(info);
-            if (node != null) {
-                String destination = null;
-                IProperties prop = null;
-                if (doCart && info.hasMember()) {
-                    prop = info.getMember().getProperties();
-                } else if (doTrain && info.hasGroup()) {
-                    prop = info.getGroup().getProperties();
-                }
-                if (prop != null) {
-                    destination = prop.getDestination();
-                    prop.setLastPathNode(node.getName());
-                }
-                // Continue with path finding if a valid destination is specified
-                // If the current node denotes the destination - don't switch!
-                if (!LogicUtil.nullOrEmpty(destination) && !node.containsName(destination)) {
-                    if (TrainCarts.plugin.getPathProvider().isProcessing()) {
-                        double currentForce = info.getGroup().getAverageForce();
-                        // Add an action to let the train wait until the node IS explored
-                        info.getGroup().getActions().addAction(new GroupActionWaitPathFinding(info, node, destination));
-                        info.getMember().getActions().addActionLaunch(info.getMember().getDirectionFrom(), 1.0, currentForce);
-                        info.getGroup().stop();
-                    } else {
-                        // Switch the rails to the right direction
-                        PathConnection conn = node.findConnection(destination);
-                        if (conn != null) {
-                            if (toggleRails) {
-                                info.setRailsTo(conn.junctionName);
-                            }
-                        } else {
-                            // Call MissingPathConnectionEvent
-                            CommonUtil.callEvent(new MissingPathConnectionEvent(info.getRailPiece(), node, info.getGroup(), destination));
-                            Localization.PATHING_FAILED.broadcast(info.getGroup(), destination);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    @Override
-    public boolean build(SignChangeActionEvent event) {
-        if (event.isCartSign()) {
-            return SignBuildOptions.create()
-                    .setPermission(Permission.BUILD_SWITCHER)
-                    .setName("cart switcher")
-                    .setDescription("switch between tracks based on properties of the cart above")
-                    .setTraincartsWIKIHelp("TrainCarts/Signs/Switcher")
-                    .handle(event.getPlayer());
-        } else if (event.isTrainSign()) {
-            return SignBuildOptions.create()
-                    .setPermission(Permission.BUILD_SWITCHER)
-                    .setName("train switcher")
-                    .setDescription("switch between tracks based on properties of the train above")
-                    .setTraincartsWIKIHelp("TrainCarts/Signs/Switcher")
-                    .handle(event.getPlayer());
-        }
-        return false;
-    }
-
-    @Override
-    public boolean isRailSwitcher(SignActionEvent info) {
-        if (TCConfig.onlyPoweredSwitchersDoPathFinding && info.getHeader().isAlwaysOff()) {
-            return false; // Used purely for detecting trains, not actively switching anything
-        }
-        return true;
-    }
-
-    @Override
-    public boolean overrideFacing() {
-        return true;
     }
 
     /**
