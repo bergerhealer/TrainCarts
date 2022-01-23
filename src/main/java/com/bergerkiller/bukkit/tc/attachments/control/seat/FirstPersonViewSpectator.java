@@ -92,7 +92,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
 
         // Start tracking player input
         if (this.getLockMode() == FirstPersonViewLockMode.SPECTATOR_FREE) {
-            _input.start(viewer);
+            _input.start(viewer, seat.seated.orientation.isLocked() ? 70.0f : 360.0f);
         }
 
         // Position used to compute where the eye/camera view is at

@@ -18,6 +18,7 @@ class SpectatorInput {
     private int blindTicks = 0;
     private final Quaternion orientation = new Quaternion();
     private Player player;
+    private float yawLimit = 360.0f;
 
     /**
      * Resets the player orientation to look at 0/0 and starts
@@ -25,10 +26,11 @@ class SpectatorInput {
      *
      * @param player
      */
-    public void start(Player player) {
+    public void start(Player player, float yawLimit) {
         this.player = player;
         this.blindTicks = CommonUtil.getServerTicks() + 5; // no input for 5 ticks
         this.orientation.setIdentity();
+        this.yawLimit = yawLimit;
         sendRotation(0.0f, 0.0f); // reset
     }
 
@@ -73,11 +75,26 @@ class SpectatorInput {
             }
         }
 
-        // Update orientation
         Location eye = player.getEyeLocation();
+
+        // Limit yaw, if needed
+        float headYaw = eye.getYaw();
+        if (headYaw > this.yawLimit) {
+            correctYaw(this.yawLimit - headYaw);
+            headYaw = this.yawLimit;
+        } else if (headYaw < -this.yawLimit) {
+            correctYaw(-this.yawLimit - headYaw);
+            headYaw = -this.yawLimit;
+        }
+
+        // Update orientation
         this.orientation.setIdentity();
-        this.orientation.rotateY(-eye.getYaw());
+        this.orientation.rotateY(-headYaw);
         this.orientation.rotateX(eye.getPitch());
+    }
+
+    private void correctYaw(float correction) {
+        PacketUtil.sendPacket(player, PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, correction, 0.0f));
     }
 
     private void sendRotation(float pitch, float yaw) {
