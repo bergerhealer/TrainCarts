@@ -361,7 +361,7 @@ public class RailPath {
                     s.calcPosition(position, 1.0);
                     return remainingDistance;
                 } else {
-                    s.calcPosition(position, theta + (distance / s.l));
+                    s.calcPosition(position, theta + (distance * s.linv));
                     return distance;
                 }
             } else {
@@ -378,7 +378,7 @@ public class RailPath {
                     s.calcPosition(position, 0.0);
                     return remainingDistance;
                 } else {
-                    s.calcPosition(position, theta - (distance / s.l));
+                    s.calcPosition(position, theta - (distance * s.linv));
                     return distance;
                 }
             }
@@ -431,7 +431,7 @@ public class RailPath {
                                 moved += remainingDistance;
                                 distance -= remainingDistance;
                             } else {
-                                s.calcPosition(position, theta + (distance / s.l));
+                                s.calcPosition(position, theta + (distance * s.linv));
                                 moved += distance;
                                 distance = 0.0;
                                 break;
@@ -448,7 +448,7 @@ public class RailPath {
                                 moved += remainingDistance;
                                 distance -= remainingDistance;
                             } else {
-                                s.calcPosition(position, theta - (distance / s.l));
+                                s.calcPosition(position, theta - (distance * s.linv));
                                 moved += distance;
                                 distance = 0.0;
                                 break;
@@ -1156,17 +1156,19 @@ public class RailPath {
         public final Quaternion p1_orientation;
         public final boolean has_changing_up_orientation;
         public final double l;
-        public final double ls;
+        public final double ls; // l*l
+        public final double linv; // 1.0 / l
         private Segment prev, next;
 
         public Segment(Point p0, Point p1) {
             this.dt = new Point(p1.x - p0.x, p1.y - p0.y, p1.z - p0.z);
             this.ls = MathUtil.lengthSquared(this.dt.x, this.dt.y, this.dt.z);
             this.l = Math.sqrt(this.ls);
+            this.linv = (this.l <= 1e-20) ? 0.0 : (1.0 / this.l);
             if (this.isZeroLength()) {
                 this.dt_norm = new Point(0.0, 0.0, 0.0);
             } else {
-                this.dt_norm = new Point(this.dt.x / this.l, this.dt.y / this.l, this.dt.z / this.l);
+                this.dt_norm = new Point(this.dt.x * this.linv, this.dt.y * this.linv, this.dt.z * this.linv);
             }
 
             // Uses the roll values of the points and the segment slope
