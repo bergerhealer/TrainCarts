@@ -90,7 +90,7 @@ public class CartAttachmentSeat extends CartAttachment {
                    .setText("FIRST PERSON VIEW")
                    .setFont(MapFont.TINY)
                    .setColor(MapColorPalette.COLOR_RED)
-                   .setPosition(20, 2);
+                   .setPosition(17, 2);
 
                  tab.addWidget(new MapWidgetToggleButton<FirstPersonViewMode>() {
                      @Override
@@ -161,7 +161,7 @@ public class CartAttachmentSeat extends CartAttachment {
                    .setText("PASSENGER DISPLAY")
                    .setFont(MapFont.TINY)
                    .setColor(MapColorPalette.COLOR_RED)
-                   .setPosition(20, 26);
+                   .setPosition(17, 26);
 
                  tab.addWidget(new MapWidgetToggleButton<DisplayMode>() {
                      @Override
