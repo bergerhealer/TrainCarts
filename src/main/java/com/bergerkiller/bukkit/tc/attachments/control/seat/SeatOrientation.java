@@ -174,41 +174,20 @@ public class SeatOrientation {
                 ? (Player) seated.getEntity() : null;
 
         if (this._locked || seated.isDummyPlayer()) {
-            EntityHandle realPlayer = EntityHandle.fromBukkit(seated.getEntity());
-
-            float yaw, pitch, headRot;
-
-            if (seated.isDummyPlayer()) {
-                // Always show facing where the seat points
-                Vector pyr = transform.getYawPitchRoll();
-                yaw = headRot = this._mountYaw = (float) pyr.getY();
-                pitch = (float) pyr.getX();
-            } else {
-                yaw = this._mountYaw = getMountYaw(transform);
-                pitch = realPlayer.getPitch();
-                headRot = realPlayer.getHeadRotation();
-            }
+            SeatedEntity.PassengerPose pose = seated.getCurrentHeadRotation(transform);
+            this._mountYaw = pose.bodyYaw;
 
             // Reverse the values and correct head yaw, because the player is upside-down
             if (seated.isUpsideDown()) {
-                pitch = -pitch;
-                headRot = -headRot + 2.0f * yaw;
+                pose = pose.makeUpsideDown();
             }
 
-            // Limit head rotation within range of yaw
-            final float HEAD_ROT_LIM = 30.0f;
-            if (MathUtil.getAngleDifference(headRot, yaw) > HEAD_ROT_LIM) {
-                if (MathUtil.getAngleDifference(headRot, yaw + HEAD_ROT_LIM) <
-                    MathUtil.getAngleDifference(headRot, yaw - HEAD_ROT_LIM)) {
-                    headRot = yaw + HEAD_ROT_LIM;
-                } else {
-                    headRot = yaw - HEAD_ROT_LIM;
-                }
-            }
+            // Limit head yaw by 30 degrees compared to body yaw
+            pose = pose.limitHeadYaw(30.0f);
 
             // Refresh head rotation
-            if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(headRot, this._entityLastHeadYaw)) {
-                PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, headRot);
+            if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pose.headYaw, this._entityLastHeadYaw)) {
+                PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, pose.headYaw);
                 this._entityLastHeadYaw = headPacket.getHeadYaw();
                 for (Player viewer : seat.getViewers()) {
                     if (viewer != viewerToIgnore) {
@@ -222,12 +201,12 @@ public class SeatOrientation {
             // The client will automatically rotate the body towards the head after a short delay
             // Sending look packets regularly prevents that from happening
             if (this._entityRotationCtr == 0 || 
-                    EntityTrackerEntryStateHandle.hasProtocolRotationChanged(yaw, this._entityLastYaw) ||
-                EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pitch, this._entityLastPitch))
+                    EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pose.bodyYaw, this._entityLastYaw) ||
+                EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pose.headPitch, this._entityLastPitch))
             {
                 this._entityRotationCtr = 10;
 
-                PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(entityId, yaw, pitch, false);
+                PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(entityId, pose.bodyYaw, pose.headPitch, false);
                 this._entityLastYaw = lookPacket.getYaw();
                 this._entityLastPitch = lookPacket.getPitch();
                 for (Player viewer : seat.getViewers()) {
@@ -239,26 +218,22 @@ public class SeatOrientation {
                 this._entityRotationCtr--;
             }
         } else {
+            SeatedEntity.PassengerPose pose = seated.getCurrentHeadRotation(transform);
+
             // Mount yaw is always updated
-            this._mountYaw = getMountYaw(transform);
+            this._mountYaw = pose.bodyYaw;
 
             // Refresh head rotation and body yaw/pitch for a fake player entity
             if (seated.isPlayer() && seated.isFake()) {
-                EntityHandle realPlayer = EntityHandle.fromBukkit(seated.getEntity());
-                float yaw = realPlayer.getYaw();
-                float pitch = realPlayer.getPitch();
-                float headRot = realPlayer.getHeadRotation();
-
                 // Reverse the values and correct head yaw, because the player is upside-down
                 if (seated.isUpsideDown()) {
-                    pitch = -pitch;
-                    headRot = -headRot + 2.0f * yaw;
+                    pose = pose.makeUpsideDown();
                 }
 
-                if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(yaw, this._entityLastYaw) ||
-                    EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pitch, this._entityLastPitch))
+                if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pose.bodyYaw, this._entityLastYaw) ||
+                    EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pose.headPitch, this._entityLastPitch))
                 {
-                    PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(entityId, yaw, pitch, false);
+                    PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(entityId, pose.bodyYaw, pose.headPitch, false);
                     this._entityLastYaw = lookPacket.getYaw();
                     this._entityLastPitch = lookPacket.getPitch();
                     for (Player viewer : seat.getViewers()) {
@@ -268,8 +243,8 @@ public class SeatOrientation {
                     }
                 }
 
-                if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(headRot, this._entityLastHeadYaw)) {
-                    PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, headRot);
+                if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pose.headYaw, this._entityLastHeadYaw)) {
+                    PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, pose.headYaw);
                     this._entityLastHeadYaw = headPacket.getHeadYaw();
                     for (Player viewer : seat.getViewers()) {
                         if (viewer != viewerToIgnore) {
@@ -279,10 +254,5 @@ public class SeatOrientation {
                 }
             }
         }
-    }
-
-    private static float getMountYaw(Matrix4x4 transform) {
-        Vector f = transform.getRotation().forwardVector();
-        return MathUtil.getLookAtYaw(-f.getZ(), f.getX());
     }
 }

@@ -62,7 +62,7 @@ public class SeatedEntityHead extends SeatedEntity {
                 skull.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, FakePlayerSpawner.UPSIDEDOWN.getPlayerName());
                 skull.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, false);
                 updateFocus(seat.isFocused());
-                skull.updatePosition(seat.getTransform());
+                skull.updatePosition(seat.getTransform(), getCurrentHeadRotationQuat(seat.getTransform()));
                 skull.syncPosition(true);
             }
 
@@ -144,7 +144,8 @@ public class SeatedEntityHead extends SeatedEntity {
     @Override
     public void updatePosition(Matrix4x4 transform) {
         if (skull != null) {
-            skull.updatePosition(transform);
+            skull.updatePosition(transform, getCurrentHeadRotationQuat(transform));
+            skull.syncMetadata(); // Ensures pose is smooth by updating every tick
         }
         updateVehicleMountPosition(transform);
     }

@@ -6,6 +6,7 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
@@ -57,8 +58,30 @@ public class FirstPersonViewSpectator extends FirstPersonView {
     @Override
     protected Matrix4x4 getEyeTransform() {
         Matrix4x4 base = super.getEyeTransform();
-        _input.update(base);
+        base.rotate(_input.get());
         return base;
+    }
+
+    /**
+     * Gets the current exact head rotation of the Player inside this seat.
+     * This differs from the player entity's rotation, because of the relative
+     * transformation that is applied.
+     *
+     * @param transform Current body (butt) transformation of this seated entity
+     * @return current head rotation
+     */
+    protected Quaternion getCurrentHeadRotation(Matrix4x4 transform) {
+        transform = transform.clone();
+
+        // Adjust for eye position changes, if set
+        if (!this._eyePosition.isDefault()) {
+            transform.multiply(this._eyePosition.transform);
+        }
+
+        // Adjust for the relative rotation input by the player
+        transform.rotate(this._input.get());
+
+        return transform.getRotation();
     }
 
     @Override
@@ -141,8 +164,8 @@ public class FirstPersonViewSpectator extends FirstPersonView {
             setPlayerVisible(viewer, true);
         }
 
-        // Cleanup
-        _input.stop();
+        // Cleanup, moves player view so it faces where it looked in spectator mode
+        _input.stop(this.getEyeTransform());
     }
 
     @Override
@@ -153,6 +176,9 @@ public class FirstPersonViewSpectator extends FirstPersonView {
             _playerMount.updatePosition(baseTransform);
             _spectatedEntity.updatePosition(baseTransform);
         }
+
+        // Update input
+        _input.update();
     }
 
     @Override

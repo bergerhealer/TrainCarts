@@ -67,6 +67,7 @@ class FirstPersonSpectatedEntityHead extends FirstPersonSpectatedEntity {
     @Override
     public void updatePosition(Matrix4x4 eyeTransform) {
         skull.updatePosition(eyeTransform);
+        skull.entity.syncMetadata(); // Ensures pose is smooth by updating every tick
     }
 
     @Override

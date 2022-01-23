@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
@@ -15,7 +16,7 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlay
  */
 class SpectatorInput {
     private int blindTicks = 0;
-    private final Matrix4x4 lastEyeTransform = new Matrix4x4();
+    private final Quaternion orientation = new Quaternion();
     private Player player;
 
     /**
@@ -27,6 +28,7 @@ class SpectatorInput {
     public void start(Player player) {
         this.player = player;
         this.blindTicks = CommonUtil.getServerTicks() + 5; // no input for 5 ticks
+        this.orientation.setIdentity();
         sendRotation(0.0f, 0.0f); // reset
     }
 
@@ -34,9 +36,11 @@ class SpectatorInput {
      * Stops intercepting input. Resets the look orientation to
      * what the eye last looked at.
      */
-    public void stop() {
+    public void stop(Matrix4x4 currentEyeTransform) {
         if (this.player != null) {
-            Vector pyr = lastEyeTransform.getYawPitchRoll();
+            currentEyeTransform = currentEyeTransform.clone();
+            currentEyeTransform.rotate(this.orientation);
+            Vector pyr = currentEyeTransform.getYawPitchRoll();
             sendRotation((float) pyr.getX(), (float) pyr.getY());
         }
         this.player = null;
@@ -44,11 +48,20 @@ class SpectatorInput {
     }
 
     /**
-     * Updates the input matrix with the relative rotation of the Player
+     * Gets the current relative orientation of the Player's view
+     *
+     * @return orientation
+     */
+    public Quaternion get() {
+        return this.orientation;
+    }
+
+    /**
+     * Updates the view orientation of the Player
      *
      * @param eyeTransform
      */
-    public void update(Matrix4x4 eyeTransform) {
+    public void update() {
         if (player == null) {
             return; // No player inside - no input
         }
@@ -60,10 +73,11 @@ class SpectatorInput {
             }
         }
 
+        // Update orientation
         Location eye = player.getEyeLocation();
-        eyeTransform.rotateY(-eye.getYaw());
-        eyeTransform.rotateX(eye.getPitch());
-        lastEyeTransform.set(eyeTransform);
+        this.orientation.setIdentity();
+        this.orientation.rotateY(-eye.getYaw());
+        this.orientation.rotateX(eye.getPitch());
     }
 
     private void sendRotation(float pitch, float yaw) {

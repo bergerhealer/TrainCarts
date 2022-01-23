@@ -68,26 +68,29 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
 
     @Override
     public void updatePosition(Matrix4x4 transform) {
-        Quaternion q_rotation = transform.getRotation();
+        updatePosition(transform, transform.getRotation());
+    }
+
+    public void updatePosition(Matrix4x4 transform, Quaternion rotation) {
         Vector new_entity_ypr;
 
         // Detect changes in yaw that we can apply to the entity directly
         // The remainder or 'error' is applied to the pose of the model
         double yaw_change;
         if (last_rot != null) {
-            Quaternion changes = q_rotation.clone();
+            Quaternion changes = rotation.clone();
             changes.divide(last_rot);
             yaw_change = Util.fastGetRotationYaw(changes);
         } else {
             yaw_change = 0.0;
         }
-        last_rot = q_rotation;
+        last_rot = rotation;
 
         // Apply when the yaw change isn't too extreme (does not cause a flip) and has a significant change
         new_entity_ypr = this.getYawPitchRoll().clone();
         new_entity_ypr.setY(Util.getNextEntityYaw((float) new_entity_ypr.getY(), yaw_change));
 
-        updateArmorStandPosition(transform, new_entity_ypr, q_rotation);
+        updateArmorStandPosition(transform, new_entity_ypr, rotation);
     }
 
     @Override

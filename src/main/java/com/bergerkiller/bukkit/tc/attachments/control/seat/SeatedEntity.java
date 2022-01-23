@@ -9,6 +9,8 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.math.Quaternion;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
@@ -175,6 +177,66 @@ public abstract class SeatedEntity {
     public void resetMetadata(Player viewer) {
         DataWatcher metaTmp = EntityHandle.fromBukkit(this.entity).getDataWatcher();
         PacketUtil.sendPacket(viewer, PacketPlayOutEntityMetadataHandle.createNew(this.entity.getEntityId(), metaTmp, true));
+    }
+
+    /**
+     * Gets the current exact head rotation of the Entity inside this seat. Returns a
+     * default facing-forward if no entity, or the dummy player, is displayed. Takes
+     * into account special fpv modes like spectator, where the head rotation is relative
+     * to the seat orientation.
+     *
+     * @param transform Current body (butt) transformation of this seated entity
+     * @return current head rotation
+     */
+    protected PassengerPose getCurrentHeadRotation(Matrix4x4 transform) {
+        // When no entity is inside, show seat rotation, facing forwards (dummy player)
+        if (this.isEmpty()) {
+            return new PassengerPose(transform, transform.getRotation());
+        }
+
+        // If spectator mode is used, and is active, defer.
+        if (seat.firstPerson instanceof FirstPersonViewSpectator && seat.firstPerson.player != null) {
+            return new PassengerPose(transform, ((FirstPersonViewSpectator) seat.firstPerson)
+                    .getCurrentHeadRotation(transform));
+        }
+
+        // Default: query the entity head pitch and yaw
+        // When rotation is locked, use the body (transform) yaw
+        EntityHandle entityHandle = EntityHandle.fromBukkit(entity);
+        if (orientation.isLocked()) {
+            return new PassengerPose(transform,
+                    entityHandle.getPitch(),
+                    entityHandle.getHeadRotation());
+        } else {
+            return new PassengerPose(entityHandle.getYaw(),
+                    entityHandle.getPitch(),
+                    entityHandle.getHeadRotation());
+        }
+    }
+
+    /**
+     * Same as {@link #getCurrentHeadRotation(Matrix4x4)} but returns a Quaternion instead
+     *
+     * @param transform Current body (butt) transformation of this seated entity
+     * @return current head rotation (as quaternion)
+     */
+    protected Quaternion getCurrentHeadRotationQuat(Matrix4x4 transform) {
+        // When no entity is inside, show seat rotation, facing forwards (dummy player)
+        if (this.isEmpty()) {
+            return transform.getRotation();
+        }
+
+        // If spectator mode is used, and is active, defer.
+        if (seat.firstPerson instanceof FirstPersonViewSpectator && seat.firstPerson.player != null) {
+            return ((FirstPersonViewSpectator) seat.firstPerson).getCurrentHeadRotation(transform);
+        }
+
+        // Default: query the entity head pitch and yaw
+        EntityHandle entityHandle = EntityHandle.fromBukkit(entity);
+        Quaternion rotation = new Quaternion();
+        rotation.rotateY(-entityHandle.getHeadRotation());
+        rotation.rotateX(entityHandle.getPitch());
+        return rotation;
     }
 
     /**
@@ -374,6 +436,57 @@ public abstract class SeatedEntity {
             SeatedEntity seated = _constructor.apply(seat);
             seated.setDisplayMode(this);
             return seated;
+        }
+    }
+
+    /**
+     * Stores the passenger pose in a seat. This contains the yaw of the
+     * body in the seat, and the yaw/pitch of the head of the entity.
+     */
+    public static class PassengerPose {
+        public final float bodyYaw;
+        public final float headPitch;
+        public final float headYaw;
+
+        public PassengerPose(Matrix4x4 bodyTransform, Quaternion headRotation) {
+            this.bodyYaw = getMountYaw(bodyTransform);
+
+            Vector ypr = headRotation.getYawPitchRoll();
+            this.headPitch = (float) ypr.getX();
+            this.headYaw = (float) ypr.getY();
+        }
+
+        public PassengerPose(Matrix4x4 bodyTransform, float headPitch, float headYaw) {
+            this.bodyYaw = getMountYaw(bodyTransform);
+            this.headPitch = headPitch;
+            this.headYaw = headYaw;
+        }
+
+        public PassengerPose(float bodyYaw, float headPitch, float headYaw) {
+            this.bodyYaw = bodyYaw;
+            this.headPitch = headPitch;
+            this.headYaw = headYaw;
+        }
+
+        public PassengerPose makeUpsideDown() {
+            return new PassengerPose(bodyYaw, -headPitch, -headYaw + 2.0f * bodyYaw);
+        }
+
+        public PassengerPose limitHeadYaw(float limit) {
+            if (MathUtil.getAngleDifference(headYaw, bodyYaw) > limit) {
+                if (MathUtil.getAngleDifference(headYaw, bodyYaw + limit) <
+                    MathUtil.getAngleDifference(headYaw, bodyYaw - limit)) {
+                    return new PassengerPose(bodyYaw, -headPitch, bodyYaw + limit);
+                } else {
+                    return new PassengerPose(bodyYaw, -headPitch, bodyYaw - limit);
+                }
+            }
+            return this;
+        }
+
+        private static float getMountYaw(Matrix4x4 transform) {
+            Vector f = transform.getRotation().forwardVector();
+            return MathUtil.getLookAtYaw(-f.getZ(), f.getX());
         }
     }
 }
