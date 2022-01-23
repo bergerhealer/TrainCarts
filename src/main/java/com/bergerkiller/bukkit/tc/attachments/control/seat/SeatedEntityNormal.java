@@ -334,6 +334,14 @@ class SeatedEntityNormal extends SeatedEntity {
     }
 
     @Override
+    public boolean containsEntityId(int entityId) {
+        if (entityId == this._fakeEntityId) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
     public void updatePosition(Matrix4x4 transform) {
         if (isDisplayed()) {
             // Entity id is that of a fake entity if used, otherwise uses entity id

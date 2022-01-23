@@ -243,6 +243,14 @@ class SeatedEntityElytra extends SeatedEntity {
     }
 
     @Override
+    public boolean containsEntityId(int entityId) {
+        if (entityId == _fakeEntityId) {
+            return true; // Don't care about flipped - is invisible
+        }
+        return false;
+    }
+
+    @Override
     public void updatePosition(Matrix4x4 transform) {
         if (isDisplayed()) {
             Vector pyr = transform.getYawPitchRoll();

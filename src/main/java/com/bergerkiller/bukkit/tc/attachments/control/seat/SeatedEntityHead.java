@@ -167,6 +167,14 @@ public class SeatedEntityHead extends SeatedEntity {
         }
     }
 
+    @Override
+    public boolean containsEntityId(int entityId) {
+        if (skull != null && entityId == skull.getEntityId()) {
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Creates a skull item representing an Entity. If not possible, returns null.
      *

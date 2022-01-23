@@ -671,6 +671,11 @@ public class CartAttachmentSeat extends CartAttachment {
         return false;
     }
 
+    @Override
+    public boolean containsEntityId(int entityId) {
+        return seated.containsEntityId(entityId);
+    }
+
     /**
      * Checks whether the given passenger entity is allowed to sit inside this seat.
      * If this seat is already occupied, False is returned.

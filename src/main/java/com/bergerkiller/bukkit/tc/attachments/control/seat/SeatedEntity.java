@@ -420,6 +420,15 @@ public abstract class SeatedEntity {
         return mount;
     }
 
+    /**
+     * Gets whether this seated entity is using a particular Entity ID in its display.
+     * Passenger entity ID is excluded.
+     *
+     * @param entityId
+     * @return True if this entity ID is used for display
+     */
+    public abstract boolean containsEntityId(int entityId);
+
     public static enum DisplayMode {
         DEFAULT(SeatedEntityNormal::new), /* Player is displayed either upright or upside-down in a cart */
         ELYTRA_SIT(SeatedEntityElytra::new), /* Player is in sitting pose while flying in an elytra */
