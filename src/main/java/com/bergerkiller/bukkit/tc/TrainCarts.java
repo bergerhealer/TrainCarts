@@ -487,6 +487,11 @@ public class TrainCarts extends PluginBase {
         // For good measure
         plugin = this;
 
+        // Before doing anything, initialize the controller logic (slow!)
+        if (Common.hasCapability("Common:EntityController:forceControllerInitialization")) {
+            CommonEntity.forceControllerInitialization();
+        }
+
         // Do this first
         Conversion.registerConverters(MinecartMemberStore.class);
 
