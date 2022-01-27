@@ -489,7 +489,7 @@ public class TrainCarts extends PluginBase {
 
         // Before doing anything, initialize the controller logic (slow!)
         if (Common.hasCapability("Common:EntityController:forceControllerInitialization")) {
-            CommonEntity.forceControllerInitialization();
+            forceInitialization();
         }
 
         // Do this first
@@ -808,6 +808,10 @@ public class TrainCarts extends PluginBase {
             }
         }
         entities.forEach(CommonEntity::clearControllers);
+    }
+
+    private void forceInitialization() {
+        CommonEntity.forceControllerInitialization();
     }
 
     /**
