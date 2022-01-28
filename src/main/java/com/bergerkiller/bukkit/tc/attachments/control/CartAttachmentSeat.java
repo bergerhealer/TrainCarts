@@ -782,6 +782,9 @@ public class CartAttachmentSeat extends CartAttachment {
 
     @Override
     public boolean containsEntityId(int entityId) {
+        if (this._displayedItemEntity != null && this._displayedItemEntity.getEntityId() == entityId) {
+            return true;
+        }
         return seated.containsEntityId(entityId);
     }
 
