@@ -216,7 +216,8 @@ public abstract class SeatedEntity {
     }
 
     /**
-     * Same as {@link #getCurrentHeadRotation(Matrix4x4)} but returns a Quaternion instead
+     * Same as {@link #getCurrentHeadRotation(Matrix4x4)} but returns a Quaternion instead.
+     * If body rotation is locked, restricts head rotation to an appropriate amount.
      *
      * @param transform Current body (butt) transformation of this seated entity
      * @return current head rotation (as quaternion)
@@ -228,16 +229,33 @@ public abstract class SeatedEntity {
         }
 
         // If spectator mode is used, and is active, defer.
+        // No need to check for body locking, as that's already done in spectator mode at input stage.
         if (seat.firstPerson instanceof FirstPersonViewSpectator && seat.firstPerson.player != null) {
             return ((FirstPersonViewSpectator) seat.firstPerson).getCurrentHeadRotation(transform);
         }
 
-        // Default: query the entity head pitch and yaw
-        EntityHandle entityHandle = EntityHandle.fromBukkit(entity);
-        Quaternion rotation = new Quaternion();
-        rotation.rotateY(-entityHandle.getHeadRotation());
-        rotation.rotateX(entityHandle.getPitch());
-        return rotation;
+        if (orientation.isLocked()) {
+            // Default: query the entity head pitch and yaw
+            //          restrict head yaw to body yaw
+            EntityHandle entityHandle = EntityHandle.fromBukkit(entity);
+            PassengerPose pose = new PassengerPose(transform,
+                    entityHandle.getPitch(),
+                    entityHandle.getHeadRotation());
+
+            pose = pose.limitHeadYaw(70.0f);
+
+            Quaternion rotation = new Quaternion();
+            rotation.rotateY(-pose.headYaw);
+            rotation.rotateX(pose.headPitch);
+            return rotation;
+        } else {
+            // Default: query the entity head pitch and yaw
+            EntityHandle entityHandle = EntityHandle.fromBukkit(entity);
+            Quaternion rotation = new Quaternion();
+            rotation.rotateY(-entityHandle.getHeadRotation());
+            rotation.rotateX(entityHandle.getPitch());
+            return rotation;
+        }
     }
 
     /**
