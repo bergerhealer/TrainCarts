@@ -8,6 +8,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -24,10 +25,12 @@ import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.VirtualArmorStandItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity.DisplayMode;
@@ -36,6 +39,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonView;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewDefault;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonEyePositionDialog;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatDisplayedItemDialog;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatExitPositionMenu;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewLockMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
@@ -163,7 +167,7 @@ public class CartAttachmentSeat extends CartAttachment {
                    .setColor(MapColorPalette.COLOR_RED)
                    .setPosition(17, 26);
 
-                 tab.addWidget(new MapWidgetToggleButton<DisplayMode>() {
+                 tab.addWidget(new MapWidgetToggleButton<DisplayMode>() { // Switch display mode button
                      @Override
                      public void onSelectionChanged() {
                          attachment.getConfig().set("displayMode", this.getSelectedOption());
@@ -173,9 +177,45 @@ public class CartAttachmentSeat extends CartAttachment {
                      }
                  }).addOptions(DisplayMode::name, DisplayMode.class)
                    .setSelectedOption(attachment.getConfig().get("displayMode", DisplayMode.DEFAULT))
-                   .setBounds(0, 33, 84, 14);
+                   .setBounds(0, 33, 68, 14);
 
-                 tab.addWidget(new MapWidgetBlinkyButton() {
+                 tab.addWidget(new MapWidgetBlinkyButton() { // Configures displaying an item at the seat
+                     @Override
+                     public void onAttached() {
+                         updateIcon();
+                     }
+
+                     @Override
+                     public void onClick() {
+                         //TODO: Cleaner way to open a sub dialog
+                         tab.getParent().getParent().addWidget(new SeatDisplayedItemDialog() {
+                             @Override
+                             public void onDetached() {
+                                 super.onDetached();
+                                 updateIcon();
+                             }
+                         }).setAttachment(attachment);
+                     }
+
+                     public void updateIcon() {
+                         boolean hasItemSet = false;
+                         if (attachment.getConfig().isNode("displayItem")) {
+                             ConfigurationNode displayItem = attachment.getConfig().getNode("displayItem");
+                             hasItemSet = displayItem.get("enabled", false);
+                         }
+
+                         //boolean hasItemSet = attachment.getConfig().get("lockRotation", false);
+                         if (hasItemSet) {
+                             setIcon("attachments/seat_item_on.png");
+                             setTooltip("Display an item\n   (Enabled)");
+                         } else {
+                             setIcon("attachments/seat_item_off.png");
+                             setTooltip("Display an item\n   (Disabled)");
+                         }
+                     }
+                 }).setPosition(70, 33);
+
+                 tab.addWidget(new MapWidgetBlinkyButton() { // Configures whether the body can rotate
                      @Override
                      public void onAttached() {
                          updateIcon();
@@ -259,6 +299,11 @@ public class CartAttachmentSeat extends CartAttachment {
     private static final int FOCUS_DEBOUNCE_TICKS = 40; //2s
     private int _focusDebounceTimer = 0;
 
+    // Displays an item where the seat is at, but only to people in third-person
+    // Also shown to first-person mode viewers, if their mode is THIRD_P
+    private VirtualArmorStandItemEntity _displayedItemEntity = null;
+    private ObjectPosition _displayedItemPosition = null;
+
     /**
      * Gets the viewers of this seat that have already had makeVisible processed.
      * The entity passed to makeVisible() is removed from the list during
@@ -294,6 +339,13 @@ public class CartAttachmentSeat extends CartAttachment {
         this.firstPerson.setLockMode(viewLockMode);
 
         this._enterPermission = this.getConfig().get("enterPermission", String.class, null);
+
+        // If enabled, initialize a displayed item
+        if (this.getConfig().get("displayItem.enabled", false)) {
+            // Rest is loaded in during onLoad()
+            this._displayedItemPosition = new ObjectPosition();
+            this._displayedItemEntity = new VirtualArmorStandItemEntity(this.getManager());
+        }
     }
 
     // Note: Only load things here that can be live-modified in the editor, such as positions
@@ -326,6 +378,22 @@ public class CartAttachmentSeat extends CartAttachment {
             this._ejectLockRotation = ejectPosition.get("lockRotation", false);
         }
 
+        // Displayed item and position
+        if (this._displayedItemPosition != null && config.isNode("displayItem.position")) {
+            this._displayedItemPosition.load(this.getManager().getClass(), CartAttachmentItem.TYPE,
+                    config.getNode("displayItem.position"));
+        }
+        if (this._displayedItemEntity != null) {
+            ItemStack newItem = config.get("displayItem.item", ItemStack.class);
+            ItemTransformType newTransformType;
+            if (config.isNode("displayItem.position")) {
+                newTransformType = config.get("displayItem.position.transform", ItemTransformType.HEAD);
+            } else {
+                newTransformType = ItemTransformType.HEAD;
+            }
+            this._displayedItemEntity.setItem(newTransformType, newItem);
+        }
+
         // Reset (player modifying attachment position or other stuff)
         if (_focusDebounceTimer > 0) {
             _focusDebounceTimer = FOCUS_DEBOUNCE_TICKS;
@@ -337,6 +405,8 @@ public class CartAttachmentSeat extends CartAttachment {
         super.onDetached();
         this.firstPerson.stopEyePreviews();
         this.setEntity(null);
+        this._displayedItemEntity = null;
+        this._displayedItemPosition = null;
     }
 
     @Override
@@ -363,17 +433,44 @@ public class CartAttachmentSeat extends CartAttachment {
         if (viewer == this.seated.getEntity()) {
             this.firstPerson.player = viewer;
             this.firstPerson.makeVisible(viewer);
+            if (this._displayedItemEntity != null && this.firstPerson.getLiveMode() == FirstPersonViewMode.THIRD_P) {
+                this.makeDisplayedItemVisible(viewer);
+            }
         } else {
             this.thirdPerson.makeVisible(viewer);
+            if (this._displayedItemEntity != null) {
+                this.makeDisplayedItemVisible(viewer);
+            }
         }
+    }
+
+    private void makeDisplayedItemVisible(Player viewer) {
+        if (!this._displayedItemEntity.hasViewers()) {
+            // Ensure position is updated
+            updateDisplayedItemPosition(this.getTransform());
+            this._displayedItemEntity.syncPosition(true);
+        }
+        this._displayedItemEntity.spawn(viewer, this.calcMotion());
+    }
+
+    private void updateDisplayedItemPosition(Matrix4x4 transform) {
+        transform = transform.clone();
+        transform.multiply(this._displayedItemPosition.transform);
+        this._displayedItemEntity.updatePosition(transform);
     }
 
     public void makeHiddenImpl(Player viewer) {
         if (this.seated.getEntity() == viewer) {
+            if (this._displayedItemEntity != null && this.firstPerson.getLiveMode() == FirstPersonViewMode.THIRD_P) {
+                this._displayedItemEntity.destroy(viewer);
+            }
             this.firstPerson.makeHidden(viewer);
             this.firstPerson.player = null;
         } else {
             this.thirdPerson.makeHidden(viewer);
+            if (this._displayedItemEntity != null) {
+                this._displayedItemEntity.destroy(viewer);
+            }
         }
     }
 
@@ -436,6 +533,11 @@ public class CartAttachmentSeat extends CartAttachment {
 
         // If not parented to a parent attachment, move the fake mount to move the seat
         seated.syncPosition(absolute);
+
+        // Move the displayed item entity, if any
+        if (_displayedItemEntity != null) {
+            _displayedItemEntity.syncPosition(absolute);
+        }
     }
 
     /**
@@ -492,6 +594,11 @@ public class CartAttachmentSeat extends CartAttachment {
 
         // Synchronize orientation of the entity inside this seat
         this.seated.updatePosition(this.getTransform());
+
+        // Update displayed item position as well
+        if (this._displayedItemEntity != null) {
+            this.updateDisplayedItemPosition(this.getTransform());
+        }
 
         // Only needed when there is a passenger
         this.seated.updateMode(false);
