@@ -129,8 +129,12 @@ public class TicketCommands {
               final @Argument("name") String name
     ) {
         Ticket newTicket = TicketStore.createTicket(TicketStore.DEFAULT, name);
-        sender.sendMessage(ChatColor.GREEN + "You have created a new ticket with the name " + ChatColor.YELLOW + newTicket.getName());
-        TicketStore.setEditing(sender, newTicket);
+        if (newTicket == null) {
+            sender.sendMessage(ChatColor.RED + "Can not create this ticket: name '" + name + "' is already in use!");
+        } else {
+            sender.sendMessage(ChatColor.GREEN + "You have created a new ticket with the name " + ChatColor.YELLOW + newTicket.getName());
+            TicketStore.setEditing(sender, newTicket);
+        }
     }
 
     @CommandRequiresPermission(Permission.TICKET_MANAGE)
