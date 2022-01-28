@@ -19,7 +19,11 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
  * Spectates the head of the armorstand holding a player skull. Used with the HEAD
  * seated entity logic. To properly handle EYE positioning, and avoid glitches
  * when rotating beyond 180 degrees, it spawns its own armorstand.
+ * 
+ * @deprecated No longer used in favor of {@link FirstPersonSpectatedEntityPlayer} and just
+ *             using a skull item there.
  */
+@Deprecated
 class FirstPersonSpectatedEntityHead extends FirstPersonSpectatedEntity {
     private final ItemStack skullItem;
     private PitchSwappedEntity<VirtualArmorStandItemEntity> skull;

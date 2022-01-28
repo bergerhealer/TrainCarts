@@ -58,9 +58,10 @@ public abstract class FirstPersonSpectatedEntity {
 
         // View through a floating armorstand. Head will be slightly above where the
         // camera view is.
-        if (view.getLiveMode() == FirstPersonViewMode.HEAD) {
-            return new FirstPersonSpectatedEntityHead(seat, view, vmc);
-        }
+        // Disabled: is now integrated into the player spectator mode
+        //if (view.getLiveMode() == FirstPersonViewMode.HEAD) {
+        //    return new FirstPersonSpectatedEntityHead(seat, view, vmc);
+        //}
 
         // Default mode of showing the player itself
         return new FirstPersonSpectatedEntityPlayer(seat, view, vmc);

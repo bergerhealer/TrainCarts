@@ -2,6 +2,8 @@ package com.bergerkiller.bukkit.tc.attachments.control.seat.spectator;
 
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
@@ -14,7 +16,11 @@ import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity.DisplayMode;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityHead;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityEquipmentHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutUpdateAttributesHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityLivingHandle;
@@ -35,9 +41,17 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
     // To prevent a glitch when stepping in we spectate a different entity when starting,
     // and after this rotating has cleaned up spectate the actual player instead.
     private BlindRespawn blindRespawn = null;
+    // Used in HEAD mode for the skull item
+    private final ItemStack skullItem;
 
     public FirstPersonSpectatedEntityPlayer(CartAttachmentSeat seat, FirstPersonViewSpectator view, VehicleMountController vmc) {
         super(seat, view, vmc);
+
+        if (view.getLiveMode() == FirstPersonViewMode.HEAD) {
+            skullItem = SeatedEntityHead.createSkullItem(vmc.getPlayer());
+        } else {
+            skullItem = null;
+        }
     }
 
     @Override
@@ -55,14 +69,26 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
 
             // If not still in the blind respawn mode, swap visibility too
             if (blindRespawn == null) {
-                fakePlayer.swapVisibility();
+                if (view.getLiveMode() == FirstPersonViewMode.HEAD) {
+                    // Swap which entity holds the player skull
+                    PacketUtil.sendPacket(player, PacketPlayOutEntityEquipmentHandle.createNew(
+                            fakePlayer.entity.getEntityId(), EquipmentSlot.HEAD, null), false);
+                    PacketUtil.sendPacket(player, PacketPlayOutEntityEquipmentHandle.createNew(
+                            fakePlayer.entityAlt.getEntityId(), EquipmentSlot.HEAD, skullItem), false);
+                } else {
+                    // Swap visibility
+                    fakePlayer.swapVisibility();
+                }
             }
         });
         fakePlayer.spawn(eyeTransform, seat.calcMotion());
 
         // Spawn an invisible holder entity inside which the fake player sits
         // Or, depending on configuration, just mount it in the vehicle directly
-        if (!seat.firstPerson.getEyePosition().isDefault()) {
+        if (!seat.firstPerson.getEyePosition().isDefault() ||
+            seat.seated.getDisplayMode() == DisplayMode.HEAD ||
+            seat.seated.getDisplayMode() == DisplayMode.INVISIBLE
+        ) {
             // Player must be put into the seat so the eye position is at the baseTransform
             prepareFakeMount(eyeTransform);
         } else {
@@ -141,7 +167,14 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
                 // Spectate the actual player, despawn the fake blind entity
                 // Make the player visible again
                 fakePlayer.spectateFrom(blindRespawn.spectated.getEntityId());
-                fakePlayer.entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, false);
+                if (view.getLiveMode() == FirstPersonViewMode.HEAD) {
+                    // Make only the head visible
+                    PacketUtil.sendPacket(player, PacketPlayOutEntityEquipmentHandle.createNew(
+                            fakePlayer.entity.getEntityId(), EquipmentSlot.HEAD, skullItem), false);
+                } else {
+                    // Make entire body visible
+                    fakePlayer.entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, false);
+                }
 
                 blindRespawn.despawn();
                 blindRespawn = null;
