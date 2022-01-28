@@ -32,6 +32,7 @@ import cloud.commandframework.annotations.specifier.Greedy;
  */
 public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<String>> {
 
+    @CommandTargetTrain
     @CommandMethod("train tags")
     @CommandDescription("Displays the tags set for the carts of a train")
     private void getTrainTags(

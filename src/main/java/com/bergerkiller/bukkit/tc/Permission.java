@@ -45,6 +45,7 @@ public enum Permission implements IPermissionEnum {
     PROPERTY_BREAKBLOCKS_NORMAL("train.property.breakblocks.normal", PermissionDefault.TRUE, "The player can configure a train to automatically break blocks from a whitelist for farming setups."),
     PROPERTY_BREAKBLOCKS_ADMIN("train.property.breakblocks.admin", PermissionDefault.OP, "The player can configure a train to break any type of block at all"),
     PROPERTY_REALTIME("train.property.realtime", PermissionDefault.OP, "The player can configure that a train updates in realtime, adjusting for server tick lag and jitter"),
+    PROPERTY_TICKETS("train.property.tickets", PermissionDefault.TRUE, "The player can assign tickets required for entering the train"),
 
     COMMAND_DESTROY("train.command.destroy", PermissionDefault.OP, "The player can destroy owned carts through commands"),
     COMMAND_DESTROYALL("train.command.destroyall", PermissionDefault.OP, "The player can destroy all trains on the server"),

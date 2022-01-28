@@ -1,14 +1,11 @@
 package com.bergerkiller.bukkit.tc.commands;
 
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
 import java.util.stream.Collectors;
 
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -24,7 +21,6 @@ import com.bergerkiller.bukkit.tc.exception.command.NoTicketSelectedException;
 import com.bergerkiller.bukkit.tc.tickets.TCTicketDisplay;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
-import com.bergerkiller.bukkit.tc.utils.BoundingRange;
 
 import cloud.commandframework.CommandManager;
 import cloud.commandframework.annotations.Argument;
@@ -142,15 +138,9 @@ public class TicketCommands {
     @CommandDescription("Gives a ticket by name to one or more players")
     private void commandGiveTicket(
               final CommandSender sender,
-              final @Argument("ticket") String ticketName,
+              final @Argument("ticket") Ticket ticket,
               final @Argument(value="players", suggestions="targetplayer") String[] playerNames
     ) {
-        Ticket ticket = TicketStore.getTicket(ticketName);
-        if (ticket == null) {
-            sender.sendMessage(ChatColor.RED + "Failed to give ticket: ticket with name " + ticketName + " does not exist!");
-            return;
-        }
-
         for (String playerName : playerNames) {
             Player player = Util.findPlayer(sender, playerName);
             if (player != null) {
@@ -272,6 +262,7 @@ public class TicketCommands {
         }
     }
 
+    @CommandRequiresPermission(Permission.TICKET_MANAGE)
     @CommandMethod("train ticket maximumuses|maxuses|uselimit unlimited|infinite")
     @CommandDescription("Sets the number of uses for the currently edited ticket to unlimited")
     private void commandSetUnlimitedMaximumUses(
