@@ -32,6 +32,12 @@ public enum FirstPersonViewMode {
      */
     INVISIBLE(true),
     /**
+     * Head mode displays a floating head, spectated by the player.
+     * As such, when this option is used spectator mode is always
+     * active.
+     */
+    HEAD(false),
+    /**
      * The player can see himself sit in third-person, the camera hovering
      * slightly above where the head is located. Similar to floating,
      * but the player is visible as a separate entity.

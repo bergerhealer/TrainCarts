@@ -330,6 +330,9 @@ public class CartAttachmentSeat extends CartAttachment {
 
         FirstPersonViewMode viewMode = this.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC);
         FirstPersonViewLockMode viewLockMode = this.getConfig().get("firstPersonViewLockMode", FirstPersonViewLockMode.OFF);
+        if (!viewLockMode.isSpectator() && viewMode == FirstPersonViewMode.HEAD) {
+            viewLockMode = FirstPersonViewLockMode.SPECTATOR_FREE;
+        }
         if (viewLockMode.isSpectator()) {
             this.firstPerson = new FirstPersonViewSpectator(this);
         } else {

@@ -7,7 +7,6 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
-import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityHead;
 
 /**
  * A type of entity that can be spectated, that has a particular appearance
@@ -59,7 +58,7 @@ public abstract class FirstPersonSpectatedEntity {
 
         // View through a floating armorstand. Head will be slightly above where the
         // camera view is.
-        if (seat.seated instanceof SeatedEntityHead) {
+        if (view.getLiveMode() == FirstPersonViewMode.HEAD) {
             return new FirstPersonSpectatedEntityHead(seat, view, vmc);
         }
 
