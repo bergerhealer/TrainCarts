@@ -303,6 +303,7 @@ public class CartAttachmentSeat extends CartAttachment {
     // Also shown to first-person mode viewers, if their mode is THIRD_P
     private VirtualArmorStandItemEntity _displayedItemEntity = null;
     private ObjectPosition _displayedItemPosition = null;
+    private boolean _displayedItemShowFirstPerson = false;
 
     /**
      * Gets the viewers of this seat that have already had makeVisible processed.
@@ -345,6 +346,7 @@ public class CartAttachmentSeat extends CartAttachment {
             // Rest is loaded in during onLoad()
             this._displayedItemPosition = new ObjectPosition();
             this._displayedItemEntity = new VirtualArmorStandItemEntity(this.getManager());
+            this._displayedItemShowFirstPerson = this.getConfig().get("displayItem.showFirstPerson", false);
         }
     }
 
@@ -433,7 +435,7 @@ public class CartAttachmentSeat extends CartAttachment {
         if (viewer == this.seated.getEntity()) {
             this.firstPerson.player = viewer;
             this.firstPerson.makeVisible(viewer);
-            if (this._displayedItemEntity != null && this.firstPerson.getLiveMode() == FirstPersonViewMode.THIRD_P) {
+            if (this._displayedItemEntity != null && showDisplayedItemInFirstPerson()) {
                 this.makeDisplayedItemVisible(viewer);
             }
         } else {
@@ -455,6 +457,11 @@ public class CartAttachmentSeat extends CartAttachment {
         this._displayedItemEntity.spawn(viewer, this.calcMotion());
     }
 
+    private boolean showDisplayedItemInFirstPerson() {
+        return this._displayedItemShowFirstPerson ||
+               this.firstPerson.getLiveMode() == FirstPersonViewMode.THIRD_P;
+    }
+
     private void updateDisplayedItemPosition(Matrix4x4 transform) {
         transform = transform.clone();
         transform.multiply(this._displayedItemPosition.transform);
@@ -463,7 +470,7 @@ public class CartAttachmentSeat extends CartAttachment {
 
     public void makeHiddenImpl(Player viewer) {
         if (this.seated.getEntity() == viewer) {
-            if (this._displayedItemEntity != null && this.firstPerson.getLiveMode() == FirstPersonViewMode.THIRD_P) {
+            if (this._displayedItemEntity != null && showDisplayedItemInFirstPerson()) {
                 this._displayedItemEntity.destroy(viewer);
             }
             this.firstPerson.makeHidden(viewer);

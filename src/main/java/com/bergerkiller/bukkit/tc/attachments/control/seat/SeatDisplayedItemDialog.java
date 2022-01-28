@@ -17,10 +17,10 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.item.MapWidgetItemSelector;
 
 public class SeatDisplayedItemDialog extends MapWidgetMenu {
-    MapWidget setItemButton, positionButton, disableButton;
+    MapWidget setItemButton, positionButton, showFPVButton, disableButton;
 
     public SeatDisplayedItemDialog() {
-        this.setBounds(17, 19, 84, 75);
+        this.setBounds(17, 16, 84, 79);
         this.setBackgroundColor(MapColorPalette.getColor(16, 16, 128));
     }
 
@@ -38,13 +38,14 @@ public class SeatDisplayedItemDialog extends MapWidgetMenu {
                         if (attachment.getConfig().get("displayItem.enabled", false)) {
                             // Enable disable/position button
                             positionButton.setEnabled(true);
+                            showFPVButton.setEnabled(true);
                             disableButton.setEnabled(true);
                         }
                     }
                 }).setAttachment(attachment);
             }
         }).setText("Set Item")
-          .setBounds(10, 10, 64, 15);
+          .setBounds(5, 5, 74, 15);
 
         positionButton = this.addWidget(new MapWidgetButton() {
             @Override
@@ -52,7 +53,28 @@ public class SeatDisplayedItemDialog extends MapWidgetMenu {
                 this.getParent().addWidget(new PositionItemDialog()).setAttachment(attachment);
             }
         }).setText("Position")
-          .setBounds(10, 30, 64, 15);
+          .setBounds(5, 23, 74, 15);
+
+        showFPVButton = this.addWidget(new MapWidgetButton() {
+
+            @Override
+            public void onAttached() {
+                updateText();
+            }
+
+            @Override
+            public void onActivate() {
+                attachment.getConfig().set("displayItem.showFirstPerson",
+                        !attachment.getConfig().get("displayItem.showFirstPerson", false));
+                updateText();
+                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+            }
+
+            private void updateText() {
+                this.setText(attachment.getConfig().get("displayItem.showFirstPerson", false)
+                        ? "FPV: Visible" : "FPV: Hidden");
+            }
+        }).setBounds(5, 41, 74, 15);
 
         disableButton = this.addWidget(new MapWidgetButton() {
             @Override
@@ -62,19 +84,21 @@ public class SeatDisplayedItemDialog extends MapWidgetMenu {
 
                 // Disable all buttons except 'set item'
                 positionButton.setEnabled(false);
+                showFPVButton.setEnabled(false);
                 disableButton.setEnabled(false);
                 setItemButton.focus();
 
                 display.playSound(SoundEffect.EXTINGUISH);
             }
         }).setText("Disable")
-          .setBounds(10, 50, 64, 15);
+          .setBounds(5, 59, 74, 15);
 
         // Enable position/disable button if actually enabled
         // It can only be enabled by setting an item
         boolean isEnabled = attachment.getConfig().get("displayItem.enabled", false);
-        disableButton.setEnabled(isEnabled);
         positionButton.setEnabled(isEnabled);
+        showFPVButton.setEnabled(isEnabled);
+        disableButton.setEnabled(isEnabled);
 
         super.onAttached();
     }
@@ -284,8 +308,8 @@ public class SeatDisplayedItemDialog extends MapWidgetMenu {
         private MapWidgetItemSelector selector;
 
         public SelectItemDialog() {
-            this.setBounds(-13, -16, 111, 97);
-            this.setBackgroundColor(MapColorPalette.getColor(32, 32, 100));
+            this.setBounds(-13, -12, 111, 97);
+            this.setBackgroundColor(MapColorPalette.getColor(0, 128, 200));
             this.setDepthOffset(1);
         }
 
