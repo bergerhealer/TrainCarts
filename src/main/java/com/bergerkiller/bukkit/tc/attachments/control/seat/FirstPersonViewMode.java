@@ -9,14 +9,14 @@ public enum FirstPersonViewMode {
      * mode when the seat is vertical or upside-down. This is default legacy
      * behavior.
      */
-    DYNAMIC(false),
+    DYNAMIC(false, false),
     /**
      * Default mode: player sits in the seat, and sees himself
      * sitting there always upright. The player head is always
      * above the position of the seat. Anchors the butt of the player
      * where the seat position is.
      */
-    DEFAULT(false),
+    DEFAULT(false, false),
     /**
      * Player floats an offset away from the seat, making sure the player head
      * is exactly where it would be if perfectly rotated. The same can be achieved
@@ -25,34 +25,36 @@ public enum FirstPersonViewMode {
      * This is used when the player uses smooth coasters, because mount switching
      * doesn't work very well there.
      */
-    SMOOTHCOASTERS_FIX(false, false),
+    SMOOTHCOASTERS_FIX(false, false, false),
     /**
      * The player can not see himself sitting, but the camera is positioned
      * where the player head would be in floating mode.
      */
-    INVISIBLE(true),
+    INVISIBLE(true, true),
     /**
      * Head mode displays a floating head, spectated by the player.
      * As such, when this option is used spectator mode is always
      * active.
      */
-    HEAD(false),
+    HEAD(false, true),
     /**
      * The player can see himself sit in third-person, the camera hovering
      * slightly above where the head is located. Similar to floating,
      * but the player is visible as a separate entity.
      */
-    THIRD_P(true);
+    THIRD_P(true, false);
 
     private final boolean _fakePlayer;
+    private final boolean _realPlayerInvisible;
     private final boolean _selectable;
 
-    private FirstPersonViewMode(boolean fakePlayer) {
-        this(fakePlayer, true);
+    private FirstPersonViewMode(boolean fakePlayer, boolean realPlayerInvisible) {
+        this(fakePlayer, realPlayerInvisible, true);
     }
 
-    private FirstPersonViewMode(boolean fakePlayer, boolean selectable) {
+    private FirstPersonViewMode(boolean fakePlayer, boolean realPlayerInvisible, boolean selectable) {
         this._fakePlayer = fakePlayer;
+        this._realPlayerInvisible = realPlayerInvisible;
         this._selectable = selectable;
     }
 
@@ -64,6 +66,15 @@ public enum FirstPersonViewMode {
      */
     public boolean hasFakePlayer() {
         return this._fakePlayer;
+    }
+
+    /**
+     * Gets whether the real player is made invisible when in this mode
+     *
+     * @return True if the real player is invisible
+     */
+    public boolean isRealPlayerInvisible() {
+        return this._realPlayerInvisible;
     }
 
     /**

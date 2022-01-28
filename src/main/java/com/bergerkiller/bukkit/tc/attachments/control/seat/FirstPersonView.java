@@ -5,14 +5,20 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.spectator.FirstPersonEyePreview;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityEquipmentHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
@@ -307,10 +313,46 @@ public abstract class FirstPersonView {
     }
 
     protected static void setPlayerVisible(Player player, boolean visible) {
-        DataWatcher metaTmp = new DataWatcher();
-        metaTmp.set(EntityHandle.DATA_FLAGS, EntityUtil.getDataWatcher(player).get(EntityHandle.DATA_FLAGS));
-        metaTmp.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, !visible);
-        PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(player.getEntityId(), metaTmp, true);
-        PacketUtil.sendPacket(player, metaPacket);
+        // Send metadata packet to make the actual player entity visible or invisible
+        {
+            DataWatcher metaTmp = new DataWatcher();
+            metaTmp.set(EntityHandle.DATA_FLAGS, EntityUtil.getDataWatcher(player).get(EntityHandle.DATA_FLAGS));
+            metaTmp.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, !visible);
+            PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(player.getEntityId(), metaTmp, true);
+            PacketUtil.sendPacket(player, metaPacket);
+        }
+
+        if (visible) {
+            // Resend all original equipment information of the Player
+            PlayerInventory inv = player.getInventory();
+            sendEquipment(player, EquipmentSlot.HEAD, inv.getHelmet());
+            sendEquipment(player, EquipmentSlot.CHEST, inv.getChestplate());
+            sendEquipment(player, EquipmentSlot.FEET, inv.getBoots());
+            sendEquipment(player, EquipmentSlot.LEGS, inv.getLeggings());
+        } else {
+            // Wipe all equipment information of the Player
+            sendEquipment(player, EquipmentSlot.HEAD, null);
+            sendEquipment(player, EquipmentSlot.CHEST, null);
+            sendEquipment(player, EquipmentSlot.FEET, null);
+            sendEquipment(player, EquipmentSlot.LEGS, null);
+        }
+    }
+
+    protected static void sendEquipment(Player player, EquipmentSlot slot, ItemStack item) {
+        if (HAS_EQUIPMENT_SEND_METHOD) {
+            sendEquipmentUsingBukkit(player, slot, item);
+        } else {
+            PacketUtil.sendPacket(player, PacketPlayOutEntityEquipmentHandle.createNew(
+                    player.getEntityId(), slot, item),
+                    false);
+        }
+    }
+
+    private static final boolean HAS_EQUIPMENT_SEND_METHOD = Common.evaluateMCVersion(">=", "1.18");
+    private static void sendEquipmentUsingBukkit(Player player, EquipmentSlot slot, ItemStack item) {
+        if (item == null) {
+            item = ItemUtil.emptyItem(); // Boo bukkit.
+        }
+        player.sendEquipmentChange(player, slot, item);
     }
 }

@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
@@ -98,9 +99,15 @@ public class FirstPersonViewDefault extends FirstPersonView {
             }
         }
 
-        // If mode is INVISIBLE, then also make the player itself invisible using a metadata update
-        if (this.getLiveMode() == FirstPersonViewMode.INVISIBLE) {
+        // If mode is INVISIBLE or HEAD, then also make the player itself invisible using a metadata update
+        // This also removes all player equipment so they aren't displayed hovering in the air
+        if (this.getLiveMode().isRealPlayerInvisible()) {
             setPlayerVisible(viewer, false);
+        }
+
+        // If mode is HEAD, then assign a player head skull as equipment
+        if (this.getLiveMode() == FirstPersonViewMode.HEAD) {
+            sendEquipment(viewer, EquipmentSlot.HEAD, SeatedEntityHead.createSkullItem(viewer));
         }
 
         if (!useFakeCamera) {
@@ -135,7 +142,7 @@ public class FirstPersonViewDefault extends FirstPersonView {
             vmc.unmount(seat.seated.parentMountId, viewer.getEntityId());
 
             // If mode is not INVISIBLE, then also make the player itself invisible using a metadata update
-            if (this.getLiveMode() == FirstPersonViewMode.INVISIBLE) {
+            if (this.getLiveMode().isRealPlayerInvisible()) {
                 setPlayerVisible(viewer, true);
             }
         } else if (this.getLiveMode() == FirstPersonViewMode.THIRD_P) {

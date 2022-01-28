@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.light.LightAPIController;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -59,8 +60,9 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.inventory.InventoryCreativeEvent;
+import org.bukkit.event.inventory.InventoryType.SlotType;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
-import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -961,6 +963,19 @@ public class TCListener implements Listener {
         MinecartMember<?> member = MinecartMemberStore.getFromEntity(event.getEntity().getVehicle());
         if (member != null && !member.canTakeDamage(event.getEntity(), event.getCause())) {
             event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onPlayerCreativeSetSlot(InventoryCreativeEvent event) {
+        // While inside a seat that uses an FPV mode which makes the player invisible,
+        // deny changing the equipment slots. This prevents player equipment wiping
+        // when the player opens the inventory.
+        if (event.getSlotType() == SlotType.ARMOR) {
+            CartAttachmentSeat seat = plugin.getSeatAttachmentMap().get(event.getWhoClicked().getEntityId());
+            if (seat != null && seat.firstPerson.getLiveMode().isRealPlayerInvisible()) {
+                event.setResult(Result.DENY);
+            }
         }
     }
 
