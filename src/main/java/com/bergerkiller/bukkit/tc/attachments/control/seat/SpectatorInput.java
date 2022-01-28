@@ -7,6 +7,7 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
 
@@ -40,10 +41,22 @@ class SpectatorInput {
      */
     public void stop(Matrix4x4 currentEyeTransform) {
         if (this.player != null) {
-            currentEyeTransform = currentEyeTransform.clone();
-            currentEyeTransform.rotate(this.orientation);
-            Vector pyr = currentEyeTransform.getYawPitchRoll();
-            sendRotation((float) pyr.getX(), (float) pyr.getY());
+            Quaternion rotation = currentEyeTransform.getRotation();
+            Vector forward = rotation.forwardVector();
+
+            float pitch, yaw;
+            if (Math.abs(forward.getY()) >= 0.99) {
+                // If looking primarily up or down, look up/down and only calculate yaw
+                // This then becomes 'roll' around the axis
+                pitch = (forward.getY() >= 0.0) ? -90.0f : 90.0f;
+                yaw = MathUtil.getLookAtYaw(rotation.upVector()) + 90.0f;
+            } else {
+                // Look into the direction facing upwards
+                pitch = MathUtil.getLookAtPitch(forward.getX(), forward.getY(), forward.getZ());
+                yaw = MathUtil.getLookAtYaw(forward) + 90.0f;
+            }
+
+            sendRotation(pitch, yaw);
         }
         this.player = null;
         this.blindTicks = 0;
