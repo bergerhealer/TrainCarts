@@ -446,6 +446,8 @@ public class CartAttachmentSeat extends CartAttachment {
 
     private void makeDisplayedItemVisible(Player viewer) {
         if (!this._displayedItemEntity.hasViewers()) {
+            // Set interpolation mode to match whatever parent vehicle is used
+            this._displayedItemEntity.setUseMinecartInterpolation(this.isMinecartInterpolation());
             // Ensure position is updated
             updateDisplayedItemPosition(this.getTransform());
             this._displayedItemEntity.syncPosition(true);
