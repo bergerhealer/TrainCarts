@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
+import com.bergerkiller.generated.net.minecraft.server.level.EntityTrackerEntryStateHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
 /**
@@ -16,6 +17,9 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
  * camera glitch at pitch 180. Only spawns to a single viewer.
  */
 class PitchSwappedEntity<E extends VirtualEntity> {
+    private static final float MIN_PITCH = EntityTrackerEntryStateHandle.getRotationFromProtocol(-128); // Closest to -180
+    private static final float MAX_PITCH = EntityTrackerEntryStateHandle.getRotationFromProtocol(127); // Closest to 180
+
     private final VehicleMountController vmc;
     private Runnable beforeSwap = () -> {};
     public E entity;
@@ -37,17 +41,21 @@ class PitchSwappedEntity<E extends VirtualEntity> {
     }
 
     public void spawn(Matrix4x4 eyeTransform, Vector motion) {
-        this.entity.updatePosition(eyeTransform, eyeTransform.getYawPitchRoll());
+        HeadRotation headRot = calcHeadRotation(eyeTransform);
+
+        this.entity.updatePosition(eyeTransform, headRot.pyr);
         this.entity.syncPosition(true);
 
         this.entityAlt.updatePosition(eyeTransform, new Vector(
-                computeAltPitch(this.entity.getYawPitchRoll().getX(), 179.0f),
+                computeAltPitch(headRot.pitch, MAX_PITCH),
                 this.entity.getYawPitchRoll().getY(),
                 0.0));
         this.entityAlt.syncPosition(true);
 
         this.entity.spawn(vmc.getPlayer(), motion);
+        this.entity.forceSyncRotation();
         this.entityAlt.spawn(vmc.getPlayer(), motion);
+        this.entityAlt.forceSyncRotation();
     }
 
     public void destroy() {
@@ -79,10 +87,10 @@ class PitchSwappedEntity<E extends VirtualEntity> {
     }
 
     public void updatePosition(Matrix4x4 eyeTransform) {
-        entity.updatePosition(eyeTransform, eyeTransform.getYawPitchRoll());
+        HeadRotation headRot = calcHeadRotation(eyeTransform);
 
         // If pitch went from < 180 to > 180 or other way around, we must swap fake and alt
-        if (Util.isProtocolRotationGlitched(entity.getSyncPitch(), entity.getLivePitch())) {
+        if (Util.isProtocolRotationGlitched(entity.getSyncPitch(), headRot.pitch)) {
             // Spectate other entity
             if (spectating) {
                 Util.swapSpectating(vmc, entity.getEntityId(), entityAlt.getEntityId());
@@ -99,30 +107,42 @@ class PitchSwappedEntity<E extends VirtualEntity> {
             }
 
             // Give the fake player full sync pitch
-            entity.updatePosition(eyeTransform, eyeTransform.getYawPitchRoll());
+            // Sync this information right away, otherwise a second swap can happen next tick
+            entity.updatePosition(eyeTransform, headRot.pyr);
+            entity.syncPosition(true);
 
             // Sync these right away
             entity.syncMetadata();
             entityAlt.syncMetadata();
+        } else {
+            // Update like normal
+            entity.updatePosition(eyeTransform, headRot.pyr);
         }
 
         // Calculate what new alt-pitch should be used. This swaps over at the 180-degree mark
         {
-            float newAltPitch = computeAltPitch(entity.getYawPitchRoll().getX(),
-                                                entityAlt.getLivePitch());
-            boolean isAltPitchDifferent = (newAltPitch != entityAlt.getLivePitch());
+            float newAltPitch = computeAltPitch(headRot.pitch, entityAlt.getLivePitch());
+            boolean requiresRespawning = Util.isProtocolRotationGlitched(newAltPitch, entityAlt.getLivePitch());
 
             // Keep the alt nearby ready to be used. Keep head yaw in check so no weird spazzing out happens there
             entityAlt.updatePosition(eyeTransform, new Vector(
-                    newAltPitch, entity.getYawPitchRoll().getY(), 0.0));
+                    newAltPitch, headRot.yaw, 0.0));
 
-            if (isAltPitchDifferent) {
+            if (requiresRespawning) {
                 // We cannot safely rotate between these two - it requires a respawn to do this quickly
                 entityAlt.destroy(vmc.getPlayer());
                 entityAlt.syncPosition(true);
                 entityAlt.spawn(vmc.getPlayer(), new Vector());
+                entityAlt.forceSyncRotation();
             }
         }
+    }
+
+    private HeadRotation calcHeadRotation(Matrix4x4 eyeTransform) {
+        //TODO: This deals with roll components badly sometimes
+        //      What can we do about this?
+        Vector pyr = eyeTransform.getYawPitchRoll();
+        return new HeadRotation((float) pyr.getX(), (float) pyr.getY());
     }
 
     public void syncPosition(boolean absolute) {
@@ -144,15 +164,35 @@ class PitchSwappedEntity<E extends VirtualEntity> {
         return new PitchSwappedEntity<E>(vmc, entityFactory.get(), entityFactory.get());
     }
 
-    static float computeAltPitch(double currPitch, float currAltPitch) {
-        currPitch = MathUtil.wrapAngle(currPitch); // Wrap between -180 and 180 degrees
+    static float computeAltPitch(float currPitch, float currAltPitch) {
+        // Special care must be taken at 180 degrees. Floating point error is a pain!
+        int protRot = EntityTrackerEntryStateHandle.getProtocolRotation(currPitch);
+        if (protRot == -128) {
+            return MAX_PITCH;
+        } else if (protRot == 127) {
+            return MIN_PITCH;
+        }
 
+        // Wrap between -180 and 180 degrees and check if exceeding 90 degrees pitch
+        currPitch = MathUtil.wrapAngle(currPitch);
         if (currPitch > 90.0) {
-            return 181.0f;
+            return MIN_PITCH;
         } else if (currPitch < -90.0) {
-            return 179.0f;
+            return MAX_PITCH;
         } else {
             return currAltPitch;
+        }
+    }
+
+    private static final class HeadRotation {
+        public final float pitch;
+        public final float yaw;
+        public final Vector pyr;
+
+        public HeadRotation(float pitch, float yaw) {
+            this.pitch = pitch;
+            this.yaw = yaw;
+            this.pyr = new Vector(pitch, yaw, 0.0);
         }
     }
 }

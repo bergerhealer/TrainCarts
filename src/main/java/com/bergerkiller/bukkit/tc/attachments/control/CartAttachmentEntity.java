@@ -243,6 +243,7 @@ public class CartAttachmentEntity extends CartAttachment {
             CommonEntity<?> entity = this.getController().getMember().getEntity();
             this.entity = new VirtualEntity(this.getManager(), entity.getEntityId(), entity.getUniqueId());
             this.entity.setUseParentMetadata(true);
+            this.entity.setRespawnOnPitchFlip(true);
         }
         this.entity.setEntityType(entityType);
 

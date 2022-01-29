@@ -9,7 +9,6 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
-import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
@@ -21,6 +20,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpecta
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity.DisplayMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityHead;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityEquipmentHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutMountHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutUpdateAttributesHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityLivingHandle;
@@ -31,10 +31,13 @@ import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityAr
  * the seat like any other player is as viewed in third-person.
  */
 class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
+    private static final VirtualEntity[] NO_FAKE_MOUNTS = new VirtualEntity[0];
+
     // A fake invisible mount that positions the player correctly and moves it around
-    private VirtualEntity fakeMount;
-    // The entity ID to which the fake player is mounted
-    private int mountedVehicleId = -1;
+    // One mount on newer versions of Minecraft that supports multiple passengers per mount
+    // Two mounts for older versions.
+    // 0 mounts if mounted directly in the parent vehicle.
+    private VirtualEntity[] fakeMounts = NO_FAKE_MOUNTS;
     // Fake player entity currently displayed and riding the cart, being spectated
     private PitchSwappedEntity<FakeVirtualPlayer> fakePlayer;
     // Right after the fake player spawns, the head is in the process of rotating from 0.0
@@ -63,10 +66,6 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
                 new FakeVirtualPlayer(seat.getManager(), FakePlayerSpawner.NO_NAMETAG),
                 new FakeVirtualPlayer(seat.getManager(), FakePlayerSpawner.NO_NAMETAG_SECONDARY));
         fakePlayer.beforeSwap(() -> {
-            // Swap in vehicle mount
-            vmc.unmount(this.mountedVehicleId, this.fakePlayer.entity.getEntityId());
-            vmc.mount(this.mountedVehicleId, this.fakePlayer.entityAlt.getEntityId());
-
             // If not still in the blind respawn mode, swap visibility too
             if (blindRespawn == null) {
                 if (view.getLiveMode() == FirstPersonViewMode.HEAD) {
@@ -85,12 +84,14 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
 
         // Spawn an invisible holder entity inside which the fake player sits
         // Or, depending on configuration, just mount it in the vehicle directly
+        // Or, on older versions of Minecraft, where multiple passengers per mount doesn't work
         if (!seat.firstPerson.getEyePosition().isDefault() ||
             seat.seated.getDisplayMode() == DisplayMode.HEAD ||
-            seat.seated.getDisplayMode() == DisplayMode.INVISIBLE
+            seat.seated.getDisplayMode() == DisplayMode.INVISIBLE ||
+            !PacketPlayOutMountHandle.T.isAvailable()
         ) {
             // Player must be put into the seat so the eye position is at the baseTransform
-            prepareFakeMount(eyeTransform);
+            prepareFakeMounts(eyeTransform);
         } else {
             // Player is put into a vehicle, we don't really care
             mountInVehicle();
@@ -102,40 +103,63 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
     }
 
     private void mountInVehicle() {
-        this.mountedVehicleId = view.prepareVehicleEntityId();
-        VehicleMountController vmh = PlayerUtil.getVehicleMountController(player);
-        vmh.mount(this.mountedVehicleId, this.fakePlayer.getEntityId());
+        int vehicleId = view.prepareVehicleEntityId();
+        fakePlayer.entity.mountedVehicleId = fakePlayer.entityAlt.mountedVehicleId = vehicleId;
+        vmc.mount(vehicleId, this.fakePlayer.getEntityId());
     }
 
-    private void prepareFakeMount(Matrix4x4 baseTransform) {
-        this.fakeMount = new VirtualEntity(seat.getManager());
-        this.fakeMount.setEntityType(EntityType.ARMOR_STAND);
-        this.fakeMount.setSyncMode(SyncMode.SEAT);
-        this.fakeMount.setUseMinecartInterpolation(seat.isMinecartInterpolation());
+    private void prepareFakeMounts(Matrix4x4 baseTransform) {
+        if (PacketPlayOutMountHandle.T.isAvailable()) {
+            // Only one fake mount needed
+            VirtualEntity fakeMount = createFakeMount(baseTransform);
+
+            // Mount both players inside
+            this.fakePlayer.entity.mountedVehicleId = fakeMount.getEntityId();
+            this.fakePlayer.entityAlt.mountedVehicleId = fakeMount.getEntityId();
+            vmc.mount(fakeMount.getEntityId(), this.fakePlayer.entity.getEntityId());
+            vmc.mount(fakeMount.getEntityId(), this.fakePlayer.entityAlt.getEntityId());
+
+            this.fakeMounts = new VirtualEntity[] { fakeMount };
+        } else {
+            // Spawn two mounts, put players in each
+            VirtualEntity[] fakeMounts = new VirtualEntity[] {
+                    createFakeMount(baseTransform),  createFakeMount(baseTransform)
+            };
+
+            // Mount both players inside
+            this.fakePlayer.entity.mountedVehicleId = fakeMounts[0].getEntityId();
+            this.fakePlayer.entityAlt.mountedVehicleId = fakeMounts[1].getEntityId();
+            vmc.mount(fakeMounts[0].getEntityId(), this.fakePlayer.entity.getEntityId());
+            vmc.mount(fakeMounts[1].getEntityId(), this.fakePlayer.entityAlt.getEntityId());
+
+            this.fakeMounts = fakeMounts;
+        }
+    }
+
+    private VirtualEntity createFakeMount(Matrix4x4 baseTransform) {
+        VirtualEntity fakeMount = new VirtualEntity(seat.getManager());
+        fakeMount.setEntityType(EntityType.ARMOR_STAND);
+        fakeMount.setSyncMode(SyncMode.SEAT);
+        fakeMount.setUseMinecartInterpolation(seat.isMinecartInterpolation());
 
         // Put the entity on a fake mount that we move around at an offset
         double y_offset = VirtualEntity.ARMORSTAND_BUTT_OFFSET + VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT;
-        this.fakeMount.setRelativeOffset(0.0, -y_offset, 0.0);
-        this.fakeMount.updatePosition(baseTransform);
-        this.fakeMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
-        this.fakeMount.getMetaData().set(EntityHandle.DATA_NO_GRAVITY, true);
-        this.fakeMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
-        this.fakeMount.getMetaData().set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
+        fakeMount.setRelativeOffset(0.0, -y_offset, 0.0);
+        fakeMount.updatePosition(baseTransform);
+        fakeMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
+        fakeMount.getMetaData().set(EntityHandle.DATA_NO_GRAVITY, true);
+        fakeMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
+        fakeMount.getMetaData().set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
                 EntityArmorStandHandle.DATA_FLAG_SET_MARKER |
                 EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
                 EntityArmorStandHandle.DATA_FLAG_IS_SMALL));
-        this.fakeMount.syncPosition(true);
-        this.fakeMount.spawn(player, seat.calcMotion());
+        fakeMount.syncPosition(true);
+        fakeMount.spawn(player, seat.calcMotion());
 
         // Hide health bar
-        PacketUtil.sendPacket(player, PacketPlayOutUpdateAttributesHandle.createZeroMaxHealth(this.fakeMount.getEntityId()));
+        PacketUtil.sendPacket(player, PacketPlayOutUpdateAttributesHandle.createZeroMaxHealth(fakeMount.getEntityId()));
 
-        // Put the fake player into the invisible entity that moves it around
-        VehicleMountController vmh = PlayerUtil.getVehicleMountController(player);
-        vmh.mount(this.fakeMount.getEntityId(), this.fakePlayer.getEntityId());
-
-        // Now uses this
-        this.mountedVehicleId = this.fakeMount.getEntityId();
+        return fakeMount;
     }
 
     @Override
@@ -146,13 +170,11 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             blindRespawn = null;
         }
 
-        if (this.mountedVehicleId != -1) {
-            VehicleMountController vmc = PlayerUtil.getVehicleMountController(player);
-            vmc.unmount(this.mountedVehicleId, this.fakePlayer.getEntityId());
-            this.mountedVehicleId = -1;
-        }
-        if (this.fakeMount != null) {
-            this.fakeMount.destroy(player);
+        this.fakePlayer.entity.unmount(vmc);
+        this.fakePlayer.entityAlt.unmount(vmc);
+
+        for (VirtualEntity fakeMount : fakeMounts) {
+            fakeMount.destroy(player);
         }
 
         // Despawn fake player
@@ -187,15 +209,15 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
         this.fakePlayer.updatePosition(eyeTransform);
 
         // Move the vehicle itself, which moves the fake player around
-        if (this.fakeMount != null) {
-            this.fakeMount.updatePosition(eyeTransform);
+        for (VirtualEntity fakeMount : fakeMounts) {
+            fakeMount.updatePosition(eyeTransform);
         }
     }
 
     @Override
     public void syncPosition(boolean absolute) {
-        if (this.fakeMount != null) {
-            this.fakeMount.syncPosition(absolute);
+        for (VirtualEntity fakeMount : fakeMounts) {
+            fakeMount.syncPosition(absolute);
         }
 
         this.fakePlayer.syncPosition(absolute);
@@ -230,6 +252,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             spectated.updatePosition(eyeTransform);
             spectated.syncPosition(true);
             spectated.spawn(player, seat.calcMotion());
+            spectated.forceSyncRotation();
             Util.startSpectating(vmc, spectated.getEntityId());
         }
 
@@ -251,13 +274,25 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
      * VirtualEntity spawned using {@link FakePlayerSpawner}
      */
     private static class FakeVirtualPlayer extends VirtualEntity {
+        // Logic for spawning a new fake player entity
         public final FakePlayerSpawner fakePlayer;
+
+        // The entity ID to which the fake player is mounted
+        public int mountedVehicleId = -1;
 
         public FakeVirtualPlayer(AttachmentManager manager, FakePlayerSpawner fakeplayer) {
             super(manager);
             this.fakePlayer = fakeplayer;
             this.setEntityType(EntityType.PLAYER);
             this.setSyncMode(SyncMode.NORMAL);
+            this.mountedVehicleId = -1;
+        }
+
+        public void unmount(VehicleMountController vmc) {
+            if (this.mountedVehicleId != -1) {
+                vmc.unmount(this.mountedVehicleId, this.getEntityId());
+                this.mountedVehicleId = -1;
+            }
         }
 
         @Override

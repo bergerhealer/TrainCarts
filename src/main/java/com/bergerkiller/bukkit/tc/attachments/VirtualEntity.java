@@ -75,6 +75,7 @@ public class VirtualEntity {
     private Vector relativePos = new Vector();
     private EntityType entityType = EntityType.CHICKEN;
     private boolean entityTypeIsMinecart = false;
+    private boolean respawnOnPitchFlip = false;
     private int rotateCtr = 0;
     private SyncMode syncMode = SyncMode.NORMAL;
     private boolean minecartInterpolation = false;
@@ -133,6 +134,16 @@ public class VirtualEntity {
 
     public double getMountOffset() {
         return VehicleMountRegistry.getOffset(this.entityType);
+    }
+
+    /**
+     * Sets whether to destroy and re-spawn the entity when pitch flips
+     * between -180 and 180.
+     *
+     * @param respawn True to respawn on pitch flip
+     */
+    public void setRespawnOnPitchFlip(boolean respawn) {
+        this.respawnOnPitchFlip = respawn;
     }
 
     /**
@@ -468,7 +479,7 @@ public class VirtualEntity {
         boolean largeChange = (abs_delta > EntityNetworkController.MAX_RELATIVE_DISTANCE);
 
         // Detect a glitched pitch rotation, and perform a respawn then
-        if (this.syncMode.isNormal() && this.syncPitch != this.livePitch && Util.isProtocolRotationGlitched(this.syncPitch, this.livePitch)) {
+        if (this.respawnOnPitchFlip && this.syncPitch != this.livePitch && Util.isProtocolRotationGlitched(this.syncPitch, this.livePitch)) {
             for (Player viewer : this.viewers) {
                 this.sendDestroyPackets(viewer);
             }
@@ -502,7 +513,7 @@ public class VirtualEntity {
         // Remember the rotation change for X more ticks. This prevents partial rotation on the client.
         rotated = false;
         if (rotatedNow) {
-            rotateCtr = 14;
+            forceSyncRotation();
             rotated = true;
         } else if (rotateCtr > 0) {
             rotateCtr--;
@@ -573,6 +584,14 @@ public class VirtualEntity {
             this.syncYaw = this.liveYaw;
             this.syncPitch = this.livePitch;
         }
+    }
+
+    /**
+     * Sends the correct rotation of the entity for the following 14 ticks.
+     * This helps unstick the client.
+     */
+    public void forceSyncRotation() {
+        this.rotateCtr = 14;
     }
 
     private void refreshHeadRotation() {
