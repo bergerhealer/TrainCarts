@@ -131,9 +131,7 @@ class PitchSwappedEntity<E extends VirtualEntity> {
 
             if (requiresRespawning) {
                 // We cannot safely rotate between these two - it requires a respawn to do this quickly
-                entityAlt.destroy(vmc.getPlayer());
-                entityAlt.syncPosition(true);
-                entityAlt.spawn(vmc.getPlayer(), new Vector());
+                entityAlt.respawnForAll(new Vector());
                 entityAlt.forceSyncRotation();
             }
         }

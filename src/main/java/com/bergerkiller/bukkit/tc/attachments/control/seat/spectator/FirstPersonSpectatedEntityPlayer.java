@@ -66,6 +66,9 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
                 new FakeVirtualPlayer(seat.getManager(), FakePlayerSpawner.NO_NAMETAG),
                 new FakeVirtualPlayer(seat.getManager(), FakePlayerSpawner.NO_NAMETAG_SECONDARY));
         fakePlayer.beforeSwap(() -> {
+            // Ensure mounted the new entity is mounted, a previous destroy may have broken it
+            //vmc.mount(fakePlayer.entityAlt.mountedVehicleId, fakePlayer.entityAlt.getEntityId());
+
             // If not still in the blind respawn mode, swap visibility too
             if (blindRespawn == null) {
                 if (view.getLiveMode() == FirstPersonViewMode.HEAD) {
@@ -104,8 +107,8 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
 
     private void mountInVehicle() {
         int vehicleId = view.prepareVehicleEntityId();
-        fakePlayer.entity.mountedVehicleId = fakePlayer.entityAlt.mountedVehicleId = vehicleId;
-        vmc.mount(vehicleId, this.fakePlayer.getEntityId());
+        this.fakePlayer.entity.mount(vmc, vehicleId);
+        this.fakePlayer.entityAlt.mount(vmc, vehicleId);
     }
 
     private void prepareFakeMounts(Matrix4x4 baseTransform) {
@@ -114,10 +117,8 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             VirtualEntity fakeMount = createFakeMount(baseTransform);
 
             // Mount both players inside
-            this.fakePlayer.entity.mountedVehicleId = fakeMount.getEntityId();
-            this.fakePlayer.entityAlt.mountedVehicleId = fakeMount.getEntityId();
-            vmc.mount(fakeMount.getEntityId(), this.fakePlayer.entity.getEntityId());
-            vmc.mount(fakeMount.getEntityId(), this.fakePlayer.entityAlt.getEntityId());
+            this.fakePlayer.entity.mount(vmc, fakeMount.getEntityId());
+            this.fakePlayer.entityAlt.mount(vmc, fakeMount.getEntityId());
 
             this.fakeMounts = new VirtualEntity[] { fakeMount };
         } else {
@@ -127,10 +128,8 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             };
 
             // Mount both players inside
-            this.fakePlayer.entity.mountedVehicleId = fakeMounts[0].getEntityId();
-            this.fakePlayer.entityAlt.mountedVehicleId = fakeMounts[1].getEntityId();
-            vmc.mount(fakeMounts[0].getEntityId(), this.fakePlayer.entity.getEntityId());
-            vmc.mount(fakeMounts[1].getEntityId(), this.fakePlayer.entityAlt.getEntityId());
+            this.fakePlayer.entity.mount(vmc, fakeMounts[0].getEntityId());
+            this.fakePlayer.entityAlt.mount(vmc, fakeMounts[1].getEntityId());
 
             this.fakeMounts = fakeMounts;
         }
@@ -286,6 +285,11 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             this.setEntityType(EntityType.PLAYER);
             this.setSyncMode(SyncMode.NORMAL);
             this.mountedVehicleId = -1;
+        }
+
+        public void mount(VehicleMountController vmc, int mountedVehicleId) {
+            this.mountedVehicleId = mountedVehicleId;
+            vmc.mount(mountedVehicleId, this.getEntityId());
         }
 
         public void unmount(VehicleMountController vmc) {

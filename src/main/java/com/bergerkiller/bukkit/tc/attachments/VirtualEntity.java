@@ -620,6 +620,16 @@ public class VirtualEntity {
         this.syncVel = this.liveVel;
     }
 
+    public void respawnForAll(Vector motion) {
+        for (Player viewer : this.viewers) {
+            this.sendDestroyPackets(viewer);
+        }
+        this.syncPosition(true);
+        for (Player viewer : this.viewers) {
+            this.sendSpawnPackets(viewer, motion);
+        }
+    }
+
     public void destroyForAll() {
         for (Player viewer : this.viewers) {
             this.sendDestroyPackets(viewer);
