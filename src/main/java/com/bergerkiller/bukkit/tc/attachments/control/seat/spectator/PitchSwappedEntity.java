@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonView.HeadRotation;
 import com.bergerkiller.generated.net.minecraft.server.level.EntityTrackerEntryStateHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
@@ -41,7 +42,7 @@ class PitchSwappedEntity<E extends VirtualEntity> {
     }
 
     public void spawn(Matrix4x4 eyeTransform, Vector motion) {
-        HeadRotation headRot = calcHeadRotation(eyeTransform);
+        HeadRotation headRot = HeadRotation.compute(eyeTransform);
 
         this.entity.updatePosition(eyeTransform, headRot.pyr);
         this.entity.syncPosition(true);
@@ -87,7 +88,7 @@ class PitchSwappedEntity<E extends VirtualEntity> {
     }
 
     public void updatePosition(Matrix4x4 eyeTransform) {
-        HeadRotation headRot = calcHeadRotation(eyeTransform);
+        HeadRotation headRot = HeadRotation.compute(eyeTransform);
 
         // If pitch went from < 180 to > 180 or other way around, we must swap fake and alt
         if (Util.isProtocolRotationGlitched(entity.getSyncPitch(), headRot.pitch)) {
@@ -138,13 +139,6 @@ class PitchSwappedEntity<E extends VirtualEntity> {
         }
     }
 
-    private HeadRotation calcHeadRotation(Matrix4x4 eyeTransform) {
-        //TODO: This deals with roll components badly sometimes
-        //      What can we do about this?
-        Vector pyr = eyeTransform.getYawPitchRoll();
-        return new HeadRotation((float) pyr.getX(), (float) pyr.getY());
-    }
-
     public void syncPosition(boolean absolute) {
         entity.syncPosition(absolute);
         entityAlt.syncPosition(absolute);
@@ -181,18 +175,6 @@ class PitchSwappedEntity<E extends VirtualEntity> {
             return MAX_PITCH;
         } else {
             return currAltPitch;
-        }
-    }
-
-    private static final class HeadRotation {
-        public final float pitch;
-        public final float yaw;
-        public final Vector pyr;
-
-        public HeadRotation(float pitch, float yaw) {
-            this.pitch = pitch;
-            this.yaw = yaw;
-            this.pyr = new Vector(pitch, yaw, 0.0);
         }
     }
 }

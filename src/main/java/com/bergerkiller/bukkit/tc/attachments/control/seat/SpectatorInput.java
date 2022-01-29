@@ -7,7 +7,6 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
 
@@ -20,6 +19,8 @@ class SpectatorInput {
     private final Quaternion orientation = new Quaternion();
     private Player player;
     private float yawLimit = 360.0f;
+    private boolean wasUpsideDown = false;
+    private double yawOffset = 0.0; // Used to make upside-down input look good
 
     /**
      * Resets the player orientation to look at 0/0 and starts
@@ -41,22 +42,9 @@ class SpectatorInput {
      */
     public void stop(Matrix4x4 currentEyeTransform) {
         if (this.player != null) {
-            Quaternion rotation = currentEyeTransform.getRotation();
-            Vector forward = rotation.forwardVector();
-
-            float pitch, yaw;
-            if (Math.abs(forward.getY()) >= 0.99) {
-                // If looking primarily up or down, look up/down and only calculate yaw
-                // This then becomes 'roll' around the axis
-                pitch = (forward.getY() >= 0.0) ? -90.0f : 90.0f;
-                yaw = MathUtil.getLookAtYaw(rotation.upVector()) + 90.0f;
-            } else {
-                // Look into the direction facing upwards
-                pitch = MathUtil.getLookAtPitch(forward.getX(), forward.getY(), forward.getZ());
-                yaw = MathUtil.getLookAtYaw(forward) + 90.0f;
-            }
-
-            sendRotation(pitch, yaw);
+            FirstPersonView.HeadRotation headRot = FirstPersonView.HeadRotation.compute(currentEyeTransform);
+            headRot = headRot.ensureLevel();
+            sendRotation(headRot.pitch, headRot.yaw);
         }
         this.player = null;
         this.blindTicks = 0;
@@ -69,6 +57,79 @@ class SpectatorInput {
      */
     public Quaternion get() {
         return this.orientation;
+    }
+
+    public void applyTo(Matrix4x4 transform) {
+        //transform.rotate(this.orientation);
+
+        Vector inpos = transform.toVector();
+        Vector inpyr = transform.getYawPitchRoll();
+        Vector playerpyr = this.orientation.getYawPitchRoll();
+
+        // Apply player input before roll is applied to prevent weirdness
+        transform.setIdentity();
+        transform.translate(inpos);
+        transform.rotateY(-inpyr.getY());
+        transform.rotateX(inpyr.getX());
+        transform.rotateY(-playerpyr.getY());
+        transform.rotateX(playerpyr.getX());
+        transform.rotateZ(inpyr.getZ());
+
+        // This stuff down below works, but it causes pitch to occur along the yaw instead
+        // of along the vehicle. This causes some really bizar effects.
+        // Kept here for the upside-down logic.
+
+        /*
+        Vector pos = transform.toVector();
+        Vector pyr1 = transform.getYawPitchRoll();
+        Vector pyr2 = this.orientation.getYawPitchRoll();
+
+        double combinedPitch = MathUtil.wrapAngle(pyr1.getX() + pyr2.getX());
+        double inputyaw;
+
+        if (Math.abs(combinedPitch) >= 90.0) {
+            // Upside-down
+
+            // Went from up-right to upside-down
+            if (!wasUpsideDown) {
+                wasUpsideDown = true;
+
+                // Store the relative yaw, as from now on it all gets inverted
+                yawOffset = 0.5 * yawOffset + pyr2.getY();
+
+                // Avoid run-away
+                yawOffset = MathUtil.wrapAngle(yawOffset);
+                
+                CommonUtil.broadcast("UPSIDEDOWN " + yawOffset);
+            }
+
+            inputyaw = 2.0 * yawOffset - pyr2.getY();
+        } else {
+            // Up-right
+            if (wasUpsideDown) {
+                wasUpsideDown = false;
+
+                // Input is flipped, get an appropriate yaw offset to look in the same direction
+                yawOffset = 2.0 * yawOffset - 2.0 * pyr2.getY();
+
+                // Avoid run-away
+                yawOffset = MathUtil.wrapAngle(yawOffset);
+                
+                CommonUtil.broadcast("UPRIGHT " + yawOffset);
+            }
+            inputyaw = yawOffset + pyr2.getY();
+        }
+
+        transform.setIdentity();
+        transform.translate(pos);
+        transform.rotateY(-inputyaw);
+        transform.rotateX(pyr1.getX());
+        transform.rotateY(-pyr1.getY());
+        transform.rotateX(pyr2.getX());
+
+        
+        transform.rotateZ(pyr1.getZ());
+        */
     }
 
     /**

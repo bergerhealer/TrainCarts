@@ -58,7 +58,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
     @Override
     protected Matrix4x4 getEyeTransform() {
         Matrix4x4 base = super.getEyeTransform();
-        base.rotate(_input.get());
+        _input.applyTo(base);
         return base;
     }
 
@@ -79,7 +79,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
         }
 
         // Adjust for the relative rotation input by the player
-        transform.rotate(this._input.get());
+        _input.applyTo(transform);
 
         return transform.getRotation();
     }

@@ -8,11 +8,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
@@ -354,5 +357,77 @@ public abstract class FirstPersonView {
             item = ItemUtil.emptyItem(); // Boo bukkit.
         }
         player.sendEquipmentChange(player, slot, item);
+    }
+
+    /**
+     * The pitch and yaw of a (player's) head. Includes helpful utilities
+     * for calculating an appropriate head rotation given an eye transform.
+     */
+    public static final class HeadRotation {
+        public final float pitch;
+        public final float yaw;
+        public final Vector pyr;
+
+        private HeadRotation(float pitch, float yaw) {
+            this.pitch = pitch;
+            this.yaw = yaw;
+            this.pyr = new Vector(pitch, yaw, 0.0);
+        }
+
+        /**
+         * If the current pitch is beyond the normal human limits, alters the pitch
+         * and yaw to be level with the horizon instead.
+         *
+         * @return Head rotation that's for sure level
+         */
+        public HeadRotation ensureLevel() {
+            if (Math.abs(this.pitch) > 90.0f) {
+                return new HeadRotation(180.0f - pitch, 180.0f + yaw);
+            }
+            return this;
+        }
+
+        /**
+         * Computes the most appropriate head rotation for the given eye transform.
+         * A guarantee is made that the player will look in the same direction as
+         * the forward vector, while handling an appropriate vertical flip.
+         *
+         * @param eyeTransform
+         * @return head rotation
+         */
+        public static HeadRotation compute(Matrix4x4 eyeTransform) {
+            Quaternion rot = eyeTransform.getRotation();
+            Vector forward = rot.forwardVector();
+            Vector up = rot.upVector();
+
+            float pitch, yaw;
+            if (Math.abs(forward.getY()) < 0.999) {
+                // Look into the direction
+                pitch = MathUtil.getLookAtPitch(forward.getX(), forward.getY(), forward.getZ());
+                yaw = MathUtil.getLookAtYaw(forward) + 90.0f;
+
+                // Upside-down modifier
+                if (up.getY() < 0.0) {
+                    pitch = 180.0f - pitch;
+                    yaw = 180.0f + yaw;
+                }
+            } else {
+                if (forward.getY() > 0.0) {
+                    // Looking upwards and spinning
+                    pitch = -90.0f;
+                    yaw = MathUtil.getLookAtYaw(up) - 90.0f;
+                } else {
+                    // Looking downwards and spinning
+                    pitch = 90.0f;
+                    yaw = MathUtil.getLookAtYaw(up) + 90.0f;
+                }
+            }
+
+            return new HeadRotation(pitch, yaw);
+        }
+
+        public static HeadRotation of(float pitch, float yaw) {
+            return new HeadRotation(pitch, yaw);
+        }
     }
 }
