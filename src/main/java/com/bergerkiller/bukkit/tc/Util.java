@@ -71,7 +71,7 @@ import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
 import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutCameraHandle;
-import com.bergerkiller.generated.net.minecraft.server.level.EntityTrackerEntryHandle;
+import com.bergerkiller.generated.net.minecraft.server.level.EntityTrackerEntryStateHandle;
 import com.bergerkiller.generated.net.minecraft.world.level.chunk.ChunkHandle;
 import com.bergerkiller.generated.net.minecraft.world.phys.AxisAlignedBBHandle;
 import com.bergerkiller.mountiplex.reflection.util.FastMethod;
@@ -1000,8 +1000,8 @@ public class Util {
      * @return angle of the rotation performed
      */
     public static boolean isProtocolRotationGlitched(float angleOld, float angleNew) {
-        int protOld = EntityTrackerEntryHandle.getProtocolRotation(angleOld);
-        int protNew = EntityTrackerEntryHandle.getProtocolRotation(angleNew);
+        int protOld = EntityTrackerEntryStateHandle.getProtocolRotation(angleOld);
+        int protNew = EntityTrackerEntryStateHandle.getProtocolRotation(angleNew);
         return Math.abs(protNew - protOld) > 128;
     }
 
@@ -1361,23 +1361,23 @@ public class Util {
             return old_yaw;
         }
 
-        int prot_yaw_rot_old = EntityTrackerEntryHandle.getProtocolRotation(old_yaw);
-        int prot_yaw_rot_new = EntityTrackerEntryHandle.getProtocolRotation((float) (old_yaw + yaw_change));
+        int prot_yaw_rot_old = EntityTrackerEntryStateHandle.getProtocolRotation(old_yaw);
+        int prot_yaw_rot_new = EntityTrackerEntryStateHandle.getProtocolRotation((float) (old_yaw + yaw_change));
         if (prot_yaw_rot_new != prot_yaw_rot_old) {
 
             // Do not change entity yaw to beyond the angle requested
             // This causes the pose yaw angle to compensate, which looks very twitchy
-            float new_yaw = EntityTrackerEntryHandle.getRotationFromProtocol(prot_yaw_rot_new);
+            float new_yaw = EntityTrackerEntryStateHandle.getRotationFromProtocol(prot_yaw_rot_new);
             double new_yaw_change = MathUtil.wrapAngle((double) new_yaw - (double) old_yaw);
             if (yaw_change < 0.0) {
                 if (new_yaw_change < yaw_change) {
                     prot_yaw_rot_new++;
-                    new_yaw = EntityTrackerEntryHandle.getRotationFromProtocol(prot_yaw_rot_new);
+                    new_yaw = EntityTrackerEntryStateHandle.getRotationFromProtocol(prot_yaw_rot_new);
                 }
             } else {
                 if (new_yaw_change > yaw_change) {
                     prot_yaw_rot_new--;
-                    new_yaw = EntityTrackerEntryHandle.getRotationFromProtocol(prot_yaw_rot_new);
+                    new_yaw = EntityTrackerEntryStateHandle.getRotationFromProtocol(prot_yaw_rot_new);
                 }
             }
 
