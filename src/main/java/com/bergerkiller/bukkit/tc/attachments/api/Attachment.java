@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
@@ -52,6 +53,19 @@ public interface Attachment {
      */
     default ConfigurationNode getConfig() {
         return getInternalState().config;
+    }
+
+    /**
+     * Gets the plugin that provided and created this attachment instance. Same as the
+     * plugin returned by {@link AttachmentType#getPlugin()} but is efficiently cached.<br>
+     * <br>
+     * Can be overrided to cast and return the true plugin instance type. Can be used
+     * by attachment implementations to access internal plugin state.
+     *
+     * @return plugin instance that provides this attachment
+     */
+    default Plugin getPlugin() {
+        return getInternalState().plugin;
     }
 
     /**

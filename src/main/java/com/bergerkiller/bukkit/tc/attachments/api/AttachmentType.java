@@ -1,8 +1,11 @@
 package com.bergerkiller.bukkit.tc.attachments.api;
 
+import org.bukkit.plugin.Plugin;
+
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 
 /**
@@ -21,6 +24,16 @@ public interface AttachmentType {
      * @return attachment ID
      */
     String getID();
+
+    /**
+     * Gets the plugin that provides this attachment type. By default queries the Class
+     * Loader for this type's class to obtain this information.
+     *
+     * @return Plugin that provides this attachment type
+     */
+    default Plugin getPlugin() {
+        return CommonUtil.getPluginByClass(this.getClass());
+    }
 
     /**
      * Gets the name of this attachment type. This is what is displayed in the

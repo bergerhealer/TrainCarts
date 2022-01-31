@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.concurrent.ForkJoinTask;
 import java.util.logging.Level;
 
+import org.bukkit.plugin.Plugin;
+
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -29,9 +31,15 @@ import com.bergerkiller.bukkit.tc.attachments.helper.ActiveChangeHandler;
  */
 public class AttachmentInternalState {
     /**
-     * Manages that created the attachment and oversees it
+     * Manager that created the attachment and oversees it
      */
     protected AttachmentManager manager = null;
+
+    /**
+     * The plugin that provides this attachment. Can be used by implementations
+     * to access the plugin's internal state efficiently.
+     */
+    protected Plugin plugin = null;
 
     /**
      * Parent of the attachment
@@ -134,6 +142,7 @@ public class AttachmentInternalState {
         }
 
         // Store it
+        this.plugin = attachmentType.getPlugin();
         this.config = config;
 
         // Position
