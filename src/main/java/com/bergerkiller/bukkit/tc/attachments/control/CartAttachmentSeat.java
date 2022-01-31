@@ -306,7 +306,10 @@ public class CartAttachmentSeat extends CartAttachment {
     private boolean _displayedItemShowFirstPerson = false;
 
     // Whether the smooth coasters mod is used in first-person for a particular Player
+    // If used, tracks the Quaternion orientation of this vehicle when the player entered
+    // This way the delta since then can be effectively sent
     private boolean _useSmoothCoasters = false;
+    private Quaternion _smoothCoastersBaseOrientation = null;
 
     /**
      * Gets the viewers of this seat that have already had makeVisible processed.
@@ -517,6 +520,33 @@ public class CartAttachmentSeat extends CartAttachment {
     }
 
     /**
+     * Sends a relative rotation update to the player 
+     * @param orientation
+     */
+    public void sendSmoothCoastersRelativeRotation(Quaternion orientation) {
+        if (this._useSmoothCoasters) {
+            byte interpolationTicks;
+            if (this._smoothCoastersBaseOrientation == null) {
+                this._smoothCoastersBaseOrientation = orientation.clone();
+                orientation = new Quaternion();
+                interpolationTicks = 0; // Instant
+            } else {
+                orientation = Quaternion.divide(orientation, this._smoothCoastersBaseOrientation);
+                interpolationTicks = isMinecartInterpolation() ? (byte) 5 : (byte) 3;
+            }
+            this.getPlugin().getSmoothCoastersAPI().setRotation(
+                    null,
+                    (Player) this.seated.getEntity(),
+                    (float) orientation.getX(),
+                    (float) orientation.getY(),
+                    (float) orientation.getZ(),
+                    (float) orientation.getW(),
+                    interpolationTicks
+            );
+        }
+    }
+
+    /**
      * Transforms the transformation matrix so that the eyes are at the center.
      * Used by the 'eyes' anchor.
      * 
@@ -588,6 +618,10 @@ public class CartAttachmentSeat extends CartAttachment {
             for (Player viewer : this.getViewers()) {
                 this.makeHiddenImpl(viewer);
             }
+
+            // Reset these
+            this._useSmoothCoasters = false;
+            this._smoothCoastersBaseOrientation = null;
         }
         if (!this.seated.isEmpty()) {
             TrainCarts.plugin.getSeatAttachmentMap().remove(this.seated.getEntity().getEntityId(), this);
@@ -645,6 +679,7 @@ public class CartAttachmentSeat extends CartAttachment {
             if (enabled != this._useSmoothCoasters) {
                 this.makeHiddenImpl(player);
                 this._useSmoothCoasters = enabled;
+                this._smoothCoastersBaseOrientation = null;
                 this.seated.updateMode(false);
                 this.makeVisibleImpl(player);
             }

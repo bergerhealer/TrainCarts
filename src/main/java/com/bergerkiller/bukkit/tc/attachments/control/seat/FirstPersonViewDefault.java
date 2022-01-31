@@ -65,21 +65,12 @@ public class FirstPersonViewDefault extends FirstPersonView {
             Matrix4x4 eyeTransform = getEyeTransform();
 
             if (this.seat.useSmoothCoasters()) {
-                Quaternion rotation = eyeTransform.getRotation();
                 this.seat.getPlugin().getSmoothCoastersAPI().setRotationMode(
                         null,
                         viewer,
                         TCConfig.smoothCoastersRotationMode
                 );
-                this.seat.getPlugin().getSmoothCoastersAPI().setRotation(
-                        null,
-                        viewer,
-                        (float) rotation.getX(),
-                        (float) rotation.getY(),
-                        (float) rotation.getZ(),
-                        (float) rotation.getW(),
-                        (byte) 0 // Set instantly
-                );
+                this.seat.sendSmoothCoastersRelativeRotation(eyeTransform.getRotation());
             }
 
             if (useFakeCamera) {
@@ -201,16 +192,7 @@ public class FirstPersonViewDefault extends FirstPersonView {
             Matrix4x4 eyeTransform = getEyeTransform();
 
             if (this.seat.useSmoothCoasters()) {
-                Quaternion rotation = eyeTransform.getRotation();
-                this.seat.getPlugin().getSmoothCoastersAPI().setRotation(
-                        null,
-                        player,
-                        (float) rotation.getX(),
-                        (float) rotation.getY(),
-                        (float) rotation.getZ(),
-                        (float) rotation.getW(),
-                        (byte) 3 // TODO 5 for minecarts
-                );
+                this.seat.sendSmoothCoastersRelativeRotation(eyeTransform.getRotation());
             }
             if (this._fakeCameraMount != null) {
                 this._fakeCameraMount.updatePosition(eyeTransform);
