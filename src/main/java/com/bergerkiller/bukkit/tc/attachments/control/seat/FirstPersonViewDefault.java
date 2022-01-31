@@ -16,6 +16,8 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutUpdateAttributesHandle;
 
+import me.m56738.smoothcoasters.api.RotationMode;
+
 /**
  * Default view mode where the player can freely look around. Views either the entity
  * itself, or a third-person fake camera is used.
@@ -118,6 +120,7 @@ public class FirstPersonViewDefault extends FirstPersonView {
 
         if (seat.useSmoothCoasters()) {
             seat.getPlugin().getSmoothCoastersAPI().resetRotation(null, viewer);
+            seat.getPlugin().getSmoothCoastersAPI().setRotationMode(null, viewer, RotationMode.NONE);
         }
 
         if (this._fakeCameraMount != null) {

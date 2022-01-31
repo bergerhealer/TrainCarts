@@ -16,6 +16,8 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityLivingHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
 
+import me.m56738.smoothcoasters.api.RotationMode;
+
 /**
  * Makes the player spectate an Entity and then moves that Entity to
  * move the camera around.
@@ -84,6 +86,20 @@ public class FirstPersonViewSpectator extends FirstPersonView {
         return transform.getRotation();
     }
 
+    private Quaternion getCurrentSmoothCoasterOrientation() {
+        // Return a Quaternion with only the roll component that's missing from the head rotation
+        Quaternion rot = this.getEyeTransform().getRotation();
+        double roll = rot.getRoll();
+
+        Quaternion tmp = new Quaternion();
+        if (rot.upVector().getY() < 0.0) {
+            tmp.rotateZ(-roll);
+        } else {
+            tmp.rotateZ(roll);
+        }
+        return tmp;
+    }
+
     @Override
     public void makeVisible(Player viewer) {
         // Make the player invisible - we don't want it to get in view
@@ -125,6 +141,12 @@ public class FirstPersonViewSpectator extends FirstPersonView {
             vmc.mount(this._playerMount.getEntityId(), viewer.getEntityId());
         }
 
+        // If smooth coasters mod is used by the client, set it up
+        if (seat.useSmoothCoasters()) {
+            seat.getPlugin().getSmoothCoastersAPI().setRotationMode(null, viewer, RotationMode.CAMERA);
+            seat.sendSmoothCoastersRelativeRotation(getCurrentSmoothCoasterOrientation());
+        }
+
         // If third-person mode is used, also spawn the real seated entity for this viewer
         if (this.getLiveMode() == FirstPersonViewMode.THIRD_P) {
             seat.seated.makeVisibleFirstPerson(viewer);
@@ -164,6 +186,12 @@ public class FirstPersonViewSpectator extends FirstPersonView {
             setPlayerVisible(viewer, true);
         }
 
+        // Reset smooth coasters
+        if (seat.useSmoothCoasters()) {
+            seat.getPlugin().getSmoothCoastersAPI().resetRotation(null, viewer);
+            seat.getPlugin().getSmoothCoastersAPI().setRotationMode(null, viewer, RotationMode.NONE);
+        }
+
         // Cleanup, moves player view so it faces where it looked in spectator mode
         _input.stop(this.getEyeTransform());
     }
@@ -187,6 +215,10 @@ public class FirstPersonViewSpectator extends FirstPersonView {
         if (_spectatedEntity != null) {
             _playerMount.syncPosition(absolute);
             _spectatedEntity.syncPosition(absolute);
+        }
+
+        if (player != null && seat.useSmoothCoasters()) {
+            seat.sendSmoothCoastersRelativeRotation(getCurrentSmoothCoasterOrientation());
         }
     }
 }
