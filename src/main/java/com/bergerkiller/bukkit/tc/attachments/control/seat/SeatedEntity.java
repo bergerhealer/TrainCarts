@@ -14,7 +14,6 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
@@ -397,14 +396,6 @@ public abstract class SeatedEntity {
     public void updateMode(boolean silent) {
         // Compute new first-person state of whether the player sees himself from third person using a fake camera
         FirstPersonViewMode new_firstPersonMode = this.seat.firstPerson.getMode();
-        boolean new_smoothCoasters;
-
-        // Whether a fake entity is used to represent this seated entity
-        if (this.isPlayer()) {
-            new_smoothCoasters = TrainCarts.plugin.getSmoothCoastersAPI().isEnabled((Player) this.getEntity());
-        } else {
-            new_smoothCoasters = false;
-        }
 
         // No other mode is supported here
         if (new_firstPersonMode == FirstPersonViewMode.DYNAMIC) {
@@ -412,8 +403,7 @@ public abstract class SeatedEntity {
         }
 
         // If unchanged, do nothing
-        if (new_smoothCoasters == seat.firstPerson.useSmoothCoasters() &&
-            new_firstPersonMode == seat.firstPerson.getLiveMode())
+        if (new_firstPersonMode == seat.firstPerson.getLiveMode())
         {
             return;
         }
@@ -427,14 +417,12 @@ public abstract class SeatedEntity {
             Player viewer = (Player) this.getEntity();
             seat.makeHiddenImpl(viewer);
             seat.firstPerson.setLiveMode(new_firstPersonMode);
-            seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
             seat.makeVisibleImpl(viewer);
             return;
         }
 
         // Silent update
         seat.firstPerson.setLiveMode(new_firstPersonMode);
-        seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
     }
 
     /**

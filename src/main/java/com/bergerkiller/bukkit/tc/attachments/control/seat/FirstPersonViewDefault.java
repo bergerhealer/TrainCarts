@@ -11,7 +11,6 @@ import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
@@ -61,18 +60,18 @@ public class FirstPersonViewDefault extends FirstPersonView {
     public void makeVisible(Player viewer) {
         VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
         boolean useFakeCamera = this.isFakeCameraUsed();
-        if (useFakeCamera || this.useSmoothCoasters()) {
+        if (useFakeCamera || this.seat.useSmoothCoasters()) {
             // In these two cases special initialization needs to be done
             Matrix4x4 eyeTransform = getEyeTransform();
 
-            if (this.useSmoothCoasters()) {
+            if (this.seat.useSmoothCoasters()) {
                 Quaternion rotation = eyeTransform.getRotation();
-                TrainCarts.plugin.getSmoothCoastersAPI().setRotationMode(
+                this.seat.getPlugin().getSmoothCoastersAPI().setRotationMode(
                         null,
                         viewer,
                         TCConfig.smoothCoastersRotationMode
                 );
-                TrainCarts.plugin.getSmoothCoastersAPI().setRotation(
+                this.seat.getPlugin().getSmoothCoastersAPI().setRotation(
                         null,
                         viewer,
                         (float) rotation.getX(),
@@ -126,9 +125,8 @@ public class FirstPersonViewDefault extends FirstPersonView {
     public void makeHidden(Player viewer) {
         VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
 
-        if (TrainCarts.plugin.isEnabled()) {
-            // Cannot send plugin messages while the plugin is being disabled
-            TrainCarts.plugin.getSmoothCoastersAPI().resetRotation(null, viewer);
+        if (seat.useSmoothCoasters()) {
+            seat.getPlugin().getSmoothCoastersAPI().resetRotation(null, viewer);
         }
 
         if (this._fakeCameraMount != null) {
@@ -157,7 +155,7 @@ public class FirstPersonViewDefault extends FirstPersonView {
     @Override
     public void onTick() {
         // Move player view relatively
-        if (this.getLockMode() == FirstPersonViewLockMode.MOVE && this.seat.seated.isPlayer() && !this.useSmoothCoasters()) {
+        if (this.getLockMode() == FirstPersonViewLockMode.MOVE && this.seat.seated.isPlayer() && !this.seat.useSmoothCoasters()) {
             // Every now and then, rotate the player view by the amount the seat itself rotated
             Vector player_pyr;
             {
@@ -199,12 +197,12 @@ public class FirstPersonViewDefault extends FirstPersonView {
     public void onMove(boolean absolute) {
         // In these two cases we need to do some work here. Otherwise, the player
         // is mounted in a vehicle managed elsewhere, and there's nothing to do
-        if (this._fakeCameraMount != null || this.useSmoothCoasters()) {
+        if (this._fakeCameraMount != null || this.seat.useSmoothCoasters()) {
             Matrix4x4 eyeTransform = getEyeTransform();
 
-            if (this.useSmoothCoasters()) {
+            if (this.seat.useSmoothCoasters()) {
                 Quaternion rotation = eyeTransform.getRotation();
-                TrainCarts.plugin.getSmoothCoastersAPI().setRotation(
+                this.seat.getPlugin().getSmoothCoastersAPI().setRotation(
                         null,
                         player,
                         (float) rotation.getX(),

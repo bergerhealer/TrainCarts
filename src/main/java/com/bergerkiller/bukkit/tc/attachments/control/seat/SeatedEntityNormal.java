@@ -15,7 +15,6 @@ import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TCConfig;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
@@ -218,19 +217,12 @@ class SeatedEntityNormal extends SeatedEntity {
     public void updateMode(boolean silent) {
         // Compute new first-person state of whether the player sees himself from third person using a fake camera
         FirstPersonViewMode new_firstPersonMode = FirstPersonViewMode.DEFAULT;
-        boolean new_smoothCoasters;
 
         // Whether a fake entity is used to represent this seated entity
         boolean new_isFake;
 
         // Whether the (fake) entity is displayed upside-down
         boolean new_isUpsideDown;
-
-        if (this.isPlayer()) {
-            new_smoothCoasters = TrainCarts.plugin.getSmoothCoastersAPI().isEnabled((Player) this.getEntity());
-        } else {
-            new_smoothCoasters = false;
-        }
 
         if (!this.isDisplayed()) {
             new_isFake = false;
@@ -258,7 +250,7 @@ class SeatedEntityNormal extends SeatedEntity {
                 {
                     new_firstPersonMode = FirstPersonViewMode.THIRD_P;
                 }
-                else if (new_smoothCoasters) {
+                else if (seat.useSmoothCoasters()) {
                     // Smooth coasters can't deal well switching between mounts
                     // Stay in the virtual camera view mode
                     new_firstPersonMode = FirstPersonViewMode.SMOOTHCOASTERS_FIX;
@@ -278,7 +270,6 @@ class SeatedEntityNormal extends SeatedEntity {
             this.setFake(new_isFake);
             this.setUpsideDown(new_isUpsideDown);
             seat.firstPerson.setLiveMode(new_firstPersonMode);
-            seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
             return;
         }
 
@@ -297,7 +288,6 @@ class SeatedEntityNormal extends SeatedEntity {
             this.setFake(new_isFake);
             this.setUpsideDown(new_isUpsideDown);
             seat.firstPerson.setLiveMode(new_firstPersonMode);
-            seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
             for (Player viewer : viewers) {
                 if (refreshFPV || viewer != entity) {
                     seat.makeVisibleImpl(viewer);
@@ -322,12 +312,10 @@ class SeatedEntityNormal extends SeatedEntity {
                     Player viewer = (Player) this.getEntity();
                     seat.makeHiddenImpl(viewer);
                     seat.firstPerson.setLiveMode(new_firstPersonMode);
-                    seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
                     seat.makeVisibleImpl(viewer);
                 } else {
                     // Silent
                     seat.firstPerson.setLiveMode(new_firstPersonMode);
-                    seat.firstPerson.setUseSmoothCoasters(new_smoothCoasters);
                 }
             }
         }

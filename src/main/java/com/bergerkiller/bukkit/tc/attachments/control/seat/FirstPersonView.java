@@ -34,7 +34,6 @@ public abstract class FirstPersonView {
     private FirstPersonViewMode _liveMode = FirstPersonViewMode.DEFAULT;
     private FirstPersonViewMode _mode = FirstPersonViewMode.DYNAMIC;
     private FirstPersonViewLockMode _lock = FirstPersonViewLockMode.MOVE;
-    private boolean _useSmoothCoasters = false;
     protected ObjectPosition _eyePosition = new ObjectPosition();
 
     // Uses spectator mode to display exactly how a player would view from inside the seat
@@ -115,14 +114,6 @@ public abstract class FirstPersonView {
      * @param absolute Whether this is an absolute position update
      */
     public abstract void onMove(boolean absolute);
-
-    public boolean useSmoothCoasters() {
-        return _useSmoothCoasters;
-    }
-
-    public void setUseSmoothCoasters(boolean use) {
-        this._useSmoothCoasters = use;
-    }
 
     /**
      * Gets the view mode used in first-person currently. This mode alters how the player perceives

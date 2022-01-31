@@ -305,6 +305,9 @@ public class CartAttachmentSeat extends CartAttachment {
     private ObjectPosition _displayedItemPosition = null;
     private boolean _displayedItemShowFirstPerson = false;
 
+    // Whether the smooth coasters mod is used in first-person for a particular Player
+    private boolean _useSmoothCoasters = false;
+
     /**
      * Gets the viewers of this seat that have already had makeVisible processed.
      * The entity passed to makeVisible() is removed from the list during
@@ -504,6 +507,16 @@ public class CartAttachmentSeat extends CartAttachment {
     }
 
     /**
+     * Whether the smooth coasters client mod is used to control the first-person view camera.
+     * During plugin disabling this changes to false to avoid sending plugin messages.
+     *
+     * @return True if used
+     */
+    public boolean useSmoothCoasters() {
+        return this._useSmoothCoasters && getPlugin().isEnabled();
+    }
+
+    /**
      * Transforms the transformation matrix so that the eyes are at the center.
      * Used by the 'eyes' anchor.
      * 
@@ -580,6 +593,10 @@ public class CartAttachmentSeat extends CartAttachment {
             TrainCarts.plugin.getSeatAttachmentMap().remove(this.seated.getEntity().getEntityId(), this);
         }
 
+        // Detect whether the new entity is a Player with the smooth coasters mod installed
+        this._useSmoothCoasters = (entity instanceof Player) &&
+                getPlugin().getSmoothCoastersAPI().isEnabled((Player) entity);
+
         // Switch entity
         this.seated.setEntity(entity);
 
@@ -592,6 +609,11 @@ public class CartAttachmentSeat extends CartAttachment {
                 this.makeVisibleImpl(viewer);
             }
         }
+    }
+
+    @Override
+    public TrainCarts getPlugin() {
+        return (TrainCarts) super.getPlugin();
     }
 
     @Override
@@ -615,6 +637,18 @@ public class CartAttachmentSeat extends CartAttachment {
         // Move player view relatively
         this.firstPerson.onTick();
         this.firstPerson.updateEyePreview();
+
+        // Smooth coasters mod might be turned on or off
+        if (this.seated.isPlayer()) {
+            Player player = (Player) this.seated.getEntity();
+            boolean enabled = getPlugin().getSmoothCoastersAPI().isEnabled(player);
+            if (enabled != this._useSmoothCoasters) {
+                this.makeHiddenImpl(player);
+                this._useSmoothCoasters = enabled;
+                this.seated.updateMode(false);
+                this.makeVisibleImpl(player);
+            }
+        }
     }
 
     @Override
