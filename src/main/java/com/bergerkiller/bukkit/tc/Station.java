@@ -13,6 +13,9 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
@@ -467,6 +470,10 @@ public class Station {
         private long _delay = 0;
         private boolean _autoRoute = false;
 
+        // Used for parsing the '0.5m' station offset syntax from the full launch string configuration
+        // Pattern: (?:^|\s|[a-zA-Z])((?:\-)?[\d.,]+)m(?:$|\s|[0-9\-])
+        private static final Pattern STATION_OFFSET_PATTERN = Pattern.compile("(?:^|\\s|[a-zA-Z])((?:\\-)?[\\d.,]+)m(?:$|\\s|[0-9\\-])");
+
         public double getOffsetFromCenter() {
             return this._offsetFromCenter;
         }
@@ -699,7 +706,7 @@ public class Station {
             // Use redstone around the sign to decide an instruction
             config.setInstructionUsingSign(info);
 
-            // Trim the first alphanumeric (a-z) contents of the second line
+            // Trim the first alphanumeric (a-z) and whitespace contents of the second line
             // This omits the 'station' (or other text) and checks the text past that
             String launchConfigStr = info.getLine(1).trim();
             for (int i = 0;;i++) {
@@ -709,39 +716,38 @@ public class Station {
                 }
 
                 char c = launchConfigStr.charAt(i);
-                if (!Character.isLetter(c)) {
+                if (!Character.isLetter(c) && c != ' ') {
                     launchConfigStr = launchConfigStr.substring(i);
                     break;
                 }
             }
 
-            // Parse and filter offset before parsing launcher configuration
-            // Offset is specified using '0.352m'
-            int offsetTextEndIdx = launchConfigStr.indexOf('m');
-            if (offsetTextEndIdx != -1) {
-                launchConfigStr = launchConfigStr.substring(0, offsetTextEndIdx) + launchConfigStr.substring(offsetTextEndIdx + 1);
+            // Parse offset from center from the launch configuration string
+            // station <2.5m> 5m/s/s
+            {
+                Matcher matcher = STATION_OFFSET_PATTERN.matcher(launchConfigStr);
+                if (matcher.find()) {
+                    config.setOffsetFromCenter(ParseUtil.parseDouble(matcher.group(1), 0.0));
 
-                int offsetTextStartIdx = offsetTextEndIdx - 1;
-                while (offsetTextStartIdx >= 0) {
-                    char c = launchConfigStr.charAt(offsetTextStartIdx);
-                    if (!Character.isDigit(c) && c != '.' && c != ',' && c != '-') {
-                        break;
-                    } else {
-                        offsetTextStartIdx--;
+                    // Erase this number from the config string, including the trailing uncaptured 'm'
+                    launchConfigStr = launchConfigStr.substring(0, matcher.start(1)) +
+                                      " " +
+                                      launchConfigStr.substring(matcher.end(1) + 1);
+
+                    // Trim spaces prefix
+                    while (launchConfigStr.startsWith(" ")) {
+                        launchConfigStr = launchConfigStr.substring(1);
                     }
-                }
-                offsetTextStartIdx++;
-
-                if (offsetTextStartIdx < offsetTextEndIdx) {
-                    String offsetStr = launchConfigStr.substring(offsetTextStartIdx, offsetTextEndIdx);
-                    launchConfigStr = launchConfigStr.substring(0, offsetTextStartIdx) + launchConfigStr.substring(offsetTextEndIdx);
-                    config.setOffsetFromCenter(ParseUtil.parseDouble(offsetStr, 0.0));
                 }
             }
 
             // Get initial station length, delay and direction
             config.setLaunchConfig(LauncherConfig.parse(launchConfigStr));
-            if (!config.getLaunchConfig().hasDuration() && !config.getLaunchConfig().hasDistance() && config.getInstruction() != null) {
+            if (!config.getLaunchConfig().hasDuration() &&
+                !config.getLaunchConfig().hasDistance() &&
+                !config.getLaunchConfig().hasAcceleration() &&
+                config.getInstruction() != null
+            ) {
                 // Manually calculate the length
                 // Use the amount of straight blocks
                 BlockFace launchDir = config.getInstruction();
