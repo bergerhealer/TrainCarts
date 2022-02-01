@@ -20,6 +20,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.server.RemoteServerCommandEvent;
 import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -313,7 +314,18 @@ public class SelectorHandlerRegistry implements Listener {
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onRemoteServerCommand(RemoteServerCommandEvent event) {
+        onServerCommandBase(event);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onServerCommand(ServerCommandEvent event) {
+        if (!(event instanceof RemoteServerCommandEvent)) {
+            onServerCommandBase(event);
+        }
+    }
+
+    private void onServerCommandBase(ServerCommandEvent event) {
         final CommandSender sender = event.getSender();
         final String inputCommand = event.getCommand();
         final List<String> commands;
