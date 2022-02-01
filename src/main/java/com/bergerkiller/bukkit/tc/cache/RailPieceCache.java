@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.tc.rails.type.RailType;
 public class RailPieceCache {
     private static final LookupKey LOOKUP_KEY = new LookupKey();
     private static final RailPiece[] EMPTY_INFO = new RailPiece[0];
+    private static final Value NO_VALUE = new Value(EMPTY_INFO, 0);
     private static final Map<Key, Value> cache = new HashMap<Key, Value>();
     private static int lifeTimer = 0;
 
@@ -59,19 +60,16 @@ public class RailPieceCache {
     }
 
     private static RailPiece[] lookupInfo(LookupKey key) {
-        Value cached = cache.get(key);
-        if (cached == null) {
-            return EMPTY_INFO; // No rails
-        }
+        Value cached = cache.getOrDefault(key, NO_VALUE);
 
         // Verify if needed
-        if (cached.life < lifeTimer) {
+        int currLifeTimer = lifeTimer;
+        if (cached.life < currLifeTimer) {
             // Verify that all stored rails types are actually still valid (the rails exists)
             // It is incredibly rare that the rails stops existing, so make this as fast as possible!
             // Hence we use an array instead of a list because why not?
             // If we detect a single rail being missing, invalidate the entire cache for that block
-            for (int i = 0; i < cached.info.length; i++) {
-                RailPiece info = cached.info[i];
+            for (RailPiece info : cached.info) {
                 try {
                     // Verify rail exists
                     if (!info.type().isRail(info.block())) {
@@ -88,8 +86,8 @@ public class RailPieceCache {
                 }
             }
 
-            // Still good. Reset life so that we don't do this check upon the next invocation.
-            cached.life = lifeTimer;
+            // Reset life so that we don't do check upon the next invocation.
+            cached.life = currLifeTimer;
         }
 
         return cached.info;
@@ -127,6 +125,7 @@ public class RailPieceCache {
         }
 
         lifeTimer++;
+        NO_VALUE.life = lifeTimer;
     }
 
     // Value object used in the hashmap, mapped by block, storing all rail information
