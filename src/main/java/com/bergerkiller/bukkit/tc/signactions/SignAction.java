@@ -4,7 +4,10 @@ import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.permissions.PermissionEnum;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -17,21 +20,16 @@ import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import org.bukkit.ChatColor;
-import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.SignChangeEvent;
-
-import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
 public abstract class SignAction {
-    private static final Material SIGN_POST_TYPE = getMaterial("LEGACY_SIGN_POST");
     private static List<SignAction> actions;
 
     public static void init() {
@@ -231,10 +229,13 @@ public abstract class SignAction {
                 return;
             }
         }
-        if (info.getMode() != SignActionMode.NONE && WorldUtil.getBlockData(event.getBlock()).isType(SIGN_POST_TYPE)) {
-            //snap to fixed 45-degree angle
-            BlockFace facing = BlockUtil.getFacing(event.getBlock());
-            BlockUtil.setFacing(event.getBlock(), Util.snapFace(facing));
+
+        // Snap to fixed 45-degree angle
+        if (info.getMode() != SignActionMode.NONE) {
+            BlockData data = WorldUtil.getBlockData(event.getBlock());
+            if (MaterialUtil.ISSIGN.get(data) && FaceUtil.isVertical(data.getAttachedFace())) {
+                BlockUtil.setFacing(event.getBlock(), Util.snapFace(data.getFacingDirection()));
+            }
         }
     }
 
