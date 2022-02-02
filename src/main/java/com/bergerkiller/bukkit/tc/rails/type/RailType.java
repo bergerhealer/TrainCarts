@@ -1,6 +1,8 @@
 package com.bergerkiller.bukkit.tc.rails.type;
 
 import com.bergerkiller.bukkit.common.Timings;
+import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -184,7 +186,7 @@ public abstract class RailType {
      * have to be the same position as the rails block itself. For example, rails that have trains hover above
      * or below it will have entirely different rails blocks.
      * 
-     * @param state to load with rail information
+     * @param state RailState to load with rail information
      * @return True if rails were found (railtype != NONE), False otherwise
      */
     public static boolean loadRailInformation(RailState state) {
@@ -193,16 +195,17 @@ public abstract class RailType {
         RailPiece[] cachedPieces = RailPieceCache.find(state);
         if (cachedPieces.length == 0) {
             // Standard lookup. Cache the result if we succeed.
+            OfflineWorld offlineWorld = state.railPiece().offlineWorld();
             Block positionBlock = state.positionBlock();
             try (Timings tim = TCTimings.RAILTYPE_FINDRAILINFO.start()) {
                 for (RailType type : values()) {
                     try {
                         List<Block> rails = type.findRails(positionBlock);
                         if (!rails.isEmpty()) {
-                            int index = cachedPieces.length;
+                            int index = cachedPieces.length;  
                             cachedPieces = Arrays.copyOf(cachedPieces, cachedPieces.length + rails.size());
                             for (Block railsBlock : rails) {
-                                cachedPieces[index++] = RailPiece.create(type, railsBlock);
+                                cachedPieces[index++] = RailPiece.create(type, railsBlock, offlineWorld);
                             }
                             break;
                         }
@@ -214,9 +217,9 @@ public abstract class RailType {
 
             // Store in cache if we have results
             if (cachedPieces.length > 0) {
-                RailPieceCache.storeInfo(positionBlock, cachedPieces);
+                RailPieceCache.storeInfo(offlineWorld.getBlockAt(new IntVector3(positionBlock)), cachedPieces);
             } else {
-                state.setRailPiece(RailPiece.create(RailType.NONE, positionBlock));
+                state.setRailPiece(RailPiece.create(RailType.NONE, positionBlock, offlineWorld));
                 return false;
             }
         }

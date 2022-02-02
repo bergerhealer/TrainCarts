@@ -47,7 +47,7 @@ public class RailTrackerGroup extends RailTracker {
      */
     public void unload() {
         for (TrackedRail oldRail : this.rails) {
-            RailMemberCache.removeBlock(oldRail.state.railBlock(), oldRail.member);
+            RailMemberCache.removeBlock(oldRail.state.railPiece().offlineBlock(), oldRail.member);
         }
         this.rails.clear();
         this.prevRails.clear();
@@ -131,7 +131,7 @@ public class RailTrackerGroup extends RailTracker {
     public MinecartMember<?> getMemberFromRails(IntVector3 railsBlockPosition) {
         //TODO: Is keeping a hashmap up to date a good idea? This loop works just fine, too.
         for (TrackedRail info : rails) {
-            if (info.position.equals(railsBlockPosition)) {
+            if (railsBlockPosition.equals(info.state.railPiece().blockPosition())) {
                 return info.member;
             }
         }
@@ -218,7 +218,7 @@ public class RailTrackerGroup extends RailTracker {
                     RailMemberCache.remove(member);
                 }
                 for (TrackedRail newRail : this.rails) {
-                    RailMemberCache.addBlock(newRail.state.railBlock(), newRail.member);
+                    RailMemberCache.addBlock(newRail.state.railPiece().offlineBlock(), newRail.member);
                 }
             } else {
                 // Moving
@@ -229,19 +229,19 @@ public class RailTrackerGroup extends RailTracker {
                     Iterator<TrackedRail> tmpIter = this.railsBuffer.iterator();
                     while (tmpIter.hasNext()) {
                         TrackedRail oldRail = tmpIter.next();
-                        if (oldRail.position.equals(newRail.position)) {
+                        if (oldRail.state.railPiece().isSameBlock(newRail.state.railPiece())) {
                             tmpIter.remove();
-                            RailMemberCache.changeMember(newRail.state.railBlock(), oldRail.member, newRail.member);
+                            RailMemberCache.changeMember(newRail.state.railPiece().offlineBlock(), oldRail.member, newRail.member);
                             found = true;
                             break;
                         }
                     }
                     if (!found) {
-                        RailMemberCache.addBlock(newRail.state.railBlock(), newRail.member);
+                        RailMemberCache.addBlock(newRail.state.railPiece().offlineBlock(), newRail.member);
                     }
                 }
                 for (TrackedRail oldRail : this.railsBuffer) {
-                    RailMemberCache.removeBlock(oldRail.state.railBlock(), oldRail.member);
+                    RailMemberCache.removeBlock(oldRail.state.railPiece().offlineBlock(), oldRail.member);
                 }
             }
 

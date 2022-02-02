@@ -227,7 +227,7 @@ public class SignTrackerGroup extends SignTracker {
                     // For all detector regions we already know, re-add those for members on them
                     for (TrackedRail rail : rails) {
                         for (DetectorRegion region : this.detectorRegions.cloneAsIterable()) {
-                            if (region.getCoordinates().contains(rail.position)) {
+                            if (region.getCoordinates().contains(rail.state.railPiece().blockPosition())) {
                                 List<DetectorRegion> memberRegions = rail.member.getSignTracker().detectorRegions;
                                 if (!memberRegions.contains(region)) {
                                     memberRegions.add(region);

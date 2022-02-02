@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.offline.OfflineWorldMap;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -84,7 +85,22 @@ public class MutexZoneCache {
 
     /**
      * Finds a mutex zone at a particular block
-     * 
+     *
+     * @param block
+     * @return mutex zone, null if not found
+     */
+    public static MutexZone find(OfflineBlock block) {
+        for (MutexZone zone : zones.getOrDefault(block.getWorld(), Collections.emptyMap()).values()) {
+            if (zone.containsBlock(block.getPosition())) {
+                return zone;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Finds a mutex zone at a particular block
+     *
      * @param world
      * @param block
      * @return mutex zone, null if not found

@@ -315,7 +315,7 @@ public class TrackWalkingPoint {
             !BlockUtil.equals(this.state.railBlock(), prevRailBlock) &&
             !this.loopFilter.add(this.state.railBlock()))
         {
-            this.state.setRailPiece(RailPiece.create(RailType.NONE, this.state.railBlock()));
+            this.state.setRailPiece(this.state.railPiece().asNoneType());
             this.failReason = FailReason.LOOP_DETECTED;
         }
 

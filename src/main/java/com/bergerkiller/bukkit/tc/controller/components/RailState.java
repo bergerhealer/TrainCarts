@@ -6,6 +6,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -127,6 +128,25 @@ public class RailState {
                     this._position.posZ,
                     MathUtil.getLookAtYaw(this._position.motX, this._position.motZ),
                     MathUtil.getLookAtPitch(this._position.motX, this._position.motY, this._position.motZ));
+        }
+    }
+
+    /**
+     * Gets the OfflineBlock at the current {@link #position()}.
+     * 
+     * @return position offline block
+     */
+    public OfflineBlock positionOfflineBlock() {
+        RailPath.Position pos = this._position;
+        if (pos.relative) {
+            OfflineBlock railBlock = this._railPiece.offlineBlock();
+            return railBlock.getRelative(MathUtil.floor(pos.posX),
+                                         MathUtil.floor(pos.posY),
+                                         MathUtil.floor(pos.posZ));
+        } else {
+            return this._railPiece.offlineWorld().getBlockAt(MathUtil.floor(pos.posX),
+                                                             MathUtil.floor(pos.posY),
+                                                             MathUtil.floor(pos.posZ));
         }
     }
 

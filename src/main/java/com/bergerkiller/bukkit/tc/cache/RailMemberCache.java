@@ -6,9 +6,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.logging.Level;
 
-import org.bukkit.block.Block;
-
-import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.google.common.collect.ArrayListMultimap;
@@ -22,7 +20,7 @@ import com.google.common.collect.ListMultimap;
  * needs to be found.
  */
 public class RailMemberCache {
-    private static final ListMultimap<Block, MinecartMember<?>> cache = ArrayListMultimap.create(2000, 2);
+    private static final ListMultimap<OfflineBlock, MinecartMember<?>> cache = ArrayListMultimap.create(2000, 2);
 
     /**
      * Wipes all members stored in the cache
@@ -37,14 +35,14 @@ public class RailMemberCache {
      * @param railBlock
      * @return member on this rail, null if none is on it
      */
-    public static MinecartMember<?> find(Block railBlock) {
+    public static MinecartMember<?> find(OfflineBlock railBlock) {
         Collection<MinecartMember<?>> members = cache.get(railBlock);
         if (members.isEmpty()) {
             return null;
         }
         MinecartMember<?> result = members.iterator().next();
         if (result.isUnloaded()) {
-            TrainCarts.plugin.log(Level.WARNING, "Purged unloaded minecart from rail cache at " + new IntVector3(railBlock));
+            TrainCarts.plugin.log(Level.WARNING, "Purged unloaded minecart from rail cache at " + railBlock.getPosition());
             remove(result);
             result = null;
         }
@@ -57,13 +55,13 @@ public class RailMemberCache {
      * @param railBlock
      * @return members on this rail
      */
-    public static Collection<MinecartMember<?>> findAll(Block railBlock) {
+    public static Collection<MinecartMember<?>> findAll(OfflineBlock railBlock) {
         Collection<MinecartMember<?>> members = cache.get(railBlock);
         Iterator<MinecartMember<?>> iter = members.iterator();
         while (iter.hasNext()) {
             MinecartMember<?> member = iter.next();
             if (member.isUnloaded()) {
-                TrainCarts.plugin.log(Level.WARNING, "Purged unloaded minecart from rail cache at " + new IntVector3(railBlock));
+                TrainCarts.plugin.log(Level.WARNING, "Purged unloaded minecart from rail cache at " + railBlock.getPosition());
                 iter.remove();
                 remove(member);
                 return findAll(railBlock);
@@ -92,7 +90,7 @@ public class RailMemberCache {
      * @param railsBlock
      * @param member
      */
-    public static void removeBlock(Block railBlock, MinecartMember<?> member) {
+    public static void removeBlock(OfflineBlock railBlock, MinecartMember<?> member) {
         cache.remove(railBlock, member);
     }
 
@@ -102,7 +100,7 @@ public class RailMemberCache {
      * @param railsBlock
      * @param member
      */
-    public static void addBlock(Block railBlock, MinecartMember<?> member) {
+    public static void addBlock(OfflineBlock railBlock, MinecartMember<?> member) {
         cache.put(railBlock, member);
     }
 
@@ -114,7 +112,7 @@ public class RailMemberCache {
      * @param oldMember
      * @param newMember
      */
-    public static void changeMember(Block railBlock, MinecartMember<?> oldMember, MinecartMember<?> newMember) {
+    public static void changeMember(OfflineBlock railBlock, MinecartMember<?> oldMember, MinecartMember<?> newMember) {
         List<MinecartMember<?>> members = cache.get(railBlock);
         ListIterator<MinecartMember<?>> iter = members.listIterator();
         while (iter.hasNext()) {

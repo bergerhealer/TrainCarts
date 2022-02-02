@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import com.bergerkiller.bukkit.common.collections.BlockMap;
+import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.DirectionStatement;
@@ -412,7 +413,7 @@ public class SignActionSwitcher extends SignAction {
                     uuidsToIgnore.clear();
                     addAll(group);
                     if (railBlock != null) {
-                        RailMemberCache.findAll(railBlock).stream()
+                        RailMemberCache.findAll(OfflineBlock.of(railBlock)).stream()
                             .map(MinecartMember::getGroup)
                             .distinct()
                             .forEach(this::addAll);

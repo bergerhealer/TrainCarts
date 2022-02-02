@@ -6,7 +6,7 @@ import com.bergerkiller.bukkit.common.collections.BlockMap;
 import com.bergerkiller.bukkit.common.collections.ImplicitlySharedList;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -65,8 +65,9 @@ public final class DetectorRegion {
         //load members
         World w = Bukkit.getServer().getWorld(this.world);
         if (w != null) {
+            OfflineWorld ow = OfflineWorld.of(w);
             for (IntVector3 coord : this.coordinates) {
-                for (MinecartMember<?> mm : RailMemberCache.findAll(BlockUtil.getBlock(w, coord))) {
+                for (MinecartMember<?> mm : RailMemberCache.findAll(ow.getBlockAt(coord))) {
                     mm.getSignTracker().addToDetectorRegion(this);
                 }
             }

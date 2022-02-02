@@ -194,8 +194,8 @@ public class SpeedAheadWaiter {
 
         // If no wait distance is set and no mutex zones are anywhere close, skip these expensive calculations
         if (distance <= 0.0) {
-            OfflineWorld world = OfflineWorld.of(group.head().getEntity().getWorld());
-            IntVector3 block = group.head().getBlockPos();
+            OfflineWorld world = OfflineWorld.of(group.getWorld());
+            IntVector3 block = group.head().getEntity().loc.block();
             if (!MutexZoneCache.isMutexZoneNearby(world, block, 8)) {
                 return null;
             }
@@ -223,13 +223,12 @@ public class SpeedAheadWaiter {
         final double mutexDistance = 2.0 + selfCartOffset;
         final double checkDistance = Math.max(mutexDistance, waitDistance);
 
-        OfflineWorld world = OfflineWorld.of(group.getWorld());
         TrackWalkingPoint iter = new TrackWalkingPoint(group.head().discoverRail());
         while (iter.movedTotal <= checkDistance && iter.moveFull()) {
 
             // Check for mutex zones the next block. If one is found that is occupied, stop right away
             if (iter.movedTotal <= mutexDistance) {
-                MutexZone zone = MutexZoneCache.find(world, new IntVector3(iter.state.railBlock()));
+                MutexZone zone = MutexZoneCache.find(iter.state.positionOfflineBlock());
                 if (zone != null && !zone.slot.tryEnter(group)) {
                     return new Obstacle(iter.movedTotal, 0.0);
                 }
@@ -249,7 +248,7 @@ public class SpeedAheadWaiter {
             Location member_position = null;
             double minSpeedAhead = Double.MAX_VALUE;
             double minDistanceAhead = 0.0;
-            for (MinecartMember<?> member : RailMemberCache.findAll(iter.state.railBlock())) {
+            for (MinecartMember<?> member : RailMemberCache.findAll(iter.state.railPiece().offlineBlock())) {
                 if (member.getGroup() == group) {
                     continue;
                 }

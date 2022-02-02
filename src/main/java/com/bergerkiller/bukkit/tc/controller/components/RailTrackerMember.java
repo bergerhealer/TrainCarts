@@ -124,7 +124,7 @@ public class RailTrackerMember extends RailTracker {
      * @return current rail position
      */
     public IntVector3 getBlockPos() {
-        return this.rail.position;
+        return this.rail.state.railPiece().blockPosition();
     }
 
     /**

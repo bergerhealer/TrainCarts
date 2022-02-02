@@ -705,7 +705,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * Block functions
      */
     public Block getBlock(int dx, int dy, int dz) {
-        return entity.getWorld().getBlockAt(getBlockPos().x + dx, getBlockPos().y + dy, getBlockPos().z + dz);
+        IntVector3 pos = getBlockPos();
+        return entity.getWorld().getBlockAt(pos.x + dx, pos.y + dy, pos.z + dz);
     }
 
     public Block getBlock(BlockFace face) {

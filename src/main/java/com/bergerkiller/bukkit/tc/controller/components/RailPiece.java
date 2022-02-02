@@ -5,6 +5,9 @@ import java.util.List;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.offline.OfflineBlock;
+import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -18,27 +21,30 @@ import com.bergerkiller.bukkit.tc.utils.RailJunctionSwitcher;
 public final class RailPiece {
     public static final RailPiece NONE = createWorldPlaceholder(null);
     private final RailType type;
+    private final OfflineWorld world;
     private final Block block;
-    private final World world;
+    private final OfflineBlock offlineBlock;
     private TrackedSign[] cachedSigns;
 
     private RailPiece(World world) {
-        this.type = RailType.NONE;
+        this.world = OfflineWorld.of(world);
+        this.offlineBlock = null;
         this.block = null;
-        this.world = world;
+        this.type = RailType.NONE;
         this.cachedSigns = null;
     }
 
-    private RailPiece(RailType type, Block block) {
-        this.type = type;
+    private RailPiece(OfflineBlock offlineBlock, Block block, RailType type) {
+        this.world = offlineBlock.getWorld();
+        this.offlineBlock = offlineBlock;
         this.block = block;
-        this.world = block.getWorld();
+        this.type = type;
         this.cachedSigns = null;
     }
 
     /**
      * Gets the type of rail
-     * 
+     *
      * @return rail type
      */
     public RailType type() {
@@ -54,6 +60,42 @@ public final class RailPiece {
      */
     public Block block() {
         return this.block;
+    }
+
+    /**
+     * Returns {@link #block()} as an {@link OfflineBlock}, which has a faster
+     * performance as keys in HashMaps.
+     *
+     * @return rail offline block
+     */
+    public OfflineBlock offlineBlock() {
+        return this.offlineBlock;
+    }
+
+    /**
+     * Gets an IntVector3 position of {@link #block()}
+     *
+     * @return block position
+     */
+    public IntVector3 blockPosition() {
+        try {
+            return this.offlineBlock.getPosition();
+        } catch (NullPointerException ex) {
+            if (this.offlineBlock == null) {
+                throw new IllegalStateException("This rail piece is a world placeholder and has no rail block");
+            }
+            throw ex;
+        }
+    }
+
+    /**
+     * Gets whether this RailPiece and another one refer to the same rail block
+     *
+     * @param piece
+     * @return True if this {@link #block()} and the piece's block are the same
+     */
+    public boolean isSameBlock(RailPiece piece) {
+        return this.offlineBlock.equals(piece.offlineBlock);
     }
 
     /**
@@ -105,6 +147,15 @@ public final class RailPiece {
      * @return rail world
      */
     public World world() {
+        return this.world.getLoadedWorld();
+    }
+
+    /**
+     * Gets {@link #world()} as an {@link OfflineWorld}
+     *
+     * @return rail offline world
+     */
+    public OfflineWorld offlineWorld() {
         return this.world;
     }
 
@@ -115,7 +166,7 @@ public final class RailPiece {
      */
     public TrackedSign[] signs() {
         if (this.cachedSigns == null) {
-            this.cachedSigns = RailSignCache.discoverSigns(this.type, this.block);
+            this.cachedSigns = RailSignCache.discoverSigns(this);
         }
         return this.cachedSigns;
     }
@@ -138,18 +189,19 @@ public final class RailPiece {
         }
     }
 
+    /**
+     * Returns a new RailPiece with this same piece's world and block, but with
+     * RailType NONE.
+     *
+     * @return new RailPiece with rail type NONE
+     */
+    public RailPiece asNoneType() {
+        return new RailPiece(this.offlineBlock, this.block, RailType.NONE);
+    }
+
     @Override
     public int hashCode() {
-        if (this.block == null) {
-            return 0;
-        } else {
-            int hash = 17;
-            hash = hash * 31 + System.identityHashCode(this.world);
-            hash = hash * 31 + this.block.getX();
-            hash = hash * 31 + this.block.getY();
-            hash = hash * 31 + this.block.getZ();
-            return hash;
-        }
+        return this.offlineBlock == null ? 0 : this.offlineBlock.hashCode();
     }
 
     @Override
@@ -158,12 +210,13 @@ public final class RailPiece {
             return true;
         } else if (o instanceof RailPiece) {
             RailPiece other = (RailPiece) o;
-            return this.type == other.type &&
-                   this.world == other.world &&
-                   this.block == null ? (other.block == null) :
-                       ( this.block.getX() == other.block.getX() &&
-                         this.block.getY() == other.block.getY() &&
-                         this.block.getZ() == other.block.getZ() );
+            if (this.offlineBlock != null) {
+                return this.offlineBlock.equals(other.offlineBlock) &&
+                       this.type == other.type;
+            } else {
+                return other.offlineBlock == null &&
+                       this.type == other.type;
+            }
         } else {
             return false;
         }
@@ -191,7 +244,20 @@ public final class RailPiece {
      * @return RailPiece
      */
     public static RailPiece create(RailType type, Block block) {
-        return new RailPiece(type, block);
+        return new RailPiece(OfflineBlock.of(block), block, type);
+    }
+
+    /**
+     * Creates a new RailBlock for a type and block. World is also specified
+     * to avoid having to look it up by Bukkit World.
+     *
+     * @param type Rail type
+     * @param block Rail block
+     * @param world Offline World
+     * @return RailPiece
+     */
+    public static RailPiece create(RailType type, Block block, OfflineWorld world) {
+        return new RailPiece(world.getBlockAt(block.getX(), block.getY(), block.getZ()), block, type);
     }
 
     /**
@@ -202,7 +268,7 @@ public final class RailPiece {
      * @return RailPiece
      */
     public static RailPiece create(Block block) {
-        return create(RailType.getType(block), block);
+        return new RailPiece(OfflineBlock.of(block), block, RailType.getType(block));
     }
 
     /**

@@ -4,7 +4,6 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -29,8 +28,6 @@ public abstract class RailTracker {
         public final MinecartMember<?> member;
         /** Block position of the minecart on the rails */
         public final Block minecartBlock;
-        /** Position of the rails (same as {@link #block}) */
-        public final IntVector3 position;
         /** Whether this rail is disconnected from the previous rails */
         public final boolean disconnected;
         /** Cached rail path taken on this rail */
@@ -49,13 +46,6 @@ public abstract class RailTracker {
             this.state.setMember(member);
             this.minecartBlock = state.positionBlock();
             this.disconnected = disconnected;
-
-            Block railBlock = this.state.railBlock();
-            if (railBlock == null) {
-                this.position = new IntVector3(0, 0, 0);
-            } else {
-                this.position = new IntVector3(railBlock.getX(), railBlock.getY(), railBlock.getZ());
-            }
         }
 
         // This constructor is used by RailTrackerMember for the uninitialized rail
@@ -66,7 +56,6 @@ public abstract class RailTracker {
             this.state.setRailPiece(RailPiece.NONE);
             this.minecartBlock = null;
             this.disconnected = false;
-            this.position = new IntVector3(0, 0, 0);
             this.state.position().setMotion(new Vector(0, -1, 0));
             this.state.initEnterDirection();
         }

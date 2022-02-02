@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.CommonEntityType;
 import com.bergerkiller.bukkit.common.entity.type.*;
+import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -329,8 +330,8 @@ public abstract class MinecartMemberStore {
      */
     @Deprecated
     public static MinecartMember<?> getAt(Block block) {
-        return RailMemberCache.find(block);
-        
+        return RailMemberCache.find(OfflineBlock.of(block));
+
         //return getAt(block.getWorld(), new IntVector3(block));
     }
 
