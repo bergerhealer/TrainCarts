@@ -9,7 +9,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import me.m56738.smoothcoasters.api.RotationMode;
 import org.bukkit.Material;
 
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
@@ -114,7 +113,6 @@ public class TCConfig {
     public static MapResourcePack resourcePack = MapResourcePack.SERVER;
     public static Map<String, Animation> defaultAnimations = new HashMap<>();
     public static Hastebin hastebin = null;
-    public static RotationMode smoothCoastersRotationMode;
 
     public static void load(FileConfiguration config) {
         config.setHeader("This is the configuration file of TrainCarts");
@@ -575,11 +573,6 @@ public class TCConfig {
         } else {
             attachmentTransformParallelism = config.get("attachmentTransformParallelism", -1);
         }
-
-        config.setHeader("smoothCoastersRotationMode", "\nThe camera rotation mode to use for SmoothCoasters");
-        config.addHeader("smoothCoastersRotationMode", "PLAYER: Rotate the whole player");
-        config.addHeader("smoothCoastersRotationMode", "CAMERA: Rotate the camera without affecting player yaw/pitch");
-        smoothCoastersRotationMode = config.get("smoothCoastersRotationMode", RotationMode.class, RotationMode.PLAYER);
 
         config.setHeader("unloadRunawayTrainDistance", "\nWhen trains that keep chunks loaded around them derail, they can end up");
         config.addHeader("unloadRunawayTrainDistance", "flying off into nowhere. This results in thousands of chunks being generated,");

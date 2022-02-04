@@ -44,7 +44,6 @@ class FirstPersonSpectatedEntityInvisible extends FirstPersonSpectatedEntity {
 
             return entity;
         });
-        entity.afterSwap(view::resetSmoothCoastersRotation);
         entity.spawn(eyeTransform, seat.calcMotion());
         entity.spectate();
     }

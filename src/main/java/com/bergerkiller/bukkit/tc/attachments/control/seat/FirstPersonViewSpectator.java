@@ -16,8 +16,6 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityLivingHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
 
-import me.m56738.smoothcoasters.api.RotationMode;
-
 /**
  * Makes the player spectate an Entity and then moves that Entity to
  * move the camera around.
@@ -127,12 +125,6 @@ public class FirstPersonViewSpectator extends FirstPersonView {
             vmc.mount(this._playerMount.getEntityId(), viewer.getEntityId());
         }
 
-        // If smooth coasters mod is used by the client, set it up
-        if (seat.useSmoothCoasters()) {
-            seat.getPlugin().getSmoothCoastersAPI().setRotationMode(null, viewer, RotationMode.CAMERA);
-            sendRotation();
-        }
-
         // If third-person mode is used, also spawn the real seated entity for this viewer
         if (this.getLiveMode() == FirstPersonViewMode.THIRD_P) {
             seat.seated.makeVisibleFirstPerson(viewer);
@@ -172,12 +164,6 @@ public class FirstPersonViewSpectator extends FirstPersonView {
             setPlayerVisible(viewer, true);
         }
 
-        // Reset smooth coasters
-        if (seat.useSmoothCoasters()) {
-            seat.getPlugin().getSmoothCoastersAPI().resetRotation(null, viewer);
-            seat.getPlugin().getSmoothCoastersAPI().setRotationMode(null, viewer, RotationMode.NONE);
-        }
-
         // Cleanup, moves player view so it faces where it looked in spectator mode
         _input.stop(this.getEyeTransform());
     }
@@ -202,59 +188,5 @@ public class FirstPersonViewSpectator extends FirstPersonView {
             _playerMount.syncPosition(absolute);
             _spectatedEntity.syncPosition(absolute);
         }
-
-        sendRotation();
-    }
-
-    public void resetSmoothCoastersRotation() {
-        if (player == null || !seat.useSmoothCoasters()) {
-            return;
-        }
-
-        VirtualEntity entity = _spectatedEntity.getCurrentEntity();
-
-        Quaternion syncRot = Quaternion.fromYawPitchRoll(entity.getSyncPitch(),
-                                                         entity.getSyncYaw(),
-                                                         0.0);
-
-        Quaternion angles = this.getEyeTransform().getRotation();
-        angles.divide(syncRot);
-
-        //seat.getPlugin().getSmoothCoastersAPI().resetRotation(null, player);
-
-        seat.getPlugin().getSmoothCoastersAPI().setRotation(
-                null,
-                (Player) player,
-                (float) angles.getX(),
-                (float) angles.getY(),
-                (float) angles.getZ(),
-                (float) angles.getW(),
-                (byte) 3
-        );
-    }
-
-    private void sendRotation() {
-        if (player == null || !seat.useSmoothCoasters()) {
-            return;
-        }
-
-        VirtualEntity entity = _spectatedEntity.getCurrentEntity();
-
-        Quaternion syncRot = Quaternion.fromYawPitchRoll(entity.getSyncPitch(),
-                                                         entity.getSyncYaw(),
-                                                         0.0);
-
-        Quaternion angles = this.getEyeTransform().getRotation();
-        angles.divide(syncRot);
-
-        seat.getPlugin().getSmoothCoastersAPI().setRotation(
-                null,
-                (Player) player,
-                (float) angles.getX(),
-                (float) angles.getY(),
-                (float) angles.getZ(),
-                (float) angles.getW(),
-                (byte) 3
-        );
     }
 }
