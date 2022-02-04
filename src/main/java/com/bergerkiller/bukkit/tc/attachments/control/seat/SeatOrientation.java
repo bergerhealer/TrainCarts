@@ -17,7 +17,6 @@ import com.bergerkiller.generated.net.minecraft.server.level.EntityTrackerEntryS
  * Tracks and updates the orientation of a seated entity
  */
 public class SeatOrientation {
-    private boolean _locked = false;
     private float _entityLastYaw = 0;
     private float _entityLastPitch = 0;
     private float _entityLastHeadYaw = 0;
@@ -38,14 +37,6 @@ public class SeatOrientation {
 
     public float getMountYaw() {
         return this._mountYaw;
-    }
-
-    public boolean isLocked() {
-        return this._locked;
-    }
-
-    public void setLocked(boolean locked) {
-        this._locked = locked;
     }
 
     public void sendLockedRotations(Player viewer, int entityId) {
@@ -173,7 +164,7 @@ public class SeatOrientation {
         Player viewerToIgnore = (seated.isPlayer() && !seated.isMadeVisibleInFirstPerson())
                 ? (Player) seated.getEntity() : null;
 
-        if (this._locked || seated.isDummyPlayer()) {
+        if (seat.isRotationLocked() || seated.isDummyPlayer()) {
             SeatedEntity.PassengerPose pose = seated.getCurrentHeadRotation(transform);
             this._mountYaw = pose.bodyYaw;
 

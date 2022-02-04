@@ -147,7 +147,7 @@ public class FirstPersonEyePositionDialog extends MapWidgetMenu {
         if (liveAttachment instanceof CartAttachmentSeat) {
             for (Player player : display.getOwners()) {
                 if (display.isControlling(player)) {
-                    ((CartAttachmentSeat) liveAttachment).previewEye(player, numTicks);
+                    ((CartAttachmentSeat) liveAttachment).debug.previewEye(player, numTicks);
                 }
             }
         }
@@ -215,7 +215,7 @@ public class FirstPersonEyePositionDialog extends MapWidgetMenu {
         if (liveAttachment instanceof CartAttachmentSeat) {
             for (Player player : display.getOwners()) {
                 if (display.isControlling(player)) {
-                    ((CartAttachmentSeat) liveAttachment).showEyeArrow(player, numTicks);
+                    ((CartAttachmentSeat) liveAttachment).debug.showEyeArrow(player, numTicks);
                 }
             }
         }

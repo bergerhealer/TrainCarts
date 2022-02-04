@@ -7,7 +7,6 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
@@ -33,11 +32,9 @@ public class FirstPersonViewSpectator extends FirstPersonView {
     private VirtualEntity _playerMount = null;
     // Tracks player input while inside this FPV mode
     private final SpectatorInput _input = new SpectatorInput();
-    // Used to detect flips during smoothcoasters adjustments
-    private float sc_lastPitch, sc_lastYaw;
 
-    public FirstPersonViewSpectator(CartAttachmentSeat seat) {
-        super(seat);
+    public FirstPersonViewSpectator(CartAttachmentSeat seat, Player player) {
+        super(seat, player);
     }
 
     /**
@@ -90,14 +87,14 @@ public class FirstPersonViewSpectator extends FirstPersonView {
     }
 
     @Override
-    public void makeVisible(Player viewer) {
+    public void makeVisible(Player viewer, boolean isReload) {
         // Make the player invisible - we don't want it to get in view
         setPlayerVisible(viewer, false);
         vehicleEntityId = -1;
 
         // Start tracking player input
         if (this.getLockMode() == FirstPersonViewLockMode.SPECTATOR_FREE) {
-            _input.start(viewer, seat.seated.orientation.isLocked() ? 70.0f : 360.0f);
+            _input.start(viewer, seat.isRotationLocked() ? BODY_LOCK_FOV_LIMIT : 360.0f);
         }
 
         // Position used to compute where the eye/camera view is at
@@ -143,7 +140,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
     }
 
     @Override
-    public void makeHidden(Player viewer) {
+    public void makeHidden(Player viewer, boolean isReload) {
         // If third-person mode is used, also despawn the real seated entity for this viewer
         if (this.getLiveMode() == FirstPersonViewMode.THIRD_P) {
             seat.seated.makeHiddenFirstPerson(viewer);
@@ -209,6 +206,33 @@ public class FirstPersonViewSpectator extends FirstPersonView {
         sendRotation();
     }
 
+    public void resetSmoothCoastersRotation() {
+        if (player == null || !seat.useSmoothCoasters()) {
+            return;
+        }
+
+        VirtualEntity entity = _spectatedEntity.getCurrentEntity();
+
+        Quaternion syncRot = Quaternion.fromYawPitchRoll(entity.getSyncPitch(),
+                                                         entity.getSyncYaw(),
+                                                         0.0);
+
+        Quaternion angles = this.getEyeTransform().getRotation();
+        angles.divide(syncRot);
+
+        //seat.getPlugin().getSmoothCoastersAPI().resetRotation(null, player);
+
+        seat.getPlugin().getSmoothCoastersAPI().setRotation(
+                null,
+                (Player) player,
+                (float) angles.getX(),
+                (float) angles.getY(),
+                (float) angles.getZ(),
+                (float) angles.getW(),
+                (byte) 3
+        );
+    }
+
     private void sendRotation() {
         if (player == null || !seat.useSmoothCoasters()) {
             return;
@@ -223,15 +247,6 @@ public class FirstPersonViewSpectator extends FirstPersonView {
         Quaternion angles = this.getEyeTransform().getRotation();
         angles.divide(syncRot);
 
-        HeadRotation newRot = HeadRotation.of(entity.getSyncPitch(), entity.getSyncYaw());
-        HeadRotation newRotFlipped = newRot.flipVertical();
-        byte interpolation = (byte) 3;
-        if (isCameraFlipped(newRot, newRotFlipped)) {
-            interpolation = (byte) 0;
-        }
-        sc_lastYaw = newRot.yaw;
-        sc_lastPitch = newRot.pitch;
-
         seat.getPlugin().getSmoothCoastersAPI().setRotation(
                 null,
                 (Player) player,
@@ -239,16 +254,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
                 (float) angles.getY(),
                 (float) angles.getZ(),
                 (float) angles.getW(),
-                interpolation
+                (byte) 3
         );
-    }
-
-    private boolean isCameraFlipped(HeadRotation newRot, HeadRotation newRotFlipped) {
-        // When yaw changes a lot suddenly, and the pitch of the flipped one is better than the non-flipped one,
-        // then the player camera probably inverted suddenly.
-        return MathUtil.getAngleDifference(sc_lastYaw, newRot.yaw) > 90.0f &&
-                MathUtil.getAngleDifference(sc_lastPitch,
-                                            newRotFlipped.pitch) < MathUtil.getAngleDifference(sc_lastPitch,
-                                                                                               sc_lastYaw);
     }
 }

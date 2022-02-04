@@ -24,6 +24,7 @@ class PitchSwappedEntity<E extends VirtualEntity> {
 
     private final VehicleMountController vmc;
     private Consumer<E> beforeSwap = e -> {};
+    private Runnable afterSwap = () -> {};
     /** The entity as it is currently displayed */
     public E entity;
     /** The entity right at the pitch-flip boundary */
@@ -51,6 +52,15 @@ class PitchSwappedEntity<E extends VirtualEntity> {
      */
     public void beforeSwap(Consumer<E> action) {
         beforeSwap = action;
+    }
+
+    /**
+     * Called after a swap occurs and the newly swapped-out entity has its position updated
+     *
+     * @param action
+     */
+    public void afterSwap(Runnable action) {
+        afterSwap = action;
     }
 
     public void spawn(Matrix4x4 eyeTransform, Vector motion) {
@@ -135,6 +145,9 @@ class PitchSwappedEntity<E extends VirtualEntity> {
             // Sync these right away
             entity.syncMetadata();
             entityAlt.syncMetadata();
+
+            // Done
+            afterSwap.run();
         } else if (isCameraFlipped(headRot, headRotFlipped)) {
             // Spectate other entity
             if (spectating) {
@@ -159,6 +172,9 @@ class PitchSwappedEntity<E extends VirtualEntity> {
             // Sync these right away
             entity.syncMetadata();
             entityAltFlip.syncMetadata();
+
+            // Done
+            afterSwap.run();
         } else {
             // Update like normal
             entity.updatePosition(position, headRot.pyr);

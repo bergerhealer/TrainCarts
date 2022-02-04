@@ -12,13 +12,13 @@ public class ThirdPersonDefault {
     }
 
     public void makeVisible(Player viewer) {
-        if (!seat.firstPerson.isSeatedEntityHiddenBecauseOfPreview(viewer)) {
+        if (!seat.debug.isSeatedEntityHiddenBecauseOfPreview(viewer)) {
             seat.seated.makeVisible(viewer);
         }
     }
 
     public void makeHidden(Player viewer) {
-        if (!seat.firstPerson.isSeatedEntityHiddenBecauseOfPreview(viewer)) {
+        if (!seat.debug.isSeatedEntityHiddenBecauseOfPreview(viewer)) {
             seat.seated.makeHidden(viewer);
         }
     }

@@ -10,7 +10,6 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
-import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
@@ -30,8 +29,8 @@ public class FirstPersonViewDefault extends FirstPersonView {
     private double _playerYawRemainder = 0.0;
     private double _playerPitchRemainder = 0.0;
 
-    public FirstPersonViewDefault(CartAttachmentSeat seat) {
-        super(seat);
+    public FirstPersonViewDefault(CartAttachmentSeat seat, Player player) {
+        super(seat, player);
     }
 
     /**
@@ -46,9 +45,13 @@ public class FirstPersonViewDefault extends FirstPersonView {
             return true;
         }
 
+        // Must always mount to a separate vehicle with smooth coasters
+        if (seat.useSmoothCoasters()) {
+            return true;
+        }
+
         // Based on the first person view mode
         switch (this.getLiveMode()) {
-        case SMOOTHCOASTERS_FIX:
         case THIRD_P:
             return true;
         default:
@@ -59,20 +62,60 @@ public class FirstPersonViewDefault extends FirstPersonView {
     }
 
     @Override
-    public void makeVisible(Player viewer) {
+    public void makeVisible(Player viewer, boolean isReload) {
         VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
         boolean useFakeCamera = this.isFakeCameraUsed();
-        if (useFakeCamera || this.seat.useSmoothCoasters()) {
-            // In these two cases special initialization needs to be done
+        if (useFakeCamera || seat.useSmoothCoasters() || seat.isRotationLocked()) {
+            // In these three cases the eye transform is used for some logic here
             Matrix4x4 eyeTransform = getEyeTransform();
 
-            if (this.seat.useSmoothCoasters()) {
+            if (!isReload && this.seat.useSmoothCoasters()) {
                 this.seat.getPlugin().getSmoothCoastersAPI().setRotationMode(
                         null,
                         viewer,
-                        TCConfig.smoothCoastersRotationMode
+                        RotationMode.CAMERA // TCConfig.smoothCoastersRotationMode
                 );
-                this.seat.sendSmoothCoastersRelativeRotation(eyeTransform.getRotation());
+                this.syncSmoothCoastersRotations(eyeTransform, true);
+            }
+
+            if (isReload) {
+                // Don't do any bizar logic here...
+            } else if (this.seat.useSmoothCoasters()) {
+                if (seat.isRotationLocked()) {
+                    // Body is locked, make the player face forwards according to the eye transform
+                    // As smoothcoasters uses a quaternion base, this is simply 0/0
+                    PacketPlayOutPositionHandle p = PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, 0.0f, 0.0f);
+                    p.setRotationRelative(false);
+                    PacketUtil.sendPacket(viewer, p);
+                } else {
+                    // Send current player absolute rotation. SmoothCoasters has a bug in it
+                    // that the player looks into a random direction otherwise. This rotation must be
+                    // adjusted for the base quaternion orientation that's already applied.
+
+                    // Absolute orientation of player
+                    Quaternion lookOrientation;
+                    {
+                        Location loc = viewer.getEyeLocation();
+                        lookOrientation = Quaternion.fromYawPitchRoll(loc.getPitch(), loc.getYaw(), 0.0);
+                    }
+
+                    // Subtract the seat orientation we're sending
+                    Quaternion result = Quaternion.diff(eyeTransform.getRotation(), lookOrientation);
+
+                    // To head yaw/pitch - ensure always level as the client cannot comprehend extreme pitch
+                    HeadRotation rot = HeadRotation.compute(result).ensureLevel();
+
+                    // Send it
+                    PacketPlayOutPositionHandle p = PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, rot.yaw, rot.pitch);
+                    p.setRotationRelative(false);
+                    PacketUtil.sendPacket(viewer, p);
+                }
+            } else if (seat.isRotationLocked()) {
+                // Body is locked, make the player face forwards according to the eye transform
+                HeadRotation rot = HeadRotation.compute(eyeTransform).ensureLevel();
+                PacketPlayOutPositionHandle p = PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, rot.yaw, rot.pitch);
+                p.setRotationRelative(false);
+                PacketUtil.sendPacket(viewer, p);
             }
 
             if (useFakeCamera) {
@@ -106,21 +149,30 @@ public class FirstPersonViewDefault extends FirstPersonView {
             // If no fake camera mount is used, make sure to mount the player in the vehicle mount
             vmc.mount(seat.seated.spawnVehicleMount(viewer), viewer.getEntityId());
         } else if (this.getLiveMode() == FirstPersonViewMode.THIRD_P) {
-            // Hide the actual player to himself
-            setPlayerVisible(viewer, false);
-
             // Also spawn the seated entity
             seat.seated.makeVisibleFirstPerson(viewer);
         }
     }
 
     @Override
-    public void makeHidden(Player viewer) {
+    public void makeHidden(Player viewer, boolean isReload) {
         VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
 
-        if (seat.useSmoothCoasters()) {
+        // Reset everything smooth coasters has changed when the player exits the seat
+        if (!isReload && seat.useSmoothCoasters()) {
+            seat.getPlugin().getSmoothCoastersAPI().setEntityRotation(null, viewer, viewer.getEntityId(),
+                    0.0f, 0.0f, 0.0f, 1.0f, (byte) 0);
             seat.getPlugin().getSmoothCoastersAPI().resetRotation(null, viewer);
             seat.getPlugin().getSmoothCoastersAPI().setRotationMode(null, viewer, RotationMode.NONE);
+
+            // Make the player look where the player was looking before
+            {
+                Quaternion headRotQuat = seat.seated.getCurrentHeadRotationQuat(seat.getTransform());
+                HeadRotation headRot = HeadRotation.compute(headRotQuat).ensureLevel();
+                PacketPlayOutPositionHandle p = PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, headRot.yaw, headRot.pitch);
+                p.setRotationRelative(false);
+                PacketUtil.sendPacket(viewer, p);
+            }
         }
 
         if (this._fakeCameraMount != null) {
@@ -132,16 +184,13 @@ public class FirstPersonViewDefault extends FirstPersonView {
         if (!this.isFakeCameraUsed()) {
             // Unmount the viewer from the seat
             vmc.unmount(seat.seated.parentMountId, viewer.getEntityId());
-
-            // If mode is not INVISIBLE, then also make the player itself invisible using a metadata update
-            if (this.getLiveMode().isRealPlayerInvisible()) {
-                setPlayerVisible(viewer, true);
-            }
         } else if (this.getLiveMode() == FirstPersonViewMode.THIRD_P) {
             // Despawn a fake seated entity
             seat.seated.makeHiddenFirstPerson(viewer);
+        }
 
-            // Make real player visible again
+        // Make the player visible again if the mode made it invisible
+        if (this.getLiveMode().isRealPlayerInvisible()) {
             setPlayerVisible(viewer, true);
         }
     }
@@ -185,6 +234,42 @@ public class FirstPersonViewDefault extends FirstPersonView {
                 this._playerYawRemainder = pyr.getY();
             }
         }
+
+        // If body rotation is locked, restrict rotation within a yaw diff of 70 degrees
+        // TODO: I disabled this stuff because it's way too jittery and annoying
+        /*
+        if (player != null && seat.isRotationLocked()) {
+            if (seat.useSmoothCoasters()) {
+                // Easy, keep yaw between the limits. The yaw is forwards when 0.
+                float currYaw = MathUtil.wrapAngle(player.getEyeLocation().getYaw());
+                float corr;
+                if (currYaw > BODY_LOCK_FOV_LIMIT) {
+                    corr = BODY_LOCK_FOV_LIMIT - currYaw;
+                } else if (currYaw < -BODY_LOCK_FOV_LIMIT) {
+                    corr = -BODY_LOCK_FOV_LIMIT - currYaw;
+                } else {
+                    corr = 0.0f;
+                }
+                if (corr != 0.0f) {
+                    // When the correction is less than 15 degrees, perform a bouncy rejection
+                    // Anything beyond that is rejected hard.
+                    final float HARD_LIMIT = 15.0f;
+                    final float SMOOTH_FACTOR = 0.3f;
+                    if (corr > HARD_LIMIT) {
+                        corr = (corr - HARD_LIMIT) + HARD_LIMIT * SMOOTH_FACTOR;
+                    } else if (corr < -HARD_LIMIT) {
+                        corr = (corr + HARD_LIMIT) - HARD_LIMIT * SMOOTH_FACTOR;
+                    } else {
+                        corr *= SMOOTH_FACTOR;
+                    }
+
+                    PacketUtil.sendPacket(player, PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, corr, 0.0f));
+                }
+            } else {
+                // Harder, compute the yaw the player can have and restrict that
+            }
+        }
+        */
     }
 
     @Override
@@ -195,12 +280,30 @@ public class FirstPersonViewDefault extends FirstPersonView {
             Matrix4x4 eyeTransform = getEyeTransform();
 
             if (this.seat.useSmoothCoasters()) {
-                this.seat.sendSmoothCoastersRelativeRotation(eyeTransform.getRotation());
+                this.syncSmoothCoastersRotations(eyeTransform, false);
             }
+
             if (this._fakeCameraMount != null) {
                 this._fakeCameraMount.updatePosition(eyeTransform);
                 this._fakeCameraMount.syncPosition(absolute);
             }
+        }
+    }
+
+    private void syncSmoothCoastersRotations(Matrix4x4 eyeTransform, boolean instant) {
+        // This rotates the head view
+        this.seat.sendSmoothCoastersRelativeRotation(eyeTransform.getRotation(), instant);
+
+        // This rotates the body and not the camera
+        // Not used when the true player is made invisible - waste of packets
+        if (!this.getLiveMode().isRealPlayerInvisible()) {
+            Quaternion bodyRot = seat.getTransform().getRotation();
+            seat.getPlugin().getSmoothCoastersAPI().setEntityRotation(null, player, player.getEntityId(),
+                    (float) bodyRot.getX(),
+                    (float) bodyRot.getY(),
+                    (float) bodyRot.getZ(),
+                    (float) bodyRot.getW(),
+                    instant ? (byte) 0 : (seat.isMinecartInterpolation() ? (byte) 5 : (byte) 3));
         }
     }
 }

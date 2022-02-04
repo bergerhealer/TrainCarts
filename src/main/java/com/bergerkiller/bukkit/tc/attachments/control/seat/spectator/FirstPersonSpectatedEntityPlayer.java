@@ -84,6 +84,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
                 }
             }
         });
+        fakePlayer.afterSwap(view::resetSmoothCoastersRotation);
         fakePlayer.spawn(eyeTransform, seat.calcMotion());
 
         // Spawn an invisible holder entity inside which the fake player sits

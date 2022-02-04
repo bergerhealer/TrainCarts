@@ -119,7 +119,7 @@ class SeatedEntityNormal extends SeatedEntity {
         }
 
         // Sync initial rotations of these entities, if locked
-        if (this.orientation.isLocked()) {
+        if (seat.isRotationLocked()) {
             this.orientation.sendLockedRotations(viewer, this._fakeEntityId);
         }
     }
@@ -249,11 +249,6 @@ class SeatedEntityNormal extends SeatedEntity {
                     Math.abs(selfPitch) > 70.0)
                 {
                     new_firstPersonMode = FirstPersonViewMode.THIRD_P;
-                }
-                else if (seat.useSmoothCoasters()) {
-                    // Smooth coasters can't deal well switching between mounts
-                    // Stay in the virtual camera view mode
-                    new_firstPersonMode = FirstPersonViewMode.SMOOTHCOASTERS_FIX;
                 } else {
                     new_firstPersonMode = FirstPersonViewMode.DEFAULT;
                 }
@@ -282,7 +277,7 @@ class SeatedEntityNormal extends SeatedEntity {
             Collection<Player> viewers = seat.getViewersSynced();
             for (Player viewer : viewers) {
                 if (refreshFPV || viewer != entity) {
-                    seat.makeHiddenImpl(viewer);
+                    seat.makeHiddenImpl(viewer, true);
                 }
             }
             this.setFake(new_isFake);
@@ -290,7 +285,7 @@ class SeatedEntityNormal extends SeatedEntity {
             seat.firstPerson.setLiveMode(new_firstPersonMode);
             for (Player viewer : viewers) {
                 if (refreshFPV || viewer != entity) {
-                    seat.makeVisibleImpl(viewer);
+                    seat.makeVisibleImpl(viewer, true);
                 }
             }
         } else {
@@ -310,9 +305,9 @@ class SeatedEntityNormal extends SeatedEntity {
                 if (viewers.contains(this.getEntity())) {
                     // Hide, change, and make visible again, just for the first-player-view player
                     Player viewer = (Player) this.getEntity();
-                    seat.makeHiddenImpl(viewer);
+                    seat.makeHiddenImpl(viewer, true);
                     seat.firstPerson.setLiveMode(new_firstPersonMode);
-                    seat.makeVisibleImpl(viewer);
+                    seat.makeVisibleImpl(viewer, true);
                 } else {
                     // Silent
                     seat.firstPerson.setLiveMode(new_firstPersonMode);
@@ -340,7 +335,8 @@ class SeatedEntityNormal extends SeatedEntity {
         }
         updateVehicleMountPosition(transform);
         if (this._upsideDownVehicle != null) {
-            this._upsideDownVehicle.updatePosition(transform);
+            this._upsideDownVehicle.updatePosition(transform,
+                    new Vector(0.0, (double) this.orientation.getMountYaw(), 0.0));
         }
     }
 

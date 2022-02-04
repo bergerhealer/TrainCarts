@@ -120,7 +120,7 @@ class SeatedEntityElytra extends SeatedEntity {
         vmc.mount(this.fakeVehicle.getEntityId(), this._fakeEntityIdFlipped);
 
         // Sync initial rotations of these entities, if locked
-        if (this.orientation.isLocked()) {
+        if (seat.isRotationLocked()) {
             this.orientation.sendLockedRotations(viewer, this._fakeEntityId);
         }
     }

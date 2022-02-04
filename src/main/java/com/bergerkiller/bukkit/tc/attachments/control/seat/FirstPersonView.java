@@ -1,9 +1,5 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -20,7 +16,6 @@ import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.bukkit.tc.attachments.control.seat.spectator.FirstPersonEyePreview;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityEquipmentHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
@@ -30,19 +25,20 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
  */
 public abstract class FirstPersonView {
     protected final CartAttachmentSeat seat;
-    public Player player;
+    protected final Player player;
     private FirstPersonViewMode _liveMode = FirstPersonViewMode.DEFAULT;
     private FirstPersonViewMode _mode = FirstPersonViewMode.DYNAMIC;
     private FirstPersonViewLockMode _lock = FirstPersonViewLockMode.MOVE;
     protected ObjectPosition _eyePosition = new ObjectPosition();
 
-    // Uses spectator mode to display exactly how a player would view from inside the seat
-    private final Map<Player, FirstPersonEyePreview> _eyePreviews = new HashMap<>();
-    // Displays a floating arrow pointing where the eyes are at
-    private final FirstPersonEyePositionArrow _eyeArrow = new FirstPersonEyePositionArrow(this);
+    /**
+     * How far away from looking forwards the player can yaw left/right when the body is locked
+     */
+    public static final float BODY_LOCK_FOV_LIMIT = 70.0f;
 
-    public FirstPersonView(CartAttachmentSeat seat) {
+    public FirstPersonView(CartAttachmentSeat seat, Player player) {
         this.seat = seat;
+        this.player = player;
     }
 
     public ObjectPosition getEyePosition() {
@@ -76,6 +72,12 @@ public abstract class FirstPersonView {
             Matrix4x4 transform = seat.getTransform().clone();
             transform.translate(seat.seated.getThirdPersonCameraOffset());
             return transform;
+        } else if (seat.useSmoothCoasters()) {
+            // Smooth coasters places the player in such a way that it 'hangs' below the head
+            // As such, return the head position exactly
+            Matrix4x4 transform = seat.getTransform().clone();
+            transform.translate(seat.seated.getFirstPersonCameraOffset());
+            return transform;
         } else {
             // Return seat transform with a player butt-to-eye offset included
             // This offset is not rotated when the seat rotates, it is always y + 1
@@ -91,16 +93,18 @@ public abstract class FirstPersonView {
      * active for this viewer.
      *
      * @param viewer Player that entered the seat
+     * @param isReload Whether this is a reload. If true, makeHidden with isReload true was called before
      */
-    public abstract void makeVisible(Player viewer);
+    public abstract void makeVisible(Player viewer, boolean isReload);
 
     /**
      * Called when a Player was inside the seat, but now exited it, disabling the
      * first-person view.
      *
      * @param viewer Player viewer that left the seat
+     * @param isReload Whether this is a reload. If true, makeVisible will be called later.
      */
-    public abstract void makeHidden(Player viewer);
+    public abstract void makeHidden(Player viewer, boolean isReload);
 
     /**
      * Called every tick to perform any logic required
@@ -171,139 +175,6 @@ public abstract class FirstPersonView {
      */
     public void setLockMode(FirstPersonViewLockMode lock) {
         this._lock = lock;
-    }
-
-    /**
-     * Previews the exact position of the eye for a Player by using spectator mode.
-     * The preview is displayed for the number of ticks specified. 0 ticks disables
-     * the preview.
-     *
-     * @param player Player to make preview
-     * @param numTicks Number of ticks to preview
-     * @return True if the preview was started
-     */
-    public void previewEye(Player player, int numTicks) {
-        // Don't allow for this, that's messy
-        if (this.player == player || !player.isOnline()) {
-            return;
-        }
-
-        if (numTicks <= 0) {
-            FirstPersonEyePreview preview = this._eyePreviews.remove(player);
-            if (preview != null) {
-                preview.stop();
-                onEyePreviewStopped(preview.player);
-            }
-        } else if (this._eyePreviews.computeIfAbsent(player, p -> new FirstPersonEyePreview(seat, p))
-                    .start(numTicks, getEyeTransform())
-        ) {
-            onEyePreviewStarted(player);
-        }
-    }
-
-    /**
-     * Shows an eye arrow where the eyes are for a Player.
-     * Does nothing if the player is in first-person already or is not online,
-     * or is previewing the eye.
-     *
-     * @param player Player to show the arrow to
-     * @param numTicks Number of ticks to display
-     */
-    public void showEyeArrow(Player player, int numTicks) {
-        // Don't allow for this, that's messy
-        if (this.player == player || !player.isOnline() || this._eyePreviews.containsKey(player)) {
-            return;
-        }
-
-        if (numTicks <= 0) {
-            this._eyeArrow.stop(player);
-        } else {
-            this._eyeArrow.start(player, numTicks);
-        }
-    }
-
-    /**
-     * Updates the eye preview, if a preview is active
-     */
-    public void updateEyePreview() {
-        if (!this._eyePreviews.isEmpty()) {
-            Matrix4x4 eyeTransform = this.getEyeTransform();
-            Iterator<FirstPersonEyePreview> iter = this._eyePreviews.values().iterator();
-            do {
-                FirstPersonEyePreview preview = iter.next();
-                if (!preview.updateRemaining()) {
-                    // Stopped
-                    iter.remove();
-                    onEyePreviewStopped(preview.player);
-                } else if (!preview.player.isOnline()) {
-                    // Just remove
-                    iter.remove();
-                } else {
-                    // Update
-                    preview.updatePosition(eyeTransform);
-                }
-            } while (iter.hasNext());
-        }
-
-        this._eyeArrow.updatePosition();
-    }
-
-    private void onEyePreviewStarted(Player player) {
-        // If player is also viewing the entity, make that entity invisible
-        // This prevents things looking all glitched
-        // Only needed when not viewed in third-p mode
-        if (seat.seated.isDisplayed() && getLiveMode() != FirstPersonViewMode.THIRD_P) {
-            seat.seated.makeHidden(player);
-        }
-
-        // Disable the preview arrow - gets in the way
-        _eyeArrow.stop(player);
-    }
-
-    private void onEyePreviewStopped(Player player) {
-        // Stopped the preview, can re-spawn any third person view
-        if (seat.seated.isDisplayed() && getLiveMode() != FirstPersonViewMode.THIRD_P) {
-            seat.seated.makeVisible(player);
-        }
-    }
-
-    /**
-     * Synchronizes new positions to the players
-     *
-     * @param absolute
-     */
-    public void syncEyePreviews(boolean absolute) {
-        if (!this._eyePreviews.isEmpty()) {
-            for (FirstPersonEyePreview preview : this._eyePreviews.values()) {
-                preview.syncPosition(absolute);
-            }
-        }
-        this._eyeArrow.syncPosition(absolute);
-    }
-
-    /**
-     * Aborts all ongoing eye previews
-     */
-    public void stopEyePreviews() {
-        if (!this._eyePreviews.isEmpty()) {
-            for (FirstPersonEyePreview preview : this._eyePreviews.values()) {
-                preview.stop();
-            }
-            this._eyePreviews.clear();
-        }
-        this._eyeArrow.stop();
-    }
-
-    /**
-     * Gets whether the seated entity is hidden (made invisible) because of an
-     * active eye preview.
-     *
-     * @param player
-     * @return True if active
-     */
-    public boolean isSeatedEntityHiddenBecauseOfPreview(Player player) {
-        return this._eyePreviews.containsKey(player) &&
-                seat.seated.isDisplayed() && getLiveMode() != FirstPersonViewMode.THIRD_P;
     }
 
     protected static void setPlayerVisible(Player player, boolean visible) {
@@ -393,16 +264,27 @@ public abstract class FirstPersonView {
          * @return head rotation
          */
         public static HeadRotation compute(Matrix4x4 eyeTransform) {
-            Quaternion q = eyeTransform.getRotation();
-            Vector forward = q.forwardVector();
-            Vector up = q.upVector();
+            return compute(eyeTransform.getRotation());
+        }
+
+        /**
+         * Computes the most appropriate head rotation for the given eye orientation.
+         * A guarantee is made that the player will look in the same direction as
+         * the forward vector, while handling an appropriate vertical flip.
+         *
+         * @param eyeTransform
+         * @return head rotation
+         */
+        public static HeadRotation compute(Quaternion eyeOrientation) {
+            Vector forward = eyeOrientation.forwardVector();
+            Vector up = eyeOrientation.upVector();
 
             if (Math.abs(forward.getY()) < 0.999) {
                 // Look into the direction
                 HeadRotation rot = new HeadRotation(
                         MathUtil.getLookAtPitch(forward.getX(), forward.getY(), forward.getZ()),
                         MathUtil.getLookAtYaw(forward) + 90.0f,
-                        (float) q.getRoll());
+                        (float) eyeOrientation.getRoll());
 
                 // Upside-down modifier
                 if (up.getY() < 0.0) {
@@ -416,12 +298,12 @@ public abstract class FirstPersonView {
                     // Looking upwards and spinning
                     pitch = -90.0f;
                     yaw = MathUtil.getLookAtYaw(up) - 90.0f;
-                    roll = (float) q.getRoll();
+                    roll = (float) eyeOrientation.getRoll();
                 } else {
                     // Looking downwards and spinning
                     pitch = 90.0f;
                     yaw = MathUtil.getLookAtYaw(up) + 90.0f;
-                    roll = (float) q.getRoll();
+                    roll = (float) eyeOrientation.getRoll();
                 }
                 return new HeadRotation(pitch, yaw, roll);
             }

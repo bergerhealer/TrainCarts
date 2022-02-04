@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.config;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Vector3;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
@@ -53,6 +54,20 @@ public class ObjectPosition {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Loads the full object position configuration by copying from another object position
+     *
+     * @param source
+     */
+    public void load(ObjectPosition source) {
+        this.anchor = source.anchor;
+        this.position = source.position;
+        this.rotation = source.rotation;
+        this.transform.set(source.transform);
+        this._isDefault = source._isDefault;
+        this._isIdentity = source._isIdentity;
     }
 
     /**

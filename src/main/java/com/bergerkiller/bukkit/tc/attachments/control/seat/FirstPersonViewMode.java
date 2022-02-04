@@ -18,15 +18,6 @@ public enum FirstPersonViewMode {
      */
     DEFAULT(false, false),
     /**
-     * Player floats an offset away from the seat, making sure the player head
-     * is exactly where it would be if perfectly rotated. The same can be achieved
-     * with DEFAULT and an eye-position offset of y=1.
-     *
-     * This is used when the player uses smooth coasters, because mount switching
-     * doesn't work very well there.
-     */
-    SMOOTHCOASTERS_FIX(false, false, false),
-    /**
      * The player can not see himself sitting, but the camera is positioned
      * where the player head would be in floating mode.
      */
@@ -42,7 +33,7 @@ public enum FirstPersonViewMode {
      * slightly above where the head is located. Similar to floating,
      * but the player is visible as a separate entity.
      */
-    THIRD_P(true, false);
+    THIRD_P(true, true);
 
     private final boolean _fakePlayer;
     private final boolean _realPlayerInvisible;

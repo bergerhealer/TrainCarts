@@ -39,10 +39,12 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonView;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewDefault;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonEyePositionDialog;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatDebugUI;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatDisplayedItemDialog;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatExitPositionMenu;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewLockMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewNone;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetToggleButton;
@@ -273,7 +275,7 @@ public class CartAttachmentSeat extends CartAttachment {
 
     // Houses the logic for synchronizing this seat to players viewing the entity in first person
     // That is, the viewer is the one inside this seat
-    public FirstPersonView firstPerson = new FirstPersonViewDefault(this);
+    public FirstPersonView firstPerson = new FirstPersonViewNone(this);
     // Houses the logic for synchronizing this seat to players viewing the entity in third person
     // That is, the viewer is not the one inside this seat
     public ThirdPersonDefault thirdPerson = new ThirdPersonDefault(this);
@@ -290,6 +292,10 @@ public class CartAttachmentSeat extends CartAttachment {
     private ObjectPosition _ejectPosition = new ObjectPosition();
     private boolean _ejectLockRotation = false;
     private String _enterPermission = null;
+    private boolean _locked = false;
+    private FirstPersonViewMode fpvViewMode;
+    private FirstPersonViewLockMode fpvViewLockMode;
+    private final ObjectPosition fpvEyePosition = new ObjectPosition();
 
     // When onFocus() or other changes happen, a dummy player is displayed sitting in the seat
     // if no player is currently displayed. This normally blinks in some menus, which looks bad.
@@ -305,11 +311,11 @@ public class CartAttachmentSeat extends CartAttachment {
     private ObjectPosition _displayedItemPosition = null;
     private boolean _displayedItemShowFirstPerson = false;
 
+    // Debug displays used by the attachment editor
+    public final SeatDebugUI debug = new SeatDebugUI(this);
+
     // Whether the smooth coasters mod is used in first-person for a particular Player
-    // If used, tracks the Quaternion orientation of this vehicle when the player entered
-    // This way the delta since then can be effectively sent
     private boolean _useSmoothCoasters = false;
-    private Quaternion _smoothCoastersBaseOrientation = null;
 
     /**
      * Gets the viewers of this seat that have already had makeVisible processed.
@@ -333,18 +339,9 @@ public class CartAttachmentSeat extends CartAttachment {
         super.onAttached();
 
         this.seated = this.getConfig().get("displayMode", DisplayMode.DEFAULT).create(this);
-        this.seated.orientation.setLocked(this.getConfig().get("lockRotation", false));
-
-        FirstPersonViewMode viewMode = this.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC);
-        FirstPersonViewLockMode viewLockMode = this.getConfig().get("firstPersonViewLockMode", FirstPersonViewLockMode.OFF);
-        if (viewLockMode.isSpectator()) {
-            this.firstPerson = new FirstPersonViewSpectator(this);
-        } else {
-            this.firstPerson = new FirstPersonViewDefault(this);
-        }
-        this.firstPerson.setMode(viewMode);
-        this.firstPerson.setLockMode(viewLockMode);
-
+        this._locked = this.getConfig().get("lockRotation", false);
+        this.fpvViewMode = this.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC);
+        this.fpvViewLockMode = this.getConfig().get("firstPersonViewLockMode", FirstPersonViewLockMode.OFF);
         this._enterPermission = this.getConfig().get("enterPermission", String.class, null);
 
         // If enabled, initialize a displayed item
@@ -373,11 +370,12 @@ public class CartAttachmentSeat extends CartAttachment {
 
         // Eye position
         if (config.contains("firstPersonViewPosition")) {
-            this.firstPerson.getEyePosition().load(this.getManager().getClass(), TYPE,
+            this.fpvEyePosition.load(this.getManager().getClass(), TYPE,
                     config.getNode("firstPersonViewPosition"));
         } else {
-            this.firstPerson.getEyePosition().reset();
+            this.fpvEyePosition.reset();
         }
+        this.firstPerson.getEyePosition().load(this.fpvEyePosition);
 
         // Eject position
         {
@@ -411,7 +409,7 @@ public class CartAttachmentSeat extends CartAttachment {
     @Override
     public void onDetached() {
         super.onDetached();
-        this.firstPerson.stopEyePreviews();
+        this.debug.stopEyePreviews();
         this.setEntity(null);
         this._displayedItemEntity = null;
         this._displayedItemPosition = null;
@@ -422,7 +420,7 @@ public class CartAttachmentSeat extends CartAttachment {
         try {
             this._makeVisibleCurrent = viewer;
             this.seated.updateMode(false);
-            makeVisibleImpl(viewer);
+            makeVisibleImpl(viewer, false);
         } finally {
             this._makeVisibleCurrent = null;
         }
@@ -430,23 +428,35 @@ public class CartAttachmentSeat extends CartAttachment {
 
     @Override
     public void makeHidden(Player viewer) {
-        makeHiddenImpl(viewer);
+        makeHiddenImpl(viewer, false);
     }
 
-    public void makeVisibleImpl(Player viewer) {
+    public void makeVisibleImpl(Player viewer, boolean isReload) {
         if (!seated.isDisplayed()) {
             return;
         }
 
         if (viewer == this.seated.getEntity()) {
-            this.firstPerson.player = viewer;
-            this.firstPerson.makeVisible(viewer);
-            if (this._displayedItemEntity != null && showDisplayedItemInFirstPerson()) {
+            // Initialize the first-person mode for this viewer
+            if (!isReload) {
+                if (this.fpvViewLockMode.isSpectator() && !this.useSmoothCoasters()) {
+                    this.firstPerson = new FirstPersonViewSpectator(this, viewer);
+                } else {
+                    this.firstPerson = new FirstPersonViewDefault(this, viewer);
+                }
+                this.firstPerson.setMode(this.fpvViewMode);
+                this.firstPerson.setLockMode(this.fpvViewLockMode);
+                this.firstPerson.getEyePosition().load(this.fpvEyePosition);
+            }
+
+            this.firstPerson.makeVisible(viewer, isReload);
+
+            if (!isReload && this._displayedItemEntity != null && showDisplayedItemInFirstPerson()) {
                 this.makeDisplayedItemVisible(viewer);
             }
         } else {
             this.thirdPerson.makeVisible(viewer);
-            if (this._displayedItemEntity != null) {
+            if (!isReload && this._displayedItemEntity != null) {
                 this.makeDisplayedItemVisible(viewer);
             }
         }
@@ -474,16 +484,18 @@ public class CartAttachmentSeat extends CartAttachment {
         this._displayedItemEntity.updatePosition(transform);
     }
 
-    public void makeHiddenImpl(Player viewer) {
+    public void makeHiddenImpl(Player viewer, boolean isReload) {
         if (this.seated.getEntity() == viewer) {
-            if (this._displayedItemEntity != null && showDisplayedItemInFirstPerson()) {
+            if (!isReload && this._displayedItemEntity != null && showDisplayedItemInFirstPerson()) {
                 this._displayedItemEntity.destroy(viewer);
             }
-            this.firstPerson.makeHidden(viewer);
-            this.firstPerson.player = null;
+            this.firstPerson.makeHidden(viewer, isReload);
+            if (!isReload) {
+                this.firstPerson = new FirstPersonViewNone(this); // Reset
+            }
         } else {
             this.thirdPerson.makeHidden(viewer);
-            if (this._displayedItemEntity != null) {
+            if (!isReload && this._displayedItemEntity != null) {
                 this._displayedItemEntity.destroy(viewer);
             }
         }
@@ -520,20 +532,13 @@ public class CartAttachmentSeat extends CartAttachment {
     }
 
     /**
-     * Sends a relative rotation update to the player 
+     * Sends a rotation update to the player
+     *
      * @param orientation
+     * @param instant Whether to instantly set the rotation, without interpolation
      */
-    public void sendSmoothCoastersRelativeRotation(Quaternion orientation) {
+    public void sendSmoothCoastersRelativeRotation(Quaternion orientation, boolean instant) {
         if (this._useSmoothCoasters) {
-            byte interpolationTicks;
-            if (this._smoothCoastersBaseOrientation == null) {
-                this._smoothCoastersBaseOrientation = orientation.clone();
-                orientation = new Quaternion();
-                interpolationTicks = 0; // Instant
-            } else {
-                orientation = Quaternion.divide(orientation, this._smoothCoastersBaseOrientation);
-                interpolationTicks = isMinecartInterpolation() ? (byte) 5 : (byte) 3;
-            }
             this.getPlugin().getSmoothCoastersAPI().setRotation(
                     null,
                     (Player) this.seated.getEntity(),
@@ -541,7 +546,7 @@ public class CartAttachmentSeat extends CartAttachment {
                     (float) orientation.getY(),
                     (float) orientation.getZ(),
                     (float) orientation.getW(),
-                    interpolationTicks
+                    instant ? (byte) 0 : (isMinecartInterpolation() ? (byte) 5 : (byte) 3)
             );
         }
     }
@@ -581,7 +586,7 @@ public class CartAttachmentSeat extends CartAttachment {
         }
 
         // Sync eye previews
-        firstPerson.syncEyePreviews(absolute);
+        debug.syncEyePreviews(absolute);
 
         // If not parented to a parent attachment, move the fake mount to move the seat
         seated.syncPosition(absolute);
@@ -616,12 +621,11 @@ public class CartAttachmentSeat extends CartAttachment {
         if (this.seated.isDisplayed()) {
             // If a previous entity was set, unseat it
             for (Player viewer : this.getViewers()) {
-                this.makeHiddenImpl(viewer);
+                this.makeHiddenImpl(viewer, false);
             }
 
             // Reset these
             this._useSmoothCoasters = false;
-            this._smoothCoastersBaseOrientation = null;
         }
         if (!this.seated.isEmpty()) {
             TrainCarts.plugin.getSeatAttachmentMap().remove(this.seated.getEntity().getEntityId(), this);
@@ -640,7 +644,7 @@ public class CartAttachmentSeat extends CartAttachment {
         }
         if (this.seated.isDisplayed()) {
             for (Player viewer : this.getViewers()) {
-                this.makeVisibleImpl(viewer);
+                this.makeVisibleImpl(viewer, false);
             }
         }
     }
@@ -670,18 +674,17 @@ public class CartAttachmentSeat extends CartAttachment {
 
         // Move player view relatively
         this.firstPerson.onTick();
-        this.firstPerson.updateEyePreview();
+        this.debug.updateEyePreview();
 
         // Smooth coasters mod might be turned on or off
         if (this.seated.isPlayer()) {
             Player player = (Player) this.seated.getEntity();
             boolean enabled = getPlugin().getSmoothCoastersAPI().isEnabled(player);
             if (enabled != this._useSmoothCoasters) {
-                this.makeHiddenImpl(player);
+                this.makeHiddenImpl(player, false);
                 this._useSmoothCoasters = enabled;
-                this._smoothCoastersBaseOrientation = null;
                 this.seated.updateMode(false);
-                this.makeVisibleImpl(player);
+                this.makeVisibleImpl(player, false);
             }
         }
     }
@@ -711,7 +714,7 @@ public class CartAttachmentSeat extends CartAttachment {
             seated.setShowDummyPlayer(true);
             if (seated.isEmpty()) {
                 for (Player viewer : this.getViewers()) {
-                    this.makeVisibleImpl(viewer);
+                    this.makeVisibleImpl(viewer, false);
                 }
             }
         }
@@ -726,7 +729,7 @@ public class CartAttachmentSeat extends CartAttachment {
             // Hide them all, don't show again
             if (seated.isEmpty()) {
                 for (Player viewer : this.getViewers()) {
-                    this.makeHiddenImpl(viewer);
+                    this.makeHiddenImpl(viewer, false);
                 }
             }
             seated.setShowDummyPlayer(false);
@@ -739,7 +742,7 @@ public class CartAttachmentSeat extends CartAttachment {
      * @return True if rotation is locked
      */
     public boolean isRotationLocked() {
-        return this.seated.orientation.isLocked();
+        return this._locked;
     }
 
     public float getPassengerYaw() {
@@ -822,33 +825,6 @@ public class CartAttachmentSeat extends CartAttachment {
         }
 
         return new Location(w, pos.getX(), pos.getY(), pos.getZ(), yaw, pitch);
-    }
-
-    /**
-     * Previews the exact position of the eye for a Player by using spectator mode.
-     * The preview is displayed for the number of ticks specified. 0 ticks disables
-     * the preview.
-     *
-     * @param player Player to make preview
-     * @param numTicks Number of ticks to preview
-     */
-    public void previewEye(Player player, int numTicks) {
-        if (this.isAttached()) {
-            this.firstPerson.previewEye(player, numTicks);
-        }
-    }
-
-    /**
-     * Shows a floating arrow where the eye views from for a Player. The arrow is displayed
-     * for the number of ticks specified. 0 ticks disables the arrow for this player.
-     *
-     * @param player Player to show the arrow to
-     * @param numTicks Number of ticks to display it
-     */
-    public void showEyeArrow(Player player, int numTicks) {
-        if (this.isAttached()) {
-            this.firstPerson.showEyeArrow(player, numTicks);
-        }
     }
 
     @Override

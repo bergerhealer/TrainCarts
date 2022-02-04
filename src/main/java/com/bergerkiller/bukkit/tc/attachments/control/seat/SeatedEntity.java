@@ -200,10 +200,16 @@ public abstract class SeatedEntity {
                     .getCurrentHeadRotation(transform));
         }
 
+        // If smooth coasters is used, then the player yaw/pitch is relative to the eye orientation
+        // Defer to the Quaternion version of this method, and convert
+        if (seat.useSmoothCoasters()) {
+            return new PassengerPose(transform, getCurrentHeadRotationQuat(transform));
+        }
+
         // Default: query the entity head pitch and yaw
         // When rotation is locked, use the body (transform) yaw
         EntityHandle entityHandle = EntityHandle.fromBukkit(entity);
-        if (orientation.isLocked()) {
+        if (seat.isRotationLocked()) {
             return new PassengerPose(transform,
                     entityHandle.getPitch(),
                     entityHandle.getHeadRotation());
@@ -233,7 +239,23 @@ public abstract class SeatedEntity {
             return ((FirstPersonViewSpectator) seat.firstPerson).getCurrentHeadRotation(transform);
         }
 
-        if (orientation.isLocked()) {
+        // If smooth coasters is used, then the player yaw/pitch is relative to the eye orientation
+        if (seat.useSmoothCoasters()) {
+            EntityHandle entityHandle = EntityHandle.fromBukkit(entity);
+            float headYaw = entityHandle.getHeadRotation();
+            float headPitch = entityHandle.getPitch();
+
+            if (seat.isRotationLocked()) {
+                headYaw = MathUtil.clamp(headYaw, FirstPersonView.BODY_LOCK_FOV_LIMIT);
+            }
+
+            Quaternion rotation = seat.firstPerson.getEyeTransform().getRotation();
+            rotation.rotateY(-headYaw);
+            rotation.rotateX(headPitch);
+            return rotation;
+        }
+
+        if (seat.isRotationLocked()) {
             // Default: query the entity head pitch and yaw
             //          restrict head yaw to body yaw
             EntityHandle entityHandle = EntityHandle.fromBukkit(entity);
@@ -241,7 +263,7 @@ public abstract class SeatedEntity {
                     entityHandle.getPitch(),
                     entityHandle.getHeadRotation());
 
-            pose = pose.limitHeadYaw(70.0f);
+            pose = pose.limitHeadYaw(FirstPersonView.BODY_LOCK_FOV_LIMIT);
 
             Quaternion rotation = new Quaternion();
             rotation.rotateY(-pose.headYaw);
@@ -415,9 +437,9 @@ public abstract class SeatedEntity {
         {
             // Hide, change, and make visible again, just for the first-player-view player
             Player viewer = (Player) this.getEntity();
-            seat.makeHiddenImpl(viewer);
+            seat.makeHiddenImpl(viewer, true);
             seat.firstPerson.setLiveMode(new_firstPersonMode);
-            seat.makeVisibleImpl(viewer);
+            seat.makeVisibleImpl(viewer, true);
             return;
         }
 
