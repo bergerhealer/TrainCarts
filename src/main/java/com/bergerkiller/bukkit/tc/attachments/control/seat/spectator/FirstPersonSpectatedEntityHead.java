@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualArmorStandItemEntity;
+import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
@@ -52,10 +53,10 @@ class FirstPersonSpectatedEntityHead extends FirstPersonSpectatedEntity {
             entity.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, false);
             return entity;
         });
-        skull.beforeSwap(() -> {
+        skull.beforeSwap(swapped -> {
             // Make original invisible, make alt visible
             skull.entity.setItem(ItemTransformType.SMALL_HEAD, null);
-            skull.entityAlt.setItem(ItemTransformType.SMALL_HEAD, skullItem);
+            swapped.setItem(ItemTransformType.SMALL_HEAD, skullItem);
         });
         skull.entity.setItem(ItemTransformType.SMALL_HEAD, skullItem);
         skull.entityAlt.setItem(ItemTransformType.SMALL_HEAD, null);
@@ -77,5 +78,10 @@ class FirstPersonSpectatedEntityHead extends FirstPersonSpectatedEntity {
     @Override
     public void syncPosition(boolean absolute) {
         skull.syncPosition(absolute);
+    }
+
+    @Override
+    public VirtualEntity getCurrentEntity() {
+        return skull.entity;
     }
 }

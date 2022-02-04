@@ -62,4 +62,9 @@ class FirstPersonSpectatedEntityInvisible extends FirstPersonSpectatedEntity {
     public void syncPosition(boolean absolute) {
         entity.syncPosition(absolute);
     }
+
+    @Override
+    public VirtualEntity getCurrentEntity() {
+        return entity.entity;
+    }
 }

@@ -7,6 +7,7 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
@@ -32,6 +33,8 @@ public class FirstPersonViewSpectator extends FirstPersonView {
     private VirtualEntity _playerMount = null;
     // Tracks player input while inside this FPV mode
     private final SpectatorInput _input = new SpectatorInput();
+    // Used to detect flips during smoothcoasters adjustments
+    private float sc_lastPitch, sc_lastYaw;
 
     public FirstPersonViewSpectator(CartAttachmentSeat seat) {
         super(seat);
@@ -86,20 +89,6 @@ public class FirstPersonViewSpectator extends FirstPersonView {
         return transform.getRotation();
     }
 
-    private Quaternion getCurrentSmoothCoasterOrientation() {
-        // Return a Quaternion with only the roll component that's missing from the head rotation
-        Quaternion rot = this.getEyeTransform().getRotation();
-        double roll = rot.getRoll();
-
-        Quaternion tmp = new Quaternion();
-        if (rot.upVector().getY() < 0.0) {
-            tmp.rotateZ(-roll);
-        } else {
-            tmp.rotateZ(roll);
-        }
-        return tmp;
-    }
-
     @Override
     public void makeVisible(Player viewer) {
         // Make the player invisible - we don't want it to get in view
@@ -144,7 +133,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
         // If smooth coasters mod is used by the client, set it up
         if (seat.useSmoothCoasters()) {
             seat.getPlugin().getSmoothCoastersAPI().setRotationMode(null, viewer, RotationMode.CAMERA);
-            seat.sendSmoothCoastersRelativeRotation(getCurrentSmoothCoasterOrientation());
+            sendRotation();
         }
 
         // If third-person mode is used, also spawn the real seated entity for this viewer
@@ -217,8 +206,49 @@ public class FirstPersonViewSpectator extends FirstPersonView {
             _spectatedEntity.syncPosition(absolute);
         }
 
-        if (player != null && seat.useSmoothCoasters()) {
-            seat.sendSmoothCoastersRelativeRotation(getCurrentSmoothCoasterOrientation());
+        sendRotation();
+    }
+
+    private void sendRotation() {
+        if (player == null || !seat.useSmoothCoasters()) {
+            return;
         }
+
+        VirtualEntity entity = _spectatedEntity.getCurrentEntity();
+
+        Quaternion syncRot = Quaternion.fromYawPitchRoll(entity.getSyncPitch(),
+                                                         entity.getSyncYaw(),
+                                                         0.0);
+
+        Quaternion angles = this.getEyeTransform().getRotation();
+        angles.divide(syncRot);
+
+        HeadRotation newRot = HeadRotation.of(entity.getSyncPitch(), entity.getSyncYaw());
+        HeadRotation newRotFlipped = newRot.flipVertical();
+        byte interpolation = (byte) 3;
+        if (isCameraFlipped(newRot, newRotFlipped)) {
+            interpolation = (byte) 0;
+        }
+        sc_lastYaw = newRot.yaw;
+        sc_lastPitch = newRot.pitch;
+
+        seat.getPlugin().getSmoothCoastersAPI().setRotation(
+                null,
+                (Player) player,
+                (float) angles.getX(),
+                (float) angles.getY(),
+                (float) angles.getZ(),
+                (float) angles.getW(),
+                interpolation
+        );
+    }
+
+    private boolean isCameraFlipped(HeadRotation newRot, HeadRotation newRotFlipped) {
+        // When yaw changes a lot suddenly, and the pitch of the flipped one is better than the non-flipped one,
+        // then the player camera probably inverted suddenly.
+        return MathUtil.getAngleDifference(sc_lastYaw, newRot.yaw) > 90.0f &&
+                MathUtil.getAngleDifference(sc_lastPitch,
+                                            newRotFlipped.pitch) < MathUtil.getAngleDifference(sc_lastPitch,
+                                                                                               sc_lastYaw);
     }
 }

@@ -61,7 +61,14 @@ public enum FakePlayerSpawner {
      * for the second player. It is not possible to spawn two fake players
      * of the same mode.
      */
-    NO_NAMETAG_SECONDARY("DinnarBone", "BoredTCRiderz", true),
+    NO_NAMETAG_SECONDARY("DinnarBone", "BoredTCRiders2", true),
+    /**
+     * Spawns a fake NPC player, without a nametag shown. If three identical
+     * fake players need to be spawned, then this tertiary mode can be used
+     * for the third player. It is not possible to spawn two fake players
+     * of the same mode.
+     */
+    NO_NAMETAG_TERTIARY("DinnarBone", "BoredTCRiders3", true),
     /**
      * Spawns a fake NPC player, without a nametag shown,
      * with an upside-down effect applied to it.
@@ -280,17 +287,19 @@ public enum FakePlayerSpawner {
     private static class ProfileState {
         private final UUID npcUUID;
         private final UUID npcUUID2;
+        private final UUID npcUUID3;
         public final List<CleanupPlayerListEntryTask> pendingCleanup;
 
         public ProfileState(boolean dummy) {
             this.npcUUID = dummy ? null : generateNPCUUID();
             this.npcUUID2 = dummy ? null : generateNPCUUID();
+            this.npcUUID3 = dummy ? null : generateNPCUUID();
             this.pendingCleanup = new ArrayList<>();
         }
 
         public UUID getUUID(FakePlayerSpawner type) {
             return (type == NO_NAMETAG_RANDOM || npcUUID == null) ? generateNPCUUID()
-                    : ((type == NO_NAMETAG_SECONDARY) ? npcUUID2 : npcUUID);
+                    : ((type == NO_NAMETAG_TERTIARY) ? npcUUID3 : ((type == NO_NAMETAG_SECONDARY) ? npcUUID2 : npcUUID));
         }
 
         public void scheduleCleanupTask(Player viewer, String playerName, UUID playerUUID) {

@@ -357,12 +357,18 @@ public abstract class FirstPersonView {
     public static final class HeadRotation {
         public final float pitch;
         public final float yaw;
+        public final float roll;
         public final Vector pyr;
 
-        private HeadRotation(float pitch, float yaw) {
+        private HeadRotation(float pitch, float yaw, float roll) {
             this.pitch = pitch;
             this.yaw = yaw;
-            this.pyr = new Vector(pitch, yaw, 0.0);
+            this.roll = roll;
+            this.pyr = new Vector(pitch, yaw, roll);
+        }
+
+        public HeadRotation flipVertical() {
+            return new HeadRotation(180.0f - pitch, 180.0f + yaw, roll);
         }
 
         /**
@@ -373,7 +379,7 @@ public abstract class FirstPersonView {
          */
         public HeadRotation ensureLevel() {
             if (Math.abs(this.pitch) > 90.0f) {
-                return new HeadRotation(180.0f - pitch, 180.0f + yaw);
+                return flipVertical();
             }
             return this;
         }
@@ -387,38 +393,42 @@ public abstract class FirstPersonView {
          * @return head rotation
          */
         public static HeadRotation compute(Matrix4x4 eyeTransform) {
-            Quaternion rot = eyeTransform.getRotation();
-            Vector forward = rot.forwardVector();
-            Vector up = rot.upVector();
+            Quaternion q = eyeTransform.getRotation();
+            Vector forward = q.forwardVector();
+            Vector up = q.upVector();
 
-            float pitch, yaw;
             if (Math.abs(forward.getY()) < 0.999) {
                 // Look into the direction
-                pitch = MathUtil.getLookAtPitch(forward.getX(), forward.getY(), forward.getZ());
-                yaw = MathUtil.getLookAtYaw(forward) + 90.0f;
+                HeadRotation rot = new HeadRotation(
+                        MathUtil.getLookAtPitch(forward.getX(), forward.getY(), forward.getZ()),
+                        MathUtil.getLookAtYaw(forward) + 90.0f,
+                        (float) q.getRoll());
 
                 // Upside-down modifier
                 if (up.getY() < 0.0) {
-                    pitch = 180.0f - pitch;
-                    yaw = 180.0f + yaw;
+                    rot = rot.flipVertical();
                 }
+
+                return rot;
             } else {
+                float pitch, yaw, roll;
                 if (forward.getY() > 0.0) {
                     // Looking upwards and spinning
                     pitch = -90.0f;
                     yaw = MathUtil.getLookAtYaw(up) - 90.0f;
+                    roll = (float) q.getRoll();
                 } else {
                     // Looking downwards and spinning
                     pitch = 90.0f;
                     yaw = MathUtil.getLookAtYaw(up) + 90.0f;
+                    roll = (float) q.getRoll();
                 }
+                return new HeadRotation(pitch, yaw, roll);
             }
-
-            return new HeadRotation(pitch, yaw);
         }
 
         public static HeadRotation of(float pitch, float yaw) {
-            return new HeadRotation(pitch, yaw);
+            return new HeadRotation(pitch, yaw, 0.0f);
         }
     }
 }

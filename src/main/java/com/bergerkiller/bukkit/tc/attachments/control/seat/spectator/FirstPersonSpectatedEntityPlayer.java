@@ -64,8 +64,9 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
         // and we don't want this player obscuring the view.
         fakePlayer = PitchSwappedEntity.create(vmc,
                 new FakeVirtualPlayer(seat.getManager(), FakePlayerSpawner.NO_NAMETAG),
-                new FakeVirtualPlayer(seat.getManager(), FakePlayerSpawner.NO_NAMETAG_SECONDARY));
-        fakePlayer.beforeSwap(() -> {
+                new FakeVirtualPlayer(seat.getManager(), FakePlayerSpawner.NO_NAMETAG_SECONDARY),
+                new FakeVirtualPlayer(seat.getManager(), FakePlayerSpawner.NO_NAMETAG_TERTIARY));
+        fakePlayer.beforeSwap(swapped -> {
             // Ensure mounted the new entity is mounted, a previous destroy may have broken it
             //vmc.mount(fakePlayer.entityAlt.mountedVehicleId, fakePlayer.entityAlt.getEntityId());
 
@@ -76,10 +77,10 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
                     PacketUtil.sendPacket(player, PacketPlayOutEntityEquipmentHandle.createNew(
                             fakePlayer.entity.getEntityId(), EquipmentSlot.HEAD, null), false);
                     PacketUtil.sendPacket(player, PacketPlayOutEntityEquipmentHandle.createNew(
-                            fakePlayer.entityAlt.getEntityId(), EquipmentSlot.HEAD, skullItem), false);
+                            swapped.getEntityId(), EquipmentSlot.HEAD, skullItem), false);
                 } else {
                     // Swap visibility
-                    fakePlayer.swapVisibility();
+                    fakePlayer.swapVisibility(swapped);
                 }
             }
         });
@@ -109,6 +110,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
         int vehicleId = view.prepareVehicleEntityId();
         this.fakePlayer.entity.mount(vmc, vehicleId);
         this.fakePlayer.entityAlt.mount(vmc, vehicleId);
+        this.fakePlayer.entityAltFlip.mount(vmc, vehicleId);
     }
 
     private void prepareFakeMounts(Matrix4x4 baseTransform) {
@@ -119,17 +121,21 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             // Mount both players inside
             this.fakePlayer.entity.mount(vmc, fakeMount.getEntityId());
             this.fakePlayer.entityAlt.mount(vmc, fakeMount.getEntityId());
+            this.fakePlayer.entityAltFlip.mount(vmc, fakeMount.getEntityId());
 
             this.fakeMounts = new VirtualEntity[] { fakeMount };
         } else {
             // Spawn two mounts, put players in each
             VirtualEntity[] fakeMounts = new VirtualEntity[] {
-                    createFakeMount(baseTransform),  createFakeMount(baseTransform)
+                    createFakeMount(baseTransform),
+                    createFakeMount(baseTransform),
+                    createFakeMount(baseTransform)
             };
 
             // Mount both players inside
             this.fakePlayer.entity.mount(vmc, fakeMounts[0].getEntityId());
             this.fakePlayer.entityAlt.mount(vmc, fakeMounts[1].getEntityId());
+            this.fakePlayer.entityAltFlip.mount(vmc, fakeMounts[2].getEntityId());
 
             this.fakeMounts = fakeMounts;
         }
@@ -171,6 +177,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
 
         this.fakePlayer.entity.unmount(vmc);
         this.fakePlayer.entityAlt.unmount(vmc);
+        this.fakePlayer.entityAltFlip.unmount(vmc);
 
         for (VirtualEntity fakeMount : fakeMounts) {
             fakeMount.destroy(player);
@@ -224,6 +231,11 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
         if (blindRespawn != null) {
             blindRespawn.syncPosition(absolute);
         }
+    }
+
+    @Override
+    public VirtualEntity getCurrentEntity() {
+        return fakePlayer.entity;
     }
 
     /**

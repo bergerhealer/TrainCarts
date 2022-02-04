@@ -204,8 +204,16 @@ public class VirtualEntity {
         return this.syncAbsPos;
     }
 
+    public float getLiveYaw() {
+        return this.liveYaw;
+    }
+
     public float getLivePitch() {
         return this.livePitch;
+    }
+
+    public float getSyncYaw() {
+        return this.syncYaw;
     }
 
     public float getSyncPitch() {
@@ -542,8 +550,8 @@ public class VirtualEntity {
                     this.livePitch,
                     false);
 
-            this.syncYaw = this.liveYaw;
-            this.syncPitch = this.livePitch;
+            this.syncYaw = packet.getYaw();
+            this.syncPitch = packet.getPitch();
             MathUtil.addToVector(this.syncAbsPos, packet.getDeltaX(), packet.getDeltaY(), packet.getDeltaZ());
             broadcast(packet);
         } else if (moved) {
@@ -571,6 +579,8 @@ public class VirtualEntity {
                             false);
 
                     PacketUtil.sendPacket(viewer, packet);
+                    this.syncYaw = packet.getYaw();
+                    this.syncPitch = packet.getPitch();
                 } else {
                     PacketPlayOutEntityLookHandle packet = PacketPlayOutEntityLookHandle.createNew(
                             this.entityId,
@@ -579,10 +589,10 @@ public class VirtualEntity {
                             false);
 
                     PacketUtil.sendPacket(viewer, packet);
+                    this.syncYaw = packet.getYaw();
+                    this.syncPitch = packet.getPitch();
                 }
             }
-            this.syncYaw = this.liveYaw;
-            this.syncPitch = this.livePitch;
         }
     }
 

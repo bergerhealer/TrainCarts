@@ -4,6 +4,7 @@ import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
@@ -47,6 +48,8 @@ public abstract class FirstPersonSpectatedEntity {
     public abstract void updatePosition(Matrix4x4 eyeTransform);
 
     public abstract void syncPosition(boolean absolute);
+
+    public abstract VirtualEntity getCurrentEntity();
 
     public static FirstPersonSpectatedEntity create(CartAttachmentSeat seat, FirstPersonViewSpectator view, VehicleMountController vmc) {
         // In these two modes the actual player is made invisible

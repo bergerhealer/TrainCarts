@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat.spectator;
 
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.bukkit.util.Vector;
@@ -22,23 +23,34 @@ class PitchSwappedEntity<E extends VirtualEntity> {
     private static final float MAX_PITCH = EntityTrackerEntryStateHandle.getRotationFromProtocol(127); // Closest to 180
 
     private final VehicleMountController vmc;
-    private Runnable beforeSwap = () -> {};
+    private Consumer<E> beforeSwap = e -> {};
+    /** The entity as it is currently displayed */
     public E entity;
+    /** The entity right at the pitch-flip boundary */
     public E entityAlt;
+    /** The entity 180-degrees yaw and pitch flipped, for when camera flips upside-down */
+    public E entityAltFlip;
     private boolean spectating = false;
 
-    private PitchSwappedEntity(VehicleMountController vmc, E entity, E entityAlt) {
+    private PitchSwappedEntity(VehicleMountController vmc, E entity, E entityAlt, E entityAltFlip) {
         this.vmc = vmc;
         this.entity = entity;
         this.entityAlt = entityAlt;
+        this.entityAltFlip = entityAltFlip;
     }
 
     public int getEntityId() {
         return entity.getEntityId();
     }
 
-    public void beforeSwap(Runnable runnable) {
-        beforeSwap = runnable;
+    /**
+     * Called before a swap occurs. The entity with which will be swapped is given to
+     * the consumer.
+     *
+     * @param action
+     */
+    public void beforeSwap(Consumer<E> action) {
+        beforeSwap = action;
     }
 
     public void spawn(Matrix4x4 eyeTransform, Vector motion) {
@@ -49,14 +61,19 @@ class PitchSwappedEntity<E extends VirtualEntity> {
 
         this.entityAlt.updatePosition(eyeTransform, new Vector(
                 computeAltPitch(headRot.pitch, MAX_PITCH),
-                this.entity.getYawPitchRoll().getY(),
+                headRot.yaw,
                 0.0));
         this.entityAlt.syncPosition(true);
+
+        this.entityAltFlip.updatePosition(eyeTransform, headRot.flipVertical().pyr);
+        this.entityAltFlip.syncPosition(true);
 
         this.entity.spawn(vmc.getPlayer(), motion);
         this.entity.forceSyncRotation();
         this.entityAlt.spawn(vmc.getPlayer(), motion);
         this.entityAlt.forceSyncRotation();
+        this.entityAltFlip.spawn(vmc.getPlayer(), motion);
+        this.entityAltFlip.forceSyncRotation();
     }
 
     public void destroy() {
@@ -64,6 +81,7 @@ class PitchSwappedEntity<E extends VirtualEntity> {
         Util.stopSpectating(vmc, entity.getEntityId());
         entity.destroy(vmc.getPlayer());
         entityAlt.destroy(vmc.getPlayer());
+        entityAltFlip.destroy(vmc.getPlayer());
     }
 
     public void spectate() {
@@ -77,18 +95,20 @@ class PitchSwappedEntity<E extends VirtualEntity> {
     }
 
     /**
-     * Can be called during {@link #beforeSwap(Runnable)} to make the new alt visible,
+     * Can be called during {@link #beforeSwap(Consumer)} to make the new alt visible,
      * and the current entity invisible.
      */
-    public void swapVisibility() {
+    public void swapVisibility(E swapped) {
         entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, true);
         entity.syncMetadata(); // do early
-        entityAlt.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, false);
-        entityAlt.syncMetadata(); // do early
+        swapped.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, false);
+        swapped.syncMetadata(); // do early
     }
 
     public void updatePosition(Matrix4x4 eyeTransform) {
+        Vector position = eyeTransform.toVector();
         HeadRotation headRot = HeadRotation.compute(eyeTransform);
+        HeadRotation headRotFlipped = headRot.flipVertical();
 
         // If pitch went from < 180 to > 180 or other way around, we must swap fake and alt
         if (Util.isProtocolRotationGlitched(entity.getSyncPitch(), headRot.pitch)) {
@@ -98,7 +118,7 @@ class PitchSwappedEntity<E extends VirtualEntity> {
             }
 
             // Perform any needed logic first
-            beforeSwap.run();
+            beforeSwap.accept(entityAlt);
 
             // Swap them out, continue working with alt
             {
@@ -109,15 +129,49 @@ class PitchSwappedEntity<E extends VirtualEntity> {
 
             // Give the fake player full sync pitch
             // Sync this information right away, otherwise a second swap can happen next tick
-            entity.updatePosition(eyeTransform, headRot.pyr);
+            entity.updatePosition(position, headRot.pyr);
             entity.syncPosition(true);
 
             // Sync these right away
             entity.syncMetadata();
             entityAlt.syncMetadata();
+        } else if (isCameraFlipped(headRot, headRotFlipped)) {
+            // Spectate other entity
+            if (spectating) {
+                Util.swapSpectating(vmc, entity.getEntityId(), entityAltFlip.getEntityId());
+            }
+
+            // Perform any needed logic first
+            beforeSwap.accept(entityAltFlip);
+
+            // Swap them out, continue working with alt flip
+            {
+                E tmp = entity;
+                entity = entityAltFlip;
+                entityAltFlip = tmp;
+            }
+
+            // Give the fake player full sync pitch
+            // Sync this information right away, otherwise a second swap can happen next tick
+            entity.updatePosition(position, headRot.pyr);
+            entity.syncPosition(true);
+
+            // Sync these right away
+            entity.syncMetadata();
+            entityAltFlip.syncMetadata();
         } else {
             // Update like normal
-            entity.updatePosition(eyeTransform, headRot.pyr);
+            entity.updatePosition(position, headRot.pyr);
+        }
+
+        // Sync flipped info
+        {
+            boolean requiresRespawning = Util.isProtocolRotationGlitched(headRotFlipped.pitch, entityAltFlip.getLivePitch());
+            entityAltFlip.updatePosition(position, headRotFlipped.pyr);
+            if (requiresRespawning) {
+                entityAltFlip.respawnForAll(new Vector());
+                entityAltFlip.forceSyncRotation();
+            }
         }
 
         // Calculate what new alt-pitch should be used. This swaps over at the 180-degree mark
@@ -126,8 +180,8 @@ class PitchSwappedEntity<E extends VirtualEntity> {
             boolean requiresRespawning = Util.isProtocolRotationGlitched(newAltPitch, entityAlt.getLivePitch());
 
             // Keep the alt nearby ready to be used. Keep head yaw in check so no weird spazzing out happens there
-            entityAlt.updatePosition(eyeTransform, new Vector(
-                    newAltPitch, headRot.yaw, 0.0));
+            entityAlt.updatePosition(position, new Vector(
+                    newAltPitch, headRot.yaw, headRot.roll));
 
             if (requiresRespawning) {
                 // We cannot safely rotate between these two - it requires a respawn to do this quickly
@@ -137,9 +191,19 @@ class PitchSwappedEntity<E extends VirtualEntity> {
         }
     }
 
+    private boolean isCameraFlipped(HeadRotation newRot, HeadRotation newRotFlipped) {
+        // When yaw changes a lot suddenly, and the pitch of the flipped one is better than the non-flipped one,
+        // then the player camera probably inverted suddenly.
+        return MathUtil.getAngleDifference(entity.getLiveYaw(), newRot.yaw) > 90.0f &&
+                MathUtil.getAngleDifference(entity.getLivePitch(),
+                                            newRotFlipped.pitch) < MathUtil.getAngleDifference(entity.getLivePitch(),
+                                                                                               entity.getLiveYaw());
+    }
+
     public void syncPosition(boolean absolute) {
         entity.syncPosition(absolute);
         entityAlt.syncPosition(absolute);
+        entityAltFlip.syncPosition(absolute);
     }
 
     /**
@@ -148,12 +212,12 @@ class PitchSwappedEntity<E extends VirtualEntity> {
     public void onBeforeSwap() {
     }
 
-    public static <E extends VirtualEntity> PitchSwappedEntity<E> create(VehicleMountController vmc, E entity, E entityAlt) {
-        return new PitchSwappedEntity<E>(vmc, entity, entityAlt);
+    public static <E extends VirtualEntity> PitchSwappedEntity<E> create(VehicleMountController vmc, E entity, E entityAlt, E entityAltFlip) {
+        return new PitchSwappedEntity<E>(vmc, entity, entityAlt, entityAltFlip);
     }
 
     public static <E extends VirtualEntity> PitchSwappedEntity<E> create(VehicleMountController vmc, Supplier<E> entityFactory) {
-        return new PitchSwappedEntity<E>(vmc, entityFactory.get(), entityFactory.get());
+        return new PitchSwappedEntity<E>(vmc, entityFactory.get(), entityFactory.get(), entityFactory.get());
     }
 
     static float computeAltPitch(float currPitch, float currAltPitch) {
