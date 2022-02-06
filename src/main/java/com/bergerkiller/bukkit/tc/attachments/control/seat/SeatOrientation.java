@@ -6,6 +6,7 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
+import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
@@ -164,83 +165,77 @@ public class SeatOrientation {
         Player viewerToIgnore = (seated.isPlayer() && !seated.isMadeVisibleInFirstPerson())
                 ? (Player) seated.getEntity() : null;
 
-        if (seat.isRotationLocked() || seated.isDummyPlayer()) {
-            SeatedEntity.PassengerPose pose = seated.getCurrentHeadRotation(transform);
-            this._mountYaw = pose.bodyYaw;
+        SeatedEntity.PassengerPose pose = seated.getCurrentHeadRotation(transform);
+        this._mountYaw = pose.bodyYaw; // Mount yaw is always updated
 
-            // Reverse the values and correct head yaw, because the player is upside-down
-            if (seated.isUpsideDown()) {
-                pose = pose.makeUpsideDown();
-            }
-
-            // Limit head yaw by 30 degrees compared to body yaw
+        // Limit head yaw by 30 degrees compared to body yaw
+        if (seat.isRotationLocked()) {
             pose = pose.limitHeadYaw(30.0f);
+        }
 
-            // Refresh head rotation
-            if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pose.headYaw, this._entityLastHeadYaw)) {
-                PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, pose.headYaw);
-                this._entityLastHeadYaw = headPacket.getHeadYaw();
-                for (Player viewer : seat.getViewers()) {
-                    if (viewer != viewerToIgnore) {
+        // For clients on Minecraft 1.17 and before, when upside-down the pose needs to be transformed to fix a bug
+        SeatedEntity.PassengerPose poseFixed = seated.isUpsideDown() ? pose.upsideDownFix_Pre_1_17() : pose;
+
+        // These are the types of packets we might be sending
+        PacketPlayOutEntityHeadRotationHandle headPacket = null;
+        PacketPlayOutEntityLookHandle lookPacket = null;
+
+        // Refresh head rotation
+        if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pose.headYaw, this._entityLastHeadYaw)) {
+            headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, pose.headYaw);
+            this._entityLastHeadYaw = headPacket.getHeadYaw();
+        }
+
+        // Refresh body yaw and head pitch
+        // Repeat this packet every 15 ticks to make sure the entity's orientation stays correct
+        // The client will automatically rotate the body towards the head after a short delay
+        // Sending look packets regularly prevents that from happening
+        // Only needed when in locked mode.
+        if (this._entityRotationCtr == 0 || 
+            EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pose.bodyYaw, this._entityLastYaw) ||
+            EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pose.headPitch, this._entityLastPitch))
+        {
+            this._entityRotationCtr = 10;
+
+            lookPacket = PacketPlayOutEntityLookHandle.createNew(entityId, pose.bodyYaw, pose.headPitch, false);
+            this._entityLastYaw = lookPacket.getYaw();
+            this._entityLastPitch = lookPacket.getPitch();
+        } else if (seat.isRotationLocked()) {
+            this._entityRotationCtr--; // Repeat after the delay elapses
+        }
+
+        // These packets are sent to players on Minecraft version 1.17.1 and before
+        // Only used when isUpsideDownTransform is active
+        PacketPlayOutEntityHeadRotationHandle headPacket_1_17_fix = null;
+        PacketPlayOutEntityLookHandle lookPacket_1_17_fix = null;
+
+        // Send packets to all the players
+        if (headPacket != null || lookPacket != null) {
+            for (Player viewer : seat.getViewers()) {
+                if (viewer == viewerToIgnore) {
+                    continue;
+                }
+                if (seated.isUpsideDown() && PlayerUtil.evaluateGameVersion(viewer, "<=", "1.17.1")) {
+                    // Minecraft 1.17.1 and before requires some fixes to be made
+                    if (headPacket != null) {
+                        if (headPacket_1_17_fix == null) {
+                            headPacket_1_17_fix = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, poseFixed.headYaw);
+                        }
+                        PacketUtil.sendPacket(viewer, headPacket_1_17_fix);
+                    }
+                    if (lookPacket != null) {
+                        if (lookPacket_1_17_fix == null) {
+                            lookPacket_1_17_fix = PacketPlayOutEntityLookHandle.createNew(entityId, poseFixed.bodyYaw, poseFixed.headPitch, false);
+                        }
+                        PacketUtil.sendPacket(viewer, lookPacket_1_17_fix);
+                    }
+                } else {
+                    // Normal sync
+                    if (headPacket != null) {
                         PacketUtil.sendPacket(viewer, headPacket);
                     }
-                }
-            }
-
-            // Refresh body yaw and head pitch
-            // Repeat this packet every 15 ticks to make sure the entity's orientation stays correct
-            // The client will automatically rotate the body towards the head after a short delay
-            // Sending look packets regularly prevents that from happening
-            if (this._entityRotationCtr == 0 || 
-                    EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pose.bodyYaw, this._entityLastYaw) ||
-                EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pose.headPitch, this._entityLastPitch))
-            {
-                this._entityRotationCtr = 10;
-
-                PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(entityId, pose.bodyYaw, pose.headPitch, false);
-                this._entityLastYaw = lookPacket.getYaw();
-                this._entityLastPitch = lookPacket.getPitch();
-                for (Player viewer : seat.getViewers()) {
-                    if (viewer != viewerToIgnore) {
+                    if (lookPacket != null) {
                         PacketUtil.sendPacket(viewer, lookPacket);
-                    }
-                }
-            } else {
-                this._entityRotationCtr--;
-            }
-        } else {
-            SeatedEntity.PassengerPose pose = seated.getCurrentHeadRotation(transform);
-
-            // Mount yaw is always updated
-            this._mountYaw = pose.bodyYaw;
-
-            // Refresh head rotation and body yaw/pitch for a fake player entity
-            if (seated.isPlayer() && seated.isFake()) {
-                // Reverse the values and correct head yaw, because the player is upside-down
-                if (seated.isUpsideDown()) {
-                    pose = pose.makeUpsideDown();
-                }
-
-                if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pose.bodyYaw, this._entityLastYaw) ||
-                    EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pose.headPitch, this._entityLastPitch))
-                {
-                    PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(entityId, pose.bodyYaw, pose.headPitch, false);
-                    this._entityLastYaw = lookPacket.getYaw();
-                    this._entityLastPitch = lookPacket.getPitch();
-                    for (Player viewer : seat.getViewers()) {
-                        if (viewer != viewerToIgnore) {
-                            PacketUtil.sendPacket(viewer, lookPacket);
-                        }
-                    }
-                }
-
-                if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pose.headYaw, this._entityLastHeadYaw)) {
-                    PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, pose.headYaw);
-                    this._entityLastHeadYaw = headPacket.getHeadYaw();
-                    for (Player viewer : seat.getViewers()) {
-                        if (viewer != viewerToIgnore) {
-                            PacketUtil.sendPacket(viewer, headPacket);
-                        }
                     }
                 }
             }

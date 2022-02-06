@@ -548,7 +548,13 @@ public abstract class SeatedEntity {
             this.headYaw = headYaw;
         }
 
-        public PassengerPose makeUpsideDown() {
+        /**
+         * Transforms this pose to what should be used for upside-down players on Minecraft 1.17
+         * and before. This works around a client bug on those versions.
+         *
+         * @return Upside-down fixed pose
+         */
+        public PassengerPose upsideDownFix_Pre_1_17() {
             return new PassengerPose(bodyYaw, -headPitch, -headYaw + 2.0f * bodyYaw);
         }
 
@@ -556,9 +562,9 @@ public abstract class SeatedEntity {
             if (MathUtil.getAngleDifference(headYaw, bodyYaw) > limit) {
                 if (MathUtil.getAngleDifference(headYaw, bodyYaw + limit) <
                     MathUtil.getAngleDifference(headYaw, bodyYaw - limit)) {
-                    return new PassengerPose(bodyYaw, -headPitch, bodyYaw + limit);
+                    return new PassengerPose(bodyYaw, headPitch, bodyYaw + limit);
                 } else {
-                    return new PassengerPose(bodyYaw, -headPitch, bodyYaw - limit);
+                    return new PassengerPose(bodyYaw, headPitch, bodyYaw - limit);
                 }
             }
             return this;
