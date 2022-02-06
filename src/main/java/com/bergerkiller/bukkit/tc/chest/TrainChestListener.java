@@ -93,6 +93,10 @@ public class TrainChestListener implements Listener {
         } else if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             // Clicked on a block that could be a rails block itself
             result = TrainChestItemUtil.spawnAtBlock(group, event.getPlayer(), event.getClickedBlock());
+            if (result == TrainChestItemUtil.SpawnResult.FAIL_NORAIL) {
+                // Try to spawn looking at instead as a fall-back
+                result = TrainChestItemUtil.spawnLookingAt(group, event.getPlayer(), event.getPlayer().getEyeLocation());
+            }
         } else if (event.getAction() == Action.RIGHT_CLICK_AIR) {
             // Follow where the player is looking and spawn there
             result = TrainChestItemUtil.spawnLookingAt(group, event.getPlayer(), event.getPlayer().getEyeLocation());
