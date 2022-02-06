@@ -42,7 +42,7 @@ import java.util.logging.Level;
 
 public class PathProvider extends Task {
     private static final String SWITCHER_NAME_FALLBACK = "::traincarts::switchable::";
-    private static final int MAX_PROCESSING_PER_TICK = 30; // Maximum processing time in Ms per tick
+    public static final int DEFAULT_MAX_PROCESSING_PER_TICK = 30; // Maximum processing time in Ms per tick
     public static boolean DEBUG_MODE = false;
     private final Map<String, PathWorld> worlds = new HashMap<String, PathWorld>();
     private final List<PathRoutingHandler> handlers = new ArrayList<PathRoutingHandler>();
@@ -74,6 +74,7 @@ public class PathProvider extends Task {
      */
     private Set<PathNode> scheduledNodesSinceIdle = new HashSet<>();
     private boolean hasChanges = false;
+    private int maxProcessingPerTick = DEFAULT_MAX_PROCESSING_PER_TICK;
 
     public PathProvider(JavaPlugin plugin) {
         super(plugin);
@@ -134,6 +135,16 @@ public class PathProvider extends Task {
      */
     public void unregisterRoutingHandler(PathRoutingHandler handler) {
         this.handlers.remove(handler);
+    }
+
+    /**
+     * Sets the maximum amount of time in milliseconds the path finding algorithm will spend
+     * doing routing calculations.
+     *
+     * @param durationMillis
+     */
+    public void setMaxProcessingPerTick(int durationMillis) {
+        this.maxProcessingPerTick = durationMillis;
     }
 
     public void enable(String filename) {
@@ -417,7 +428,7 @@ public class PathProvider extends Task {
             // Not per step, because System.currentTimeMillis is not entirely cheap!
             do {
                 done = operation.next();
-            } while (!done && (System.currentTimeMillis() - startTime) <= MAX_PROCESSING_PER_TICK);
+            } while (!done && (System.currentTimeMillis() - startTime) <= this.maxProcessingPerTick);
             if (done) {
                 this.pendingOperations.poll();
             } else {
@@ -463,7 +474,7 @@ public class PathProvider extends Task {
             for (PathRoutingHandler handler : this.handlers) {
                 handler.process(routeEvent);
             }
-        } while ((System.currentTimeMillis() - startTime) <= MAX_PROCESSING_PER_TICK);
+        } while ((System.currentTimeMillis() - startTime) <= this.maxProcessingPerTick);
     }
 
     private void addPendingNodes() {

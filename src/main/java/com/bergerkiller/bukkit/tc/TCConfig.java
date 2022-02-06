@@ -25,6 +25,7 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
+import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
 import com.bergerkiller.bukkit.tc.utils.ConfiguredWorldSet;
 
 /**
@@ -452,6 +453,12 @@ public class TCConfig {
 
         config.setHeader("rerouteOnStartup", "\nWhen enabled, re-calculates all path finding routes on plugin startup");
         rerouteOnStartup = config.get("rerouteOnStartup", false);
+
+        config.setHeader("pathFindingMaxProcessingPerTick", "\nSets the maximum amount of time (in milliseconds) to spend, per tick,");
+        config.addHeader("pathFindingMaxProcessingPerTick", "calculating train routing information. (/train reroute, reroute debug stick)");
+        config.addHeader("pathFindingMaxProcessingPerTick", "Raising this can make computations go faster at the cost of server TPS");
+        TrainCarts.plugin.getPathProvider().setMaxProcessingPerTick(
+                config.get("pathFindingMaxProcessingPerTick", PathProvider.DEFAULT_MAX_PROCESSING_PER_TICK));
 
         config.setHeader("switcherResetCountersOnFirstCart", "\nFor [cart] signs that use counter statements, specifies whether");
         config.addHeader("switcherResetCountersOnFirstCart", "counters reset on the first cart of the train");
