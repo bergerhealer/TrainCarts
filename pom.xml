@@ -18,7 +18,7 @@
         <project.bkcversion>1.18.1-v3-SNAPSHOT</project.bkcversion>
         <project.slversion>1.11.2-v2-SNAPSHOT</project.slversion>
         <project.mwversion>1.11.2-v2-SNAPSHOT</project.mwversion>
-        <project.preloaderversion>1.5</project.preloaderversion>
+        <project.preloaderversion>1.6</project.preloaderversion>
         <junit.version>4.11</junit.version>
     </properties>
 
