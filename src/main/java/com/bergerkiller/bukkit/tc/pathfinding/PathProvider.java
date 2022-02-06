@@ -437,8 +437,13 @@ public class PathProvider extends Task {
 
     // Discovers new switchers and destination signs. Stops upon the first new node found.
     private void addNewlyDiscovered() {
-        BlockLocation railLocation;
-        while ((railLocation = this.pendingDiscovery.poll()) != null) {
+        final long startTime = System.currentTimeMillis();
+        do {
+            BlockLocation railLocation = this.pendingDiscovery.poll();
+            if (railLocation == null) {
+                break;
+            }
+
             // Check this rail location was not already visited by path finding before
             if (PathNode.get(railLocation) != null) {
                 continue;
@@ -462,7 +467,7 @@ public class PathProvider extends Task {
             for (PathRoutingHandler handler : this.handlers) {
                 handler.process(routeEvent);
             }
-        }
+        } while ((System.currentTimeMillis() - startTime) <= MAX_PROCESSING_PER_TICK);
     }
 
     private void addPendingNodes() {
