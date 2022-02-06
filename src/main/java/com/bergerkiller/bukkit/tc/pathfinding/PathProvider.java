@@ -42,7 +42,6 @@ import java.util.logging.Level;
 
 public class PathProvider extends Task {
     private static final String SWITCHER_NAME_FALLBACK = "::traincarts::switchable::";
-    private static final int STEP_COUNT = 100; // Steps performed per timing check
     private static final int MAX_PROCESSING_PER_TICK = 30; // Maximum processing time in Ms per tick
     public static boolean DEBUG_MODE = false;
     private final Map<String, PathWorld> worlds = new HashMap<String, PathWorld>();
@@ -405,7 +404,6 @@ public class PathProvider extends Task {
             this.scheduledNodesSinceIdle.clear();
             return;
         }
-        int i;
         boolean done;
         final long startTime = System.currentTimeMillis();
         while (!this.pendingOperations.isEmpty()) {
@@ -418,9 +416,7 @@ public class PathProvider extends Task {
             // Perform the operations in steps
             // Not per step, because System.currentTimeMillis is not entirely cheap!
             do {
-                for (i = 0; i < STEP_COUNT && !done; i++) {
-                    done = operation.next();
-                }
+                done = operation.next();
             } while (!done && (System.currentTimeMillis() - startTime) <= MAX_PROCESSING_PER_TICK);
             if (done) {
                 this.pendingOperations.poll();
