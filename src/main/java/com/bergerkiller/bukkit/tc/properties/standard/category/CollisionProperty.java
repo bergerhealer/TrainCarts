@@ -109,6 +109,19 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
 
     @CommandTargetTrain
     @PropertyCheckPermission("mobcollision")
+    @CommandMethod("train collision mobs|mob <mode>")
+    @CommandDescription("Sets new behavior when colliding with all types of mob")
+    private void trainSetAllMobCollision(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("mode") CollisionMode mode
+    ) {
+        properties.setCollisionModeForMobs(mode);
+        showMode(sender, "mobs", mode);
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("mobcollision")
     @CommandMethod("train collision <mobcategory> none")
     @CommandDescription("Resets behavior when colliding with a given mob category")
     private void trainResetMobCollision(
@@ -118,6 +131,18 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
     ) {
         properties.setCollisionMode(category, null);
         trainGetMobCollision(sender, properties, category);
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("mobcollision")
+    @CommandMethod("train collision mobs|mob none")
+    @CommandDescription("Resets behavior when colliding with any type of mob")
+    private void trainResetAllMobsCollision(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        properties.setCollisionModeForMobs(null);
+        sender.sendMessage(ChatColor.YELLOW + "Reset collision rules for all mob types. Will default to misc.");
     }
 
     @CommandMethod("train collision <mobcategory>")
@@ -135,6 +160,55 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
             showMode(sender, category.getPluralMobType(), properties.getCollision().miscMode());
         } else {
             showMode(sender, category.getPluralMobType(), mode);
+        }
+    }
+
+    @CommandMethod("train collision mobs|mob")
+    @CommandDescription("Gets the current behavior when colliding with a given mob category")
+    private void trainGetAllMobCollision(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        CollisionOptions options = properties.getCollision();
+
+        // Check if nothing is configured at all, for any type of mob
+        if (options.mobModes().isEmpty()) {
+            sender.sendMessage(ChatColor.YELLOW + "The train has no specific mob collision modes set");
+            sender.sendMessage(ChatColor.YELLOW + "Behavior will default to what is set for misc: ");
+            showMode(sender, "mobs", options.miscMode());
+            return;
+        }
+
+        // Check if all mobs have the same mode. If not, list all the modes that are set for mobs.
+        // This is so that if someone configures a mode for all mobs, it shows a clean short message here
+        {
+            CollisionMode foundMode = null;
+            boolean hasNonMobModes = false;
+            for (CollisionMobCategory category : CollisionMobCategory.values()) {
+                CollisionMode modeForMob = options.mobMode(category);
+                if (category.isMobCategory()) {
+                    if (modeForMob == null || (foundMode != null && foundMode != modeForMob)) {
+                        foundMode = null; // Not all the same option
+                        break;
+                    } else if (foundMode == null) {
+                        foundMode = modeForMob;
+                    }
+                } else if (modeForMob != null) {
+                    hasNonMobModes = true;
+                    showMode(sender, category.getPluralMobType(), modeForMob);
+                }
+            }
+            if (foundMode != null) {
+                showMode(sender, hasNonMobModes ? "other mobs" : "mobs", foundMode);
+                return;
+            }
+        }
+
+        // List each configured mob separately
+        for (Map.Entry<CollisionMobCategory, CollisionMode> mode : options.mobModes().entrySet()) {
+            if (mode.getKey().isMobCategory()) { // skip non-mobs, already displayed earlier
+                showMode(sender, mode.getKey().getPluralMobType(), mode.getValue());
+            }
         }
     }
 

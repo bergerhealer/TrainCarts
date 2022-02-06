@@ -26,6 +26,8 @@ public enum CollisionMobCategory {
     NPCS("npc", "npcs", EntityCategory.NPC.getEntityClasses(), "NPCs", null),
     ANIMALS("animal", "animals", EntityCategory.ANIMAL.getEntityClasses(), "Animals", null),
     MONSTERS("monster", "monsters", EntityCategory.MONSTER.getEntityClasses(), "Monsters", null),
+
+    /* These below ones are checked after the ones above. This is the 'mobs' mode */
     PASSIVE_MOBS("passive", "passives", EntityCategory.PASSIVE.getEntityClasses(), "Passive Mobs", CollisionMode.DEFAULT),
     NEUTRAL_MOBS("neutral", "neutrals", EntityCategory.NEUTRAL.getEntityClasses(), "Neutral Mobs", CollisionMode.DEFAULT),
     HOSTILE_MOBS("hostile", "hostiles", EntityCategory.HOSTILE.getEntityClasses(), "Hostile Mobs", CollisionMode.DEFAULT),
