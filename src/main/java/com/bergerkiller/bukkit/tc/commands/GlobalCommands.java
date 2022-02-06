@@ -254,9 +254,20 @@ public class GlobalCommands {
             final CommandSender sender,
             final TrainCarts plugin,
             final @Flag(value="lazy", description="Delays recalculating routes until a train needs it") boolean lazy,
-            final @Flag(value="stop", description="Stops all ongoing path route discovery operations") boolean stop
+            final @Flag(value="stop", description="Stops all ongoing path route discovery operations") boolean stop,
+            final @Flag(value="status", description="Displays what the routing manager is currently doing") boolean status
     ) {
-        if (stop) {
+        if (status) {
+            if (!plugin.getPathProvider().isProcessing()) {
+                sender.sendMessage(ChatColor.GREEN + "No train routings are being calculated right now");
+            } else {
+                int numNodes = plugin.getPathProvider().getNumPendingNodes();
+                int numTasks = plugin.getPathProvider().getNumPendingOperations();
+                sender.sendMessage(ChatColor.YELLOW + "Train routings are being calculated right now:");
+                sender.sendMessage(ChatColor.YELLOW + "Number of switchers/destinations remaining: " + ChatColor.RED + numNodes);
+                sender.sendMessage(ChatColor.YELLOW + "Number of paths remaining: " + ChatColor.RED + numTasks);
+            }
+        } else if (stop) {
             plugin.getPathProvider().stopRouting();
             sender.sendMessage(ChatColor.YELLOW + "Cancelled all ongoing train route discovery operations");
         } else if (lazy) {
@@ -264,6 +275,7 @@ public class GlobalCommands {
             sender.sendMessage(ChatColor.YELLOW + "All train routings will be recalculated when needed");
         } else {
             PathNode.reroute();
+            plugin.getPathProvider().notifyOfCompletion(sender);
             sender.sendMessage(ChatColor.YELLOW + "All train routings will be recalculated");
         }
     }

@@ -19,10 +19,14 @@ import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.DataInputStream;
@@ -73,6 +77,10 @@ public class PathProvider extends Task {
      * Once no more operations are being done, then this set is cleared.
      */
     private Set<PathNode> scheduledNodesSinceIdle = new HashSet<>();
+    /**
+     * People to notify when the routes have finished calculating
+     */
+    private Set<CommandSender> sendersToNotifyOfCompletion = new HashSet<>();
     private boolean hasChanges = false;
     private int maxProcessingPerTick = DEFAULT_MAX_PROCESSING_PER_TICK;
 
@@ -145,6 +153,18 @@ public class PathProvider extends Task {
      */
     public void setMaxProcessingPerTick(int durationMillis) {
         this.maxProcessingPerTick = durationMillis;
+    }
+
+    public int getNumPendingNodes() {
+        return this.pendingDiscovery.size() + this.pendingNodes.size();
+    }
+
+    public int getNumPendingOperations() {
+        return this.pendingOperations.size();
+    }
+
+    public void notifyOfCompletion(CommandSender sender) {
+        this.sendersToNotifyOfCompletion.add(sender);
     }
 
     public void enable(String filename) {
@@ -413,6 +433,19 @@ public class PathProvider extends Task {
         }
         if (this.pendingOperations.isEmpty()) {
             this.scheduledNodesSinceIdle.clear();
+            {
+                List<CommandSender> senders = new ArrayList<>(this.sendersToNotifyOfCompletion);
+                this.sendersToNotifyOfCompletion.clear();
+                for (CommandSender sender : senders) {
+                    if (!(sender instanceof ConsoleCommandSender || sender instanceof Player)) {
+                        continue; // don't send to command blocks, that's weird
+                    }
+                    if (sender instanceof Player && !((Player) sender).isOnline()) {
+                        continue; // don't send to offline players
+                    }
+                    sender.sendMessage(ChatColor.GREEN + "Train rerouting completed!");
+                }
+            }
             return;
         }
         boolean done;
