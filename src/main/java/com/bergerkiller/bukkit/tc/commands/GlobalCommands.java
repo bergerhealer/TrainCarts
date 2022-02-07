@@ -210,10 +210,11 @@ public class GlobalCommands {
     }
 
     @CommandRequiresPermission(Permission.COMMAND_GIVE_EDITOR)
-    @CommandMethod("train menu set <value>")
+    @CommandMethod("train menu <operation> <value>")
     @CommandDescription("Updates a menu item in a TrainCarts editor map using commands")
     private void commandMenuSet(
             final Player sender,
+            final @Argument("operation") SetValueTarget.Operation operation,
             final @Argument("value") @Greedy String value
     ) {
         // Get editor instance
@@ -238,7 +239,7 @@ public class GlobalCommands {
 
         // Got a target, input the value into it
         SetValueTarget target = (SetValueTarget) focused;
-        boolean success = target.acceptTextValue(value);
+        boolean success = target.acceptTextValue(operation, value);
         String propname = target.getAcceptedPropertyName();
         if (success) {
             sender.sendMessage(ChatColor.GREEN + propname + " has been updated");

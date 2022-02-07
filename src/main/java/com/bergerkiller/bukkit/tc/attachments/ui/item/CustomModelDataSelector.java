@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetTooltip;
 import com.bergerkiller.bukkit.tc.attachments.ui.SetValueTarget;
 
@@ -53,6 +54,7 @@ public abstract class CustomModelDataSelector extends MapWidget implements SetVa
      * @param value
      */
     public void setValue(int value) {
+        value = MathUtil.clamp(value, 0, (int) Math.pow(10.0, this.numDigits) - 1);
         if (this.value != value) {
             this.value = value;
             this.invalidate();
@@ -196,11 +198,15 @@ public abstract class CustomModelDataSelector extends MapWidget implements SetVa
 
     @Override
     public boolean acceptTextValue(String value) {
-        try {
-            this.setValue(Integer.parseInt(value));
+        return acceptTextValue(Operation.SET, value);
+    }
+
+    @Override
+    public boolean acceptTextValue(Operation operation, String value) {
+        if (operation.perform(this::getValue, this::setValue, value)) {
             this.onValueChanged();
             return true;
-        } catch (NumberFormatException ex) {
+        } else {
             return false;
         }
     }

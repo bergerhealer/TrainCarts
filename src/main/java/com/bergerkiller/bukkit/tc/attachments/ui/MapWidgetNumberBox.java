@@ -10,7 +10,6 @@ import com.bergerkiller.bukkit.common.map.MapFont.Alignment;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
-import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Util;
 
 /**
@@ -64,9 +63,17 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
 
     @Override
     public boolean acceptTextValue(String value) {
-        this.setValue(ParseUtil.parseDouble(value, this.getValue()));
-        this.onValueChangeEnd();
-        return true;
+        return acceptTextValue(Operation.SET, value);
+    }
+
+    @Override
+    public boolean acceptTextValue(Operation operation, String value) {
+        if (operation.perform(this::getValue, this::setValue, value)) {
+            this.onValueChangeEnd();
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public void setValue(double value) {
