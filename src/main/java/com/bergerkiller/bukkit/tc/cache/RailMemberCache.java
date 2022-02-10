@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.logging.Level;
 
+import org.bukkit.block.Block;
+
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -50,6 +52,14 @@ public class RailMemberCache {
     }
 
     /**
+     * @deprecated Use {@link #find(OfflineBlock)} instead
+     */
+    @Deprecated
+    public static MinecartMember<?> find(Block railBlock) {
+        return find(OfflineBlock.of(railBlock));
+    }
+
+    /**
      * Finds all minecarts traveling on a particular rail block
      * 
      * @param railBlock
@@ -68,6 +78,14 @@ public class RailMemberCache {
             }
         }
         return members;
+    }
+
+    /**
+     * @deprecated Use {@link #findAll(OfflineBlock)} instead
+     */
+    @Deprecated
+    public static Collection<MinecartMember<?>> findAll(Block railBlock) {
+        return findAll(OfflineBlock.of(railBlock));
     }
 
     /**
