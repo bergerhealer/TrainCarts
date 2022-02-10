@@ -503,17 +503,15 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         if (autosave && !hasChanges) {
             return;
         }
+
+        // Delete properties from the configuration when the train no longer exists
         for (TrainProperties prop : trainProperties.values()) {
-            // Does this train even exist?!
             if (!prop.hasHolder() && !OfflineGroupManager.contains(prop.getTrainName())) {
                 config.remove(prop.getTrainName());
                 continue;
             }
-
-            // Do .saveToConfig() to refresh everything
-            // Becomes obsolete once all properties are IProperties
-            prop.saveToConfig();
         }
+
         config.save();
         hasChanges = false;
     }
