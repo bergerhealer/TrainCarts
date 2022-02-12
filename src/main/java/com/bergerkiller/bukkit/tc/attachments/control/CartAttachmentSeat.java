@@ -439,12 +439,14 @@ public class CartAttachmentSeat extends CartAttachment {
         if (viewer == this.seated.getEntity()) {
             // Initialize the first-person mode for this viewer
             if (!isReload) {
+                FirstPersonViewMode liveMode = this.firstPerson.getLiveMode();
                 if (this.fpvViewLockMode.isSpectator() && !this.useSmoothCoasters()) {
                     this.firstPerson = new FirstPersonViewSpectator(this, viewer);
                 } else {
                     this.firstPerson = new FirstPersonViewDefault(this, viewer);
                 }
                 this.firstPerson.setMode(this.fpvViewMode);
+                this.firstPerson.setLiveMode(liveMode);
                 this.firstPerson.setLockMode(this.fpvViewLockMode);
                 this.firstPerson.getEyePosition().load(this.fpvEyePosition);
             }
