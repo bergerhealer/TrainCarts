@@ -87,6 +87,12 @@ class SpectatorInput {
             RelativeOrientationCalc calc = new RelativeOrientationCalc(this, eyeRotation);
             this.absOrientation.setTo(calc.calculate());
 
+            // Ensure the absolute orientation never flips upside-down. This causes weird input.
+            // When detected, flip roll to make it level again
+            if (isUpsideDown(this.absOrientation)) {
+                this.absOrientation.rotateZFlip();
+            }
+
             // Reset
             this.deltaYaw = 0.0f;
             this.deltaPitch = 0.0f;
@@ -291,9 +297,8 @@ class SpectatorInput {
         }
 
         private Quaternion createRotation(double deltaPitch, double deltaYaw) {
-            Quaternion result = this.base.clone();
-            result.rotateY(this.baseYaw + deltaYaw);
-            result.rotateX(this.basePitch + deltaPitch);
+            Quaternion result = new Quaternion();
+            testRotation(result, deltaPitch, deltaYaw);
             return result;
         }
 
