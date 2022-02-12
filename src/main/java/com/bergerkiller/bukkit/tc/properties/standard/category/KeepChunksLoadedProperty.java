@@ -10,10 +10,12 @@ import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
+import com.bergerkiller.bukkit.tc.commands.selector.SelectorCondition;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
+import com.bergerkiller.bukkit.tc.properties.api.PropertySelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
 
@@ -59,6 +61,11 @@ public final class KeepChunksLoadedProperty extends FieldBackedStandardTrainProp
     @Override
     public boolean hasPermission(CommandSender sender, String name) {
         return Permission.PROPERTY_KEEPCHUNKSLOADED.has(sender);
+    }
+
+    @PropertySelectorCondition("keepchunksloaded")
+    public boolean selectorMatchesKeepChunksLoaded(TrainProperties properties, SelectorCondition condition) {
+        return condition.matchesBoolean(properties.isKeepingChunksLoaded());
     }
 
     @Override
