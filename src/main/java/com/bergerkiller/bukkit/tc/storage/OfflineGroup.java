@@ -32,6 +32,7 @@ public class OfflineGroup {
     public String name;
     public UUID worldUUID;
     private boolean loaded;
+    public boolean isBeingRemoved = false;
 
     public OfflineGroup(MinecartGroup group) {
         this(group.size());
@@ -92,6 +93,12 @@ public class OfflineGroup {
     }
 
     public boolean testFullyLoaded() {
+        // When being removed (asynchronously) pretend the group isn't loaded in yet
+        // This stalls any restoring action
+        if (this.isBeingRemoved) {
+            return false;
+        }
+
         return this.loadedChunks.size() == this.chunks.size();
     }
 

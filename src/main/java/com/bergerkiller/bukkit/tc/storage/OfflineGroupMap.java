@@ -1,10 +1,21 @@
 package com.bergerkiller.bukkit.tc.storage;
 
+import com.bergerkiller.bukkit.common.chunk.ChunkFutureProvider;
+import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
+import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
+
 import org.bukkit.Chunk;
+import org.bukkit.World;
+import org.bukkit.entity.Entity;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Maps all the Offline Groups to chunk coordinates, allowing faster chunk access for restoring trains
@@ -12,6 +23,7 @@ import java.util.*;
 public class OfflineGroupMap implements Iterable<OfflineGroup> {
     private Set<OfflineGroup> groups = new HashSet<>();
     private LongHashMap<HashSet<OfflineGroup>> groupmap = new LongHashMap<>();
+    private Set<UUID> minecartEntityUUIDsBeingDestroyed = new HashSet<>();
 
     @Override
     public Iterator<OfflineGroup> iterator() {
@@ -33,6 +45,85 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
                 getOrCreateChunk(chunk).add(group);
             }
         }
+    }
+
+    /**
+     * Destroys the minecart entities of an offline group. Loads the chunks the group resides
+     * in asynchronously if needed. Returns whether the group was fully destroyed or not.
+     * If not destroyed, the offline group is removed regardless.
+     *
+     * @param world The world this store is for
+     * @param group The group to destroy the minecarts of
+     * @return Future completed with either true (destroyed them) or false (not found)
+     */
+    public CompletableFuture<Boolean> destroyAsync(final World world, final OfflineGroup group) {
+        final ChunkFutureProvider futureProvider = ChunkFutureProvider.of(TrainCarts.plugin);
+
+        // This makes sure the group doesn't get restored as a train in the middle of removing
+        group.isBeingRemoved = true;
+
+        // Set of minecart entity UUID's to find. Done when empty.
+        Set<UUID> minecartEntityUUIDs = Stream.of(group.members)
+                .map(m -> m.entityUID)
+                .collect(Collectors.toCollection(HashSet::new));
+        minecartEntityUUIDsBeingDestroyed.addAll(minecartEntityUUIDs);
+
+        // This future is completed once done
+        final CompletableFuture<Boolean> result = new CompletableFuture<Boolean>();
+
+        // Wait until entities in the chunks have loaded. When they are, find and destroy carts in them
+        // For this we use ForcedChunk instances to keep the chunks loaded while we work with them
+        // They're closed again once each chunk is processed
+        final List<ForcedChunk> chunks = group.forceLoadChunks(world);
+        @SuppressWarnings("rawtypes")
+        final CompletableFuture[] chunkLoadEntitiesFuture = chunks.stream()
+                .map(forcedChunk -> {
+                    return futureProvider.whenEntitiesLoaded(world, forcedChunk.getX(), forcedChunk.getZ()).thenAccept(chunk -> {
+                        try {
+                            if (!minecartEntityUUIDs.isEmpty()) {
+                                for (Entity e : new ArrayList<>(WorldUtil.getEntities(chunk))) {
+                                    if (minecartEntityUUIDs.remove(e.getUniqueId())) {
+                                        e.remove();
+                                        if (minecartEntityUUIDs.isEmpty()) {
+                                            result.complete(Boolean.TRUE);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        } finally {
+                            forcedChunk.close();
+                        }
+                    });
+                })
+                .toArray(CompletableFuture[]::new);
+        CompletableFuture.allOf(chunkLoadEntitiesFuture).thenAccept(u -> result.complete(Boolean.FALSE));
+
+        // Run the asynchronous removal process, once done, remove the group from the store
+        return result.thenApply(found -> {
+            // Remove from mappings
+            remove(group);
+
+            // Cleanup, no longer needed
+            for (OfflineMember m : group.members) {
+                minecartEntityUUIDsBeingDestroyed.remove(m.entityUID);
+            }
+
+            // Avoid stale properties
+            TrainPropertiesStore.remove(group.name);
+
+            return found;
+        });
+    }
+
+    /**
+     * Gets whether a particular Minecart is in the process of being destroyed (asynchronously)
+     *
+     * @param minecartUUID
+     * @return True if this Minecart is being destroyed
+     */
+    public boolean isDestroyingMinecart(UUID minecartUUID) {
+        return minecartEntityUUIDsBeingDestroyed.contains(minecartUUID);
     }
 
     public void remove(OfflineGroup group) {

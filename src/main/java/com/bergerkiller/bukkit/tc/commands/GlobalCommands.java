@@ -58,6 +58,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
 
 public class GlobalCommands {
 
@@ -171,42 +172,20 @@ public class GlobalCommands {
 
     @CommandRequiresPermission(Permission.COMMAND_DESTROYALL)
     @CommandMethod("train destroyall|removeall")
-    @CommandDescription("Destroys all trains server-wide")
+    @CommandDescription("Destroys all trains on the server or world")
     private void commandDestroyAll(
-            final CommandSender sender
-    ) {
-        // Destroy all trains on the entire server
-        int count = OfflineGroupManager.destroyAll();
-        sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");
-    }
-
-    @CommandRequiresPermission(Permission.COMMAND_DESTROYALL)
-    @CommandMethod("train destroyall|removeall <worldname>")
-    @CommandDescription("Destroys all trains on a single world")
-    private void commandDestroyAllOnWorld(
             final CommandSender sender,
-            final @Argument("worldname") String worldName
+            final @Flag("world") World world,
+            final @Flag(value="vanilla",
+                        description="Whether to destroy non-Traincarts vanilla Minecarts too") boolean destroyVanilla
     ) {
-        // Destroy the trains on a single world
-        String cname = worldName.toLowerCase();
-        World w = Bukkit.getWorld(worldName);
-        if (w == null) {
-            Bukkit.getWorld(cname);
-        }
-        if (w == null) {
-            for (World world : Bukkit.getServer().getWorlds()) {
-                if (world.getName().toLowerCase().contains(cname)) {
-                    w = world;
-                    break;
-                }
-            }
-        }
-        if (w != null) {
-            int count = OfflineGroupManager.destroyAll(w);
-            sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");
-        } else {
-            sender.sendMessage(ChatColor.RED + "World not found!");
-        }
+        // Destroy all trains on the entire server (or on one world)
+        CompletableFuture<Integer> future = (world == null)
+                ? OfflineGroupManager.destroyAllAsync(destroyVanilla)
+                : OfflineGroupManager.destroyAllAsync(world, destroyVanilla);
+        future.thenAccept(count -> {
+            sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");  
+        });
     }
 
     @CommandRequiresPermission(Permission.COMMAND_GIVE_EDITOR)

@@ -641,7 +641,9 @@ public class TrainCarts extends PluginBase {
 
         // Destroy all trains after initializing if specified
         if (TCConfig.destroyAllOnShutdown) {
-            getLogger().info("[DestroyOnShutdown] Destroyed " + OfflineGroupManager.destroyAll() + " trains or minecarts");
+            OfflineGroupManager.destroyAllAsync(false).thenAccept(count -> {
+                getLogger().info("[DestroyOnShutdown] Destroyed " + count + " trains");
+            });
         }
     }
 
@@ -649,7 +651,9 @@ public class TrainCarts extends PluginBase {
     public void disable() {
         //Destroy all trains after initializing if specified
         if (TCConfig.destroyAllOnShutdown) {
-            getLogger().info("[DestroyOnShutdown] Destroyed " + OfflineGroupManager.destroyAll() + " trains or minecarts");
+            OfflineGroupManager.destroyAllAsync(false).thenAccept(count -> {
+                getLogger().info("[DestroyOnShutdown] Destroyed " + count + " trains");
+            });
         }
 
         //Unregister listeners

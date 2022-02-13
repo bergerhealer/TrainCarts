@@ -111,7 +111,7 @@ public abstract class MinecartMemberStore {
         if (TrainCarts.isWorldDisabled(minecart.getWorld())) {
             return false; // World is disabled
         }
-        if (OfflineGroupManager.isDestroyingAllInWorld(minecart.getWorld())) {
+        if (OfflineGroupManager.isDestroyingGroupOf((Minecart) minecart)) {
             return false; // Presently destroying all minecarts, do not convert new ones during
         }
 

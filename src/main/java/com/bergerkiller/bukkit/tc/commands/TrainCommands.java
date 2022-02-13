@@ -20,7 +20,6 @@ import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
-import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
@@ -47,6 +46,7 @@ import org.bukkit.entity.Player;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 public class TrainCommands {
 
@@ -130,13 +130,21 @@ public class TrainCommands {
             final TrainProperties properties
     ) {
         MinecartGroup group = properties.getHolder();
+        CompletableFuture<Boolean> future;
         if (group == null) {
-            TrainPropertiesStore.remove(properties.getTrainName());
-            OfflineGroupManager.removeGroup(properties.getTrainName());
+            future = OfflineGroupManager.destroyGroupAsync(properties.getTrainName());
         } else {
             group.destroy();
+            future = CompletableFuture.completedFuture(Boolean.TRUE);
         }
-        sender.sendMessage(ChatColor.YELLOW + "The selected train has been destroyed!");
+
+        future.thenAccept(success -> {
+            if (success) {
+                sender.sendMessage(ChatColor.YELLOW + "The selected train has been destroyed!");
+            } else {
+                sender.sendMessage(ChatColor.RED + "The selected train could not be located! Mapping removed.");
+            }
+        });
     }
 
     @CommandRequiresPermission(Permission.COMMAND_SAVE_TRAIN)

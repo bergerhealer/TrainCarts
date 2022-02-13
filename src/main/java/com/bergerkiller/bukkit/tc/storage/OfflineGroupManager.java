@@ -11,7 +11,9 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -23,11 +25,12 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 
 public class OfflineGroupManager {
     public static Long lastUnloadChunk = null;
-    private static World destroyAllCurrentWorld = null;
     private static boolean chunkLoadReq = false;
     private static boolean isRefreshingGroups = false;
     private static Map<String, OfflineGroup> containedTrains = new HashMap<>();
@@ -163,89 +166,163 @@ public class OfflineGroupManager {
         return chunks;
     }
 
-    /*
-     * Train removal
+    public static boolean isDestroyingGroupOf(Minecart minecart) {
+        return get(minecart.getWorld()).groupmap.isDestroyingMinecart(minecart.getUniqueId());
+    }
+
+    /**
+     * Tries to destroy a group that is not currently loaded. If the world the group is
+     * on exists, loads the chunks the group is at and tries to destroy the entities there.
+     * This process is asynchronous.
+     *
+     * @param groupName Name of the group to destroy
+     * @return True if the group was destroyed successfully, False if this (partially) failed
      */
-    public static int destroyAll(World world) {
-        try {
-            destroyAllCurrentWorld = world;
-            return destroyAll_impl(world);
-        } finally {
-            destroyAllCurrentWorld = null;
+    public static CompletableFuture<Boolean> destroyGroupAsync(String groupName) {
+        OfflineGroup group = containedTrains.get(groupName);
+        if (group == null) {
+            return CompletableFuture.completedFuture(Boolean.FALSE);
         }
+
+        // Find the loaded World. If not loaded, just remove the metadata and 'succeed'
+        World world = Bukkit.getWorld(group.worldUUID);
+        if (world == null) {
+            OfflineGroupManager.removeGroup(groupName);
+            TrainPropertiesStore.remove(groupName);
+            return CompletableFuture.completedFuture(Boolean.TRUE);
+        }
+
+        // Find the group manager for this world
+        OfflineGroupManager man;
+        synchronized (managers) {
+            man = managers.get(group.worldUUID);
+            if (man == null) {
+                return CompletableFuture.completedFuture(Boolean.FALSE);
+            }
+        }
+
+        // Remove asynchronously
+        return man.groupmap.destroyAsync(world, group);
     }
 
-    public static boolean isDestroyingAllInWorld(World world) {
-        return destroyAllCurrentWorld == world;
-    }
-
-    private static int destroyAll_impl(World world) {
+    /**
+     * Destroys all the loaded and unloaded trains on a world. Groups that aren't loaded are
+     * loaded in asynchronously and destroyed from the then-loaded chunks.
+     *
+     * @param world World to destroy all groups on
+     * @param includingVanilla Whether to also destroy currently loaded vanilla Minecarts
+     * @return Future completed with the number of destroyed trains
+     */
+    @SuppressWarnings("unchecked")
+    public static CompletableFuture<Integer> destroyAllAsync(final World world, final boolean includingVanilla) {
         // Ignore worlds that are disabled
         if (TrainCarts.isWorldDisabled(world)) {
-            return 0;
+            return CompletableFuture.completedFuture(0);
         }
-        int count = 0;
 
         // Remove loaded groups
-        for (MinecartGroup g : MinecartGroup.getGroups().cloneAsIterable()) {
-            if (g.getWorld() == world) {
-                if (!g.isEmpty()) {
-                    count++;
-                }
-                g.destroy();
-            }
-        }
-
-        // Remove remaining offline groups and their minecart entities
-        synchronized (managers) {
-            OfflineGroupManager man = managers.remove(world.getUID());
-            if (man != null) {
-                for (OfflineGroup wg : man.groupmap) {
-                    count++;
-                    containedTrains.remove(wg.name);
-                    TrainProperties.remove(wg.name);
-                    for (OfflineMember wm : wg.members) {
-                        containedMinecarts.remove(wm.entityUID);
-
-                        // Find the Minecart, mark chunk dirty if found (removing)
-                        Minecart entity = wm.findEntity(world, true);
-                        if (entity != null) {
-                            entity.remove();
-                        }
+        final int removedLoadedGroupCount;
+        {
+            int count = 0;
+            for (MinecartGroup g : MinecartGroup.getGroups().cloneAsIterable()) {
+                if (g.getWorld() == world) {
+                    if (!g.isEmpty()) {
+                        count++;
                     }
+                    g.destroy();
                 }
+            }
+
+            // Destroy non-traincarts minecart entities
+            if (includingVanilla) {
+                count += destroyMinecartsInLoadedChunks(world);
+            }
+
+            removedLoadedGroupCount = count;
+        }
+
+        // Remove bugged-out Minecarts
+        removeBuggedMinecarts(world);
+
+        // Get a list of all offline groups on this world
+        final List<OfflineGroup> offlineGroups;
+        final OfflineGroupManager man;
+        synchronized (managers) {
+            man = managers.get(world.getUID());
+            if (man == null) {
+                offlineGroups = Collections.emptyList();
+            } else {
+                offlineGroups = new ArrayList<>(man.groupmap.values());
             }
         }
 
-        // Remove (bugged) Minecarts
-        destroyMinecarts(world);
-        removeBuggedMinecarts(world);
-        return count;
+        // If there are no offline (unloaded) groups, we are done here
+        if (offlineGroups.isEmpty()) {
+            return CompletableFuture.completedFuture(removedLoadedGroupCount);
+        }
+
+        // Destroy all the offline groups asynchronously in parallel
+        CompletableFuture<Boolean>[] destroyFutures = offlineGroups.stream()
+                .map(group -> man.groupmap.destroyAsync(world, group))
+                .toArray(CompletableFuture[]::new);
+
+        return CompletableFuture.allOf(destroyFutures).thenApply(unused -> {
+            int count = removedLoadedGroupCount;
+            for (CompletableFuture<Boolean> future : destroyFutures) {
+                try {
+                    if (future.get()) {
+                        count++;
+                    }
+                } catch (InterruptedException | ExecutionException e) {
+                    e.printStackTrace();
+                }
+            }
+            return count;
+        });
     }
 
-    public static int destroyAll() {
-        // The below three storage points can be safely cleared
-        // Disabled worlds don't store anything in them anyway
+    /**
+     * Asynchronously destroys all the trains on the server (for all worlds)
+     *
+     * @param includingVanilla Whether to also destroy currently loaded vanilla Minecarts
+     * @return Future completed once this is done with the number of trains that were destroyed
+     */
+    @SuppressWarnings("unchecked")
+    public static CompletableFuture<Integer> destroyAllAsync(final boolean includingVanilla) {
+        final CompletableFuture<Integer>[] futures = Bukkit.getWorlds().stream()
+                .map(world -> destroyAllAsync(world, includingVanilla))
+                .toArray(CompletableFuture[]::new);
+
+        return CompletableFuture.allOf(futures).thenApply(unused -> {
+            int total = 0;
+            for (CompletableFuture<Integer> future : futures) {
+                try {
+                    total += future.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            // Can now clear these, too
+            TrainProperties.clearAll();
+            synchronized (managers) {
+                managers.clear();
+            }
+
+            return total;
+        });
+    }
+
+    private static int destroyMinecartsInLoadedChunks(World world) {
         int count = 0;
-        for (World world : WorldUtil.getWorlds()) {
-            count += destroyAll(world);
-        }
-
-        TrainProperties.clearAll();
-        containedTrains.clear();
-        containedMinecarts.clear();
-        synchronized (managers) {
-            managers.clear();
-        }
-        return count;
-    }
-
-    private static void destroyMinecarts(World world) {
         for (Chunk chunk : WorldUtil.getChunks(world)) {
             for (Entity e : chunk.getEntities()) {
                 if (e instanceof Minecart && !e.isDead()) {
                     e.remove();
                     Util.markChunkDirty(chunk);
+                    if (MinecartMemberStore.getFromEntity(e) == null) {
+                        count++;
+                    }
                 }
             }
         }
@@ -259,6 +336,7 @@ public class OfflineGroupManager {
                 }
             }
         }
+        return count;
     }
 
     /**
