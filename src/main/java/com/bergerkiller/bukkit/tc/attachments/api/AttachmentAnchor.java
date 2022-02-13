@@ -138,6 +138,24 @@ public abstract class AttachmentAnchor {
         }
     });
 
+    /**
+     * Anchors to the root/cart position, which is in the middle of both wheels. Only available when used with a Minecart.
+     */
+    public static AttachmentAnchor CART = register(new AttachmentAnchor("cart") {
+        @Override
+        public boolean supports(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType) {
+            return managerType.isAssignableFrom(AttachmentControllerMember.class);
+        }
+
+        @Override
+        public void apply(Attachment attachment, Matrix4x4 transform) {
+            if (attachment.getManager() instanceof AttachmentControllerMember) {
+                AttachmentControllerMember controller = (AttachmentControllerMember) attachment.getManager();
+                transform.set(controller.getLiveTransform());
+            }
+        }
+    });
+
     private final String _name;
 
     public AttachmentAnchor(String name) {
