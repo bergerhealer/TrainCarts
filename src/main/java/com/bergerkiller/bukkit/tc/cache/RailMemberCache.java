@@ -1,18 +1,13 @@
 package com.bergerkiller.bukkit.tc.cache;
 
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.logging.Level;
 
 import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 
 /**
  * Cache that tracks what rail blocks trains are occupying, allowing for quick
@@ -20,16 +15,11 @@ import com.google.common.collect.ListMultimap;
  * for wait distance functionality and when spawning trains. It is also used when
  * a sign is activated by redstone, and the train that is on the rail coupled by it
  * needs to be found.
+ *
+ * @deprecated Consolidated into {@link RailLookup} and {@link RailPiece#members()}
  */
+@Deprecated
 public class RailMemberCache {
-    private static final ListMultimap<OfflineBlock, MinecartMember<?>> cache = ArrayListMultimap.create(2000, 2);
-
-    /**
-     * Wipes all members stored in the cache
-     */
-    public static void reset() {
-        cache.clear();
-    }
 
     /**
      * Finds the minecart that is on a particular rail block
@@ -38,17 +28,12 @@ public class RailMemberCache {
      * @return member on this rail, null if none is on it
      */
     public static MinecartMember<?> find(OfflineBlock railBlock) {
-        Collection<MinecartMember<?>> members = cache.get(railBlock);
+        Collection<MinecartMember<?>> members = RailLookup.findMembersOnRail(railBlock);
         if (members.isEmpty()) {
             return null;
+        } else {
+            return members.iterator().next();
         }
-        MinecartMember<?> result = members.iterator().next();
-        if (result.isUnloaded()) {
-            TrainCarts.plugin.log(Level.WARNING, "Purged unloaded minecart from rail cache at " + railBlock.getPosition());
-            remove(result);
-            result = null;
-        }
-        return result;
     }
 
     /**
@@ -66,18 +51,7 @@ public class RailMemberCache {
      * @return members on this rail
      */
     public static Collection<MinecartMember<?>> findAll(OfflineBlock railBlock) {
-        Collection<MinecartMember<?>> members = cache.get(railBlock);
-        Iterator<MinecartMember<?>> iter = members.iterator();
-        while (iter.hasNext()) {
-            MinecartMember<?> member = iter.next();
-            if (member.isUnloaded()) {
-                TrainCarts.plugin.log(Level.WARNING, "Purged unloaded minecart from rail cache at " + railBlock.getPosition());
-                iter.remove();
-                remove(member);
-                return findAll(railBlock);
-            }
-        }
-        return members;
+        return RailLookup.findMembersOnRail(railBlock);
     }
 
     /**
@@ -94,55 +68,6 @@ public class RailMemberCache {
      * @param member value to remove
      */
     public static void remove(MinecartMember<?> member) {
-        Iterator<MinecartMember<?>> iter = cache.values().iterator();
-        while (iter.hasNext()) {
-            if (iter.next() == member) {
-                iter.remove();
-            }
-        }
-    }
-
-    /**
-     * Removes a minecart from being bound to a particular rail block
-     * 
-     * @param railsBlock
-     * @param member
-     */
-    public static void removeBlock(OfflineBlock railBlock, MinecartMember<?> member) {
-        cache.remove(railBlock, member);
-    }
-
-    /**
-     * Adds a minecart, binding it to a particular rail block
-     * 
-     * @param railsBlock
-     * @param member
-     */
-    public static void addBlock(OfflineBlock railBlock, MinecartMember<?> member) {
-        cache.put(railBlock, member);
-    }
-
-    /**
-     * Changes the minecart member that is on a particular rails block.
-     * If old and new member are the same, all this does is verify that the member is added.
-     * 
-     * @param railBlock
-     * @param oldMember
-     * @param newMember
-     */
-    public static void changeMember(OfflineBlock railBlock, MinecartMember<?> oldMember, MinecartMember<?> newMember) {
-        List<MinecartMember<?>> members = cache.get(railBlock);
-        ListIterator<MinecartMember<?>> iter = members.listIterator();
-        while (iter.hasNext()) {
-            if (iter.next() == oldMember) {
-                if (oldMember != newMember) {
-                    iter.set(newMember);
-                }
-                return;
-            }
-        }
-
-        // Not yet in it. Add it.
-        members.add(newMember);
+        RailLookup.removeMemberFromAll(member);
     }
 }

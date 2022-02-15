@@ -60,10 +60,10 @@ import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil.ItemSynchronizer;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
-import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
 import com.bergerkiller.bukkit.tc.utils.BoundingRange;
@@ -194,7 +194,7 @@ public class Util {
     }
 
     /**
-     * <b>Deprecated: use {@link RailSignCache#getSigns(RailType, Block)} instead</b>
+     * <b>Deprecated: use {@link RailPiece#signs()} instead</b>
      */
     @Deprecated
     public static void addSignsFromRails(List<Block> rval, Block railsBlock) {
@@ -202,7 +202,7 @@ public class Util {
         if (railType == RailType.NONE) {
             return;
         }
-        for (RailSignCache.TrackedSign trackedSign : RailSignCache.getSigns(railType, railsBlock)) {
+        for (RailLookup.TrackedSign trackedSign : RailPiece.create(railType, railsBlock).signs()) {
             rval.add(trackedSign.signBlock);
         }
     }
@@ -233,7 +233,7 @@ public class Util {
      */
     @Deprecated
     public static Block getRailsFromSign(Block signblock) {
-        return RailSignCache.getRailsFromSign(signblock).block();
+        return RailLookup.discoverRailPieceFromSign(signblock).block();
     }
 
     public static Block findRailsVertical(Block from, BlockFace mode) {

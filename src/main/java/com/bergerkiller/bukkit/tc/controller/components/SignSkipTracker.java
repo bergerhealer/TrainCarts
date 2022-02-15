@@ -14,11 +14,11 @@ import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
+import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 
 /**
  * Tracks the signs passed by a train or cart and applies {@link SignSkipOptions}

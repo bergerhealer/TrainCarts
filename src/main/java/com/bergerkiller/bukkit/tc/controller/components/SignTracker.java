@@ -3,9 +3,9 @@ package com.bergerkiller.bukkit.tc.controller.components;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.collections.ImplicitlySharedList;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
+import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.utils.modlist.ModificationTrackedList;
 
 import org.bukkit.block.Block;

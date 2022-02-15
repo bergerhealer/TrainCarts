@@ -5,11 +5,15 @@ import org.bukkit.block.BlockFace;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
-import com.bergerkiller.bukkit.tc.*;
-import com.bergerkiller.bukkit.tc.cache.RailSignCache;
+import com.bergerkiller.bukkit.tc.Direction;
+import com.bergerkiller.bukkit.tc.Localization;
+import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
@@ -65,7 +69,7 @@ public class SignActionWait extends SignAction {
 
                 walk:
                 while (walkingPoint.movedTotal < TCConfig.maxDetectorLength && walkingPoint.moveFull()) {
-                    for (RailSignCache.TrackedSign sign : walkingPoint.state.railSigns()) {
+                    for (TrackedSign sign : walkingPoint.state.railSigns()) {
                         if (sign.railBlock.equals(info.getRails())) {
                             continue;
                         }

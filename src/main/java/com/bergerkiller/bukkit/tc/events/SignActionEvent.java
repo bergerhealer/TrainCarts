@@ -10,7 +10,6 @@ import com.bergerkiller.bukkit.tc.PowerState;
 import com.bergerkiller.bukkit.tc.SignActionHeader;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
@@ -20,6 +19,8 @@ import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
+import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
@@ -74,13 +75,13 @@ public class SignActionEvent extends Event implements Cancellable {
         this.memberchecked = true;
     }
 
-    public SignActionEvent(RailSignCache.TrackedSign trackedSign, MinecartMember<?> member) {
+    public SignActionEvent(TrackedSign trackedSign, MinecartMember<?> member) {
         this(trackedSign);
         this.member = member;
         this.memberchecked = true;
     }
 
-    public SignActionEvent(RailSignCache.TrackedSign trackedSign, MinecartGroup group) {
+    public SignActionEvent(TrackedSign trackedSign, MinecartGroup group) {
         this(trackedSign);
         this.group = group;
         this.memberchecked = true;
@@ -100,7 +101,7 @@ public class SignActionEvent extends Event implements Cancellable {
         this(signblock, signblock == null ? null : BlockUtil.getSign(signblock), rail);
     }
 
-    public SignActionEvent(RailSignCache.TrackedSign trackedSign) {
+    public SignActionEvent(TrackedSign trackedSign) {
         this(trackedSign.signBlock, trackedSign.sign, trackedSign.rail);
     }
 
@@ -646,7 +647,7 @@ public class SignActionEvent extends Event implements Cancellable {
 
     public RailPiece getRailPiece() {
         if (this.rail == null) {
-            this.rail = RailSignCache.getRailsFromSign(this.signblock);
+            this.rail = RailLookup.discoverRailPieceFromSign(this.signblock);
         }
         return this.rail;
     }

@@ -39,6 +39,7 @@ import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SlowdownMode;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
@@ -364,7 +365,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         this.getProperties().remove(member.getProperties());
         this.getRailTracker().removeMemberRails(member);
         try (Timings t = TCTimings.RAILMEMBERCACHE.start()) {
-            RailMemberCache.remove(member);
+            RailLookup.removeMemberFromAll(member);
         }
     }
 

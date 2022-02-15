@@ -19,10 +19,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentLight;
 import com.bergerkiller.bukkit.tc.attachments.control.GlowColorTeamProvider;
 import com.bergerkiller.bukkit.tc.attachments.control.SeatAttachmentMap;
-import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
-import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.chest.TrainChestListener;
-import com.bergerkiller.bukkit.tc.cache.RailPieceCache;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.commands.selector.SelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.commands.selector.TCSelectorHandlerRegistry;
@@ -40,6 +37,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.registry.TCPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
@@ -772,10 +770,7 @@ public class TrainCarts extends PluginBase {
         SignAction.deinit();
         ItemAnimation.deinit();
         OfflineGroupManager.deinit();
-
-        RailPieceCache.reset();
-        RailSignCache.reset();
-        RailMemberCache.reset();
+        RailLookup.clear();
 
         // Now plugin is mostly shut down, de-register all MinecartMember controllers from the server
         undoAllTCControllers();
@@ -889,8 +884,7 @@ public class TrainCarts extends PluginBase {
 
         @Override
         public void run() {
-            RailPieceCache.update();
-            RailSignCache.cleanup();
+            RailLookup.update();
         }
     }
     

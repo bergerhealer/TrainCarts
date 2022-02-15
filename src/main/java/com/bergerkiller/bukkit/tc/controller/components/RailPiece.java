@@ -8,8 +8,9 @@ import org.bukkit.block.Block;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
-import com.bergerkiller.bukkit.tc.cache.RailSignCache;
-import com.bergerkiller.bukkit.tc.cache.RailSignCache.TrackedSign;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
+import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.RailJunctionSwitcher;
 
@@ -18,28 +19,43 @@ import com.bergerkiller.bukkit.tc.utils.RailJunctionSwitcher;
  * A rail piece consists of a rail block and rail type bound to a single Block in the minecraft world.
  * Extra properties about the rail are cached for faster lookup of this rarely changing information.
  */
-public final class RailPiece {
+public class RailPiece {
     public static final RailPiece NONE = createWorldPlaceholder(null);
     private final RailType type;
     private final OfflineWorld world;
     private final Block block;
     private final OfflineBlock offlineBlock;
-    private TrackedSign[] cachedSigns;
+
+    /**
+     * The cached rail piece is initialized with information from {@link RailLookup}
+     * to provide information about members and signs on this rail piece. By default
+     * is initialized with a placeholder that informs to perform this lookup.
+     */
+    protected RailLookup.CachedRailPiece cached;
+
+    // Used for RailLookup.CachedRailPiece REMOVED default constant
+    protected RailPiece() {
+        this.world = OfflineWorld.NONE;
+        this.offlineBlock = null;
+        this.block = null;
+        this.type = RailType.NONE;
+        this.cached = null; // Should never even be used
+    }
 
     private RailPiece(World world) {
         this.world = OfflineWorld.of(world);
         this.offlineBlock = null;
         this.block = null;
         this.type = RailType.NONE;
-        this.cachedSigns = null;
+        this.cached = RailLookup.CachedRailPiece.NONE;
     }
 
-    private RailPiece(OfflineBlock offlineBlock, Block block, RailType type) {
+    protected RailPiece(OfflineBlock offlineBlock, Block block, RailType type) {
         this.world = offlineBlock.getWorld();
         this.offlineBlock = offlineBlock;
         this.block = block;
         this.type = type;
-        this.cachedSigns = null;
+        this.cached = RailLookup.CachedRailPiece.NONE;
     }
 
     /**
@@ -159,34 +175,42 @@ public final class RailPiece {
         return this.world;
     }
 
+    private RailLookup.CachedRailPiece accessCache() {
+        RailLookup.CachedRailPiece cached = this.cached;
+        if (cached.verify()) {
+            return cached;
+        } else {
+            return this.cached = RailLookup.lookupCachedRailPiece(this.offlineBlock, this.block, this.type);
+        }
+    }
+
     /**
      * Retrieves an array of all signs active for this rail
      * 
      * @return array of signs
      */
     public TrackedSign[] signs() {
-        if (this.cachedSigns == null) {
-            this.cachedSigns = RailSignCache.discoverSigns(this);
-        }
-        return this.cachedSigns;
+        return accessCache().cachedSigns();
     }
 
     /**
-     * Forces sign information to be refreshed the next time {@link #getSigns()} is called.
+     * Gets a list of Minecart Members that occupy this rail piece.
+     * The returned List is not guaranteed to be mutable.
+     *
+     * @return members list
      */
-    public void refreshSigns() {
-        this.cachedSigns = null;
+    public List<MinecartMember<?>> members() {
+        return accessCache().cachedMembers();
     }
 
     /**
-     * Verifies the sign information that is cached still points to valid signs.
-     * If this is not the case, all sign information will be refreshed the next time
-     * {@link #getSigns()} is called.
+     * Gets a list of Minecart Members that occupy this rail piece.
+     * The returned List is guaranteed to be mutable.
+     *
+     * @return mutable members list
      */
-    public void verifySigns() {
-        if (this.cachedSigns != null && !RailSignCache.verifySigns(this.cachedSigns)) {
-            this.cachedSigns = null;
-        }
+    public List<MinecartMember<?>> mutableMembers() {
+        return accessCache().cachedMutableMembers();
     }
 
     /**

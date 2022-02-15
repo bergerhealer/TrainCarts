@@ -1,13 +1,10 @@
 package com.bergerkiller.bukkit.tc.rails.type;
 
-import com.bergerkiller.bukkit.common.Timings;
-import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.common.offline.OfflineWorld;
+import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
-import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.cache.RailPieceCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -18,6 +15,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath.Position;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.editor.RailsTexture;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicAir;
 
@@ -192,36 +190,13 @@ public abstract class RailType {
     public static boolean loadRailInformation(RailState state) {
         state.initEnterDirection();
         state.position().assertAbsolute();
-        RailPiece[] cachedPieces = RailPieceCache.find(state);
-        if (cachedPieces.length == 0) {
-            // Standard lookup. Cache the result if we succeed.
-            OfflineWorld offlineWorld = state.railPiece().offlineWorld();
-            Block positionBlock = state.positionBlock();
-            try (Timings tim = TCTimings.RAILTYPE_FINDRAILINFO.start()) {
-                for (RailType type : values()) {
-                    try {
-                        List<Block> rails = type.findRails(positionBlock);
-                        if (!rails.isEmpty()) {
-                            int index = cachedPieces.length;  
-                            cachedPieces = Arrays.copyOf(cachedPieces, cachedPieces.length + rails.size());
-                            for (Block railsBlock : rails) {
-                                cachedPieces[index++] = RailPiece.create(type, railsBlock, offlineWorld);
-                            }
-                            break;
-                        }
-                    } catch (Throwable t) {
-                        handleCriticalError(type, t);
-                    }
-                }
-            }
 
-            // Store in cache if we have results
-            if (cachedPieces.length > 0) {
-                RailPieceCache.storeInfo(offlineWorld.getBlockAt(new IntVector3(positionBlock)), cachedPieces);
-            } else {
-                state.setRailPiece(RailPiece.create(RailType.NONE, positionBlock, offlineWorld));
-                return false;
-            }
+        final OfflineBlock positionOfflineBlock = state.positionOfflineBlock();
+        final RailPiece[] cachedPieces = RailLookup.findAtBlockPosition(positionOfflineBlock);
+        if (cachedPieces.length == 0) {
+            state.setRailPiece(RailPiece.create(RailType.NONE,
+                    positionOfflineBlock.getLoadedBlock(), positionOfflineBlock.getWorld()));
+            return false;
         }
 
         // If more than one rail piece exists here, pick the most appropriate one for this position

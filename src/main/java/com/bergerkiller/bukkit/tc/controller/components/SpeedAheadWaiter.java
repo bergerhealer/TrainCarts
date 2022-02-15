@@ -6,7 +6,6 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -248,7 +247,7 @@ public class SpeedAheadWaiter {
             Location member_position = null;
             double minSpeedAhead = Double.MAX_VALUE;
             double minDistanceAhead = 0.0;
-            for (MinecartMember<?> member : RailMemberCache.findAll(iter.state.railPiece().offlineBlock())) {
+            for (MinecartMember<?> member : iter.state.railPiece().members()) {
                 if (member.getGroup() == group) {
                     continue;
                 }

@@ -18,10 +18,10 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath.Position;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
@@ -47,7 +47,7 @@ public class RailTrackerGroup extends RailTracker {
      */
     public void unload() {
         for (TrackedRail oldRail : this.rails) {
-            RailMemberCache.removeBlock(oldRail.state.railPiece().offlineBlock(), oldRail.member);
+            oldRail.state.railPiece().mutableMembers().remove(oldRail.member);
         }
         this.rails.clear();
         this.prevRails.clear();
@@ -215,33 +215,48 @@ public class RailTrackerGroup extends RailTracker {
                 // Remove all earlier storing of the member
                 // This fixes a bug of ghost members in the rail member cache due to unloading
                 for (MinecartMember<?> member : this.owner) {
-                    RailMemberCache.remove(member);
+                    RailLookup.removeMemberFromAll(member);
                 }
                 for (TrackedRail newRail : this.rails) {
-                    RailMemberCache.addBlock(newRail.state.railPiece().offlineBlock(), newRail.member);
+                    newRail.state.railPiece().mutableMembers().add(newRail.member);
                 }
             } else {
                 // Moving
                 this.railsBuffer.clear();
                 this.railsBuffer.addAll(this.prevRails);
+                
                 for (TrackedRail newRail : this.rails) {
+                    List<MinecartMember<?>> membersAt = newRail.state.railPiece().mutableMembers();
+
                     boolean found = false;
                     Iterator<TrackedRail> tmpIter = this.railsBuffer.iterator();
                     while (tmpIter.hasNext()) {
                         TrackedRail oldRail = tmpIter.next();
                         if (oldRail.state.railPiece().isSameBlock(newRail.state.railPiece())) {
                             tmpIter.remove();
-                            RailMemberCache.changeMember(newRail.state.railPiece().offlineBlock(), oldRail.member, newRail.member);
-                            found = true;
+
+                            if (oldRail.member == newRail.member) {
+                                // Check contained
+                                found = true; // No need to check this, really
+                            } else {
+                                // Changed. Find the old one, put the new one.
+                                for (int i = 0; i < membersAt.size(); i++) {
+                                    if (membersAt.get(i) == oldRail.member) {
+                                        membersAt.set(i, newRail.member);
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                            }
                             break;
                         }
                     }
                     if (!found) {
-                        RailMemberCache.addBlock(newRail.state.railPiece().offlineBlock(), newRail.member);
+                        membersAt.add(newRail.member);
                     }
                 }
                 for (TrackedRail oldRail : this.railsBuffer) {
-                    RailMemberCache.removeBlock(oldRail.state.railPiece().offlineBlock(), oldRail.member);
+                    oldRail.state.railPiece().mutableMembers().remove(oldRail.member);
                 }
             }
 

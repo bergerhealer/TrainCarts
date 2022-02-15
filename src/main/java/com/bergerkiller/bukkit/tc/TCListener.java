@@ -16,7 +16,6 @@ import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.light.LightAPIController;
-import com.bergerkiller.bukkit.tc.cache.RailSignCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -28,6 +27,7 @@ import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.portals.PortalDestination;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
@@ -912,7 +912,8 @@ public class TCListener implements Listener {
     private void handleSignChange(SignChangeEvent event) {
         // Reset cache to make sure all signs are recomputed later, after the sign was made
         // Doing it here, in the most generic case, so that custom addon signs are also refreshed
-        RailSignCache.reset();
+        // TODO: Maybe only recalculate the rails impacted, or nearby the sign? This could be costly.
+        RailLookup.forceRecalculation();
 
         SignAction.handleBuild(event);
         if (event.isCancelled()) {

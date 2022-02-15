@@ -7,13 +7,12 @@ import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.cache.RailSignCache;
-import com.bergerkiller.bukkit.tc.cache.RailPieceCache;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
@@ -91,7 +90,7 @@ public class PathProvider extends Task {
         registerRoutingHandler(new PathRoutingHandler() {
             @Override
             public void process(PathRouteEvent event) {
-                for (RailSignCache.TrackedSign trackedSign : event.railState().railSigns()) {
+                for (RailLookup.TrackedSign trackedSign : event.railState().railSigns()) {
                     // Discover a SignAction at this sign
                     SignActionEvent signEvent = new SignActionEvent(trackedSign);
                     signEvent.setAction(SignActionType.GROUP_ENTER);
@@ -471,8 +470,7 @@ public class PathProvider extends Task {
 
         // Important: wipe any rail and sign caches we have polluted with temporary block data
         // This will momentarily cause the plugin to run slower, but we must do this or risk out of memory!
-        RailSignCache.reset();
-        RailPieceCache.reset();
+        RailLookup.forceRecalculation();
     }
 
     // Discovers new switchers and destination signs. Stops upon the first new node found.
