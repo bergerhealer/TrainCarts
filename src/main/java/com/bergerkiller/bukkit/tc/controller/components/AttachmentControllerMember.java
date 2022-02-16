@@ -141,11 +141,10 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
      * Called by the NetworkController to synchronize the passengers of the vehicle.
      * This puts entities into seats.
      *
-     * @param viewer
      * @param oldPassengers
      * @param newPassengers
      */
-    public synchronized void onSyncPassengers(Player viewer, List<Entity> oldPassengers, List<Entity> newPassengers) {
+    public synchronized void onPassengersChanged(List<Entity> oldPassengers, List<Entity> newPassengers) {
         // Clear passengers that have ejected
         for (CartAttachmentSeat seat : this.seatAttachments) {
             Entity oldPassenger = seat.getEntity();
