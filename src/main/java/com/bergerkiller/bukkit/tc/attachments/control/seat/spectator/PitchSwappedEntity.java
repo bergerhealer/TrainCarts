@@ -87,8 +87,10 @@ class PitchSwappedEntity<E extends VirtualEntity> {
     }
 
     public void destroy() {
-        spectating = false;
-        Util.stopSpectating(vmc, entity.getEntityId());
+        if (spectating) {
+            spectating = false;
+            Util.stopSpectating(vmc, entity.getEntityId());
+        }
         entity.destroy(vmc.getPlayer());
         entityAlt.destroy(vmc.getPlayer());
         entityAltFlip.destroy(vmc.getPlayer());
