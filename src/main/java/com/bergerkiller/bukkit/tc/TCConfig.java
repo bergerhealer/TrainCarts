@@ -65,6 +65,7 @@ public class TCConfig {
     public static int maxTransferRadius;
     public static double maxTrainEditdistance;
     public static boolean optimizeInteraction;
+    public static boolean allowPlayerCollisionFromBehind;
     public static boolean showTransferAnimations;
     public static boolean craftingRequireWorkbench;
     public static boolean slowDownEmptyCarts;
@@ -195,6 +196,12 @@ public class TCConfig {
 
         config.setHeader("launchForce", "\nThe amount of velocity stations give when launching trains");
         launchForce = config.get("launchForce", 10.0);
+
+        config.setHeader("allowPlayerCollisionFromBehind", "\nAllows players to push carts with PUSH/KILL/etc. collision modes");
+        config.addHeader("allowPlayerCollisionFromBehind", "when pushing from behind. When true, they can make a standing-still");
+        config.addHeader("allowPlayerCollisionFromBehind", "cart move by pushing it, even when collision is disallowed otherwise.");
+        config.addHeader("allowPlayerCollisionFromBehind", "When the cart hits a player head-on, then the logic IS executed like normal");
+        allowPlayerCollisionFromBehind = config.get("allowPlayerCollisionFromBehind", false);
 
         config.setHeader("destroyAllOnShutdown", "\nDestroys all existing minecarts on startup and shutdown of the plugin");
         destroyAllOnShutdown = config.get("destroyAllOnShutdown", false);
