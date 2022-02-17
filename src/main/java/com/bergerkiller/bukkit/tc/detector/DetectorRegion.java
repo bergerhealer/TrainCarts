@@ -10,9 +10,10 @@ import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
+
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -67,8 +68,11 @@ public final class DetectorRegion {
         if (w != null) {
             OfflineWorld ow = OfflineWorld.of(w);
             for (IntVector3 coord : this.coordinates) {
-                for (MinecartMember<?> mm : RailMemberCache.findAll(ow.getBlockAt(coord))) {
-                    mm.getSignTracker().addToDetectorRegion(this);
+                List<MinecartMember<?>> members = RailLookup.findMembersOnRail(ow.getBlockAt(coord));
+                if (!members.isEmpty()) {
+                    for (MinecartMember<?> mm : new ArrayList<>(members)) {
+                        mm.getSignTracker().addToDetectorRegion(this);
+                    }
                 }
             }
         }

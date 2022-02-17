@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import com.bergerkiller.bukkit.common.collections.BlockMap;
-import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.DirectionStatement;
@@ -10,9 +9,9 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.actions.GroupActionWaitPathFinding;
-import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.events.MissingPathConnectionEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
@@ -318,7 +317,7 @@ public class SignActionSwitcher extends SignAction {
                         if (signcounter == null) {
                             signcounter = getSwitchedTimes(info.getBlock());
                             if (info.isCartSign()) {
-                                signcounter.syncCartSignEnter(info.getGroup(), info.getRails());
+                                signcounter.syncCartSignEnter(info.getGroup(), info.getRailPiece());
                             }
                         }
                         maxcount += stat.counter.get(signcounter.startLength);
@@ -393,9 +392,9 @@ public class SignActionSwitcher extends SignAction {
          * group hit the switcher sign, resets the counter.
          *
          * @param group
-         * @param railBlock
+         * @param railPiece
          */
-        public void syncCartSignEnter(MinecartGroup group, Block railBlock) {
+        public void syncCartSignEnter(MinecartGroup group, RailPiece railPiece) {
             if (!TCConfig.switcherResetCountersOnFirstCart) {
                 return;
             }
@@ -412,8 +411,8 @@ public class SignActionSwitcher extends SignAction {
                     // tracked by the group. Sync up!
                     uuidsToIgnore.clear();
                     addAll(group);
-                    if (railBlock != null) {
-                        RailMemberCache.findAll(OfflineBlock.of(railBlock)).stream()
+                    if (railPiece != RailPiece.NONE) {
+                        railPiece.members().stream()
                             .map(MinecartMember::getGroup)
                             .distinct()
                             .forEach(this::addAll);

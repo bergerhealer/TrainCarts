@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.utils;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
@@ -39,7 +38,7 @@ public class RailJunctionSwitcher {
         // all carts currently on this rail block. We need to know the path used,
         // what end of the path the train entered, and the distance traveled from
         // that end.
-        List<MemberOnRail> members = RailMemberCache.findAll(this.rail.offlineBlock()).stream()
+        List<MemberOnRail> members = this.rail.members().stream()
             .map(m -> m.getRailTracker().getRail())
             .filter(rail -> rail.state.railPiece().equals(this.rail))
             .map(MemberOnRail::new)

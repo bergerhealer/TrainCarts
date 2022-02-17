@@ -147,13 +147,14 @@ public final class RailLookup {
     /**
      * Gets a List of members that are driving on a particular rail block. If there are no
      * members driving on the Block, an empty list is returned. The returned list is
-     * unmodifiable.
+     * unmodifiable.<br>
+     * <br>
+     * <b>Important note: </b>This is not very reliable, because the same rail block could be
+     * controlling multiple rail types. It is more reliable to use {@link RailPiece#members()}
      *
-     * @deprecated This is not reliable without a RailType. Use {@link RailPiece#members()} instead.
      * @param railOfflineBlock
      * @return List of members on this block
      */
-    @Deprecated
     public static List<MinecartMember<?>> findMembersOnRail(OfflineBlock railOfflineBlock) {
         Bucket bucket = cache.get(railOfflineBlock);
         return (bucket == null) ? Collections.emptyList() : bucket.members;

@@ -13,11 +13,11 @@ import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.type.*;
 import com.bergerkiller.bukkit.tc.events.MemberSpawnEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.PaperRedstonePhysicsChecker;
@@ -323,22 +323,21 @@ public abstract class MinecartMemberStore {
     /**
      * Gets the Member that drives on the rails block specified.<br>
      * <br>
-     * <b>Deprecated: more than one cart can exist at a rail block. Use {@link RailMemberCache} instead.</b>
+     * <b>Deprecated: more than one cart can exist at a rail block. Use {@link RailPiece#members()} instead.</b>
      * 
      * @param block of the rails
      * @return Minecart Member that drives on this Rail Block, null if not found
      */
     @Deprecated
     public static MinecartMember<?> getAt(Block block) {
-        return RailMemberCache.find(OfflineBlock.of(block));
-
-        //return getAt(block.getWorld(), new IntVector3(block));
+        List<MinecartMember<?>> members = RailLookup.findMembersOnRail(OfflineBlock.of(block));
+        return members.isEmpty() ? null : members.get(0);
     }
 
     /**
      * Gets the Member that drives on the rails block specified.<br>
      * <br>
-     * <b>Deprecated: more than one cart can exist at a rail block. Use {@link RailMemberCache} instead.</b>
+     * <b>Deprecated: more than one cart can exist at a rail block. Use {@link RailPiece#members()} instead.</b>
      * 
      * @param world to look in
      * @param coord of the rails block
@@ -377,14 +376,19 @@ public abstract class MinecartMemberStore {
     /**
      * Gets the Member that drives on the rails block specified for the rails at the position specified.<br>
      * <br>
-     * <b>Deprecated: more than one cart can exist at a rail block. Use {@link RailMemberCache} instead.</b>
-     * 
+     * <b>Deprecated: more than one cart can exist at a rail block. Use {@link RailPiece#members()} instead.</b>
+     *
      * @param at Location the Member is expected to be at
      * @return Minecart Member that drives on this Rail Block, null if not found
      */
     public static MinecartMember<?> getAt(Location at) {
         RailPiece piece = RailType.findRailPiece(at);
-        return (piece == null) ? null : getAt(piece.block());
+        if (piece == null) {
+            return null;
+        } else {
+            List<MinecartMember<?>> members = piece.members();
+            return members.isEmpty() ? null : members.get(0);
+        }
     }
 
     public static MinecartMember<?> getAt(Location at, MinecartGroup in) {

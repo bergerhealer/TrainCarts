@@ -645,6 +645,12 @@ public class SignActionEvent extends Event implements Cancellable {
         return BlockUtil.getAttachedBlock(this.signblock);
     }
 
+    /**
+     * Gets the RailPiece linked with this sign. Returns {@link RailPiece#NONE} if this
+     * sign has no rails linked with it.
+     *
+     * @return RailPiece if found or set, NONE if not found
+     */
     public RailPiece getRailPiece() {
         if (this.rail == null) {
             this.rail = RailLookup.discoverRailPieceFromSign(this.signblock);

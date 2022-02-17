@@ -195,9 +195,9 @@ public class RailPiece {
 
     /**
      * Gets a list of Minecart Members that occupy this rail piece.
-     * The returned List is not guaranteed to be mutable.
+     * The returned List is immutable.
      *
-     * @return members list
+     * @return immutable members list
      */
     public List<MinecartMember<?>> members() {
         return accessCache().cachedMembers();

@@ -176,7 +176,7 @@ public class Util {
     }
 
     /**
-     * <b>Deprecated: use {@link RailSignCache#getSigns(RailType, Block)} instead</b>
+     * <b>Deprecated: use {@link RailPiece#signs()} instead</b>
      */
     @Deprecated
     public static List<Block> getSignsFromRails(Block railsblock) {
@@ -184,7 +184,7 @@ public class Util {
     }
 
     /**
-     * <b>Deprecated: use {@link RailSignCache#getSigns(RailType, Block)} instead</b>
+     * <b>Deprecated: use {@link RailPiece#signs()} instead</b>
      */
     @Deprecated
     public static List<Block> getSignsFromRails(List<Block> rval, Block railsblock) {

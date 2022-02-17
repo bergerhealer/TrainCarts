@@ -94,7 +94,7 @@ public abstract class RailType {
         ArrayList<RailType> newValues = new ArrayList<RailType>(values);
         if (newValues.remove(type)) {
             values = newValues;
-            RailPieceCache.reset();
+            RailLookup.forceRecalculation();
         }
     }
 
@@ -112,7 +112,7 @@ public abstract class RailType {
             newValues.add(type);
         }
         values = newValues;
-        RailPieceCache.reset();
+        RailLookup.forceRecalculation();
     }
 
     /**
