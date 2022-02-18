@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 
 import org.bukkit.Chunk;
@@ -181,8 +182,18 @@ public final class RailLookup {
      * type, or when a rail type significantly alters behavior/reloads.
      */
     public static void forceRecalculation() {
-        //TODO: DO IT
-        lifeTimer++; // Eh.
+        // Force all positions to re-discover the rails that are there
+        // Delete buckets from memory that have no members on it
+        refreshBuckets(bucket -> {
+            // Delete this at all times
+            bucket.rails_at_position_life = 0;
+            bucket.rails_at_position = NO_RAILS_AT_POSITION;
+            // Remove bucket if there's no members on the rails
+            return !bucket.members.isEmpty();
+        });
+
+        // Increment life timer so that all rail access is re-validated
+        lifeTimer++;
     }
 
     /**
@@ -206,31 +217,36 @@ public final class RailLookup {
      * in a while, so they can be properly regenerated and memory doesn't infinitely go up.
      */
     public static void update() {
-        int deadTimeout = lifeTimer - 20;
+        final int deadTimeout = lifeTimer - 20;
+        refreshBuckets(b -> b.checkStillValid(deadTimeout));
+        lifeTimer++;
+    }
+
+    private static void refreshBuckets(Predicate<Bucket> validChecker) {
         Iterator<Map.Entry<OfflineBlock, Bucket>> iter = cache.entrySet().iterator();
         while (iter.hasNext()) {
             Map.Entry<OfflineBlock, Bucket> e = iter.next();
             Bucket bucket = e.getValue();
-            if (bucket.checkStillValid(deadTimeout)) {
-                continue;
-            }
-
-            // If bucket has a next value, put that one in instead. Remove if all dead.
-            while (true) {
-                bucket.rail_life = 0;
-                bucket = bucket.next;
-                if (bucket == null) {
-                    iter.remove(); // No more buckets, remove entirely
-                    break;
-                } else if (bucket.checkStillValid(deadTimeout)) {
-                    // Set this one, instead. No need to check further.
-                    e.setValue(bucket);
-                    break;
+            if (validChecker.test(bucket)) {
+                // Only remove invalid buckets from the next chain
+                bucket.removeInvalidBucketsFromChain(validChecker);
+            } else {
+                // If bucket has a next value, put that one in instead. Remove if all dead.
+                while (true) {
+                    bucket.rail_life = 0;
+                    bucket = bucket.next;
+                    if (bucket == null) {
+                        iter.remove(); // No more buckets, remove entirely
+                        break;
+                    } else if (validChecker.test(bucket)) {
+                        // Set this one, instead. Do remove further next entries that aren't valid
+                        bucket.removeInvalidBucketsFromChain(validChecker);
+                        e.setValue(bucket);
+                        break;
+                    }
                 }
             }
         }
-
-        lifeTimer++;
     }
 
     /**
@@ -373,6 +389,25 @@ public final class RailLookup {
                     return next;
                 } else {
                     current = next;
+                }
+            }
+        }
+
+        /**
+         * Iterates down the chain of {@link #next} entries and removes buckets that
+         * aren't valid anymore according to a valid checker.
+         *
+         * @param validChecker
+         */
+        public void removeInvalidBucketsFromChain(Predicate<Bucket> validChecker) {
+            Bucket curr = this;
+            Bucket next;
+            while ((next = curr.next) != null) {
+                if (validChecker.test(next)) {
+                    curr = next;
+                } else {
+                    next.rail_life = 0;
+                    curr.next = next.next;
                 }
             }
         }
