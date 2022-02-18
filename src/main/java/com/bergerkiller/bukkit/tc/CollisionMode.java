@@ -107,7 +107,7 @@ public enum CollisionMode {
         }
 
         // Determine if the player is pushing the train or getting run over by it
-        if (this != CANCEL && this != SKIP && entity instanceof Player) {
+        if (entity instanceof Player && this.isHitCollision()) {
             // Get train's X and Z velocity
             double trainX = member.getLimitedVelocity().getX();
             double trainZ = member.getLimitedVelocity().getZ();
@@ -270,5 +270,24 @@ public enum CollisionMode {
      */
     public boolean permitsKnockback() {
         return this == DEFAULT;
+    }
+
+    /**
+     * Gets whether this collision mode only occurs when the train is hitting an Entity
+     * head-on.
+     *
+     * @return True if this is a hit-type of collision
+     */
+    public boolean isHitCollision() {
+        switch (this) {
+        case PUSH:
+        case DAMAGE:
+        case DAMAGENODROPS:
+        case KILL:
+        case KILLNODROPS:
+            return true;
+        default:
+            return false;
+        }
     }
 }
