@@ -217,6 +217,7 @@ public final class RailLookup {
 
             // If bucket has a next value, put that one in instead. Remove if all dead.
             while (true) {
+                bucket.rail_life = 0;
                 bucket = bucket.next;
                 if (bucket == null) {
                     iter.remove(); // No more buckets, remove entirely
