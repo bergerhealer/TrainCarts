@@ -299,7 +299,7 @@ public final class RailLookup {
         public boolean checkStillValid(int timeoutTicks) {
             // If accessed recently, then it can be kept. Even if members are around that should be
             // unloaded, presumably, such an unloaded member wouldn't keep accessing it.
-            if (this.rail_life < timeoutTicks || this.rails_at_position_life < timeoutTicks) {
+            if (this.rail_life >= timeoutTicks || this.rails_at_position_life >= timeoutTicks) {
                 return true;
             }
 
