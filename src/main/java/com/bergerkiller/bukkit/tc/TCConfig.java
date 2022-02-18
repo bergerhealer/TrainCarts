@@ -79,6 +79,8 @@ public class TCConfig {
     public static boolean allMinecartsAreTrainCarts;
     public static boolean allowUpsideDownRails;
     public static boolean allowNetherTeleport;
+    public static int cacheVerificationTicks;
+    public static int cacheExpireTicks;
     public static boolean enableCeilingBlockCollision = true; // whether to allow blocks above the minecart to collide
     public static int collisionReEnterDelay = 100; // Delay before letting mobs/player enter again
     public static boolean optimizeBlockActivation;
@@ -344,6 +346,20 @@ public class TCConfig {
 
         config.setHeader("collisionReEnterDelay", "\nThe delay (in ticks) between ejecting and re-entering by collision (e.g. mobs auto-entering carts)");
         collisionReEnterDelay = config.get("collisionReEnterDelay", collisionReEnterDelay);
+
+        // Cache settings
+        {
+            config.setHeader("cache", "\nConfigures the in-memory rail information cache of TrainCarts");
+            ConfigurationNode cacheConfig = config.getNode("cache");
+            cacheConfig.setHeader("verificationTicks", "For how many ticks the cached information is accessed without verification");
+            cacheConfig.addHeader("verificationTicks", "With 0 ticks, the information is verified every tick, reading world block data doing so");
+            cacheConfig.addHeader("verificationTicks", "Higher values will verify less often, possibly improving performance, but this");
+            cacheConfig.addHeader("verificationTicks", "may cause stale information to remain in the cache. This may cause 'ghost rails'.");
+            cacheVerificationTicks = cacheConfig.get("verificationTicks", 0);
+            cacheConfig.setHeader("expireTicks", "After this number of ticks beyond the verification ticks the cached information is deleted");
+            cacheConfig.addHeader("expireTicks", "Higher values can reduce lookups but this comes at the cost of higher memory consumption");
+            cacheExpireTicks = cacheConfig.get("expireTicks", 20);
+        }
 
         config.setHeader("allowedBlockBreakTypes", "\nThe block materials that can be broken using minecarts");
         config.addHeader("allowedBlockBreakTypes", "Players with the admin block break permission can use any type");

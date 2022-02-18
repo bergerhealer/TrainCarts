@@ -26,6 +26,7 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -55,6 +56,8 @@ import com.bergerkiller.bukkit.tc.rails.type.RailType;
 public final class RailLookup {
     /** This is incremented every tick to force cached information to re-verify itself */
     private static int lifeTimer = 1;
+    /** Stores the (every tick incrementing) future tick when cached information expires */
+    private static int verifyTimer = 1;
 
     private static final Bucket[] NO_RAILS_AT_POSITION = new Bucket[0];
     private static final TrackedSign[] NO_SIGNS = new TrackedSign[0];
@@ -193,7 +196,7 @@ public final class RailLookup {
         });
 
         // Increment life timer so that all rail access is re-validated
-        lifeTimer++;
+        verifyTimer = ++lifeTimer + TCConfig.cacheVerificationTicks;
     }
 
     /**
@@ -217,9 +220,9 @@ public final class RailLookup {
      * in a while, so they can be properly regenerated and memory doesn't infinitely go up.
      */
     public static void update() {
-        final int deadTimeout = lifeTimer - 20;
+        final int deadTimeout = lifeTimer - TCConfig.cacheExpireTicks - TCConfig.cacheVerificationTicks;
         refreshBuckets(b -> b.checkStillValid(deadTimeout));
-        lifeTimer++;
+        verifyTimer = ++lifeTimer + TCConfig.cacheVerificationTicks;
     }
 
     private static void refreshBuckets(Predicate<Bucket> validChecker) {
@@ -418,12 +421,10 @@ public final class RailLookup {
          * @return rails at this block position
          */
         public Bucket[] getRailsAtPosition() {
-            int currLife = this.rails_at_position_life;
-            int currTimer = lifeTimer;
-            if (currLife == currTimer) {
+            if (this.rails_at_position_life >= lifeTimer) {
                 return this.rails_at_position;
             }
-            this.rails_at_position_life = currTimer;
+            this.rails_at_position_life = verifyTimer;
 
             // Verify still valid, if still valid, return as-is
             Bucket[] currAtPosition = this.rails_at_position;
@@ -500,16 +501,15 @@ public final class RailLookup {
         @Override
         public boolean verify() {
             int currLife = this.rail_life;
-            int currTimer = lifeTimer;
-            if (currLife == currTimer) {
-                return true; // Accessed multiple times in the same tick
+            if (currLife >= lifeTimer) {
+                return true; // Accessed multiple times within the cache period
             }
             if (currLife == 0) {
                 return false; // Removed from cache, another lookup required
             }
 
             // Reset life timer on every access
-            this.rail_life = currTimer;
+            this.rail_life = verifyTimer;
 
             // Check that the rails type still exists at the position
             // Will always fail for RailType NONE, if that ever happens
