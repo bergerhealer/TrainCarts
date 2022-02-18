@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
+import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -785,22 +786,70 @@ public final class RailLookup {
             return NO_SIGNS;
         }
 
-        // Compute signs. Do check that the sign search input params are correct.
-        TrackedSign[] signs = NO_SIGNS;
         List<Block> cache = SIGN_LIST_CACHE;
         try {
-            addSignsFromRails(cache, columnStart, direction);
-            if (!cache.isEmpty()) {
-                signs = new TrackedSign[cache.size()];
-                for (int i = 0; i < signs.length; i++) {
-                    signs[i] = new TrackedSign(cache.get(i), rail);
+            // Compute signs. Do check that the sign search input params are correct.
+            int x = columnStart.getX() & 0xF;
+            int z = columnStart.getZ() & 0xF;
+            if (FaceUtil.isVertical(direction) && x >= 1 && x <= 14 && z >= 1 && z <= 14) {
+                // If direction is vertical, and the block is within chunk bounds, we can check
+                // super efficiently by querying the chunk directly.
+                Chunk chunk = columnStart.getChunk();
+                addSignsFromRailsVerticalInChunk(cache, chunk, x, columnStart.getY(), z, direction);
+                if (!cache.isEmpty()) {
+                    TrackedSign[] signs = new TrackedSign[cache.size()];
+                    for (int i = 0; i < signs.length; i++) {
+                        signs[i] = new TrackedSign(cache.get(i), rail);
+                    }
+                    return signs;
+                }
+            } else {
+                // Slightly slower
+                addSignsFromRails(cache, columnStart, direction);
+                if (!cache.isEmpty()) {
+                    TrackedSign[] signs = new TrackedSign[cache.size()];
+                    for (int i = 0; i < signs.length; i++) {
+                        signs[i] = new TrackedSign(cache.get(i), rail);
+                    }
+                    return signs;
                 }
             }
+
+            return NO_SIGNS;
         } finally {
             cache.clear();
         }
+    }
 
-        return signs;
+    private static void addSignsFromRailsVerticalInChunk(List<Block> rval, Chunk chunk, int rx, int ry, int rz, BlockFace signDirection) {
+        int offsetCtr = 0;
+        while (true) {
+            if (WorldUtil.getBlockData(chunk, rx, ry, rz).isType(SIGN_POST_TYPE)) {
+                // Found a sign post - add it and continue
+                rval.add(chunk.getBlock(rx, ry, rz));
+            } else if (addAttachedSignsVerticalInChunk(rval, chunk, rx, ry, rz)) {
+                // Found one or more signs attached to the current block - continue
+            } else if (offsetCtr > 1) {
+                // No signs found here. If this is too far down, stop.
+                break;
+            }
+
+            ry += signDirection.getModY();
+            offsetCtr++;
+        }
+    }
+
+    private static boolean addAttachedSignsVerticalInChunk(List<Block> rval, Chunk chunk, int rx, int ry, int rz) {
+        boolean found = false;
+        for (BlockFace face : FaceUtil.AXIS) {
+            BlockData blockData = WorldUtil.getBlockData(chunk,
+                    rx + face.getModX(), ry, rz + face.getModZ());
+            if (MaterialUtil.ISSIGN.get(blockData) && blockData.getAttachedFace() == face.getOppositeFace()) {
+                found = true;
+                rval.add(chunk.getBlock(rx + face.getModX(), ry, rz + face.getModZ()));
+            }
+        }
+        return found;
     }
 
     private static void addSignsFromRails(List<Block> rval, Block startBlock, BlockFace signDirection) {
