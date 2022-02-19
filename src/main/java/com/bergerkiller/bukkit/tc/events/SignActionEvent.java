@@ -46,6 +46,7 @@ public class SignActionEvent extends Event implements Cancellable {
     private BlockFace facing;
     private final SignActionHeader header;
     private final Sign sign;
+    private final String lowerSecondCleanedLine;
     private BlockFace[] watchedDirections;
     private RailPiece rail;
     private SignActionType actionType;
@@ -112,10 +113,12 @@ public class SignActionEvent extends Event implements Cancellable {
         if (this.sign == null) {
             // No sign available - set default values and abort
             this.header = SignActionHeader.parse(null);
+            this.lowerSecondCleanedLine = "";
             this.watchedDirections = FaceUtil.AXIS;
         } else {
             // Sign available - initialize the sign
             this.header = SignActionHeader.parseFromEvent(this);
+            this.lowerSecondCleanedLine = Util.cleanSignLine(sign.getLine(1)).toLowerCase(Locale.ENGLISH);
             if (this.header.isLegacyConverted() && this.header.isValid()) {
                 this.setLine(0, this.header.toString());
             }
@@ -1019,13 +1022,22 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     /**
-     * Checks the first line of this sign to see if it starts with one of the sign types specified
+     * Checks the second line of this sign to see if it starts with one of the sign types specified.
+     * Case is ignored, so sign types should be specified in lower-case.
      *
      * @param signtypes to check against
      * @return True if the first line starts with any of the types AND the sign has a valid mode, False if not
      */
     public boolean isType(String... signtypes) {
-        return getHeader().isValid() && isLine(1, signtypes);
+        if (getHeader().isValid()) {
+            String s = this.lowerSecondCleanedLine;
+            for (String type : signtypes) {
+                if (s.startsWith(type)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Override
