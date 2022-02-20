@@ -1291,7 +1291,8 @@ public class RailPath {
          * @return order (-1 for decrement, 1 for increment)
          */
         public final int calcDirection(Position position) {
-            double dot = position.motDot(this.dt_norm);
+            Point dt = this.dt_norm;
+            double dot = position.motDot(dt);
 
             // Hitting the segment at a 90-degree angle
             // This means the path direction cannot be easily assessed from the direction
@@ -1318,14 +1319,14 @@ public class RailPath {
             }
 
             if (dot >= 0.0) {
-                position.motX = this.dt_norm.x;
-                position.motY = this.dt_norm.y;
-                position.motZ = this.dt_norm.z;
+                position.motX = dt.x;
+                position.motY = dt.y;
+                position.motZ = dt.z;
                 return 1;
             } else {
-                position.motX = -this.dt_norm.x;
-                position.motY = -this.dt_norm.y;
-                position.motZ = -this.dt_norm.z;
+                position.motX = -dt.x;
+                position.motY = -dt.y;
+                position.motZ = -dt.z;
                 return -1;
             }
         }
