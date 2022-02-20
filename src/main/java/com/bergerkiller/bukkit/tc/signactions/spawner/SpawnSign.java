@@ -38,9 +38,7 @@ public class SpawnSign {
     SpawnSign(OfflineSignStore store, OfflineSign sign, SpawnSignManager.SpawnSignMetadata metadata) {
         this.store = store;
         this.location = sign.getBlock();
-        this.state = metadata;
-        this.spawnForce = SpawnOptions.fromOfflineSign(sign).launchVelocity;
-        this.spawnFormat = sign.getLine(2) + sign.getLine(3);
+        this.updateState(sign, metadata);
 
         // Add the 5x5 area of chunks around the sign as the initial chunks to load
         int center_cx = MathUtil.toChunk(location.getX());
@@ -54,7 +52,9 @@ public class SpawnSign {
         }
     }
 
-    void updateState(SpawnSignManager.SpawnSignMetadata metadata) {
+    void updateState(OfflineSign sign, SpawnSignManager.SpawnSignMetadata metadata) {
+        this.spawnForce = SpawnOptions.fromOfflineSign(sign).launchVelocity;
+        this.spawnFormat = sign.getLine(2) + sign.getLine(3);
         this.state = metadata;
     }
 
@@ -227,6 +227,12 @@ public class SpawnSign {
         Block signBlock = this.location.getLoadedBlock();
         if (signBlock != null) {
             SignActionEvent event = new SignActionEvent(signBlock);
+
+            // Before proceeding, verify the sign's contents again. May have changed!
+            if (store.verifySign(event.getSign(), SpawnSignManager.SpawnSignMetadata.class) == null) {
+                return; // removed
+            }
+
             if (isValid(event)) {
                 this.updateUsingEvent(event);
                 this.spawn(event);

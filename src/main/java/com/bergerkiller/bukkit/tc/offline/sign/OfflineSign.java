@@ -14,14 +14,8 @@ import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 
 /**
- * A single offline sign and the last-known associated metadata of it.
- * This allows tying custom data to a sign that will be stored persistently,
- * until it is discovered the sign no longer exists.<br>
- * <br>
- * Also stores the lines of text on the sign, which are used to check when
- * the text on a sign is changed between reloads.
- * 
- * @param T - Metadata type stored for this sign
+ * A single offline sign, stores the block coordinates and the lines of text on it.
+ * This information can be used to later verify and detect sign changes.
  */
 public class OfflineSign {
     private static final String EMPTY_STR = ""; // for memory efficiency
@@ -166,5 +160,16 @@ public class OfflineSign {
         for (String line : sign.getLines()) {
             stream.writeUTF(line);
         }
+    }
+
+    /**
+     * Creates a new state copy of a Bukkit sign's information
+     *
+     * @param sign Bukkit Sign whose lines and block information to copy
+     * @return new OfflineSign
+     */
+    public static OfflineSign fromSign(Sign sign) {
+        return new OfflineSign(OfflineWorld.of(sign.getWorld()).getBlockAt(
+                sign.getX(), sign.getY(), sign.getZ()), sign.getLines());
     }
 }

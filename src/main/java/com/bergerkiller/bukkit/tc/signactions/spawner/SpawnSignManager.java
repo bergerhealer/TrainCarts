@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.block.Block;
@@ -43,7 +44,7 @@ public class SpawnSignManager {
             public void onUpdated(OfflineSignStore store, OfflineSign sign, SpawnSignMetadata oldValue, SpawnSignMetadata newValue) {
                 SpawnSign spawnSign = signs.get(sign.getBlock());
                 if (spawnSign != null) {
-                    spawnSign.updateState(newValue);
+                    spawnSign.updateState(sign, newValue);
                     notifyChanged();
                 }
             }
@@ -62,6 +63,29 @@ public class SpawnSignManager {
                     removedSign.loadChunksAsyncReset();
                 }
                 notifyChanged();
+            }
+
+            @Override
+            public SpawnSignMetadata onSignChanged(OfflineSignStore store, OfflineSign oldSign, OfflineSign newSign, SpawnSignMetadata metadata) {
+                // If first line changes, too complicated to handle here
+                if (!oldSign.getLine(0).equals(newSign.getLine(0))) {
+                    return null;
+                }
+
+                // Check changes of the second line (spawn timing)
+                if (!oldSign.getLine(1).equals(newSign.getLine(1))) {
+                    if (!newSign.getLine(1).toLowerCase(Locale.ENGLISH).startsWith("spawn")) {
+                        return null;
+                    }
+
+                    SpawnSign.SpawnOptions options = SpawnSign.SpawnOptions.fromOfflineSign(newSign);
+                    if (metadata.intervalMillis != options.autoSpawnInterval) {
+                        metadata = metadata.setInterval(options.autoSpawnInterval);
+                    }
+                }
+
+                // If the last two lines change, that's fine. We want to refresh those.
+                return metadata;
             }
 
             @Override
@@ -216,6 +240,10 @@ public class SpawnSignManager {
 
         public SpawnSignMetadata setActive(boolean active) {
             return new SpawnSignMetadata(this.intervalMillis, this.autoSpawnStartTime, active);
+        }
+
+        public SpawnSignMetadata setInterval(long intervalMillis) {
+            return new SpawnSignMetadata(intervalMillis, this.autoSpawnStartTime, this.active);
         }
     }
 }

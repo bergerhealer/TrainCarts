@@ -104,6 +104,30 @@ public interface OfflineSignMetadataHandler<T> {
     }
 
     /**
+     * Called when the contents of a sign have changed since storing metadata for it.
+     * In here, new metadata can be returned that correctly applied to the new sign, if
+     * the two signs are similar enough in content. It should return null if the sign is
+     * no longer valid for containing this metadata. By returning the old metadata,
+     * nothing changes.<br>
+     * <br>
+     * If null is returned, {@link #onRemoved(OfflineSignStore, OfflineSign, Object)} will be
+     * called with the previous sign information and metadata. Otherwise,
+     * {@link #onUpdated(OfflineSignStore, OfflineSign, Object, Object)} will be called with
+     * the new sign and old/new metadata values. This will also be called if the metadata
+     * didn't change, since the sign did.
+     *
+     * @param store OfflineSignStore where this handler was registered
+     * @param oldSign Previous sign's contents
+     * @param newSign New sign's contents
+     * @param metadata The metadata that was stored for this sign
+     * @return The new metadata to store for this sign position. Return the the previous
+     *         metadata to keep it, or return null to remove the metadata from the store.
+     */
+    default T onSignChanged(OfflineSignStore store, OfflineSign oldSign, OfflineSign newSign, T metadata) {
+        return null;
+    }
+
+    /**
      * Called when sign metadata has to be encoded
      *
      * @param stream Stream to write the encoded data to

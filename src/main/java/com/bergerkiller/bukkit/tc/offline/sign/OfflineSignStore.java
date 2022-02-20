@@ -589,6 +589,48 @@ public class OfflineSignStore {
         return null;
     }
 
+    /**
+     * Verifies the sign contents of metadata stored for a sign are still correct. If they
+     * are not, asks the handler for this metadata what to do. The handler can generate more
+     * up-to-date metadata, which is then set and returned by this method. If the sign is
+     * no longer valid, the metadata is removed and null is returned here.<br>
+     * <br>
+     * To verify any kind of metadata at all, simply pass a <i>null</i> metadataType. In that
+     * case no metadata will be returned by this method.
+     *
+     * @param <T> Type of metadata
+     * @param sign Bukkit Sign with the up-to-date sign information
+     * @param metadataType Class type of metadata to verify. Null to verify all (and return null)
+     * @return Metadata now stored for this sign. Null if no metadata was stored, or the sign
+     *         was invalid and metadata was removed.
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T verifySign(Sign sign, Class<T> metadataType) {
+        IntVector3 position = new IntVector3(sign.getX(), sign.getY(), sign.getZ());
+        OfflineSignWorldStore atWorld = forWorld(sign.getWorld());
+        Iterator<OfflineMetadataEntry<Object>> iter = atWorld.at(position).iterator();
+        T result = null;
+        while (iter.hasNext()) {
+            OfflineMetadataEntry<Object> entry = iter.next();
+            if (!entry.sign.verify(sign)) {
+                OfflineSign newSign = OfflineSign.fromSign(sign);
+                if (!entry.callOnSignChanged(newSign)) {
+                    iter.remove();
+                    atWorld.atChunk(position.toChunkCoordinates()).remove(entry);
+                    onEntryRemoved(entry);
+                    continue;
+                }
+            }
+
+            // Valid metadata (now). Check if we should return it.
+            Object metadata = entry.getMetadata();
+            if (metadataType != null && metadataType.isInstance(metadata)) {
+                result = (T) metadata;
+            }
+        }
+        return result;
+    }
+
     private void removeEntry(OfflineMetadataEntry<?> entryToRemove) {
         OfflineSignWorldStore atWorld = forWorld(entryToRemove.sign.getWorld());
         Iterator<OfflineMetadataEntry<Object>> iter = atWorld.at(entryToRemove.sign.getPosition()).iterator();
@@ -742,11 +784,22 @@ public class OfflineSignStore {
         do {
             OfflineMetadataEntry<Object> entry = entriesAtChunk.next();
             Sign sign = signsByBlock.get(entry.sign.getPosition());
-            if (sign == null || !entry.sign.verify(sign)) {
-                entriesAtChunk.remove();
-                atWorld.at(entry.sign.getPosition()).remove(entry);
-                onEntryRemoved(entry);
+            if (sign != null) {
+                if (entry.sign.verify(sign)) {
+                    continue; // OK
+                }
+
+                // Ask handler what to do with it. If there is no handler, just deletes it.
+                OfflineSign newSign = OfflineSign.fromSign(sign);
+                if (entry.callOnSignChanged(newSign)) {
+                    continue; // OK
+                }
             }
+
+            // Delete the metadata
+            entriesAtChunk.remove();
+            atWorld.at(entry.sign.getPosition()).remove(entry);
+            onEntryRemoved(entry);
         } while (entriesAtChunk.hasNext());
     }
 
@@ -873,7 +926,7 @@ public class OfflineSignStore {
     }
 
     private final class OfflineMetadataEntry<T> implements Entry<T> {
-        public final OfflineSign sign;
+        public OfflineSign sign;
         private MetadataHandlerEntry<T> handlerEntry;
         private byte[] encodedData;
         private T metadata;
@@ -1070,6 +1123,32 @@ public class OfflineSignStore {
             return encodedData;
         }
 
+        public boolean callOnSignChanged(OfflineSign newSign) {
+            // Check handler known. Remove silently if not.
+            T oldMetadata = this.metadata;
+            if (this.handlerEntry == null || oldMetadata == null) {
+                return false;
+            }
+
+            // Ask the handler what to do here. If null is returned, remove it.
+            T newMetadata;
+            try {
+                newMetadata = this.handlerEntry.handler.onSignChanged(OfflineSignStore.this,
+                        this.sign, newSign, oldMetadata);
+                if (newMetadata == null) {
+                    return false;
+                }
+            } catch (Throwable t) {
+                logger.log(Level.SEVERE, "Failed to handle onSignChanged for sign " + newSign, t);
+                return false;
+            }
+
+            // Update the sign and set new metadata, if any
+            this.sign = newSign;
+            this.setMetadataFireEvent(newMetadata);
+            return true;
+        }
+
         public void callOnAdded() {
             if (!this.addedToHandler && this.handlerEntry != null) {
                 try {
@@ -1123,6 +1202,10 @@ public class OfflineSignStore {
                 return;
             }
 
+            setMetadataFireEvent(metadata);
+        }
+
+        private void setMetadataFireEvent(T metadata) {
             T oldMetadata = this.metadata;
 
             synchronized (this) {
