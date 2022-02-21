@@ -90,7 +90,8 @@ public class RailPath {
         p.posX = firstSegment.p0.x;
         p.posY = firstSegment.p0.y;
         p.posZ = firstSegment.p0.z;
-        p.orientation = firstSegment.p0_orientation;
+        p.wheelSegment = firstSegment;
+        p.wheelTheta = 0.0;
         p.motX = -firstSegment.dt_norm.x;
         p.motY = -firstSegment.dt_norm.y;
         p.motZ = -firstSegment.dt_norm.z;
@@ -110,7 +111,8 @@ public class RailPath {
         p.posX = lastSegment.p1.x;
         p.posY = lastSegment.p1.y;
         p.posZ = lastSegment.p1.z;
-        p.orientation = lastSegment.p1_orientation;
+        p.wheelSegment = lastSegment;
+        p.wheelTheta = 1.0;
         p.motX = lastSegment.dt_norm.x;
         p.motY = lastSegment.dt_norm.y;
         p.motZ = lastSegment.dt_norm.z;
@@ -611,9 +613,10 @@ public class RailPath {
          */
         public double motX, motY, motZ;
         /**
-         * Orientation of a wheel on the path
+         * Orientation of a wheel on the path. Is computed once used.
          */
-        public Quaternion orientation;
+        private Segment wheelSegment;
+        private double wheelTheta;
         /**
          * Whether we are walking the path in reverse. This is important
          * when applying the south-east rule when encountering an orthogonal
@@ -700,6 +703,21 @@ public class RailPath {
                 posZ = Math.nextUp(posZ);
             } else if (motZ < -SMALL_ADVANCE_MIN_MOT) {
                 posZ = Math.nextDown(posZ);
+            }
+        }
+
+        /**
+         * Gets the orientation of wheels at this rail position
+         *
+         * @return wheel orientation at this rail position
+         */
+        public Quaternion getWheelOrientation() {
+            Segment s = this.wheelSegment;
+            if (s == null) {
+                // Fallback. Should never be used, really.
+                return Quaternion.fromLookDirection(this.getMotion(), new Vector(0, 1, 0));
+            } else {
+                return s.calcWheelOrientation(this.wheelTheta);
             }
         }
 
@@ -919,7 +937,8 @@ public class RailPath {
             p.motX = this.motX;
             p.motY = this.motY;
             p.motZ = this.motZ;
-            p.orientation = this.orientation;
+            p.wheelSegment = this.wheelSegment;
+            p.wheelTheta = this.wheelTheta;
             p.reverse = this.reverse;
             p.relative = this.relative;
         }
@@ -1424,31 +1443,36 @@ public class RailPath {
          * @param theta (0.0 ... 1.0)
          */
         public void calcPosition(Position position, double theta) {
+            position.wheelSegment = this;
+            position.wheelTheta = theta;
             if (theta <= 0.0) {
                 position.posX = p0.x;
                 position.posY = p0.y;
                 position.posZ = p0.z;
-                position.orientation = p0_orientation;
             } else if (theta >= 1.0) {
                 position.posX = p1.x;
                 position.posY = p1.y;
                 position.posZ = p1.z;
-                position.orientation = p1_orientation;
             } else {
                 position.posX = p0.x + dt.x * theta;
                 position.posY = p0.y + dt.y * theta;
                 position.posZ = p0.z + dt.z * theta;
-                position.orientation = Quaternion.slerp(p0_orientation, p1_orientation, theta);
+            }
+        }
 
-                /*
-                if (this.has_changing_up_orientation) {
-                    Util.lerpOrientation(position, this.p0, this.p1, theta);
-                } else {
-                    position.upX = p0.up_x;
-                    position.upY = p0.up_y;
-                    position.upZ = p0.up_z;
-                }
-                */
+        /**
+         * Calculates the Quaternion orientation wheels have somewhere along this rail path segment
+         *
+         * @param theta
+         * @return wheel orientation
+         */
+        public Quaternion calcWheelOrientation(double theta) {
+            if (theta <= 0.0) {
+                return p0_orientation;
+            } else if (theta >= 1.0) {
+                return p1_orientation;
+            } else {
+                return Quaternion.slerp(p0_orientation, p1_orientation, theta);
             }
         }
 
