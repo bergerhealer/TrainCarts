@@ -251,6 +251,11 @@ public class SpawnSign {
      */
     public void spawn(SignActionEvent sign) {
         try (Timings t = TCTimings.SIGNACTION_SPAWN.start()) {
+            // Before proceeding, verify the sign's contents again. May have changed!
+            if (store.verifySign(sign.getSign(), SpawnSignManager.SpawnSignMetadata.class) == null) {
+                return; // removed
+            }
+
             // Keep the area loaded for 2 more ticks, allowing the train to activate signs
             this.ticksUntilFreeing = 2;
 
