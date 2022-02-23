@@ -40,7 +40,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
 
                     // Perform post-tick physics for all Minecarts in the train, if not previously ticked
                     for (MinecartMember<?> member : group) {
-                        if (!member.ticked.clear()) {
+                        if (!member.ticked.clear() && !member.isUnloaded()) {
                             member.getEntity().doPostTick();
                         }
                     }

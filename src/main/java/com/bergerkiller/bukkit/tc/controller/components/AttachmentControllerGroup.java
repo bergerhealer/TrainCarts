@@ -62,6 +62,9 @@ public class AttachmentControllerGroup {
                 boolean needsSync = isUpdateTick;
                 if (!needsSync) {
                     for (MinecartMember<?> member : group) {
+                        if (member.isUnloaded()) {
+                            continue;
+                        }
                         if (member.getEntity().isPositionChanged() || member.getEntity().getDataWatcher().isChanged()) {
                             needsSync = true;
                             break;
