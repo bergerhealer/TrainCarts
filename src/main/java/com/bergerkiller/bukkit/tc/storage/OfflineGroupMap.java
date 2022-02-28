@@ -63,9 +63,10 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
         group.isBeingRemoved = true;
 
         // Set of minecart entity UUID's to find. Done when empty.
-        Set<UUID> minecartEntityUUIDs = Stream.of(group.members)
+        final List<UUID> minecartEntityUUIDs = Stream.of(group.members)
                 .map(m -> m.entityUID)
-                .collect(Collectors.toCollection(HashSet::new));
+                .collect(Collectors.toList());
+        final Set<UUID> minecartEntityUUIDsRemaining = new HashSet<>(minecartEntityUUIDs);
         minecartEntityUUIDsBeingDestroyed.addAll(minecartEntityUUIDs);
 
         // This future is completed once done
@@ -80,11 +81,11 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
                 .map(forcedChunk -> {
                     return futureProvider.whenEntitiesLoaded(world, forcedChunk.getX(), forcedChunk.getZ()).thenAccept(chunk -> {
                         try {
-                            if (!minecartEntityUUIDs.isEmpty()) {
+                            if (!minecartEntityUUIDsRemaining.isEmpty()) {
                                 for (Entity e : new ArrayList<>(WorldUtil.getEntities(chunk))) {
-                                    if (minecartEntityUUIDs.remove(e.getUniqueId())) {
+                                    if (minecartEntityUUIDsRemaining.remove(e.getUniqueId())) {
                                         e.remove();
-                                        if (minecartEntityUUIDs.isEmpty()) {
+                                        if (minecartEntityUUIDsRemaining.isEmpty()) {
                                             result.complete(Boolean.TRUE);
                                             break;
                                         }
@@ -104,13 +105,11 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
             // Remove from mappings
             remove(group);
 
-            // Cleanup, no longer needed
-            for (OfflineMember m : group.members) {
-                minecartEntityUUIDsBeingDestroyed.remove(m.entityUID);
-            }
-
             // Avoid stale properties
             TrainPropertiesStore.remove(group.name);
+
+            // Cleanup, no longer needed
+            minecartEntityUUIDsBeingDestroyed.removeAll(minecartEntityUUIDs);
 
             return found;
         });

@@ -24,7 +24,6 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
-import com.bergerkiller.bukkit.tc.cache.RailMemberCache;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.AnimationController;
 import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerGroup;
@@ -492,27 +491,31 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         Util.checkMainThread("MinecartGroup::unload()");
         this.unloaded = true;
 
-        // Undo partial-unloading before calling the event
-        for (MinecartMember<?> member : this) {
-            member.group = this;
-            member.setUnloaded(false);
+        try {
+            // Undo partial-unloading before calling the event
+            for (MinecartMember<?> member : this) {
+                member.group = this;
+                member.setUnloaded(false);
+            }
+
+            // Event
+            GroupUnloadEvent.call(this);
+
+            // Unload in detector regions
+            getSignTracker().unload();
+
+            // Remove from member-by-rail cache
+            getRailTracker().unload();
+
+            // Store the group offline
+            OfflineGroupManager.storeGroup(this);
+
+            // Unload
+            this.stop(true);
+        } finally {
+            groups.remove(this);
         }
 
-        // Event
-        GroupUnloadEvent.call(this);
-
-        // Unload in detector regions
-        getSignTracker().unload();
-
-        // Remove from member-by-rail cache
-        getRailTracker().unload();
-
-        // Store the group offline
-        OfflineGroupManager.storeGroup(this);
-
-        // Unload
-        this.stop(true);
-        groups.remove(this);
         for (MinecartMember<?> member : this) {
             member.group = null;
             member.unloadedLastPlayerTakable = this.getProperties().isPlayerTakeable();
@@ -1292,7 +1295,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
     protected void doPhysics(TrainCarts plugin) {
         // NOP if unloaded
+        // This should never happen, so remove the group as a precaution
+        // Somehow it got re-added again.
         if (this.isUnloaded()) {
+            groups.remove(this);
             return;
         }
 

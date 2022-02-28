@@ -1770,7 +1770,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     protected void updateUnloaded() {
-        setUnloaded((entity == null) || OfflineGroupManager.containsMinecart(entity.getUniqueId()));
+        setUnloaded((entity == null) || entity.isRemoved() || OfflineGroupManager.containsMinecart(entity.getUniqueId()));
         if (!unloaded && (this.group == null || this.group.canUnload())) {
             // Check a 5x5 chunk area around this Minecart to see if it is loaded
             World world = entity.getWorld();
