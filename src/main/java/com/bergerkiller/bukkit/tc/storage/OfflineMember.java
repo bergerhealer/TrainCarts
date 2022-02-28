@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.storage;
 
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -55,9 +56,16 @@ public class OfflineMember {
     }
 
     public void setVelocity(double velocity) {
-        Vector vel = new Vector(this.motX, 0.0, this.motZ).normalize().multiply(velocity);
-        this.motX = vel.getX();
-        this.motZ = vel.getZ();
+        Vector vel = new Vector(this.motX, 0.0, this.motZ);
+        double ls = vel.lengthSquared();
+        if (ls < 1e-20) {
+            this.motX = velocity;
+            this.motZ = 0.0;
+        } else {
+            vel = vel.multiply(MathUtil.getNormalizationFactorLS(ls) * velocity);
+            this.motX = vel.getX();
+            this.motZ = vel.getZ();
+        }
     }
 
     public Minecart findEntity(Chunk chunk, boolean markChunkDirty) {
