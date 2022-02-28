@@ -23,6 +23,9 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.debug.DebugTool;
 import com.bergerkiller.bukkit.tc.editor.TCMapControl;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.seat.MemberBeforeSeatChangeEvent;
+import com.bergerkiller.bukkit.tc.events.seat.MemberBeforeSeatEnterEvent;
+import com.bergerkiller.bukkit.tc.events.seat.MemberBeforeSeatExitEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.portals.PortalDestination;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -91,8 +94,6 @@ public class TCListener implements Listener {
     private static final long MAX_INTERACT_INTERVAL = 300; // Interval in MS where spam-interaction is allowed
     public static boolean cancelNextDrops = false;
     public static MinecartMember<?> killedByMember = null;
-    public static List<Entity> exemptFromEjectOffset = new ArrayList<Entity>();
-    private static Map<Player, Integer> markedForUnmounting = new HashMap<Player, Integer>();
     private final TrainCarts plugin;
     private EntityMap<Player, Long> lastHitTimes = new EntityMap<>();
     private EntityMap<Player, BlockFace> lastClickedDirection = new EntityMap<>();
@@ -261,175 +262,6 @@ public class TCListener implements Listener {
                 });
             }
         }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onVehicleEnter(VehicleEnterEvent event) {
-        MinecartMember<?> member = MinecartMemberStore.getFromEntity(event.getVehicle());
-        if (member == null) {
-            return;
-        }
-        if (!member.isInteractable()) {
-            event.setCancelled(true);
-            return;
-        }
-
-        CartProperties prop = member.getProperties();
-
-        if (event.getEntered() instanceof Player) {
-            Player player = (Player) event.getEntered();
-            if (!member.isPassengerEnterForced(event.getEntered())) {
-                if (!prop.getPlayersEnter()) {
-                    event.setCancelled(true);
-                    return;
-                }
-                if (prop.getCanOnlyOwnersEnter() && !prop.hasOwnership(player)) {
-                    event.setCancelled(true);
-                    return;
-                }
-            }
-            if (!TicketStore.handleTickets(player, member.getGroup().getProperties())) {
-                event.setCancelled(true);
-                return;
-            }
-            CartPropertiesStore.setEditing(player, member.getProperties());
-            prop.showEnterMessage(player);
-        } else if (EntityUtil.isMob(event.getEntered())) {
-            // This does not appear to be needed (anymore) to stop mobs from going into the Minecarts
-            // Keeping this will cause enter signs or other plugins to no longer be able to add passengers
-            //CollisionMode x = member.getGroup().getProperties().getCollisionMode(event.getEntered());
-            //if (x != CollisionMode.ENTER) {
-            //    event.setCancelled(true);
-            //}
-        }
-        member.onPropertiesChanged();
-    }
-
-    /*
-     * Bukkit now sends a VehicleExitEvent after a cancelled VehicleEnterEvent event.
-     * To prevent the player teleporting into the Minecart, make him exempt here.
-     */
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
-    public void onVehicleEnterCheck(VehicleEnterEvent event) {
-        if (event.isCancelled()) {
-            final Entity entered = event.getEntered();
-            exemptFromEjectOffset.add(entered);
-            CommonUtil.nextTick(new Runnable() {
-                @Override
-                public void run() {
-                    exemptFromEjectOffset.remove(entered);
-                }
-            });
-        }
-    }
-
-    /**
-     * Tells the listener that a player decided, for itself, to exit the Minecart, but that
-     * it is not known yet what vehicle the player is inside of.
-     * 
-     * @param player
-     */
-    public static void markForUnmounting(Player player) {
-        synchronized (markedForUnmounting) {
-            if (markedForUnmounting.isEmpty()) {
-                new Task(TrainCarts.plugin) {
-                    @Override
-                    public void run() {
-                        synchronized (markedForUnmounting) {
-                            int curr_ticks = CommonUtil.getServerTicks();
-                            Iterator<Map.Entry<Player, Integer>> iter = markedForUnmounting.entrySet().iterator();
-                            while (iter.hasNext()) {
-                                Map.Entry<Player, Integer> e = iter.next();
-                                if (e.getKey().isSneaking() && e.getKey().getVehicle() == null) {
-                                    e.setValue(Integer.valueOf(curr_ticks));
-                                } else if ((curr_ticks - e.getValue().intValue()) >= 2) {
-                                    iter.remove();
-                                }
-                            }
-                            if (markedForUnmounting.isEmpty()) {
-                                stop();
-                            }
-                        }
-                    }
-                }.start(1, 1);
-            }
-            markedForUnmounting.put(player, CommonUtil.getServerTicks());
-        }
-    }
-
-    /*
-     * We must handle vehicle exit for when an unmount packet is received before
-     * the player is actually seated inside a vehicle. Player exit is normally
-     * handled inside the packet listener instead of here.
-     */
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onVehicleExitCheck(VehicleExitEvent event) {
-        // Only do this check when marked for unmounting by the packet listener
-        synchronized (markedForUnmounting) {
-            if (!markedForUnmounting.containsKey(event.getExited())) {
-                return;
-            }
-        }
-
-        MinecartMember<?> mm = MinecartMemberStore.getFromEntity(event.getVehicle());
-        if (mm != null && (!mm.getProperties().getPlayersExit())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onVehicleExit(VehicleExitEvent event) {
-        MinecartMember<?> mm = MinecartMemberStore.getFromEntity(event.getVehicle());
-        if (mm == null || exemptFromEjectOffset.contains(event.getExited())) {
-            return;
-        }
-
-        final Entity e = event.getExited();
-        final Location old_entity_location = e.getLocation();
-        final Location old_seat_location = mm.getPassengerLocation(e);
-        final Location loc = mm.getPassengerEjectLocation(e);
-
-        // Teleport to the exit position a tick later
-        CommonUtil.nextTick(new Runnable() {
-            public void run() {
-                if (e.isDead() || e.getVehicle() != null) {
-                    return;
-                }
-
-                // Do not teleport if the player changed position dramatically after exiting
-                // This is the case when teleporting (/tp)
-                // The default vanilla exit position is going to be at most 1 block away in all axis
-                // Check both seat and entity location. Players can sync their perceived seat
-                // location which the server accepts as an actual position.
-                Location new_location = e.getLocation();
-                if (!isPossibleExit(new_location, old_entity_location)
-                        && !isPossibleExit(new_location, old_seat_location))
-                {
-                    return;
-                }
-
-                Util.correctTeleportPosition(loc);
-                e.teleport(loc);
-            }
-        });
-        mm.resetCollisionEnter();
-        mm.onPropertiesChanged();
-    }
-
-    /**
-     * Minecraft client 'predicts' a stable exit for the player around
-     * the seat being exited. This method checks whether the current player
-     * position is within range that this could be.
-     *
-     * @param a Position A
-     * @param b Position B
-     * @return True if a is a possible exit of b (or vice-versa)
-     */
-    private static boolean isPossibleExit(Location a, Location b) {
-        return a.getWorld() == b.getWorld()
-                && Math.abs(a.getBlockX() - b.getBlockX()) <= 2
-                && Math.abs(a.getBlockY() - b.getBlockY()) <= 5
-                && Math.abs(a.getBlockZ() - b.getBlockZ()) <= 2;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

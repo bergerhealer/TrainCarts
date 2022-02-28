@@ -51,7 +51,7 @@ public class TCPacketListener implements PacketListener {
             if (action.equals("START_SNEAKING") || action.equals("PRESS_SHIFT_KEY")) {
                 // Player wants to exit, if inside a vehicle
                 if (player.getVehicle() == null) {
-                    TCListener.markForUnmounting(player);
+                    TCSeatChangeListener.markForUnmounting(player);
                 } else if (!TrainCarts.handlePlayerVehicleChange(player, null)) {
                     // Cancel it!
                     event.setCancelled(true);
@@ -61,7 +61,7 @@ public class TCPacketListener implements PacketListener {
         if (event.getType() == PacketType.IN_STEER_VEHICLE && packet.read(PacketType.IN_STEER_VEHICLE.unmount)) {
             // Handle vehicle exit cancelling
             if (player.getVehicle() == null) {
-                TCListener.markForUnmounting(player);
+                TCSeatChangeListener.markForUnmounting(player);
             } else if (!TrainCarts.handlePlayerVehicleChange(player, null)) {
                 packet.write(PacketType.IN_STEER_VEHICLE.unmount, false);
             }
@@ -74,7 +74,7 @@ public class TCPacketListener implements PacketListener {
             // If we're inside a vehicle, disable it
             if (packet_use.isUsingSecondaryAction()) {
                 if (player.getVehicle() == null) {
-                    TCListener.markForUnmounting(player);
+                    TCSeatChangeListener.markForUnmounting(player);
                 } else if (!TrainCarts.handlePlayerVehicleChange(player, null)) {
                     packet_use.setUsingSecondaryAction(false);
                 }

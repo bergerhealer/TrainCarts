@@ -7,7 +7,10 @@ import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,17 +44,36 @@ public class MinecartMemberRideable extends MinecartMember<CommonMinecartRideabl
             }
 
             // Ask attachments if changing seats is possible
-            if (this.getAttachments().changeSeats(interacter)) {
+            if (this.getAttachments().changeSeatsLookingAt(interacter)) {
                 return InteractionResult.SUCCESS;
             } else {
                 return InteractionResult.PASS;
             }
         }
 
-        // Attempt to add the passenger
-        // This may fail after an event is fired
-        this.entity.addPassenger(interacter);
-        return InteractionResult.SUCCESS;
+        // Find the new seat the player will probably have after clicking on this member
+        // This can fail if there is no seat the entity can enter (permission-wise)
+        CartAttachmentSeat new_seat = this.getAttachments().findNewSeatForEntity(interacter);
+        if (new_seat == null) {
+            return InteractionResult.PASS;
+        }
+
+        // If previously inside another member, handle a seat change event instead
+        MinecartMember<?> previous = MinecartMemberStore.getFromEntity(interacter.getVehicle());
+        if (previous != null) {
+            // Find the seat this interacting entity should be in right now
+            // This could be the same as newSeat if the player is clicking rapidly - suppress those
+            CartAttachmentSeat old_seat = previous.getAttachments().findSeat(interacter);
+            if (old_seat == new_seat) {
+                return InteractionResult.PASS;
+            }
+
+            return AttachmentControllerMember.handleSeatChange(interacter, old_seat, new_seat, true)
+                    ? InteractionResult.SUCCESS : InteractionResult.PASS;
+        } else {
+            return AttachmentControllerMember.handleSeatChange(interacter, null, new_seat, true)
+                    ? InteractionResult.SUCCESS : InteractionResult.PASS;
+        }
     }
 
     @Override

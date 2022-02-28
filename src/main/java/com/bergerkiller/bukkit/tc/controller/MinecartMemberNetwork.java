@@ -39,11 +39,13 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     }
 
     /**
-     * Finds the seat occupied by a passenger. IF the passenger is not inside a seat
-     * of this cart currently, then the best matching seat is returned instead.
+     * Finds the seat occupied by a passenger. If the passenger is not yet inside a seat
+     * of this cart currently, then the best matching seat that the passenger would enter
+     * is returned instead. This is important because the seat assignment occurs
+     * slightly delayed.
      * 
      * @param passenger
-     * @return seat, null if this cart has no seats
+     * @return seat, null if this cart has no seats for the passenger to enter
      */
     public CartAttachmentSeat findSeat(Entity passenger) {
         MinecartMember<?> member = this.getMember();

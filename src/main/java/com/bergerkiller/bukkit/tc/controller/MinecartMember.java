@@ -59,6 +59,7 @@ import com.bergerkiller.bukkit.common.wrappers.MoveType;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TCListener;
+import com.bergerkiller.bukkit.tc.TCSeatChangeListener;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
@@ -1663,12 +1664,12 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public void eject(final Location to) {
         if (entity.hasPassenger()) {
             List<Entity> oldPassengers = new ArrayList<>(entity.getPassengers());
-            TCListener.exemptFromEjectOffset.addAll(oldPassengers);
+            TCSeatChangeListener.exemptFromEjectOffset.addAll(oldPassengers);
             this.eject();
             for (Entity oldPassenger : oldPassengers) {
                 EntityUtil.teleportNextTick(oldPassenger, to);
             }
-            TCListener.exemptFromEjectOffset.removeAll(oldPassengers);
+            TCSeatChangeListener.exemptFromEjectOffset.removeAll(oldPassengers);
         }
     }
 

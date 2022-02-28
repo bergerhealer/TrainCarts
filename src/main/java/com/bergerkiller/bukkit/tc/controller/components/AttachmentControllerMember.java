@@ -22,6 +22,7 @@ import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.TCSeatChangeListener;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
@@ -31,6 +32,12 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.events.seat.MemberBeforeSeatChangeEvent;
+import com.bergerkiller.bukkit.tc.events.seat.MemberBeforeSeatEnterEvent;
+import com.bergerkiller.bukkit.tc.events.seat.MemberBeforeSeatExitEvent;
+import com.bergerkiller.bukkit.tc.events.seat.MemberSeatChangeEvent;
+import com.bergerkiller.bukkit.tc.events.seat.MemberSeatEnterEvent;
+import com.bergerkiller.bukkit.tc.events.seat.MemberSeatExitEvent;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
 /**
@@ -46,7 +53,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
     private final MinecartMember<?> member;
     private Attachment rootAttachment;
     private List<CartAttachmentSeat> seatAttachments = new ArrayList<CartAttachmentSeat>();
-    private Map<Player, SeatHint> seatHints = new HashMap<Player, SeatHint>();
+    private Map<Entity, SeatHint> seatHints = new HashMap<Entity, SeatHint>();
     private final Set<Player> viewers = new HashSet<Player>();
     protected final ToggledState networkInvalid = new ToggledState();
     private boolean attached = false;
@@ -155,8 +162,15 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
 
         // Add passengers that have entered
         for (Entity newPassenger : newPassengers) {
-            if (findCurrentSeatOfEntity(newPassenger) == null) {
-                CartAttachmentSeat newSeat = findNewSeatOfEntity(newPassenger);
+            boolean isInSeat = false;
+            for (CartAttachmentSeat seat : this.seatAttachments) {
+                if (seat.getEntity() == newPassenger) {
+                    isInSeat = true;
+                    break;
+                }
+            }
+            if (!isInSeat) {
+                CartAttachmentSeat newSeat = findNewSeatForEntity(newPassenger);
                 if (newSeat != null) {
                     newSeat.setEntity(newPassenger);
                 }
@@ -166,24 +180,180 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
 
     /**
      * Handles switching seats (when a player clicks on a different seat while already seated
-     * in the same cart)
-     * 
+     * in the same cart). Events are fired, which could be cancelled by other plugins.<br>
+     * <br>
+     * The seat to enter is picked by looking where the passenger is currently looking.
+     *
      * @param passenger
+     * @return True if the seat was changed
      */
-    public boolean changeSeats(Entity passenger) {
+    public synchronized boolean changeSeatsLookingAt(Entity passenger) {
+        return changeSeats(passenger, findNewSeatForEntity(passenger), true);
+    }
+
+    /**
+     * Handles switching seats (when a player clicks on a different seat while already seated
+     * in the same cart). Events are fired, which could be cancelled by other plugins.
+     *
+     * @param passenger The entity that wants to change seat
+     * @param new_seat The new seat (of this controller) to enter
+     * @param playerInitiated Whether this seat change was player-initiated or not
+     * @return True if the seat was changed
+     */
+    public synchronized boolean changeSeats(Entity passenger, CartAttachmentSeat new_seat, boolean playerInitiated) {
+        if (new_seat != null && new_seat.getController() != this) {
+            throw new IllegalArgumentException("Cannot change seats to a seat of another member");
+        }
+
         // See what seat attachment this passenger currently occupies
-        CartAttachmentSeat old_seat = findCurrentSeatOfEntity(passenger);
-        CartAttachmentSeat new_seat = findNewSeatOfEntity(passenger);
+        CartAttachmentSeat old_seat = this.findSeat(passenger);
         if (old_seat == null || new_seat == null || old_seat == new_seat) {
             return false;
         }
 
-        old_seat.setEntity(null);
-        new_seat.setEntity(passenger);
-        return true;
+        return handleSeatChange(passenger, old_seat, new_seat, playerInitiated);
     }
 
-    private CartAttachmentSeat findNewSeatOfEntity(Entity passenger) {
+    /**
+     * Handles all the logic for changing a passenger from one member (and seat) to another.
+     * This will fire the appropriate member seat enter/exit/change events as required.
+     *
+     * @param passenger Passenger to change seats
+     * @param old_seat Old seat, null to not exit a previous seat
+     * @param new_seat New seat, null to not enter a new seat
+     * @param isPlayerInitiated Whether this seat change was initiated by the player (clicking, sneak)
+     * @return True if the seat change was successful, false if it was (partially) cancelled
+     */
+    public static boolean handleSeatChange(
+            Entity passenger,
+            CartAttachmentSeat old_seat,
+            CartAttachmentSeat new_seat,
+            boolean isPlayerInitiated
+    ) {
+        if (old_seat == new_seat) {
+            return false;
+        }
+
+        if (old_seat != null && new_seat != null) {
+            // Fire event for changing from one seat to another
+            MemberBeforeSeatChangeEvent event = new MemberBeforeSeatChangeEvent(old_seat, new_seat, passenger, isPlayerInitiated);
+            if (CommonUtil.callEvent(event).isCancelled()) {
+                return false;
+            }
+            new_seat = event.getEnteredSeat();
+            if (old_seat == new_seat) {
+                return false;
+            }
+        } else if (old_seat != null) {
+            // Fire an event to exit an old seat (eject)
+            MemberBeforeSeatExitEvent event = new MemberBeforeSeatExitEvent(old_seat, passenger, isPlayerInitiated);
+            if (CommonUtil.callEvent(event).isCancelled()) {
+                return false;
+            }
+        } else if (new_seat != null) {
+            // Fire an event to enter a new seat
+            MemberBeforeSeatEnterEvent event = new MemberBeforeSeatEnterEvent(new_seat, passenger, isPlayerInitiated,
+                    false, /* was seat change */
+                    true /* is a vehicle change */ );
+            if (CommonUtil.callEvent(event).isCancelled()) {
+                return false;
+            }
+            new_seat = event.getSeat();
+        } else {
+            return false;
+        }
+
+        // If same member, simply update the seat attachments
+        // No Bukkit vehicle enter/exit events fire in that case
+        if (old_seat != null && new_seat != null && old_seat.getMember() == new_seat.getMember()) {
+            old_seat.setEntity(null);
+            new_seat.setEntity(passenger);
+
+            // Fire post-seat-change events
+            CommonUtil.callEvent(new MemberSeatChangeEvent(old_seat, new_seat, passenger, isPlayerInitiated));
+            CommonUtil.callEvent(new MemberSeatEnterEvent(new_seat, passenger, isPlayerInitiated, true, false));
+            return true;
+        }
+
+        // Different member. Player will have to be removed as passenger of the
+        // old member and put as passenger for the new member.
+        // For this a VehicleExit and VehicleEnter event are fired.
+        // We don't want a duplicate Seat Enter/Change/Exit to fire during that.
+
+        try {
+            TCSeatChangeListener.suppressSeatChangeEvents = true;
+
+            // Remove from old cart - fires VehicleExitEvent/EntityDismountEvent which can be cancelled
+            if (old_seat != null) {
+                if ( !old_seat.getMember().getEntity().removePassenger(passenger) &&
+                     old_seat.getMember().getEntity().isPassenger(passenger)
+                ) {
+                    return false;
+                }
+                if (old_seat.getEntity() == passenger) {
+                    old_seat.setEntity(null);
+                }
+            }
+
+            // Try to enter the new seat, which fires VehicleEnterEvent/EntityMountEvent
+            // which can be cancelled.
+            boolean enteredNewSeat = false;
+            if (new_seat != null) {
+                if (new_seat.getEntity() == null) {
+                    // Try entering the (new) vehicle, and entering the seat
+                    new_seat.getController().storeSeatHint(passenger, new_seat);
+                    enteredNewSeat = new_seat.getMember().getEntity().addPassenger(passenger);
+                    new_seat.getController().storeSeatHint(passenger, null);
+                    enteredNewSeat &= (new_seat.getEntity() == null);
+                    if (enteredNewSeat) {
+                        new_seat.setEntity(passenger);
+                    }
+                } else if (new_seat.getEntity() == passenger) {
+                    enteredNewSeat = true; // Somehow already entered. Do nothing more. (recursive?)
+                } else {
+                    enteredNewSeat = false; // Another passenger already took it - can't enter it.
+                }
+            }
+
+            // Fire post-seat-change events depending on what seats were entered/exited
+            if (old_seat != null) {
+                if (enteredNewSeat) {
+                    CommonUtil.callEvent(new MemberSeatChangeEvent(old_seat, new_seat, passenger, isPlayerInitiated));
+                } else {
+                    CommonUtil.callEvent(new MemberSeatExitEvent(old_seat, passenger, isPlayerInitiated));
+                }
+            }
+            if (enteredNewSeat) {
+                CommonUtil.callEvent(new MemberSeatEnterEvent(new_seat, passenger, isPlayerInitiated,
+                        old_seat != null, /* was seat change */
+                        old_seat != null && old_seat.getMember() != new_seat.getMember() /* was vehicle change */));
+            }
+
+            return true;
+        } finally {
+            TCSeatChangeListener.suppressSeatChangeEvents = false;
+        }
+    }
+
+    /**
+     * Gets whether a seat hint was set for this attachment controller. A seat hint
+     * tells the attachment controller where to put players that enter the minecart.
+     *
+     * @param passenger
+     * @return True if there is a seat hint
+     */
+    public boolean hasSeatHint(Entity passenger) {
+        return this.seatHints.containsKey(passenger);
+    }
+
+    /**
+     * Gets the new seat that would be assigned to a passenger, if that passenger
+     * entered the cart. This takes into account previously stored seat hints.
+     *
+     * @param passenger
+     * @return New seat for this passenger
+     */
+    public synchronized CartAttachmentSeat findNewSeatForEntity(Entity passenger) {
         SeatHint seatHint = this.seatHints.get(passenger);
         List<CartAttachmentSeat> sortedSeats;
         if (seatHint != null && !seatHint.isExpired()) {
@@ -207,15 +377,6 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
         // Find first free seat, or fail
         for (CartAttachmentSeat seat : sortedSeats) {
             if (seat.canEnter(passenger)) {
-                return seat;
-            }
-        }
-        return null;
-    }
-
-    private CartAttachmentSeat findCurrentSeatOfEntity(Entity passenger) {
-        for (CartAttachmentSeat seat : this.seatAttachments) {
-            if (seat.getEntity() == passenger) {
                 return seat;
             }
         }
@@ -265,11 +426,13 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
     }
 
     /**
-     * Finds the seat occupied by a passenger. IF the passenger is not inside a seat
-     * of this cart currently, then the best matching seat is returned instead.
-     * 
+     * Finds the seat occupied by a passenger. If the passenger is not yet inside a seat
+     * of this cart currently, then the best matching seat that the passenger would enter
+     * is returned instead. This is important because the seat assignment occurs
+     * slightly delayed.
+     *
      * @param passenger
-     * @return seat, null if this cart has no seats
+     * @return seat, null if this cart has no seats for the passenger to enter
      */
     public synchronized CartAttachmentSeat findSeat(Entity passenger) {
         if (this.seatAttachments.isEmpty()) {
@@ -280,8 +443,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
                 return seat;
             }
         }
-
-        return getSeatsClosestToPosition(passenger.getLocation().toVector()).get(0);
+        return this.findNewSeatForEntity(passenger);
     }
 
     // Called from NetworkController
@@ -337,6 +499,20 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
      */
     public void storeSeatHint(Player player) {
         this.seatHints.put(player, new SeatHint(this.getSeatsClosestToHitTest(player.getEyeLocation())));
+    }
+
+    /**
+     * Sets what seat should be entered the next time the specified entity enters the cart
+     *
+     * @param entity Entity that enters
+     * @param seat Seat to enter
+     */
+    public void storeSeatHint(Entity entity, CartAttachmentSeat seat) {
+        if (seat == null) {
+            this.seatHints.remove(entity);
+        } else {
+            this.seatHints.put(entity, new SeatHint(Collections.singletonList(seat)));
+        }
     }
 
     /**

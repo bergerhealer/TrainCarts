@@ -635,6 +635,7 @@ public class TrainCarts extends PluginBase {
         this.register(packetListener = new TCPacketListener(), TCPacketListener.LISTENED_TYPES);
         this.register(interactionPacketListener = new TCInteractionPacketListener(), TCInteractionPacketListener.TYPES);
         this.register(new TCListener(this));
+        this.register(new TCSeatChangeListener());
         this.register(TrainChestListener.class);
         this.register(this.redstoneTracker = new RedstoneTracker(this));
 

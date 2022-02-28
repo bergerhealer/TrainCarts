@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
 import com.bergerkiller.generated.net.minecraft.world.entity.monster.EntityShulkerHandle;
 
@@ -47,6 +48,15 @@ public abstract class CartAttachment implements Attachment {
      */
     public AttachmentControllerMember getController() {
         return (AttachmentControllerMember) this.getManager();
+    }
+
+    /**
+     * Gets the MinecartMember this attachment belongs to
+     *
+     * @return member
+     */
+    public MinecartMember<?> getMember() {
+        return getController().getMember();
     }
 
     @Override
