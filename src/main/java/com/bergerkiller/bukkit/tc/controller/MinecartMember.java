@@ -841,6 +841,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     public void pushSideways(org.bukkit.entity.Entity entity, double force) {
+        force = Math.min(1.0, force); // Limit to a pushing force of 1.0 to avoid trouble
+
         float yaw = FaceUtil.faceToYaw(this.direction);
         float lookat = MathUtil.getLookAtYaw(this.entity.getEntity(), entity) - yaw;
         lookat = MathUtil.wrapAngle(lookat);
@@ -852,6 +854,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     public void push(org.bukkit.entity.Entity entity, double force) {
+        force = Math.min(1.0, force); // Limit to a pushing force of 1.0 to avoid trouble
+
         Vector offset = this.entity.loc.offsetTo(entity);
         MathUtil.setVectorLength(offset, force);
         entity.setVelocity(entity.getVelocity().add(offset));
