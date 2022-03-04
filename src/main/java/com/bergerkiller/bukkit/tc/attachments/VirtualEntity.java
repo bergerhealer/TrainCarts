@@ -136,6 +136,10 @@ public class VirtualEntity {
         return VehicleMountRegistry.getOffset(this.entityType);
     }
 
+    public boolean syncPositionIfMounted() {
+        return VehicleMountRegistry.syncPositionIfMounted(this.entityType);
+    }
+
     /**
      * Sets whether to destroy and re-spawn the entity when pitch flips
      * between -180 and 180.
@@ -731,13 +735,14 @@ public class VirtualEntity {
     private static class VehicleMountRegistry {
         private static final Map<EntityType, Double> _lookup = new EnumMap<>(EntityType.class);
         private static final Set<EntityType> _unmountable = EnumSet.noneOf(EntityType.class);
+        private static final Set<EntityType> _noPositionSyncIfMounted = EnumSet.noneOf(EntityType.class);
         private static final Double DEFAULT_OFFSET = 1.0;
         static {
             register("AXOLOTL", 0.59);
             register("BAT", 1.0);
             register("BEE", 0.7);
             register("BLAZE", 1.6);
-            register("BOAT", 0.2, false);
+            register("BOAT", 0.2, false, true);
             register("CAT", 0.8);
             register("CAVE_SPIDER", 0.5);
             register("CHICKEN", 0.62);
@@ -749,22 +754,22 @@ public class VirtualEntity {
             register("DROWNED", 1.75);
             register("ENDERMAN", 2.45);
             register("ENDERMITE", 0.5);
-            register("ENDER_DRAGON", 3.4, false);
+            register("ENDER_DRAGON", 3.4, false, true);
             register("EVOKER", 1.75);
             register("FALLING_BLOCK", 1.0);
             register("FOX", 0.8);
-            register("GHAST", 4.0, false);
-            register("GIANT", 12.0, false);
+            register("GHAST", 4.0, false, true);
+            register("GIANT", 12.0, false, true);
             register("GLOW_SQUID", 0.9);
             register("GOAT", 1.25);
             register("GUARDIAN", 0.92);
             register("HOGLIN", 1.5);
-            register("HORSE", 1.4, false);
+            register("HORSE", 1.4, false, true);
             register("HUSK", 1.75);
             register("ILLUSIONER", 1.75);
             register("IRON_GOLEM", 2.3);
             register("LEASH_HITCH", 0.97);
-            register("LLAMA", 1.37, false);
+            register("LLAMA", 1.37, false, true);
             register(e -> e.name().contains("MINECART"), 0.27);
             register("MULE", 1.22);
             register("MUSHROOM_COW", 1.3);
@@ -783,17 +788,17 @@ public class VirtualEntity {
             register("RAVAGER", 2.4);
             register("SALMON", 0.58);
             register("SHEEP", 1.25);
-            register("SHULKER", 1.0, false);
+            register("SHULKER", 1.0, false, false);
             register("SHULKER_BULLET", 0.52);
             register("SILVERFISH", 0.51);
             register("SKELETON", 1.75);
-            register("SKELETON_HORSE", 1.3, false);
+            register("SKELETON_HORSE", 1.3, false, true);
             register("SMALL_FIREBALL", 0.52);
             register("SNOWMAN", 1.67);
             register("SPIDER", 0.73);
             register("SQUID", 0.88);
             register("STRAY", 1.775);
-            register("STRIDER", 1.79, false);
+            register("STRIDER", 1.79, false, true);
             register("TRADER_LLAMA", 1.36);
             register("TURTLE", 0.58);
             register("VEX", 0.88);
@@ -801,7 +806,7 @@ public class VirtualEntity {
             register("VINDICATOR", 1.75);
             register("WANDERING_TRADER", 1.75);
             register("WITCH", 1.75);
-            register("WITHER", 3.5, false);
+            register("WITHER", 3.5, false, true);
             register("WITHER_SKELETON", 2.07);
             register("WITHER_SKULL", 0.52);
             register("WOLF", 0.92);
@@ -821,29 +826,39 @@ public class VirtualEntity {
             return !_unmountable.contains(type);
         }
 
-        private static void register(Predicate<EntityType> condition, double offset) {
-            register(condition, offset, true);
+        public static boolean syncPositionIfMounted(EntityType type) {
+            return !_noPositionSyncIfMounted.contains(type);
         }
 
-        private static void register(Predicate<EntityType> condition, double offset, boolean mountable) {
+        private static void register(Predicate<EntityType> condition, double offset) {
+            register(condition, offset, true, true);
+        }
+
+        private static void register(Predicate<EntityType> condition, double offset, boolean mountable, boolean syncPosition) {
             Stream.of(EntityType.values()).filter(condition).forEachOrdered(type -> {
                 _lookup.put(type, offset);
                 if (!mountable) {
                     _unmountable.add(type);
                 }
+                if (!syncPosition) {
+                    _noPositionSyncIfMounted.add(type);
+                }
             });
         }
 
         private static void register(String name, double offset) {
-            register(name, offset, true);
+            register(name, offset, true, true);
         }
 
-        private static void register(String name, double offset, boolean mountable) {
+        private static void register(String name, double offset, boolean mountable, boolean syncPosition) {
             try {
                 EntityType type = EntityType.valueOf(name);
                 _lookup.put(type, offset);
                 if (!mountable) {
                     _unmountable.add(type);
+                }
+                if (!syncPosition) {
+                    _noPositionSyncIfMounted.add(type);
                 }
             } catch (IllegalArgumentException ex) { /* ignore */ }
         }

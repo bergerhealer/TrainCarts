@@ -385,7 +385,11 @@ public class CartAttachmentEntity extends CartAttachment {
     public void onMove(boolean absolute) {
         this.entity.syncPosition(absolute);
         if (this.actual != null) {
-            this.actual.syncPosition(absolute);
+            if (this.actual.syncPositionIfMounted()) {
+                this.actual.syncPosition(absolute);
+            } else {
+                this.actual.syncPositionSilent();
+            }
         }
     }
 
