@@ -61,16 +61,13 @@ public class CartAttachmentPlatformOriginal extends CartAttachment {
 
     @Override
     public boolean containsEntityId(int entityId) {
-        return this.entity != null && this.entity.getEntityId() == entityId;
+        return this.entity.getEntityId() == entityId ||
+               this.actual.getEntityId() == entityId;
     }
 
     @Override
     public int getMountEntityId() {
-        if (this.entity.isMountable()) {
-            return this.entity.getEntityId();
-        } else {
-            return -1;
-        }
+        return this.actual.getEntityId();
     }
 
     @Override
@@ -104,7 +101,9 @@ public class CartAttachmentPlatformOriginal extends CartAttachment {
     @Override
     public void onMove(boolean absolute) {
         this.entity.syncPosition(absolute);
-        this.actual.syncPosition(absolute);
+
+        // Must not send move packets of the mounted shulker. This causes glitches since MC 1.17
+        this.actual.syncPositionSilent();
     }
 
     @Override

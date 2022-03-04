@@ -319,7 +319,7 @@ public class VirtualEntity {
 
         // If sync is not yet set, set it to live
         if (Double.isNaN(this.syncAbsPos.getX())) {
-            this.refreshSyncPos();
+            this.syncPositionSilent();
         }
 
         // Calculate the velocity by comparing the last synchronized position with the live position
@@ -459,10 +459,20 @@ public class VirtualEntity {
         }
     }
 
+    /**
+     * Sets the synchronized position of this entity without sending entity move/teleport packets
+     */
+    public void syncPositionSilent() {
+        MathUtil.setVector(this.syncAbsPos, this.liveAbsPos);
+        this.syncYaw = this.liveYaw;
+        this.syncPitch = this.livePitch;
+        this.syncVel = this.liveVel;
+    }
+
     public void syncPosition(boolean absolute) {
         if (this.viewers.isEmpty()) {
             // No viewers. Assign live to sync right away.
-            refreshSyncPos();
+            syncPositionSilent();
             return;
         }
 
@@ -491,7 +501,7 @@ public class VirtualEntity {
             for (Player viewer : this.viewers) {
                 this.sendDestroyPackets(viewer);
             }
-            this.refreshSyncPos();
+            this.syncPositionSilent();
             for (Player viewer : this.viewers) {
                 this.sendSpawnPackets(viewer, largeChange ? new Vector() : new Vector(dx, dy, dz));
             }
@@ -503,7 +513,7 @@ public class VirtualEntity {
             broadcast(PacketPlayOutEntityTeleportHandle.createNew(this.entityId,
                     this.liveAbsPos.getX(), this.liveAbsPos.getY(), this.liveAbsPos.getZ(),
                     this.liveYaw, this.livePitch, false));
-            refreshSyncPos();
+            syncPositionSilent();
             refreshHeadRotation();
             return;
         }
@@ -621,13 +631,6 @@ public class VirtualEntity {
 
     private boolean isLivingEntity() {
         return isLivingEntity(this.entityType);
-    }
-
-    private void refreshSyncPos() {
-        MathUtil.setVector(this.syncAbsPos, this.liveAbsPos);
-        this.syncYaw = this.liveYaw;
-        this.syncPitch = this.livePitch;
-        this.syncVel = this.liveVel;
     }
 
     public void respawnForAll(Vector motion) {
