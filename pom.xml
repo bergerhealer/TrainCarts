@@ -4,7 +4,7 @@
 
     <groupId>com.bergerkiller.bukkit</groupId>
     <artifactId>TrainCarts</artifactId>
-    <version>1.18.2-v1-SNAPSHOT</version>
+    <version>1.18.2-v1</version>
     <packaging>jar</packaging>
 
     <name>TrainCarts</name>
