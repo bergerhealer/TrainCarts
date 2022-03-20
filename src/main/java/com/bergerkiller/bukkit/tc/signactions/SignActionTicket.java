@@ -1,14 +1,12 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
-import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
-import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import net.milkbowl.vault.economy.Economy;
@@ -17,6 +15,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -47,7 +46,7 @@ public class SignActionTicket extends SignAction {
         }
 
         if ((info.hasMember() && info.isPowered())) {
-            final String mode = info.getLine(2);
+            final String mode = info.getLine(2).toLowerCase(Locale.ENGLISH).trim();
             final double money = ParseUtil.parseDouble(info.getLine(3), 0.0);
 
             List<MinecartMember<?>> members;
@@ -66,27 +65,40 @@ public class SignActionTicket extends SignAction {
                 Set<String> owners = member.getProperties().getOwners();
 
                 for (Player player : member.getEntity().getPlayerPassengers()) {
-                    if (mode.equalsIgnoreCase("add") && money > 0) {
+                    if (mode.equals("add") && money > 0) {
+                        // Give money to the player
                         economy.depositPlayer(player, money);
                         Localization.TICKET_ADD.message(player, TrainCarts.getCurrencyText(money));
-                    } else if (mode.equalsIgnoreCase("check")) {
+                    } else if (mode.equals("check")) {
+                        // Check and show current balance
                         Localization.TICKET_CHECK.message(player, TrainCarts.getCurrencyText(economy.getBalance(player)));
-                    } else if ((mode.equalsIgnoreCase("buy") || mode.equalsIgnoreCase("pay")) && money > 0) {
-                        if (owners.contains(player.getName().toLowerCase())) {
+                    } else if (mode.equals("buy") && money > 0) {
+                        // Withdraw money from the player's account. Eject if insufficient.
+                        if (economy.has(player, money)) {
+                            economy.withdrawPlayer(player, money);
+                            Localization.TICKET_BUY.message(player, TrainCarts.getCurrencyText(money));
+                        } else {
+                            Localization.TICKET_BUYFAIL.message(player, TrainCarts.getCurrencyText(money));
+                            member.getEntity().removePassenger(player);
+                        }
+                    } else if (mode.equals("pay") && money > 0) {
+                        // Take from player, pay it to the owners of the train
+                        // If passenger is an owner himself, don't charge anything
+                        if (member.getProperties().isOwner(player)) {
                             continue;
                         }
                         if (economy.has(player, money)) {
                             economy.withdrawPlayer(player, money);
                             Localization.TICKET_BUY.message(player, TrainCarts.getCurrencyText(money));
-                            if (mode.equalsIgnoreCase("pay")) {
-                                if (owners.size() > 0) {
-                                    double ownerPayment = money / owners.size();
-                                    for (String owner : owners) {
-                                        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(owner);
-                                        economy.depositPlayer(offlinePlayer, ownerPayment);
-                                        if (offlinePlayer.isOnline()) {
-                                            Localization.TICKET_BUYOWNER.message(offlinePlayer.getPlayer(), player.getDisplayName(), TrainCarts.getCurrencyText(money), member.getProperties().getTrainProperties().getTrainName());
-                                        }
+
+                            // Money disappears into the aether if train has no owners, I guess?
+                            if (owners.size() > 0) {
+                                double ownerPayment = money / owners.size();
+                                for (String owner : owners) {
+                                    OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(owner);
+                                    economy.depositPlayer(offlinePlayer, ownerPayment);
+                                    if (offlinePlayer.isOnline()) {
+                                        Localization.TICKET_BUYOWNER.message(offlinePlayer.getPlayer(), player.getDisplayName(), TrainCarts.getCurrencyText(money), member.getProperties().getTrainProperties().getTrainName());
                                     }
                                 }
                             }
