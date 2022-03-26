@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
+import com.bergerkiller.bukkit.common.collections.ImplicitlySharedSet;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.controller.DefaultEntityController;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
@@ -647,11 +648,14 @@ public class TrainCarts extends PluginBase {
 
     @Override
     public void disable() {
-        //Destroy all trains after initializing if specified
+        //Destroy all LOADED trains after initializing if specified
+        //We can't destroy unloaded trains - the asynchronous nature makes it impossible
         if (TCConfig.destroyAllOnShutdown) {
-            OfflineGroupManager.destroyAllAsync(false).thenAccept(count -> {
-                getLogger().info("[DestroyOnShutdown] Destroyed " + count + " trains");
-            });
+            ImplicitlySharedSet<MinecartGroup> groups = MinecartGroupStore.getGroups().clone();
+            for (MinecartGroup group : groups) {
+                group.destroy();
+            }
+            getLogger().info("[DestroyOnShutdown] Destroyed " + groups.size() + " trains");
         }
 
         //Unregister listeners
