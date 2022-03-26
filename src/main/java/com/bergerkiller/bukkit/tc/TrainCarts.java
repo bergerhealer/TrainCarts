@@ -651,11 +651,12 @@ public class TrainCarts extends PluginBase {
         //Destroy all LOADED trains after initializing if specified
         //We can't destroy unloaded trains - the asynchronous nature makes it impossible
         if (TCConfig.destroyAllOnShutdown) {
-            ImplicitlySharedSet<MinecartGroup> groups = MinecartGroupStore.getGroups().clone();
-            for (MinecartGroup group : groups) {
-                group.destroy();
+            try (ImplicitlySharedSet<MinecartGroup> groups = MinecartGroupStore.getGroups().clone()) {
+                for (MinecartGroup group : groups) {
+                    group.destroy();
+                }
+                getLogger().info("[DestroyOnShutdown] Destroyed " + groups.size() + " trains");
             }
-            getLogger().info("[DestroyOnShutdown] Destroyed " + groups.size() + " trains");
         }
 
         //Unregister listeners
