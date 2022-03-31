@@ -60,7 +60,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
             PathWorld pathWorld = TrainCarts.plugin.getPathProvider().getWorld(holder.getWorld());
             final PathNode first = pathWorld.getNodeByName(prop.getLastPathNode());
             if (first == null) {
-                msg.yellow("It has not yet visited a routing node, so no route is available yet.");
+                msg.yellow("It has not yet visited a destination or switcher, so no route is available yet.");
             } else {
                 PathNode last = pathWorld.getNodeByName(lastName);
                 if (last == null) {

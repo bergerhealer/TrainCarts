@@ -78,7 +78,12 @@ public class SignActionDestination extends SignAction {
         }
 
         // Give node to path finding, discovering routes if it doesn't already exist
-        PathNode.getOrCreate(info);
+        PathNode node = PathNode.getOrCreate(info);
+
+        // Refresh the last-visited node for the members. Used when displaying route.
+        for (MinecartMember<?> member : info.getMembers()) {
+            member.getProperties().setLastPathNode(node.getName());
+        }
 
         // Compute next destination to set for the minecarts and apply it
         for (MinecartMember<?> member : info.getMembers()) {
