@@ -129,8 +129,13 @@ public final class RailLookup {
                                            final RailType railType
     ) {
         // First try to find it in the cache, and if none exists, initialize a new one.
-        Bucket inCache = cache.computeIfAbsent(railOfflineBlock, b -> new Bucket(b, railBlock, railType));
-        RailType inCacheType = inCache.type();
+        Bucket inCache = cache.get(railOfflineBlock);
+        if (inCache == null) {
+            inCache = new Bucket(railOfflineBlock, railBlock, railType);
+            cache.put(railOfflineBlock, inCache);
+            inCache.signs = discoverSignsAtRailPiece(inCache);
+            return inCache; // We know railType matches - we just initialized it!
+        }
 
         // If the rail type of the one in cache is 'NONE', it most likely was initialized before
         // the rail was found as a valid rail type. For performance reasons it's better to
@@ -139,6 +144,7 @@ public final class RailLookup {
         //
         // In other cases, entries are added to the 'next' chain to represent them, including
         // NONE if this is required.
+        RailType inCacheType = inCache.type();
         if (inCacheType == railType) {
             return inCache;
         } else if (inCacheType == RailType.NONE) {
@@ -292,17 +298,14 @@ public final class RailLookup {
         // If at a later time a rail block is found anyway, then this bucket is discarded and
         // replaced with one initialized with the new Rail type.
         public Bucket(OfflineBlock offlineBlock, Block block) {
-            super(offlineBlock, block, RailType.NONE);
-            this.signs = MISSING_RAILS_NO_SIGNS;
-            this.rail_life = lifeTimer;
-            this.rails_at_position_life = 0; // Needs to be calculated
-            this.rails_at_position = NO_RAILS_AT_POSITION;
+            this(offlineBlock, block, RailType.NONE);
         }
 
-        // Initializes a new Bucket for a rail block. Computes signs right away.
+        // Initializes a new Bucket for a rail block.
+        // It's expected that after assigning the signs are calculated
         public Bucket(OfflineBlock offlineBlock, Block block, RailType type) {
             super(offlineBlock, block, type);
-            this.signs = discoverSignsAtRailPiece(this);
+            this.signs = MISSING_RAILS_NO_SIGNS;
             this.rail_life = lifeTimer;
             this.rails_at_position_life = 0; // Needs to be calculated
             this.rails_at_position = NO_RAILS_AT_POSITION;
@@ -386,6 +389,7 @@ public final class RailLookup {
                 if (next == null) {
                     Bucket newBucket = new Bucket(this.offlineBlock(), this.block(), railType);
                     current.next = newBucket;
+                    newBucket.signs = discoverSignsAtRailPiece(newBucket);
                     return newBucket;
                 } else if (next.type() == railType) {
                     return next;
@@ -591,8 +595,12 @@ public final class RailLookup {
 
                             // Put it in the cache
                             cache.put(positionOfflineBlock, bucketInCache);
+                            bucketInCache.rails_at_position = newRailsAtPosition;
 
-                            return bucketInCache.rails_at_position = newRailsAtPosition;
+                            // Compute signs now that bucket is registered
+                            bucketInCache.signs = discoverSignsAtRailPiece(bucketInCache);
+
+                            return newRailsAtPosition;
                         }
                     } catch (Throwable t) {
                         RailType.handleCriticalError(type, t);
