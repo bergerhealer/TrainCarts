@@ -161,6 +161,11 @@ public class TCPacketListener implements PacketListener {
             return;
         }
 
+        // If member is unloaded or was despawned during this time, it's no longer valid
+        if (member == null || member.isUnloaded() || player == null || !player.isOnline()) {
+            return;
+        }
+
         Object playerHandleRaw = HandleConversion.toEntityHandle(player);
         EntityHumanHandle.createHandle(playerHandleRaw).attack(member.getEntity().getEntity());
     }
@@ -174,6 +179,11 @@ public class TCPacketListener implements PacketListener {
                     fakeInteraction(member, player, hand);
                 }
             });
+            return;
+        }
+
+        // If member is unloaded or was despawned during this time, it's no longer valid
+        if (member == null || member.isUnloaded() || player == null || !player.isOnline()) {
             return;
         }
 
