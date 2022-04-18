@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.locator;
 
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.MessageBuilder;
@@ -14,7 +15,6 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.annotations.Flag;
-import net.md_5.bungee.api.ChatColor;
 
 /**
  * The commands used to start and stop train locating operations

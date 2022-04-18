@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.properties.standard.category;
 
 import java.util.Optional;
 
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -17,7 +18,6 @@ import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.annotations.specifier.Greedy;
-import net.md_5.bungee.api.ChatColor;
 
 /**
  * Configures the display name of a train, which is currently
