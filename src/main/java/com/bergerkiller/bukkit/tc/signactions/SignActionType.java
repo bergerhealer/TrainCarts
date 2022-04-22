@@ -13,16 +13,13 @@ public enum SignActionType {
     MEMBER_UPDATE(false, false),  
     GROUP_UPDATE(false, false);
     
+    private final boolean redstone;
+    private final boolean movement;
     
     private SignActionType(boolean redstone, boolean movement) {
         this.redstone = redstone;
         this.movement = movement;
     }
-
-    
-    private final boolean redstone;
-
-    private final boolean movement;
     
     /**
      * This sign action type is redstone-related
