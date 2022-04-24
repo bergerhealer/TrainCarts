@@ -65,6 +65,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -383,10 +384,14 @@ public class Commands {
                 } catch (IOException ex) {
                     sender.sendMessage(ChatColor.RED + "Failed to import train because of YAML decode error: " + ex.getMessage());
                     return;
+                } catch (Throwable t) {
+                    sender.sendMessage(ChatColor.RED + "An error occurred trying to import the train YAML: " + t.getMessage());
+                    TrainCarts.plugin.getLogger().log(Level.SEVERE, "Import error for " + url, t);
+                    return;
                 }
 
                 // Callback time!
-                callback.accept(config);;
+                callback.accept(config);
             }
         });
     }
