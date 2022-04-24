@@ -1752,4 +1752,18 @@ public class Util {
     private static void swapSpectatingVMC(VehicleMountController vmc, int oldEntityId, int newEntityId) {
         vmc.swapSpectating(oldEntityId, newEntityId);
     }
+
+    /**
+     * Gets whether paper's player view distance API is available
+     *
+     * @return True if the paper view distance API is available
+     */
+    public static boolean hasPaperViewDistanceSupport() {
+        try {
+            Player.class.getMethod("setViewDistance", int.class);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
 }

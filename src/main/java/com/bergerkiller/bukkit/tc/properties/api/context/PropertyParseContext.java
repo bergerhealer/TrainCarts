@@ -105,6 +105,20 @@ public final class PropertyParseContext<T> extends PropertyContext {
     }
 
     /**
+     * Parses the input text as a numeric integer value.
+     * 
+     * @return parsed integer value
+     * @throws PropertyInvalidInputException if the input is not an integer number
+     */
+    public int inputInteger() {
+        int result = ParseUtil.parseInt(input(), Integer.MAX_VALUE);
+        if (result == Integer.MAX_VALUE && ParseUtil.parseInt(input(), 0) == 0) {
+            throw new PropertyInvalidInputException("Not a number");
+        }
+        return result;
+    }
+
+    /**
      * Parses the input text as a boolean expression.
      * 
      * @return parsed boolean value

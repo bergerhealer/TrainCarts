@@ -38,6 +38,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.registry.TCPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
+import com.bergerkiller.bukkit.tc.properties.standard.category.PaperPlayerViewDistanceProperty;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
@@ -454,6 +455,15 @@ public class TrainCarts extends PluginBase {
         propertyRegistry = new TCPropertyRegistry(this, commands.getHandler());
         propertyRegistry.registerAll(StandardProperties.class);
 
+        // Paper player view distance
+        if (Util.hasPaperViewDistanceSupport()) {
+            try {
+                propertyRegistry.register(PaperPlayerViewDistanceProperty.INSTANCE);
+            } catch (Throwable t) {
+                getLogger().log(Level.SEVERE, "Failed to register paper player view distance property", t);
+            }
+        }
+
         // Register TrainCarts default attachment types
         CartAttachment.registerDefaultAttachments();
 
@@ -639,6 +649,16 @@ public class TrainCarts extends PluginBase {
         this.register(TrainChestListener.class);
         this.register(this.redstoneTracker = new RedstoneTracker(this));
 
+        // Paper player view distance logic handling
+        if (Util.hasPaperViewDistanceSupport()) {
+            try {
+                PaperPlayerViewDistanceProperty.INSTANCE.enable(this);
+            } catch (Throwable t) {
+                getLogger().log(Level.SEVERE, "Failed to enable paper player view distance property", t);
+                this.propertyRegistry.unregister(PaperPlayerViewDistanceProperty.INSTANCE);
+            }
+        }
+
         // Destroy all trains after initializing if specified
         if (TCConfig.destroyAllOnShutdown) {
             OfflineGroupManager.destroyAllAsync(false).thenAccept(count -> {
@@ -657,6 +677,15 @@ public class TrainCarts extends PluginBase {
                     group.destroy();
                 }
                 getLogger().info("[DestroyOnShutdown] Destroyed " + groups.size() + " trains");
+            }
+        }
+
+        // Disable Paper player view distance logic handling
+        if (Util.hasPaperViewDistanceSupport()) {
+            try {
+                PaperPlayerViewDistanceProperty.INSTANCE.disable(this);
+            } catch (Throwable t) {
+                getLogger().log(Level.SEVERE, "Failed to disable paper player view distance property", t);
             }
         }
 
