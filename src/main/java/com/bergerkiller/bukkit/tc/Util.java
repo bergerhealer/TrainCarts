@@ -1761,6 +1761,8 @@ public class Util {
     public static boolean hasPaperViewDistanceSupport() {
         try {
             Player.class.getMethod("setViewDistance", int.class);
+            Player.class.getMethod("setNoTickViewDistance", int.class);
+            Player.class.getMethod("setSendViewDistance", int.class);
             return true;
         } catch (Throwable t) {
             return false;
