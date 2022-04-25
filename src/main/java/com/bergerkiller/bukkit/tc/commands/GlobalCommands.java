@@ -107,7 +107,7 @@ public class GlobalCommands {
     }
 
     @CommandMethod("train list [statement]")
-    @CommandDescription("Lists all the destination names that exist on the server")
+    @CommandDescription("Lists all the trains on the server that match the specified statement")
     private void commandListTrains(
             final CommandSender sender,
             final @Argument("statement") @Greedy String statementText
