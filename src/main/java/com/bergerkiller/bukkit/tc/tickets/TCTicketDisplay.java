@@ -2,12 +2,14 @@ package com.bergerkiller.bukkit.tc.tickets;
 
 import org.bukkit.ChatColor;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.MapSessionMode;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.tc.Localization;
 
 public class TCTicketDisplay extends MapDisplay {
 
@@ -41,19 +43,30 @@ public class TCTicketDisplay extends MapDisplay {
 
         Ticket ticket = TicketStore.getTicketFromItem(this.getMapItem());
         if (ticket == null) {
-            this.getLayer(1).draw(MapFont.MINECRAFT, 10, 40, MapColorPalette.COLOR_RED, "Invalid Ticket");
+            this.getLayer(1).draw(MapFont.MINECRAFT, 10, 40, MapColorPalette.COLOR_RED, Localization.TICKET_MAP_INVALID.get());
         } else {
             this.getLayer(1).draw(MapFont.MINECRAFT, 10, 40, MapColorPalette.COLOR_BLACK, ticket.getName());
             if (TicketStore.isTicketExpired(this.getMapItem())) {
-                this.getLayer(1).draw(MapFont.MINECRAFT, 10, 57, MapColorPalette.COLOR_RED, "EXPIRED");
+                this.getLayer(1).draw(MapFont.MINECRAFT, 10, 57, MapColorPalette.COLOR_RED, Localization.TICKET_MAP_EXPIRED.get());
             } else {
+                int maxUses = ticket.getMaxNumberOfUses();
+                int numUses = (maxUses == 1) ? 0 : TicketStore.getNumberOfUses(this.getMapItem());
+                if (maxUses < 0) {
+                    maxUses = -1; // Just in case, so it works properly with Localization
+                }
                 String text;
-                if (ticket.getMaxNumberOfUses() == 1) {
-                    text = "Single use";
-                } else if (ticket.getMaxNumberOfUses() < 0) {
-                    text = "Unlimited uses";
+                if (Common.hasCapability("Common:Localization:InitDefaults")) {
+                    // BKCommonLib 1.18.2-v2 and newer initializes these localization defaults correctly
+                    text = Localization.TICKET_MAP_USES.get(Integer.toString(maxUses), Integer.toString(numUses));
                 } else {
-                    text = TicketStore.getNumberOfUses(this.getMapItem()) + "/" + ticket.getMaxNumberOfUses() + " uses";
+                    // Fallback for older BKCL versions: the original code
+                    if (maxUses == 1) {
+                        text = "Single use";
+                    } else if (maxUses < 0) {
+                        text = "Unlimited uses";
+                    } else {
+                        text = Localization.TICKET_MAP_USES.get(Integer.toString(maxUses), Integer.toString(numUses));
+                    }
                 }
                 this.getLayer(1).draw(MapFont.MINECRAFT, 10, 57, MapColorPalette.COLOR_BLACK, text);
             }
