@@ -47,6 +47,7 @@ public enum Permission implements IPermissionEnum {
     PROPERTY_REALTIME("train.property.realtime", PermissionDefault.OP, "The player can configure that a train updates in realtime, adjusting for server tick lag and jitter"),
     PROPERTY_TICKETS("train.property.tickets", PermissionDefault.TRUE, "The player can assign tickets required for entering the train"),
     PROPERTY_VIEW_DISTANCE("train.property.viewdistance", PermissionDefault.OP, "The player can change the player view distance set for passengers of a train"),
+    PROPERTY_ENTER_MESSAGE("train.property.entermessage", PermissionDefault.TRUE, "The player can change the message displayed to players when they enter the train"),
 
     COMMAND_DESTROY("train.command.destroy", PermissionDefault.OP, "The player can destroy owned carts through commands"),
     COMMAND_DESTROYALL("train.command.destroyall", PermissionDefault.OP, "The player can destroy all trains on the server"),
