@@ -326,7 +326,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
             if (enteredNewSeat) {
                 CommonUtil.callEvent(new MemberSeatEnterEvent(new_seat, passenger, isPlayerInitiated,
                         old_seat != null, /* was seat change */
-                        old_seat != null && old_seat.getMember() != new_seat.getMember() /* was vehicle change */));
+                        old_seat == null || old_seat.getMember() != new_seat.getMember() /* was vehicle change */));
             }
 
             return true;
