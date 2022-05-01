@@ -14,8 +14,10 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.vehicle.VehicleExitEvent;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -123,8 +125,15 @@ public class TCSeatChangeListener implements Listener {
         if (!event.isSeatChange() && !exemptFromEjectOffset.contains(event.getEntity())) {
             final Entity e = event.getEntity();
             final Location old_entity_location = e.getLocation();
-            final Location old_seat_location = event.getMember().getPassengerLocation(e);
-            final Location loc = event.getMember().getPassengerEjectLocation(e);
+            final Location loc = event.getSeat().getEjectPosition(event.getEntity());
+
+            // Compute location of the seat
+            final Location old_seat_location;
+            {
+                Matrix4x4 transform = event.getSeat().getTransform();
+                Vector pyr = transform.getYawPitchRoll();
+                old_seat_location = transform.toVector().toLocation(event.getEntity().getWorld(), (float) pyr.getY(), (float) pyr.getX());
+            }
 
             // Teleport to the exit position a tick later
             // Edited: no longer has to be next tick, the seat exit event is guaranteed to occur AFTER
