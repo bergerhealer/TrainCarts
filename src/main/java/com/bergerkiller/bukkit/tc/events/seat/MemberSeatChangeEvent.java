@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.events.seat;
 
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
@@ -26,7 +27,13 @@ public class MemberSeatChangeEvent extends MemberSeatExitEvent {
     private CartAttachmentSeat newSeat;
 
     public MemberSeatChangeEvent(CartAttachmentSeat oldSeat, CartAttachmentSeat newSeat, Entity entity, boolean playerInitiated) {
-        super(oldSeat, entity, playerInitiated);
+        this(oldSeat, newSeat, entity, oldSeat.getPosition(entity), newSeat.getPosition(entity), playerInitiated);
+    }
+
+    public MemberSeatChangeEvent(CartAttachmentSeat oldSeat, CartAttachmentSeat newSeat, Entity entity,
+            Location seatPosition, Location exitPosition, boolean playerInitiated
+    ) {
+        super(oldSeat, entity, seatPosition, exitPosition, playerInitiated);
         this.newSeat = newSeat;
     }
 

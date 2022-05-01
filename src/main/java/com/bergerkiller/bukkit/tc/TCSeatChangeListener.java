@@ -14,10 +14,8 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.vehicle.VehicleExitEvent;
-import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -125,15 +123,8 @@ public class TCSeatChangeListener implements Listener {
         if (!event.isSeatChange() && !exemptFromEjectOffset.contains(event.getEntity())) {
             final Entity e = event.getEntity();
             final Location old_entity_location = e.getLocation();
-            final Location loc = event.getSeat().getEjectPosition(event.getEntity());
-
-            // Compute location of the seat
-            final Location old_seat_location;
-            {
-                Matrix4x4 transform = event.getSeat().getTransform();
-                Vector pyr = transform.getYawPitchRoll();
-                old_seat_location = transform.toVector().toLocation(event.getEntity().getWorld(), (float) pyr.getY(), (float) pyr.getX());
-            }
+            final Location old_seat_location = event.getSeatPosition();
+            final Location loc = event.getExitPosition();
 
             // Teleport to the exit position a tick later
             // Edited: no longer has to be next tick, the seat exit event is guaranteed to occur AFTER
@@ -162,6 +153,11 @@ public class TCSeatChangeListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onMemberSeatExitMonitor(MemberSeatExitEvent event) {
+        // Don't do this when not interactable (unloaded or dead) as that breaks things
+        if (!event.getMember().isInteractable()) {
+            return;
+        }
+
         // Avoid rapid re-entering due to enter collision rule
         if (event.isMemberVehicleChange()) {
             event.getMember().resetCollisionEnter();
@@ -343,12 +339,16 @@ public class TCSeatChangeListener implements Listener {
                 final boolean playerInitiated = event.getExited() instanceof Player && ((Player) event.getExited()).isSneaking();
 
                 // Fire cancellable before-exit event
+                final Location seatPosition = seat.getPosition(event.getExited());
+                final Location exitPosition;
                 {
-                    MemberBeforeSeatExitEvent memberExitEvent = new MemberBeforeSeatExitEvent(seat, event.getExited(), playerInitiated);
+                    MemberBeforeSeatExitEvent memberExitEvent = new MemberBeforeSeatExitEvent(seat, event.getExited(),
+                            seatPosition, seat.getEjectPosition(event.getExited()), playerInitiated);
                     if (CommonUtil.callEvent(memberExitEvent).isCancelled()) {
                         event.setCancelled(true);
                         return;
                     }
+                    exitPosition = memberExitEvent.getExitPosition();
                 }
 
                 // Next tick, if passenger is indeed no longer in this seat, fire a
@@ -357,7 +357,7 @@ public class TCSeatChangeListener implements Listener {
                 final Entity passenger = event.getExited();
                 CommonUtil.nextTick(() -> {
                     if (passenger.getVehicle() != vehicle) {
-                        CommonUtil.callEvent(new MemberSeatExitEvent(seat, passenger, playerInitiated));
+                        CommonUtil.callEvent(new MemberSeatExitEvent(seat, passenger, seatPosition, exitPosition, playerInitiated));
                     }
                 });
             }

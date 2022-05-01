@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.events.seat;
 
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
@@ -26,12 +27,16 @@ public class MemberBeforeSeatExitEvent extends MemberEvent implements Cancellabl
     private final Entity entity;
     private final boolean playerInitiated;
     private final CartAttachmentSeat seat;
+    private final Location seatPosition;
+    private Location exitPosition;
     private boolean cancelled;
 
-    public MemberBeforeSeatExitEvent(CartAttachmentSeat seat, Entity entity, boolean playerInitiated) {
+    public MemberBeforeSeatExitEvent(CartAttachmentSeat seat, Entity entity, Location seatPosition, Location exitPosition, boolean playerInitiated) {
         super(seat.getMember());
         this.seat = seat;
         this.entity = entity;
+        this.seatPosition = seatPosition;
+        this.exitPosition = exitPosition;
         this.playerInitiated = playerInitiated;
     }
 
@@ -61,6 +66,39 @@ public class MemberBeforeSeatExitEvent extends MemberEvent implements Cancellabl
      */
     public boolean isPlayerInitiated() {
         return this.playerInitiated;
+    }
+
+    /**
+     * Gets the Location where the Entity sat in the seat
+     *
+     * @return Seat position
+     */
+    public Location getSeatPosition() {
+        return this.seatPosition;
+    }
+
+    /**
+     * Gets the Location where the Entity will be after exiting the seat. When
+     * changing to a new seat, this is the current location of that seat. When
+     * exiting from the vehicle entirely, this is the seat-configured ejection
+     * point/offset.
+     *
+     * @return Exit position
+     */
+    public Location getExitPosition() {
+        return this.exitPosition;
+    }
+
+    /**
+     * Sets a new exit position to use instead of the default one. Players will
+     * be teleported here when exiting from the vehicle, or when entering the new
+     * seat fails.
+     *
+     * @param position New exit position
+     * @see {@link #getExitPosition()}
+     */
+    public void setExitPosition(Location position) {
+        this.exitPosition = position;
     }
 
     /**

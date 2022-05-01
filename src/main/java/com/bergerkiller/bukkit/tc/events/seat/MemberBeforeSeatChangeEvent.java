@@ -23,7 +23,7 @@ public class MemberBeforeSeatChangeEvent extends MemberBeforeSeatExitEvent {
     private CartAttachmentSeat newSeat;
 
     public MemberBeforeSeatChangeEvent(CartAttachmentSeat oldSeat, CartAttachmentSeat newSeat, Entity entity, boolean playerInitiated) {
-        super(oldSeat, entity, playerInitiated);
+        super(oldSeat, entity, oldSeat.getPosition(entity), newSeat.getPosition(entity), playerInitiated);
         this.newSeat = newSeat;
     }
 

@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.events.seat;
 
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
@@ -29,12 +30,16 @@ public class MemberSeatExitEvent extends MemberEvent {
     private static final HandlerList handlers = new HandlerList();
     private final Entity entity;
     private final boolean playerInitiated;
+    private final Location seatPosition;
+    private final Location exitPosition;
     private final CartAttachmentSeat seat;
 
-    public MemberSeatExitEvent(CartAttachmentSeat seat, Entity entity, boolean playerInitiated) {
+    public MemberSeatExitEvent(CartAttachmentSeat seat, Entity entity, Location seatPosition, Location exitPosition, boolean playerInitiated) {
         super(seat.getMember());
         this.seat = seat;
         this.entity = entity;
+        this.seatPosition = seatPosition;
+        this.exitPosition = exitPosition;
         this.playerInitiated = playerInitiated;
     }
 
@@ -64,6 +69,27 @@ public class MemberSeatExitEvent extends MemberEvent {
      */
     public boolean isPlayerInitiated() {
         return this.playerInitiated;
+    }
+
+    /**
+     * Gets the Location where the Entity sat in the seat
+     *
+     * @return Seat position
+     */
+    public Location getSeatPosition() {
+        return this.seatPosition;
+    }
+
+    /**
+     * Gets the Location where the Entity will be after exiting the seat. When
+     * changing to a new seat, this is the current location of that seat. When
+     * exiting from the vehicle entirely, this is the seat-configured ejection
+     * point/offset.
+     *
+     * @return Exit position
+     */
+    public Location getExitPosition() {
+        return this.exitPosition;
     }
 
     /**

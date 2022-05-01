@@ -234,22 +234,28 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
             return false;
         }
 
+        Location seatPosition = null, exitPosition = null;
         if (old_seat != null && new_seat != null) {
             // Fire event for changing from one seat to another
             MemberBeforeSeatChangeEvent event = new MemberBeforeSeatChangeEvent(old_seat, new_seat, passenger, isPlayerInitiated);
+            seatPosition = event.getSeatPosition();
             if (CommonUtil.callEvent(event).isCancelled()) {
                 return false;
             }
             new_seat = event.getEnteredSeat();
+            exitPosition = event.getExitPosition();
             if (old_seat == new_seat) {
                 return false;
             }
         } else if (old_seat != null) {
             // Fire an event to exit an old seat (eject)
-            MemberBeforeSeatExitEvent event = new MemberBeforeSeatExitEvent(old_seat, passenger, isPlayerInitiated);
+            seatPosition = old_seat.getPosition(passenger);
+            exitPosition = old_seat.getEjectPosition(passenger);
+            MemberBeforeSeatExitEvent event = new MemberBeforeSeatExitEvent(old_seat, passenger, seatPosition, exitPosition, isPlayerInitiated);
             if (CommonUtil.callEvent(event).isCancelled()) {
                 return false;
             }
+            exitPosition = event.getExitPosition();
         } else if (new_seat != null) {
             // Fire an event to enter a new seat
             MemberBeforeSeatEnterEvent event = new MemberBeforeSeatEnterEvent(new_seat, passenger, isPlayerInitiated,
@@ -270,7 +276,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
             new_seat.setEntity(passenger);
 
             // Fire post-seat-change events
-            CommonUtil.callEvent(new MemberSeatChangeEvent(old_seat, new_seat, passenger, isPlayerInitiated));
+            CommonUtil.callEvent(new MemberSeatChangeEvent(old_seat, new_seat, passenger, seatPosition, exitPosition, isPlayerInitiated));
             CommonUtil.callEvent(new MemberSeatEnterEvent(new_seat, passenger, isPlayerInitiated, true, false));
             return true;
         }
@@ -318,9 +324,9 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
             // Fire post-seat-change events depending on what seats were entered/exited
             if (old_seat != null) {
                 if (enteredNewSeat) {
-                    CommonUtil.callEvent(new MemberSeatChangeEvent(old_seat, new_seat, passenger, isPlayerInitiated));
+                    CommonUtil.callEvent(new MemberSeatChangeEvent(old_seat, new_seat, passenger, seatPosition, exitPosition, isPlayerInitiated));
                 } else {
-                    CommonUtil.callEvent(new MemberSeatExitEvent(old_seat, passenger, isPlayerInitiated));
+                    CommonUtil.callEvent(new MemberSeatExitEvent(old_seat, passenger, seatPosition, exitPosition, isPlayerInitiated));
                 }
             }
             if (enteredNewSeat) {

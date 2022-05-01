@@ -760,6 +760,20 @@ public class CartAttachmentSeat extends CartAttachment {
     }
 
     /**
+     * Gets the exact position the passenger would have if it
+     * was inside this seat.
+     *
+     * @param passenger Passenger to check
+     * @return Location position the passenger would or will have
+     */
+    public Location getPosition(Entity passenger) {
+        org.bukkit.World w = this.getManager().getWorld();
+        Matrix4x4 transform = this.getTransform();
+        Vector pyr = transform.getYawPitchRoll();
+        return transform.toVector().toLocation(w, (float) pyr.getY(), (float) pyr.getX());
+    }
+
+    /**
      * Calculates the eject position of the seat
      * 
      * @param passenger to check eject position for

@@ -42,7 +42,6 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.controller.EntityController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
-import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
@@ -670,9 +669,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             return mloc;
         } else {
             // Use seat
-            Matrix4x4 transform = seat.getTransform();
-            Vector pyr = transform.getYawPitchRoll();
-            return transform.toVector().toLocation(entity.getWorld(), (float) pyr.getY(), (float) pyr.getX());
+            return seat.getPosition(passenger);
         }
     }
 
