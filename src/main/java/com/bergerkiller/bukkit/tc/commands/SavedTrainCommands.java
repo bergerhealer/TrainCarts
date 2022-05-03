@@ -57,6 +57,12 @@ public class SavedTrainCommands {
         return new ArrayList<String>(plugin.getSavedTrains().getModuleNames());
     }
 
+    @Suggestions("savedtrainname")
+    public List<String> getSavedTrainNames(final CommandContext<CommandSender> context, final String input) {
+        final TrainCarts plugin = context.inject(TrainCarts.class).get();
+        return plugin.getSavedTrains().getNames();
+    }
+
     @InitializationMethod
     private void init(CommandManager<CommandSender> manager) {
         manager.registerCommandPostProcessor((postProcessContext) -> {
@@ -236,10 +242,48 @@ public class SavedTrainCommands {
             return;
         }
 
+        // Handle permissions when overwriting an existing train
+        if (!Commands.checkSavePermissionsOverwrite(plugin, sender, newSavedTrainName, force)) {
+            return;
+        }
+
         String oldName = savedTrain.getName();
         plugin.getSavedTrains().rename(oldName, newSavedTrainName);
         sender.sendMessage(ChatColor.YELLOW + "Saved train '" + ChatColor.WHITE + oldName +
                 ChatColor.YELLOW + "' has been renamed to '" + ChatColor.WHITE + newSavedTrainName +
+                ChatColor.YELLOW + "'!");
+    }
+
+    @CommandMethod("savedtrain <savedtrainname> copy|clone <targetsavedtrainname>")
+    @CommandDescription("Copies an existing saved train and saves it as the target saved train name")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_COPY)
+    private void commandCopy(
+            final CommandSender sender,
+            final TrainCarts plugin,
+            final @Argument("savedtrainname") SavedTrainProperties savedTrain,
+            final @Argument(value="targetsavedtrainname", suggestions="savedtrainname") String targetSavedTrainName,
+            final @Flag("force") boolean force
+    ) {
+        if (savedTrain.getName().equals(targetSavedTrainName)) {
+            sender.sendMessage(ChatColor.RED + "The target name is the same as the source name");
+            return;
+        }
+
+        // Handle permissions when overwriting an existing train
+        if (!Commands.checkSavePermissionsOverwrite(plugin, sender, targetSavedTrainName, force)) {
+            return;
+        }
+
+        try {
+            plugin.getSavedTrains().setConfig(targetSavedTrainName, savedTrain.getConfig().clone());
+        } catch (IllegalNameException e) {
+            sender.sendMessage(ChatColor.RED + "Invalid train name: " + targetSavedTrainName);
+            return;
+        }
+
+        sender.sendMessage(ChatColor.YELLOW + "Saved train '" + ChatColor.WHITE + savedTrain.getName() +
+                ChatColor.YELLOW + "' copied and saved as '" + ChatColor.WHITE + targetSavedTrainName +
                 ChatColor.YELLOW + "'!");
     }
 

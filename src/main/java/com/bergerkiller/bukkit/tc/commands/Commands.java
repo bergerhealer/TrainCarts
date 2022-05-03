@@ -360,6 +360,47 @@ public class Commands {
     }
 
     /**
+     * Same as {@link #checkSavePermissions(TrainCarts, CommandSender, String, boolean)}, but prompts the player
+     * to overwrite an existing train when force is false.
+     *
+     * @param plugin
+     * @param sender
+     * @param trainName
+     * @param force
+     * @return True if saving to this train name is allowed
+     */
+    public static boolean checkSavePermissionsOverwrite(TrainCarts plugin, CommandSender sender, String trainName, boolean force) {
+        // If the saved train doesn't even exist yet, always allow
+        if (!plugin.getSavedTrains().containsTrain(trainName)) {
+            return true;
+        }
+
+        boolean isFromOtherPlayer = false;
+        if (!plugin.getSavedTrains().hasPermission(sender, trainName)) {
+            // Check that the player has global editing permission
+            if (!Permission.COMMAND_SAVEDTRAIN_GLOBAL.has(sender)) {
+                sender.sendMessage(ChatColor.RED + "You do not have permission to overwrite saved train " + trainName);
+                return false;
+            }
+
+            isFromOtherPlayer = true;
+        }
+
+        if (!force) {
+            if (isFromOtherPlayer) {
+                sender.sendMessage(ChatColor.RED + "The saved train '" + trainName + "' already exists, and it is not yours!");
+            } else {
+                sender.sendMessage(ChatColor.RED + "The saved train '" + trainName + "' already exists!");
+            }
+            sender.sendMessage(ChatColor.RED + "/savedtrain " + trainName + " info  -  View saved train details");
+            sender.sendMessage(ChatColor.RED + "If you are sure you want to overwrite it, pass --force");
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Downloads the full YAML configuration of a train from hastebin, and
      * calls the callback with the configuration if successful.
      *

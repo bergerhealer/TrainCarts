@@ -71,6 +71,7 @@ public enum Permission implements IPermissionEnum {
     COMMAND_SAVEDTRAIN_LIST("train.command.savedtrain.list", PermissionDefault.TRUE, "Whether the player can view saved trains and modules and use the /savedtrain command at all"),
     COMMAND_SAVEDTRAIN_REVERSE("train.command.savedtrain.reverse", PermissionDefault.OP, "Whether the player can reverse a saved train, so that back becomes front when spawning"),
     COMMAND_SAVEDTRAIN_RENAME("train.command.savedtrain.rename", PermissionDefault.OP, "Whether the player can rename a saved train to a new name"),
+    COMMAND_SAVEDTRAIN_COPY("train.command.savedtrain.copy", PermissionDefault.OP, "Whether the player can copy an existing saved train configuration and save it as a new name"),
     COMMAND_SAVEDTRAIN_DELETE("train.command.savedtrain.delete", PermissionDefault.OP, "Whether the player can delete a previously saved train"),
     COMMAND_SAVEDTRAIN_CLAIM("train.command.savedtrain.claim", PermissionDefault.OP, "Whether the player can change who has claimed a saved train"),
     COMMAND_SAVEDTRAIN_GLOBAL("train.command.savedtrain.global", PermissionDefault.OP, "Whether the player can modify, delete or claim saved trains claimed by other players"),
