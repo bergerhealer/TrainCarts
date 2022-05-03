@@ -451,7 +451,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
         GroupRemoveEvent.call(this);
         this.clear();
-        this.updateChunkInformation();
+        this.updateChunkInformation(!this.canUnload(), true);
         this.chunkArea.reset();
         if (this.prop != null) {
             TrainPropertiesStore.remove(this.prop.getTrainName());
@@ -637,7 +637,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
         }
         this.updateDirection();
-        this.updateChunkInformation();
+        this.updateChunkInformation(!this.canUnload(), false);
         this.updateWheels();
         this.getSignTracker().updatePosition();
 
@@ -1208,33 +1208,27 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         // When keep chunks loaded is active, make sure to enforce that right away
         // If we do it next tick a chunk could unload before we can do so
         // Do not do this for normal unloading logic, as that may unload the train in there (this should be later)
-        if (!this.canUnload()) {
-            this.updateChunkInformation();
+        if (this.getProperties().isKeepingChunksLoaded()) {
+            this.updateChunkInformation(true, false);
         }
     }
 
     /**
      * Refreshes the chunks this train is occupying. When the train keeps chunks loaded,
      * makes sure to load the new chunks and allow old chunks to unload again.
+     * 
+     * @param keepChunksLoaded Whether to keep chunks loaded, or track train unloading
+     * @param isRemoving When true, the train is in process of being removed, and no logic
+     *                   besides refreshing the chunk area should be performed.
      */
-    private void updateChunkInformation() {
-        boolean canUnload = this.canUnload();
+    private void updateChunkInformation(boolean keepChunksLoaded, boolean isRemoving) {
         try (Timings t = TCTimings.GROUP_UPDATE_CHUNKS.start()) {
             // Refresh the chunk area tracker using this information
             this.chunkArea.refresh(this.getWorld(), this.loadChunksBuffer());
             this.chunkAreaValid = true;
 
             // Keep-chunks-loaded or automatic unloading when moving into unloaded chunks
-            if (canUnload) {
-                // Check all newly added chunks whether the chunk is unloaded
-                // When such a chunk is found, unload this train
-                for (ChunkArea.OwnedChunk chunk : this.chunkArea.getAdded()) {
-                    if (!chunk.isLoaded()) {
-                        this.unload();
-                        throw new GroupUnloadedException();
-                    }
-                }
-            } else {
+            if (keepChunksLoaded) {
                 // Load chunks we entered for asynchronous loading
                 for (ChunkArea.OwnedChunk chunk : this.chunkArea.getAdded()) {
                     chunk.keepLoaded(true);
@@ -1244,6 +1238,15 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 for (ChunkArea.OwnedChunk chunk : this.chunkArea.getAll()) {
                     if (chunk.getDistance() <= 1 && chunk.getPreviousDistance() > 1) {
                         chunk.loadChunk();
+                    }
+                }
+            } else if (!isRemoving) {
+                // Check all newly added chunks whether the chunk is unloaded
+                // When such a chunk is found, unload this train
+                for (ChunkArea.OwnedChunk chunk : this.chunkArea.getAdded()) {
+                    if (!chunk.isLoaded()) {
+                        this.unload();
+                        throw new GroupUnloadedException();
                     }
                 }
             }
@@ -1583,8 +1586,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 return true; //false;
             }
 
-            // Refresh chunks
-            this.updateChunkInformation();
+            // Refresh chunks - may cause group to unload here
+            this.updateChunkInformation(!this.canUnload(), false);
 
             // Refresh wheel position information, important to do it AFTER updateDirection()
             this.updateWheels();
