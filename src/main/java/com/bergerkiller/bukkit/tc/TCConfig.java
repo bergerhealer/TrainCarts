@@ -240,6 +240,7 @@ public class TCConfig {
         launchFunctionType = config.get("launchFunction", "bezier");
 
         config.setHeader("keepChunksLoadedOnlyWhenMoving", "\nWhether or not chunks are only kept loaded when the train is moving");
+        config.addHeader("keepChunksLoadedOnlyWhenMoving", "They also keep chunks loaded while the train is waiting on a station");
         keepChunksLoadedOnlyWhenMoving = config.get("keepChunksLoadedOnlyWhenMoving", false);
 
         config.setHeader("enableCeilingBlockCollision", "\nWhether to enable or cancel collisions with blocks above minecarts");

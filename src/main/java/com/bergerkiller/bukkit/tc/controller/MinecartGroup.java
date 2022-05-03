@@ -958,6 +958,15 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     /**
+     * Gets whether this train is moving, or waiting on a station or other sign mechanic.
+     *
+     * @return Moving or waiting
+     */
+    public boolean isMovingOrWaiting() {
+        return isMoving() || this.getActions().isWaitAction();
+    }
+
+    /**
      * Checks if this Minecart Group can unload, or if chunks are kept loaded instead<br>
      * The keepChunksLoaded property is read, as well the moving state if configured<br>
      * If a player is inside the train, it will keep the chunks loaded as well
@@ -966,7 +975,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      */
     public boolean canUnload() {
         if (this.getProperties().isKeepingChunksLoaded()) {
-            if (!TCConfig.keepChunksLoadedOnlyWhenMoving || this.isMoving()) {
+            if (!TCConfig.keepChunksLoadedOnlyWhenMoving || this.isMovingOrWaiting()) {
                 return false;
             }
         }
