@@ -21,6 +21,7 @@ import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.annotations.specifier.Quoted;
 
 /**
  * The current destination a train is going for. May also update the
@@ -46,7 +47,7 @@ public final class DestinationProperty implements ICartProperty<String> {
     private void commandSetProperty(
             final CommandSender sender,
             final TrainProperties properties,
-            final @Argument(value="destination", suggestions="destinations") String destination
+            final @Quoted @Argument(value="destination", suggestions="destinations") String destination
     ) {
         properties.setDestination(destination);
         commandGetProperty(sender, properties);
@@ -84,7 +85,7 @@ public final class DestinationProperty implements ICartProperty<String> {
     private void commandSetProperty(
             final CommandSender sender,
             final CartProperties properties,
-            final @Argument(value="destination", suggestions="destinations") String destination
+            final @Quoted @Argument(value="destination", suggestions="destinations") String destination
     ) {
         properties.setDestination(destination);
         commandGetProperty(sender, properties);

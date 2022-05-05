@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.annotations.specifier.Quoted;
 
 /**
  * Displays a message to the players when they enter this particular cart
@@ -31,7 +32,7 @@ public final class EnterMessageProperty implements ICartProperty<String> {
     private void setProperty(
             final CommandSender sender,
             final TrainProperties properties,
-            final @Argument("message") String message
+            final @Quoted @Argument("message") String message
     ) {
         properties.set(this, message);
         getProperty(sender, properties);
@@ -60,7 +61,7 @@ public final class EnterMessageProperty implements ICartProperty<String> {
     private void setProperty(
             final CommandSender sender,
             final CartProperties properties,
-            final @Argument("message") String message
+            final @Quoted @Argument("message") String message
     ) {
         properties.set(this, message);
         getProperty(sender, properties);

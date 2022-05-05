@@ -39,6 +39,7 @@ import cloud.commandframework.annotations.CommandPermission;
 import cloud.commandframework.annotations.Flag;
 import cloud.commandframework.annotations.Hidden;
 import cloud.commandframework.annotations.specifier.Greedy;
+import cloud.commandframework.annotations.specifier.Quoted;
 import cloud.commandframework.annotations.specifier.Range;
 
 import org.bukkit.Bukkit;
@@ -423,7 +424,7 @@ public class GlobalCommands {
     @CommandDescription("Forcibly removes minecarts and trackers that have glitched out")
     private void commandEditByName(
             final Player sender,
-            final @Argument(value="trainname", suggestions="trainnames") String trainName
+            final @Quoted @Argument(value="trainname", suggestions="trainnames") String trainName
     ) {
         TrainProperties prop = TrainProperties.get(trainName);
         if (prop != null && !prop.isEmpty()) {

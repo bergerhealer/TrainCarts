@@ -28,6 +28,7 @@ import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.annotations.InitializationMethod;
 import cloud.commandframework.annotations.parsers.Parser;
+import cloud.commandframework.annotations.specifier.Quoted;
 import cloud.commandframework.annotations.suggestions.Suggestions;
 import cloud.commandframework.context.CommandContext;
 import cloud.commandframework.exceptions.InvalidCommandSenderException;
@@ -100,7 +101,7 @@ public class TicketCommands {
     @CommandDescription("Edits a ticket by name")
     private void commandEdit(
               final Player sender,
-              final @Argument("name") Ticket ticket
+              final @Quoted @Argument("name") Ticket ticket
     ) {
         TicketStore.setEditing(sender, ticket);
         sender.sendMessage(ChatColor.GREEN + "You are now editing ticket " + ChatColor.YELLOW + ticket.getName());
@@ -122,7 +123,7 @@ public class TicketCommands {
     @CommandDescription("Creates a new ticket with a name as specified")
     private void commandCreateWithName(
               final Player sender,
-              final @Argument("name") String name
+              final @Quoted @Argument("name") String name
     ) {
         Ticket newTicket = TicketStore.createTicket(TicketStore.DEFAULT, name);
         if (newTicket == null) {
@@ -201,7 +202,7 @@ public class TicketCommands {
     private void commandRenameTicket(
               final Player sender,
               final Ticket ticket,
-              final @Argument("newname") String newTicketName
+              final @Quoted @Argument("newname") String newTicketName
     ) {
         if (ticket.setName(newTicketName)) {
             sender.sendMessage(ChatColor.GREEN + "Ticket has been renamed to " + ChatColor.YELLOW + ticket.getName());
@@ -244,7 +245,7 @@ public class TicketCommands {
     private void commandSetBackground(
               final Player sender,
               final Ticket ticket,
-              final @Argument("newimage") String newImage
+              final @Quoted @Argument("newimage") String newImage
     ) {
         ticket.setBackgroundImagePath(newImage);
         TicketStore.markChanged();
@@ -296,7 +297,7 @@ public class TicketCommands {
     private void commandSetDestination(
               final Player sender,
               final Ticket ticket,
-              final @Argument("newdestination") String newDestination
+              final @Quoted @Argument("newdestination") String newDestination
     ) {
         ticket.getProperties().set("destination", newDestination);
         sender.sendMessage(ChatColor.GREEN + "Ticket destination set to " + ChatColor.YELLOW + newDestination);

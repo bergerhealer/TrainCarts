@@ -36,6 +36,7 @@ import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.annotations.Flag;
 import cloud.commandframework.annotations.InitializationMethod;
+import cloud.commandframework.annotations.specifier.Quoted;
 import cloud.commandframework.annotations.suggestions.Suggestions;
 import cloud.commandframework.arguments.CommandArgument;
 import cloud.commandframework.arguments.parser.ArgumentParseResult;
@@ -234,7 +235,7 @@ public class SavedTrainCommands {
             final CommandSender sender,
             final TrainCarts plugin,
             final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain,
-            final @Argument("newsavedtrainname") String newSavedTrainName,
+            final @Quoted @Argument("newsavedtrainname") String newSavedTrainName,
             final @Flag("force") boolean force
     ) {
         if (savedTrain.getName().equals(newSavedTrainName)) {
@@ -262,7 +263,7 @@ public class SavedTrainCommands {
             final CommandSender sender,
             final TrainCarts plugin,
             final @Argument("savedtrainname") SavedTrainProperties savedTrain,
-            final @Argument(value="targetsavedtrainname", suggestions="savedtrainname") String targetSavedTrainName,
+            final @Quoted @Argument(value="targetsavedtrainname", suggestions="savedtrainname") String targetSavedTrainName,
             final @Flag("force") boolean force
     ) {
         if (savedTrain.getName().equals(targetSavedTrainName)) {
@@ -348,7 +349,7 @@ public class SavedTrainCommands {
     private void commandClaimAdd(
             final CommandSender sender,
             final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain,
-            final @Argument(value="player", suggestions="playername") String player, //TODO: Support multiple players WITH flags
+            final @Quoted @Argument(value="player", suggestions="playername") String player, //TODO: Support multiple players WITH flags
             final @Flag("force") boolean force
     ) {
         // Retrieve current list of claims
@@ -373,7 +374,7 @@ public class SavedTrainCommands {
     private void commandClaimRemove(
             final CommandSender sender,
             final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain,
-            final @Argument(value="player", suggestions="playername") String player, //TODO: Support multiple players WITH flags
+            final @Quoted @Argument(value="player", suggestions="playername") String player, //TODO: Support multiple players WITH flags
             final @Flag("force") boolean force
     ) {
         // Retrieve current list of claims

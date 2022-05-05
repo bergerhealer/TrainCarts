@@ -34,6 +34,7 @@ import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.annotations.Flag;
 import cloud.commandframework.annotations.specifier.Greedy;
+import cloud.commandframework.annotations.specifier.Quoted;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -170,7 +171,7 @@ public class TrainCommands {
             final CommandSender sender,
             final TrainCarts plugin,
             final MinecartGroup group,
-            final @Argument("name") String name,
+            final @Quoted @Argument("name") String name,
             final @Flag(value="force", description="Force saving when the train is claimed by someone else") boolean force,
             final @Flag(value="module", description="Module to move the saved train to") String module
     ) {
@@ -438,7 +439,7 @@ public class TrainCommands {
     private void commandAnimate(
             final CommandSender sender,
             final TrainProperties properties,
-            final @Argument(value="animation_name", suggestions="trainAnimationName", description="Name of the animation to play") String animationName,
+            final @Quoted @Argument(value="animation_name", suggestions="trainAnimationName", description="Name of the animation to play") String animationName,
             final @Flag(value="speed", aliases="s", description="Speed of the animation, 1.0 is default") Double speed,
             final @Flag(value="delay", aliases="d", description="Delay of the animation, 0.0 is default") Double delay,
             final @Flag(value="loop", aliases="l", description="Loop the animation") boolean setLooping,
@@ -563,7 +564,7 @@ public class TrainCommands {
               final CommandSender sender,
               final TrainProperties properties,
               final @Argument("property") String propertyName,
-              final @Argument("value") String value
+              final @Quoted @Argument("value") String value
     ) {
         PropertyParseResult<Object> parseResult = IPropertyRegistry.instance().parseAndSet(
                 properties, propertyName, value,

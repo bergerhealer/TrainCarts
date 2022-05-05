@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.tc.utils.EventListenerHook;
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.annotations.specifier.Quoted;
 
 /**
  * Commands starting with /train debug.
@@ -120,7 +121,7 @@ public class DebugCommands {
     @CommandDescription("Get a debug stick item to visually display the route towards a destination")
     private void commandDebugDestinationName(
             final Player player,
-            final @Argument("destination") String destination
+            final @Quoted @Argument("destination") String destination
     ) {
         (new DebugToolTypeListDestinations(destination)).giveToPlayer(player);
     }
