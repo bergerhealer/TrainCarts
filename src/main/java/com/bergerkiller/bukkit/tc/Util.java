@@ -66,6 +66,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.AveragedItemParser;
+import com.bergerkiller.bukkit.tc.utils.BlockPhysicsEventDataAccessor;
 import com.bergerkiller.bukkit.tc.utils.BoundingRange;
 import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
 import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
@@ -74,7 +75,6 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlay
 import com.bergerkiller.generated.net.minecraft.server.level.EntityTrackerEntryStateHandle;
 import com.bergerkiller.generated.net.minecraft.world.level.chunk.ChunkHandle;
 import com.bergerkiller.generated.net.minecraft.world.phys.AxisAlignedBBHandle;
-import com.bergerkiller.mountiplex.reflection.util.FastMethod;
 import com.bergerkiller.reflection.net.minecraft.server.NMSItem;
 
 public class Util {
@@ -1608,54 +1608,6 @@ public class Util {
         }
     }
 
-    private static BlockPhysicsEventDataAccessor blockPhysicsEventAccessor;
-    static {
-        try {
-            blockPhysicsEventAccessor = new BlockPhysicsEventDataAccessorEventField();
-        } catch (Throwable t) {
-            //t.printStackTrace();
-            blockPhysicsEventAccessor = new BlockPhysicsEventDataAccessorDefault();
-        }
-    }
-
-    private static interface BlockPhysicsEventDataAccessor {
-        BlockData get(BlockPhysicsEvent event);
-    }
-
-    private static final class BlockPhysicsEventDataAccessorDefault implements BlockPhysicsEventDataAccessor {
-        @Override
-        public BlockData get(BlockPhysicsEvent event) {
-            return WorldUtil.getBlockData(event.getBlock());
-        }
-    }
-
-    // Since a late 1.17.1 version of paper there is a custom method to quickly retrieve the block data
-    private static final class BlockPhysicsEventDataAccessorEventField implements BlockPhysicsEventDataAccessor {
-        private final FastMethod<Object> blockDataGetter;
-        private final FastMethod<Object> blockDataGetState;
-
-        public BlockPhysicsEventDataAccessorEventField() throws Throwable {
-            Class<?> cbd = CommonUtil.getClass("org.bukkit.craftbukkit.block.data.CraftBlockData");
-            this.blockDataGetter = new FastMethod<Object>(BlockPhysicsEvent.class.getDeclaredMethod("getChangedBlockData"));
-            this.blockDataGetState = new FastMethod<Object>(cbd.getDeclaredMethod("getState"));
-            this.blockDataGetter.forceInitialization();
-            this.blockDataGetState.forceInitialization();
-        }
-
-        @Override
-        public BlockData get(BlockPhysicsEvent event) {
-            try {
-                Object bukkit_blockdata = blockDataGetter.invoke(event);
-                Object iblockdata = blockDataGetState.invoke(bukkit_blockdata);
-                return BlockData.fromBlockData(iblockdata);
-            } catch (Throwable t) {
-                TrainCarts.plugin.getLogger().log(Level.SEVERE, "BlockPhysicsEvent getChangedBlockData failed", t);
-                blockPhysicsEventAccessor = new BlockPhysicsEventDataAccessorDefault();
-                return WorldUtil.getBlockData(event.getBlock());
-            }
-        }
-    }
-
     /**
      * Gets the BlockData of the block that experienced physics, part of a block
      * physics event. On later versions this BlockData is stored in the event itself,
@@ -1664,8 +1616,9 @@ public class Util {
      * @param event
      * @return BlockData of the event's {@link BlockPhysicsEvent#getBlock()}
      */
+    @SuppressWarnings("deprecation")
     public static BlockData getBlockDataOfPhysicsEvent(BlockPhysicsEvent event) {
-        return blockPhysicsEventAccessor.get(event);
+        return BlockPhysicsEventDataAccessor.INSTANCE.get(event);
     }
 
     /**
