@@ -121,6 +121,7 @@ public class FirstPersonViewDefault extends FirstPersonView {
             if (useFakeCamera) {
                 if (this._fakeCameraMount == null) {
                     this._fakeCameraMount = this.seat.seated.createPassengerVehicle();
+                    vmc.mount(this._fakeCameraMount.getEntityId(), viewer.getEntityId());
                     this._fakeCameraMount.addRelativeOffset(0.0, -VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT, 0.0);
                     this._fakeCameraMount.updatePosition(eyeTransform);
                     this._fakeCameraMount.syncPosition(true);
@@ -130,7 +131,7 @@ public class FirstPersonViewDefault extends FirstPersonView {
                     PacketUtil.sendPacket(viewer, PacketPlayOutUpdateAttributesHandle.createZeroMaxHealth(this._fakeCameraMount.getEntityId()));
                 }
 
-                vmc.mount(this._fakeCameraMount.getEntityId(), viewer.getEntityId());
+
             }
         }
 

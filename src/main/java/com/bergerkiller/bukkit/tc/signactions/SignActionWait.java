@@ -95,7 +95,7 @@ public class SignActionWait extends SignAction {
             long delay = ParseUtil.parseTime(info.getLine(2));
 
             //distance
-            if (info.getGroup().getSpeedAhead(distance) != Double.MAX_VALUE) {
+            if (info.getGroup().isObstacleAhead(distance, true, false)) {
                 info.getGroup().getActions().clear();
                 info.getMember().getActions().addActionWaitOccupied(distance, delay, launchDistance, launchDirection, launchVelocity)
                         .setToggleLeversOf(info.getAttachedBlock());

@@ -25,6 +25,7 @@ public class MutexZoneSlot {
     private static int TICK_DELAY_CLEAR_WAITING = 5; // clear delay when trains are waiting for it
     private final String name;
     private MinecartGroup currentGroup = null;
+    private boolean currentGroupHardEnter = false;
     private int currentGroupTime = 0;
     private List<MutexZone> zones;
     private List<String> statements;
@@ -97,6 +98,7 @@ public class MutexZoneSlot {
 
         if (this.currentGroup.isUnloaded() || !MinecartGroupStore.getGroups().contains(this.currentGroup)) {
             this.currentGroup = null;
+            this.currentGroupHardEnter = false;
             this.setLevers(false);
             return;
         }
@@ -114,12 +116,13 @@ public class MutexZoneSlot {
 
             // It is not. clear it.
             this.currentGroup = null;
+            this.currentGroupHardEnter = false;
             this.setLevers(false);
             return;
         }
     }
 
-    public boolean tryEnter(MinecartGroup group) {
+    public EnterResult tryEnter(MinecartGroup group, boolean hard) {
         // Verify using statements whether the group is even considered
         {
             List<String> statements = this.getStatements();
@@ -134,24 +137,32 @@ public class MutexZoneSlot {
                 }
                 if (!Statement.hasMultiple(group, this.getStatements(), signEvent)) {
                     // Ignored!
-                    return true;
+                    return EnterResult.IGNORED;
                 }
             }
+        }
+
+        // If hard and current group is soft, overwrite
+        if (hard && !this.currentGroupHardEnter && this.currentGroup != null && this.currentGroup != group) {
+            this.currentGroup = null;
         }
 
         // Check not occupied by someone else
         if (this.currentGroup != null && this.currentGroup != group) {
             this.refresh(true);
             if (this.currentGroup != null) {
-                return false;
+                return this.currentGroupHardEnter ? EnterResult.OCCUPIED_HARD : EnterResult.OCCUPIED_SOFT;
             }
         }
 
         // Occupy it.
         this.currentGroup = group;
+        this.currentGroupHardEnter |= hard;
         this.currentGroupTime = CommonUtil.getServerTicks();
-        this.setLevers(true);
-        return true;
+        if (hard) {
+            this.setLevers(true);
+        }
+        return EnterResult.SUCCESS;
     }
 
     private void setLevers(boolean down) {
@@ -167,5 +178,38 @@ public class MutexZoneSlot {
             }
         }
         return false;
+    }
+
+    /**
+     * Gets the group that currently is inside this zone. If not null, it
+     * means no other group can enter it.
+     *
+     * @return current group that activated this mutex zone
+     */
+    public MinecartGroup getCurrentGroup() {
+        return this.currentGroupHardEnter ? this.currentGroup : null;
+    }
+
+    /**
+     * Gets the group that is expected to enter this mutex zone very soon
+     *
+     * @return prospective group
+     */
+    public MinecartGroup getProspectiveGroup() {
+        return this.currentGroup;
+    }
+
+    /**
+     * The result of trying to enter a mutex
+     */
+    public static enum EnterResult {
+        /** The group does not match conditions to enter/be seen by the mutex zone */
+        IGNORED,
+        /** The mutex zone was entered */
+        SUCCESS,
+        /** The mutex zone is occupied (hard, can't ever enter it) */
+        OCCUPIED_HARD,
+        /** The mutex zone is about to be occupied (soft, can enter but must slow approach) */
+        OCCUPIED_SOFT
     }
 }

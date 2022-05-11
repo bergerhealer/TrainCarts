@@ -1,6 +1,10 @@
 package com.bergerkiller.bukkit.tc.actions;
 
+import java.util.Collections;
+import java.util.List;
+
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
 import com.bergerkiller.bukkit.tc.utils.LaunchFunction;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
 
@@ -100,6 +104,11 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         LauncherConfig newConfig = this.config.clone();
         newConfig.setFunction(function);
         this.init(newConfig, this.targetvelocity);
+    }
+
+    @Override
+    public List<TrainStatus> getStatusInfo() {
+        return Collections.singletonList(new TrainStatus.Launching(this.targetvelocity, this.targetspeedlimit, this.config));
     }
 
     @Override

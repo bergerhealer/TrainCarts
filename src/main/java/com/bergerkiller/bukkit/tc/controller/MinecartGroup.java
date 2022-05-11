@@ -32,6 +32,8 @@ import com.bergerkiller.bukkit.tc.controller.components.SpeedAheadWaiter;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
+import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
+import com.bergerkiller.bukkit.tc.controller.status.TrainStatusProvider;
 import com.bergerkiller.bukkit.tc.events.*;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
@@ -64,7 +66,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
-public class MinecartGroup extends MinecartGroupStore implements IPropertiesHolder, AnimationController {
+public class MinecartGroup extends MinecartGroupStore implements IPropertiesHolder, AnimationController, TrainStatusProvider {
     private static final long serialVersionUID = 3;
     private static final LongHashSet chunksBuffer = new LongHashSet(50);
     protected final ToggledState ticked = new ToggledState();
@@ -1134,6 +1136,40 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         this.breakPhysics = true;
     }
 
+    @Override
+    public List<TrainStatus> getStatusInfo() {
+        List<TrainStatus> info = new ArrayList<>(3);
+        info.addAll(this.getActions().getStatusInfo());
+        for (MinecartMember<?> member : this) {
+            info.addAll(member.getActions().getStatusInfo());
+        }
+        info.addAll(this.speedAheadWaiter.getStatusInfo());
+
+        for (MinecartMember<?> member : this) {
+            if (member.isDerailed()) {
+                info.add(new TrainStatus.Derailed());
+                break;
+            }
+        }
+
+        if (this.getProperties().getSpeedLimit() <= 1e-5) {
+            info.add(new TrainStatus.WaitingZeroSpeedLimit());
+        } else {
+            double speed = this.head().getRealSpeedLimited();
+            if (speed <= 1e-5) {
+                info.add(new TrainStatus.NotMoving());
+            } else {
+                info.add(new TrainStatus.Moving(speed));
+            }
+        }
+
+        if (this.getProperties().isKeepingChunksLoaded()) {
+            info.add(new TrainStatus.KeepingChunksLoaded());
+        }
+
+        return info;
+    }
+
     /*
      * These two overrides ensure that sets use this MinecartGroup properly
      * Without it, the AbstractList versions were used, which don't apply here
@@ -1275,28 +1311,30 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     /**
-     * Gets the distance and speed of an obstacle up ahead on the tracks.
+     * Gets the distance and speed of all obstacles up ahead on the tracks.
      * This can be another train, or a mutex zone that blocks further movement.
      * 
      * @param distance The distance in blocks to check for obstacles
+     * @param trains Whether to include other trains up ahead in the results
+     * @param railObstacles Whether to include rail obstacles, like mutex zones, in the results
      * @return obstacle found within this distance, null if there is none
      */
-    public SpeedAheadWaiter.Obstacle findObstacleAhead(double distance) {
-        return this.speedAheadWaiter.findObstacleAhead(distance, true);
+    public List<SpeedAheadWaiter.Obstacle> findObstaclesAhead(double distance, boolean trains, boolean railObstacles) {
+        return this.speedAheadWaiter.findObstaclesAhead(distance, trains, railObstacles, 0.0);
     }
 
     /**
-     * Gets the speed the train should be moving at to avoid collision with any trains in front.
-     * A return value of 0 or less indicates the train should be halted entirely. A return value
-     * of Double.MAX_VALUE indicates there are no obstacles ahead and the train can move on uninterrupted.
+     * Checks whether there are any obstacles up ahead on the tracks.
+     * This can be another train, or a mutex zone that blocks further movement.
      * 
      * @param distance to look for trains ahead
-     * @return speed to match
-     * @see {@link #findObstacleAhead(double)}
+     * @param trains Whether to include other trains up ahead in the results
+     * @param railObstacles Whether to include rail obstacles, like mutex zones, in the results
+     * @return True if a matched obstacle is up ahead, False if not
+     * @see {@link #findObstaclesAhead(double, boolean, boolean)}
      */
-    public double getSpeedAhead(double distance) {
-        SpeedAheadWaiter.Obstacle obstacle = this.speedAheadWaiter.findObstacleAhead(distance, true);
-        return (obstacle != null) ? obstacle.speed : Double.MAX_VALUE;
+    public boolean isObstacleAhead(double distance, boolean trains, boolean railObstacles) {
+        return !this.findObstaclesAhead(distance, trains, railObstacles).isEmpty();
     }
 
     private void tickActions() {
@@ -1559,7 +1597,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // We do the waiting by setting the max speed of the train (NOT speed limit!) to match that train's speed
             // It is important speed of this train is updated before doing these checks.
             try (Timings t = TCTimings.GROUP_ENFORCE_SPEEDAHEAD.start()) {
-                this.speedAheadWaiter.update(forwardMovingSpeed);
+                this.speedAheadWaiter.update(forwardMovingSpeed / getUpdateSpeedFactor());
                 double limitedSpeed = this.speedAheadWaiter.getSpeedLimit();
                 if (limitedSpeed != Double.MAX_VALUE) {
                     limitedSpeed = Math.min(0.4, this.updateSpeedFactor * limitedSpeed);

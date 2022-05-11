@@ -1,11 +1,15 @@
 package com.bergerkiller.bukkit.tc.actions;
 
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
+import com.bergerkiller.bukkit.tc.controller.status.TrainStatusProvider;
 
-public class Action {
+public class Action implements TrainStatusProvider {
     private final ToggledState started = new ToggledState();
     private int _timeTicks = 0;
     private int _subTicks = 1;
@@ -111,5 +115,10 @@ public class Action {
 
     public void start() {
         // Default implementation does nothing here
+    }
+
+    @Override
+    public List<TrainStatus> getStatusInfo() {
+        return Collections.emptyList();
     }
 }

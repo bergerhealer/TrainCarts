@@ -1,8 +1,12 @@
 package com.bergerkiller.bukkit.tc.actions;
 
+import java.util.Collections;
+import java.util.List;
+
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
+import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
@@ -38,5 +42,10 @@ public class GroupActionWaitPathFinding extends GroupActionWaitForever {
             }
             return true;
         }
+    }
+
+    @Override
+    public List<TrainStatus> getStatusInfo() {
+        return Collections.singletonList(new TrainStatus.WaitingForRouting());
     }
 }

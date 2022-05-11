@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.commands.argument.DirectionOrFormattedSpeed;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -120,6 +121,25 @@ public class TrainCommands {
 
         // Send
         message.send(sender);
+    }
+
+    @CommandTargetTrain
+    @CommandMethod("train status")
+    @CommandDescription("Gives a summary about the train's behavior and actions")
+    private void commandTrainStatus(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        MinecartGroup group = properties.getHolder();
+        if (group == null) {
+            sender.sendMessage(ChatColor.RED + "The train is not loaded");
+        } else {
+            sender.sendMessage("");
+            sender.sendMessage(ChatColor.YELLOW + "---- Status of " + properties.getTrainName() + " ----");;
+            for (TrainStatus status : group.getStatusInfo()) {
+                sender.sendMessage(status.getMessage());
+            }
+        }
     }
 
     @CommandTargetTrain

@@ -1,5 +1,10 @@
 package com.bergerkiller.bukkit.tc.debug;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.text.NumberFormat;
+import java.util.Locale;
+
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -17,6 +22,8 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
  */
 public class DebugToolUtil {
     private static final double PARTICLE_SPACING = 0.2;
+    private static final NumberFormat DEFAULT_NUMBER_FORMAT_SMALL = new DecimalFormat("0.0###", DecimalFormatSymbols.getInstance(Locale.ENGLISH));
+    private static final NumberFormat DEFAULT_NUMBER_FORMAT_LARGE = new DecimalFormat("0.0", DecimalFormatSymbols.getInstance(Locale.ENGLISH));
 
     // cyclical array of chat colors used to turn an index into a color
     // there is a clear green/blue/cyan/magenta/yellow repeating pattern
@@ -102,5 +109,9 @@ public class DebugToolUtil {
 
         player.sendMessage(ChatColor.RED + "End of the rail at " + coordinates(p) +
                 " after " + ((int) (walker.movedTotal + initialDistance)) + " blocks");
+    }
+
+    public static String formatNumber(double value) {
+        return ((value > 10.0) ? DEFAULT_NUMBER_FORMAT_LARGE : DEFAULT_NUMBER_FORMAT_SMALL).format(value);
     }
 }

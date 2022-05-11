@@ -1,9 +1,14 @@
 package com.bergerkiller.bukkit.tc.actions;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.controller.components.SpeedAheadWaiter;
+import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
 
 public class MemberActionWaitOccupied extends MemberAction implements WaitAction {
     private final double maxDistance;
@@ -16,6 +21,7 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
     private int counter = 20;
     private boolean breakCode = false;
     private Block toggleLeversOf = null;
+    private SpeedAheadWaiter.TrainObstacle trainObstacle = null;
 
     public MemberActionWaitOccupied(final double maxDistance, final long delay, final double launchDistance, BlockFace launchDirection, Double launchVelocity) {
         this.maxDistance = maxDistance;
@@ -72,8 +78,23 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
     }
 
     public boolean handleOccupied() {
-        // return handleOccupied(this.start, this.direction, this.getMember(), this.maxsize);
-        return this.getGroup().getSpeedAhead(this.maxDistance) != Double.MAX_VALUE;
+        for (SpeedAheadWaiter.Obstacle obstacle : this.getGroup().findObstaclesAhead(this.maxDistance, true, false)) {
+            if (obstacle instanceof SpeedAheadWaiter.TrainObstacle) {
+                this.trainObstacle = (SpeedAheadWaiter.TrainObstacle) obstacle;
+                return true;
+            }
+        }
+        this.trainObstacle = null;
+        return false;
+    }
+
+    @Override
+    public List<TrainStatus> getStatusInfo() {
+        if (this.trainObstacle == null) {
+            return Collections.emptyList();
+        }
+        return Collections.singletonList(new TrainStatus.WaitingForTrain(
+                this.trainObstacle.member, this.trainObstacle.fullDistance));
     }
 
     @Override

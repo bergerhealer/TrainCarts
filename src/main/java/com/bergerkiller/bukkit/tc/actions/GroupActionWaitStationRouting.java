@@ -1,5 +1,8 @@
 package com.bergerkiller.bukkit.tc.actions;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
@@ -10,6 +13,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
+import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 
@@ -87,6 +91,11 @@ public class GroupActionWaitStationRouting extends GroupAction implements WaitAc
 
         // Wait
         return false;
+    }
+
+    @Override
+    public List<TrainStatus> getStatusInfo() {
+        return Collections.singletonList(new TrainStatus.WaitingForRouting());
     }
 
     private boolean tryFallback() {

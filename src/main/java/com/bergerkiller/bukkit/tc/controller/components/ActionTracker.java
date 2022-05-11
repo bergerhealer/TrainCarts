@@ -6,9 +6,13 @@ import com.bergerkiller.bukkit.tc.actions.MemberAction;
 import com.bergerkiller.bukkit.tc.actions.MovementAction;
 import com.bergerkiller.bukkit.tc.actions.WaitAction;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
+import com.bergerkiller.bukkit.tc.controller.status.TrainStatusProvider;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 
 import org.bukkit.block.Block;
@@ -16,7 +20,7 @@ import org.bukkit.block.Block;
 /**
  * Stores actions and updates them per tick
  */
-public class ActionTracker {
+public class ActionTracker implements TrainStatusProvider {
     private final Queue<Action> actions = new LinkedList<>();
 
     public boolean hasAction() {
@@ -120,4 +124,13 @@ public class ActionTracker {
         }
     }
 
+    @Override
+    public List<TrainStatus> getStatusInfo() {
+        Action currentAction = this.getCurrentAction();
+        if (currentAction == null) {
+            return Collections.emptyList();
+        } else {
+            return currentAction.getStatusInfo();
+        }
+    }
 }
