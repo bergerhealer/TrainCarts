@@ -2,7 +2,9 @@ package com.bergerkiller.bukkit.tc.actions;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
 import com.bergerkiller.bukkit.tc.utils.LaunchFunction;
@@ -53,7 +55,7 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         try {
             this.function = config.getFunction().newInstance();
         } catch (Throwable t) {
-            t.printStackTrace();
+            TrainCarts.plugin.getLogger().log(Level.SEVERE, "Unhandled error initializing launch function", t);
             this.function = new LaunchFunction.Linear();
         }
 

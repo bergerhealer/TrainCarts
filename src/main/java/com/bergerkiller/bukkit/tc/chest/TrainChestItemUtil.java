@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.chest;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.logging.Level;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -168,7 +169,7 @@ public class TrainChestItemUtil {
                     compressed = byteStream.toByteArray();
                 }
             } catch (Throwable t) {
-                t.printStackTrace();
+                TrainCarts.plugin.getLogger().log(Level.SEVERE, "Unhandled error saving item details to config", t);
             }
             tag.putValue("config", compressed);
             tag.putValue("parsed", false);
@@ -211,7 +212,7 @@ public class TrainChestItemUtil {
                 }
                 basicConfig.loadFromStream(new ByteArrayInputStream(uncompressed));
             } catch (IOException ex) {
-                ex.printStackTrace();
+                TrainCarts.plugin.getLogger().log(Level.SEVERE, "Unhandled IO error parsing train chest configuration", ex);
                 return null;
             }
             group = SpawnableGroup.fromConfig(basicConfig);

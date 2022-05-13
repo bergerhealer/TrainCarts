@@ -20,7 +20,6 @@ public abstract class BlockPhysicsEventDataAccessor {
         try {
             INSTANCE = new BlockPhysicsEventDataAccessorEventField();
         } catch (Throwable t) {
-            //t.printStackTrace();
             INSTANCE = new BlockPhysicsEventDataAccessorDefault();
         }
     }

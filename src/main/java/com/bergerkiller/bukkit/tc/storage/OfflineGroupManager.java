@@ -250,7 +250,7 @@ public class OfflineGroupManager {
                         count++;
                     }
                 } catch (InterruptedException | ExecutionException e) {
-                    e.printStackTrace();
+                    TrainCarts.plugin.getLogger().log(Level.SEVERE, "Unhandled error destroying carts", e);
                 }
             }
             return count;
@@ -275,7 +275,7 @@ public class OfflineGroupManager {
                 try {
                     total += future.get();
                 } catch (InterruptedException | ExecutionException e) {
-                    e.printStackTrace();
+                    TrainCarts.plugin.getLogger().log(Level.SEVERE, "Unhandled error destroying carts", e);
                 }
             }
 
@@ -570,7 +570,7 @@ public class OfflineGroupManager {
                     }
                 } while (chunkLoadReq);
             } catch (Throwable t) {
-                t.printStackTrace();
+                TrainCarts.plugin.getLogger().log(Level.SEVERE, "Unhandled error handling train restoring", t);
             }
             isRefreshingGroups = false;
         }
