@@ -291,9 +291,12 @@ public abstract class SeatedEntity {
         if (this.parentMountId == -1) {
             // Use parent node for mounting point, unless not possible
             // Making use of SEAT_PARENT will disable any additional transforms
+            // When seat rotation is locked, this cannot be used, because the sending of the 'real'
+            // vehicles rotation messes with the seat rotation configured.
             if (seat.getConfiguredPosition().anchor == AttachmentAnchor.SEAT_PARENT &&
                 seat.getConfiguredPosition().isIdentity() &&
-                seat.getParent() != null)
+                seat.getParent() != null &&
+                !seat.isRotationLocked())
             {
                 this.parentMountId = ((CartAttachment) seat.getParent()).getMountEntityId();
             }
