@@ -79,7 +79,7 @@ public class TrainCarts extends PluginBase {
     private Task autosaveTask;
     private Task cacheCleanupTask;
     private Task mutexZoneUpdateTask;
-    private ChunkPreloadTask chunkPreloadTask;
+    private final List<ChunkPreloadTask> chunkPreloadTasks = new ArrayList<>();
     private TCPropertyRegistry propertyRegistry;
     private TCPacketListener packetListener;
     private TCInteractionPacketListener interactionPacketListener;
@@ -395,6 +395,24 @@ public class TrainCarts extends PluginBase {
         TCConfig.putParsers(key, parsers);
     }
 
+    protected void preloadChunks(Map<OfflineGroup, List<ForcedChunk>> chunks) {
+        // Load all chunks right now. This does not yet load the entities inside.
+        chunks.values().stream().flatMap(list -> list.stream()).forEachOrdered(chunk -> {
+            try {
+                chunk.getChunk();
+            } catch (Throwable t) {
+                getLogger().log(Level.SEVERE, "Failed to load chunk " + chunk.getWorld().getName()
+                        + " [" + chunk.getX() + ", " + chunk.getZ() + "]", t);
+            }
+        });
+
+        // Dispatch to the preloader which will keep these loaded for a little while,
+        // until the entities in the chunks have also been loaded soon after.
+        ChunkPreloadTask preloadTask = new ChunkPreloadTask(this, chunks);
+        preloadTask.startPreloading();
+        this.chunkPreloadTasks.add(preloadTask);
+    }
+
     public void loadConfig() {
         config = new FileConfiguration(this);
         config.load();
@@ -604,20 +622,7 @@ public class TrainCarts extends PluginBase {
             OfflineGroupManager.refresh();
 
             // Get all chunks to be kept loaded and load them right now
-            Map<OfflineGroup, List<ForcedChunk>> chunks = OfflineGroupManager.getForceLoadedChunks();
-            chunks.values().stream().flatMap(list -> list.stream()).forEachOrdered(chunk -> {
-                try {
-                    chunk.getChunk();
-                } catch (Throwable t) {
-                    getLogger().log(Level.SEVERE, "Failed to load chunk " + chunk.getWorld().getName()
-                            + " [" + chunk.getX() + ", " + chunk.getZ() + "]", t);
-                }
-            });
-
-            // Dispatch to the preloader which will keep these loaded for a little while,
-            // until the entities in the chunks have also been loaded soon after.
-            this.chunkPreloadTask = new ChunkPreloadTask(this, chunks);
-            this.chunkPreloadTask.startPreloading();
+            preloadChunks(OfflineGroupManager.getForceLoadedChunks());
         }
 
         //Activate all detector regions with trains that are on it
@@ -707,8 +712,8 @@ public class TrainCarts extends PluginBase {
         Task.stop(mutexZoneUpdateTask);
 
         //Stop preloading chunks (happens when quickly disabling after enabling)
-        if (this.chunkPreloadTask != null) {
-            this.chunkPreloadTask.abortPreloading();
+        for (ChunkPreloadTask preloadTask : this.chunkPreloadTasks) {
+            preloadTask.abortPreloading();
         }
 
         //stop updating
@@ -985,6 +990,7 @@ public class TrainCarts extends PluginBase {
         public void run() {
             // If all done, stop the task
             if (this.finished.isEmpty() && this.chunks.isEmpty()) {
+                ((TrainCarts) getPlugin()).chunkPreloadTasks.remove(this);
                 this.stop();
                 return;
             }

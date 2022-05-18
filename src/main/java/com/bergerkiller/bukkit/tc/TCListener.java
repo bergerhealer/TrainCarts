@@ -1,8 +1,8 @@
 package com.bergerkiller.bukkit.tc;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
-import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
 import com.bergerkiller.bukkit.common.collections.EntityMap;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.events.ChunkLoadEntitiesEvent;
@@ -23,18 +23,13 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.debug.DebugTool;
 import com.bergerkiller.bukkit.tc.editor.TCMapControl;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
-import com.bergerkiller.bukkit.tc.events.seat.MemberBeforeSeatChangeEvent;
-import com.bergerkiller.bukkit.tc.events.seat.MemberBeforeSeatEnterEvent;
-import com.bergerkiller.bukkit.tc.events.seat.MemberBeforeSeatExitEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.portals.PortalDestination;
-import com.bergerkiller.bukkit.tc.properties.CartProperties;
-import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
-import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
@@ -174,6 +169,13 @@ public class TCListener implements Listener {
     public void onWorldLoad(WorldLoadEvent event) {
         // Refresh the groups on this world
         OfflineGroupManager.refresh(event.getWorld());
+
+        // Start loading the chunks kept loaded by trains with property keep chunks loaded
+        Map<OfflineGroup, List<ForcedChunk>> chunks = OfflineGroupManager.getForceLoadedChunks(event.getWorld());
+        if (!chunks.isEmpty()) {
+            plugin.log(Level.INFO, "Restoring trains and loading nearby chunks on world " + event.getWorld().getName() + "...");
+            plugin.preloadChunks(chunks);
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

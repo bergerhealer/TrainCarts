@@ -137,19 +137,34 @@ public class OfflineGroupManager {
     public static Map<OfflineGroup, List<ForcedChunk>> getForceLoadedChunks() {
         Map<OfflineGroup, List<ForcedChunk>> chunks = new HashMap<>();
         for (World world : WorldUtil.getWorlds()) {
-            synchronized (managers) {
-                OfflineGroupMap map = managers.get(world);
-                if (map != null && !map.isEmpty() && map.getWorld().isLoaded()) {
-                    for (OfflineGroup group : map.values()) {
-                        TrainProperties prop = TrainProperties.get(group.name);
-                        if (prop == null || !prop.isKeepingChunksLoaded()) {
-                            continue;
-                        }
-                        if (TCConfig.keepChunksLoadedOnlyWhenMoving && !group.isMoving()) {
-                            continue;
-                        }
-                        chunks.put(group, group.forceLoadChunks(world));
+            chunks.putAll(getForceLoadedChunks(world));
+        }
+        return chunks;
+    }
+
+    /**
+     * Asynchronously forces all chunks kept loaded to be loaded
+     * for a single world.
+     * In the future, once the chunks are loaded, will restore the
+     * associated trains.
+     *
+     * @param world The world to find groups for to keep loaded
+     * @return List of chunks to keep loaded mapped to the group that does
+     */
+    public static Map<OfflineGroup, List<ForcedChunk>> getForceLoadedChunks(World world) {
+        Map<OfflineGroup, List<ForcedChunk>> chunks = new HashMap<>();
+        synchronized (managers) {
+            OfflineGroupMap map = managers.get(world);
+            if (map != null && !map.isEmpty() && map.getWorld().isLoaded()) {
+                for (OfflineGroup group : map.values()) {
+                    TrainProperties prop = TrainProperties.get(group.name);
+                    if (prop == null || !prop.isKeepingChunksLoaded()) {
+                        continue;
                     }
+                    if (TCConfig.keepChunksLoadedOnlyWhenMoving && !group.isMoving()) {
+                        continue;
+                    }
+                    chunks.put(group, group.forceLoadChunks(world));
                 }
             }
         }
