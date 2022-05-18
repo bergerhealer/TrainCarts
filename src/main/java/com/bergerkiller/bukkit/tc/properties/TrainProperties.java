@@ -14,7 +14,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
-import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -161,7 +160,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         }
 
         List<ForcedChunk> chunksOfTrain = new ArrayList<>();
-        World world = Bukkit.getWorld(group.worldUUID);
+        World world = group.world.getLoadedWorld();
         if (world != null) {
             for (long chunk : group.chunks) {
                 chunksOfTrain.add(WorldUtil.forceChunkLoaded(world,

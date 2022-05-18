@@ -430,7 +430,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
                 return null;
             } else {
                 // Find world
-                World world = Bukkit.getWorld(omember.group.worldUUID);
+                World world = omember.group.world.getLoadedWorld();
                 if (world == null) {
                     return new BlockLocation("Unknown", omember.cx << 4, 0, omember.cz << 4);
                 } else {

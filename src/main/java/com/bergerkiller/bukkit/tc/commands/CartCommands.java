@@ -30,7 +30,6 @@ import cloud.commandframework.annotations.Flag;
 import cloud.commandframework.annotations.specifier.Greedy;
 import cloud.commandframework.annotations.specifier.Quoted;
 
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -142,7 +141,7 @@ public class CartCommands {
         // Check this first, as we cannot load the chunks of an unloaded train
         {
             OfflineMember member = OfflineGroupManager.findMember(properties.getTrainProperties().getTrainName(), properties.getUUID());
-            if (member != null && Bukkit.getWorld(member.group.worldUUID) == null) {
+            if (member != null && !member.group.world.isLoaded()) {
                 player.sendMessage(ChatColor.RED + "Cart is on a world that is not loaded");
                 return;
             }

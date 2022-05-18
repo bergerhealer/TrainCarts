@@ -37,7 +37,6 @@ import cloud.commandframework.annotations.Flag;
 import cloud.commandframework.annotations.specifier.Greedy;
 import cloud.commandframework.annotations.specifier.Quoted;
 
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -232,7 +231,7 @@ public class TrainCommands {
         // Check this first, as we cannot load the chunks of an unloaded train
         {
             OfflineGroup group = OfflineGroupManager.findGroup(properties.getTrainName());
-            if (group != null && Bukkit.getWorld(group.worldUUID) == null) {
+            if (group != null && !group.world.isLoaded()) {
                 player.sendMessage(ChatColor.RED + "Train is on a world that is not loaded");
                 return;
             }

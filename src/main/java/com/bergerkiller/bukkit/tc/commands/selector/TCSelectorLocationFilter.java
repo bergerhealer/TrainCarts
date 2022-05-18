@@ -128,7 +128,7 @@ class TCSelectorLocationFilter {
 
         // Hard mode: check offline train storage
         OfflineGroup offlineGroup = OfflineGroupManager.findGroup(properties.getTrainName());
-        return offlineGroup != null && world.getUID().equals(offlineGroup.worldUUID);
+        return offlineGroup != null && world.getUID().equals(offlineGroup.world.getUniqueId());
     }
 
     /**
@@ -164,7 +164,7 @@ class TCSelectorLocationFilter {
             if (offlineGroup == null) {
                 return false; // Weird!
             }
-            if (!world.getUID().equals(offlineGroup.worldUUID)) {
+            if (!world.getUID().equals(offlineGroup.world.getUniqueId())) {
                 return false;
             }
 

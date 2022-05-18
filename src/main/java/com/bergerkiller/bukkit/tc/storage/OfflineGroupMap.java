@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.storage;
 
 import com.bergerkiller.bukkit.common.chunk.ChunkFutureProvider;
 import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
+import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
@@ -21,9 +22,18 @@ import java.util.stream.Stream;
  * Maps all the Offline Groups to chunk coordinates, allowing faster chunk access for restoring trains
  */
 public class OfflineGroupMap implements Iterable<OfflineGroup> {
+    private final OfflineWorld world;
     private Set<OfflineGroup> groups = new HashSet<>();
     private LongHashMap<HashSet<OfflineGroup>> groupmap = new LongHashMap<>();
     private Set<UUID> minecartEntityUUIDsBeingDestroyed = new HashSet<>();
+
+    public OfflineGroupMap(OfflineWorld world) {
+        this.world = world;
+    }
+
+    public OfflineWorld getWorld() {
+        return this.world;
+    }
 
     @Override
     public Iterator<OfflineGroup> iterator() {

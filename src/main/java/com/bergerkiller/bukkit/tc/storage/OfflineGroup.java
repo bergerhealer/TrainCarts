@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.storage;
 
 import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
+import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
@@ -17,7 +18,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.logging.Level;
 
 /**
@@ -30,7 +30,7 @@ public class OfflineGroup {
     public final LongHashSet loadedChunks;
     public OfflineMember[] members;
     public String name;
-    public UUID worldUUID;
+    public OfflineWorld world;
     private boolean loaded;
     public boolean isBeingRemoved = false;
 
@@ -40,7 +40,7 @@ public class OfflineGroup {
             this.members[i] = new OfflineMember(this, group.get(i));
         }
         this.name = group.getProperties().getTrainName();
-        this.worldUUID = group.getWorld().getUID();
+        this.world = OfflineWorld.of(group.getWorld());
         this.loaded = false;
         if (group.getActions().getCurrentAction() instanceof MemberActionLaunch) {
             double vel = ((MemberActionLaunch) group.getActions().getCurrentAction()).getTargetVelocity();
@@ -102,19 +102,25 @@ public class OfflineGroup {
         return this.loadedChunks.size() == this.chunks.size();
     }
 
-    public boolean updateLoadedChunks(World world) {
+    public boolean updateLoadedChunks() {
         this.loadedChunks.clear();
-        final LongIterator iter = this.chunks.longIterator();
-        while (iter.hasNext()) {
-            long chunk = iter.next();
-            if (WorldUtil.isChunkEntitiesLoaded(world, MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk))) {
-                this.loadedChunks.add(chunk);
+
+        World world = this.world.getLoadedWorld();
+        if (world != null) {
+            final LongIterator iter = this.chunks.longIterator();
+            while (iter.hasNext()) {
+                long chunk = iter.next();
+                if (WorldUtil.isChunkEntitiesLoaded(world, MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk))) {
+                    this.loadedChunks.add(chunk);
+                }
             }
+            if (OfflineGroupManager.lastUnloadChunk != null) {
+                this.loadedChunks.remove(OfflineGroupManager.lastUnloadChunk);
+            }
+            return this.testFullyLoaded();
+        } else {
+            return false;
         }
-        if (OfflineGroupManager.lastUnloadChunk != null) {
-            this.loadedChunks.remove(OfflineGroupManager.lastUnloadChunk);
-        }
-        return this.testFullyLoaded();
     }
 
     public void genChunks() {

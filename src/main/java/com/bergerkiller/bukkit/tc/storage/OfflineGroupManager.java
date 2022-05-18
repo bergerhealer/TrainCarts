@@ -3,6 +3,8 @@ package com.bergerkiller.bukkit.tc.storage;
 import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
+import com.bergerkiller.bukkit.common.offline.OfflineWorld;
+import com.bergerkiller.bukkit.common.offline.OfflineWorldMap;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
@@ -35,14 +37,26 @@ public class OfflineGroupManager {
     private static boolean isRefreshingGroups = false;
     private static Map<String, OfflineGroup> containedTrains = new HashMap<>();
     private static HashSet<UUID> containedMinecarts = new HashSet<>();
-    private static final Map<UUID, OfflineGroupMapImpl> managers = new HashMap<>();
+    private static final OfflineWorldMap<OfflineGroupMapImpl> managers = new OfflineWorldMap<OfflineGroupMapImpl>();
 
-    private static OfflineGroupMapImpl get(UUID uuid) {
-        return managers.computeIfAbsent(uuid, u -> new OfflineGroupMapImpl());
+    private static OfflineGroupMapImpl get(OfflineWorld world) {
+        // Note: computeIfAbsent bug!
+        OfflineGroupMapImpl map = managers.get(world);
+        if (map == null) {
+            map = new OfflineGroupMapImpl(world);
+            managers.put(world, map);
+        }
+        return map;
     }
 
     private static OfflineGroupMapImpl get(World world) {
-        return get(world.getUID());
+        // Note: computeIfAbsent bug!
+        OfflineGroupMapImpl map = managers.get(world);
+        if (map == null) {
+            map = new OfflineGroupMapImpl(OfflineWorld.of(world));
+            managers.put(world, map);
+        }
+        return map;
     }
 
     public static void loadChunk(Chunk chunk) {
@@ -52,18 +66,18 @@ public class OfflineGroupManager {
             return;
         }
         synchronized (managers) {
-            OfflineGroupMapImpl map = managers.get(chunk.getWorld().getUID());
-            if (map != null) {
+            OfflineGroupMapImpl map = managers.get(chunk.getWorld());
+            if (map != null && map.getWorld().isLoaded()) {
                 if (map.isEmpty()) {
-                    managers.remove(chunk.getWorld().getUID());
+                    managers.remove(chunk.getWorld());
                 } else {
                     Set<OfflineGroup> groups = map.removeFromChunk(chunk);
                     if (groups != null) {
                         for (OfflineGroup group : groups) {
                             if (group.testFullyLoaded()) {
                                 //a participant to be restored
-                                if (group.updateLoadedChunks(chunk.getWorld())) {
-                                    map.restoreGroup(group, chunk.getWorld());
+                                if (group.updateLoadedChunks()) {
+                                    map.restoreGroup(group);
                                 } else {
                                     //add it again
                                     map.add(group);
@@ -78,10 +92,10 @@ public class OfflineGroupManager {
 
     public static void unloadChunk(Chunk chunk) {
         synchronized (managers) {
-            OfflineGroupMap map = managers.get(chunk.getWorld().getUID());
+            OfflineGroupMap map = managers.get(chunk.getWorld());
             if (map != null) {
                 if (map.isEmpty()) {
-                    managers.remove(chunk.getWorld().getUID());
+                    managers.remove(chunk.getWorld());
                 } else {
                     Set<OfflineGroup> groupset = map.getFromChunk(chunk);
                     if (groupset != null) {
@@ -102,12 +116,12 @@ public class OfflineGroupManager {
 
     public static void refresh(World world) {
         synchronized (managers) {
-            OfflineGroupMapImpl map = managers.get(world.getUID());
+            OfflineGroupMapImpl map = managers.get(world);
             if (map != null) {
                 if (map.isEmpty()) {
-                    managers.remove(world.getUID());
-                } else {
-                    map.refreshGroups(world);
+                    managers.remove(world);
+                } else if (map.getWorld().isLoaded()) {
+                    map.refreshGroups();
                 }
             }
         }
@@ -124,8 +138,8 @@ public class OfflineGroupManager {
         Map<OfflineGroup, List<ForcedChunk>> chunks = new HashMap<>();
         for (World world : WorldUtil.getWorlds()) {
             synchronized (managers) {
-                OfflineGroupMap map = managers.get(world.getUID());
-                if (map != null && !map.isEmpty()) {
+                OfflineGroupMap map = managers.get(world);
+                if (map != null && !map.isEmpty() && map.getWorld().isLoaded()) {
                     for (OfflineGroup group : map.values()) {
                         TrainProperties prop = TrainProperties.get(group.name);
                         if (prop == null || !prop.isKeepingChunksLoaded()) {
@@ -161,7 +175,7 @@ public class OfflineGroupManager {
         }
 
         // Find the loaded World. If not loaded, just remove the metadata and 'succeed'
-        World world = Bukkit.getWorld(group.worldUUID);
+        World world = group.world.getLoadedWorld();
         if (world == null) {
             OfflineGroupManager.removeGroup(groupName);
             TrainPropertiesStore.remove(groupName);
@@ -171,7 +185,7 @@ public class OfflineGroupManager {
         // Find the group manager for this world
         OfflineGroupMap map;
         synchronized (managers) {
-            map = managers.get(group.worldUUID);
+            map = managers.get(group.world);
             if (map == null) {
                 return CompletableFuture.completedFuture(Boolean.FALSE);
             }
@@ -224,7 +238,7 @@ public class OfflineGroupManager {
         final List<OfflineGroup> offlineGroups;
         final OfflineGroupMap map;
         synchronized (managers) {
-            map = managers.get(world.getUID());
+            map = managers.get(world);
             if (map == null) {
                 offlineGroups = Collections.emptyList();
             } else {
@@ -365,14 +379,14 @@ public class OfflineGroupManager {
                     int totalmembers = 0;
                     final int worldcount = stream.readInt();
                     for (int worldIdx = 0; worldIdx < worldcount; worldIdx++) {
-                        UUID worldUID = StreamUtil.readUUID(stream);
+                        OfflineWorld world = OfflineWorld.of(StreamUtil.readUUID(stream));
                         final int groupcount = stream.readInt();
-                        OfflineGroupMap map = get(worldUID);
+                        OfflineGroupMap map = get(world);
 
                         // Read all the groups contained
                         for (int groupIdx = 0; groupIdx < groupcount; groupIdx++) {
                             OfflineGroup wg = OfflineGroup.readFrom(stream);
-                            wg.worldUUID = worldUID;
+                            wg.world = world;
 
                             // Register the new offline group within (this) Manager
                             map.add(wg);
@@ -413,8 +427,8 @@ public class OfflineGroupManager {
 
                     //Write it
                     stream.writeInt(managers.size());
-                    for (Map.Entry<UUID, OfflineGroupMapImpl> entry : managers.entrySet()) {
-                        StreamUtil.writeUUID(stream, entry.getKey());
+                    for (Map.Entry<OfflineWorld, OfflineGroupMapImpl> entry : managers.entrySet()) {
+                        StreamUtil.writeUUID(stream, entry.getKey().getUniqueId());
 
                         stream.writeInt(entry.getValue().size());
                         for (OfflineGroup wg : entry.getValue()) wg.writeTo(stream);
@@ -439,7 +453,7 @@ public class OfflineGroupManager {
         }
         synchronized (managers) {
             OfflineGroup wg = new OfflineGroup(group);
-            wg.updateLoadedChunks(world);
+            wg.updateLoadedChunks();
             get(world).add(wg);
         }
     }
@@ -461,8 +475,8 @@ public class OfflineGroupManager {
     public static int getStoredCountInLoadedWorlds() {
         int count = 0;
         synchronized (managers) {
-            for (Map.Entry<UUID, OfflineGroupMapImpl> entry : managers.entrySet()) {
-                if (Bukkit.getWorld(entry.getKey()) != null) {
+            for (Map.Entry<OfflineWorld, OfflineGroupMapImpl> entry : managers.entrySet()) {
+                if (entry.getKey().isLoaded()) {
                     count += entry.getValue().size();
                 }
             }
@@ -476,7 +490,7 @@ public class OfflineGroupManager {
 
     public static boolean containsInLoadedWorld(String trainname) {
         OfflineGroup offlineGroup = containedTrains.get(trainname);
-        return offlineGroup != null && Bukkit.getWorld(offlineGroup.worldUUID) != null;
+        return offlineGroup != null && offlineGroup.world.isLoaded();
     }
 
     public static void rename(String oldtrainname, String newtrainname) {
@@ -544,12 +558,16 @@ public class OfflineGroupManager {
 
     private static final class OfflineGroupMapImpl extends OfflineGroupMap {
 
-        public void restoreGroup(OfflineGroup group, World world) {
-            this.remove(group);
-            group.create(world);
+        public OfflineGroupMapImpl(OfflineWorld world) {
+            super(world);
         }
 
-        public void refreshGroups(World world) {
+        public void restoreGroup(OfflineGroup group) {
+            this.remove(group);
+            group.create(group.world.getLoadedWorld());
+        }
+
+        public void refreshGroups() {
             // While refreshing, ignore incoming Chunk Load events
             // We do not want the group map to change concurrently!
             isRefreshingGroups = true;
@@ -564,8 +582,8 @@ public class OfflineGroupManager {
                     groupsBuffer.clear();
                     groupsBuffer.addAll(this.values());
                     for (OfflineGroup group : groupsBuffer) {
-                        if (group.updateLoadedChunks(world)) {
-                            restoreGroup(group, world);
+                        if (group.updateLoadedChunks()) {
+                            restoreGroup(group);
                         }
                     }
                 } while (chunkLoadReq);
