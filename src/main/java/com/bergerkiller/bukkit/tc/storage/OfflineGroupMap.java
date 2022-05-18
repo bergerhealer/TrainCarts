@@ -26,6 +26,7 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
     private Set<OfflineGroup> groups = new HashSet<>();
     private LongHashMap<HashSet<OfflineGroup>> groupmap = new LongHashMap<>();
     private Set<UUID> minecartEntityUUIDsBeingDestroyed = new HashSet<>();
+    private boolean isDuringWorldUnloadEvent = false;
 
     public OfflineGroupMap(OfflineWorld world) {
         this.world = world;
@@ -55,6 +56,14 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
                 getOrCreateChunk(chunk).add(group);
             }
         }
+    }
+
+    public void setIsDuringWorldUnloadEvent(boolean isDuringWorldUnloadEvent) {
+        this.isDuringWorldUnloadEvent = isDuringWorldUnloadEvent;
+    }
+
+    public boolean canRestoreGroups() {
+        return !this.isDuringWorldUnloadEvent && this.world.isLoaded();
     }
 
     /**

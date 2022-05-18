@@ -102,11 +102,11 @@ public class OfflineGroup {
         return this.loadedChunks.size() == this.chunks.size();
     }
 
-    public boolean updateLoadedChunks() {
+    protected boolean updateLoadedChunks(OfflineGroupMap offlineMap) {
         this.loadedChunks.clear();
 
         World world = this.world.getLoadedWorld();
-        if (world != null) {
+        if (world != null && offlineMap.canRestoreGroups()) {
             final LongIterator iter = this.chunks.longIterator();
             while (iter.hasNext()) {
                 long chunk = iter.next();
