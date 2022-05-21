@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.rails;
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -22,16 +23,22 @@ import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
+import com.bergerkiller.bukkit.tc.signactions.SignAction;
+import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.utils.signtracker.SignChangeTrackerWrap;
 
 /**
  * Retrieves and caches rails and information about rails, mapped to
@@ -53,10 +60,12 @@ import com.bergerkiller.bukkit.tc.rails.type.RailType;
  * Bukkit thread.
  */
 public final class RailLookup {
+    /** Start value of the life timer */
+    private static final int LIFE_TIMER_START = 1;
     /** This is incremented every tick to force cached information to re-verify itself */
-    private static int lifeTimer = 1;
+    private static int lifeTimer = LIFE_TIMER_START;
     /** Stores the (every tick incrementing) future tick when cached information expires */
-    private static int verifyTimer = 1;
+    private static int verifyTimer = LIFE_TIMER_START;
 
     private static final Bucket[] NO_RAILS_AT_POSITION = new Bucket[0];
     private static final TrackedSign[] NO_SIGNS = new TrackedSign[0];
@@ -65,7 +74,7 @@ public final class RailLookup {
     private static final Material WALL_SIGN_TYPE = getMaterial("LEGACY_WALL_SIGN");
     private static final Material SIGN_POST_TYPE = getMaterial("LEGACY_SIGN_POST");
     private static BlockFace[] SIGN_FACES_ORDERED = {BlockFace.UP, BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.DOWN};
-    private static final List<Block> SIGN_LIST_CACHE = new ArrayList<Block>();
+    private static final TrackedSignList SIGN_LIST_CACHE = new TrackedSignList();
     private static final HashMap<OfflineBlock, Bucket> cache = new HashMap<>();
 
     /**
@@ -194,13 +203,17 @@ public final class RailLookup {
         // Delete buckets from memory that have no members on it
         refreshBuckets(bucket -> {
             // Delete this at all times
+            bucket.rail_life = LIFE_TIMER_START;
             bucket.rails_at_position_life = 0;
             bucket.rails_at_position = NO_RAILS_AT_POSITION;
+            bucket.signs = MISSING_RAILS_NO_SIGNS;
             // Remove bucket if there's no members on the rails
             return !bucket.members.isEmpty();
         });
 
         // Increment life timer so that all rail access is re-validated
+        // Set the timer to when buckets with life=1 expire (set earlier)
+        lifeTimer = LIFE_TIMER_START + TCConfig.cacheExpireTicks + TCConfig.cacheVerificationTicks;
         verifyTimer = ++lifeTimer + TCConfig.cacheVerificationTicks;
     }
 
@@ -523,9 +536,25 @@ public final class RailLookup {
                 if (signs == MISSING_RAILS_NO_SIGNS) {
                     this.signs = discoverSignsAtRailPiece(this);
                 } else {
-                    for (TrackedSign sign : signs) {
-                        if (!sign.verify()) {
+                    // Check all tracked signs to see if any of them have been removed
+                    // If they change in other ways (update()), re-create the TrackedSign instance
+                    for (int i = 0; i < signs.length; i++) {
+                        TrackedSign sign = signs[i];
+                        if (!sign.tracker.update()) {
+                            continue;
+                        }
+                        if (sign.tracker.isRemoved()) {
+                            // Regenerate, the entire sign is gone, so there's likely more changes
                             this.signs = discoverSignsAtRailPiece(this);
+                            break;
+                        }
+
+                        // Only re-create the TrackedSign to update the Sign state
+                        try {
+                            this.signs[i] = new TrackedSign(sign.tracker, sign.rail);
+                        } catch (Throwable t) {
+                            this.signs = signs = LogicUtil.removeArrayElement(signs, i);
+                            i--;
                             break;
                         }
                     }
@@ -709,21 +738,80 @@ public final class RailLookup {
     }
 
     /**
+     * List cache used when generating the array of tracked signs
+     */
+    private static final class TrackedSignList implements AutoCloseable {
+        private final List<TrackedSign> signs = new ArrayList<>();
+        private RailPiece rail = null;
+
+        public TrackedSignList start(RailPiece rail) {
+            if (this.rail == null) {
+                this.rail = rail;
+                return this;
+            } else {
+                // Already opened, create a new one to prevent corruption
+                TrackedSignList copy = new TrackedSignList();
+                copy.rail = rail;
+                return copy;
+            }
+        }
+
+        @Override
+        public void close() {
+            this.signs.clear();
+            this.rail = null;
+        }
+
+        public void add(Block signBlock) {
+            SignChangeTrackerWrap tracker = SignChangeTrackerWrap.track(signBlock);
+            if (!tracker.isRemoved()) {
+                try {
+                    this.signs.add(new TrackedSign(tracker, this.rail));
+                } catch (Throwable t) {
+                    TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to load sign at " + signBlock, t);
+                }
+            }
+        }
+
+        public TrackedSign[] build() {
+            List<TrackedSign> signs = this.signs;
+            return signs.isEmpty() ? NO_SIGNS : signs.toArray(new TrackedSign[signs.size()]);
+        }
+    }
+
+    /**
      * A single sign that is tracked
      */
     public static class TrackedSign {
+        private final SignChangeTrackerWrap tracker;
         public final Sign sign;
         public final Block signBlock;
         public final RailPiece rail;
+        /** @deprecated Is now part of {@link #rail} */
+        @Deprecated
         public final RailType railType;
+        /** @deprecated Is now part of {@link #rail} */
+        @Deprecated
         public final Block railBlock;
+        public final SignAction action;
 
         public TrackedSign(Block signBlock, RailPiece rail) {
-            this.sign = BlockUtil.getSign(signBlock);
-            this.signBlock = signBlock;
+            this(SignChangeTrackerWrap.track(signBlock), rail);
+        }
+
+        private TrackedSign(SignChangeTrackerWrap tracker, RailPiece rail) {
+            if (tracker.isRemoved()) {
+                throw new IllegalArgumentException("There is no sign at " + tracker.getBlock());
+            }
+
+            // Canned assignment stuff
+            this.tracker = tracker;
+            this.sign = tracker.getSign();
+            this.signBlock = tracker.getBlock();
             this.rail = rail;
             this.railType = rail.type();
             this.railBlock = rail.block();
+            this.action = SignAction.getSignAction(createEvent(SignActionType.NONE));
         }
 
         /**
@@ -733,6 +821,59 @@ public final class RailLookup {
          */
         public boolean verify() {
             return BlockUtil.ISSIGN.get(signBlock);
+        }
+
+        /**
+         * Initializes a new SignActionEvent using this tracked sign for sign and rail information
+         *
+         * @param action Sign action event type
+         * @return new SignActionEvent
+         */
+        public SignActionEvent createEvent(SignActionType action) {
+            return (new SignActionEvent(this.signBlock, this.sign, this.rail)).setAction(action);
+        }
+
+        /**
+         * Executes a {@link SignActionEvent} with the given action type, for a MinecartMember.
+         * If the member is unloaded or dead, the event is not fired.
+         *
+         * @param action Action to execute
+         * @param member Member involved in the event
+         * @see #createEvent(SignActionType)
+         */
+        public void executeEventForMember(SignActionType action, MinecartMember<?> member) {
+            if (member.isInteractable()) {
+                SignActionEvent event = createEvent(action);
+                event.setMember(member);
+                SignAction.executeOne(this.action, event);
+            }
+        }
+
+        /**
+         * Executes a {@link SignActionEvent} with the given action type, for a MinecartGroup.
+         * If the group is unloaded, the event is not fired.
+         *
+         * @param action Action to execute
+         * @param group Group involved in the event
+         * @see #createEvent(SignActionType)
+         */
+        public void executeEventForGroup(SignActionType action, MinecartGroup group) {
+            if (!group.isUnloaded()) {
+                SignActionEvent event = createEvent(action);
+                event.setGroup(group);
+                SignAction.executeOne(this.action, event);
+            }
+        }
+
+        /**
+         * Checks whether the captured state of this tracked sign has the same
+         * sign text as another.
+         *
+         * @param other TrackedSign to compare against
+         * @return True if the text of the two signs are identical
+         */
+        public boolean hasIdenticalText(TrackedSign other) {
+            return Arrays.equals(this.sign.getLines(), other.sign.getLines());
         }
 
         @Override
@@ -829,8 +970,7 @@ public final class RailLookup {
             return NO_SIGNS;
         }
 
-        List<Block> cache = SIGN_LIST_CACHE;
-        try {
+        try (TrackedSignList cache = SIGN_LIST_CACHE.start(rail)) {
             if (FaceUtil.isVertical(direction)) {
                 // Vertical column can be optimized because we know up-front what chunks will be checked
                 // First retrieve the chunk of the middle column, and the chunk-relative coordinates
@@ -921,17 +1061,7 @@ public final class RailLookup {
             }
 
             // Pack result into a TrackedSign array
-            if (cache.isEmpty()) {
-                return NO_SIGNS;
-            } else {
-                TrackedSign[] signs = new TrackedSign[cache.size()];
-                for (int i = 0; i < signs.length; i++) {
-                    signs[i] = new TrackedSign(cache.get(i), rail);
-                }
-                return signs;
-            }
-        } finally {
-            cache.clear();
+            return cache.build();
         }
     }
 
@@ -968,7 +1098,7 @@ public final class RailLookup {
             }
         }
 
-        public boolean findSign(List<Block> rval, int ry) {
+        public boolean findSign(TrackedSignList rval, int ry) {
             BlockData blockData = WorldUtil.getBlockData(chunk, rx, ry, rz);
             if (MaterialUtil.ISSIGN.get(blockData) && blockData.getAttachedFace() == face.getOppositeFace()) {
                 rval.add(chunk.getBlock(rx, ry, rz));

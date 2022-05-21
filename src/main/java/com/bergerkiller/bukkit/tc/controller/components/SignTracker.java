@@ -66,7 +66,7 @@ public abstract class SignTracker {
                     expectedCount = activeSigns.size();
                     iter = activeSigns.values().iterator();
                     if (--maxResetIterCtr <= 0) {
-                        TrainCarts.plugin.log(Level.WARNING, "Number of iteration reset attempts exceeded limit");
+                        TrainCarts.plugin.log(Level.WARNING, "[SignTracker] Number of iteration reset attempts exceeded limit");
                         break;
                     }
                 }
@@ -155,7 +155,16 @@ public abstract class SignTracker {
         // If this succeeds, fire an 'enter' event
         // This enter event might modify the list, if so, restart from the beginning
         for (TrackedSign newActiveSign : list) {
-            if (activeSigns.put(newActiveSign.signBlock, newActiveSign) == null) {
+            TrackedSign prevActiveSign = activeSigns.put(newActiveSign.signBlock, newActiveSign);
+            if (prevActiveSign != newActiveSign) {
+                if (prevActiveSign != null) {
+                    // If old and new signs have identical text, don't fire any events
+                    if (prevActiveSign.hasIdenticalText(newActiveSign)) {
+                        continue;
+                    }
+
+                    onSignChange(prevActiveSign, false);
+                }
                 onSignChange(newActiveSign, true);
 
                 // If list changed, restart from the beginning

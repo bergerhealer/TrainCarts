@@ -17,6 +17,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import org.bukkit.ChatColor;
@@ -26,6 +27,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.block.SignChangeEvent;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -65,7 +67,7 @@ public abstract class SignAction {
     }
 
     public static void deinit() {
-        actions = null;
+        actions = Collections.emptyList();
     }
 
     /**
@@ -108,18 +110,21 @@ public abstract class SignAction {
         if (action == null) {
             throw new NullPointerException("Action is null");
         }
-        if (actions != null) {
+        if (actions != Collections.EMPTY_LIST) {
             if (priority) {
                 actions.add(0, action);
             } else {
                 actions.add(action);
             }
+
+            // TrackedSign stores a SignAction too - make sure this is wiped
+            RailLookup.forceRecalculation();
         }
         return action;
     }
 
     public static void unregister(SignAction action) {
-        if (actions == null) return;
+        if (actions.isEmpty()) return;
         actions.remove(action);
     }
 
@@ -290,12 +295,39 @@ public abstract class SignAction {
 
         //Event
         info.setCancelled(false);
-        if (CommonUtil.callEvent(info).isCancelled() || actions == null) {
+        if (CommonUtil.callEvent(info).isCancelled()) {
             return; // ignore further processing
         }
 
         // Find matching SignAction for this sign
-        SignAction action = getSignAction(info);
+        executeOneImpl(getSignAction(info), info);
+    }
+
+    /**
+     * Executes a specific SignAction that was previously decoded using
+     * {@link #getSignAction(SignActionEvent)}. Before executing the SignAction,
+     * the SignActionEvent is called as a Bukkit event, which can be cancelled.
+     *
+     * @param action SignAction to execute. If null, calls only the Bukkit event
+     * @param info SignActionEvent to call and handle with the SignAction
+     */
+    public static void executeOne(SignAction action, SignActionEvent info) {
+        if (info == null || info.getSign() == null) {
+            return;
+        }
+
+        //Event
+        info.setCancelled(false);
+        if (CommonUtil.callEvent(info).isCancelled()) {
+            return; // ignore further processing
+        }
+
+        // SignAction
+        executeOneImpl(action, info);
+    }
+
+    private static void executeOneImpl(SignAction action, SignActionEvent info) {
+        // Ignore if null (only event is fired)
         if (action == null) {
             return;
         }

@@ -843,14 +843,27 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     /**
-     * Sets the minecart associated with this event, overriding any previous members and groups
+     * Sets the minecart associated with this event, overriding any previous members and groups.
+     * <b>This should not be called while handling the event</b>
      *
-     * @param member to set to
+     * @param member Member to set to
      */
     public void setMember(MinecartMember<?> member) {
         this.member = member;
         this.memberchecked = true;
         this.group = member.getGroup();
+    }
+
+    /**
+     * Sets the train associated with this event, overriding any previous member and/or groups.
+     * <b>This should not be called while handling the event</b>
+     *
+     * @param group Group to set to
+     */
+    public void setGroup(MinecartGroup group) {
+        this.member = null;
+        this.memberchecked = true;
+        this.group = group;
     }
 
     /**

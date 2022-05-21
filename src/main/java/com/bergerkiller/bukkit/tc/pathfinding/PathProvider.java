@@ -91,15 +91,14 @@ public class PathProvider extends Task {
             @Override
             public void process(PathRouteEvent event) {
                 for (RailLookup.TrackedSign trackedSign : event.railState().railSigns()) {
-                    // Discover a SignAction at this sign
-                    SignActionEvent signEvent = new SignActionEvent(trackedSign);
-                    signEvent.setAction(SignActionType.GROUP_ENTER);
-                    SignAction action = SignAction.getSignAction(signEvent);
+                    // Check there is a SignAction at this sign
+                    SignAction action = trackedSign.action;
                     if (action == null) {
                         continue;
                     }
 
                     // Check for blocker signs
+                    SignActionEvent signEvent = trackedSign.createEvent(SignActionType.GROUP_ENTER);
                     if (action.isPathFindingBlocked(signEvent, event.railState())) {
                         // If blocked, abort
                         event.setBlocked();

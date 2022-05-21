@@ -8,10 +8,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
-import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
-import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.utils.modlist.ModificationTrackedEmptyList;
 import com.bergerkiller.bukkit.tc.utils.modlist.ModificationTrackedList2D;
@@ -45,9 +43,7 @@ public class SignTrackerGroup extends SignTracker {
 
     @Override
     protected void onSignChange(TrackedSign sign, boolean active) {
-        SignActionEvent event = new SignActionEvent(sign, owner);
-        event.setAction(active ? SignActionType.GROUP_ENTER : SignActionType.GROUP_LEAVE);
-        SignAction.executeAll(event);
+        sign.executeEventForGroup(active ? SignActionType.GROUP_ENTER : SignActionType.GROUP_LEAVE, owner);
     }
 
     /**
@@ -266,8 +262,8 @@ public class SignTrackerGroup extends SignTracker {
 
             // Perform routine update events
             if (needsUpdate.clear()) {
-                for (TrackedSign sign : getActiveTrackedSigns()) {
-                    SignAction.executeAll(new SignActionEvent(sign, owner), SignActionType.GROUP_UPDATE);
+                for (TrackedSign trackedSign : this.getActiveTrackedSigns()) {
+                    trackedSign.executeEventForGroup(SignActionType.GROUP_UPDATE, owner);
                 }
                 for (DetectorRegion region : detectorRegions.cloneAsIterable()) {
                     region.update(owner);
@@ -276,8 +272,8 @@ public class SignTrackerGroup extends SignTracker {
                 for (MinecartMember<?> member : owner) {
                     SignTrackerMember tracker = member.getSignTracker();
                     if (tracker.needsUpdate.clear()) {
-                        for (Block signBlock : tracker.getActiveSigns()) {
-                            SignAction.executeAll(new SignActionEvent(signBlock, tracker.getOwner()), SignActionType.MEMBER_UPDATE);
+                        for (TrackedSign trackedSign : tracker.getActiveTrackedSigns()) {
+                            trackedSign.executeEventForMember(SignActionType.MEMBER_UPDATE, tracker.getOwner());
                         }
                         for (DetectorRegion region : tracker.detectorRegions.cloneAsIterable()) {
                             region.update(tracker.getOwner());
