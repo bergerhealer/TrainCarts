@@ -17,6 +17,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
+import com.bergerkiller.bukkit.tc.pathfinding.PathPredictEvent;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
@@ -352,9 +353,11 @@ public abstract class SignAction {
     }
 
     private final boolean _hasLoadedChangeHandler;
+    private final boolean _hasPathPrediction;
 
     public SignAction() {
         this._hasLoadedChangeHandler = CommonUtil.isMethodOverrided(SignAction.class, this.getClass(), "loadedChanged", SignActionEvent.class, boolean.class);
+        this._hasPathPrediction = CommonUtil.isMethodOverrided(SignAction.class, this.getClass(), "predictPathFinding", SignActionEvent.class, PathPredictEvent.class);
     }
 
     /**
@@ -482,6 +485,29 @@ public abstract class SignAction {
      */
     public boolean isPathFindingBlocked(SignActionEvent info, RailState state) {
         return false;
+    }
+
+    /**
+     * Called to predict what should happen to the predicted movement path of a train
+     * as it crossed by this sign. Switchers can instruct the train to go a certain
+     * way, different from the track layout. Blockers and speed traps can be created
+     * by imposing a speed limit, which will gradually slow a train down if a wait
+     * deceleration is set.
+     *
+     * @param event
+     * @see PathPredictEvent
+     */
+    public void predictPathFinding(SignActionEvent info, PathPredictEvent prediction) {
+    }
+
+    /**
+     * Gets whether this SignAction performs path prediction. Returns whether
+     * {@link #predictPathFinding(SignActionEvent, PathPredictEvent)} has been implemented.
+     *
+     * @return True if this SignAction has path finding prediction
+     */
+    public final boolean hasPathFindingPrediction() {
+        return this._hasPathPrediction;
     }
 
     /**

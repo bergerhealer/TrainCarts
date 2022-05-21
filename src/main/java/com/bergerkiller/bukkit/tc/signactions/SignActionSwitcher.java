@@ -11,12 +11,14 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.actions.GroupActionWaitPathFinding;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.events.MissingPathConnectionEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
+import com.bergerkiller.bukkit.tc.pathfinding.PathPredictEvent;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
@@ -136,6 +138,11 @@ public class SignActionSwitcher extends SignAction {
     }
 
     @Override
+    public void predictPathFinding(SignActionEvent info, PathPredictEvent prediction) {
+        (new SwitcherLogic(info)).predict(prediction);
+    }
+
+    @Override
     public boolean overrideFacing() {
         return true;
     }
@@ -176,6 +183,51 @@ public class SignActionSwitcher extends SignAction {
                     (hasFromDirections && info.isAction(SignActionType.REDSTONE_CHANGE) && info.hasRails() && info.isPowered());
         }
 
+        public void predict(PathPredictEvent prediction) {
+            if (!canToggleRails) {
+                return;
+            }
+
+            final boolean facing = info.isWatchedDirection(info.getCartEnterFace());
+
+            DirectionStatement activeDirection = null;
+            if (!statements.isEmpty() && facing) {
+                activeDirection = this.selectStatement(true);
+
+                // If not powered or rails cannot be switched, don't switch rails at all
+                // Also don't do this after the path finding logic has concluded.
+                if (activeDirection != null && (!canToggleRails || !info.isPowered())) {
+                    activeDirection = null;
+                }
+
+                // If the active direction is non-default, activate it right away
+                // Skip path finding logic in that case
+                if (activeDirection != null && !activeDirection.isDefault()) {
+                    predictRails(prediction, activeDirection.direction);
+                    return; //don't do destination stuff
+                }
+            }
+
+            // Pathfinding or nah?
+            boolean handlePathfinding = true;
+            if (TCConfig.onlyPoweredSwitchersDoPathFinding && !info.isPowered()) {
+                handlePathfinding = false;
+            }
+            if (TCConfig.onlyEmptySwitchersDoPathFinding && !statements.isEmpty()) {
+                handlePathfinding = false;
+            }
+
+            // Handle path finding. If switching occurred, don't do anything more
+            if (handlePathfinding && this.predictPathFinding(prediction, facing)) {
+                return;
+            }
+
+            // If a default direction was specified, switch that now that path finding also says nope
+            if (activeDirection != null) {
+                predictRails(prediction, activeDirection.direction);
+            }
+        }
+
         public void run() {
             cleanupCountersOnLeave(info);
 
@@ -202,7 +254,7 @@ public class SignActionSwitcher extends SignAction {
                         info.setLevers(true);
                     }
                 } else {
-                    activeDirection = this.selectStatement();
+                    activeDirection = this.selectStatement(true);
 
                     // Only set levers down when a non-default statement condition matches and a cart is on the sign
                     if (hasMember) {
@@ -249,6 +301,13 @@ public class SignActionSwitcher extends SignAction {
                 info.setRailsTo(direction.direction);
             } else {
                 info.setRailsFromTo(direction.directionFrom, direction.direction);
+            }
+        }
+
+        private void predictRails(PathPredictEvent prediction, String name) {
+            RailJunction junction = info.findJunction(name);
+            if (junction != null) {
+                prediction.setSwitchedJunction(junction);
             }
         }
 
@@ -299,7 +358,38 @@ public class SignActionSwitcher extends SignAction {
             return false;
         }
 
-        private DirectionStatement selectStatement() {
+        private boolean predictPathFinding(PathPredictEvent prediction, boolean facing) {
+            if (facing || !info.isWatchedDirectionsDefined()) {
+                PathNode node = PathNode.getOrCreate(info);
+                if (node != null) {
+                    if (TrainCarts.plugin.getPathProvider().isProcessing()) {
+                        // Train should wait until this is done. Polls every tick.
+                        prediction.setSpeedLimit(0.0);
+                    } else {
+                        // Figure out where to go
+                        String destination = null;
+                        if (doCart) {
+                            destination = info.getMember().getProperties().getDestination();
+                        } else if (doTrain) {
+                            destination = info.getGroup().getProperties().getDestination();
+                        }
+
+                        // Continue with path finding if a valid destination is specified
+                        // If the current node denotes the destination - don't switch!
+                        if (!LogicUtil.nullOrEmpty(destination) && !node.containsName(destination)) {
+                            PathConnection conn = node.findConnection(destination);
+                            if (conn != null) {
+                                this.predictRails(prediction, conn.junctionName);
+                            }
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private DirectionStatement selectStatement(boolean incrementCounters) {
             boolean hasMember = info.hasRailedMember();
             if (statements.isEmpty()) {
                 // If no directions are at all specified, all we do is toggle the lever
@@ -316,7 +406,7 @@ public class SignActionSwitcher extends SignAction {
                     if (stat.hasCounter()) {
                         if (signcounter == null) {
                             signcounter = getSwitchedTimes(info.getBlock());
-                            if (info.isCartSign()) {
+                            if (info.isCartSign() && incrementCounters) {
                                 signcounter.syncCartSignEnter(info.getGroup(), info.getRailPiece());
                             }
                         }
@@ -325,7 +415,8 @@ public class SignActionSwitcher extends SignAction {
                 }
 
                 // Increment counter every time a new cart enters the sign
-                if (signcounter != null) {
+                int counter = 0;
+                if (signcounter != null && incrementCounters) {
                     if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.GROUP_ENTER)) {
                         signcounter.counter++;
                     } else if (info.isAction(SignActionType.REDSTONE_ON) && hasFromDirections) {
@@ -334,9 +425,9 @@ public class SignActionSwitcher extends SignAction {
                     if (signcounter.counter > maxcount) {
                         signcounter.counter = 1;
                     }
+                    counter = 1; // counter starts at 1 due to increment
                 }
 
-                int counter = 1; // counter starts at 1 due to increment
                 DirectionStatement dir = null;
                 for (DirectionStatement stat : statements) {
                     // Counter logic

@@ -6,6 +6,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.commands.parsers.AccelerationParser;
@@ -40,7 +41,8 @@ public final class WaitOptionsProperty extends FieldBackedStandardTrainProperty<
                 distance,
                 options.delay(),
                 options.acceleration(),
-                options.deceleration()));
+                options.deceleration(),
+                options.predict()));
 
         getDistanceProperty(sender, properties);
     }
@@ -68,7 +70,8 @@ public final class WaitOptionsProperty extends FieldBackedStandardTrainProperty<
                 options.distance(),
                 delay,
                 options.acceleration(),
-                options.deceleration()));
+                options.deceleration(),
+                options.predict()));
 
         getDelayProperty(sender, properties);
     }
@@ -99,7 +102,8 @@ public final class WaitOptionsProperty extends FieldBackedStandardTrainProperty<
                 options.distance(),
                 options.delay(),
                 acceleration,
-                Double.isNaN(deceleration) ? acceleration : deceleration));
+                Double.isNaN(deceleration) ? acceleration : deceleration,
+                options.predict()));
 
         getAccelerationProperty(sender, properties);
     }
@@ -121,12 +125,42 @@ public final class WaitOptionsProperty extends FieldBackedStandardTrainProperty<
         }
     }
 
+    @CommandTargetTrain
+    @PropertyCheckPermission("waitprediction")
+    @CommandMethod("train wait predict <predict>")
+    @CommandDescription("Sets whether the train will predict routing up ahead")
+    private void setPredictProperty(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument(value="predict", description="Whether to predict") boolean predict
+    ) {
+        properties.update(this, options -> WaitOptions.create(
+                options.distance(),
+                options.delay(),
+                options.acceleration(),
+                options.deceleration(),
+                predict));
+
+        getPredictProperty(sender, properties);
+    }
+
+    @CommandMethod("train wait predict")
+    @CommandDescription("Displays whether the train will predict routing up ahead")
+    private void getPredictProperty(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        sender.sendMessage(ChatColor.YELLOW + "Predict path up ahead: "
+                + Localization.boolStr(properties.isWaitPredicted()));
+    }
+
     @PropertyParser("waitdistance|wait distance")
     public WaitOptions parseWaitDistance(PropertyParseContext<WaitOptions> context) {
         return WaitOptions.create(context.inputDouble(),
                 context.current().delay(),
                 context.current().acceleration(),
-                context.current().deceleration());
+                context.current().deceleration(),
+                context.current().predict());
     }
 
     @PropertyParser("waitdelay|wait delay")
@@ -134,7 +168,8 @@ public final class WaitOptionsProperty extends FieldBackedStandardTrainProperty<
         return WaitOptions.create(context.current().distance(),
                 context.inputDouble(),
                 context.current().acceleration(),
-                context.current().deceleration());
+                context.current().deceleration(),
+                context.current().predict());
     }
 
     @PropertyParser("waitacceleration|wait acceleration")
@@ -157,7 +192,17 @@ public final class WaitOptionsProperty extends FieldBackedStandardTrainProperty<
         return WaitOptions.create(context.current().distance(),
                 context.inputDouble(),
                 newAcceleration,
-                newDeceleration);
+                newDeceleration,
+                context.current().predict());
+    }
+
+    @PropertyParser("waitpredicted|waitprediction|wait predicted|wait predict")
+    public WaitOptions parseWaitPrediction(PropertyParseContext<WaitOptions> context) {
+        return WaitOptions.create(context.current().distance(),
+                context.current().delay(),
+                context.current().acceleration(),
+                context.current().deceleration(),
+                context.inputBoolean());
     }
 
     @Override
@@ -190,7 +235,8 @@ public final class WaitOptionsProperty extends FieldBackedStandardTrainProperty<
         double delay = waitConfig.get("delay", 0.0);
         double accel = waitConfig.get("acceleration", 0.0);
         double decel = waitConfig.get("deceleration", 0.0);
-        return Optional.of(WaitOptions.create(distance, delay, accel, decel));
+        boolean predict = waitConfig.get("predict", true);
+        return Optional.of(WaitOptions.create(distance, delay, accel, decel, predict));
     }
 
     @Override
@@ -203,6 +249,7 @@ public final class WaitOptionsProperty extends FieldBackedStandardTrainProperty<
             node.set("delay", data.delay());
             node.set("acceleration", data.acceleration());
             node.set("deceleration", data.deceleration());
+            node.set("predict", data.predict());
         } else {
             config.remove("wait");
         }

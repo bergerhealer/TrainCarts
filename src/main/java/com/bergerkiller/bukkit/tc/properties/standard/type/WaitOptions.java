@@ -7,18 +7,20 @@ package com.bergerkiller.bukkit.tc.properties.standard.type;
  * they wait once fully stopped.
  */
 public final class WaitOptions {
-    public static final WaitOptions DEFAULT = new WaitOptions(0.0, 0.0, 0.0, 0.0);
+    public static final WaitOptions DEFAULT = new WaitOptions(0.0, 0.0, 0.0, 0.0, true);
 
     private final double distance;
     private final double delay;
     private final double deceleration;
     private final double acceleration;
+    private final boolean predict;
 
-    private WaitOptions(double distance, double delay, double acceleration, double deceleration) {
+    private WaitOptions(double distance, double delay, double acceleration, double deceleration, boolean predict) {
         this.distance = distance;
         this.delay = delay;
         this.acceleration = acceleration;
         this.deceleration = deceleration;
+        this.predict = predict;
     }
 
     /**
@@ -62,6 +64,17 @@ public final class WaitOptions {
         return this.acceleration;
     }
 
+    /**
+     * Whether to predict the path a train will move in the future when checking for obstacles
+     * to wait for up ahead. This will cause a train to slow down approaching a blocker sign,
+     * and route along track to the best of its capabilities.
+     *
+     * @return predict
+     */
+    public boolean predict() {
+        return this.predict;
+    }
+
     @Override
     public int hashCode() {
         return Double.hashCode(this.distance);
@@ -90,7 +103,7 @@ public final class WaitOptions {
      * @return new WaitOptions
      */
     public static WaitOptions create(double distance) {
-        return create(distance, 0.0, 0.0, 0.0);
+        return create(distance, 0.0, 0.0, 0.0, true);
     }
 
     /**
@@ -107,7 +120,28 @@ public final class WaitOptions {
                 Math.max(0.0, distance),
                 Math.max(0.0, delay),
                 Math.max(0.0, acceleration),
-                Math.max(0.0, deceleration)
+                Math.max(0.0, deceleration),
+                true
+        );
+    }
+
+    /**
+     * Creates new WaitOptions using a given configuration
+     * 
+     * @param distance See {@link #distance()}
+     * @param delay See {@link #delay()}
+     * @param acceleration See {@link #acceleration()}
+     * @param deceleration See {@link #deceleration()}
+     * @param predict See {@link #predict()}
+     * @return new WaitOptions
+     */
+    public static WaitOptions create(double distance, double delay, double acceleration, double deceleration, boolean predict) {
+        return new WaitOptions(
+                Math.max(0.0, distance),
+                Math.max(0.0, delay),
+                Math.max(0.0, acceleration),
+                Math.max(0.0, deceleration),
+                predict
         );
     }
 }

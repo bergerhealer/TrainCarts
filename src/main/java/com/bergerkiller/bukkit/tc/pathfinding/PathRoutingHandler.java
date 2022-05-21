@@ -4,6 +4,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 
 /**
@@ -28,6 +29,24 @@ public interface PathRoutingHandler {
      * @param event
      */
     void process(PathRouteEvent event);
+
+    /**
+     * Called when a train is navigating track ahead to predict what
+     * direction to send the train to on a switcher, and to predict
+     * a speed limit for the train to use.<br>
+     * <br>
+     * For path nodes visited that are switched, implementers of that
+     * switcher can let the train know where it will go. This will help
+     * prevent deadlocks by accurately navigating the track, rather than
+     * the current state the track happens to have.<br>
+     * <br>
+     * For speed traps and blocking movement in one direction, a speed
+     * limit can be imposed so that the train will gradually slow down
+     * to meet that speed, rather than abruptly stop.
+     *
+     * @param event
+     */
+    default void predict(PathPredictEvent event) {}
 
     /**
      * Event passed to {@link PathRoutingHandler#process(event)}
@@ -80,6 +99,16 @@ public interface PathRoutingHandler {
          */
         public RailState railState() {
             return this.railState;
+        }
+
+        /**
+         * Gets the RailPiece of the current track. This stores the rail
+         * type and block, and other information about a piece of rails.
+         *
+         * @return rail piece
+         */
+        public RailPiece railPiece() {
+            return this.railState.railPiece();
         }
 
         /**

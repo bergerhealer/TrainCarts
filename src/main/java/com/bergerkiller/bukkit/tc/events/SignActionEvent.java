@@ -54,6 +54,8 @@ public class SignActionEvent extends Event implements Cancellable {
     private BlockFace raildirection = null;
     private MinecartMember<?> member = null;
     private MinecartGroup group = null;
+    private Vector overrideMemberEnterDirection = null;
+    private BlockFace overrideMemberEnterFace = null;
     private boolean memberchecked = false;
     private boolean cancelled = false;
 
@@ -162,6 +164,19 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     /**
+     * Overrides the output of {@link #getCartEnterDirection()} and {@link #getCartEnterFace()}
+     * to return the input values specified. This is important when the member is nowhere
+     * near the sign to calculate this automatically.
+     *
+     * @param enterDirection Vector of the direction of entering the rail
+     * @param enterFace BlockFace of the rail that was entered
+     */
+    public void overrideCartEnterDirection(Vector enterDirection, BlockFace enterFace) {
+        this.overrideMemberEnterDirection = enterDirection;
+        this.overrideMemberEnterFace = enterFace;
+    }
+
+    /**
      * Gets the direction vector of the cart upon entering the rails
      * that triggered this sign. If no cart exists, it defaults to the activating direction
      * of the sign (facing or watched directions).
@@ -169,6 +184,14 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return enter direction vector
      */
     public Vector getCartEnterDirection() {
+        // If enter direction is overrided, set it without computing anything.
+        {
+            Vector direction;
+            if ((direction = this.overrideMemberEnterDirection) != null) {
+                return direction;
+            }
+        }
+
         if (this.hasMember()) {
             // Find the rails block matching the one that triggered this event
             // Return the enter ('from') direction for that rails block if found
@@ -215,6 +238,14 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return enter direction face
      */
     public BlockFace getCartEnterFace() {
+        // If enter face is overrided, set it without computing anything.
+        {
+            BlockFace face;
+            if ((face = this.overrideMemberEnterFace) != null) {
+                return face;
+            }
+        }
+
         if (this.hasMember()) {
             // Find the rails block matching the one that triggered this event
             // Return the enter ('from') direction for that rails block if found
@@ -561,11 +592,10 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     /**
-     * Checks whether power reading is inverted for this Sign<br>
-     * <br>
-     * <b>Deprecated:</b> use the properties in {@link #getHeader()} instead
+     * Checks whether power reading is inverted for this Sign
      *
      * @return True if it is inverted, False if not
+     * @deprecated Use the properties in {@link #getHeader()} instead
      */
     @Deprecated
     public boolean isPowerInverted() {
@@ -573,11 +603,10 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     /**
-     * Checks whether power reading always returns on for this Sign<br>
-     * <br>
-     * <b>Deprecated:</b> use {@link #isPowerMode(mode)} instead
+     * Checks whether power reading always returns on for this Sign
      *
      * @return True if the power is always on, False if not
+     * @deprecated Use the properties in {@link #getHeader()} instead
      */
     @Deprecated
     public boolean isPowerAlwaysOn() {

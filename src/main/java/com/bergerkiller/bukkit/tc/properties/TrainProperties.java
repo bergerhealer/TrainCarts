@@ -210,7 +210,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     public void setWaitDistance(final double waitDistance) {
         this.update(StandardProperties.WAIT, opt -> WaitOptions.create(
-                waitDistance, opt.delay(), opt.acceleration(), opt.deceleration()
+                waitDistance, opt.delay(), opt.acceleration(), opt.deceleration(), opt.predict()
         ));
     }
 
@@ -232,7 +232,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     public void setWaitDelay(final double delay) {
         this.update(StandardProperties.WAIT, opt -> WaitOptions.create(
-                opt.distance(), delay, opt.acceleration(), opt.deceleration()
+                opt.distance(), delay, opt.acceleration(), opt.deceleration(), opt.predict()
         ));
     }
 
@@ -279,7 +279,31 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      */
     public void setWaitAcceleration(final double acceleration, final double deceleration) {
         this.update(StandardProperties.WAIT, opt -> WaitOptions.create(
-                opt.distance(), opt.delay(), acceleration, deceleration
+                opt.distance(), opt.delay(), acceleration, deceleration, opt.predict()
+        ));
+    }
+
+    /**
+     * Gets whether the train will use path prediction when deciding what obstacles
+     * to wait for. When true, it will detect blockers and switchers up-ahead, and
+     * route accordingly.
+     *
+     * @return True if predicting
+     */
+    public boolean isWaitPredicted() {
+        return get(StandardProperties.WAIT).predict();
+    }
+
+    /**
+     * Sets whether the train will use path prediction when deciding what obstacles
+     * to wait for. When true, it will detect blockers and switchers up-ahead, and
+     * route accordingly.
+     *
+     * @param use Whether to predict
+     */
+    public void setWaitPredicted(final boolean use) {
+        this.update(StandardProperties.WAIT, opt -> WaitOptions.create(
+                opt.distance(), opt.delay(), opt.acceleration(), opt.deceleration(), use
         ));
     }
 

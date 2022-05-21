@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.tc.actions.GroupActionWaitState;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.pathfinding.PathPredictEvent;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import org.bukkit.block.BlockFace;
@@ -57,7 +58,19 @@ public class SignActionBlocker extends SignAction {
 
     @Override
     public boolean isPathFindingBlocked(SignActionEvent info, RailState state) {
-        return info.isPowerAlwaysOn() && info.isWatchedDirection(state.enterFace());
+        return info.getHeader().isAlwaysOn() && info.isWatchedDirection(state.enterFace());
+    }
+
+    @Override
+    public void predictPathFinding(SignActionEvent info, PathPredictEvent prediction) {
+        // If train is performing a launch, don't do prediction here - it messes with it
+        if (info.getGroup().getActions().isMovementControlled()) {
+            return;
+        }
+
+        if (info.isWatchedDirection(info.getCartEnterFace()) && info.isPowered()) {
+            prediction.addSpeedLimit(0.0);
+        }
     }
 
     @Override

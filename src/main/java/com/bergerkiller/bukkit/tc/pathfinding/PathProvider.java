@@ -90,7 +90,7 @@ public class PathProvider extends Task {
         registerRoutingHandler(new PathRoutingHandler() {
             @Override
             public void process(PathRouteEvent event) {
-                for (RailLookup.TrackedSign trackedSign : event.railState().railSigns()) {
+                for (RailLookup.TrackedSign trackedSign : event.railPiece().signs()) {
                     // Check there is a SignAction at this sign
                     SignAction action = trackedSign.action;
                     if (action == null) {
@@ -122,6 +122,24 @@ public class PathProvider extends Task {
                     }
                 }
             }
+
+            @Override
+            public void predict(PathPredictEvent event) {
+                for (RailLookup.TrackedSign trackedSign : event.railPiece().signs()) {
+                    // Check there is a SignAction at this sign
+                    SignAction action = trackedSign.action;
+                    if (action == null || !action.hasPathFindingPrediction()) {
+                        continue;
+                    }
+
+                    // Execute logic to probe for speed limits / switchers / blockers
+                    SignActionEvent signEvent = trackedSign.createEvent(SignActionType.GROUP_ENTER);
+                    signEvent.setMember(event.member());
+                    signEvent.overrideCartEnterDirection(event.railState().enterDirection(),
+                                                         event.railState().enterFace());
+                    action.predictPathFinding(signEvent, event);
+                }
+            }
         });
     }
 
@@ -141,6 +159,18 @@ public class PathProvider extends Task {
      */
     public void unregisterRoutingHandler(PathRoutingHandler handler) {
         this.handlers.remove(handler);
+    }
+
+    /**
+     * Invokes {@link PathRoutingHandler#predict(PathPredictEvent)} on all
+     * registered routing handlers. This is used to provide a prediction
+     * for how trains will navigate on track.
+     *
+     * @param event
+     * @see PathPredictEvent
+     */
+    public void predictRoutingHandler(PathPredictEvent event) {
+        this.handlers.forEach(handler -> handler.predict(event));
     }
 
     /**

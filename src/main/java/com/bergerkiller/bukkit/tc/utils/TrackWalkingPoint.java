@@ -2,9 +2,11 @@ package com.bergerkiller.bukkit.tc.utils;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
+import com.bergerkiller.bukkit.tc.pathfinding.PathPredictEvent;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 
@@ -62,6 +64,7 @@ public class TrackWalkingPoint {
 
     private boolean first = true;
     private boolean isAtEnd = false;
+    private Predictor predictor = null;
 
     public TrackWalkingPoint(RailState state) {
         state.position().assertAbsolute();
@@ -102,6 +105,33 @@ public class TrackWalkingPoint {
         } else {
             this.failReason = FailReason.NO_RAIL;
         }
+    }
+
+    /**
+     * Configures this walking point to follow a predicted path of a particular Minecart Member.
+     * Signs and other routing nodes along the way that can perform track switching will be asked
+     * where this member should go, and that path is followed accordingly.
+     *
+     * @param follow MinecartMember to track following the predicted path. Null to disable.
+     */
+    public void setFollowPredictedPath(MinecartMember<?> member) {
+        this.predictor = (member == null) ? null : new Predictor(this.state, member);
+        if (member != null) {
+            // Initialize the predictor state
+            this.predictor.predict();
+        }
+    }
+
+    /**
+     * Gets a speed limit imposed for the current rail block.
+     * {@link #setFollowPredictedPath(MinecartMember)} must be called first before
+     * this method can be used. Otherwise, it will always return {@link Double#MAX_VALUE}.
+     *
+     * @return predicted speed limit, {@link Double#MAX_VALUE} if there is none.
+     */
+    public double getPredictedSpeedLimit() {
+        Predictor predictor = this.predictor;
+        return (predictor == null) ? Double.MAX_VALUE : predictor.event.getSpeedLimit();
     }
 
     /**
@@ -278,6 +308,7 @@ public class TrackWalkingPoint {
 
     private boolean loadNextRail() {
         RailPath.Position position = this.state.position();
+        Predictor predictor = this.predictor;
 
         // If position is already the same then we ran into a nasty loop that is no good!
         // Break out of it when detected to avoid freezing the server
@@ -302,6 +333,13 @@ public class TrackWalkingPoint {
             this.lastLocation.setY(position.posY);
             this.lastLocation.setZ(position.posZ);
             this._stuckCtr = 0;
+        }
+
+        // If following a predicted path, and the current rail is/was being switched, move to
+        // this predicted position and advance a small amount beyond the rail.
+        if (predictor != null && predictor.event.hasSwitchedPosition()) {
+            predictor.event.getSwitchedPosition().copyTo(position);
+            position.makeAbsolute(predictor.event.railBlock());
         }
 
         // Load next rails information
@@ -329,6 +367,12 @@ public class TrackWalkingPoint {
         this.currentRailLogic = this.state.loadRailLogic();
         this.currentRailPath = this.currentRailLogic.getPath();
         this.isAtEnd = true;
+
+        // Update predictor so the speed limit / switched position is updated
+        if (predictor != null) {
+            predictor.predict();
+        }
+
         return true;
     }
 
@@ -400,6 +444,20 @@ public class TrackWalkingPoint {
         }
         this.moved = this.movedTotal;
         return this.movedTotal <= maxDistance;
+    }
+
+    private static class Predictor {
+        public final PathPredictEvent event;
+
+        public Predictor(RailState railState, MinecartMember<?> member) {
+            this.event = new PathPredictEvent(TrainCarts.plugin.getPathProvider(), railState, member);
+        }
+
+        public void predict() {
+            this.event.setSpeedLimit(Double.MAX_VALUE);
+            this.event.setSwitchedPosition(null);
+            this.event.provider().predictRoutingHandler(this.event);
+        }
     }
 
     /**

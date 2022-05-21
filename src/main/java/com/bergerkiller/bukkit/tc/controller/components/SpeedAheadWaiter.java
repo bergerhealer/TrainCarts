@@ -194,28 +194,7 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
         }
 
         if (this.lastObstacle != null) {
-            if (this.lastDesiredSpeed.instant && this.lastDesiredSpeed.speed == 0.0) {
-                // Immobile object, train is waiting and not moving at all
-                if (this.lastObstacle instanceof TrainObstacle) {
-                    TrainObstacle train = (TrainObstacle) this.lastObstacle;
-                    statuses.add(new TrainStatus.WaitingForTrain(
-                            train.member, train.fullDistance));
-                } else if (this.lastObstacle instanceof MutexZoneObstacle) {
-                    statuses.add(new TrainStatus.WaitingForMutexZone(
-                            ((MutexZoneObstacle) this.lastObstacle).zone));
-                }
-            } else {
-                // Mobile object, train is (slowly) following or approaching that object
-                if (this.lastObstacle instanceof TrainObstacle) {
-                    TrainObstacle train = (TrainObstacle) this.lastObstacle;
-                    statuses.add(new TrainStatus.FollowingTrain(train.member, train.fullDistance,
-                            this.lastDesiredSpeed.speed));
-                } else if (this.lastObstacle instanceof MutexZoneObstacle) {
-                    statuses.add(new TrainStatus.ApproachingMutexZone(
-                            ((MutexZoneObstacle) this.lastObstacle).zone,
-                            this.lastObstacle.distance, this.lastDesiredSpeed.speed));
-                }
-            }
+            statuses.add(this.lastObstacle.createStatus(this.lastDesiredSpeed));
         } else if (this.waitRemainingTicks != Integer.MAX_VALUE) {
             double remaining = this.group.getProperties().getWaitDelay() - (double) this.waitRemainingTicks * 0.05;
             statuses.add(new TrainStatus.WaitingForDelay(remaining));
@@ -256,7 +235,7 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
             // it already, so we need to stop and wait for the distance to go above
             // the safe wait distance threshold again.
             if (obstacle.distance <= 0.0) {
-                double speed = Math.max(0.0, obstacle.speed + obstacle.distance);
+                double speed = Math.max(0.0, obstacle.speed);
                 if (speed < minDesiredSpeed.speed) {
                     minDesiredSpeed = new DesiredSpeed(speed, true);
                     newLimitingObstacle = obstacle;
@@ -295,8 +274,14 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
                 numSlowdownTicks--;
             }
 
-            // Knowing how many ticks of deceleration it takes, we can turn it into an approximate start speed
-            startSpeed = numSlowdownTicks * deceleration + obstacle.speed;
+            if (numSlowdownTicks == 0) {
+                // If number of ticks is 0, then there is a less than deceleration rate distance remaining
+                // Move this tick at most the full obstacle distance remaining
+                startSpeed = obstacle.distance + obstacle.speed;
+            } else {
+                // Knowing how many ticks of deceleration it takes, we can turn it into an approximate start speed
+                startSpeed = numSlowdownTicks * deceleration + obstacle.speed;
+            }
 
             if (startSpeed < minDesiredSpeed.speed) {
                 minDesiredSpeed = new DesiredSpeed(Math.max(0.0, startSpeed), false);
@@ -354,13 +339,30 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
         boolean foundMutexBlock = false;
         MutexZone lastSoftMutexZone = null;
         List<MutexZone> enteredMutexZones = Collections.emptyList();
+        double lastRailSpeedLimit = Double.MAX_VALUE;
+
         List<Obstacle> obstacles = new ArrayList<>();
         TrackWalkingPoint iter = new TrackWalkingPoint(group.head().discoverRail());
+        if (group.getProperties().isWaitPredicted()) {
+            iter.setFollowPredictedPath(group.head());
+        }
         while (iter.movedTotal <= checkDistance && iter.moveFull()) {
-
             // The distance traveled from the physical front of the cart
             // The first iteration will likely have a negative distance
             double distanceFromFront = iter.movedTotal - selfCartOffset;
+
+            // If the current rail block imposes a speed limit, set that right now
+            // Ignore successive equal speed limits (speed traps), that would cause too many obstacles
+            {
+                double railSpeedLimit = iter.getPredictedSpeedLimit();
+                if (railSpeedLimit < lastRailSpeedLimit) {
+                    lastRailSpeedLimit = railSpeedLimit;
+                    obstacles.add(new RailObstacle(distanceFromFront, railSpeedLimit, iter.state.railPiece()));
+                    if (railSpeedLimit <= 0.0) {
+                        break; // No need to check further
+                    }
+                }
+            }
 
             // Check for mutex zones the next block. If one is found that is occupied, stop right away
             if (checkRailObstacles && !foundMutexBlock && distanceFromFront < mutexSoftDistance) {
@@ -468,7 +470,7 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
      * A detected obstacle, with the distance away from the train the obstacle exists,
      * and the speed it is moving forwards.
      */
-    public static class Obstacle {
+    public static abstract class Obstacle {
         public final double distance;
         public final double speed;
 
@@ -476,6 +478,8 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
             this.distance = Math.max(0.0, distance); // Avoid pain
             this.speed = speed;
         }
+
+        public abstract TrainStatus createStatus(DesiredSpeed desiredSpeed);
     }
 
     /**
@@ -492,6 +496,15 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
             this.fullDistance = fullDistance;
             this.member = member;
         }
+
+        @Override
+        public TrainStatus createStatus(DesiredSpeed desiredSpeed) {
+            if (desiredSpeed.isStopped()) {
+                return new TrainStatus.WaitingForTrain(member, fullDistance);
+            } else {
+                return new TrainStatus.FollowingTrain(member, fullDistance, desiredSpeed.speed);
+            }
+        }
     }
 
     /**
@@ -504,8 +517,38 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
             super(distance, speed);
             this.zone = zone;
         }
+
+        @Override
+        public TrainStatus createStatus(DesiredSpeed desiredSpeed) {
+            if (desiredSpeed.isStopped()) {
+                return new TrainStatus.WaitingForMutexZone(zone);
+            } else {
+                return new TrainStatus.ApproachingMutexZone(zone, distance, speed);
+            }
+        }
     }
-    
+
+    /**
+     * A generic rail obstacle, like a blocker or speed trap
+     */
+    public static class RailObstacle extends Obstacle {
+        public final RailPiece rail;
+
+        public RailObstacle(double distance, double speed, RailPiece rail) {
+            super(distance, speed);
+            this.rail = rail;
+        }
+
+        @Override
+        public TrainStatus createStatus(DesiredSpeed desiredSpeed) {
+            if (desiredSpeed.isStopped()) {
+                return new TrainStatus.WaitingAtRailBlock(this.rail);
+            } else {
+                return new TrainStatus.ApproachingRailSpeedTrap(this.rail, this.distance, this.speed);
+            }
+        }
+    }
+
     public static class DesiredSpeed {
         public final double speed;
         public final boolean instant;
@@ -513,6 +556,10 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
         public DesiredSpeed(double speed, boolean instant) {
             this.speed = speed;
             this.instant = instant;
+        }
+
+        public boolean isStopped() {
+            return this.instant && this.speed <= 0.0;
         }
     }
 }

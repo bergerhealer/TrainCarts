@@ -1,10 +1,12 @@
 package com.bergerkiller.bukkit.tc.controller.status;
 
 import org.bukkit.ChatColor;
+import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.debug.DebugToolUtil;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZone;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
@@ -298,6 +300,53 @@ public interface TrainStatus {
             str.append(", slowed down to a speed of ").append(ChatColor.WHITE);
             str.append(DebugToolUtil.formatNumber(this.speed)).append("b/t");
 
+            return str.toString();
+        }
+    }
+
+    public static final class WaitingAtRailBlock implements TrainStatus {
+        private final RailPiece rail;
+
+        public WaitingAtRailBlock(RailPiece rail) {
+            this.rail = rail;
+        }
+
+        @Override
+        public String getMessage() {
+            Block block = rail.block();
+            StringBuilder str = new StringBuilder();
+            str.append(ChatColor.YELLOW).append("Waiting at rail ");
+            str.append(ChatColor.RED).append(block.getX())
+                                     .append("/").append(block.getY())
+                                     .append("/").append(block.getZ());
+            return str.toString();
+        }
+    }
+
+    public static final class ApproachingRailSpeedTrap implements TrainStatus {
+        private final RailPiece rail;
+        private final double distance;
+        private final double speedLimit;
+
+        public ApproachingRailSpeedTrap(RailPiece rail, double distance, double speedLimit) {
+            this.rail = rail;
+            this.distance = distance;
+            this.speedLimit = speedLimit;
+        }
+
+        @Override
+        public String getMessage() {
+            Block block = rail.block();
+            StringBuilder str = new StringBuilder();
+            str.append(ChatColor.YELLOW).append("Approaching speed trap at rail ");
+            str.append(ChatColor.WHITE).append(block.getX())
+                                     .append("/").append(block.getY())
+                                     .append("/").append(block.getZ());
+            str.append(ChatColor.YELLOW).append(" of speed ");
+            str.append(ChatColor.WHITE).append(DebugToolUtil.formatNumber(this.speedLimit));
+            str.append(ChatColor.YELLOW).append(" which is ");
+            str.append(ChatColor.WHITE).append(DebugToolUtil.formatNumber(this.distance));
+            str.append(ChatColor.YELLOW).append(" blocks away");
             return str.toString();
         }
     }
