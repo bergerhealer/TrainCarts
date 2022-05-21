@@ -386,8 +386,8 @@ public class Util {
      * @return True if a vertical rail is above, False if not
      */
     public static boolean isVerticalAbove(Block rails, BlockFace direction) {
-        Block above = rails.getRelative(BlockFace.UP);
-        return Util.ISVERTRAIL.get(above) && getVerticalRailDirection(above) == direction;
+        BlockData blockData = WorldUtil.getBlockData(rails.getWorld(), rails.getX(), rails.getY() + 1, rails.getZ());
+        return ISVERTRAIL.get(blockData) && getVerticalRailDirection(blockData.getRawData()) == direction;
     }
 
     /**
@@ -398,8 +398,8 @@ public class Util {
      * @return True if a vertical rail is below, False if not
      */
     public static boolean isVerticalBelow(Block rails, BlockFace direction) {
-        Block below = rails.getRelative(BlockFace.DOWN);
-        return Util.ISVERTRAIL.get(below) && getVerticalRailDirection(below) == direction;
+        BlockData blockData = WorldUtil.getBlockData(rails.getWorld(), rails.getX(), rails.getY() - 1, rails.getZ());
+        return ISVERTRAIL.get(blockData) && getVerticalRailDirection(blockData.getRawData()) == direction;
     }
 
     /**
