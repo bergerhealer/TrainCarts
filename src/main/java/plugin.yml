@@ -1,5 +1,4 @@
 name: Train_Carts
-main: com.bergerkiller.bukkit.tc.TrainCarts
 version: ${project.version}
 dev-url: ${project.url}
 build: ${project.build.number}
