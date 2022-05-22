@@ -94,7 +94,8 @@ public class Localization extends LocalizationEnum {
     public static final Localization CHEST_SPAWN_SUCCESS = new Localization("chest.spawn.success", ChatColor.GREEN + "Train stored inside the item has been spawned on the rails!");
     public static final Localization CHEST_SPAWN_EMPTY = new Localization("chest.spawn.empty", ChatColor.RED + "Train can not be spawned, no train is stored in the item!");
     public static final Localization CHEST_SPAWN_NORAIL = new Localization("chest.spawn.norail", ChatColor.RED + "Train can not be spawned, clicked block is not a known rail!");
-    public static final Localization CHEST_SPAWN_BLOCKED = new Localization("chest.spawn.blocked", ChatColor.RED + "Train can not be spawned, no space on rails!");
+    public static final Localization CHEST_SPAWN_RAILTOOSHORT = new Localization("chest.spawn.railtooshort", ChatColor.RED + "Train can not be spawned, rails not long enough to fit the train!");
+    public static final Localization CHEST_SPAWN_BLOCKED = new Localization("chest.spawn.blocked", ChatColor.RED + "Train can not be spawned, no space on rails because another train is in the way!");
 
     // signs
     public static final Localization SIGN_NO_PERMISSION = new Localization("sign.noperm", ChatColor.RED + "You do not have permission to use this sign");

@@ -258,10 +258,10 @@ public class TrainChestItemUtil {
         // Find locations to spawn at
         SpawnableGroup.SpawnLocationList locationList = group.findSpawnLocations(spawnLoc, spawnDirection, SpawnableGroup.SpawnMode.DEFAULT);
         if (locationList == null) {
-            return SpawnResult.FAIL_NORAIL;
+            return SpawnResult.FAIL_RAILTOOSHORT; // Not enough spawn positions on the rails
         }
         if (locationList.locations.size() < group.getMembers().size()) {
-            return SpawnResult.FAIL_NORAIL;
+            return SpawnResult.FAIL_RAILTOOSHORT; // Not enough spawn positions on the rails
         }
 
         // Prepare chunks
@@ -336,10 +336,10 @@ public class TrainChestItemUtil {
         // Find locations to spawn at
         SpawnableGroup.SpawnLocationList locationList = group.findSpawnLocations(state, SpawnableGroup.SpawnMode.DEFAULT);
         if (locationList == null) {
-            return SpawnResult.FAIL_NORAIL;
+            return SpawnResult.FAIL_RAILTOOSHORT; // Not enough spawn positions on the rails
         }
         if (locationList.locations.size() < group.getMembers().size()) {
-            return SpawnResult.FAIL_NORAIL;
+            return SpawnResult.FAIL_RAILTOOSHORT; // Not enough spawn positions on the rails
         }
 
         // Prepare chunks
@@ -347,7 +347,7 @@ public class TrainChestItemUtil {
 
         // Verify spawn area is clear of trains before spawning
         if (locationList.isOccupied()) {
-            return SpawnResult.FAIL_BLOCKED; // Occupied
+            return SpawnResult.FAIL_BLOCKED; // Occupied by another train
         }
 
         // Spawn.
@@ -362,6 +362,7 @@ public class TrainChestItemUtil {
         SUCCESS(Localization.CHEST_SPAWN_SUCCESS),
         FAIL_EMPTY(Localization.CHEST_SPAWN_EMPTY),
         FAIL_NORAIL(Localization.CHEST_SPAWN_NORAIL),
+        FAIL_RAILTOOSHORT(Localization.CHEST_SPAWN_RAILTOOSHORT),
         FAIL_BLOCKED(Localization.CHEST_SPAWN_BLOCKED),
         FAIL_NO_PERM(null);
 
