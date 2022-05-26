@@ -1905,9 +1905,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // Perform rails logic
         this.railTrackerMember.getRailLogic().onPreMove(this);
 
-        // Perform rails type logic (powered rails!)
-        this.railTrackerMember.getRailType().onPreMove(this);
-
         // Refresh last-update direction and block information
         this.getRailTracker().updateLast();
 

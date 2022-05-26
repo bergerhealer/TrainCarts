@@ -1568,6 +1568,13 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // Direction can change as a result of gravity
             this.updateDirection();
 
+            // Pre-movement rail updates. Must be done after gravity, otherwise
+            // trains slide down unpowered powered rails. We can't move gravity, because
+            // the rail logic pre-move logic must occur first (snap to rails) for proper calculations.
+            for (MinecartMember<?> member : this) {
+                member.getRailTracker().getRailType().onPreMove(member);
+            }
+
             // Share forward force between all the Minecarts when size > 1
             double forwardMovingSpeed;
             if (this.size() > 1) {
