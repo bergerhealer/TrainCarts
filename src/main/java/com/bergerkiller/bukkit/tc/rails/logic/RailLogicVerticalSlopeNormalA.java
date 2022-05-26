@@ -44,7 +44,7 @@ public class RailLogicVerticalSlopeNormalA extends RailLogicVerticalSlopeBase {
         double dx = 0.5 + RailLogicVertical.XZ_POS_OFFSET * this.getDirection().getModX();
         double dz = 0.5 + RailLogicVertical.XZ_POS_OFFSET * this.getDirection().getModZ();
         Vector p1 = new Vector(dx, Y_POS_OFFSET, dz);
-        Vector p2 = new Vector(dx, 1.0 + Y_POS_OFFSET, dz);
+        Vector p2 = new Vector(dx, 1.0, dz);
 
         if (this.alongZ) {
             p1.setZ(0.5 - 0.5 * (double) this.getDirection().getModZ());
