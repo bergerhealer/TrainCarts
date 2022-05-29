@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.status;
 
+import java.util.List;
+
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 
@@ -221,10 +223,16 @@ public interface TrainStatus {
             str.append(ChatColor.RED);
             str.append(pos.getX()).append("/").append(pos.getY()).append("/").append(pos.getZ());
 
-            MinecartGroup group = zone.slot.getCurrentGroup();
-            if (group != null) {
+            List<MinecartGroup> groups = zone.slot.getCurrentGroups();
+            if (!groups.isEmpty()) {
                 str.append(ChatColor.YELLOW).append(" currently occupied by ");
-                str.append(ChatColor.RED).append(group.getProperties().getTrainName());
+                str.append(ChatColor.RED);
+                for (int i = 0; i < groups.size(); i++) {
+                    if (i > 0) {
+                        str.append(", ");
+                    }
+                    str.append(groups.get(i).getProperties().getTrainName());
+                }
             }
 
             return str.toString();
@@ -290,10 +298,16 @@ public interface TrainStatus {
             str.append(ChatColor.YELLOW).append(", ").append(ChatColor.WHITE);
             str.append(DebugToolUtil.formatNumber(this.distance)).append(ChatColor.YELLOW).append(" blocks ahead");
 
-            MinecartGroup group = zone.slot.getCurrentGroup();
-            if (group != null) {
+            List<MinecartGroup> groups = zone.slot.getCurrentGroups();
+            if (!groups.isEmpty()) {
                 str.append(", currently occupied by ");
-                str.append(ChatColor.RED).append(group.getProperties().getTrainName());
+                str.append(ChatColor.RED);
+                for (int i = 0; i < groups.size(); i++) {
+                    if (i > 0) {
+                        str.append(", ");
+                    }
+                    str.append(groups.get(i).getProperties().getTrainName());
+                }
                 str.append(ChatColor.YELLOW);
             }
 

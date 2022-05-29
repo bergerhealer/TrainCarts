@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -57,7 +58,9 @@ public class MutexZoneCache {
                 IntVector3 start = IntVector3.read(stream);
                 IntVector3 end = IntVector3.read(stream);
                 String statement = stream.readUTF();
-                return new MutexSignMetadata(name, start, end, statement);
+                String typeName = sign.getLine(1).toLowerCase(Locale.ENGLISH);
+                boolean smart = typeName.startsWith("smartmutex") || typeName.startsWith("smutex");
+                return new MutexSignMetadata(name, start, end, statement, smart);
             }
         });
     }

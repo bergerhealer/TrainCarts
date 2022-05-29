@@ -1120,6 +1120,16 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     /**
+     * Gets whether the currently executing updates are the first update step.
+     * See {@link #getUpdateSpeedFactor()} for an explanation of what this means.
+     * 
+     * @return True if this is the first update step
+     */
+    public boolean isFirstUpdateStep() {
+        return this.updateStepNr == 1;
+    }
+
+    /**
      * Gets whether the currently executing updates are the final update step.
      * See {@link #getUpdateSpeedFactor()} for an explanation of what this means.
      * 
@@ -1606,7 +1616,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // We do the waiting by setting the max speed of the train (NOT speed limit!) to match that train's speed
             // It is important speed of this train is updated before doing these checks.
             try (Timings t = TCTimings.GROUP_ENFORCE_SPEEDAHEAD.start()) {
-                this.speedAheadWaiter.update(forwardMovingSpeed / getUpdateSpeedFactor());
+                if (isFirstUpdateStep()) {
+                    this.speedAheadWaiter.update(forwardMovingSpeed / getUpdateSpeedFactor());
+                }
                 double limitedSpeed = this.speedAheadWaiter.getSpeedLimit();
                 if (limitedSpeed != Double.MAX_VALUE) {
                     limitedSpeed = Math.min(0.4, this.updateSpeedFactor * limitedSpeed);

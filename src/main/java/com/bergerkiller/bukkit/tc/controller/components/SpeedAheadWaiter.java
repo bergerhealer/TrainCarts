@@ -112,9 +112,9 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
 
         // Every time the speed drops to 0 consistently, reset the wait tick timer to 0
         // This causes it to wait until the remaining ticks reaches the configured delay
-        if (this.waitDistanceLastSpeedLimit <= 0.0 && newDesiredSpeed.speed <= 0.0) {
+        if (this.waitDistanceLastSpeedLimit <= 1e-6 && newDesiredSpeed.speed <= 1e-6) {
             this.waitRemainingTicks = 0;
-            this.waitDistanceLastSpeedLimit = 0.0;
+            this.waitDistanceLastSpeedLimit = newDesiredSpeed.speed;
             return;
         }
 
@@ -124,7 +124,7 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
             if (delay <= 0.0) {
                 this.waitRemainingTicks = Integer.MAX_VALUE; // No delay
             } else {
-                if (group.isLastUpdateStep() && ++this.waitRemainingTicks >= MathUtil.ceil(delay*20.0)) {
+                if (++this.waitRemainingTicks >= MathUtil.ceil(delay*20.0)) {
                     this.waitRemainingTicks = Integer.MAX_VALUE; // Delay elapsed
                 }
                 this.waitDistanceLastSpeedLimit = 0.0;
@@ -225,10 +225,15 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
         // No obstacle means full steam ahead!
         DesiredSpeed minDesiredSpeed = new DesiredSpeed(Double.MAX_VALUE, true);
 
+        // Find obstacles. Update the mutex zone found (train status)
+        ObstacleFinder finder = new ObstacleFinder(Math.min(2000.0, searchAheadDistance),
+                                                   checkTrains, checkRailObstacles, trainDistance);
+        List<Obstacle> obstacles = finder.search();
+        this.enteredMutexZones = finder.enteredMutexZones;
+
         // Check all obstacles ahead and find the one with the minimal speed limit to impose
         Obstacle newLimitingObstacle = null;
-        for (Obstacle obstacle : this.findObstaclesAhead(Math.min(2000.0, searchAheadDistance + 1.0),
-                                                         checkTrains, checkRailObstacles, trainDistance))
+        for (Obstacle obstacle : obstacles)
         {
             // If obstacle is closer than it is allowed to ever be, emergency stop
             // This also ignores the vehicle's actual speed, because we're too close to
@@ -288,6 +293,7 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
                 newLimitingObstacle = obstacle;
             }
         }
+
         this.lastObstacle = newLimitingObstacle;
         this.lastDesiredSpeed = minDesiredSpeed;
 
@@ -306,164 +312,280 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
      * @return obstacle that was detected, null if there is no obstacle
      */
     public List<Obstacle> findObstaclesAhead(double distance, boolean checkTrains, boolean checkRailObstacles, double trainDistance) {
-        // Not sure if fixed, but skip if this train is empty
-        if (group.isEmpty()) {
-            return Collections.emptyList();
-        }
+        return (new ObstacleFinder(distance, checkTrains, checkRailObstacles, trainDistance)).search();
+    }
 
-        // If no wait distance is set and no mutex zones are anywhere close, skip these expensive calculations
-        if (distance <= 0.0 && trainDistance <= 0.0) {
-            OfflineWorld world = OfflineWorld.of(group.getWorld());
-            IntVector3 block = group.head().getEntity().loc.block();
-            if (!checkRailObstacles || !MutexZoneCache.isMutexZoneNearby(world, block, 8)) {
-                return Collections.emptyList();
-            }
-        }
+    /**
+     * Searches for obstacles up ahead on the track. One instance of this class represents
+     * a single search operation and cannot be re-used.
+     */
+    private class ObstacleFinder {
+        final double distance;
+        final boolean checkTrains;
+        final boolean checkRailObstacles;
+        final double trainDistance;
 
         // Take into account that the head minecart has a length also, so we count distance from the edge (half length)
         // TODO: This does not take into account wheel offset!!!
-        double selfCartOffset = (0.5 * group.head().getEntity().getWidth());
+        final double selfCartOffset;
 
         // The actual minimum distance allowed from the walking point position to any minecarts discovered
         // This takes into account that the start position is halfway the length of the Minecart
         // When distance is not greater than 0, we don't check for other trains at all.
-        double waitDistance = distance + trainDistance;
+        double waitDistance;
 
         // Two blocks are used to slow down the train, to make it match up to speed with the train up ahead
         // Check for any mutex zones ~2 blocks ahead, and stop before we enter them
         // If a wait distance is set, also check for trains there
-        final double mutexHardDistance = 0.0;
-        final double mutexSoftDistance = 2.0 + distance;
-        final double checkDistance = selfCartOffset + Math.max(mutexSoftDistance, waitDistance);
+        final double mutexHardDistance;
+        final double mutexSoftDistance;
+        final double checkDistance;
 
-        boolean foundMutexBlock = false;
-        MutexZone lastSoftMutexZone = null;
-        List<MutexZone> enteredMutexZones = Collections.emptyList();
+        // If true, encountered a rail obstacle that will put the train to a complete stop
+        // Rail obstacles don't have to be checked anymore if so, but trains do (train distance)
+        boolean foundHardRailObstacle = false;
+
+        // Last-encountered speed limit imposed by a rail obstacle
         double lastRailSpeedLimit = Double.MAX_VALUE;
 
+        // Tracks the current mutex zone the train is inside of while navigating the track
+        MutexZone currentMutex = null;
+        MutexZoneSlot.EnteredGroup currentMutexGroup = null;
+        double currentMutexDistance = Double.NaN;
+        double lastAddedSoftMutexObstacleDistance = Double.MAX_VALUE;
+        boolean handledNonSmartMutex = false;
+        boolean currentMutexHard = false;
+
+        // Mutex zones that have been (soft-) entered
+        public List<MutexZone> enteredMutexZones = Collections.emptyList();
+
+        // Resulting obstacles
         List<Obstacle> obstacles = new ArrayList<>();
-        TrackWalkingPoint iter = new TrackWalkingPoint(group.head().discoverRail());
-        if (group.getProperties().isWaitPredicted()) {
-            iter.setFollowPredictedPath(group.head());
+
+        public ObstacleFinder(double distance, boolean checkTrains, boolean checkRailObstacles, double trainDistance) {
+            this.distance = distance;
+            this.checkTrains = checkTrains;
+            this.checkRailObstacles = checkRailObstacles;
+            this.trainDistance = trainDistance;
+            this.selfCartOffset = (0.5 * group.head().getEntity().getWidth());
+            this.waitDistance = distance + trainDistance;
+            this.mutexHardDistance = 0.0;
+            this.mutexSoftDistance = 2.0 + distance;
+            this.checkDistance = selfCartOffset + Math.max(mutexSoftDistance, waitDistance) + 1.0;
         }
-        while (iter.movedTotal <= checkDistance && iter.moveFull()) {
-            // The distance traveled from the physical front of the cart
-            // The first iteration will likely have a negative distance
-            double distanceFromFront = iter.movedTotal - selfCartOffset;
 
-            // If the current rail block imposes a speed limit, set that right now
-            // Ignore successive equal speed limits (speed traps), that would cause too many obstacles
-            {
-                double railSpeedLimit = iter.getPredictedSpeedLimit();
-                if (railSpeedLimit < lastRailSpeedLimit) {
-                    lastRailSpeedLimit = railSpeedLimit;
-                    obstacles.add(new RailObstacle(distanceFromFront, railSpeedLimit, iter.state.railPiece()));
-                    if (railSpeedLimit <= 0.0) {
-                        break; // No need to check further
-                    }
+        public List<Obstacle> search() {
+            // Not sure if fixed, but skip if this train is empty
+            if (group.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            // If no wait distance is set and no mutex zones are anywhere close, skip these expensive calculations
+            if (distance <= 0.0 && trainDistance <= 0.0) {
+                OfflineWorld world = OfflineWorld.of(group.getWorld());
+                IntVector3 block = group.head().getEntity().loc.block();
+                if (!checkRailObstacles || !MutexZoneCache.isMutexZoneNearby(world, block, 8)) {
+                    return Collections.emptyList();
                 }
             }
 
-            // Check for mutex zones the next block. If one is found that is occupied, stop right away
-            if (checkRailObstacles && !foundMutexBlock && distanceFromFront < mutexSoftDistance) {
-                MutexZone zone = MutexZoneCache.find(iter.state.positionOfflineBlock());
-                if (zone != null && !enteredMutexZones.contains(zone)) {
-                    MutexZoneSlot.EnterResult result = zone.slot.tryEnter(group, distanceFromFront <= mutexHardDistance);
-                    if (result == MutexZoneSlot.EnterResult.OCCUPIED_HARD) {
-                        // At this point the train is guaranteed stopped. Don't check for more mutex zones now.
-                        // This is a hard stop, so we slow down to speed 0
-                        foundMutexBlock = true;
-                        obstacles.add(new MutexZoneObstacle(distanceFromFront, 0.0, zone));
-                    } else if (result == MutexZoneSlot.EnterResult.OCCUPIED_SOFT && zone != lastSoftMutexZone) {
-                        // At this point the train is guaranteed stopped. Don't check for more mutex zones now.
-                        // This is a soft stop, so we slow down to a crawl, but still moving
-                        lastSoftMutexZone = zone;
-                        obstacles.add(new MutexZoneObstacle(distanceFromFront, 0.01, zone));
-                    } else if (result == MutexZoneSlot.EnterResult.SUCCESS) {
-                        if (enteredMutexZones.isEmpty()) {
-                            enteredMutexZones = new ArrayList<>();
+            TrackWalkingPoint iter = new TrackWalkingPoint(group.head().discoverRail());
+            if (group.getProperties().isWaitPredicted()) {
+                iter.setFollowPredictedPath(group.head());
+            }
+            while (iter.movedTotal <= checkDistance && iter.moveFull()) {
+                // The distance traveled from the physical front of the cart
+                // The first iteration will likely have a negative distance
+                double distanceFromFront = iter.movedTotal - selfCartOffset;
+
+                if (checkRailObstacles) {
+                    // Check last smart mutex still valid for the current rail
+                    if (currentMutex != null && !currentMutex.containsBlock(iter.state.positionOfflineBlock().getPosition())) {
+                        // Exited the mutex zone
+                        currentMutex = null;
+                    }
+
+                    if (!foundHardRailObstacle) {
+                        // If the current rail block imposes a speed limit, set that right now
+                        // Ignore successive equal speed limits (speed traps), that would cause too many obstacles
+                        {
+                            double railSpeedLimit = iter.getPredictedSpeedLimit();
+                            if (railSpeedLimit < lastRailSpeedLimit) {
+                                lastRailSpeedLimit = railSpeedLimit;
+                                obstacles.add(new RailObstacle(distanceFromFront, railSpeedLimit, iter.state.railPiece()));
+                                if (railSpeedLimit <= 0.0) {
+                                    foundHardRailObstacle = true; // No need to check further
+                                }
+                            }
                         }
-                        enteredMutexZones.add(zone);
+
+                        // Check for mutex zones the next block. If one is found that is occupied, stop right away
+                        if (currentMutex == null && distanceFromFront < mutexSoftDistance) {
+                            currentMutex = MutexZoneCache.find(iter.state.positionOfflineBlock()); //TODO: Efficiency!
+                            if (currentMutex != null) {
+                                currentMutexGroup = currentMutex.slot.track(group);
+                                currentMutexDistance = distanceFromFront;
+                                currentMutexHard = distanceFromFront <= mutexHardDistance;
+                                handledNonSmartMutex = false;
+                            }
+                        }
+                    }
+
+                    // Refresh smart mutex zones' occupied rail blocks.
+                    if (currentMutex != null) {
+                        updateCurrentMutex(iter);
                     }
                 }
-            }
 
-            // Only check for trains on the rails when a wait distance is set
-            if (!checkTrains) {
-                continue;
-            }
-
-            // Check all other minecarts on the same rails to see if they are too close
-            Location state_position = null;
-            Location member_position = null;
-            MinecartMember<?> minMemberAhead = null;
-            double minSpeedAhead = Double.MAX_VALUE;
-            double minDistanceAhead = 0.0;
-            for (MinecartMember<?> member : iter.state.railPiece().members()) {
-                if (member.getGroup() == group) {
+                // Only check for trains on the rails when a wait distance is set
+                if (!checkTrains) {
                     continue;
                 }
 
-                // Retrieve & re-use (readonly)
-                if (state_position == null) {
-                    state_position = iter.state.positionLocation();
-                }
-
-                // Member center position & re-use (readonly)
-                if (member_position == null) {
-                    member_position = member.getEntity().getLocation();
-                } else {
-                    member.getEntity().getLocation(member_position);
-                }
-
-                // Is the minecart 'in front' of the current position on the rails, or behind us?
-                // This is important when iterating over the first track only, because then this is not guaranteed
-                if (iter.movedTotal == 0.0) {
-                    Vector delta = new Vector(member_position.getX() - state_position.getX(),
-                                              member_position.getY() - state_position.getY(),
-                                              member_position.getZ() - state_position.getZ());
-                    if (delta.dot(iter.state.motionVector()) < 0.0) {
+                // Check all other minecarts on the same rails to see if they are too close
+                Location state_position = null;
+                Location member_position = null;
+                MinecartMember<?> minMemberAhead = null;
+                double minSpeedAhead = Double.MAX_VALUE;
+                double minDistanceAhead = 0.0;
+                for (MinecartMember<?> member : iter.state.railPiece().members()) {
+                    if (member.getGroup() == group) {
                         continue;
                     }
+
+                    // Retrieve & re-use (readonly)
+                    if (state_position == null) {
+                        state_position = iter.state.positionLocation();
+                    }
+
+                    // Member center position & re-use (readonly)
+                    if (member_position == null) {
+                        member_position = member.getEntity().getLocation();
+                    } else {
+                        member.getEntity().getLocation(member_position);
+                    }
+
+                    // Is the minecart 'in front' of the current position on the rails, or behind us?
+                    // This is important when iterating over the first track only, because then this is not guaranteed
+                    if (iter.movedTotal == 0.0) {
+                        Vector delta = new Vector(member_position.getX() - state_position.getX(),
+                                                  member_position.getY() - state_position.getY(),
+                                                  member_position.getZ() - state_position.getZ());
+                        if (delta.dot(iter.state.motionVector()) < 0.0) {
+                            continue;
+                        }
+                    }
+
+                    // Compute distance from the current rail position to the 'edge' of the minecart.
+                    // This is basically the distance to center, with half the length of the minecart subtracted.
+                    double distanceToMember = member_position.distance(state_position) -
+                                              (double) member.getEntity().getWidth() * 0.5;
+
+                    // Find the distance we can still move from our current position
+                    if ((distanceFromFront + distanceToMember) > waitDistance) {
+                        continue;
+                    }
+
+                    // Movement speed of the minecart, taking maximum speed into account
+                    Vector member_velocity = member.getEntity().getVelocity();
+                    double speedAhead = MathUtil.clamp(member_velocity.length(), member.getEntity().getMaxSpeed());
+
+                    // If moving towards me, stop right away! When barely moving, ignore this check.
+                    if (speedAhead > 1e-6 && iter.state.position().motDot(member_velocity) < 0.0) {
+                        obstacles.add(new TrainObstacle(distanceFromFront + distanceToMember, trainDistance, 0.0, member));
+                        continue;
+                    }
+
+                    // Too close, match the speed of the Minecart ahead. For the overshoot, slow ourselves down.
+                    if (speedAhead < 0.0) {
+                        speedAhead = 0.0;
+                    }
+                    if (speedAhead < minSpeedAhead) {
+                        minMemberAhead = member;
+                        minSpeedAhead = speedAhead;
+                        minDistanceAhead = distanceFromFront + distanceToMember;
+                    }
                 }
-
-                // Compute distance from the current rail position to the 'edge' of the minecart.
-                // This is basically the distance to center, with half the length of the minecart subtracted.
-                double distanceToMember = member_position.distance(state_position) -
-                                          (double) member.getEntity().getWidth() * 0.5;
-
-                // Find the distance we can still move from our current position
-                if ((distanceFromFront + distanceToMember) > waitDistance) {
-                    continue;
-                }
-
-                // Movement speed of the minecart, taking maximum speed into account
-                Vector member_velocity = member.getEntity().getVelocity();
-                double speedAhead = MathUtil.clamp(member_velocity.length(), member.getEntity().getMaxSpeed());
-
-                // If moving towards me, stop right away! When barely moving, ignore this check.
-                if (speedAhead > 1e-6 && iter.state.position().motDot(member_velocity) < 0.0) {
-                    obstacles.add(new TrainObstacle(distanceFromFront + distanceToMember, trainDistance, 0.0, member));
-                    continue;
-                }
-
-                // Too close, match the speed of the Minecart ahead. For the overshoot, slow ourselves down.
-                if (speedAhead < 0.0) {
-                    speedAhead = 0.0;
-                }
-                if (speedAhead < minSpeedAhead) {
-                    minMemberAhead = member;
-                    minSpeedAhead = speedAhead;
-                    minDistanceAhead = distanceFromFront + distanceToMember;
+                if (minSpeedAhead != Double.MAX_VALUE) {
+                    obstacles.add(new TrainObstacle(minDistanceAhead, trainDistance, minSpeedAhead, minMemberAhead));
                 }
             }
-            if (minSpeedAhead != Double.MAX_VALUE) {
-                obstacles.add(new TrainObstacle(minDistanceAhead, trainDistance, minSpeedAhead, minMemberAhead));
+
+            // While we are still updating mutex information, navigate the track until we exit the zone
+            // This is only important for smart mutexes
+            // This might cause a new obstacle to be inserted from when the train reached the start of the zone
+            if (currentMutex != null && currentMutex.smart) {
+                // Exceeding 64 blocks we enable the loop filter, as we probably reached an infinite loop of sorts...
+                double enabledLoopFilterLimit = iter.movedTotal + 64.0;
+                while (iter.moveFull()) {
+                    if (iter.movedTotal >= enabledLoopFilterLimit) {
+                        enabledLoopFilterLimit = Double.MAX_VALUE;
+                        iter.setLoopFilter(true);
+                    }
+
+                    // Check still within mutex. If not, abort.
+                    if (!currentMutex.containsBlock(iter.state.positionOfflineBlock().getPosition())) {
+                        break;
+                    }
+
+                    // Update
+                    if (!updateCurrentMutex(iter)) {
+                        break;
+                    }
+                }
             }
+
+            return obstacles;
         }
 
-        this.enteredMutexZones = enteredMutexZones;
-        return obstacles;
+        /**
+         * Updates the current mutex being tracked. Returns whether to continue feeding it more track.
+         *
+         * @param iter
+         * @return True if more track is requested
+         */
+        private boolean updateCurrentMutex(TrackWalkingPoint iter) {
+            MutexZoneSlot.EnterResult result;
+            if (currentMutex.smart) {
+                // Track every rail block visited while navigating within the mutex zone
+                result = currentMutexGroup.enterRail(currentMutexHard,
+                                                     iter.state.railPiece().blockPosition());
+            } else if (!handledNonSmartMutex) {
+                // Only handle non-smart mutexes once. No need to check them often, as they won't change result.
+                result = currentMutexGroup.enterZone(currentMutexHard);
+                handledNonSmartMutex = true;
+            } else {
+                // Skip.
+                result = MutexZoneSlot.EnterResult.IGNORED;
+            }
+            if (result == MutexZoneSlot.EnterResult.OCCUPIED_HARD) {
+                // At this point the train is guaranteed stopped. Don't check for more mutex zones now.
+                // This is a hard stop, so we slow down to speed 0
+                foundHardRailObstacle = true;
+                obstacles.add(new MutexZoneObstacle(currentMutexDistance, 0.0, currentMutex));
+                currentMutex = null; // stop checking
+                return false;
+            } else if (result == MutexZoneSlot.EnterResult.OCCUPIED_SOFT && currentMutexDistance < lastAddedSoftMutexObstacleDistance) {
+                // At this point the train is guaranteed stopped. Don't check for more mutex zones now.
+                // This is a soft stop, so we slow down to a crawl, but still moving
+                // We might find out later on that this changes from soft to hard...
+                lastAddedSoftMutexObstacleDistance = currentMutexDistance;
+                obstacles.add(new MutexZoneObstacle(currentMutexDistance, 0.01, currentMutex));
+            } else if (result == MutexZoneSlot.EnterResult.SUCCESS) {
+                // Track mutex zones we have entered (train status!)
+                if (!enteredMutexZones.contains(currentMutex)) {
+                    if (enteredMutexZones.isEmpty()) {
+                        enteredMutexZones = new ArrayList<MutexZone>();
+                    }
+                    enteredMutexZones.add(currentMutex);
+                }
+            } else if (result == MutexZoneSlot.EnterResult.IGNORED) {
+                // Break out, no need to check this.
+                return false;
+            }
+
+            return true;
+        }
     }
 
     /**

@@ -17,7 +17,7 @@ public class SignActionMutex extends SignAction {
 
     @Override
     public boolean match(SignActionEvent info) {
-        return info.isType("mutex");
+        return info.isType("mutex", "smartmutex", "smutex");
     }
 
     @Override
@@ -26,12 +26,21 @@ public class SignActionMutex extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        return SignBuildOptions.create()
-                .setPermission(Permission.BUILD_MUTEX)
-                .setName("mutex zone")
-                .setDescription("prevent more than one train entering a zone")
-                .setTraincartsWIKIHelp("TrainCarts/Signs/Mutex")
-                .handle(event.getPlayer());
+        if (event.isType("smartmutex", "smutex")) {
+            return SignBuildOptions.create()
+                    .setPermission(Permission.BUILD_MUTEX)
+                    .setName("smart mutex zone")
+                    .setDescription("prevent more than one train occupying the same rail blocks within a zone")
+                    .setTraincartsWIKIHelp("TrainCarts/Signs/Mutex")
+                    .handle(event.getPlayer());
+        } else {
+            return SignBuildOptions.create()
+                    .setPermission(Permission.BUILD_MUTEX)
+                    .setName("mutex zone")
+                    .setDescription("prevent more than one train entering a zone")
+                    .setTraincartsWIKIHelp("TrainCarts/Signs/Mutex")
+                    .handle(event.getPlayer());
+        }
     }
 
     @Override

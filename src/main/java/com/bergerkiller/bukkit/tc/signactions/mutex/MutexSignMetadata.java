@@ -13,8 +13,9 @@ public class MutexSignMetadata {
     public final IntVector3 start;
     public final IntVector3 end;
     public final String statement;
+    public final boolean smart;
 
-    public MutexSignMetadata(String name, IntVector3 start, IntVector3 end, String statement) {
+    public MutexSignMetadata(String name, IntVector3 start, IntVector3 end, String statement, boolean smart) {
         if (name == null) {
             throw new IllegalArgumentException("Name is null");
         }
@@ -22,6 +23,7 @@ public class MutexSignMetadata {
         this.start = start;
         this.end = end;
         this.statement = statement;
+        this.smart = smart;
     }
 
     public static MutexSignMetadata fromSign(SignActionEvent info) {
@@ -68,7 +70,7 @@ public class MutexSignMetadata {
         IntVector3 start = block.subtract(dx, dy, dz);
         IntVector3 end = block.add(dx, dy, dz);
 
-        return new MutexSignMetadata(name, start, end, statement);
+        return new MutexSignMetadata(name, start, end, statement, info.isType("smartmutex", "smutex"));
     }
 
     private static IntVector3 getPosition(SignActionEvent info) {
