@@ -87,7 +87,9 @@ import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SlowdownMode;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
+import com.bergerkiller.bukkit.tc.rails.WorldRailLookup;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicVertical;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -140,6 +142,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private Location firstKnownDerailedPosition = null;
     private List<Entity> enterForced = new ArrayList<Entity>(1);
     private boolean wasMoving = false; // for starting driveSound property. TODO: Attachment?
+    private WorldRailLookup railLookup = WorldRailLookup.NONE; // current-world rail lookup
 
     public static boolean isTrackConnected(MinecartMember<?> m1, MinecartMember<?> m2) {
         // Can the minecart reach the other?
@@ -963,7 +966,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     private final boolean fillRailInformation(RailState state) {
         // Need an initial Rail Block set
-        state.setRailPiece(RailPiece.createWorldPlaceholder(entity.getWorld()));
+        state.setRailPiece(RailPiece.createWorldPlaceholder(railLookup()));
         state.setMember(this);
 
         // Initially try going into the direction that leads away from the
@@ -972,6 +975,21 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         state.position().setMotion(this.calcMotionVector(false));
         state.position().setLocation(entity.getLocation());
         return RailType.loadRailInformation(state);
+    }
+
+    /**
+     * Gets the World Rail Lookup used by this Member, for the current World it is
+     * on. Updates automatically.
+     *
+     * @return World Rail Lookup
+     */
+    public WorldRailLookup railLookup() {
+        World world = entity.getWorld();
+        WorldRailLookup result = this.railLookup;
+        if (result.getWorld() != world) {
+            result = this.railLookup = RailLookup.forWorld(world);
+        }
+        return result;
     }
 
     /**
@@ -990,7 +1008,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             if (!result) {
                 // Note: Cannot use world placeholder, because then the rail block is null
                 //       Also cannot set to NONE, because then there is no world.
-                state.setRailPiece(RailPiece.create(RailType.NONE, state.railBlock()));
+                state.setRailPiece(RailPiece.create(RailType.NONE, state.railBlock(), state.railLookup()));
                 state.position().setLocation(entity.getLocation());
                 state.setMotionVector(this.calcMotionVector(true));
                 state.initEnterDirection();

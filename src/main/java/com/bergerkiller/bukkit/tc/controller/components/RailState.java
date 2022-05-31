@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
+import com.bergerkiller.bukkit.tc.rails.WorldRailLookup;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 
@@ -194,6 +195,15 @@ public class RailState {
      */
     public final World railWorld() {
         return this._railPiece.world();
+    }
+
+    /**
+     * Gets the World Rail Lookup used by this RailState, for the current {@link #railWorld()}
+     *
+     * @return World Rail Lookup
+     */
+    public final WorldRailLookup railLookup() {
+        return this._railPiece.railLookup();
     }
 
     /**

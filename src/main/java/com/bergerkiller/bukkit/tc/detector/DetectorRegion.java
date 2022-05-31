@@ -6,13 +6,13 @@ import com.bergerkiller.bukkit.common.collections.BlockMap;
 import com.bergerkiller.bukkit.common.collections.ImplicitlySharedList;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.DataWriter;
-import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
+import com.bergerkiller.bukkit.tc.rails.WorldRailLookup;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -66,9 +66,9 @@ public final class DetectorRegion {
         //load members
         World w = Bukkit.getServer().getWorld(this.world);
         if (w != null) {
-            OfflineWorld ow = OfflineWorld.of(w);
+            WorldRailLookup railLookup = RailLookup.forWorld(w);
             for (IntVector3 coord : this.coordinates) {
-                List<MinecartMember<?>> members = RailLookup.findMembersOnRail(ow.getBlockAt(coord));
+                List<MinecartMember<?>> members = railLookup.findMembersOnRail(coord);
                 if (!members.isEmpty()) {
                     for (MinecartMember<?> mm : new ArrayList<>(members)) {
                         mm.getSignTracker().addToDetectorRegion(this);

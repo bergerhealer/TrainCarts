@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
+import com.bergerkiller.bukkit.tc.rails.WorldRailLookup;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.RailJunctionSwitcher;
 
@@ -20,9 +21,9 @@ import com.bergerkiller.bukkit.tc.utils.RailJunctionSwitcher;
  * Extra properties about the rail are cached for faster lookup of this rarely changing information.
  */
 public class RailPiece {
-    public static final RailPiece NONE = createWorldPlaceholder(null);
+    public static final RailPiece NONE = createWorldPlaceholder(WorldRailLookup.NONE);
     private final RailType type;
-    private final OfflineWorld world;
+    private final WorldRailLookup railLookup;
     private final Block block;
     private final OfflineBlock offlineBlock;
 
@@ -35,23 +36,23 @@ public class RailPiece {
 
     // Used for RailLookup.CachedRailPiece REMOVED default constant
     protected RailPiece() {
-        this.world = OfflineWorld.NONE;
+        this.railLookup = WorldRailLookup.NONE;
         this.offlineBlock = null;
         this.block = null;
         this.type = RailType.NONE;
         this.cached = null; // Should never even be used
     }
 
-    private RailPiece(World world) {
-        this.world = OfflineWorld.of(world);
+    private RailPiece(WorldRailLookup railLookup) {
+        this.railLookup = railLookup;
         this.offlineBlock = null;
         this.block = null;
         this.type = RailType.NONE;
         this.cached = RailLookup.CachedRailPiece.NONE;
     }
 
-    protected RailPiece(OfflineBlock offlineBlock, Block block, RailType type) {
-        this.world = offlineBlock.getWorld();
+    protected RailPiece(WorldRailLookup railLookup, OfflineBlock offlineBlock, Block block, RailType type) {
+        this.railLookup = railLookup;
         this.offlineBlock = offlineBlock;
         this.block = block;
         this.type = type;
@@ -163,7 +164,7 @@ public class RailPiece {
      * @return rail world
      */
     public World world() {
-        return this.world.getLoadedWorld();
+        return this.railLookup.getWorld();
     }
 
     /**
@@ -172,7 +173,16 @@ public class RailPiece {
      * @return rail offline world
      */
     public OfflineWorld offlineWorld() {
-        return this.world;
+        return this.railLookup.getOfflineWorld();
+    }
+
+    /**
+     * Gets the {@link WorldRailLookup} that is used for this Rail Piece.
+     *
+     * @return world rail lookup
+     */
+    public WorldRailLookup railLookup() {
+        return this.railLookup;
     }
 
     private RailLookup.CachedRailPiece accessCache() {
@@ -180,7 +190,7 @@ public class RailPiece {
         if (cached.verify()) {
             return cached;
         } else {
-            return this.cached = RailLookup.lookupCachedRailPiece(this.offlineBlock, this.block, this.type);
+            return this.cached = this.railLookup.lookupCachedRailPiece(this.offlineBlock, this.block, this.type);
         }
     }
 
@@ -220,7 +230,7 @@ public class RailPiece {
      * @return new RailPiece with rail type NONE
      */
     public RailPiece asNoneType() {
-        return new RailPiece(this.offlineBlock, this.block, RailType.NONE);
+        return new RailPiece(this.railLookup, this.offlineBlock, this.block, RailType.NONE);
     }
 
     @Override
@@ -268,7 +278,9 @@ public class RailPiece {
      * @return RailPiece
      */
     public static RailPiece create(RailType type, Block block) {
-        return new RailPiece(OfflineBlock.of(block), block, type);
+        WorldRailLookup railLookup = RailLookup.forWorld(block.getWorld());
+        OfflineBlock offlineBlock = railLookup.getOfflineWorld().getBlockAt(block.getX(), block.getY(), block.getZ());
+        return new RailPiece(railLookup, offlineBlock, block, type);
     }
 
     /**
@@ -280,8 +292,9 @@ public class RailPiece {
      * @param world Offline World
      * @return RailPiece
      */
-    public static RailPiece create(RailType type, Block block, OfflineWorld world) {
-        return new RailPiece(world.getBlockAt(block.getX(), block.getY(), block.getZ()), block, type);
+    public static RailPiece create(RailType type, Block block, WorldRailLookup railLookup) {
+        OfflineBlock offlineBlock = railLookup.getOfflineWorld().getBlockAt(block.getX(), block.getY(), block.getZ());
+        return new RailPiece(railLookup, offlineBlock, block, type);
     }
 
     /**
@@ -292,7 +305,7 @@ public class RailPiece {
      * @return RailPiece
      */
     public static RailPiece create(Block block) {
-        return new RailPiece(OfflineBlock.of(block), block, RailType.getType(block));
+        return create(RailType.getType(block), block);
     }
 
     /**
@@ -303,6 +316,17 @@ public class RailPiece {
      * @return rail block defining the world
      */
     public static RailPiece createWorldPlaceholder(World world) {
-        return new RailPiece(world);
+        return new RailPiece(RailLookup.forWorld(world));
+    }
+
+    /**
+     * Creates a RailBlock that has no rail type or block, and acts as a placeholder
+     * to define for a RailState what world is used.
+     * 
+     * @param railLookup World Rail Lookup for the World
+     * @return rail block defining the world
+     */
+    public static RailPiece createWorldPlaceholder(WorldRailLookup railLookup) {
+        return new RailPiece(railLookup);
     }
 }

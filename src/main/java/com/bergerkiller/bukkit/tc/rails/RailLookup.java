@@ -5,30 +5,25 @@ import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Predicate;
 import java.util.logging.Level;
 
 import org.bukkit.Chunk;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 
-import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
-import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCConfig;
-import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -41,41 +36,46 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.utils.signtracker.SignChangeTrackerWrap;
 
 /**
- * Retrieves and caches rails and information about rails, mapped to
- * the minecart and rail positions. The cache eliminates frequent lookups
- * using more expensive discovery methods.<br>
+ * Manages the {@link WorldRailLookup} caches for all worlds they exist on.
+ * The static utility methods make use of this class to find the right
+ * lookup to use for a World.<br>
  * <br>
- * Per section of rail tied to rail block and type, the following information is cached:
- * <ul>
- * <li>Rail block and rail type
- * <li>Signs and their detected sign actions activated by them
- * <li>Minecart Members occupying the section of rails
- * </ul>
- * The cache stores information in memory for so long it is accessed, and the
- * cached information is automatically wiped when no longer used. The data is
- * validated every tick, such as by checking signs exist and the rail type still
- * detects the rail block as a valid rail.<br>
- * <br>
- * This lookup is not multi-thread safe and all access must be done from the main
- * Bukkit thread.
+ * It is strongly recommended to use the {@link WorldRailLookup} directly
+ * if you have it available to eliminate an unneeded HashMap lookup.
  */
 public final class RailLookup {
     /** Start value of the life timer */
-    private static final int LIFE_TIMER_START = 1;
+    static final int LIFE_TIMER_START = 1;
     /** This is incremented every tick to force cached information to re-verify itself */
-    private static int lifeTimer = LIFE_TIMER_START;
+    static int lifeTimer = LIFE_TIMER_START;
     /** Stores the (every tick incrementing) future tick when cached information expires */
-    private static int verifyTimer = LIFE_TIMER_START;
+    static int verifyTimer = LIFE_TIMER_START;
 
-    private static final Bucket[] NO_RAILS_AT_POSITION = new Bucket[0];
-    private static final TrackedSign[] NO_SIGNS = new TrackedSign[0];
-    private static final TrackedSign[] MISSING_RAILS_NO_SIGNS = new TrackedSign[0];
-    private static final List<MinecartMember<?>> DEFAULT_MEMBER_LIST = Collections.emptyList();
+    // Constant arrays used for initialization checks
+    static final TrackedSign[] NO_SIGNS = new TrackedSign[0];
+    static final TrackedSign[] MISSING_RAILS_NO_SIGNS = new TrackedSign[0];
+    static final List<MinecartMember<?>> DEFAULT_MEMBER_LIST = Collections.emptyList();
+    private static final TrackedSignList SIGN_LIST_CACHE = new TrackedSignList();
     private static final Material WALL_SIGN_TYPE = getMaterial("LEGACY_WALL_SIGN");
     private static final Material SIGN_POST_TYPE = getMaterial("LEGACY_SIGN_POST");
     private static BlockFace[] SIGN_FACES_ORDERED = {BlockFace.UP, BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.DOWN};
-    private static final TrackedSignList SIGN_LIST_CACHE = new TrackedSignList();
-    private static final HashMap<OfflineBlock, Bucket> cache = new HashMap<>();
+
+    // Stores all WorldRailLookup instances that are in use
+    private static final IdentityHashMap<World, WorldRailLookup> byWorld = new IdentityHashMap<>();
+
+    /**
+     * Gets the World-specific Rail Lookup. This is more efficient to use than this RailLookup's
+     * static methods, as it eliminates an unneeded by-world lookup call.
+     *
+     * @param world World to find the World Rail Lookup cache for
+     * @return World Rail Lookup cache for this World
+     */
+    public static WorldRailLookup forWorld(World world) {
+        // Note: the null check will run every time for null, because computeIfAbsent recalculates
+        //       null all the time.
+        return byWorld.computeIfAbsent(world, w -> w == null
+                ? WorldRailLookup.NONE : new WorldRailLookup(w));
+    }
 
     /**
      * Discovers the RailPieces that are active for controlling the movement of a Minecart
@@ -87,7 +87,7 @@ public final class RailLookup {
      * @return Array of rail pieces active here, or an empty array if there are no rails nearby
      */
     public static RailPiece[] findAtStatePosition(RailState state) {
-        return findAtBlockPosition(state.positionOfflineBlock());
+        return state.railLookup().findAtStatePosition(state);
     }
 
     /**
@@ -100,67 +100,7 @@ public final class RailLookup {
      * @return Array of rail pieces active here, or an empty array if there are no rails nearby
      */
     public static RailPiece[] findAtBlockPosition(OfflineBlock positionBlock) {
-        // If already in the cache, compute/return it right-away
-        // During computation the original bucket may get deleted (if rail type was NONE)
-        Bucket inCache = cache.get(positionBlock);
-        if (inCache != null) {
-            return inCache.getRailsAtPosition();
-        }
-
-        // We need to create a new bucket at this position. While we could initialize one
-        // with rail type NONE and proceed from there, it results in a bucket to be created
-        // that is then just thrown away again. It's better to do an at-position search first,
-        // and if any of the found rails match with the position block, we use that one.
-        return Bucket.discoverAtPositionBlock(positionBlock);
-    }
-
-    /**
-     * API Note: you should never have to call this function. It's used internally by RailPiece.<br>
-     * <br>
-     * Looks up cached rail information about the provided rail block. If needed a new entry
-     * is created in the cache to store the cached information, so that members or signs at this
-     * block can be found. This will also succeed when the rail type doesn't exist at this block.
-     *
-     * @param railOfflineBlock Rail offline block, key
-     * @param railBlock Bukkit Block version of railOfflineBlock
-     * @param railType Rail type
-     * @return Rail piece information backed by this lookup cache. The information is verified.
-     */
-    public static CachedRailPiece lookupCachedRailPiece(final OfflineBlock railOfflineBlock,
-                                                        final Block railBlock,
-                                                        final RailType railType
-    ) {
-        return lookupRailBucket(railOfflineBlock, railBlock, railType);
-    }
-
-    private static Bucket lookupRailBucket(final OfflineBlock railOfflineBlock,
-                                           final Block railBlock,
-                                           final RailType railType
-    ) {
-        // First try to find it in the cache, and if none exists, initialize a new one.
-        Bucket inCache = cache.get(railOfflineBlock);
-        if (inCache == null) {
-            inCache = new Bucket(railOfflineBlock, railBlock, railType);
-            cache.put(railOfflineBlock, inCache);
-            inCache.signs = discoverSignsAtRailPiece(inCache);
-            return inCache; // We know railType matches - we just initialized it!
-        }
-
-        // If the rail type of the one in cache is 'NONE', it most likely was initialized before
-        // the rail was found as a valid rail type. For performance reasons it's better to
-        // yeet this bucket out, as it's unlikely to be used again.
-        // Because of this logic the inCache one will also never store a 'next' chain.
-        //
-        // In other cases, entries are added to the 'next' chain to represent them, including
-        // NONE if this is required.
-        RailType inCacheType = inCache.type();
-        if (inCacheType == railType) {
-            return inCache;
-        } else if (inCacheType == RailType.NONE) {
-            return inCache.swapOutNoneType(railType);
-        } else {
-            return inCache.findOrAppendToChain(railType);
-        }
+        return forWorld(positionBlock.getLoadedWorld()).findAtBlockPosition(positionBlock);
     }
 
     /**
@@ -175,8 +115,7 @@ public final class RailLookup {
      * @return List of members on this block
      */
     public static List<MinecartMember<?>> findMembersOnRail(OfflineBlock railOfflineBlock) {
-        Bucket bucket = cache.get(railOfflineBlock);
-        return (bucket == null) ? Collections.emptyList() : bucket.members;
+        return forWorld(railOfflineBlock.getLoadedWorld()).findMembersOnRail(railOfflineBlock);
     }
 
     /**
@@ -185,12 +124,8 @@ public final class RailLookup {
      * particular rails. If that's a problem, use {@link #forceRecalculation()} instead.
      */
     public static void clear() {
-        for (Bucket bucket : cache.values()) {
-            for (Bucket next = bucket; next != null; next = next.next) {
-                next.rail_life = 0;
-            }
-        }
-        cache.clear();
+        byWorld.values().forEach(WorldRailLookup::clear);
+        byWorld.clear();
     }
 
     /**
@@ -199,17 +134,7 @@ public final class RailLookup {
      * type, or when a rail type significantly alters behavior/reloads.
      */
     public static void forceRecalculation() {
-        // Force all positions to re-discover the rails that are there
-        // Delete buckets from memory that have no members on it
-        refreshBuckets(bucket -> {
-            // Delete this at all times
-            bucket.rail_life = LIFE_TIMER_START;
-            bucket.rails_at_position_life = 0;
-            bucket.rails_at_position = NO_RAILS_AT_POSITION;
-            bucket.signs = MISSING_RAILS_NO_SIGNS;
-            // Remove bucket if there's no members on the rails
-            return !bucket.members.isEmpty();
-        });
+        byWorld.values().forEach(WorldRailLookup::refreshAllBuckets);
 
         // Increment life timer so that all rail access is re-validated
         // Set the timer to when buckets with life=1 expire (set earlier)
@@ -223,13 +148,8 @@ public final class RailLookup {
      * @param member
      */
     public static void removeMemberFromAll(MinecartMember<?> member) {
-        for (Bucket bucket : cache.values()) {
-            for (Bucket next = bucket; next != null; next = next.next) {
-                List<MinecartMember<?>> members = next.members;
-                if (!members.isEmpty()) {
-                    members.remove(member);
-                }
-            }
+        for (WorldRailLookup lookup : byWorld.values()) {
+            lookup.removeMemberFromAll(member);
         }
     }
 
@@ -239,652 +159,15 @@ public final class RailLookup {
      */
     public static void update() {
         final int deadTimeout = lifeTimer - TCConfig.cacheExpireTicks - TCConfig.cacheVerificationTicks;
-        refreshBuckets(b -> b.checkStillValid(deadTimeout));
+        for (Iterator<WorldRailLookup> iter = byWorld.values().iterator(); iter.hasNext();) {
+            WorldRailLookup lookup = iter.next();
+            if (!lookup.isValid()) {
+                iter.remove();
+            } else {
+                lookup.update(deadTimeout);
+            }
+        }
         verifyTimer = ++lifeTimer + TCConfig.cacheVerificationTicks;
-    }
-
-    private static void refreshBuckets(Predicate<Bucket> validChecker) {
-        Iterator<Map.Entry<OfflineBlock, Bucket>> iter = cache.entrySet().iterator();
-        while (iter.hasNext()) {
-            Map.Entry<OfflineBlock, Bucket> e = iter.next();
-            Bucket bucket = e.getValue();
-            if (validChecker.test(bucket)) {
-                // Only remove invalid buckets from the next chain
-                bucket.removeInvalidBucketsFromChain(validChecker);
-            } else {
-                // If bucket has a next value, put that one in instead. Remove if all dead.
-                while (true) {
-                    bucket.rail_life = 0;
-                    bucket = bucket.next;
-                    if (bucket == null) {
-                        iter.remove(); // No more buckets, remove entirely
-                        break;
-                    } else if (validChecker.test(bucket)) {
-                        // Set this one, instead. Do remove further next entries that aren't valid
-                        bucket.removeInvalidBucketsFromChain(validChecker);
-                        e.setValue(bucket);
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * A single bucket mapped to a block on the server. Stores both information
-     * about the block as a rail block, and the block as a position block. This makes it
-     * more efficient when both are the same.
-     */
-    private static final class Bucket extends CachedRailPiece {
-        /**
-         * In the case of multiple rail types existing at the same rail block, stores the
-         * next rail type bucket for the same (offline) block position. This next bucket
-         * and the buckets that come after will not be used for finding rails at positions.
-         */
-        public Bucket next = null;
-
-        /**
-         * Tick counter set to the lifeTimer every time this bucket's rail info is accessed.
-         * On first access, revalidates the information. If set to 0, the bucket
-         * was removed from the cache.
-         */
-        public int rail_life;
-
-        /**
-         * Tick counter set to the lifeTimer every time this bucket's rail-at-position info
-         * is accessed. On first access, checks all it's cached rail pieces are still valid.
-         * Is not set to 0 when the bucket is removed, since getting this bucket requires
-         * retrieving from the cache in the first place.
-         */
-        public int rails_at_position_life;
-
-        /**
-         * Stores the rail pieces accessed when this bucket is treated as the Block
-         * position a Minecart is at. Each rail piece will internally refer to a
-         * Bucket of it's own with the rail piece information, such as signs and
-         * members on the rail.
-         */
-        public Bucket[] rails_at_position;
-
-        // Initializes a new Bucket for a non-rail use, with RailType NONE
-        // This is used when using a block position to find rails that have minecarts near it
-        // If at a later time a rail block is found anyway, then this bucket is discarded and
-        // replaced with one initialized with the new Rail type.
-        public Bucket(OfflineBlock offlineBlock, Block block) {
-            this(offlineBlock, block, RailType.NONE);
-        }
-
-        // Initializes a new Bucket for a rail block.
-        // It's expected that after assigning the signs are calculated
-        public Bucket(OfflineBlock offlineBlock, Block block, RailType type) {
-            super(offlineBlock, block, type);
-            this.signs = MISSING_RAILS_NO_SIGNS;
-            this.rail_life = lifeTimer;
-            this.rails_at_position_life = 0; // Needs to be calculated
-            this.rails_at_position = NO_RAILS_AT_POSITION;
-        }
-
-        /**
-         * Gets whether this Bucket is dead, that is, hasn't been accessed in a while.
-         * Checks whether this bucket is used as a Rail or as a Position lookup anytime
-         * before the timeout. If this bucket stores members, it is never deleted.
-         *
-         * @param timeoutTicks
-         * @return True if dead.
-         */
-        public boolean checkStillValid(int timeoutTicks) {
-            // If accessed recently, then it can be kept. Even if members are around that should be
-            // unloaded, presumably, such an unloaded member wouldn't keep accessing it.
-            if (this.rail_life >= timeoutTicks || this.rails_at_position_life >= timeoutTicks) {
-                return true;
-            }
-
-            // Check members
-            boolean valid;
-            List<MinecartMember<?>> members = this.members;
-            if (members.isEmpty()) {
-                valid = false; // Not accessed and no members, remove from cache
-                return false; // Not accessed and no members, remove from cache
-            } else {
-                // Purge unloaded members, if any
-                valid = true;
-                Iterator<MinecartMember<?>> iter = members.iterator();
-                while (iter.hasNext()) {
-                    MinecartMember<?> member = iter.next();
-                    if (member.isUnloaded()) {
-                        iter.remove();
-                        valid = !members.isEmpty();
-                        TrainCarts.plugin.log(Level.WARNING, "Purged unloaded minecart from rail cache at " +
-                                    offlineBlock().getPosition());
-                    }
-                }
-            }
-            return valid;
-        }
-
-        /**
-         * Replaces this bucket with a new bucket of the specified Rail Type.
-         * Is used when this bucket's Rail Type is NONE.
-         *
-         * @param railType
-         * @return Newly added Bucket
-         */
-        public Bucket swapOutNoneType(RailType railType) {
-            Bucket newBucket = new Bucket(this.offlineBlock(), this.block(), railType);
-            newBucket.rails_at_position = this.rails_at_position;
-            if (this.members.isEmpty()) {
-                // Delete the previous bucket, it's unlikely to be used again.
-                this.rail_life = 0;
-            } else {
-                // We can't do this if there are members stored, as those would get out of sync if
-                // we remove the bucket. Put the NONE one as the second bucket to avoid problems.
-                newBucket.next = this;
-            }
-            cache.put(this.offlineBlock(), newBucket);
-            return newBucket;
-        }
-
-        /**
-         * Tries to find a Bucket in this bucket's {@link #next} chain that has the
-         * specified rail type. If not found, appends a new entry at the end for the
-         * rail type requested.<br>
-         * <br>
-         * Important: this bucket's own type is NOT checked!
-         *
-         * @param railType
-         * @return Newly added Bucket
-         */
-        public Bucket findOrAppendToChain(RailType railType) {
-            // Traverse the 'next' chain to find it. If not found, stick a new entry at the end.
-            Bucket current = this;
-            while (true) {
-                Bucket next = current.next;
-                if (next == null) {
-                    Bucket newBucket = new Bucket(this.offlineBlock(), this.block(), railType);
-                    current.next = newBucket;
-                    newBucket.signs = discoverSignsAtRailPiece(newBucket);
-                    return newBucket;
-                } else if (next.type() == railType) {
-                    return next;
-                } else {
-                    current = next;
-                }
-            }
-        }
-
-        /**
-         * Iterates down the chain of {@link #next} entries and removes buckets that
-         * aren't valid anymore according to a valid checker.
-         *
-         * @param validChecker
-         */
-        public void removeInvalidBucketsFromChain(Predicate<Bucket> validChecker) {
-            Bucket curr = this;
-            Bucket next;
-            while ((next = curr.next) != null) {
-                if (validChecker.test(next)) {
-                    curr = next;
-                } else {
-                    next.rail_life = 0;
-                    curr.next = next.next;
-                }
-            }
-        }
-
-        /**
-         * Gets, verifies and/or computes the rails that control this block position.
-         *
-         * @return rails at this block position
-         */
-        public Bucket[] getRailsAtPosition() {
-            if (this.rails_at_position_life >= lifeTimer) {
-                return this.rails_at_position;
-            }
-            this.rails_at_position_life = verifyTimer;
-
-            // Verify still valid, if still valid, return as-is
-            Bucket[] currAtPosition = this.rails_at_position;
-            if (currAtPosition.length == 0) {
-                return computeRailsAtPosition();
-            } else {
-                for (Bucket b : currAtPosition) {
-                    if (!b.verify()) {
-                        return computeRailsAtPosition();
-                    }
-                }
-                return currAtPosition;
-            }
-        }
-
-        private Bucket[] computeRailsAtPosition() {
-            // Query the registered Rail Types for whether they exist at this position
-            OfflineWorld offlineWorld = this.offlineWorld();
-            Block positionBlock = this.block();
-            try (Timings tim = TCTimings.RAILTYPE_FINDRAILINFO.start()) {
-                for (RailType type : RailType.values()) {
-                    try {
-                        List<Block> rails = type.findRails(positionBlock);
-                        if (!rails.isEmpty()) {
-                            // During this we might end up deleting 'ourselves' if the rail type of this bucket is NONE,
-                            // and a rail is found with the same block position as ourselves.
-                            Bucket bucketInCache = this;
-                            RailType bucketInCacheType = bucketInCache.type();
-
-                            // Fill this array with the found buckets
-                            Bucket[] newRailsAtPosition = new Bucket[rails.size()];
-                            int index = 0;
-
-                            for (Block railsBlock : rails) {
-                                if (railsBlock.getX() == positionBlock.getX() &&
-                                    railsBlock.getY() == positionBlock.getY() &&
-                                    railsBlock.getZ() == positionBlock.getZ())
-                                {
-                                    // Rail can be found in the same bucket as we're already in
-                                    if (bucketInCacheType == type) {
-                                        // Self
-                                        newRailsAtPosition[index++] = bucketInCache;
-                                    } else if (bucketInCacheType == RailType.NONE) {
-                                        // Swap it out
-                                        bucketInCache = bucketInCache.swapOutNoneType(type);
-                                        bucketInCacheType = type;
-                                        newRailsAtPosition[index++] = bucketInCache;
-                                    } else {
-                                        // Append to chain, bucket in cache isn't changed
-                                        newRailsAtPosition[index++] = bucketInCache.findOrAppendToChain(type);
-                                    }
-                                }
-                                else
-                                {
-                                    // Need to look it up in the cache. This bucket won't get replaced.
-                                    OfflineBlock railsOfflineBlock = offlineWorld.getBlockAt(railsBlock.getX(), railsBlock.getY(), railsBlock.getZ());
-                                    newRailsAtPosition[index++] = lookupRailBucket(railsOfflineBlock, railsBlock, type);
-                                }
-                            }
-
-                            return bucketInCache.rails_at_position = newRailsAtPosition;
-                        }
-                    } catch (Throwable t) {
-                        RailType.handleCriticalError(type, t);
-                    }
-                }
-            }
-
-            // When no rails are found, the array is the NO_RAILS_AT_POSITION array. This will trigger another
-            // lookup for rails the next tick.
-            return this.rails_at_position = NO_RAILS_AT_POSITION;
-        }
-
-        @Override
-        public boolean verify() {
-            int currLife = this.rail_life;
-            if (currLife >= lifeTimer) {
-                return true; // Accessed multiple times within the cache period
-            }
-            if (currLife == 0) {
-                return false; // Removed from cache, another lookup required
-            }
-
-            // Reset life timer on every access
-            this.rail_life = verifyTimer;
-
-            // Check that the rails type still exists at the position
-            // Will always fail for RailType NONE, if that ever happens
-            if (this.type().isRail(this.block())) {
-                // Verify all signs we computed previously are still there
-                // This is MISSING_RAILS_NO_SIGNS if previously the rails didn't exist
-                TrackedSign[] signs = this.signs;
-                if (signs == MISSING_RAILS_NO_SIGNS) {
-                    this.signs = discoverSignsAtRailPiece(this);
-                } else {
-                    // Check all tracked signs to see if any of them have been removed
-                    // If they change in other ways (update()), re-create the TrackedSign instance
-                    for (int i = 0; i < signs.length; i++) {
-                        TrackedSign sign = signs[i];
-                        if (!sign.tracker.update()) {
-                            continue;
-                        }
-                        if (sign.tracker.isRemoved()) {
-                            // Regenerate, the entire sign is gone, so there's likely more changes
-                            this.signs = discoverSignsAtRailPiece(this);
-                            break;
-                        }
-
-                        // Only re-create the TrackedSign to update the Sign state
-                        try {
-                            this.signs[i] = new TrackedSign(sign.tracker, sign.rail);
-                        } catch (Throwable t) {
-                            this.signs = signs = LogicUtil.removeArrayElement(signs, i);
-                            i--;
-                            break;
-                        }
-                    }
-                }
-
-                // All good!
-                return true;
-            } else {
-                // Clear all signs with a special array that indicates signs couldn't be calculated
-                // If the rail type exists in the future, recalculates the signs properly
-                this.signs = MISSING_RAILS_NO_SIGNS;
-
-                // This sadly will result in another cache lookup, but as it only occurs when rails
-                // go missing, it's not a big problem. We must return false so that during at-position
-                // lookup it will actually recompute.
-                return false;
-            }
-        }
-
-        /**
-         * Called to initialize a new Bucket with the rail pieces that exist at a given
-         * Block position. Is optimized to refer to itself if the rails happen to coincide
-         * with the block position.
-         *
-         * @param positionOfflineBlock
-         * @return List of buckets of rails at this block position
-         */
-        public static Bucket[] discoverAtPositionBlock(OfflineBlock positionOfflineBlock) {
-            // Query the registered Rail Types for whether they exist at this position
-            OfflineWorld offlineWorld = positionOfflineBlock.getWorld();
-            Block positionBlock = positionOfflineBlock.getLoadedBlock();
-            try (Timings tim = TCTimings.RAILTYPE_FINDRAILINFO.start()) {
-                for (RailType type : RailType.values()) {
-                    try {
-                        List<Block> rails = type.findRails(positionBlock);
-                        if (!rails.isEmpty()) {
-                            // During this we might end up deleting 'ourselves' if the rail type of this bucket is NONE,
-                            // and a rail is found with the same block position as ourselves.
-                            Bucket bucketInCache = null;
-
-                            // Fill this array with the found buckets
-                            Bucket[] newRailsAtPosition = new Bucket[rails.size()];
-                            int index = 0;
-
-                            for (Block railsBlock : rails) {
-                                if (railsBlock.getX() == positionBlock.getX() &&
-                                    railsBlock.getY() == positionBlock.getY() &&
-                                    railsBlock.getZ() == positionBlock.getZ())
-                                {
-                                    // As the bucket for this type is being calculated, it's never going to find more
-                                    // than one type here, so this is safe.
-                                    bucketInCache = new Bucket(positionOfflineBlock, positionBlock, type);
-                                    newRailsAtPosition[index++] = bucketInCache;
-                                }
-                                else
-                                {
-                                    // Need to look it up in the cache. This bucket won't get replaced.
-                                    OfflineBlock railsOfflineBlock = offlineWorld.getBlockAt(railsBlock.getX(), railsBlock.getY(), railsBlock.getZ());
-                                    newRailsAtPosition[index++] = lookupRailBucket(railsOfflineBlock, railsBlock, type);
-                                }
-                            }
-
-                            // If block itself isn't a rail then we must initialize it as NONE initially
-                            if (bucketInCache == null) {
-                                bucketInCache = new Bucket(positionOfflineBlock, positionBlock);
-                            }
-
-                            // Put it in the cache
-                            cache.put(positionOfflineBlock, bucketInCache);
-                            bucketInCache.rails_at_position = newRailsAtPosition;
-
-                            // Compute signs now that bucket is registered
-                            bucketInCache.signs = discoverSignsAtRailPiece(bucketInCache);
-
-                            return newRailsAtPosition;
-                        }
-                    } catch (Throwable t) {
-                        RailType.handleCriticalError(type, t);
-                    }
-                }
-            }
-
-            // When no rails are found, the array is the NO_RAILS_AT_POSITION array. This will trigger another
-            // lookup for rails the next tick.
-            // Just put a NONE bucket to represent this
-            cache.put(positionOfflineBlock, new Bucket(positionOfflineBlock, positionBlock));
-            return NO_RAILS_AT_POSITION;
-        }
-    }
-
-    /**
-     * A RailPiece backed by this RailLookup's cache. Stores, besides the rail piece
-     * information itself, the members and signs coupled with the rails.
-     */
-    public static abstract class CachedRailPiece extends RailPiece {
-        /**
-         * List of members occupying this bucket's block, treating the block as
-         * a rail block. Is made immutable with an ArrayList when a member first
-         * uses the rails, is the DEFAULT_MEMBER_LIST otherwise.
-         */
-        protected List<MinecartMember<?>> members;
-        /**
-         * Array of signs activated by this bucket's block, treating the block as
-         * a rail block.
-         */
-        protected TrackedSign[] signs;
-
-        /**
-         * A cached rail piece with no valid information at all. {@link #verify()} will always
-         * return false, so the caller will change this one out with the right one on first use.
-         */
-        public static final CachedRailPiece NONE = new CachedRailPiece() {
-            @Override
-            public boolean verify() {
-                return false;
-            }
-        };
- 
-        private CachedRailPiece() {
-            super();
-            this.members = Collections.unmodifiableList(Collections.emptyList());
-            this.signs = NO_SIGNS;
-        }
-
-        protected CachedRailPiece(OfflineBlock offlineBlock, Block block, RailType type) {
-            super(offlineBlock, block, type);
-            this.cached = this;
-            this.members = DEFAULT_MEMBER_LIST;
-            this.signs = NO_SIGNS;
-        }
-
-        /**
-         * Checks whether these cached contents are still valid and refreshes information
-         * if needed. Returns false if this cached instance is no longer valid, and a new
-         * lookup is required.
-         *
-         * @return True if this information is still valid
-         */
-        public abstract boolean verify();
-
-        /**
-         * Gets a list of cached Minecart Members that occupy these rails.
-         * Only valid if {@link #verify()} is true.
-         *
-         * @return members
-         */
-        public final List<MinecartMember<?>> cachedMembers() {
-            return this.members;
-        }
-
-        /**
-         * Gets a list of cached Minecart Members that occupy these rails.
-         * The returned list is guaranteed to be mutable.
-         * Only valid if {@link #verify()} is true.
-         *
-         * @return members
-         */
-        public final List<MinecartMember<?>> cachedMutableMembers() {
-            List<MinecartMember<?>> result = this.members;
-            if (result == DEFAULT_MEMBER_LIST) {
-                this.members = result = new ArrayList<MinecartMember<?>>(2);
-            }
-            return result;
-        }
-
-        /**
-         * Gets an array of cached tracked signs that are activated when trains drive
-         * over these rails.
-         * Only valid if {@link #verify()} is true.
-         *
-         * @return signs
-         */
-        public final TrackedSign[] cachedSigns() {
-            return this.signs;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return o == this; // Used when removing a value, we don't want normal equals there
-        }
-    }
-
-    /**
-     * List cache used when generating the array of tracked signs
-     */
-    private static final class TrackedSignList implements AutoCloseable {
-        private final List<TrackedSign> signs = new ArrayList<>();
-        private RailPiece rail = null;
-
-        public TrackedSignList start(RailPiece rail) {
-            if (this.rail == null) {
-                this.rail = rail;
-                return this;
-            } else {
-                // Already opened, create a new one to prevent corruption
-                TrackedSignList copy = new TrackedSignList();
-                copy.rail = rail;
-                return copy;
-            }
-        }
-
-        @Override
-        public void close() {
-            this.signs.clear();
-            this.rail = null;
-        }
-
-        public void add(Block signBlock) {
-            SignChangeTrackerWrap tracker = SignChangeTrackerWrap.track(signBlock);
-            if (!tracker.isRemoved()) {
-                try {
-                    this.signs.add(new TrackedSign(tracker, this.rail));
-                } catch (Throwable t) {
-                    TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to load sign at " + signBlock, t);
-                }
-            }
-        }
-
-        public TrackedSign[] build() {
-            List<TrackedSign> signs = this.signs;
-            return signs.isEmpty() ? NO_SIGNS : signs.toArray(new TrackedSign[signs.size()]);
-        }
-    }
-
-    /**
-     * A single sign that is tracked
-     */
-    public static class TrackedSign {
-        private final SignChangeTrackerWrap tracker;
-        public final Sign sign;
-        public final Block signBlock;
-        public final RailPiece rail;
-        /** @deprecated Is now part of {@link #rail} */
-        @Deprecated
-        public final RailType railType;
-        /** @deprecated Is now part of {@link #rail} */
-        @Deprecated
-        public final Block railBlock;
-        public final SignAction action;
-
-        public TrackedSign(Block signBlock, RailPiece rail) {
-            this(SignChangeTrackerWrap.track(signBlock), rail);
-        }
-
-        private TrackedSign(SignChangeTrackerWrap tracker, RailPiece rail) {
-            if (tracker.isRemoved()) {
-                throw new IllegalArgumentException("There is no sign at " + tracker.getBlock());
-            }
-
-            // Canned assignment stuff
-            this.tracker = tracker;
-            this.sign = tracker.getSign();
-            this.signBlock = tracker.getBlock();
-            this.rail = rail;
-            this.railType = rail.type();
-            this.railBlock = rail.block();
-            this.action = SignAction.getSignAction(createEvent(SignActionType.NONE));
-        }
-
-        /**
-         * Verifies that this tracked sign is really still there on the server
-         *
-         * @return True if the sign is there
-         */
-        public boolean verify() {
-            return BlockUtil.ISSIGN.get(signBlock);
-        }
-
-        /**
-         * Initializes a new SignActionEvent using this tracked sign for sign and rail information
-         *
-         * @param action Sign action event type
-         * @return new SignActionEvent
-         */
-        public SignActionEvent createEvent(SignActionType action) {
-            return (new SignActionEvent(this.signBlock, this.sign, this.rail)).setAction(action);
-        }
-
-        /**
-         * Executes a {@link SignActionEvent} with the given action type, for a MinecartMember.
-         * If the member is unloaded or dead, the event is not fired.
-         *
-         * @param action Action to execute
-         * @param member Member involved in the event
-         * @see #createEvent(SignActionType)
-         */
-        public void executeEventForMember(SignActionType action, MinecartMember<?> member) {
-            if (member.isInteractable()) {
-                SignActionEvent event = createEvent(action);
-                event.setMember(member);
-                SignAction.executeOne(this.action, event);
-            }
-        }
-
-        /**
-         * Executes a {@link SignActionEvent} with the given action type, for a MinecartGroup.
-         * If the group is unloaded, the event is not fired.
-         *
-         * @param action Action to execute
-         * @param group Group involved in the event
-         * @see #createEvent(SignActionType)
-         */
-        public void executeEventForGroup(SignActionType action, MinecartGroup group) {
-            if (!group.isUnloaded()) {
-                SignActionEvent event = createEvent(action);
-                event.setGroup(group);
-                SignAction.executeOne(this.action, event);
-            }
-        }
-
-        /**
-         * Checks whether the captured state of this tracked sign has the same
-         * sign text as another.
-         *
-         * @param other TrackedSign to compare against
-         * @return True if the text of the two signs are identical
-         */
-        public boolean hasIdenticalText(TrackedSign other) {
-            return Arrays.equals(this.sign.getLines(), other.sign.getLines());
-        }
-
-        @Override
-        public int hashCode() {
-            return this.signBlock.hashCode();
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return ((TrackedSign) o).signBlock.equals(this.signBlock);
-        }
     }
 
     /**
@@ -962,12 +245,12 @@ public final class RailLookup {
     public static TrackedSign[] discoverSignsAtRailPiece(RailPiece rail) {
         Block columnStart = rail.type().getSignColumnStart(rail.block());
         if (columnStart == null) {
-            return NO_SIGNS;
+            return RailLookup.NO_SIGNS;
         }
 
         BlockFace direction = rail.type().getSignColumnDirection(rail.block());
         if (direction == null || direction == BlockFace.SELF) {
-            return NO_SIGNS;
+            return RailLookup.NO_SIGNS;
         }
 
         try (TrackedSignList cache = SIGN_LIST_CACHE.start(rail)) {
@@ -1062,6 +345,248 @@ public final class RailLookup {
 
             // Pack result into a TrackedSign array
             return cache.build();
+        }
+    }
+
+    /**
+     * A RailPiece backed by this RailLookup's cache. Stores, besides the rail piece
+     * information itself, the members and signs coupled with the rails.
+     */
+    public static abstract class CachedRailPiece extends RailPiece {
+        /**
+         * List of members occupying this bucket's block, treating the block as
+         * a rail block. Is made immutable with an ArrayList when a member first
+         * uses the rails, is the DEFAULT_MEMBER_LIST otherwise.
+         */
+        protected List<MinecartMember<?>> members;
+        /**
+         * Array of signs activated by this bucket's block, treating the block as
+         * a rail block.
+         */
+        protected TrackedSign[] signs;
+
+        /**
+         * A cached rail piece with no valid information at all. {@link #verify()} will always
+         * return false, so the caller will change this one out with the right one on first use.
+         */
+        public static final CachedRailPiece NONE = new CachedRailPiece() {
+            @Override
+            public boolean verify() {
+                return false;
+            }
+        };
+ 
+        private CachedRailPiece() {
+            super();
+            this.members = Collections.unmodifiableList(Collections.emptyList());
+            this.signs = NO_SIGNS;
+        }
+
+        protected CachedRailPiece(WorldRailLookup railLookup, OfflineBlock offlineBlock, Block block, RailType type) {
+            super(railLookup, offlineBlock, block, type);
+            this.cached = this;
+            this.members = DEFAULT_MEMBER_LIST;
+            this.signs = NO_SIGNS;
+        }
+
+        /**
+         * Checks whether these cached contents are still valid and refreshes information
+         * if needed. Returns false if this cached instance is no longer valid, and a new
+         * lookup is required.
+         *
+         * @return True if this information is still valid
+         */
+        public abstract boolean verify();
+
+        /**
+         * Gets a list of cached Minecart Members that occupy these rails.
+         * Only valid if {@link #verify()} is true.
+         *
+         * @return members
+         */
+        public final List<MinecartMember<?>> cachedMembers() {
+            return this.members;
+        }
+
+        /**
+         * Gets a list of cached Minecart Members that occupy these rails.
+         * The returned list is guaranteed to be mutable.
+         * Only valid if {@link #verify()} is true.
+         *
+         * @return members
+         */
+        public final List<MinecartMember<?>> cachedMutableMembers() {
+            List<MinecartMember<?>> result = this.members;
+            if (result == DEFAULT_MEMBER_LIST) {
+                this.members = result = new ArrayList<MinecartMember<?>>(2);
+            }
+            return result;
+        }
+
+        /**
+         * Gets an array of cached tracked signs that are activated when trains drive
+         * over these rails.
+         * Only valid if {@link #verify()} is true.
+         *
+         * @return signs
+         */
+        public final TrackedSign[] cachedSigns() {
+            return this.signs;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return o == this; // Used when removing a value, we don't want normal equals there
+        }
+    }
+
+    /**
+     * A single sign that is tracked
+     */
+    public static class TrackedSign {
+        final SignChangeTrackerWrap tracker;
+        public final Sign sign;
+        public final Block signBlock;
+        public final RailPiece rail;
+        /** @deprecated Is now part of {@link #rail} */
+        @Deprecated
+        public final RailType railType;
+        /** @deprecated Is now part of {@link #rail} */
+        @Deprecated
+        public final Block railBlock;
+        public final SignAction action;
+
+        public TrackedSign(Block signBlock, RailPiece rail) {
+            this(SignChangeTrackerWrap.track(signBlock), rail);
+        }
+
+        TrackedSign(SignChangeTrackerWrap tracker, RailPiece rail) {
+            if (tracker.isRemoved()) {
+                throw new IllegalArgumentException("There is no sign at " + tracker.getBlock());
+            }
+
+            // Canned assignment stuff
+            this.tracker = tracker;
+            this.sign = tracker.getSign();
+            this.signBlock = tracker.getBlock();
+            this.rail = rail;
+            this.railType = rail.type();
+            this.railBlock = rail.block();
+            this.action = SignAction.getSignAction(createEvent(SignActionType.NONE));
+        }
+
+        /**
+         * Verifies that this tracked sign is really still there on the server
+         *
+         * @return True if the sign is there
+         */
+        public boolean verify() {
+            return BlockUtil.ISSIGN.get(signBlock);
+        }
+
+        /**
+         * Initializes a new SignActionEvent using this tracked sign for sign and rail information
+         *
+         * @param action Sign action event type
+         * @return new SignActionEvent
+         */
+        public SignActionEvent createEvent(SignActionType action) {
+            return (new SignActionEvent(this.signBlock, this.sign, this.rail)).setAction(action);
+        }
+
+        /**
+         * Executes a {@link SignActionEvent} with the given action type, for a MinecartMember.
+         * If the member is unloaded or dead, the event is not fired.
+         *
+         * @param action Action to execute
+         * @param member Member involved in the event
+         * @see #createEvent(SignActionType)
+         */
+        public void executeEventForMember(SignActionType action, MinecartMember<?> member) {
+            if (member.isInteractable()) {
+                SignActionEvent event = createEvent(action);
+                event.setMember(member);
+                SignAction.executeOne(this.action, event);
+            }
+        }
+
+        /**
+         * Executes a {@link SignActionEvent} with the given action type, for a MinecartGroup.
+         * If the group is unloaded, the event is not fired.
+         *
+         * @param action Action to execute
+         * @param group Group involved in the event
+         * @see #createEvent(SignActionType)
+         */
+        public void executeEventForGroup(SignActionType action, MinecartGroup group) {
+            if (!group.isUnloaded()) {
+                SignActionEvent event = createEvent(action);
+                event.setGroup(group);
+                SignAction.executeOne(this.action, event);
+            }
+        }
+
+        /**
+         * Checks whether the captured state of this tracked sign has the same
+         * sign text as another.
+         *
+         * @param other TrackedSign to compare against
+         * @return True if the text of the two signs are identical
+         */
+        public boolean hasIdenticalText(TrackedSign other) {
+            return Arrays.equals(this.sign.getLines(), other.sign.getLines());
+        }
+
+        @Override
+        public int hashCode() {
+            return this.signBlock.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return ((TrackedSign) o).signBlock.equals(this.signBlock);
+        }
+    }
+
+    /**
+     * List cache used when generating the array of tracked signs
+     */
+    private static final class TrackedSignList implements AutoCloseable {
+        private final List<TrackedSign> signs = new ArrayList<>();
+        private RailPiece rail = null;
+
+        public TrackedSignList start(RailPiece rail) {
+            if (this.rail == null) {
+                this.rail = rail;
+                return this;
+            } else {
+                // Already opened, create a new one to prevent corruption
+                TrackedSignList copy = new TrackedSignList();
+                copy.rail = rail;
+                return copy;
+            }
+        }
+
+        @Override
+        public void close() {
+            this.signs.clear();
+            this.rail = null;
+        }
+
+        public void add(Block signBlock) {
+            SignChangeTrackerWrap tracker = SignChangeTrackerWrap.track(signBlock);
+            if (!tracker.isRemoved()) {
+                try {
+                    this.signs.add(new TrackedSign(tracker, this.rail));
+                } catch (Throwable t) {
+                    TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to load sign at " + signBlock, t);
+                }
+            }
+        }
+
+        public TrackedSign[] build() {
+            List<TrackedSign> signs = this.signs;
+            return signs.isEmpty() ? RailLookup.NO_SIGNS : signs.toArray(new TrackedSign[signs.size()]);
         }
     }
 

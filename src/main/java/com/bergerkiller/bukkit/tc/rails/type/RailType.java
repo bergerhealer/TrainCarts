@@ -1,12 +1,10 @@
 package com.bergerkiller.bukkit.tc.rails.type;
 
-import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.cache.RailPieceCache;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailAABB;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
@@ -191,11 +189,10 @@ public abstract class RailType {
         state.initEnterDirection();
         state.position().assertAbsolute();
 
-        final OfflineBlock positionOfflineBlock = state.positionOfflineBlock();
-        final RailPiece[] cachedPieces = RailLookup.findAtBlockPosition(positionOfflineBlock);
+        final RailPiece[] cachedPieces = state.railLookup().findAtStatePosition(state);
         if (cachedPieces.length == 0) {
             state.setRailPiece(RailPiece.create(RailType.NONE,
-                    positionOfflineBlock.getLoadedBlock(), positionOfflineBlock.getWorld()));
+                    state.positionBlock(), state.railLookup()));
             return false;
         }
 
