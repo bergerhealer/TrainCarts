@@ -1,10 +1,11 @@
 package com.bergerkiller.bukkit.tc.rails;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
+import java.util.ListIterator;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 
@@ -17,6 +18,7 @@ import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -56,19 +58,22 @@ public class WorldRailLookup {
     // Per-world data
     private final World world;
     private final OfflineWorld offlineWorld;
-    private final HashMap<IntVector3, Bucket> cache;
+    private final LongHashMap<Bucket> cache;
+    private final ArrayList<Bucket> cacheValues;
 
     // None
     private WorldRailLookup() {
         this.offlineWorld = OfflineWorld.NONE;
         this.world = null;
         this.cache = null; // Should never be used
+        this.cacheValues = null; // Should never be used
     }
 
     WorldRailLookup(World world) {
         this.offlineWorld = OfflineWorld.of(world);
         this.world = world;
-        this.cache = new HashMap<>();
+        this.cache = new LongHashMap<>();
+        this.cacheValues = new ArrayList<>();
     }
 
     /**
@@ -126,7 +131,7 @@ public class WorldRailLookup {
 
         // If already in the cache, compute/return it right-away
         // During computation the original bucket may get deleted (if rail type was NONE)
-        IntVector3 cacheKey = createCacheKey(coordinates);
+        long cacheKey = createCacheKey(coordinates);
         Bucket inCache = cache.get(cacheKey);
         if (inCache != null) {
             return inCache.getRailsAtPosition();
@@ -151,7 +156,7 @@ public class WorldRailLookup {
     public RailPiece[] findAtBlockPosition(OfflineBlock positionBlock) {
         // If already in the cache, compute/return it right-away
         // During computation the original bucket may get deleted (if rail type was NONE)
-        IntVector3 cacheKey = createCacheKey(positionBlock);
+        long cacheKey = createCacheKey(positionBlock);
         Bucket inCache = cache.get(cacheKey);
         if (inCache != null) {
             return inCache.getRailsAtPosition();
@@ -188,11 +193,11 @@ public class WorldRailLookup {
                                     final RailType railType
     ) {
         // First try to find it in the cache, and if none exists, initialize a new one.
-        IntVector3 cacheKey = createCacheKey(railOfflineBlock);
+        long cacheKey = createCacheKey(railOfflineBlock);
         Bucket inCache = cache.get(cacheKey);
         if (inCache == null) {
             inCache = new Bucket(railOfflineBlock, railBlock, railType);
-            cache.put(cacheKey, inCache);
+            addToCache(cacheKey, inCache);
             inCache.signs = RailLookup.discoverSignsAtRailPiece(inCache);
             return inCache; // We know railType matches - we just initialized it!
         }
@@ -252,12 +257,31 @@ public class WorldRailLookup {
      * particular rails. If that's a problem, use {@link #forceRecalculation()} instead.
      */
     void clear() {
-        for (Bucket bucket : cache.values()) {
+        forAllBuckets(b -> b.rail_life = 0);
+        cache.clear();
+        cacheValues.clear();
+    }
+
+    /**
+     * Removes a particular member from all member lists of cached rail positions
+     *
+     * @param member
+     */
+    public void removeMemberFromAll(MinecartMember<?> member) {
+        forAllBuckets(b -> {
+            List<MinecartMember<?>> members = b.members;
+            if (!members.isEmpty()) {
+                members.remove(member);
+            }
+        });
+    }
+
+    private void forAllBuckets(Consumer<Bucket> callback) {
+        for (Bucket bucket : cacheValues) {
             for (Bucket next = bucket; next != null; next = next.next) {
-                next.rail_life = 0;
+                callback.accept(next);
             }
         }
-        cache.clear();
     }
 
     /**
@@ -277,46 +301,32 @@ public class WorldRailLookup {
         });
     }
 
-    /**
-     * Removes a particular member from all member lists of cached rail positions
-     *
-     * @param member
-     */
-    public void removeMemberFromAll(MinecartMember<?> member) {
-        for (Bucket bucket : cache.values()) {
-            for (Bucket next = bucket; next != null; next = next.next) {
-                List<MinecartMember<?>> members = next.members;
-                if (!members.isEmpty()) {
-                    members.remove(member);
-                }
-            }
-        }
-    }
-
     void update(int deadTimeout) {
         refreshBuckets(b -> b.checkStillValid(deadTimeout));
     }
 
     private void refreshBuckets(Predicate<Bucket> validChecker) {
-        Iterator<Map.Entry<IntVector3, Bucket>> iter = cache.entrySet().iterator();
-        while (iter.hasNext()) {
-            Map.Entry<IntVector3, Bucket> e = iter.next();
-            Bucket bucket = e.getValue();
+        for (ListIterator<Bucket> iter = cacheValues.listIterator(); iter.hasNext();) {
+            Bucket bucket = iter.next();
             if (validChecker.test(bucket)) {
                 // Only remove invalid buckets from the next chain
                 bucket.removeInvalidBucketsFromChain(validChecker);
             } else {
                 // If bucket has a next value, put that one in instead. Remove if all dead.
+                long cacheKey = createCacheKey(bucket.blockPosition());
                 while (true) {
                     bucket.rail_life = 0;
                     bucket = bucket.next;
                     if (bucket == null) {
-                        iter.remove(); // No more buckets, remove entirely
+                        // No more buckets, remove entirely
+                        iter.remove();
+                        cache.remove(cacheKey);
                         break;
                     } else if (validChecker.test(bucket)) {
                         // Set this one, instead. Do remove further next entries that aren't valid
                         bucket.removeInvalidBucketsFromChain(validChecker);
-                        e.setValue(bucket);
+                        iter.set(bucket);
+                        cache.put(cacheKey, bucket);
                         break;
                     }
                 }
@@ -327,13 +337,15 @@ public class WorldRailLookup {
     /**
      * Called to initialize a new Bucket with the rail pieces that exist at a given
      * Block position. Is optimized to refer to itself if the rails happen to coincide
-     * with the block position.
+     * with the block position.<br>
+     * <br>
+     * Only ever called if no bucket exists in cache yet.
      *
      * @param cacheKey Key to address the {@link #cache}
      * @param positionOfflineBlock
      * @return List of buckets of rails at this block position
      */
-    private Bucket[] discoverBucketsAtPositionBlock(IntVector3 cacheKey, OfflineBlock positionOfflineBlock) {
+    private Bucket[] discoverBucketsAtPositionBlock(long cacheKey, OfflineBlock positionOfflineBlock) {
         // Query the registered Rail Types for whether they exist at this position
         Block positionBlock = positionOfflineBlock.getLoadedBlock();
         try (Timings tim = TCTimings.RAILTYPE_FINDRAILINFO.start()) {
@@ -373,7 +385,7 @@ public class WorldRailLookup {
                         }
 
                         // Put it in the cache
-                        cache.put(cacheKey, bucketInCache);
+                        addToCache(cacheKey, bucketInCache);
                         bucketInCache.rails_at_position = newRailsAtPosition;
 
                         // Compute signs now that bucket is registered
@@ -390,8 +402,13 @@ public class WorldRailLookup {
         // When no rails are found, the array is the NO_RAILS_AT_POSITION array. This will trigger another
         // lookup for rails the next tick.
         // Just put a NONE bucket to represent this
-        cache.put(cacheKey, new Bucket(positionOfflineBlock, positionBlock));
+        addToCache(cacheKey, new Bucket(positionOfflineBlock, positionBlock));
         return NO_RAILS_AT_POSITION;
+    }
+
+    private void addToCache(long cacheKey, Bucket bucket) {
+        cache.put(cacheKey, bucket);
+        cacheValues.add(bucket);
     }
 
     /**
@@ -400,8 +417,8 @@ public class WorldRailLookup {
      * @param block Offline Block
      * @return Cache lookup key
      */
-    private static IntVector3 createCacheKey(OfflineBlock block) {
-        return block.getPosition();
+    private static long createCacheKey(OfflineBlock block) {
+        return asLong(block.getX(), block.getY(), block.getZ());
     }
 
     /**
@@ -410,8 +427,33 @@ public class WorldRailLookup {
      * @param coordinates Block Coordinates
      * @return Cache lookup key
      */
-    private static IntVector3 createCacheKey(IntVector3 coordinates) {
-        return coordinates;
+    private static long createCacheKey(IntVector3 coordinates) {
+        return asLong(coordinates.x, coordinates.y, coordinates.z);
+    }
+
+    // From Minecraft MathHelper / BlockPosition
+    //private static final int PACKED_X_LENGTH = 1 + MathHelper.log2(MathHelper.smallestEncompassingPowerOfTwo(30000000));
+    private static final int PACKED_X_LENGTH = 26;
+    private static final int PACKED_Z_LENGTH = PACKED_X_LENGTH;
+    private static final int PACKED_Y_LENGTH = 64 - PACKED_X_LENGTH - PACKED_Z_LENGTH;
+    private static final long PACKED_X_MASK = (1L << PACKED_X_LENGTH) - 1L;
+    private static final long PACKED_Y_MASK = (1L << PACKED_Y_LENGTH) - 1L;
+    private static final long PACKED_Z_MASK = (1L << PACKED_Z_LENGTH) - 1L;
+    private static final int Y_OFFSET = 0;
+    private static final int Z_OFFSET = PACKED_Y_LENGTH;
+    private static final int X_OFFSET = PACKED_Y_LENGTH + PACKED_Z_LENGTH;
+
+    // Note: negative y is fine, it just becomes near to 4096 because of the mask
+    //       be aware that a world height higher than 4096 isn't properly supported
+    //       it might work, but if two rails exist at clashing coordinates,
+    //       bad stuff will happen.
+    private static long asLong(int x, int y, int z) {
+        long l = 0L;
+
+        l |= ((long) x & PACKED_X_MASK) << X_OFFSET;
+        l |= ((long) y & PACKED_Y_MASK) << Y_OFFSET;
+        l |= ((long) z & PACKED_Z_MASK) << Z_OFFSET;
+        return l;
     }
 
     /**
@@ -524,7 +566,23 @@ public class WorldRailLookup {
                 // we remove the bucket. Put the NONE one as the second bucket to avoid problems.
                 newBucket.next = this;
             }
-            cache.put(createCacheKey(this.offlineBlock()), newBucket);
+
+            // Replace or add to cache values mapping
+            {
+                boolean found = false;
+                for (ListIterator<Bucket> iter = cacheValues.listIterator(); iter.hasNext();) {
+                    if (iter.next() == this) {
+                        iter.set(newBucket);
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    cacheValues.add(newBucket);
+                }
+            }
+            cache.put(createCacheKey(newBucket.blockPosition()), newBucket);
+
             return newBucket;
         }
 
