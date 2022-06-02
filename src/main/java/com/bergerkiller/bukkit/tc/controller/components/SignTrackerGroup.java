@@ -254,7 +254,7 @@ public class SignTrackerGroup extends SignTracker {
 
                 // Detect new detector regions on the rails, add to member detector regions, and own detector regions list
                 for (TrackedRail rail : rails) {
-                    for (DetectorRegion region : DetectorRegion.getRegions(rail.state.railBlock())) {
+                    for (DetectorRegion region : rail.state.railPiece().detectorRegions()) {
                         rail.member.getSignTracker().addToDetectorRegion(region);
                     }
                 }

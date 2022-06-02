@@ -399,6 +399,11 @@ public class TrainCarts extends PluginBase {
         // Load all chunks right now. This does not yet load the entities inside.
         chunks.values().stream().flatMap(list -> list.stream()).forEachOrdered(chunk -> {
             try {
+                // Ensure that for all chunks to be loaded, the by-world lookup cache is prepared
+                // This initializes stuff like detector regions earlier on, avoiding trouble
+                RailLookup.forWorld(chunk.getWorld());
+
+                // Load the chunk finally, which on older MC versions might trigger trains to initialize
                 chunk.getChunk();
             } catch (Throwable t) {
                 getLogger().log(Level.SEVERE, "Failed to load chunk " + chunk.getWorld().getName()

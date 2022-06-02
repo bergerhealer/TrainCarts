@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.rails.WorldRailLookup;
@@ -194,6 +195,15 @@ public class RailPiece {
         }
     }
 
+    private RailLookup.CachedRailPiece accessCacheExists() {
+        RailLookup.CachedRailPiece cached = this.cached;
+        if (cached.verifyExists()) {
+            return cached;
+        } else {
+            return this.cached = this.railLookup.lookupCachedRailPiece(this.offlineBlock, this.block, this.type);
+        }
+    }
+
     /**
      * Retrieves an array of all signs active for this rail
      * 
@@ -201,6 +211,15 @@ public class RailPiece {
      */
     public TrackedSign[] signs() {
         return accessCache().cachedSigns();
+    }
+
+    /**
+     * Retrieves an array of all detector regions active for this rail
+     *
+     * @return array of detector regions
+     */
+    public DetectorRegion[] detectorRegions() {
+        return accessCacheExists().cachedDetectorRegions();
     }
 
     /**

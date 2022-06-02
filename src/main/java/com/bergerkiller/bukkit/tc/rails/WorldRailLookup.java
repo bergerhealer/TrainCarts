@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
@@ -25,6 +26,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
+import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 
@@ -56,8 +58,8 @@ public class WorldRailLookup {
     private static final Bucket[] NO_RAILS_AT_POSITION = new Bucket[0];
 
     // Per-world data
-    private final World world;
-    private final OfflineWorld offlineWorld;
+    private World world;
+    private OfflineWorld offlineWorld;
     private final LongHashMap<Bucket> cache;
     private final ArrayList<Bucket> cacheValues;
 
@@ -101,7 +103,40 @@ public class WorldRailLookup {
      * @return True if still valid
      */
     public boolean isValid() {
-        return this.offlineWorld.getLoadedWorld() == this.world;
+        return this.world != null;
+    }
+
+    /**
+     * Checks whether this world rail lookup can be removed. This is the case when the world has
+     * unloaded, or the cache is empty.
+     *
+     * @return True if this by-world rail lookup can be removed safely
+     */
+    boolean checkCanBeRemoved() {
+        return this.offlineWorld.getLoadedWorld() != this.world || this.cacheValues.isEmpty();
+    }
+
+    /**
+     * Completely clears the cache. Be very aware that this will cause some information to go
+     * out of sync, if information is still stored, such as the Minecart Members that are on
+     * particular rails. If that's a problem, use {@link #forceRecalculation()} instead.<Br>
+     * <br>
+     * Should be called when this by-world lookup is deleted and shouldn't be used, anymore.
+     */
+    void remove() {
+        forAllBuckets(b -> b.rail_life = RailLookup.LIFE_TIMER_DELETED);
+        cache.clear();
+        cacheValues.clear();
+        world = null;
+        offlineWorld = OfflineWorld.NONE;
+    }
+
+    /**
+     * Orders initialization of this lookup cache. Information mapped to blocks should be
+     * stored into the cache at this point.
+     */
+    void initialize() {
+        DetectorRegion.fillRailLookup(this);
     }
 
     /**
@@ -252,17 +287,6 @@ public class WorldRailLookup {
     }
 
     /**
-     * Completely clears the cache. Be very aware that this will cause some information to go
-     * out of sync, if information is still stored, such as the Minecart Members that are on
-     * particular rails. If that's a problem, use {@link #forceRecalculation()} instead.
-     */
-    void clear() {
-        forAllBuckets(b -> b.rail_life = 0);
-        cache.clear();
-        cacheValues.clear();
-    }
-
-    /**
      * Removes a particular member from all member lists of cached rail positions
      *
      * @param member
@@ -289,15 +313,14 @@ public class WorldRailLookup {
      */
     void refreshAllBuckets() {
         // Force all positions to re-discover the rails that are there
-        // Delete buckets from memory that have no members on it
+        // Delete all buckets from memory that we can get away with
         refreshBuckets(bucket -> {
             // Delete this at all times
             bucket.rail_life = RailLookup.LIFE_TIMER_START;
-            bucket.rails_at_position_life = 0;
+            bucket.rails_at_position_life = RailLookup.LIFE_TIMER_DELETED;
             bucket.rails_at_position = NO_RAILS_AT_POSITION;
             bucket.signs = RailLookup.MISSING_RAILS_NO_SIGNS;
-            // Remove bucket if there's no members on the rails
-            return !bucket.members.isEmpty();
+            return false;
         });
     }
 
@@ -308,21 +331,21 @@ public class WorldRailLookup {
     private void refreshBuckets(Predicate<Bucket> validChecker) {
         for (ListIterator<Bucket> iter = cacheValues.listIterator(); iter.hasNext();) {
             Bucket bucket = iter.next();
-            if (validChecker.test(bucket)) {
+            if (validChecker.test(bucket) || !bucket.canBePurged(bucket.next == null)) {
                 // Only remove invalid buckets from the next chain
                 bucket.removeInvalidBucketsFromChain(validChecker);
             } else {
                 // If bucket has a next value, put that one in instead. Remove if all dead.
                 long cacheKey = createCacheKey(bucket.blockPosition());
                 while (true) {
-                    bucket.rail_life = 0;
+                    bucket.rail_life = RailLookup.LIFE_TIMER_DELETED;
                     bucket = bucket.next;
                     if (bucket == null) {
                         // No more buckets, remove entirely
                         iter.remove();
                         cache.remove(cacheKey);
                         break;
-                    } else if (validChecker.test(bucket)) {
+                    } else if (validChecker.test(bucket) || !bucket.canBePurged(true)) {
                         // Set this one, instead. Do remove further next entries that aren't valid
                         bucket.removeInvalidBucketsFromChain(validChecker);
                         iter.set(bucket);
@@ -332,6 +355,50 @@ public class WorldRailLookup {
                 }
             }
         }
+    }
+
+    /**
+     * Sets/stores the Detector Regions that should be activated at particular rail block
+     * coordinates.
+     *
+     * @param coordinates Rail Block coordinates
+     * @param regions Detector Regions to be activated. Null stores none.
+     */
+    public void storeDetectorRegions(IntVector3 coordinates, DetectorRegion[] regions) {
+        for (Bucket b = getOrCreateAtCoordinates(coordinates); b != null; b = b.next) {
+            b.detectorRegions = (regions == null || regions.length == 0) ? RailLookup.NO_DETECTOR_REGIONS : regions;
+        }
+    }
+
+    /**
+     * Gets the Detector Regions that are activated at particular rail block coordinates
+     *
+     * @param coordinates Rail Block coordinates
+     * @return Detector Regions at these coordinates
+     */
+    public DetectorRegion[] getDetectorRegions(IntVector3 coordinates) {
+        Bucket bucket = this.cache.get(createCacheKey(coordinates));
+        return (bucket == null) ? RailLookup.NO_DETECTOR_REGIONS : bucket.detectorRegions;
+    }
+
+    /**
+     * Gets or creates a Bucket for storing metadata at particular Block coordinates.
+     * Does not perform any Block access (finding rail type / signs / etc.) if no such bucket
+     * exists yet, as it's meant to be fast.
+     *
+     * @param coordinates Block coordinates
+     * @return Bucket
+     */
+    private Bucket getOrCreateAtCoordinates(IntVector3 coordinates) {
+        long cacheKey = createCacheKey(coordinates);
+        Bucket bucket = this.cache.get(cacheKey);
+        if (bucket == null) {
+            bucket = new Bucket(this.offlineWorld.getBlockAt(coordinates),
+                                 BlockUtil.getBlock(this.world, coordinates));
+            this.cache.put(cacheKey, bucket);
+            this.cacheValues.add(bucket);
+        }
+        return bucket;
     }
 
     /**
@@ -525,27 +592,44 @@ public class WorldRailLookup {
                 return true;
             }
 
-            // Check members
-            boolean valid;
+            // Purge members that have unloaded, to allow for this bucket to be cleaned up properly
+            // Ideally this can be removed entirely, if the member is always cleaned up...
             List<MinecartMember<?>> members = this.members;
-            if (members.isEmpty()) {
-                valid = false; // Not accessed and no members, remove from cache
-                return false; // Not accessed and no members, remove from cache
-            } else {
-                // Purge unloaded members, if any
-                valid = true;
+            if (!members.isEmpty()) {
                 Iterator<MinecartMember<?>> iter = members.iterator();
                 while (iter.hasNext()) {
                     MinecartMember<?> member = iter.next();
                     if (member.isUnloaded()) {
                         iter.remove();
-                        valid = !members.isEmpty();
                         TrainCarts.plugin.log(Level.WARNING, "Purged unloaded minecart from rail cache at " +
                                     offlineBlock().getPosition());
                     }
                 }
             }
-            return valid;
+
+            // Not valid
+            return false;
+        }
+
+        /**
+         * Checks whether it is safe to delete this Bucket without causing a loss of data/state
+         *
+         * @param isOnlyBucketAtBlock Whether this is the last Bucket remaining that is mapped to
+         *                            particular Rail Block coordinates
+         * @return True if this Bucket can be purged from the cache
+         */
+        private boolean canBePurged(boolean isOnlyBucketAtBlock) {
+            // Members must remain cached
+            if (!this.members.isEmpty()) {
+                return false;
+            }
+
+            // At least one bucket at the Block must exist that preserves the detector regions
+            if (isOnlyBucketAtBlock && this.detectorRegions != RailLookup.NO_DETECTOR_REGIONS) {
+                return false;
+            }
+
+            return true;
         }
 
         /**
@@ -556,7 +640,7 @@ public class WorldRailLookup {
          * @return Newly added Bucket
          */
         public Bucket swapOutNoneType(RailType railType) {
-            Bucket newBucket = new Bucket(this.offlineBlock(), this.block(), railType);
+            Bucket newBucket = this.cloneAsType(railType);
             newBucket.rails_at_position = this.rails_at_position;
             if (this.members.isEmpty()) {
                 // Delete the previous bucket, it's unlikely to be used again.
@@ -602,7 +686,7 @@ public class WorldRailLookup {
             while (true) {
                 Bucket next = current.next;
                 if (next == null) {
-                    Bucket newBucket = new Bucket(this.offlineBlock(), this.block(), railType);
+                    Bucket newBucket = current.cloneAsType(railType);
                     current.next = newBucket;
                     newBucket.signs = RailLookup.discoverSignsAtRailPiece(newBucket);
                     return newBucket;
@@ -624,7 +708,7 @@ public class WorldRailLookup {
             Bucket curr = this;
             Bucket next;
             while ((next = curr.next) != null) {
-                if (validChecker.test(next)) {
+                if (validChecker.test(next) || !next.canBePurged(false)) {
                     curr = next;
                 } else {
                     next.rail_life = 0;
@@ -656,6 +740,19 @@ public class WorldRailLookup {
                 }
                 return currAtPosition;
             }
+        }
+
+        /**
+         * Clones this Bucket as a new RailType, preserving information that must be shared
+         * by all buckets for a particular rail block, like detector regions.
+         *
+         * @param railType
+         * @return New Bucket
+         */
+        private Bucket cloneAsType(RailType railType) {
+            Bucket newBucket = new Bucket(this.offlineBlock(), this.block(), railType);
+            newBucket.detectorRegions = this.detectorRegions;
+            return newBucket;
         }
 
         private Bucket[] computeRailsAtPosition() {
@@ -722,7 +819,7 @@ public class WorldRailLookup {
             if (currLife >= RailLookup.lifeTimer) {
                 return true; // Accessed multiple times within the cache period
             }
-            if (currLife == 0) {
+            if (currLife == RailLookup.LIFE_TIMER_DELETED) {
                 return false; // Removed from cache, another lookup required
             }
 
@@ -774,6 +871,11 @@ public class WorldRailLookup {
                 // lookup it will actually recompute.
                 return false;
             }
+        }
+
+        @Override
+        public boolean verifyExists() {
+            return this.rail_life != RailLookup.LIFE_TIMER_DELETED;
         }
     }
 }

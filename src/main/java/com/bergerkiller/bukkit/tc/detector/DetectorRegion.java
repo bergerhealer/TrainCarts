@@ -35,7 +35,7 @@ import java.util.logging.Level;
 public final class DetectorRegion {
     private static boolean hasChanges = false;
     private static HashMap<UUID, DetectorRegion> regionsById = new HashMap<>();
-    private static BlockMap<List<DetectorRegion>> regions = new BlockMap<>();
+    private static BlockMap<DetectorRegion[]> regions = new BlockMap<>();
     private final UUID id;
     private final String world;
     private final Set<IntVector3> coordinates;
@@ -48,13 +48,24 @@ public final class DetectorRegion {
         this.coordinates = coordinates;
         regionsById.put(this.id, this);
         hasChanges = true;
+
+        WorldRailLookup lookup = RailLookup.forWorldIfInitialized(Bukkit.getWorld(world));
+        final DetectorRegion[] singleRegion = new DetectorRegion[] { this };
         for (IntVector3 coord : this.coordinates) {
             BlockLocation block_coord = new BlockLocation(world, coord);
-            regions.compute(block_coord, (key, list) -> {
-                list = (list == null) ? new ArrayList<>(1) : new ArrayList<>(list);
-                list.add(this);
-                return list;
+            DetectorRegion[] regionsAtBlock = regions.compute(block_coord, (key, array) -> {
+                if (array == null) {
+                    return singleRegion;
+                } else {
+                    int len = array.length;
+                    array = Arrays.copyOf(array, len + 1);
+                    array[len] = DetectorRegion.this;
+                    return array;
+                }
             });
+            if (lookup.isValid()) {
+                lookup.storeDetectorRegions(coord, regionsAtBlock);
+            }
         }
     }
 
@@ -79,13 +90,29 @@ public final class DetectorRegion {
     }
 
     /**
+     * Fills the rail lookup cache with current detector region information
+     *
+     * @param railLookup
+     */
+    public static void fillRailLookup(WorldRailLookup railLookup) {
+        String worldName = railLookup.getWorld().getName();
+        for (Map.Entry<BlockLocation, DetectorRegion[]> entry : regions.entrySet()) {
+            BlockLocation block = entry.getKey();
+            if (worldName.equals(block.world)) {
+                railLookup.storeDetectorRegions(block.getCoordinates(), entry.getValue());
+            }
+        }
+    }
+
+    /**
      * Gets all the regions occuping a particular rails block
      * 
      * @param railsBlock
      * @return list of detector regions, empty list if no regions exist
      */
     public static List<DetectorRegion> getRegions(Block at) {
-        return LogicUtil.fixNull(regions.get(at), Collections.emptyList());
+        DetectorRegion[] regionsAtBlock = regions.get(at);
+        return regionsAtBlock == null ? Collections.emptyList() : Arrays.asList(regionsAtBlock);
     }
 
     public static void detectAllMinecarts() {
@@ -116,7 +143,7 @@ public final class DetectorRegion {
     public static DetectorRegion create(final String world, final Set<IntVector3> coordinates) {
         //first check if this region is not already defined
         for (IntVector3 coord : coordinates) {
-            List<DetectorRegion> list = regions.get(world, coord);
+            DetectorRegion[] list = regions.get(world, coord);
             if (list != null) {
                 for (DetectorRegion region : list) {
                     if (!region.coordinates.containsAll(coordinates)) continue;
@@ -347,17 +374,20 @@ public final class DetectorRegion {
         }
         regionsById.remove(this.id);
         hasChanges = true;
+
+        WorldRailLookup lookup = RailLookup.forWorldIfInitialized(Bukkit.getWorld(world));
         for (IntVector3 coord : this.coordinates) {
             BlockLocation block_coord = new BlockLocation(this.world, coord);
-            regions.computeIfPresent(block_coord, (key, list) -> {
-                if (list.size() == 1 && list.get(0) == DetectorRegion.this) {
+            DetectorRegion[] regionsAtBlock = regions.computeIfPresent(block_coord, (key, list) -> {
+                if (list.length == 1 && list[0] == DetectorRegion.this) {
                     return null;
                 } else {
-                    list = new ArrayList<DetectorRegion>(list);
-                    list.remove(DetectorRegion.this);
-                    return list;
+                    return LogicUtil.removeArrayElement(list, DetectorRegion.this);
                 }
             });
+            if (lookup.isValid()) {
+                lookup.storeDetectorRegions(coord, regionsAtBlock);
+            }
         }
     }
 }

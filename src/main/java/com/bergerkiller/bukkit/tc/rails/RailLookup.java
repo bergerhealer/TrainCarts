@@ -29,6 +29,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
+import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
@@ -44,6 +45,8 @@ import com.bergerkiller.bukkit.tc.utils.signtracker.SignChangeTrackerWrap;
  * if you have it available to eliminate an unneeded HashMap lookup.
  */
 public final class RailLookup {
+    /***Value of the life timer when a bucket is removed */
+    static final int LIFE_TIMER_DELETED = 0;
     /** Start value of the life timer */
     static final int LIFE_TIMER_START = 1;
     /** This is incremented every tick to force cached information to re-verify itself */
@@ -52,6 +55,7 @@ public final class RailLookup {
     static int verifyTimer = LIFE_TIMER_START;
 
     // Constant arrays used for initialization checks
+    static final DetectorRegion[] NO_DETECTOR_REGIONS = new DetectorRegion[0];
     static final TrackedSign[] NO_SIGNS = new TrackedSign[0];
     static final TrackedSign[] MISSING_RAILS_NO_SIGNS = new TrackedSign[0];
     static final List<MinecartMember<?>> DEFAULT_MEMBER_LIST = Collections.emptyList();
@@ -71,10 +75,29 @@ public final class RailLookup {
      * @return World Rail Lookup cache for this World
      */
     public static WorldRailLookup forWorld(World world) {
-        // Note: the null check will run every time for null, because computeIfAbsent recalculates
-        //       null all the time.
-        return byWorld.computeIfAbsent(world, w -> w == null
-                ? WorldRailLookup.NONE : new WorldRailLookup(w));
+        WorldRailLookup lookup = byWorld.get(world);
+        if (lookup == null) {
+            if (world == null) {
+                return WorldRailLookup.NONE;
+            }
+            lookup = new WorldRailLookup(world);
+            byWorld.put(world, lookup); // computeIfAbsent won't work, potential concurrent modification
+                                        // if someone runs forWorld() during initialization
+
+            lookup.initialize();
+        }
+        return lookup;
+    }
+
+    /**
+     * Gets the World-specific Rail Lookup, if it has been initialized. Should only be used
+     * when information must be stored in the lookup, which is also stored during initialization.
+     *
+     * @param world
+     * @return World Rail Lookup cache for this World if initialized, otherwise {@link WorldRailLookup#NONE}
+     */
+    public static WorldRailLookup forWorldIfInitialized(World world) {
+        return byWorld.getOrDefault(world, WorldRailLookup.NONE);
     }
 
     /**
@@ -124,7 +147,7 @@ public final class RailLookup {
      * particular rails. If that's a problem, use {@link #forceRecalculation()} instead.
      */
     public static void clear() {
-        byWorld.values().forEach(WorldRailLookup::clear);
+        byWorld.values().forEach(WorldRailLookup::remove);
         byWorld.clear();
     }
 
@@ -161,7 +184,8 @@ public final class RailLookup {
         final int deadTimeout = lifeTimer - TCConfig.cacheExpireTicks - TCConfig.cacheVerificationTicks;
         for (Iterator<WorldRailLookup> iter = byWorld.values().iterator(); iter.hasNext();) {
             WorldRailLookup lookup = iter.next();
-            if (!lookup.isValid()) {
+            if (lookup.checkCanBeRemoved()) {
+                lookup.remove();
                 iter.remove();
             } else {
                 lookup.update(deadTimeout);
@@ -364,6 +388,12 @@ public final class RailLookup {
          * a rail block.
          */
         protected TrackedSign[] signs;
+        /**
+         * Array of detector regions activates by trains when they drive on this
+         * bucket's rail block. All rail types occupying a certain rail block
+         * share the same detector regions.
+         */
+        protected DetectorRegion[] detectorRegions;
 
         /**
          * A cached rail piece with no valid information at all. {@link #verify()} will always
@@ -374,12 +404,18 @@ public final class RailLookup {
             public boolean verify() {
                 return false;
             }
+
+            @Override
+            public boolean verifyExists() {
+                return false;
+            }
         };
  
         private CachedRailPiece() {
             super();
             this.members = Collections.unmodifiableList(Collections.emptyList());
             this.signs = NO_SIGNS;
+            this.detectorRegions = NO_DETECTOR_REGIONS;
         }
 
         protected CachedRailPiece(WorldRailLookup railLookup, OfflineBlock offlineBlock, Block block, RailType type) {
@@ -387,6 +423,7 @@ public final class RailLookup {
             this.cached = this;
             this.members = DEFAULT_MEMBER_LIST;
             this.signs = NO_SIGNS;
+            this.detectorRegions = NO_DETECTOR_REGIONS;
         }
 
         /**
@@ -397,6 +434,15 @@ public final class RailLookup {
          * @return True if this information is still valid
          */
         public abstract boolean verify();
+
+        /**
+         * Verifies this cached rail piece is still mapped within the Rail Lookup cache.
+         * Is faster than {@link #verify()}, as it skips checking the rail type is actually
+         * still valid.
+         *
+         * @return True if this information is still validly cached
+         */
+        public abstract boolean verifyExists();
 
         /**
          * Gets a list of cached Minecart Members that occupy these rails.
@@ -432,6 +478,17 @@ public final class RailLookup {
          */
         public final TrackedSign[] cachedSigns() {
             return this.signs;
+        }
+
+        /**
+         * Gets an array of detector regions that are activated when trains driver over
+         * these rails.
+         * Only valid if {@link #verifyExists()} or {@link #verify()} is true.
+         *
+         * @return detector regions
+         */
+        public final DetectorRegion[] cachedDetectorRegions() {
+            return this.detectorRegions;
         }
 
         @Override
