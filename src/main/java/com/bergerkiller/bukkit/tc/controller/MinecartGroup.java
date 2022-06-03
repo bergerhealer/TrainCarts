@@ -1154,6 +1154,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
         if (this.getProperties().getSpeedLimit() <= 1e-5) {
             info.add(new TrainStatus.WaitingZeroSpeedLimit());
+        } else if (this.head().getEntity().getMaxSpeed() <= 1e-5) {
+            info.add(new TrainStatus.NotMovingSpeedLimited());
         } else {
             double speed = this.head().getRealSpeedLimited();
             if (speed <= 1e-5) {

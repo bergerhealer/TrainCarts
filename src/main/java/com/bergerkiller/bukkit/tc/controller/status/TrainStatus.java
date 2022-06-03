@@ -292,6 +292,16 @@ public interface TrainStatus {
         }
     }
 
+    /**
+     * Speed is 0 because an entity maxspeed of 0 was set
+     */
+    public static final class NotMovingSpeedLimited implements Waiting {
+        @Override
+        public String getMessage() {
+            return ChatColor.RED + "Has zero velocity: not moving because something imposed a speed limit";
+        }
+    }
+
     public static final class NotMoving implements TrainStatus {
         @Override
         public String getMessage() {
