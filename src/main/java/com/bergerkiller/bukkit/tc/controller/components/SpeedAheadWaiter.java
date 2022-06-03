@@ -216,6 +216,9 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
                             this.lastObstacle.distance, this.lastDesiredSpeed.speed));
                 }
             }
+        } else if (this.waitRemainingTicks != Integer.MAX_VALUE) {
+            double remaining = this.group.getProperties().getWaitDelay() - (double) this.waitRemainingTicks * 0.05;
+            statuses.add(new TrainStatus.WaitingForDelay(remaining));
         }
 
         return statuses;

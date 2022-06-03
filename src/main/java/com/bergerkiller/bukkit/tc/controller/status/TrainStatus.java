@@ -149,6 +149,23 @@ public interface TrainStatus {
     }
 
     /**
+     * Waiting for a configured wait delay to elapse
+     */
+    public static final class WaitingForDelay implements Waiting {
+        private final double durationSeconds;
+
+        public WaitingForDelay(double durationSeconds) {
+            this.durationSeconds = durationSeconds;
+        }
+
+        @Override
+        public String getMessage() {
+            return ChatColor.YELLOW + "Waiting for configured delay, " + DebugToolUtil.formatNumber(durationSeconds) +
+                    " seconds remaining";
+        }
+    }
+
+    /**
      * Train is waiting for a train up ahead to move away. This is the case when
      * waiting at a waiter sign, or when a train is standing still up ahead and
      * a wait distance is set.
