@@ -1587,6 +1587,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 member.getRailTracker().getRailType().onPreMove(member);
             }
 
+            // Rail Type preMove can change it (i.e. powered rail)
+            this.updateDirection();
+
             // Share forward force between all the Minecarts when size > 1
             double forwardMovingSpeed;
             if (this.size() > 1) {
