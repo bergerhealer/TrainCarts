@@ -2,9 +2,11 @@ package com.bergerkiller.bukkit.tc.rails;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.logging.Level;
@@ -19,7 +21,6 @@ import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -62,7 +63,7 @@ public class WorldRailLookup {
     // Per-world data
     private World world;
     private OfflineWorld offlineWorld;
-    private final LongHashMap<Bucket> cache;
+    private final Map<IntVector3, Bucket> cache;
     private final ArrayList<Bucket> cacheValues;
     private final MutexZoneCacheWorld mutexZones;
 
@@ -78,7 +79,7 @@ public class WorldRailLookup {
     WorldRailLookup(World world) {
         this.offlineWorld = OfflineWorld.of(world);
         this.world = world;
-        this.cache = new LongHashMap<>();
+        this.cache = new HashMap<>();
         this.cacheValues = new ArrayList<>();
         this.mutexZones = MutexZoneCache.forWorld(this.offlineWorld);
     }
@@ -181,7 +182,7 @@ public class WorldRailLookup {
 
         // If already in the cache, compute/return it right-away
         // During computation the original bucket may get deleted (if rail type was NONE)
-        long cacheKey = createCacheKey(coordinates);
+        IntVector3 cacheKey = createCacheKey(coordinates);
         Bucket inCache = cache.get(cacheKey);
         if (inCache != null) {
             return inCache.getRailsAtPosition();
@@ -206,7 +207,7 @@ public class WorldRailLookup {
     public RailPiece[] findAtBlockPosition(OfflineBlock positionBlock) {
         // If already in the cache, compute/return it right-away
         // During computation the original bucket may get deleted (if rail type was NONE)
-        long cacheKey = createCacheKey(positionBlock);
+        IntVector3 cacheKey = createCacheKey(positionBlock);
         Bucket inCache = cache.get(cacheKey);
         if (inCache != null) {
             return inCache.getRailsAtPosition();
@@ -243,7 +244,7 @@ public class WorldRailLookup {
                                     final RailType railType
     ) {
         // First try to find it in the cache, and if none exists, initialize a new one.
-        long cacheKey = createCacheKey(railOfflineBlock);
+        IntVector3 cacheKey = createCacheKey(railOfflineBlock);
         Bucket inCache = cache.get(cacheKey);
         if (inCache == null) {
             inCache = new Bucket(railOfflineBlock, railBlock, railType);
@@ -351,7 +352,7 @@ public class WorldRailLookup {
                 bucket.removeInvalidBucketsFromChain(validChecker);
             } else {
                 // If bucket has a next value, put that one in instead. Remove if all dead.
-                long cacheKey = createCacheKey(bucket.blockPosition());
+                IntVector3 cacheKey = createCacheKey(bucket.blockPosition());
                 while (true) {
                     bucket.rail_life = RailLookup.LIFE_TIMER_DELETED;
                     bucket = bucket.next;
@@ -405,7 +406,7 @@ public class WorldRailLookup {
      * @return Bucket
      */
     private Bucket getOrCreateAtCoordinates(IntVector3 coordinates) {
-        long cacheKey = createCacheKey(coordinates);
+        IntVector3 cacheKey = createCacheKey(coordinates);
         Bucket bucket = this.cache.get(cacheKey);
         if (bucket == null) {
             bucket = new Bucket(this.offlineWorld.getBlockAt(coordinates),
@@ -427,7 +428,7 @@ public class WorldRailLookup {
      * @param positionOfflineBlock
      * @return List of buckets of rails at this block position
      */
-    private Bucket[] discoverBucketsAtPositionBlock(long cacheKey, OfflineBlock positionOfflineBlock) {
+    private Bucket[] discoverBucketsAtPositionBlock(IntVector3 cacheKey, OfflineBlock positionOfflineBlock) {
         // Query the registered Rail Types for whether they exist at this position
         Block positionBlock = positionOfflineBlock.getLoadedBlock();
         try (Timings tim = TCTimings.RAILTYPE_FINDRAILINFO.start()) {
@@ -488,7 +489,7 @@ public class WorldRailLookup {
         return NO_RAILS_AT_POSITION;
     }
 
-    private void addToCache(long cacheKey, Bucket bucket) {
+    private void addToCache(IntVector3 cacheKey, Bucket bucket) {
         cache.put(cacheKey, bucket);
         cacheValues.add(bucket);
     }
@@ -499,8 +500,8 @@ public class WorldRailLookup {
      * @param block Offline Block
      * @return Cache lookup key
      */
-    private static long createCacheKey(OfflineBlock block) {
-        return asLong(block.getX(), block.getY(), block.getZ());
+    private static IntVector3 createCacheKey(OfflineBlock block) {
+        return block.getPosition();
     }
 
     /**
@@ -509,33 +510,8 @@ public class WorldRailLookup {
      * @param coordinates Block Coordinates
      * @return Cache lookup key
      */
-    private static long createCacheKey(IntVector3 coordinates) {
-        return asLong(coordinates.x, coordinates.y, coordinates.z);
-    }
-
-    // From Minecraft MathHelper / BlockPosition
-    //private static final int PACKED_X_LENGTH = 1 + MathHelper.log2(MathHelper.smallestEncompassingPowerOfTwo(30000000));
-    private static final int PACKED_X_LENGTH = 26;
-    private static final int PACKED_Z_LENGTH = PACKED_X_LENGTH;
-    private static final int PACKED_Y_LENGTH = 64 - PACKED_X_LENGTH - PACKED_Z_LENGTH;
-    private static final long PACKED_X_MASK = (1L << PACKED_X_LENGTH) - 1L;
-    private static final long PACKED_Y_MASK = (1L << PACKED_Y_LENGTH) - 1L;
-    private static final long PACKED_Z_MASK = (1L << PACKED_Z_LENGTH) - 1L;
-    private static final int Y_OFFSET = 0;
-    private static final int Z_OFFSET = PACKED_Y_LENGTH;
-    private static final int X_OFFSET = PACKED_Y_LENGTH + PACKED_Z_LENGTH;
-
-    // Note: negative y is fine, it just becomes near to 4096 because of the mask
-    //       be aware that a world height higher than 4096 isn't properly supported
-    //       it might work, but if two rails exist at clashing coordinates,
-    //       bad stuff will happen.
-    private static long asLong(int x, int y, int z) {
-        long l = 0L;
-
-        l |= ((long) x & PACKED_X_MASK) << X_OFFSET;
-        l |= ((long) y & PACKED_Y_MASK) << Y_OFFSET;
-        l |= ((long) z & PACKED_Z_MASK) << Z_OFFSET;
-        return l;
+    private static IntVector3 createCacheKey(IntVector3 coordinates) {
+        return coordinates;
     }
 
     /**
