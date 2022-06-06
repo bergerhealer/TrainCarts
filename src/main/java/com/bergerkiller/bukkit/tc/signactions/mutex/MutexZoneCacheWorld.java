@@ -19,6 +19,7 @@ import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
  * Mutex zones that exist on a particular world
  */
 public class MutexZoneCacheWorld {
+    private static final MutexZone[] NO_ZONES = new MutexZone[0];
     private final OfflineWorld world;
     private final Map<IntVector3, MutexZone> bySignPosition = new HashMap<>();
     private final LongHashMap<MutexZone[]> byChunk = new LongHashMap<>();
@@ -33,6 +34,10 @@ public class MutexZoneCacheWorld {
 
     public OfflineWorld getOfflineWorld() {
         return this.world;
+    }
+
+    public MovingPoint track(IntVector3 blockPosition) {
+        return new MovingPoint(blockPosition.getChunkX(), blockPosition.getChunkZ());
     }
 
     public MutexZone find(IntVector3 position) {
@@ -148,5 +153,82 @@ public class MutexZoneCacheWorld {
     public void clear() {
         bySignPosition.clear();
         byChunk.clear();
+    }
+
+    /**
+     * Tracks the mutex zones at given block positions. Automatically retrieves the mutex zones
+     * at chunk boundaries. Should be used when querying the mutex zones along a trail of rail
+     * blocks that don't change chunk coordinates often.
+     */
+    public final class MovingPoint {
+        private int chunkX;
+        private int chunkZ;
+        private MutexZone[] chunkZones;
+
+        private MovingPoint(int chunkX, int chunkZ) {
+            this.chunkX = chunkX;
+            this.chunkZ = chunkZ;
+
+            MutexZone[] zones = byChunk.get(chunkX, chunkZ);
+            this.chunkZones = (zones == null) ? NO_ZONES : zones;
+        }
+
+        /**
+         * Gets the mutex zone that exists at the given block position.
+         * Updates the internally tracked chunk if needed. As such, this
+         * method benefits from many queries in the same chunk in a row.
+         *
+         * @param blockPosition
+         * @return Mutex zone at this block position, or null if none
+         */
+        public MutexZone get(IntVector3 blockPosition) {
+            // Get/update the mutex zones in the current chunk of this block
+            MutexZone[] zones;
+            {
+                int cx = blockPosition.getChunkX();
+                int cz = blockPosition.getChunkZ();
+                if (cx != this.chunkX || cz != this.chunkZ) {
+                    this.chunkX = cx;
+                    this.chunkZ = cz;
+                    zones = byChunk.get(cx, cz);
+                    if (zones == null) {
+                        zones = NO_ZONES;
+                    }
+                    this.chunkZones = zones;
+                } else {
+                    zones = this.chunkZones;
+                }
+            }
+
+            // Check if any of the mutex zones include the block
+            for (MutexZone zone : zones) {
+                if (zone.containsBlock(blockPosition)) {
+                    return zone;
+                }
+            }
+            return null;
+        }
+
+        /**
+         * Checks whether there are any mutex zones nearby the current chunk
+         * this moving point is tracking. This checks whether there are mutex
+         * zones in this current chunk, or any of the neighbouring chunks.
+         *
+         * @return True if there are mutex zones nearby
+         */
+        public boolean isNear() {
+            if (chunkZones != NO_ZONES) {
+                return true;
+            }
+
+            for (int cz = -1; cz <= 1; cz++) {
+                for (int cx = -1; cx <= 1; cx++) {
+                    if ((cx != 0 || cz != 0) && byChunk.contains(this.chunkX + cx, this.chunkZ + cz)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
     }
 }

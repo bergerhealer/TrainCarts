@@ -7,7 +7,6 @@ import java.util.List;
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -379,13 +378,12 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
                 return Collections.emptyList();
             }
 
+            MutexZoneCacheWorld.MovingPoint mutexZones = group.head().railLookup().getMutexZones()
+                    .track(group.head().getEntity().loc.block());
+
             // If no wait distance is set and no mutex zones are anywhere close, skip these expensive calculations
-            MutexZoneCacheWorld mutexZones = group.head().railLookup().getMutexZones();
-            if (distance <= 0.0 && trainDistance <= 0.0) {
-                IntVector3 block = group.head().getEntity().loc.block();
-                if (!checkRailObstacles || !mutexZones.isMutexZoneNearby(block, 8)) {
-                    return Collections.emptyList();
-                }
+            if (distance <= 0.0 && trainDistance <= 0.0 && (!checkRailObstacles || !mutexZones.isNear())) {
+                return Collections.emptyList();
             }
 
             TrackWalkingPoint iter = new TrackWalkingPoint(group.head().discoverRail());
@@ -420,7 +418,7 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
 
                         // Check for mutex zones the next block. If one is found that is occupied, stop right away
                         if (currentMutex == null && distanceFromFront < mutexSoftDistance) {
-                            currentMutex = mutexZones.find(iter.state.positionOfflineBlock().getPosition());
+                            currentMutex = mutexZones.get(iter.state.positionOfflineBlock().getPosition());
                             if (currentMutex != null) {
                                 currentMutexGroup = currentMutex.slot.track(group);
                                 currentMutexDistance = distanceFromFront;
