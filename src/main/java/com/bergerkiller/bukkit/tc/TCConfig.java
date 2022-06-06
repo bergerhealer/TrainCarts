@@ -60,6 +60,7 @@ public class TCConfig {
     public static boolean setOwnerOnPlacement;
     public static boolean keepChunksLoadedOnlyWhenMoving;
     public static int maxDetectorLength;
+    public static int maxMutexSize;
     public static int maxMinecartStackSize;
     public static int defaultTransferRadius;
     public static int maxTransferRadius;
@@ -281,6 +282,10 @@ public class TCConfig {
 
         config.setHeader("maxDetectorLength", "\nThe maximum length a detector region (between two detectors) can be");
         maxDetectorLength = config.get("maxDetectorLength", 2000);
+
+        config.setHeader("maxMutexSize", "\nThe maximum size a dimension of a mutex zone is allowed to have");
+        config.addHeader("maxMutexSize", "Too large mutexes could result in an out-of-memory situation");
+        maxMutexSize = config.get("maxMutexSize", 2000);
 
         config.setHeader("maxMinecartStackSize", "\nThe maximum amount of minecart items that can be stacked in one item");
         maxMinecartStackSize = config.get("maxMinecartStackSize", 64);

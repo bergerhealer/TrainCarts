@@ -29,6 +29,8 @@ import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
+import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
+import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCacheWorld;
 
 /**
  * Retrieves and caches rails and information about rails, mapped to
@@ -62,6 +64,7 @@ public class WorldRailLookup {
     private OfflineWorld offlineWorld;
     private final LongHashMap<Bucket> cache;
     private final ArrayList<Bucket> cacheValues;
+    private final MutexZoneCacheWorld mutexZones;
 
     // None
     private WorldRailLookup() {
@@ -69,6 +72,7 @@ public class WorldRailLookup {
         this.world = null;
         this.cache = null; // Should never be used
         this.cacheValues = null; // Should never be used
+        this.mutexZones = null; // Should never be used
     }
 
     WorldRailLookup(World world) {
@@ -76,6 +80,7 @@ public class WorldRailLookup {
         this.world = world;
         this.cache = new LongHashMap<>();
         this.cacheValues = new ArrayList<>();
+        this.mutexZones = MutexZoneCache.forWorld(this.offlineWorld);
     }
 
     /**
@@ -94,6 +99,16 @@ public class WorldRailLookup {
      */
     public OfflineWorld getOfflineWorld() {
         return this.offlineWorld;
+    }
+
+    /**
+     * Gets the Mutex Zone information of this world's rail lookup
+     *
+     * @return mutex zones
+     * @see MutexZoneCache#forWorld(OfflineWorld)
+     */
+    public MutexZoneCacheWorld getMutexZones() {
+        return this.mutexZones;
     }
 
     /**

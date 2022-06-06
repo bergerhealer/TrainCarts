@@ -1,11 +1,15 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexSignMetadata;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
+
+import net.md_5.bungee.api.ChatColor;
 
 /**
  * Defines zones where only one train is allowed at one time.
@@ -26,6 +30,16 @@ public class SignActionMutex extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
+        // Check mutex zone isnt too big
+        {
+            MutexSignMetadata meta = MutexSignMetadata.fromSign(event);
+            IntVector3 dim = meta.end.subtract(meta.start);
+            if (dim.x > TCConfig.maxMutexSize || dim.y > TCConfig.maxMutexSize || dim.z > TCConfig.maxMutexSize) {
+                event.getPlayer().sendMessage(ChatColor.RED + "Mutex zone is too large! Maximum size is " + TCConfig.maxMutexSize);
+                return false;
+            }
+        }
+
         if (event.isType("smartmutex", "smutex")) {
             return SignBuildOptions.create()
                     .setPermission(Permission.BUILD_MUTEX)

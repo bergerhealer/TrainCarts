@@ -4,7 +4,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -21,7 +20,7 @@ import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignMetadataHandler;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
 
 public class MutexZoneCache {
-    private static final OfflineWorldMap<Map<IntVector3, MutexZone>> zones = new OfflineWorldMap<>();
+    private static final OfflineWorldMap<MutexZoneCacheWorld> cachesByWorld = new OfflineWorldMap<>();
     private static final Map<String, MutexZoneSlot> slotsByName = new HashMap<>();
     private static final List<MutexZoneSlot> slotsList = new ArrayList<>();
 
@@ -65,13 +64,22 @@ public class MutexZoneCache {
         });
     }
 
+    /**
+     * Gets mutex zone information of a certain world
+     *
+     * @param world Offline World
+     * @return Mutex zones of the World
+     */
+    public static MutexZoneCacheWorld forWorld(OfflineWorld world) {
+        return cachesByWorld.computeIfAbsent(world, MutexZoneCacheWorld::new);
+    }
+
     public static void deinit(TrainCarts plugin) {
         plugin.getOfflineSigns().unregisterHandler(MutexSignMetadata.class);
     }
 
     private static void addMutexSign(OfflineWorld world, IntVector3 signPosition, MutexSignMetadata metadata) {
-        Map<IntVector3, MutexZone> atWorld = zones.computeIfAbsent(world, unused -> new HashMap<>());
-        atWorld.put(signPosition, MutexZone.create(world, signPosition, metadata));
+        forWorld(world).add(MutexZone.create(world, signPosition, metadata));
     }
 
     private static void removeMutexSign(OfflineWorld world, IntVector3 signPosition) {
@@ -79,8 +87,7 @@ public class MutexZoneCache {
         // zones.remove(info.getWorld(), MutexZone.getPosition(info));
 
         // Instead, a slow way
-        MutexZone zone = zones.computeIfAbsent(world, unused -> new HashMap<>())
-                .remove(signPosition);
+        MutexZone zone = forWorld(world).removeAtSign(signPosition);
         if (zone != null) {
             removeMutexZone(zone);
         }
@@ -93,12 +100,7 @@ public class MutexZoneCache {
      * @return mutex zone, null if not found
      */
     public static MutexZone find(OfflineBlock block) {
-        for (MutexZone zone : zones.getOrDefault(block.getWorld(), Collections.emptyMap()).values()) {
-            if (zone.containsBlock(block.getPosition())) {
-                return zone;
-            }
-        }
-        return null;
+        return forWorld(block.getWorld()).find(block.getPosition());
     }
 
     /**
@@ -109,12 +111,7 @@ public class MutexZoneCache {
      * @return mutex zone, null if not found
      */
     public static MutexZone find(OfflineWorld world, IntVector3 block) {
-        for (MutexZone zone : zones.getOrDefault(world, Collections.emptyMap()).values()) {
-            if (zone.containsBlock(block)) {
-                return zone;
-            }
-        }
-        return null;
+        return forWorld(world).find(block);
     }
 
     /**
@@ -128,12 +125,7 @@ public class MutexZoneCache {
      * @return True if a mutex zone is nearby
      */
     public static boolean isMutexZoneNearby(OfflineWorld world, IntVector3 block, int radius) {
-        for (MutexZone zone : zones.getOrDefault(world, Collections.emptyMap()).values()) {
-            if (zone.isNearby(block, radius)) {
-                return true;
-            }
-        }
-        return false;
+        return forWorld(world).isMutexZoneNearby(block, radius);
     }
 
     /**
@@ -145,13 +137,7 @@ public class MutexZoneCache {
      * @return
      */
     public static List<MutexZone> findNearbyZones(OfflineWorld world, IntVector3 block, int radius) {
-        List<MutexZone> result = new ArrayList<MutexZone>();
-        for (MutexZone zone : zones.getOrDefault(world, Collections.emptyMap()).values()) {
-            if (zone.isNearby(block, radius)) {
-                result.add(zone);
-            }
-        }
-        return result;
+        return forWorld(world).findNearbyZones(block, radius);
     }
 
     /**
