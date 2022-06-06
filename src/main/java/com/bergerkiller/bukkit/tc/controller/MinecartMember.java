@@ -2478,7 +2478,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
         if (this.lastRailRefreshPosition == null || this.lastRailRefreshDirection == null) {
             this.lastRailRefreshPosition = entity.loc.vector();
-            this.lastRailRefreshDirection = entity.vel.vector().normalize();
+            this.lastRailRefreshDirection = entity.vel.vector();
             return true;
         } else if (this.lastRailRefreshPosition.getX() != entity.loc.getX()
                 || this.lastRailRefreshPosition.getY() != entity.loc.getY()
