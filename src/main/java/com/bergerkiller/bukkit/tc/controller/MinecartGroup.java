@@ -28,7 +28,7 @@ import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.AnimationController;
 import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.SignTrackerGroup;
-import com.bergerkiller.bukkit.tc.controller.components.SpeedAheadWaiter;
+import com.bergerkiller.bukkit.tc.controller.components.ObstacleTracker;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
@@ -75,7 +75,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     private final SignTrackerGroup signTracker = new SignTrackerGroup(this);
     private final RailTrackerGroup railTracker = new RailTrackerGroup(this);
     private final ActionTrackerGroup actionTracker = new ActionTrackerGroup(this);
-    private final SpeedAheadWaiter speedAheadWaiter = new SpeedAheadWaiter(this);
+    private final ObstacleTracker obstacleTracker = new ObstacleTracker(this);
     private final AttachmentControllerGroup attachmentController = new AttachmentControllerGroup(this);
     protected long lastSync = Long.MIN_VALUE;
     private TrainProperties prop = null;
@@ -1153,7 +1153,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         for (MinecartMember<?> member : this) {
             info.addAll(member.getActions().getStatusInfo());
         }
-        info.addAll(this.speedAheadWaiter.getStatusInfo());
+        info.addAll(this.obstacleTracker.getStatusInfo());
 
         for (MinecartMember<?> member : this) {
             if (member.isDerailed()) {
@@ -1323,6 +1323,17 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     /**
+     * Gets the obstacle avoidance tracker. This tracker searches the rails up ahead of this
+     * train to find other trains, mutex zones, or other types of obstacles. It then maintains
+     * a speed limit to avoid colliding with it.
+     *
+     * @return Obstacle tracker
+     */
+    public ObstacleTracker getObstacleTracker() {
+        return this.obstacleTracker;
+    }
+
+    /**
      * Gets the distance and speed of all obstacles up ahead on the tracks.
      * This can be another train, or a mutex zone that blocks further movement.
      * 
@@ -1331,8 +1342,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      * @param railObstacles Whether to include rail obstacles, like mutex zones, in the results
      * @return obstacle found within this distance, null if there is none
      */
-    public List<SpeedAheadWaiter.Obstacle> findObstaclesAhead(double distance, boolean trains, boolean railObstacles) {
-        return this.speedAheadWaiter.findObstaclesAhead(distance, trains, railObstacles, 0.0);
+    public List<ObstacleTracker.Obstacle> findObstaclesAhead(double distance, boolean trains, boolean railObstacles) {
+        return this.obstacleTracker.findObstaclesAhead(distance, trains, railObstacles, 0.0);
     }
 
     /**
@@ -1347,6 +1358,35 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      */
     public boolean isObstacleAhead(double distance, boolean trains, boolean railObstacles) {
         return !this.findObstaclesAhead(distance, trains, railObstacles).isEmpty();
+    }
+
+    /**
+     * Checks whether there are any obstacles up ahead on the tracks.
+     * If there are, returns the maximum speed the train can have to avoid the
+     * closest obstacle at the current wait deceleration rate.
+     * If a wait distance is configured, then it will also check for other trains.
+     *
+     * @param distance Distance to look for trains up ahead
+     * @return Found obstacle speed limit. Can be {@link ObstacleTracker.ObstacleSpeedLimit#NONE}
+     */
+    public ObstacleTracker.ObstacleSpeedLimit findObstacleSpeedLimit(double distance) {
+        return findObstacleSpeedLimit(distance, getProperties().getWaitDeceleration());
+    }
+
+    /**
+     * Checks whether there are any obstacles up ahead on the tracks.
+     * If there are, returns the maximum speed the train can have to avoid the
+     * closest obstacle at the specified deceleration rate.
+     * If a wait distance is configured, then it will also check for other trains.
+     *
+     * @param distance Distance to look for trains up ahead
+     * @param deceleration Maximum rate of deceleration in blocks/tick^2
+     * @return Found obstacle speed limit. Can be {@link ObstacleTracker.ObstacleSpeedLimit#NONE}
+     */
+    public ObstacleTracker.ObstacleSpeedLimit findObstacleSpeedLimit(double distance, double deceleration) {
+        double waitDistance = getProperties().getWaitDistance();
+        List<ObstacleTracker.Obstacle> obstacles = this.obstacleTracker.findObstaclesAhead(distance, waitDistance > 0.0, true, waitDistance);
+        return ObstacleTracker.minimumSpeedLimit(obstacles, deceleration);
     }
 
     private void tickActions() {
@@ -1620,9 +1660,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // It is important speed of this train is updated before doing these checks.
             try (Timings t = TCTimings.GROUP_ENFORCE_SPEEDAHEAD.start()) {
                 if (isFirstUpdateStep()) {
-                    this.speedAheadWaiter.update(forwardMovingSpeed / getUpdateSpeedFactor());
+                    this.obstacleTracker.update(forwardMovingSpeed / getUpdateSpeedFactor());
                 }
-                double limitedSpeed = this.speedAheadWaiter.getSpeedLimit();
+                double limitedSpeed = this.obstacleTracker.getSpeedLimit();
                 if (limitedSpeed != Double.MAX_VALUE) {
                     limitedSpeed = Math.min(0.4, this.updateSpeedFactor * limitedSpeed);
                     for (MinecartMember<?> mm : this) {

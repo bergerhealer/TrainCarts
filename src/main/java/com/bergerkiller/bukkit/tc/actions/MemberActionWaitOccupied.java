@@ -7,7 +7,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
-import com.bergerkiller.bukkit.tc.controller.components.SpeedAheadWaiter;
+import com.bergerkiller.bukkit.tc.controller.components.ObstacleTracker;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
 
 public class MemberActionWaitOccupied extends MemberAction implements WaitAction {
@@ -21,7 +21,7 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
     private int counter = 20;
     private boolean breakCode = false;
     private Block toggleLeversOf = null;
-    private SpeedAheadWaiter.TrainObstacle trainObstacle = null;
+    private ObstacleTracker.TrainObstacle trainObstacle = null;
 
     public MemberActionWaitOccupied(final double maxDistance, final long delay, final double launchDistance, BlockFace launchDirection, Double launchVelocity) {
         this.maxDistance = maxDistance;
@@ -78,9 +78,9 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
     }
 
     public boolean handleOccupied() {
-        for (SpeedAheadWaiter.Obstacle obstacle : this.getGroup().findObstaclesAhead(this.maxDistance, true, false)) {
-            if (obstacle instanceof SpeedAheadWaiter.TrainObstacle) {
-                this.trainObstacle = (SpeedAheadWaiter.TrainObstacle) obstacle;
+        for (ObstacleTracker.Obstacle obstacle : this.getGroup().findObstaclesAhead(this.maxDistance, true, false)) {
+            if (obstacle instanceof ObstacleTracker.TrainObstacle) {
+                this.trainObstacle = (ObstacleTracker.TrainObstacle) obstacle;
                 return true;
             }
         }

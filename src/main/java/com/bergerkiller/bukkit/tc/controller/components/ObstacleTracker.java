@@ -19,21 +19,24 @@ import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneSlot;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 /**
- * Controls the maximum speed of the train to maintain distance
- * with trains or mutex zones up ahead. Uses the configured acceleration
- * to slow down the train, or launch it again to the original speed when
- * the blockage up ahead clears.
+ * Checks the rails ahead of the train for any obstacles that exist there.
+ * These can be stationary obstacles, like mutex zones and blocker signs,
+ * but also moving obstacles like other trains.<br>
+ * <br>
+ * With this information it controls the maximum speed of the train to maintain
+ * distance from these obstacles as configured. Uses the configured acceleration
+ * and deceleration to slow down the train, or launch it again to the original
+ * speed when the blockage up ahead clears.
  */
-public class SpeedAheadWaiter implements TrainStatusProvider {
+public class ObstacleTracker implements TrainStatusProvider {
     private final MinecartGroup group;
     private double waitDistanceLastSpeedLimit = Double.MAX_VALUE;
     private double waitDistanceLastTrainSpeed = Double.MAX_VALUE;
     private int waitRemainingTicks = Integer.MAX_VALUE;
-    private Obstacle lastObstacle = null;
-    private DesiredSpeed lastDesiredSpeed = new DesiredSpeed(Double.MAX_VALUE, true);
+    private ObstacleSpeedLimit lastObstacleSpeedLimit = ObstacleSpeedLimit.NONE;
     private List<MutexZone> enteredMutexZones = Collections.emptyList();
 
-    public SpeedAheadWaiter(MinecartGroup group) {
+    public ObstacleTracker(MinecartGroup group) {
         this.group = group;
     }
 
@@ -105,7 +108,7 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
         // distance up a head, since it takes less long to slow to a complete stop.
         boolean checkTrains = (properties.getWaitDistance() > 0.0);
 
-        DesiredSpeed newDesiredSpeed = getDesiredSpeedLimit(searchAheadDistance,
+        ObstacleSpeedLimit newDesiredSpeed = getDesiredSpeedLimit(searchAheadDistance,
                 properties.getWaitDeceleration(), checkTrains, true, properties.getWaitDistance());
 
         // Every time the speed drops to 0 consistently, reset the wait tick timer to 0
@@ -181,7 +184,7 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
 
     @Override
     public List<TrainStatus> getStatusInfo() {
-        if (this.lastObstacle == null && this.enteredMutexZones.isEmpty()) {
+        if (!this.lastObstacleSpeedLimit.hasLimit() && this.enteredMutexZones.isEmpty()) {
             return Collections.emptyList();
         }
 
@@ -191,8 +194,8 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
             statuses.add(new TrainStatus.EnteredMutexZone(zone));
         }
 
-        if (this.lastObstacle != null) {
-            statuses.add(this.lastObstacle.createStatus(this.lastDesiredSpeed));
+        if (this.lastObstacleSpeedLimit.hasLimit()) {
+            statuses.add(this.lastObstacleSpeedLimit.getStatus());
         } else if (this.waitRemainingTicks != Integer.MAX_VALUE) {
             double remaining = this.group.getProperties().getWaitDelay() - (double) this.waitRemainingTicks * 0.05;
             statuses.add(new TrainStatus.WaitingForDelay(remaining));
@@ -217,85 +220,15 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
      *                      other trains ahead
      * @return desired speed limit
      */
-    private DesiredSpeed getDesiredSpeedLimit(double searchAheadDistance, double deceleration,
+    private ObstacleSpeedLimit getDesiredSpeedLimit(double searchAheadDistance, double deceleration,
             boolean checkTrains, boolean checkRailObstacles, double trainDistance
     ) {
-        // No obstacle means full steam ahead!
-        DesiredSpeed minDesiredSpeed = new DesiredSpeed(Double.MAX_VALUE, true);
-
         // Find obstacles. Update the mutex zone found (train status)
         ObstacleFinder finder = new ObstacleFinder(Math.min(2000.0, searchAheadDistance),
                                                    checkTrains, checkRailObstacles, trainDistance);
         List<Obstacle> obstacles = finder.search();
         this.enteredMutexZones = finder.enteredMutexZones;
-
-        // Check all obstacles ahead and find the one with the minimal speed limit to impose
-        Obstacle newLimitingObstacle = null;
-        for (Obstacle obstacle : obstacles)
-        {
-            // If obstacle is closer than it is allowed to ever be, emergency stop
-            // This also ignores the vehicle's actual speed, because we're too close to
-            // it already, so we need to stop and wait for the distance to go above
-            // the safe wait distance threshold again.
-            if (obstacle.distance <= 0.0) {
-                double speed = Math.max(0.0, obstacle.speed);
-                if (speed < minDesiredSpeed.speed) {
-                    minDesiredSpeed = new DesiredSpeed(speed, true);
-                    newLimitingObstacle = obstacle;
-                }
-                continue;
-            }
-
-            // If no wait deceleration is used, just keep on going at the speed following
-            // this train ahead, plus the max distance we can move extra this tick.
-            if (deceleration <= 0.0) {
-                double speed = Math.max(0.0, obstacle.speed + obstacle.distance);
-                if (speed < minDesiredSpeed.speed) {
-                    minDesiredSpeed = new DesiredSpeed(speed, true);
-                    newLimitingObstacle = obstacle;
-                }
-                continue;
-            }
-
-            // Based on this formula: a = (v^2 - u^2) / (2s) where v=0
-            //                        (-u^2) / (2s) = a
-            //                        (u^2) = -2*s*a
-            //                        u = sqrt(-2*s*a)
-            // Where: a = acceleration, v=final speed (0), u=start speed, s=distance
-            // This computes the rough start speed (u)
-            double startSpeed = Math.sqrt(2.0 * deceleration * obstacle.distance);
-
-            // The above is for linear time, not discrete time. So it's not completely accurate
-            // We divide start speed by deceleration to get the number of 1/20 seconds periods
-            //                        t = sqrt(2*s*d) / d where d=deceleration
-            // This is ceiled, to get the number of discrete ticks we got to slow down to 0
-            int numSlowdownTicks = MathUtil.ceil(startSpeed / deceleration);
-
-            // Reduce the number of ticks of deceleration we got until traveled distance <= threshold
-            // It's not pretty, but this while will probably only loop once or twice.
-            while ((((numSlowdownTicks+1) * numSlowdownTicks) * 0.5 * deceleration) > obstacle.distance) {
-                numSlowdownTicks--;
-            }
-
-            if (numSlowdownTicks == 0) {
-                // If number of ticks is 0, then there is a less than deceleration rate distance remaining
-                // Move this tick at most the full obstacle distance remaining
-                startSpeed = obstacle.distance + obstacle.speed;
-            } else {
-                // Knowing how many ticks of deceleration it takes, we can turn it into an approximate start speed
-                startSpeed = numSlowdownTicks * deceleration + obstacle.speed;
-            }
-
-            if (startSpeed < minDesiredSpeed.speed) {
-                minDesiredSpeed = new DesiredSpeed(Math.max(0.0, startSpeed), false);
-                newLimitingObstacle = obstacle;
-            }
-        }
-
-        this.lastObstacle = newLimitingObstacle;
-        this.lastDesiredSpeed = minDesiredSpeed;
-
-        return minDesiredSpeed;
+        return this.lastObstacleSpeedLimit = minimumSpeedLimit(obstacles, deceleration);
     }
 
     /**
@@ -311,6 +244,42 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
      */
     public List<Obstacle> findObstaclesAhead(double distance, boolean checkTrains, boolean checkRailObstacles, double trainDistance) {
         return (new ObstacleFinder(distance, checkTrains, checkRailObstacles, trainDistance)).search();
+    }
+
+    /**
+     * Finds the minimum speed limit in a Collection of obstacles. If the collection
+     * is empty, returns {@link #NONE}
+     *
+     * @param obstacles Obstacles
+     * @param deceleration Maximum rate of deceleration
+     * @return Minimum speed limit to avoid the nearest obstacle
+     */
+    public static ObstacleSpeedLimit minimumSpeedLimit(Iterable<Obstacle> obstacles, double deceleration) {
+        ObstacleSpeedLimit min = ObstacleSpeedLimit.NONE;
+        for (Obstacle obstacle : obstacles) {
+            ObstacleSpeedLimit limit = obstacle.findSpeedLimit(deceleration);
+            if (limit.speed < min.speed) {
+                min = limit;
+            }
+        }
+        return min;
+    }
+
+    /**
+     * Finds the minimum speed limit in a Collection of speed limits. If the collection
+     * is empty, returns {@link #NONE}
+     *
+     * @param limits Limits
+     * @return Minimum
+     */
+    public static ObstacleSpeedLimit minimumSpeedLimit(Iterable<ObstacleSpeedLimit> limits) {
+        ObstacleSpeedLimit min = ObstacleSpeedLimit.NONE;
+        for (ObstacleSpeedLimit limit : limits) {
+            if (limit.speed < min.speed) {
+                min = limit;
+            }
+        }
+        return min;
     }
 
     /**
@@ -586,8 +555,9 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
     }
 
     /**
-     * A detected obstacle, with the distance away from the train the obstacle exists,
-     * and the speed it is moving forwards.
+     * A detected obstacle ahead of the train. Includes information about how far away the obstacle is,
+     * and the speed the obstacle is moving away from the train. To calculate a safe speed for
+     * the train to avoid it, use {@link Obstacle#findSpeedLimit(double)}
      */
     public static abstract class Obstacle {
         public final double distance;
@@ -598,11 +568,72 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
             this.speed = speed;
         }
 
-        public abstract TrainStatus createStatus(DesiredSpeed desiredSpeed);
+        /**
+         * Creates a suitable train status for this Obstacle
+         *
+         * @param speedLimit Speed limit calculated using {@link #findSpeedLimit(double)}
+         * @return Train Status
+         */
+        protected abstract TrainStatus createStatus(ObstacleSpeedLimit speedLimit);
+
+        /**
+         * Gets the maximum speed the original train that found this obstacle can have without
+         * colliding with it at the train's wait deceleration rate.
+         *
+         * @param deceleration The rate of deceleration the train can have at most. Use 0.0 or
+         *                     {@link Double#MAX_VALUE} for instantaneous.
+         * @return speed of the train to stay clear of the obstacle
+         */
+        public ObstacleSpeedLimit findSpeedLimit(double deceleration) {
+            // If obstacle is closer than it is allowed to ever be, emergency stop
+            // This also ignores the vehicle's actual speed, because we're too close to
+            // it already, so we need to stop and wait for the distance to go above
+            // the safe wait distance threshold again.
+            if (distance <= 0.0) {
+                return new ObstacleSpeedLimit(this, Math.max(0.0, speed), true);
+            }
+
+            // If no wait deceleration is used, just keep on going at the speed following
+            // this train ahead, plus the max distance we can move extra this tick.
+            if (deceleration <= 0.0 || deceleration == Double.MAX_VALUE) {
+                return new ObstacleSpeedLimit(this, Math.max(0.0, speed + distance), true);
+            }
+
+            // Based on this formula: a = (v^2 - u^2) / (2s) where v=0
+            //                        (-u^2) / (2s) = a
+            //                        (u^2) = -2*s*a
+            //                        u = sqrt(-2*s*a)
+            // Where: a = acceleration, v=final speed (0), u=start speed, s=distance
+            // This computes the rough start speed (u)
+            double startSpeed = Math.sqrt(2.0 * deceleration * this.distance);
+
+            // The above is for linear time, not discrete time. So it's not completely accurate
+            // We divide start speed by deceleration to get the number of 1/20 seconds periods
+            //                        t = sqrt(2*s*d) / d where d=deceleration
+            // This is ceiled, to get the number of discrete ticks we got to slow down to 0
+            int numSlowdownTicks = MathUtil.ceil(startSpeed / deceleration);
+
+            // Reduce the number of ticks of deceleration we got until traveled distance <= threshold
+            // It's not pretty, but this while will probably only loop once or twice.
+            while ((((numSlowdownTicks+1) * numSlowdownTicks) * 0.5 * deceleration) > this.distance) {
+                numSlowdownTicks--;
+            }
+
+            if (numSlowdownTicks == 0) {
+                // If number of ticks is 0, then there is a less than deceleration rate distance remaining
+                // Move this tick at most the full obstacle distance remaining
+                startSpeed = this.distance + this.speed;
+            } else {
+                // Knowing how many ticks of deceleration it takes, we can turn it into an approximate start speed
+                startSpeed = numSlowdownTicks * deceleration + this.speed;
+            }
+
+            return new ObstacleSpeedLimit(this, Math.max(0.0, startSpeed), false);
+        }
     }
 
     /**
-     * Another train as obstacle
+     * Another train obstacle
      */
     public static class TrainObstacle extends Obstacle {
         /** The full distance, which includes the distance to keep between the trains */
@@ -617,11 +648,11 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
         }
 
         @Override
-        public TrainStatus createStatus(DesiredSpeed desiredSpeed) {
-            if (desiredSpeed.isStopped()) {
+        protected TrainStatus createStatus(ObstacleSpeedLimit speedLimit) {
+            if (speedLimit.isStopped()) {
                 return new TrainStatus.WaitingForTrain(member, fullDistance);
             } else {
-                return new TrainStatus.FollowingTrain(member, fullDistance, desiredSpeed.speed);
+                return new TrainStatus.FollowingTrain(member, fullDistance, speedLimit.speed);
             }
         }
     }
@@ -638,8 +669,8 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
         }
 
         @Override
-        public TrainStatus createStatus(DesiredSpeed desiredSpeed) {
-            if (desiredSpeed.isStopped()) {
+        protected TrainStatus createStatus(ObstacleSpeedLimit speedLimit) {
+            if (speedLimit.isStopped()) {
                 return new TrainStatus.WaitingForMutexZone(zone);
             } else {
                 return new TrainStatus.ApproachingMutexZone(zone, distance, speed);
@@ -659,8 +690,8 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
         }
 
         @Override
-        public TrainStatus createStatus(DesiredSpeed desiredSpeed) {
-            if (desiredSpeed.isStopped()) {
+        protected TrainStatus createStatus(ObstacleSpeedLimit speedLimit) {
+            if (speedLimit.isStopped()) {
                 return new TrainStatus.WaitingAtRailBlock(this.rail);
             } else {
                 return new TrainStatus.ApproachingRailSpeedTrap(this.rail, this.distance, this.speed);
@@ -668,15 +699,60 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
         }
     }
 
-    public static class DesiredSpeed {
+    /**
+     * A speed limit a train should stick to, to avoid hitting the obstacle.
+     * Contains the speed to limit the train to, and whether the train should
+     * adjust instantly to this speed or not.
+     */
+    public static class ObstacleSpeedLimit {
+        /**
+         * A constant speed limit that represents 'no' speed limit
+         */
+        public static final ObstacleSpeedLimit NONE = new ObstacleSpeedLimit(null, Double.MAX_VALUE, false);
+        /**
+         * The {@link Obstacle} that imposes this speed limit
+         */
+        public final Obstacle obstacle;
+        /**
+         * Speed to maintain. {@link Double#MAX_VALUE} if there is no speed limit.
+         */
         public final double speed;
+        /**
+         * Whether the train should adjust it's speed instantly, or allow for a
+         * gradual slowdown using wait deceleration.
+         */
         public final boolean instant;
 
-        public DesiredSpeed(double speed, boolean instant) {
+        public ObstacleSpeedLimit(Obstacle obstacle, double speed, boolean instant) {
+            this.obstacle = obstacle;
             this.speed = speed;
             this.instant = instant;
         }
 
+        /**
+         * Creates a suitable train status for this speed limit and its obstacle
+         *
+         * @return Train Status
+         */
+        public TrainStatus getStatus() {
+            return obstacle.createStatus(this);
+        }
+
+        /**
+         * Gets whether a speed limit exists at all. If false, then there is
+         * no obstacle ahead, or it is far enough away to not pose a threat.
+         *
+         * @return True if there is a speed limit
+         */
+        public boolean hasLimit() {
+            return this.speed != Double.MAX_VALUE;
+        }
+
+        /**
+         * Gets whether the train should be stopped completely
+         *
+         * @return True if the train is stopped completely
+         */
         public boolean isStopped() {
             return this.instant && this.speed <= 0.0;
         }
