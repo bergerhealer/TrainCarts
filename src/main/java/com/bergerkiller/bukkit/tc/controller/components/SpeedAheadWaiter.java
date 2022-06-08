@@ -140,7 +140,7 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
             if (this.waitDistanceLastSpeedLimit != Double.MAX_VALUE) {
                 double acceleration = properties.getWaitAcceleration();
                 if (acceleration > 0.0) {
-                    this.waitDistanceLastSpeedLimit += group.getUpdateSpeedFactor() * acceleration;
+                    this.waitDistanceLastSpeedLimit += acceleration;
                     if (this.waitDistanceLastSpeedLimit >= properties.getSpeedLimit()) {
                         this.waitDistanceLastSpeedLimit = Double.MAX_VALUE;
                     }
@@ -250,7 +250,7 @@ public class SpeedAheadWaiter implements TrainStatusProvider {
             // If no wait deceleration is used, just keep on going at the speed following
             // this train ahead, plus the max distance we can move extra this tick.
             if (deceleration <= 0.0) {
-                double speed = Math.max(0.0, obstacle.speed + obstacle.distance / group.getUpdateSpeedFactor());
+                double speed = Math.max(0.0, obstacle.speed + obstacle.distance);
                 if (speed < minDesiredSpeed.speed) {
                     minDesiredSpeed = new DesiredSpeed(speed, true);
                     newLimitingObstacle = obstacle;
