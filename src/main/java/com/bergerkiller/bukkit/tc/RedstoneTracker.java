@@ -84,7 +84,7 @@ public class RedstoneTracker implements Listener {
     };
 
     public RedstoneTracker(TrainCarts plugin) {
-        this.chunkLoadHandler = new ChunkLoadHandlerFutureProvider(plugin);
+        this.chunkLoadHandler = new ChunkLoadHandler(plugin);
 
         initPowerLevels();
     }
@@ -257,19 +257,13 @@ public class RedstoneTracker implements Listener {
         SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
     }
 
-    private interface ChunkLoadHandler {
-        void onChunkLoaded(Chunk chunk, boolean isWorldLoad);
-        void onChunkUnloaded(Chunk chunk, boolean isWorldUnload);
-    }
-
-    private final class ChunkLoadHandlerFutureProvider implements ChunkLoadHandler {
+    private final class ChunkLoadHandler {
         private final ChunkFutureProvider provider;
 
-        public ChunkLoadHandlerFutureProvider(TrainCarts plugin) {
+        public ChunkLoadHandler(TrainCarts plugin) {
             this.provider = ChunkFutureProvider.of(plugin);
         }
 
-        @Override
         public void onChunkLoaded(Chunk chunk, boolean isWorldLoad) {
             provider.trackNeighboursLoaded(chunk, ChunkNeighbourList.neighboursOf(chunk, 1), new ChunkStateListener() {
                 @Override
@@ -295,7 +289,6 @@ public class RedstoneTracker implements Listener {
             });
         }
 
-        @Override
         public void onChunkUnloaded(Chunk chunk, boolean isWorldUnload) {
         }
     }

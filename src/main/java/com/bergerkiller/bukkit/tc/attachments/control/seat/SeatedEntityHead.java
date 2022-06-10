@@ -3,13 +3,10 @@ package com.bergerkiller.bukkit.tc.attachments.control.seat;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualArmorStandItemEntity;
@@ -136,31 +133,15 @@ public class SeatedEntityHead extends SeatedEntity {
      * @param entity Entity for which the skull is. Null creates a dummy one.
      * @return skull item best representing this entity, null otherwise
      */
-    @SuppressWarnings("deprecation")
     public static ItemStack createSkullItem(Entity entity) {
         if (entity == null || entity instanceof Player) {
             // For players, or the dummy player skin
-            if (Common.hasCapability("Common:Item:CreatePlayerHeadUsingGameProfile")) {
-                return createSkullFromProfile((Player) entity);
-            } else {
-                ItemStack skullItem = new ItemStack(MaterialUtil.getFirst("PLAYER_HEAD", "LEGACY_SKULL_ITEM"));
-                skullItem.setDurability((short) 3); // For 1.12.2 and before support
-                if (entity != null) {
-                    SkullMeta meta = (SkullMeta) skullItem.getItemMeta();
-                    meta.setOwningPlayer((Player) entity);
-                    skullItem.setItemMeta(meta);
-                }
-                return skullItem;
-            }
+            GameProfileHandle profile = entity == null
+                    ? FakePlayerSpawner.createDummyPlayerProfile() : GameProfileHandle.getForPlayer((Player) entity);
+            return ItemUtil.createPlayerHeadItem(profile);
         } else {
             //TODO: Skeleton and such maybe?
             return null;
         }
-    }
-
-    private static ItemStack createSkullFromProfile(Player player) {
-        GameProfileHandle profile = player == null
-                ? FakePlayerSpawner.createDummyPlayerProfile() : GameProfileHandle.getForPlayer(player);
-        return ItemUtil.createPlayerHeadItem(profile);
     }
 }

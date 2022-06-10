@@ -9,7 +9,6 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
@@ -264,11 +263,11 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             spectated.syncPosition(true);
             spectated.spawn(player, seat.calcMotion());
             spectated.forceSyncRotation();
-            Util.startSpectating(vmc, spectated.getEntityId());
+            vmc.startSpectating(spectated.getEntityId());
         }
 
         public void despawn() {
-            Util.stopSpectating(vmc, spectated.getEntityId());
+            vmc.stopSpectating(spectated.getEntityId());
             spectated.destroy(player);
         }
 

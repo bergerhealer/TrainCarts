@@ -67,7 +67,7 @@ public class Localization extends LocalizationEnum {
     public static final Localization TICKET_BUYOWNER = new Localization("ticket.buyowner", ChatColor.WHITE + "[Ticket System]" + ChatColor.YELLOW + " %0% " + ChatColor.YELLOW + "bought a Ticket for %1% on " + ChatColor.WHITE + "%2%" + ChatColor.YELLOW + ".");
     public static final Localization TICKET_MAP_INVALID = new Localization("ticket.map.invalid", "Invalid Ticket");
     public static final Localization TICKET_MAP_EXPIRED = new Localization("ticket.map.expired", "EXPIRED");
-    public static final Localization TICKET_MAP_USES = Common.hasCapability("Common:Localization:InitDefaults") ? new Localization("ticket.map.uses", "%1%/%0% uses") {
+    public static final Localization TICKET_MAP_USES = new Localization("ticket.map.uses", "%1%/%0% uses") {
         @Override
         public void writeDefaults(ConfigurationNode config, String path) {
             ConfigurationNode node = config.getNode(path);
@@ -75,7 +75,7 @@ public class Localization extends LocalizationEnum {
             node.set("-1", "Unlimited uses");
             node.set("default", "%1%/%0% uses");
         }
-    } : new Localization("ticket.map.uses_legacy", "%1/%0% uses");
+    };
 
     // pathfinding
     public static final Localization PATHING_BUSY = new Localization("pathfinding.busy", ChatColor.YELLOW + "Looking for a way to reach the destination...");

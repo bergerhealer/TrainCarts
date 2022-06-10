@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.tickets;
 
 import org.bukkit.ChatColor;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.map.MapFont;
@@ -54,20 +53,7 @@ public class TCTicketDisplay extends MapDisplay {
                 if (maxUses < 0) {
                     maxUses = -1; // Just in case, so it works properly with Localization
                 }
-                String text;
-                if (Common.hasCapability("Common:Localization:InitDefaults")) {
-                    // BKCommonLib 1.18.2-v2 and newer initializes these localization defaults correctly
-                    text = Localization.TICKET_MAP_USES.get(Integer.toString(maxUses), Integer.toString(numUses));
-                } else {
-                    // Fallback for older BKCL versions: the original code
-                    if (maxUses == 1) {
-                        text = "Single use";
-                    } else if (maxUses < 0) {
-                        text = "Unlimited uses";
-                    } else {
-                        text = Localization.TICKET_MAP_USES.get(Integer.toString(maxUses), Integer.toString(numUses));
-                    }
-                }
+                String text = Localization.TICKET_MAP_USES.get(Integer.toString(maxUses), Integer.toString(numUses));
                 this.getLayer(1).draw(MapFont.MINECRAFT, 10, 57, MapColorPalette.COLOR_BLACK, text);
             }
 

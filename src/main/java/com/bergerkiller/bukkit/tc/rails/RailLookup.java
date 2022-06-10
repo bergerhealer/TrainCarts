@@ -17,6 +17,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 
+import com.bergerkiller.bukkit.common.block.SignChangeTracker;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
@@ -34,7 +35,6 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
-import com.bergerkiller.bukkit.tc.utils.signtracker.SignChangeTrackerWrap;
 
 /**
  * Manages the {@link WorldRailLookup} caches for all worlds they exist on.
@@ -501,7 +501,7 @@ public final class RailLookup {
      * A single sign that is tracked
      */
     public static class TrackedSign {
-        final SignChangeTrackerWrap tracker;
+        final SignChangeTracker tracker;
         public final Sign sign;
         public final Block signBlock;
         public final RailPiece rail;
@@ -514,10 +514,10 @@ public final class RailLookup {
         public final SignAction action;
 
         public TrackedSign(Block signBlock, RailPiece rail) {
-            this(SignChangeTrackerWrap.track(signBlock), rail);
+            this(SignChangeTracker.track(signBlock), rail);
         }
 
-        TrackedSign(SignChangeTrackerWrap tracker, RailPiece rail) {
+        TrackedSign(SignChangeTracker tracker, RailPiece rail) {
             if (tracker.isRemoved()) {
                 throw new IllegalArgumentException("There is no sign at " + tracker.getBlock());
             }
@@ -631,7 +631,7 @@ public final class RailLookup {
         }
 
         public void add(Block signBlock) {
-            SignChangeTrackerWrap tracker = SignChangeTrackerWrap.track(signBlock);
+            SignChangeTracker tracker = SignChangeTracker.track(signBlock);
             if (!tracker.isRemoved()) {
                 try {
                     this.signs.add(new TrackedSign(tracker, this.rail));

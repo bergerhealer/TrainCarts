@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.controller;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
@@ -71,14 +70,6 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         }
     }
 
-    @Override
-    protected void onSyncPassengers(Player viewer, List<Entity> oldPassengers, List<Entity> newPassengers) {
-        if (this.member != null && !Common.hasCapability("Common:EntityNetworkController:HasOnPassengersChanged")) {
-            this.member.getAttachments().onPassengersChanged(oldPassengers, newPassengers);
-        }
-    }
-
-    // Called on a recent build of BKCommonLib 1.18.1-v3, not used on older BKCL where onSyncPassengers is used
     @Override
     protected void onPassengersChanged(List<Entity> oldPassengers, List<Entity> newPassengers) {
         if (this.member != null) {

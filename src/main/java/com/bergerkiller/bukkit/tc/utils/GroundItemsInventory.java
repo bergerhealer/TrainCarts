@@ -5,6 +5,8 @@ import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.generated.net.minecraft.util.RandomSourceHandle;
+
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Item;
@@ -13,7 +15,6 @@ import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 /**
  * Allows you to use items on the ground as an Inventory<br>
@@ -68,7 +69,7 @@ public class GroundItemsInventory extends InventoryBase {
         if (index == this.items.size()) {
             if (!LogicUtil.nullOrEmpty(stack)) {
                 // Spawn new item for this item stack
-                Random random = WorldUtil.getRandom(this.location.getWorld());
+                RandomSourceHandle random = WorldUtil.getRandom(this.location.getWorld());
                 Location spawnLoc = this.location.clone().add(-0.45, -0.45, -0.45);
                 spawnLoc = spawnLoc.add(0.9f * random.nextFloat(), 0.9f * random.nextFloat(), 0.9f * random.nextFloat());
                 Item item = location.getWorld().dropItem(spawnLoc, stack);

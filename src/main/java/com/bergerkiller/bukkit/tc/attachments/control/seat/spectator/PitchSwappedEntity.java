@@ -89,7 +89,7 @@ class PitchSwappedEntity<E extends VirtualEntity> {
     public void destroy() {
         if (spectating) {
             spectating = false;
-            Util.stopSpectating(vmc, entity.getEntityId());
+            vmc.stopSpectating(entity.getEntityId());
         }
         entity.destroy(vmc.getPlayer());
         entityAlt.destroy(vmc.getPlayer());
@@ -97,12 +97,12 @@ class PitchSwappedEntity<E extends VirtualEntity> {
     }
 
     public void spectate() {
-        Util.startSpectating(vmc, this.entity.getEntityId());
+        vmc.startSpectating(this.entity.getEntityId());
         spectating = true;
     }
 
     public void spectateFrom(int previousEntityId) {
-        Util.swapSpectating(vmc, previousEntityId, this.entity.getEntityId());
+        vmc.swapSpectating(previousEntityId, this.entity.getEntityId());
         spectating = true;
     }
 
@@ -126,7 +126,7 @@ class PitchSwappedEntity<E extends VirtualEntity> {
         if (Util.isProtocolRotationGlitched(entity.getSyncPitch(), headRot.pitch)) {
             // Spectate other entity
             if (spectating) {
-                Util.swapSpectating(vmc, entity.getEntityId(), entityAlt.getEntityId());
+                vmc.swapSpectating(entity.getEntityId(), entityAlt.getEntityId());
             }
 
             // Perform any needed logic first
@@ -153,7 +153,7 @@ class PitchSwappedEntity<E extends VirtualEntity> {
         } else if (isCameraFlipped(headRot, headRotFlipped)) {
             // Spectate other entity
             if (spectating) {
-                Util.swapSpectating(vmc, entity.getEntityId(), entityAltFlip.getEntityId());
+                vmc.swapSpectating(entity.getEntityId(), entityAltFlip.getEntityId());
             }
 
             // Perform any needed logic first

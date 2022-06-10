@@ -520,9 +520,7 @@ public class TrainCarts extends PluginBase {
         plugin = this;
 
         // Before doing anything, initialize the controller logic (slow!)
-        if (Common.hasCapability("Common:EntityController:forceControllerInitialization")) {
-            forceInitialization();
-        }
+        CommonEntity.forceControllerInitialization();
 
         // Do this first
         Conversion.registerConverters(MinecartMemberStore.class);
@@ -852,10 +850,6 @@ public class TrainCarts extends PluginBase {
             }
         }
         entities.forEach(CommonEntity::clearControllers);
-    }
-
-    private void forceInitialization() {
-        CommonEntity.forceControllerInitialization();
     }
 
     /**
