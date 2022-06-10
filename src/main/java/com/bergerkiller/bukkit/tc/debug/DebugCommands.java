@@ -2,16 +2,22 @@ package com.bergerkiller.bukkit.tc.debug;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Chunk;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.vehicle.VehicleExitEvent;
 
+import com.bergerkiller.bukkit.common.bases.IntVector2;
+import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.controller.global.SignControllerWorld;
 import com.bergerkiller.bukkit.tc.debug.types.DebugToolTypeListDestinations;
 import com.bergerkiller.bukkit.tc.debug.types.DebugToolTypeRails;
 import com.bergerkiller.bukkit.tc.debug.types.DebugToolTypeTrackDistance;
@@ -176,5 +182,36 @@ public class DebugCommands {
     ) {
         sender.sendMessage(ChatColor.GREEN + "Displaying tracked wheel positions: " +
                 (TCConfig.wheelTrackerDebugEnabled ? "ENABLED" : (ChatColor.RED + "DISABLED")));
+    }
+
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
+    @CommandMethod("train debug fix signs")
+    @CommandDescription("Forcibly recalculates all cached sign information near the player")
+    private void commandDebugCheckWheelTracker(
+            final Player player,
+            final TrainCarts plugin
+    ) {
+        int radius = Bukkit.getViewDistance();
+        IntVector2 mid = IntVector3.blockOf(player.getLocation()).toChunkCoordinates();
+        SignControllerWorld controller = plugin.getSignController().forWorld(player.getWorld());
+        SignControllerWorld.RefreshResult result = SignControllerWorld.RefreshResult.NONE;
+        for (int cx = -radius; cx <= radius; cx++) {
+            for (int cz = -radius; cz <= radius; cz++) {
+                Chunk chunk = WorldUtil.getChunk(player.getWorld(), mid.x + cx, mid.z + cz);
+                if (chunk != null) {
+                    result = result.add(controller.refreshInChunk(chunk));
+                }
+            }
+        }
+        if (result.numAdded == 0 && result.numRemoved == 0) {
+            player.sendMessage(ChatColor.GREEN + "All signs are correctly cached");
+        } else {
+            if (result.numRemoved > 0) {
+                player.sendMessage(ChatColor.RED.toString() + result.numRemoved + " signs were removed from the cache because they were incorrect!");
+            }
+            if (result.numAdded > 0) {
+                player.sendMessage(ChatColor.YELLOW.toString() + result.numAdded + " signs were missing and have been added to the cache!");
+            }
+        }
     }
 }

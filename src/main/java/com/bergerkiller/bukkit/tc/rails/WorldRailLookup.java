@@ -27,6 +27,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
+import com.bergerkiller.bukkit.tc.controller.global.SignControllerWorld;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -66,6 +67,7 @@ public class WorldRailLookup {
     private final Map<IntVector3, Bucket> cache;
     private final ArrayList<Bucket> cacheValues;
     private final MutexZoneCacheWorld mutexZones;
+    private final SignControllerWorld signController;
 
     // None
     private WorldRailLookup() {
@@ -74,6 +76,7 @@ public class WorldRailLookup {
         this.cache = null; // Should never be used
         this.cacheValues = null; // Should never be used
         this.mutexZones = null; // Should never be used
+        this.signController = null; // Should never be used
     }
 
     WorldRailLookup(World world) {
@@ -82,6 +85,7 @@ public class WorldRailLookup {
         this.cache = new HashMap<>();
         this.cacheValues = new ArrayList<>();
         this.mutexZones = MutexZoneCache.forWorld(this.offlineWorld);
+        this.signController = TrainCarts.plugin.getSignController().forWorld(this.world);
     }
 
     /**
@@ -110,6 +114,16 @@ public class WorldRailLookup {
      */
     public MutexZoneCacheWorld getMutexZones() {
         return this.mutexZones;
+    }
+
+    /**
+     * Gets the Sign Controller of the world's rail lookup
+     *
+     * @return sign controller
+     * @see SignController#forWorld(World)
+     */
+    public SignControllerWorld getSignController() {
+        return this.signController;
     }
 
     /**

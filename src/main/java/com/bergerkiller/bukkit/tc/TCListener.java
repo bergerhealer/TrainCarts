@@ -633,7 +633,8 @@ public class TCListener implements Listener {
     public void onBlockBreak(BlockBreakEvent event) {
         if (MaterialUtil.ISSIGN.get(event.getBlock())) {
             SignAction.handleDestroy(new SignActionEvent(event.getBlock()));
-            plugin.getOfflineSigns().removeAll(event.getBlock());
+            // Also remove from the loaded sign controller
+            plugin.getSignController().notifySignRemoved(event.getBlock());
         } else if (MaterialUtil.ISRAILS.get(event.getBlock())) {
             onRailsBreak(event.getBlock());
         }
@@ -686,19 +687,11 @@ public class TCListener implements Listener {
         }
 
         // Handle signs being broken because their supporting block got destroyed
-        if (MaterialUtil.ISSIGN.get(blockData)) {
-            if (!Util.isSignSupported(block, blockData)) {
-                // Sign is no longer supported - clear all sign actions
-                SignAction.handleDestroy(new SignActionEvent(event.getBlock()));
-                // Also remove sign metadata
-                plugin.getOfflineSigns().removeAll(event.getBlock());
-            } else {
-                // Refresh redstone logic later
-                this.plugin.getRedstoneTracker().trackPhysics(block);
-            }
-        } else if (MaterialUtil.ISREDSTONETORCH.get(blockData)) {
-            // Migrated from RedstoneTracker code
-            this.plugin.getRedstoneTracker().trackPhysics(block);
+        if (MaterialUtil.ISSIGN.get(blockData) && !Util.isSignSupported(block, blockData)) {
+            // Sign is no longer supported - clear all sign actions
+            SignAction.handleDestroy(new SignActionEvent(event.getBlock()));
+            // Also remove from the loaded sign controller
+            plugin.getSignController().notifySignRemoved(event.getBlock());
         }
     }
 
@@ -781,6 +774,9 @@ public class TCListener implements Listener {
 
             // Break the block
             event.getBlock().setType(Material.AIR);
+        } else {
+            // Notify sign controller that this new sign is now available
+            this.plugin.getSignController().notifySignAdded(event.getBlock());
         }
     }
 

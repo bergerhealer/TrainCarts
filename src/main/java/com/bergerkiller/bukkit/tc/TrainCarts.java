@@ -25,7 +25,7 @@ import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.commands.selector.SelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.commands.selector.TCSelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.controller.*;
-import com.bergerkiller.bukkit.tc.controller.global.RedstoneTracker;
+import com.bergerkiller.bukkit.tc.controller.global.SignController;
 import com.bergerkiller.bukkit.tc.controller.global.TrainUpdateController;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
@@ -89,7 +89,6 @@ public class TrainCarts extends PluginBase {
     private final SpawnSignManager spawnSignManager = new SpawnSignManager(this);
     private SavedTrainPropertiesStore savedTrainsStore;
     private SeatAttachmentMap seatAttachmentMap;
-    private RedstoneTracker redstoneTracker;
     private GlowColorTeamProvider glowColorTeamProvider;
     private PathProvider pathProvider;
     private RouteManager routeManager;
@@ -97,6 +96,7 @@ public class TrainCarts extends PluginBase {
     private TrainUpdateController trainUpdateController = new TrainUpdateController(this);
     private final TCSelectorHandlerRegistry selectorHandlerRegistry = new TCSelectorHandlerRegistry(this);
     private final OfflineSignStore offlineSignStore = new OfflineSignStore(this);
+    private final SignController signController = new SignController(this);
     private Economy econ = null;
     private SmoothCoastersAPI smoothCoastersAPI;
     private Commands commands;
@@ -211,16 +211,6 @@ public class TrainCarts extends PluginBase {
     }
 
     /**
-     * Gets the redstone tracker, which monitors block physics changes
-     * to detect when signs get powered or de-powered.
-     *
-     * @return redstone tracker
-     */
-    public RedstoneTracker getRedstoneTracker() {
-        return this.redstoneTracker;
-    }
-
-    /**
      * Gets the offline sign store, where metadata of signs can be stored
      * persistently
      *
@@ -228,6 +218,16 @@ public class TrainCarts extends PluginBase {
      */
     public OfflineSignStore getOfflineSigns() {
         return this.offlineSignStore;
+    }
+
+    /**
+     * Gets the sign controller, which tracks where loaded signs exist
+     * in the world.
+     *
+     * @return sign controller
+     */
+    public SignController getSignController() {
+        return this.signController;
     }
 
     /**
@@ -562,6 +562,9 @@ public class TrainCarts extends PluginBase {
             }
         }
 
+        //Automatically tracks the signs that are loaded
+        this.signController.enable();
+
         //Automatically saves sign metadata to disk in the background
         //For worlds not already loaded, loads metadata where this is a condition
         this.offlineSignStore.enable();
@@ -656,7 +659,6 @@ public class TrainCarts extends PluginBase {
         this.register(new TCListener(this));
         this.register(new TCSeatChangeListener());
         this.register(TrainChestListener.class);
-        this.register(this.redstoneTracker = new RedstoneTracker(this));
 
         // Paper player view distance logic handling
         if (Util.hasPaperViewDistanceSupport()) {
@@ -815,15 +817,13 @@ public class TrainCarts extends PluginBase {
         ItemAnimation.deinit();
         OfflineGroupManager.deinit();
         RailLookup.clear();
+        this.signController.disable();
 
         // Now plugin is mostly shut down, de-register all MinecartMember controllers from the server
         undoAllTCControllers();
 
         this.glowColorTeamProvider.disable();
         this.glowColorTeamProvider = null;
-
-        this.redstoneTracker.disable();
-        this.redstoneTracker = null;
 
         this.trainLocator.disable();
         this.trainLocator = null;
@@ -927,7 +927,7 @@ public class TrainCarts extends PluginBase {
             RailLookup.update();
         }
     }
-    
+
     private static class AutosaveTask extends Task {
 
         public AutosaveTask(TrainCarts plugin) {
