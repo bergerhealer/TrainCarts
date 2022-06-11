@@ -631,6 +631,8 @@ public class SignActionEvent extends Event implements Cancellable {
      * <li>If this is a REDSTONE_OFF event, false is returned</li>
      * <li>If the sign header indicates always-on, true is returned all the time</li>
      * <li>If the sign header indicates power inversion, true is returned when no Redstone power exists</li>
+     * <li>If the sign header indicates a rising/falling edge trigger, true is returned for the appropriate
+     * REDSTONE_ON/REDSTONE_OFF event only</li>
      * <li>For other cases (default), true is returned when Redstone power exists to this sign</li>
      * </ul>
      * 
@@ -642,6 +644,9 @@ public class SignActionEvent extends Event implements Cancellable {
         }
         if (this.actionType == SignActionType.REDSTONE_ON) {
             return true;
+        }
+        if (this.header.onPowerRising() || this.header.onPowerFalling()) {
+            return false; // Only redstone transition changes can power the sign temporarily
         }
         if (this.actionType == SignActionType.REDSTONE_OFF) {
             return false;
