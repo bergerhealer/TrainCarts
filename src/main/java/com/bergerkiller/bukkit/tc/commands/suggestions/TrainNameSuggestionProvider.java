@@ -6,6 +6,7 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -41,7 +42,8 @@ public class TrainNameSuggestionProvider implements BiFunction<CommandContext<Co
             // Train names, or the @train flag (start with opening bracket)
             Stream<String> stream = TrainProperties.getAll().stream()
                     .filter(p -> !(sender instanceof Player) || p.hasOwnership((Player) sender))
-                    .map(TrainProperties::getTrainName);
+                    .map(TrainProperties::getTrainName)
+                    .map(ChatColor::stripColor);
             if ("@train[".startsWith(input)) {
                 stream = Stream.concat(stream, Stream.of("@train["));
             }

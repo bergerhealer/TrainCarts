@@ -277,6 +277,9 @@ public class TrainTargetingFlags implements BiFunction<CommandTargetTrain, Comma
             String trainName = inputQueue.poll();
             TrainProperties properties = TrainPropertiesStore.get(trainName);
             if (properties == null) {
+                properties = TrainPropertiesStore.getRelaxed(trainName);
+            }
+            if (properties == null) {
                 return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
                         Localization.COMMAND_TRAIN_NOT_FOUND, trainName));
             }

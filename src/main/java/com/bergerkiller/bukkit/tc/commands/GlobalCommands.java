@@ -427,6 +427,9 @@ public class GlobalCommands {
             final @Quoted @Argument(value="trainname", suggestions="trainnames") String trainName
     ) {
         TrainProperties prop = TrainProperties.get(trainName);
+        if (prop == null) {
+            prop = TrainProperties.getRelaxed(trainName);
+        }
         if (prop != null && !prop.isEmpty()) {
             if (prop.hasOwnership((Player) sender)) {
                 CartPropertiesStore.setEditing((Player) sender, prop.get(0));

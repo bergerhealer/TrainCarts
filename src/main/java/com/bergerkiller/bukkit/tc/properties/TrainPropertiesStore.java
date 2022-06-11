@@ -31,7 +31,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
     private static final String defaultPropertiesFile = "DefaultTrainProperties.yml";
     private static FileConfiguration config = null;
     private static FileConfiguration defconfig = null;
-    private static Map<String, TrainProperties> trainProperties = new TreeMap<>();
+    private static TrainPropertiesMap trainProperties = new TrainPropertiesMap();
 
     /**
      * Gets all the TrainProperties available
@@ -91,7 +91,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
 
         // Store under a new name
         properties.trainname = newTrainName;
-        trainProperties.put(newTrainName, properties);
+        trainProperties.add(newTrainName, properties);
         config.set(newTrainName, oldConfig);
         hasChanges = true;
     }
@@ -134,13 +134,31 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
      * Gets a TrainProperties instance by name. If no properties
      * by this name are stored, null is returned instead.
      *
-     * @param trainname to get the properties of
+     * @param trainName to get the properties of
      * @return TrainProperties instance of the train name, or null
      *         if no properties by this name exist.
      */
-    public static TrainProperties get(String trainname) {
-        if (trainname == null) return null;
-        return trainProperties.get(trainname);
+    public static TrainProperties get(String trainName) {
+        if (trainName == null) return null;
+        return trainProperties.get(trainName);
+    }
+
+    /**
+     * Gets a TrainProperties instance by a relaxed name. If no properties
+     * by this name are stored, null is returned instead. This lookup
+     * is case-insensitive and ignores any chat styling colors used in the
+     * train name.<br>
+     * <br>
+     * If more than one train matches the relaxed name, then null is returned
+     * also to avoid ambiguity.
+     *
+     * @param trainName
+     * @return TrainProperties instance of the train name, or null
+     *         if no properties by this name exist.
+     */
+    public static TrainProperties getRelaxed(String trainName) {
+        if (trainName == null) return null;
+        return trainProperties.getRelaxed(trainName);
     }
 
     /**
@@ -261,7 +279,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
     private static TrainProperties createDefaultWithName(String newTrainName) {
         ConfigurationNode newTrainConfig = config.getNode(newTrainName);
         TrainProperties prop = new TrainProperties(newTrainName, newTrainConfig);
-        trainProperties.put(newTrainName, prop);
+        trainProperties.add(newTrainName, prop);
         prop.onConfigurationChanged(true);
         prop.setDefault();
         hasChanges = true;
@@ -284,7 +302,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
 
         // Create new properties with this configuration
         TrainProperties prop = new TrainProperties(name, newTrainConfig);
-        trainProperties.put(name, prop);
+        trainProperties.add(name, prop);
         prop.onConfigurationChanged(false);
 
         hasChanges = true;
@@ -313,7 +331,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
 
         // Create new properties with this configuration
         TrainProperties prop = new TrainProperties(name, newTrainConfig);
-        trainProperties.put(name, prop);
+        trainProperties.add(name, prop);
         prop.onConfigurationChanged(false);
 
         hasChanges = true;
@@ -373,7 +391,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
             }
 
             // Store in by-name mapping
-            trainProperties.put(prop.getTrainName(), prop);
+            trainProperties.add(prop.getTrainName(), prop);
 
             // Initialize properties by reading the YAML
             prop.onConfigurationChanged(true);
