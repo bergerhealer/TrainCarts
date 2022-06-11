@@ -146,21 +146,6 @@ public class MutexZoneSlot {
      * @return EnteredGroup of this group
      */
     public EnteredGroup track(MinecartGroup group) {
-        // Find existing
-        for (EnteredGroup enteredGroup : this.entered) {
-            if (enteredGroup.group == group) {
-                if (enteredGroup.active) {
-                    enteredGroup.isNew = false;
-                } else {
-                    enteredGroup.active = true;
-                    enteredGroup.isNew = true;
-                    enteredGroup.occupiedRails = null; // Revisit every rail to see if we can become active
-                }
-                enteredGroup.time = CommonUtil.getServerTicks();
-                return enteredGroup;
-            }
-        }
-
         // Verify using statements whether the group is even considered
         {
             List<String> statements = this.getStatements();
@@ -174,9 +159,40 @@ public class MutexZoneSlot {
                     }
                 }
                 if (!Statement.hasMultiple(group, this.getStatements(), signEvent)) {
+                    // If previously tracked, release the train
+                    boolean wasGroupHardEntered = false;
+                    boolean hasHardEnteredGroup = false;
+                    for (Iterator<EnteredGroup> iter = this.entered.iterator(); iter.hasNext();) {
+                        EnteredGroup entered = iter.next();
+                        if (entered.group == group) {
+                            iter.remove();
+                            wasGroupHardEntered = entered.hardEnter;
+                        } else if (entered.hardEnter) {
+                            hasHardEnteredGroup = true;
+                        }
+                    }
+                    if (wasGroupHardEntered && !hasHardEnteredGroup) {
+                        this.setLevers(false);
+                    }
+
                     // Ignored!
                     return new IgnoredEnteredGroup(group);
                 }
+            }
+        }
+
+        // Find existing
+        for (EnteredGroup enteredGroup : this.entered) {
+            if (enteredGroup.group == group) {
+                if (enteredGroup.active) {
+                    enteredGroup.isNew = false;
+                } else {
+                    enteredGroup.active = true;
+                    enteredGroup.isNew = true;
+                    enteredGroup.occupiedRails = null; // Revisit every rail to see if we can become active
+                }
+                enteredGroup.time = CommonUtil.getServerTicks();
+                return enteredGroup;
             }
         }
 
