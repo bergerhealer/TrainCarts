@@ -191,7 +191,7 @@ public class DebugCommands {
             final Player player,
             final TrainCarts plugin
     ) {
-        int radius = Bukkit.getViewDistance();
+        int radius = Bukkit.getViewDistance() - 1; // 1 less, chunks need chunks loaded around it
         IntVector2 mid = IntVector3.blockOf(player.getLocation()).toChunkCoordinates();
         SignControllerWorld controller = plugin.getSignController().forWorld(player.getWorld());
         SignControllerWorld.RefreshResult result = SignControllerWorld.RefreshResult.NONE;
