@@ -617,7 +617,7 @@ public class Util {
      * <li>12       =  12 blocks/tick^2</li>
      * <li>12.5     =  12.5 blocks/tick^2</li>
      * <li>1g       =  9.81 blocks/second^2 (0.024525 blocks/tick^2)</li>
-     * <li>20/tt    =  20 blocks/tick^2 (0.024525 blocks/tick^2)</li>
+     * <li>20/tt    =  20 blocks/tick^2</li>
      * <li>20/ss    =  20 blocks/second^2 (0.05 blocks/tick^2)</li>
      * <li>20/s2    =  20 blocks/second^2 (0.05 blocks/tick^2)</li>
      * <li>20/mm    =  20 blocks/minute^2</li>
