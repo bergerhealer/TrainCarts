@@ -67,7 +67,7 @@ public class ObstacleTracker implements TrainStatusProvider {
         // trains or mutex zones or any other type of obstacle. This is calculated based
         // on the maximum projected movement the train will have this tick. This is the
         // full train speed, limited by the applied speed limit right now
-        double searchAheadDistance = 0.0;
+        double searchAheadDistance = 1.0; // Little extra to avoid sign block obstacle jitter
         if (properties.getWaitDeceleration() > 0.0) {
             double speedLimitLastTick = (this.waitDistanceLastSpeedLimit == Double.MAX_VALUE) ?
                     properties.getSpeedLimit() : this.waitDistanceLastSpeedLimit;
@@ -755,6 +755,15 @@ public class ObstacleTracker implements TrainStatusProvider {
          */
         public boolean isStopped() {
             return this.instant && this.speed <= 0.0;
+        }
+
+        @Override
+        public String toString() {
+            if (this.obstacle == null) {
+                return "{NONE}";
+            }
+            return "{speed=" + this.speed + ", instant=" + this.instant + ", obstacle=" +
+                    this.obstacle.getClass().getSimpleName() + "}";
         }
     }
 }
