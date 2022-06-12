@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.global;
 
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -7,14 +9,18 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.LongUnaryOperator;
 import java.util.logging.Level;
 
 import org.bukkit.Chunk;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
 
+import com.bergerkiller.bukkit.common.block.SignChangeTracker;
 import com.bergerkiller.bukkit.common.chunk.ChunkFutureProvider;
 import com.bergerkiller.bukkit.common.chunk.ChunkFutureProvider.ChunkNeighbourList;
 import com.bergerkiller.bukkit.common.chunk.ChunkFutureProvider.ChunkStateListener;
@@ -23,6 +29,7 @@ import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
 import com.bergerkiller.bukkit.tc.controller.global.SignController.Entry;
 import com.bergerkiller.bukkit.tc.utils.LongBlockCoordinates;
@@ -33,6 +40,8 @@ import com.bergerkiller.bukkit.tc.utils.LongBlockCoordinates;
  * world and is tightly coupled with the rail lookup cache.
  */
 public class SignControllerWorld {
+    private static final Material WALL_SIGN_TYPE = getMaterial("LEGACY_WALL_SIGN");
+    private static final Material SIGN_POST_TYPE = getMaterial("LEGACY_SIGN_POST");
     private final SignController controller;
     private final World world;
     private final OfflineWorld offlineWorld;
@@ -79,8 +88,17 @@ public class SignControllerWorld {
      * @return Entries nearby
      */
     public SignController.Entry[] findNearby(Block block) {
-        return signsByNeighbouringBlock.getOrDefault(LongBlockCoordinates.map(block.getX(), block.getY(), block.getZ()),
-                SignController.Entry.NO_ENTRIES);
+        return findNearby(LongBlockCoordinates.map(block.getX(), block.getY(), block.getZ()));
+    }
+
+    /**
+     * Looks up the signs that exist at, or neighbouring, the specified block.
+     *
+     * @param blockCoordinatesKey Key created using {@link LongBlockCoordinates#map(int, int, int)}
+     * @return Entries nearby
+     */
+    public SignController.Entry[] findNearby(long blockCoordinatesKey) {
+        return signsByNeighbouringBlock.getOrDefault(blockCoordinatesKey, SignController.Entry.NO_ENTRIES);
     }
 
     /**
@@ -117,6 +135,101 @@ public class SignControllerWorld {
     }
 
     /**
+     * Queries a sign column of signs starting at a Block, into the direction
+     * specified. This is used to find the signs below/at a rail block.
+     * Before it calls the handler, verifies the sign still truly exists.
+     * Passes the tracked sign details, which has been verified to exist.
+     *
+     * @param block Column start block
+     * @param direction Column direction
+     * @param handler Handler accepting the sign
+     */
+    public void forEachSignInColumn(Block block, BlockFace direction, Consumer<SignChangeTracker> handler) {
+        long key = LongBlockCoordinates.map(block.getX(), block.getY(), block.getZ());
+        LongUnaryOperator shift = LongBlockCoordinates.shiftOperator(direction);
+        int steps = 0;
+        while (true) {
+            boolean foundSigns = false;
+            for (SignController.Entry entry : this.findNearby(key)) {
+                if (verifySignColumnSlice(key, direction, entry)) {
+                    foundSigns = true;
+                    handler.accept(entry.sign);
+                }
+            }
+
+            // If no signs found this step, and we've moved too far, stop
+            if (!foundSigns && steps > 1) {
+                break;
+            }
+
+            // Next block
+            key = shift.applyAsLong(key);
+            steps++;
+        }
+    }
+
+    /**
+     * Checks for a single block of a rail sign column, whether there are wall signs attached
+     * to the column. Uses this cache, and verifies the signs truly do exist. For directions
+     * other than up and down, also verifies the sign isn't attached to the block in the same
+     * direction as the column.
+     *
+     * @param block Column start block
+     * @param direction Column direction
+     * @return True if there are wall signs attached to this block, False if not
+     */
+    public boolean hasSignsAroundColumn(Block block, BlockFace direction) {
+        long key = LongBlockCoordinates.map(block.getX(), block.getY(), block.getZ());
+        for (SignController.Entry entry : this.findNearby(key)) {
+            if (verifySignColumnSlice(key, direction, entry)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Verifies whether a particular sign is a part of a rail sign column, or not.
+     * Also checks the sign actually exists still.
+     *
+     * @param key Block coordinate key
+     * @param direction Sign column direction
+     * @param entry Current sign entry
+     * @return True if the sign is a part of the column slice, False if not
+     */
+    private boolean verifySignColumnSlice(long key, BlockFace direction, SignController.Entry entry) {
+        // Find relative direction the sign is at
+        BlockFace offset = LongBlockCoordinates.findDirection(entry.blockKey, key);
+        if (offset == direction || offset == direction.getOppositeFace()) {
+            return false;
+        }
+
+        // Check sign still exists
+        entry.sign.update();
+        if (entry.sign.isRemoved()) {
+            this.removeInvalidEntry(entry);
+            return false;
+        }
+
+        // Retrieve BlockData. Check attached face is correct, or that it is a sign post with SELF
+        BlockData blockData = WorldUtil.getBlockData(entry.sign.getBlock());
+        if (blockData.isType(SIGN_POST_TYPE)) {
+            if (offset != BlockFace.SELF)
+                return false;
+        } else if (blockData.isType(WALL_SIGN_TYPE)) {
+            if (blockData.getAttachedFace() != offset)
+                return false;
+        } else {
+            // Doesn't map to either legacy wall or sign post type
+            // Assume it's not a sign at all and remove it
+            this.removeInvalidEntry(entry);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Starts tracking a newly placed sign. Initializes power state, but does not fire any events.
      * If the sign was already tracked, returns the existing entry instead. If the sign could not
      * be found at this block, returns null.
@@ -145,6 +258,7 @@ public class SignControllerWorld {
         // Create entry. Add it to by-chunk and by-block mapping.
         Block signBlock = sign.getBlock();
         SignController.Entry entry = this.controller.createEntry(sign,
+                LongBlockCoordinates.map(signBlock.getX(), signBlock.getY(), signBlock.getZ()),
                 MathUtil.longHashToLong(MathUtil.toChunk(signBlock.getX()),
                                         MathUtil.toChunk(signBlock.getZ())));
         {
@@ -290,7 +404,9 @@ public class SignControllerWorld {
         List<SignController.Entry> entriesAtChunk = null;
         for (BlockState blockState : getBlockStatesSafe(chunk)) {
             if (blockState instanceof Sign) {
-                SignController.Entry entry = this.controller.createEntry((Sign) blockState, chunkKey);
+                SignController.Entry entry = this.controller.createEntry((Sign) blockState,
+                        LongBlockCoordinates.map(blockState.getX(), blockState.getY(), blockState.getZ()),
+                        chunkKey);
                 if (entriesAtChunk == null) {
                     entriesAtChunk = new ArrayList<>();
                     this.signsByChunk.put(chunkKey, entriesAtChunk);
@@ -336,8 +452,7 @@ public class SignControllerWorld {
     }
 
     private void addChunkByBlockEntry(SignController.Entry entry) {
-        Block b = entry.sign.getBlock();
-        final long key = LongBlockCoordinates.map(b.getX(), b.getY(), b.getZ());
+        final long key = entry.blockKey;
         addChunkByBlockEntry(entry, key);
         addChunkByBlockEntry(entry, LongBlockCoordinates.shiftUp(key));
         addChunkByBlockEntry(entry, LongBlockCoordinates.shiftDown(key));
@@ -388,8 +503,7 @@ public class SignControllerWorld {
     }
 
     void removeFromByBlockEntry(SignController.Entry entry) {
-        Block b = entry.sign.getBlock();
-        final long key = LongBlockCoordinates.map(b.getX(), b.getY(), b.getZ());
+        final long key = entry.blockKey;
         removeChunkByBlockEntry(entry, key);
         removeChunkByBlockEntry(entry, LongBlockCoordinates.shiftUp(key));
         removeChunkByBlockEntry(entry, LongBlockCoordinates.shiftDown(key));

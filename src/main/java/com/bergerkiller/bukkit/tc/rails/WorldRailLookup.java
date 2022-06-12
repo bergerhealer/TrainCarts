@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.rails;
 
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -11,22 +13,28 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.block.SignChangeTracker;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
+import com.bergerkiller.bukkit.tc.controller.global.SignController;
 import com.bergerkiller.bukkit.tc.controller.global.SignControllerWorld;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
@@ -60,6 +68,13 @@ public class WorldRailLookup {
 
     // Internally-used constant arrays
     private static final Bucket[] NO_RAILS_AT_POSITION = new Bucket[0];
+
+    // Used when calculating the signs at a rail
+    private static final TrackedSignList SIGN_LIST_CACHE = new TrackedSignList();
+
+    private static final Material WALL_SIGN_TYPE = getMaterial("LEGACY_WALL_SIGN");
+    private static final Material SIGN_POST_TYPE = getMaterial("LEGACY_SIGN_POST");
+    private static BlockFace[] SIGN_FACES_ORDERED = {BlockFace.UP, BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.DOWN};
 
     // Per-world data
     private World world;
@@ -328,6 +343,94 @@ public class WorldRailLookup {
                 members.remove(member);
             }
         });
+    }
+
+    /**
+     * Discovers the signs belonging to a particular rail.
+     * Unlike {@link RailPiece#signs()} this method does not look
+     * the information up from a cache
+     * 
+     * @param railType of the rail
+     * @param railBlock of the rail
+     * @return signs belonging to this rail
+     */
+    public TrackedSign[] discoverSignsAtRailPiece(RailPiece rail) {
+        Block columnStart = rail.type().getSignColumnStart(rail.block());
+        if (columnStart == null) {
+            return RailLookup.NO_SIGNS;
+        }
+
+        BlockFace direction = rail.type().getSignColumnDirection(rail.block());
+        if (direction == null || direction == BlockFace.SELF) {
+            return RailLookup.NO_SIGNS;
+        }
+
+        try (TrackedSignList cache = SIGN_LIST_CACHE.start(rail)) {
+            this.signController.forEachSignInColumn(columnStart, direction, cache::add);
+            return cache.build();
+        }
+    }
+
+    /**
+     * Searches from the position of a sign block for the RailPiece that is coupled
+     * with that sign, if that sign were to be triggered (by redstone, for example).
+     * Returns {@link RailPiece#NONE} if no rails could be found.
+     * 
+     * @param signblock Block of the sign
+     * @return rails piece information, NONE if the sign has no rails (rail block is null)
+     */
+    public RailPiece discoverRailPieceFromSign(Block signblock) {
+        if (signblock == null) {
+            return RailPiece.NONE;
+        }
+
+        BlockData signblock_data = WorldUtil.getBlockData(signblock);
+        final Block mainBlock;
+        if (signblock_data.isType(WALL_SIGN_TYPE)) {
+            mainBlock = signblock.getRelative(signblock_data.getAttachedFace());
+        } else if (signblock_data.isType(SIGN_POST_TYPE)) {
+            mainBlock = signblock;
+        } else {
+            return RailPiece.NONE;
+        }
+
+        // Check main block IS rails itself
+        RailType railType = RailType.getType(mainBlock);
+        if (railType != RailType.NONE) {
+            return RailPiece.create(railType, mainBlock);
+        }
+
+        // Look further in all 6 possible directions
+        for (BlockFace dir : SIGN_FACES_ORDERED) {
+            Block block = mainBlock;
+            BlockData blockData;
+            boolean hasSigns = true;
+            while (true) {
+                // Go to the next block
+                block = block.getRelative(dir);
+                blockData = WorldUtil.getBlockData(block);
+
+                // Check for rails
+                railType = RailType.getType(block, blockData);
+                BlockFace columnDir = railType.getSignColumnDirection(block);
+                if (dir == columnDir.getOppositeFace()) {
+                    return RailPiece.create(railType, block);
+                }
+
+                // End of the loop?
+                if (!hasSigns) {
+                    break;
+                }
+
+                // Go to the next block
+                if (blockData.isType(SIGN_POST_TYPE)) {
+                    hasSigns = true;
+                } else {
+                    hasSigns = this.signController.hasSignsAroundColumn(block, dir.getOppositeFace());
+                }
+            }
+        }
+        return RailPiece.NONE;
     }
 
     private void forAllBuckets(Consumer<Bucket> callback) {
@@ -881,6 +984,45 @@ public class WorldRailLookup {
         @Override
         public boolean verifyExists() {
             return this.rail_life != RailLookup.LIFE_TIMER_DELETED;
+        }
+    }
+
+    /**
+     * List cache used when generating the array of tracked signs
+     */
+    public static final class TrackedSignList implements AutoCloseable {
+        private final List<TrackedSign> signs = new ArrayList<>();
+        private RailPiece rail = null;
+
+        public TrackedSignList start(RailPiece rail) {
+            if (this.rail == null) {
+                this.rail = rail;
+                return this;
+            } else {
+                // Already opened, create a new one to prevent corruption
+                TrackedSignList copy = new TrackedSignList();
+                copy.rail = rail;
+                return copy;
+            }
+        }
+
+        @Override
+        public void close() {
+            this.signs.clear();
+            this.rail = null;
+        }
+
+        public void add(SignChangeTracker tracker) {
+            try {
+                this.signs.add(new TrackedSign(tracker, this.rail));
+            } catch (Throwable t) {
+                TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to load sign at " + tracker.getBlock(), t);
+            }
+        }
+
+        public TrackedSign[] build() {
+            List<TrackedSign> signs = this.signs;
+            return signs.isEmpty() ? RailLookup.NO_SIGNS : signs.toArray(new TrackedSign[signs.size()]);
         }
     }
 }

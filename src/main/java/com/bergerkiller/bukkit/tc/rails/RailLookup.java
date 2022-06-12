@@ -1,31 +1,20 @@
 package com.bergerkiller.bukkit.tc.rails;
 
-import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Level;
 
-import org.bukkit.Chunk;
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 
 import com.bergerkiller.bukkit.common.block.SignChangeTracker;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
-import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCConfig;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
@@ -59,10 +48,6 @@ public final class RailLookup {
     static final TrackedSign[] NO_SIGNS = new TrackedSign[0];
     static final TrackedSign[] MISSING_RAILS_NO_SIGNS = new TrackedSign[0];
     static final List<MinecartMember<?>> DEFAULT_MEMBER_LIST = Collections.emptyList();
-    private static final TrackedSignList SIGN_LIST_CACHE = new TrackedSignList();
-    private static final Material WALL_SIGN_TYPE = getMaterial("LEGACY_WALL_SIGN");
-    private static final Material SIGN_POST_TYPE = getMaterial("LEGACY_SIGN_POST");
-    private static BlockFace[] SIGN_FACES_ORDERED = {BlockFace.UP, BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.DOWN};
 
     // Stores all WorldRailLookup instances that are in use
     private static final IdentityHashMap<World, WorldRailLookup> byWorld = new IdentityHashMap<>();
@@ -203,58 +188,7 @@ public final class RailLookup {
      * @return rails piece information, NONE if the sign has no rails (rail block is null)
      */
     public static RailPiece discoverRailPieceFromSign(Block signblock) {
-        if (signblock == null) {
-            return RailPiece.NONE;
-        }
-
-        BlockData signblock_data = WorldUtil.getBlockData(signblock);
-        final Block mainBlock;
-        if (signblock_data.isType(WALL_SIGN_TYPE)) {
-            mainBlock = signblock.getRelative(signblock_data.getAttachedFace());
-        } else if (signblock_data.isType(SIGN_POST_TYPE)) {
-            mainBlock = signblock;
-        } else {
-            return RailPiece.NONE;
-        }
-
-        // Check main block IS rails itself
-        RailType railType = RailType.getType(mainBlock);
-        if (railType != RailType.NONE) {
-            return RailPiece.create(railType, mainBlock);
-        }
-
-        // Look further in all 6 possible directions
-        boolean hasSigns;
-        for (BlockFace dir : SIGN_FACES_ORDERED) {
-            Block block = mainBlock;
-            BlockData blockData;
-            hasSigns = true;
-            while (true) {
-                // Go to the next block
-                block = block.getRelative(dir);
-                blockData = WorldUtil.getBlockData(block);
-
-                // Check for rails
-                railType = RailType.getType(block, blockData);
-                BlockFace columnDir = railType.getSignColumnDirection(block);
-                if (dir == columnDir.getOppositeFace()) {
-                    return RailPiece.create(railType, block);
-                }
-
-                // End of the loop?
-                if (!hasSigns) {
-                    break;
-                }
-
-                // Go to the next block
-                if (MaterialUtil.ISSIGN.get(blockData)) {
-                    hasSigns = blockData.getAttachedFace() == BlockFace.DOWN;
-                } else {
-                    hasSigns = hasAttachedSigns(block);
-                }
-            }
-        }
-        return RailPiece.NONE;
+        return RailLookup.forWorld(signblock.getWorld()).discoverRailPieceFromSign(signblock);
     }
 
     /**
@@ -267,109 +201,7 @@ public final class RailLookup {
      * @return signs belonging to this rail
      */
     public static TrackedSign[] discoverSignsAtRailPiece(RailPiece rail) {
-        Block columnStart = rail.type().getSignColumnStart(rail.block());
-        if (columnStart == null) {
-            return RailLookup.NO_SIGNS;
-        }
-
-        BlockFace direction = rail.type().getSignColumnDirection(rail.block());
-        if (direction == null || direction == BlockFace.SELF) {
-            return RailLookup.NO_SIGNS;
-        }
-
-        try (TrackedSignList cache = SIGN_LIST_CACHE.start(rail)) {
-            if (FaceUtil.isVertical(direction)) {
-                // Vertical column can be optimized because we know up-front what chunks will be checked
-                // First retrieve the chunk of the middle column, and the chunk-relative coordinates
-                Chunk chunk = columnStart.getChunk();
-                int rx = columnStart.getX() & 0xF;
-                int ry = columnStart.getY();
-                int rz = columnStart.getZ() & 0xF;
-
-                int offsetCtr = 0;
-                if (rx >= 1 && rx <= 14 && rz >= 1 && rz <= 14) {
-                    // If all within the same chunk, this can be optimized
-                    BlockFace[] faces = FaceUtil.AXIS;
-                    while (true) {
-                        if (WorldUtil.getBlockData(chunk, rx, ry, rz).isType(SIGN_POST_TYPE)) {
-                            // Found a sign post. No need to check for wall signs.
-                            cache.add(chunk.getBlock(rx, ry, rz));
-                        } else {
-                            // Check for wall signs
-                            boolean foundSigns = false;
-                            for (BlockFace face : faces) {
-                                BlockData blockData = WorldUtil.getBlockData(chunk, rx + face.getModX(), ry, rz + face.getModZ());
-                                if (MaterialUtil.ISSIGN.get(blockData) && blockData.getAttachedFace() == face.getOppositeFace()) {
-                                    cache.add(chunk.getBlock(rx + face.getModX(), ry, rz + face.getModZ()));
-                                    foundSigns = true;
-                                }
-                            }
-
-                            // If no signs are found found and offset is 2, stop.
-                            if (!foundSigns && offsetCtr > 1) {
-                                break;
-                            }
-                        }
-
-                        ry += direction.getModY();
-                        offsetCtr++;
-                    }
-                } else {
-                    // Work up/down. Initialize the 4 sides' chunk
-                    VerticalSignColumn[] columns = VerticalSignColumn.ALL;
-                    for (int i = 0; i < 4; i++) {
-                        columns[i].load(chunk, rx, rz);
-                    }
-                    while (true) {
-                        if (WorldUtil.getBlockData(chunk, rx, ry, rz).isType(SIGN_POST_TYPE)) {
-                            // Found a sign post. No need to check for wall signs.
-                            cache.add(chunk.getBlock(rx, ry, rz));
-                        } else {
-                            // Check for wall signs
-                            boolean foundSigns = false;
-                            for (int i = 0; i < 4; i++) {
-                                foundSigns |= columns[i].findSign(cache, ry);
-                            }
-
-                            // If no signs are found found and offset is 2, stop.
-                            if (!foundSigns && offsetCtr > 1) {
-                                break;
-                            }
-                        }
-
-                        ry += direction.getModY();
-                        offsetCtr++;
-                    }
-                }
-            } else {
-                // Other directions are too tricky. Thankfully, they're hardly used at all.
-                Block currentBlock = columnStart;
-                int offsetCtr = 0;
-                while (true) {
-                    // Find one or more signs attached to the current block - continue
-                    boolean foundSigns = false;
-                    for (BlockFace face : FaceUtil.AXIS) {
-                        Block b = currentBlock.getRelative(face);
-                        BlockData blockData = WorldUtil.getBlockData(b);
-                        if (MaterialUtil.ISSIGN.get(blockData) && blockData.getAttachedFace() == face.getOppositeFace()) {
-                            foundSigns = true;
-                            cache.add(b);
-                        }
-                    }
-
-                    // No signs found here. If this is too far down, stop.
-                    if (!foundSigns && offsetCtr > 1) {
-                        break;
-                    }
-
-                    currentBlock = currentBlock.getRelative(direction);
-                    offsetCtr++;
-                }
-            }
-
-            // Pack result into a TrackedSign array
-            return cache.build();
-        }
+        return rail.railLookup().discoverSignsAtRailPiece(rail);
     }
 
     /**
@@ -603,102 +435,5 @@ public final class RailLookup {
         public boolean equals(Object o) {
             return ((TrackedSign) o).signBlock.equals(this.signBlock);
         }
-    }
-
-    /**
-     * List cache used when generating the array of tracked signs
-     */
-    private static final class TrackedSignList implements AutoCloseable {
-        private final List<TrackedSign> signs = new ArrayList<>();
-        private RailPiece rail = null;
-
-        public TrackedSignList start(RailPiece rail) {
-            if (this.rail == null) {
-                this.rail = rail;
-                return this;
-            } else {
-                // Already opened, create a new one to prevent corruption
-                TrackedSignList copy = new TrackedSignList();
-                copy.rail = rail;
-                return copy;
-            }
-        }
-
-        @Override
-        public void close() {
-            this.signs.clear();
-            this.rail = null;
-        }
-
-        public void add(Block signBlock) {
-            SignChangeTracker tracker = SignChangeTracker.track(signBlock);
-            if (!tracker.isRemoved()) {
-                try {
-                    this.signs.add(new TrackedSign(tracker, this.rail));
-                } catch (Throwable t) {
-                    TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to load sign at " + signBlock, t);
-                }
-            }
-        }
-
-        public TrackedSign[] build() {
-            List<TrackedSign> signs = this.signs;
-            return signs.isEmpty() ? RailLookup.NO_SIGNS : signs.toArray(new TrackedSign[signs.size()]);
-        }
-    }
-
-    /**
-     * Temporarily stores the chunk and relative coordinates for a vertical slice of
-     * wall signs for a column below/above rails being checked.
-     */
-    private static class VerticalSignColumn {
-        public static final VerticalSignColumn[] ALL = new VerticalSignColumn[] {
-                new VerticalSignColumn(BlockFace.WEST),
-                new VerticalSignColumn(BlockFace.EAST),
-                new VerticalSignColumn(BlockFace.NORTH),
-                new VerticalSignColumn(BlockFace.SOUTH)
-        };
-        public final BlockFace face;
-        public Chunk chunk;
-        public int rx, rz;
-
-        private VerticalSignColumn(BlockFace face) {
-            this.face = face;
-        }
-
-        public void load(Chunk mainChunk, int main_rx, int main_rz) {
-            this.rx = main_rx + this.face.getModX();
-            this.rz = main_rz + this.face.getModZ();
-            if (this.rx < 0 || this.rx >= 16) {
-                this.chunk = mainChunk.getWorld().getChunkAt(mainChunk.getX() + this.face.getModX(), mainChunk.getZ());
-                this.rx &= 0xF;
-            } else if (this.rz < 0 || this.rz >= 16) {
-                this.chunk = mainChunk.getWorld().getChunkAt(mainChunk.getX(), mainChunk.getZ() + this.face.getModZ());
-                this.rz &= 0xF;
-            } else {
-                this.chunk = mainChunk;
-            }
-        }
-
-        public boolean findSign(TrackedSignList rval, int ry) {
-            BlockData blockData = WorldUtil.getBlockData(chunk, rx, ry, rz);
-            if (MaterialUtil.ISSIGN.get(blockData) && blockData.getAttachedFace() == face.getOppositeFace()) {
-                rval.add(chunk.getBlock(rx, ry, rz));
-                return true;
-            } else {
-                return false;
-            }
-        }
-    }
-
-    private static boolean hasAttachedSigns(final Block middle) {
-        for (BlockFace face : FaceUtil.AXIS) {
-            Block b = middle.getRelative(face);
-            BlockData blockData = WorldUtil.getBlockData(b);
-            if (MaterialUtil.ISSIGN.get(blockData) && blockData.getAttachedFace() == face.getOppositeFace()) {
-                return true;
-            }
-        }
-        return false;
     }
 }

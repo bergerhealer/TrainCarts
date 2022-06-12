@@ -279,8 +279,8 @@ public class SignController implements LibraryComponent, Listener {
         }
     }
 
-    Entry createEntry(Sign sign, long chunkKey) {
-        return new Entry(sign, chunkKey, this);
+    Entry createEntry(Sign sign, long blockKey, long chunkKey) {
+        return new Entry(sign, blockKey, chunkKey, this);
     }
 
     void activateEntry(Entry entry) {
@@ -342,15 +342,17 @@ public class SignController implements LibraryComponent, Listener {
         public boolean activated;
         private final FastTrackedUpdateSet.Tracker<Entry> redstoneUpdateTracker;
         private final FastTrackedUpdateSet.Tracker<Entry> ignoreRedstoneUpdateTracker;
+        final long blockKey;
         final long chunkKey;
         final Entry[] singletonArray;
 
-        private Entry(Sign sign, long chunkKey, SignController controller) {
+        private Entry(Sign sign, long blockKey, long chunkKey, SignController controller) {
             this.sign = SignChangeTracker.track(sign);
             this.powered = false; // Initialized later once neighbouring chunks are also loaded
             this.activated = false; // Activated when neighbouring chunks load as well
             this.redstoneUpdateTracker = controller.pendingRedstoneUpdates.track(this);
             this.ignoreRedstoneUpdateTracker = controller.ignoreRedstoneUpdates.track(this);
+            this.blockKey = blockKey;
             this.chunkKey = chunkKey;
             this.singletonArray = new Entry[] { this };
         }
