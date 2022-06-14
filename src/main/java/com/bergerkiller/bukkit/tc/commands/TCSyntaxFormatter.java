@@ -105,6 +105,9 @@ public class TCSyntaxFormatter<C> implements CommandSyntaxFormatter<C> {
         return new FormattingInstance();
     }
 
+    static {
+        new FormattingInstance(); // Ensure already initialized
+    }
 
     /**
      * Instance that is used when building command syntax
