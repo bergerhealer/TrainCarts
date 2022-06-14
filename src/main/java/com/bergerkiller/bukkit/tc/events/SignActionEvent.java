@@ -108,11 +108,15 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     public SignActionEvent(final Block signblock, final Sign sign, RailPiece rail) {
+        this(signblock, sign, null, rail);
+    }
+
+    public SignActionEvent(final Block signblock, final Sign sign, BlockFace signFacing, RailPiece rail) {
         this.signblock = signblock;
         this.sign = sign;
         this.rail = rail;
         this.actionType = SignActionType.NONE;
-        this.facing = null;
+        this.facing = signFacing;
         if (this.sign == null) {
             // No sign available - set default values and abort
             this.header = SignActionHeader.parse(null);

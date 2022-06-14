@@ -212,7 +212,7 @@ public class SignControllerWorld {
         }
 
         // Retrieve BlockData. Check attached face is correct, or that it is a sign post with SELF
-        BlockData blockData = WorldUtil.getBlockData(entry.sign.getBlock());
+        BlockData blockData = entry.sign.getBlockData();
         if (blockData.isType(SIGN_POST_TYPE)) {
             if (offset != BlockFace.SELF)
                 return false;

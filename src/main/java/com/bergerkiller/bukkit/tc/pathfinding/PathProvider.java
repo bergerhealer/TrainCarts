@@ -93,7 +93,7 @@ public class PathProvider extends Task {
                 for (RailLookup.TrackedSign trackedSign : event.railPiece().signs()) {
                     // Check there is a SignAction at this sign
                     SignAction action = trackedSign.action;
-                    if (action == null) {
+                    if (trackedSign.isRemoved() || action == null) {
                         continue;
                     }
 
@@ -128,7 +128,7 @@ public class PathProvider extends Task {
                 for (RailLookup.TrackedSign trackedSign : event.railPiece().signs()) {
                     // Check there is a SignAction at this sign
                     SignAction action = trackedSign.action;
-                    if (action == null || !action.hasPathFindingPrediction()) {
+                    if (trackedSign.isRemoved() || action == null || !action.hasPathFindingPrediction()) {
                         continue;
                     }
 

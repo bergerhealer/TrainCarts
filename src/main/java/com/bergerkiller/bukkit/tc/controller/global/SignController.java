@@ -9,7 +9,6 @@ import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -135,17 +134,12 @@ public class SignController implements LibraryComponent, Listener {
      * @param lever to ignore
      */
     public void ignoreOutputLever(Block lever) {
-        Block att = BlockUtil.getAttachedBlock(lever);
+        final Block att = BlockUtil.getAttachedBlock(lever);
 
         // Check whether there are any signs attached to the same block the lever is
         forEachNearbyVerify(att, entry -> {
-            // If attached face matches the relative position of the sign, ignore redstone
-            Block signBlock = entry.getBlock();
-            BlockFace attachedFace = entry.getBlockData().getAttachedFace();
-            if ((att.getX() - signBlock.getX()) == attachedFace.getModX() &&
-                (att.getY() - signBlock.getY()) == attachedFace.getModY() &&
-                (att.getZ() - signBlock.getZ()) == attachedFace.getModZ()
-            ) {
+            // If attached to the same block as the lever, ignore
+            if (entry.sign.isAttachedTo(att)) {
                 entry.ignoreRedstone();
             }
         });
@@ -359,15 +353,6 @@ public class SignController implements LibraryComponent, Listener {
 
         public Block getBlock() {
             return this.sign.getBlock();
-        }
-
-        /**
-         * Gets the current BlockData of the sign
-         *
-         * @return Sign Blockdata
-         */
-        public BlockData getBlockData() {
-            return WorldUtil.getBlockData(this.sign.getBlock());
         }
 
         /**

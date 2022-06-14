@@ -374,13 +374,23 @@ public final class RailLookup {
         }
 
         /**
+         * Gets whether this TrackedSign refers to a Sign that has since been removed from the
+         * server. This can happen when a sign is broken and this was detected during an update.
+         *
+         * @return True if the sign was removed
+         */
+        public boolean isRemoved() {
+            return this.tracker.isRemoved();
+        }
+
+        /**
          * Initializes a new SignActionEvent using this tracked sign for sign and rail information
          *
          * @param action Sign action event type
          * @return new SignActionEvent
          */
         public SignActionEvent createEvent(SignActionType action) {
-            return (new SignActionEvent(this.signBlock, this.sign, this.rail)).setAction(action);
+            return (new SignActionEvent(this.signBlock, this.sign, this.tracker.getFacing(), this.rail)).setAction(action);
         }
 
         /**
@@ -392,7 +402,7 @@ public final class RailLookup {
          * @see #createEvent(SignActionType)
          */
         public void executeEventForMember(SignActionType action, MinecartMember<?> member) {
-            if (member.isInteractable()) {
+            if (!isRemoved() && member.isInteractable()) {
                 SignActionEvent event = createEvent(action);
                 event.setMember(member);
                 SignAction.executeOne(this.action, event);
@@ -408,7 +418,7 @@ public final class RailLookup {
          * @see #createEvent(SignActionType)
          */
         public void executeEventForGroup(SignActionType action, MinecartGroup group) {
-            if (!group.isUnloaded()) {
+            if (!isRemoved() && !group.isUnloaded()) {
                 SignActionEvent event = createEvent(action);
                 event.setGroup(group);
                 SignAction.executeOne(this.action, event);
