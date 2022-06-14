@@ -1,14 +1,8 @@
 package com.bergerkiller.bukkit.tc;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 
-import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
 import com.bergerkiller.bukkit.common.events.PacketSendEvent;
@@ -25,8 +19,12 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
  * Listens to block interaction packets and translates them into packets
  * interacting with minecarts that are in those positions.
  */
-public class TCInteractionPacketListener implements PacketListener {
-    private final Map<Player, Long> lastHitTime = new HashMap<Player, Long>();
+class TCInteractionPacketListener implements PacketListener {
+    private final TCPacketListener mainPacketListener;
+
+    TCInteractionPacketListener(TCPacketListener mainPacketListener) {
+        this.mainPacketListener = mainPacketListener;
+    }
 
     public static final PacketType[] TYPES = {
             PacketType.IN_USE_ITEM,
@@ -34,21 +32,6 @@ public class TCInteractionPacketListener implements PacketListener {
             PacketType.IN_ENTITY_ANIMATION,
             PacketType.IN_BLOCK_DIG
     };
-
-    private void storeHit(Player player) {
-        synchronized (lastHitTime) {
-            if (lastHitTime.isEmpty()) {
-                new HitTimeCleanTask(TrainCarts.plugin).start(1, 1);
-            }
-            lastHitTime.put(player, System.currentTimeMillis());
-        }
-    }
-
-    private boolean isHit(Player player) {
-        synchronized (lastHitTime) {
-            return lastHitTime.containsKey(player);
-        }
-    }
 
     private void cancelBlockChanges(Player player, IntVector3 pos) {
         // Check chunk is loaded in this area to protect against rogue client data
@@ -78,13 +61,7 @@ public class TCInteractionPacketListener implements PacketListener {
 
         // Store last hit when USE_ITEM is called, to avoid ENTITY_ANIMATION attack() being called incorrectly
         if (event.getType() == PacketType.IN_USE_ITEM) {
-            storeHit(event.getPlayer());
-        }
-
-        // The arm swing animation fires multiple times in rapid succession; cancel those
-        if (event.getType() == PacketType.IN_ENTITY_ANIMATION && isHit(event.getPlayer())) {
-            event.setCancelled(true);
-            return;
+            mainPacketListener.suppressAttacksFor(event.getPlayer(), TCPacketListener.ATTACK_SUPPRESS_DURATION);
         }
 
         // Ignore IN_BLOCK_DIG packets that are uninteresting to us
@@ -104,6 +81,10 @@ public class TCInteractionPacketListener implements PacketListener {
         } else if (event.getType() == PacketType.IN_ENTITY_ANIMATION) {
             HumanHand hand = PacketType.IN_ENTITY_ANIMATION.getHand(event.getPacket(), event.getPlayer());
             if (hand == HumanHand.getOffHand(event.getPlayer())) {
+                if (mainPacketListener.isAttackSuppressed(event.getPlayer())) {
+                    event.setCancelled(true);
+                    return;
+                }
                 isAttackClick = true;
             }
         }
@@ -111,7 +92,6 @@ public class TCInteractionPacketListener implements PacketListener {
             MinecartMember<?> member = MinecartMemberStore.getFromHitTest(event.getPlayer().getEyeLocation());
             if (member != null) {
                 event.setCancelled(true);
-                storeHit(event.getPlayer());
                 TCPacketListener.fakeAttack(member, event.getPlayer());
 
                 // When packet is IN_BLOCK_DIG, send a block change to correct the changed block
@@ -143,34 +123,10 @@ public class TCInteractionPacketListener implements PacketListener {
                 }
 
                 event.setCancelled(true);
-                TCPacketListener.fakeInteraction(member, event.getPlayer(), hand);
+                this.mainPacketListener.fakeInteraction(member, event.getPlayer(), hand);
             }
 
             return;
         }
-    }
-
-    private final class HitTimeCleanTask extends Task {
-
-        public HitTimeCleanTask(JavaPlugin plugin) {
-            super(plugin);
-        }
-
-        @Override
-        public void run() {
-            synchronized (lastHitTime) {
-                long timeout = System.currentTimeMillis() - 150;
-                Iterator<Long> iter = lastHitTime.values().iterator();
-                while (iter.hasNext()) {
-                    if (iter.next().longValue() >= timeout) {
-                        iter.remove();
-                    }
-                }
-                if (lastHitTime.isEmpty()) {
-                    this.stop();
-                }
-            }
-        }
-
     }
 }

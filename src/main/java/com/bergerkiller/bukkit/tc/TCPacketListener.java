@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc;
 
+import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.collections.ImplicitlySharedSet;
 import com.bergerkiller.bukkit.common.conversion.type.HandleConversion;
 import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
@@ -17,19 +18,42 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlay
 import com.bergerkiller.generated.net.minecraft.world.EnumHandHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.player.EntityHumanHandle;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.plugin.java.JavaPlugin;
 
 /**
  * Temporary (???) packet listener to handle and cancel player SHIFT presses to cancel vehicle exit
  */
-public class TCPacketListener implements PacketListener {
+class TCPacketListener implements PacketListener {
+    public static final int ATTACK_SUPPRESS_DURATION = 250; // 250ms
     public static final PacketType[] LISTENED_TYPES = new PacketType[] {
             PacketType.IN_STEER_VEHICLE, PacketType.IN_USE_ENTITY, PacketType.IN_ENTITY_ACTION,
             PacketType.IN_POSITION, PacketType.IN_POSITION_LOOK
     };
+
+    private final Map<Player, Long> lastHitTime = new HashMap<Player, Long>();
+
+    public void suppressAttacksFor(Player player, int durationMillis) {
+        synchronized (lastHitTime) {
+            if (lastHitTime.isEmpty()) {
+                new HitTimeCleanTask(TrainCarts.plugin).start(1, 1);
+            }
+            lastHitTime.put(player, System.currentTimeMillis() + durationMillis);
+        }
+    }
+
+    public boolean isAttackSuppressed(Player player) {
+        synchronized (lastHitTime) {
+            return lastHitTime.containsKey(player);
+        }
+    }
 
     @Override
     public void onPacketSend(PacketSendEvent event) {
@@ -126,6 +150,11 @@ public class TCPacketListener implements PacketListener {
                                 packet_use.setInteract(event.getPlayer(), hand);
                             }
 
+                            // Must track this to cancel superfluous LEFT clicks that happen later
+                            if (packet_use.isInteract() || packet_use.isInteractAt()) {
+                                this.suppressAttacksFor(event.getPlayer(), ATTACK_SUPPRESS_DURATION);
+                            }
+
                             // Rewrite the packet
                             packet_use.setUsedEntityId(member.getEntity().getEntityId());
                             return; // Allow
@@ -170,7 +199,9 @@ public class TCPacketListener implements PacketListener {
         EntityHumanHandle.createHandle(playerHandleRaw).attack(member.getEntity().getEntity());
     }
 
-    public static void fakeInteraction(final MinecartMember<?> member, final Player player, final HumanHand hand) {
+    public void fakeInteraction(final MinecartMember<?> member, final Player player, final HumanHand hand) {
+        this.suppressAttacksFor(player, ATTACK_SUPPRESS_DURATION);
+
         // Fix cross-thread access
         if (!CommonUtil.isMainThread()) {
             CommonUtil.nextTick(new Runnable() {
@@ -216,4 +247,26 @@ public class TCPacketListener implements PacketListener {
         member.onInteractBy(player, hand);
     }
 
+    private final class HitTimeCleanTask extends Task {
+
+        public HitTimeCleanTask(JavaPlugin plugin) {
+            super(plugin);
+        }
+
+        @Override
+        public void run() {
+            synchronized (lastHitTime) {
+                long timeout = System.currentTimeMillis();
+                Iterator<Long> iter = lastHitTime.values().iterator();
+                while (iter.hasNext()) {
+                    if (timeout >= iter.next().longValue()) {
+                        iter.remove();
+                    }
+                }
+                if (lastHitTime.isEmpty()) {
+                    this.stop();
+                }
+            }
+        }
+    }
 }
