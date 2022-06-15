@@ -64,6 +64,9 @@ public class TrainTargetingFlags implements BiFunction<CommandTargetTrain, Comma
             .withArgument(NearPosition.asArgument("where"))
             .build();
 
+    private final CommandFlag<Void> flagNearest = CommandFlag.newBuilder("nearest")
+            .build();
+
     // Make private
     private TrainTargetingFlags() {
     }
@@ -72,13 +75,14 @@ public class TrainTargetingFlags implements BiFunction<CommandTargetTrain, Comma
         return flag == flagTrain
                 || flag == flagCart
                 || flag == flagWorld
-                || flag == flagNear;
+                || flag == flagNear
+                || flag == flagNearest;
     }
 
     @Override
     public Builder<CommandSender> apply(CommandTargetTrain annotation, Builder<CommandSender> builder) {
         builder = builder.flag(flagTrain).flag(flagCart);
-        builder = builder.flag(flagWorld).flag(flagNear);
+        builder = builder.flag(flagWorld).flag(flagNear).flag(flagNearest);
         return builder;
     }
 
@@ -144,11 +148,25 @@ public class TrainTargetingFlags implements BiFunction<CommandTargetTrain, Comma
         World atWorld = context.flags().getValue(flagWorld.getName(), null);
 
         // Process --near to find carts nearby
-        if (context.flags().hasFlag(flagNear.getName())) {
+        if (context.flags().hasFlag(flagNear.getName()) || context.flags().hasFlag(flagNearest.getName())) {
             // Perms
             Permission.COMMAND_TARGET_NEAR.handle(context.getSender());
 
-            final NearPosition near = context.flags().get(flagNear.getName());
+            final NearPosition near;
+            if (context.flags().hasFlag(flagNear.getName())) {
+                near = context.flags().get(flagNear.getName());
+            } else {
+                ArgumentParseResult<NearPosition> parseResult = NearPosition.parseNearest(context);
+                if (parseResult.getFailure().isPresent()) {
+                    Throwable t = parseResult.getFailure().get();
+                    if (t instanceof RuntimeException) {
+                        throw (RuntimeException) t;
+                    } else {
+                        return null; //Uhhhh....
+                    }
+                }
+                near = parseResult.getParsedValue().get();
+            }
             if (atWorld != null) {
                 near.at.setWorld(atWorld);
             }

@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.commands.parsers;
 
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.stream.Collectors;
@@ -45,6 +46,24 @@ public class NearPosition {
         return new NearArgument(name);
     }
 
+    public static ArgumentParseResult<NearPosition> parseNearest(final CommandContext<CommandSender> commandContext) {
+        Queue<String> atSenderQueue = new LinkedList<>();
+        atSenderQueue.add("~");
+        atSenderQueue.add("~");
+        atSenderQueue.add("~");
+        ArgumentParseResult<Location> locationResult = NearParser.locationParser.parse(commandContext, atSenderQueue);
+        if (locationResult.getFailure().isPresent()) {
+            return ArgumentParseResult.failure(
+                    locationResult.getFailure().get()
+            );
+        }
+
+        // Done!
+        return ArgumentParseResult.success(new NearPosition(
+                locationResult.getParsedValue().get(),
+                128.0));
+    }
+
     private static class NearArgument extends CommandArgument<CommandSender, NearPosition> {
 
         private NearArgument(String name) {
@@ -59,8 +78,8 @@ public class NearPosition {
 
         private static final int EXPECTED_PARAMETER_COUNT = 4;
 
-        private final LocationArgument.LocationParser<CommandSender> locationParser = new LocationArgument.LocationParser<>();
-        private final DoubleParser<CommandSender> radiusParser = new DoubleParser<CommandSender>(0.0, Double.MAX_VALUE);
+        private static final LocationArgument.LocationParser<CommandSender> locationParser = new LocationArgument.LocationParser<>();
+        private static final DoubleParser<CommandSender> radiusParser = new DoubleParser<CommandSender>(0.0, Double.MAX_VALUE);
 
         @Override
         public ArgumentParseResult<NearPosition> parse(
@@ -68,7 +87,7 @@ public class NearPosition {
                 final Queue<String> inputQueue
         ) {
             // Parse x/y/z location (and world from sender)
-            ArgumentParseResult<Location> locationResult = this.locationParser.parse(commandContext, inputQueue);
+            ArgumentParseResult<Location> locationResult = locationParser.parse(commandContext, inputQueue);
             if (locationResult.getFailure().isPresent()) {
                 return ArgumentParseResult.failure(
                         locationResult.getFailure().get()
@@ -76,7 +95,7 @@ public class NearPosition {
             }
 
             // Parse radius
-            ArgumentParseResult<Double> radiusResult = this.radiusParser.parse(commandContext, inputQueue);
+            ArgumentParseResult<Double> radiusResult = radiusParser.parse(commandContext, inputQueue);
             if (radiusResult.getFailure().isPresent()) {
                 return ArgumentParseResult.failure(
                         radiusResult.getFailure().get()
