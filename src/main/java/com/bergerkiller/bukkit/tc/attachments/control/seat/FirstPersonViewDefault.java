@@ -15,8 +15,6 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutUpdateAttributesHandle;
 
-import me.m56738.smoothcoasters.api.RotationMode;
-
 /**
  * Default view mode where the player can freely look around. Views either the entity
  * itself, or a third-person fake camera is used.
@@ -70,11 +68,6 @@ public class FirstPersonViewDefault extends FirstPersonView {
             Matrix4x4 eyeTransform = getEyeTransform();
 
             if (!isReload && this.seat.useSmoothCoasters()) {
-                this.seat.getPlugin().getSmoothCoastersAPI().setRotationMode(
-                        null,
-                        viewer,
-                        RotationMode.CAMERA // TCConfig.smoothCoastersRotationMode
-                );
                 this.syncSmoothCoastersRotations(eyeTransform, true);
             }
 
@@ -82,33 +75,13 @@ public class FirstPersonViewDefault extends FirstPersonView {
                 // Don't do any bizar logic here...
             } else if (this.seat.useSmoothCoasters()) {
                 if (seat.isRotationLocked()) {
-                    // Body is locked, make the player face forwards according to the eye transform
-                    // As smoothcoasters uses a quaternion base, this is simply 0/0
-                    PacketPlayOutPositionHandle p = PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, 0.0f, 0.0f);
-                    p.setRotationRelative(false);
-                    PacketUtil.sendPacket(viewer, p);
-                } else {
-                    // Send current player absolute rotation. SmoothCoasters has a bug in it
-                    // that the player looks into a random direction otherwise. This rotation must be
-                    // adjusted for the base quaternion orientation that's already applied.
-
-                    // Absolute orientation of player
-                    Quaternion lookOrientation;
-                    {
-                        Location loc = viewer.getEyeLocation();
-                        lookOrientation = Quaternion.fromYawPitchRoll(loc.getPitch(), loc.getYaw(), 0.0);
-                    }
-
-                    // Subtract the seat orientation we're sending
-                    Quaternion result = Quaternion.diff(eyeTransform.getRotation(), lookOrientation);
-
-                    // To head yaw/pitch - ensure always level as the client cannot comprehend extreme pitch
-                    HeadRotation rot = HeadRotation.compute(result).ensureLevel();
-
-                    // Send it
-                    PacketPlayOutPositionHandle p = PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, rot.yaw, rot.pitch);
-                    p.setRotationRelative(false);
-                    PacketUtil.sendPacket(viewer, p);
+                    // Body is locked, limit the local yaw
+                    seat.getPlugin().getSmoothCoastersAPI().setRotationLimit(null, viewer,
+                            // yaw
+                            -BODY_LOCK_FOV_LIMIT, BODY_LOCK_FOV_LIMIT,
+                            // pitch
+                            -90, 90
+                    );
                 }
             } else if (seat.isRotationLocked()) {
                 // Body is locked, make the player face forwards according to the eye transform
@@ -164,16 +137,7 @@ public class FirstPersonViewDefault extends FirstPersonView {
             seat.getPlugin().getSmoothCoastersAPI().setEntityRotation(null, viewer, viewer.getEntityId(),
                     0.0f, 0.0f, 0.0f, 1.0f, (byte) 0);
             seat.getPlugin().getSmoothCoastersAPI().resetRotation(null, viewer);
-            seat.getPlugin().getSmoothCoastersAPI().setRotationMode(null, viewer, RotationMode.NONE);
-
-            // Make the player look where the player was looking before
-            {
-                Quaternion headRotQuat = seat.seated.getCurrentHeadRotationQuat(seat.getTransform());
-                HeadRotation headRot = HeadRotation.compute(headRotQuat).ensureLevel();
-                PacketPlayOutPositionHandle p = PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, headRot.yaw, headRot.pitch);
-                p.setRotationRelative(false);
-                PacketUtil.sendPacket(viewer, p);
-            }
+            seat.getPlugin().getSmoothCoastersAPI().resetRotationLimit(null, viewer);
         }
 
         if (this._fakeCameraMount != null) {
@@ -239,36 +203,8 @@ public class FirstPersonViewDefault extends FirstPersonView {
         // If body rotation is locked, restrict rotation within a yaw diff of 70 degrees
         // TODO: I disabled this stuff because it's way too jittery and annoying
         /*
-        if (player != null && seat.isRotationLocked()) {
-            if (seat.useSmoothCoasters()) {
-                // Easy, keep yaw between the limits. The yaw is forwards when 0.
-                float currYaw = MathUtil.wrapAngle(player.getEyeLocation().getYaw());
-                float corr;
-                if (currYaw > BODY_LOCK_FOV_LIMIT) {
-                    corr = BODY_LOCK_FOV_LIMIT - currYaw;
-                } else if (currYaw < -BODY_LOCK_FOV_LIMIT) {
-                    corr = -BODY_LOCK_FOV_LIMIT - currYaw;
-                } else {
-                    corr = 0.0f;
-                }
-                if (corr != 0.0f) {
-                    // When the correction is less than 15 degrees, perform a bouncy rejection
-                    // Anything beyond that is rejected hard.
-                    final float HARD_LIMIT = 15.0f;
-                    final float SMOOTH_FACTOR = 0.3f;
-                    if (corr > HARD_LIMIT) {
-                        corr = (corr - HARD_LIMIT) + HARD_LIMIT * SMOOTH_FACTOR;
-                    } else if (corr < -HARD_LIMIT) {
-                        corr = (corr + HARD_LIMIT) - HARD_LIMIT * SMOOTH_FACTOR;
-                    } else {
-                        corr *= SMOOTH_FACTOR;
-                    }
-
-                    PacketUtil.sendPacket(player, PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, corr, 0.0f));
-                }
-            } else {
-                // Harder, compute the yaw the player can have and restrict that
-            }
+        if (player != null && seat.isRotationLocked() && !seat.useSmoothCoasters()) {
+            // Compute the yaw the player can have and restrict that
         }
         */
     }
@@ -292,19 +228,20 @@ public class FirstPersonViewDefault extends FirstPersonView {
     }
 
     private void syncSmoothCoastersRotations(Matrix4x4 eyeTransform, boolean instant) {
-        // This rotates the head view
+        // This rotates the head
         this.seat.sendSmoothCoastersRelativeRotation(eyeTransform.getRotation(), instant);
 
         // This rotates the body and not the camera
         // Not used when the true player is made invisible - waste of packets
         if (!this.getLiveMode().isRealPlayerInvisible()) {
-            Quaternion bodyRot = seat.getTransform().getRotation();
-            seat.getPlugin().getSmoothCoastersAPI().setEntityRotation(null, player, player.getEntityId(),
-                    (float) bodyRot.getX(),
-                    (float) bodyRot.getY(),
-                    (float) bodyRot.getZ(),
-                    (float) bodyRot.getW(),
-                    instant ? (byte) 0 : (seat.isMinecartInterpolation() ? (byte) 5 : (byte) 3));
+            // TODO SmoothCoasters rotates the whole player when rendering, so the head rotation is applied twice
+//            Quaternion bodyRot = seat.getTransform().getRotation();
+//            seat.getPlugin().getSmoothCoastersAPI().setEntityRotation(null, player, player.getEntityId(),
+//                    (float) bodyRot.getX(),
+//                    (float) bodyRot.getY(),
+//                    (float) bodyRot.getZ(),
+//                    (float) bodyRot.getW(),
+//                    instant ? (byte) 0 : (seat.isMinecartInterpolation() ? (byte) 5 : (byte) 3));
         }
     }
 }
