@@ -611,6 +611,9 @@ public class PathProvider extends Task {
     }
 
     private void scheduleNode(PathNode node, RailState state, RailJunction junction) {
+        if (!state.railPiece().offlineWorld().isLoaded()) {
+            return;
+        }
         pendingOperations.offer(new PathFindOperation(this, node, state, junction));
     }
 
@@ -642,6 +645,9 @@ public class PathProvider extends Task {
          * @return True if this task is finished, False if not
          */
         public boolean next() {
+            if (!this.p.state.railPiece().offlineWorld().isLoaded()) {
+                return true; // Abort. World not loaded.
+            }
             if (!this.p.moveFull()) {
                 return true;
             }

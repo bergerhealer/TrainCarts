@@ -548,53 +548,55 @@ public class WorldRailLookup {
     private Bucket[] discoverBucketsAtPositionBlock(IntVector3 cacheKey, OfflineBlock positionOfflineBlock) {
         // Query the registered Rail Types for whether they exist at this position
         Block positionBlock = positionOfflineBlock.getLoadedBlock();
-        try (Timings tim = TCTimings.RAILTYPE_FINDRAILINFO.start()) {
-            for (RailType type : RailType.values()) {
-                try {
-                    List<Block> rails = type.findRails(positionBlock);
-                    if (!rails.isEmpty()) {
-                        // During this we might end up deleting 'ourselves' if the rail type of this bucket is NONE,
-                        // and a rail is found with the same block position as ourselves.
-                        Bucket bucketInCache = null;
+        if (positionBlock != null) { // Only when World is loaded
+            try (Timings tim = TCTimings.RAILTYPE_FINDRAILINFO.start()) {
+                for (RailType type : RailType.values()) {
+                    try {
+                        List<Block> rails = type.findRails(positionBlock);
+                        if (!rails.isEmpty()) {
+                            // During this we might end up deleting 'ourselves' if the rail type of this bucket is NONE,
+                            // and a rail is found with the same block position as ourselves.
+                            Bucket bucketInCache = null;
 
-                        // Fill this array with the found buckets
-                        Bucket[] newRailsAtPosition = new Bucket[rails.size()];
-                        int index = 0;
+                            // Fill this array with the found buckets
+                            Bucket[] newRailsAtPosition = new Bucket[rails.size()];
+                            int index = 0;
 
-                        for (Block railsBlock : rails) {
-                            if (railsBlock.getX() == positionBlock.getX() &&
-                                railsBlock.getY() == positionBlock.getY() &&
-                                railsBlock.getZ() == positionBlock.getZ())
-                            {
-                                // As the bucket for this type is being calculated, it's never going to find more
-                                // than one type here, so this is safe.
-                                bucketInCache = new Bucket(positionOfflineBlock, positionBlock, type);
-                                newRailsAtPosition[index++] = bucketInCache;
+                            for (Block railsBlock : rails) {
+                                if (railsBlock.getX() == positionBlock.getX() &&
+                                    railsBlock.getY() == positionBlock.getY() &&
+                                    railsBlock.getZ() == positionBlock.getZ())
+                                {
+                                    // As the bucket for this type is being calculated, it's never going to find more
+                                    // than one type here, so this is safe.
+                                    bucketInCache = new Bucket(positionOfflineBlock, positionBlock, type);
+                                    newRailsAtPosition[index++] = bucketInCache;
+                                }
+                                else
+                                {
+                                    // Need to look it up in the cache. This bucket won't get replaced.
+                                    OfflineBlock railsOfflineBlock = offlineWorld.getBlockAt(railsBlock.getX(), railsBlock.getY(), railsBlock.getZ());
+                                    newRailsAtPosition[index++] = lookupRailBucket(railsOfflineBlock, railsBlock, type);
+                                }
                             }
-                            else
-                            {
-                                // Need to look it up in the cache. This bucket won't get replaced.
-                                OfflineBlock railsOfflineBlock = offlineWorld.getBlockAt(railsBlock.getX(), railsBlock.getY(), railsBlock.getZ());
-                                newRailsAtPosition[index++] = lookupRailBucket(railsOfflineBlock, railsBlock, type);
+
+                            // If block itself isn't a rail then we must initialize it as NONE initially
+                            if (bucketInCache == null) {
+                                bucketInCache = new Bucket(positionOfflineBlock, positionBlock);
                             }
+
+                            // Put it in the cache
+                            addToCache(cacheKey, bucketInCache);
+                            bucketInCache.rails_at_position = newRailsAtPosition;
+
+                            // Compute signs now that bucket is registered
+                            bucketInCache.signs = RailLookup.discoverSignsAtRailPiece(bucketInCache);
+
+                            return newRailsAtPosition;
                         }
-
-                        // If block itself isn't a rail then we must initialize it as NONE initially
-                        if (bucketInCache == null) {
-                            bucketInCache = new Bucket(positionOfflineBlock, positionBlock);
-                        }
-
-                        // Put it in the cache
-                        addToCache(cacheKey, bucketInCache);
-                        bucketInCache.rails_at_position = newRailsAtPosition;
-
-                        // Compute signs now that bucket is registered
-                        bucketInCache.signs = RailLookup.discoverSignsAtRailPiece(bucketInCache);
-
-                        return newRailsAtPosition;
+                    } catch (Throwable t) {
+                        RailType.handleCriticalError(type, t);
                     }
-                } catch (Throwable t) {
-                    RailType.handleCriticalError(type, t);
                 }
             }
         }
