@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.rails;
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -247,6 +248,38 @@ public class WorldRailLookup {
         // that is then just thrown away again. It's better to do an at-position search first,
         // and if any of the found rails match with the position block, we use that one.
         return discoverBucketsAtPositionBlock(cacheKey, positionBlock);
+    }
+
+    /**
+     * API Note: you should never have to call this function. It's used internally by RailPiece.<br>
+     * <br>
+     * Looks up cached rail information about the provided rail block, if such information is currently
+     * cached. If not, {@link RailLookup.CachedRailPiece#NONE} is returned instead.
+     *
+     * @param railOfflineBlock Rail offline block, key
+     * @param railType Rail type
+     * @return Rail piece information backed by this lookup cache, or NONE if missing.
+     */
+    public RailLookup.CachedRailPiece lookupCachedRailPieceIfCached(final OfflineBlock railOfflineBlock,
+                                                                    final RailType railType
+    ) {
+        IntVector3 cacheKey = createCacheKey(railOfflineBlock);
+        Bucket inCache = cache.get(cacheKey);
+        if (inCache != null) {
+            RailType inCacheType = inCache.type();
+            if (inCacheType == railType) {
+                return inCache;
+            } else if (inCacheType != RailType.NONE) {
+                while ((inCache = inCache.next) != null) {
+                    if (inCache.type() == railType) {
+                        return inCache;
+                    }
+                }
+            }
+        }
+
+        // Not cached, return NONE
+        return RailLookup.CachedRailPiece.NONE;
     }
 
     /**
@@ -833,10 +866,11 @@ public class WorldRailLookup {
          * @return rails at this block position
          */
         public Bucket[] getRailsAtPosition() {
-            if (this.rails_at_position_life >= RailLookup.lifeTimer) {
+            int lifeTimerAtPosition = RailLookup.lifeTimerAtPosition;
+            if (this.rails_at_position_life >= lifeTimerAtPosition) {
                 return this.rails_at_position;
             }
-            this.rails_at_position_life = RailLookup.verifyTimer;
+            this.rails_at_position_life = lifeTimerAtPosition;
 
             // Verify still valid, if still valid, return as-is
             Bucket[] currAtPosition = this.rails_at_position;
@@ -869,6 +903,12 @@ public class WorldRailLookup {
             // Query the registered Rail Types for whether they exist at this position
             OfflineWorld offlineWorld = this.offlineWorld();
             Block positionBlock = this.block();
+
+            // When no rails are found, the array is the NO_RAILS_AT_POSITION array. This will trigger another
+            // lookup for rails the next tick.
+            Bucket[] newRailsAtPosition = NO_RAILS_AT_POSITION;
+            Bucket bucketInCache = this;
+
             try (Timings tim = TCTimings.RAILTYPE_FINDRAILINFO.start()) {
                 for (RailType type : RailType.values()) {
                     try {
@@ -876,12 +916,11 @@ public class WorldRailLookup {
                         if (!rails.isEmpty()) {
                             // During this we might end up deleting 'ourselves' if the rail type of this bucket is NONE,
                             // and a rail is found with the same block position as ourselves.
-                            Bucket bucketInCache = this;
                             RailType bucketInCacheType = bucketInCache.type();
 
                             // Fill this array with the found buckets
-                            Bucket[] newRailsAtPosition = new Bucket[rails.size()];
-                            int index = 0;
+                            int index = newRailsAtPosition.length;
+                            newRailsAtPosition = Arrays.copyOf(newRailsAtPosition, index + rails.size());
 
                             for (Block railsBlock : rails) {
                                 if (railsBlock.getX() == positionBlock.getX() &&
@@ -909,8 +948,6 @@ public class WorldRailLookup {
                                     newRailsAtPosition[index++] = lookupRailBucket(railsOfflineBlock, railsBlock, type);
                                 }
                             }
-
-                            return bucketInCache.rails_at_position = newRailsAtPosition;
                         }
                     } catch (Throwable t) {
                         RailType.handleCriticalError(type, t);
@@ -918,9 +955,7 @@ public class WorldRailLookup {
                 }
             }
 
-            // When no rails are found, the array is the NO_RAILS_AT_POSITION array. This will trigger another
-            // lookup for rails the next tick.
-            return this.rails_at_position = NO_RAILS_AT_POSITION;
+            return bucketInCache.rails_at_position = newRailsAtPosition;
         }
 
         @Override
@@ -933,45 +968,9 @@ public class WorldRailLookup {
                 return false; // Removed from cache, another lookup required
             }
 
-            // Reset life timer on every access
-            this.rail_life = RailLookup.verifyTimer;
-
             // Check that the rails type still exists at the position
             // Will always fail for RailType NONE, if that ever happens
-            if (this.type().isRail(this.block())) {
-                // Verify all signs we computed previously are still there
-                // This is MISSING_RAILS_NO_SIGNS if previously the rails didn't exist
-                TrackedSign[] signs = this.signs;
-                if (signs == RailLookup.MISSING_RAILS_NO_SIGNS) {
-                    this.signs = RailLookup.discoverSignsAtRailPiece(this);
-                } else {
-                    // Check all tracked signs to see if any of them have been removed
-                    // If they change in other ways (update()), re-create the TrackedSign instance
-                    for (int i = 0; i < signs.length; i++) {
-                        TrackedSign sign = signs[i];
-                        if (!sign.tracker.update()) {
-                            continue;
-                        }
-                        if (sign.tracker.isRemoved()) {
-                            // Regenerate, the entire sign is gone, so there's likely more changes
-                            this.signs = RailLookup.discoverSignsAtRailPiece(this);
-                            break;
-                        }
-
-                        // Only re-create the TrackedSign to update the Sign state
-                        try {
-                            this.signs[i] = new TrackedSign(sign.tracker, sign.rail);
-                        } catch (Throwable t) {
-                            this.signs = signs = LogicUtil.removeArrayElement(signs, i);
-                            i--;
-                            break;
-                        }
-                    }
-                }
-
-                // All good!
-                return true;
-            } else {
+            if (!this.type().isRail(this.block())) {
                 // Clear all signs with a special array that indicates signs couldn't be calculated
                 // If the rail type exists in the future, recalculates the signs properly
                 this.signs = RailLookup.MISSING_RAILS_NO_SIGNS;
@@ -979,13 +978,55 @@ public class WorldRailLookup {
                 // This sadly will result in another cache lookup, but as it only occurs when rails
                 // go missing, it's not a big problem. We must return false so that during at-position
                 // lookup it will actually recompute.
+                this.rail_life = RailLookup.LIFE_TIMER_START;
                 return false;
             }
+
+            // Reset life timer on every access
+            this.rail_life = RailLookup.verifyTimer;
+
+            // Verify all signs we computed previously are still there
+            // This is MISSING_RAILS_NO_SIGNS if previously the rails didn't exist
+            TrackedSign[] signs = this.signs;
+            if (signs == RailLookup.MISSING_RAILS_NO_SIGNS) {
+                this.signs = RailLookup.discoverSignsAtRailPiece(this);
+            } else {
+                // Check all tracked signs to see if any of them have been removed
+                // If they change in other ways (update()), re-create the TrackedSign instance
+                for (int i = 0; i < signs.length; i++) {
+                    TrackedSign sign = signs[i];
+                    if (!sign.tracker.update()) {
+                        continue;
+                    }
+                    if (sign.tracker.isRemoved()) {
+                        // Regenerate, the entire sign is gone, so there's likely more changes
+                        this.signs = RailLookup.discoverSignsAtRailPiece(this);
+                        break;
+                    }
+
+                    // Only re-create the TrackedSign to update the Sign state
+                    try {
+                        this.signs[i] = new TrackedSign(sign.tracker, sign.rail);
+                    } catch (Throwable t) {
+                        this.signs = signs = LogicUtil.removeArrayElement(signs, i);
+                        i--;
+                        break;
+                    }
+                }
+            }
+
+            // All good!
+            return true;
         }
 
         @Override
         public boolean verifyExists() {
             return this.rail_life != RailLookup.LIFE_TIMER_DELETED;
+        }
+
+        @Override
+        public void forceCacheVerification() {
+            this.rail_life = RailLookup.LIFE_TIMER_START;
         }
     }
 

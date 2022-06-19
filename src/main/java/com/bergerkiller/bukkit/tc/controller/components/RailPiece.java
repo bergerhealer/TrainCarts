@@ -205,6 +205,19 @@ public class RailPiece {
     }
 
     /**
+     * Forces the information of this RailPiece to be refreshed the very next time it is used
+     * anywhere. If the rail type is likely to change, this method should be called for that
+     * to be detected sooner.
+     */
+    public void forceCacheVerification() {
+        RailLookup.CachedRailPiece cached = this.cached;
+        if (!cached.verifyExists()) {
+            this.cached = cached = this.railLookup.lookupCachedRailPieceIfCached(this.offlineBlock, this.type);
+        }
+        cached.forceCacheVerification(); // Does nothing if not cached (then NONE is returned)
+    }
+
+    /**
      * Retrieves an array of all signs active for this rail
      * 
      * @return array of signs

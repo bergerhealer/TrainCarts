@@ -40,6 +40,8 @@ public final class RailLookup {
     static final int LIFE_TIMER_START = 1;
     /** This is incremented every tick to force cached information to re-verify itself */
     static int lifeTimer = LIFE_TIMER_START;
+    /** This is incremented every tick and forces cache rails-at-position information to be re-verified */
+    static int lifeTimerAtPosition = LIFE_TIMER_START;
     /** Stores the (every tick incrementing) future tick when cached information expires */
     static int verifyTimer = LIFE_TIMER_START;
 
@@ -147,6 +149,7 @@ public final class RailLookup {
         // Increment life timer so that all rail access is re-validated
         // Set the timer to when buckets with life=1 expire (set earlier)
         lifeTimer = LIFE_TIMER_START + TCConfig.cacheExpireTicks + TCConfig.cacheVerificationTicks;
+        lifeTimerAtPosition = LIFE_TIMER_START;
         verifyTimer = ++lifeTimer + TCConfig.cacheVerificationTicks;
     }
 
@@ -176,6 +179,7 @@ public final class RailLookup {
                 lookup.update(deadTimeout);
             }
         }
+        ++lifeTimerAtPosition;
         verifyTimer = ++lifeTimer + TCConfig.cacheVerificationTicks;
     }
 
@@ -241,6 +245,10 @@ public final class RailLookup {
             public boolean verifyExists() {
                 return false;
             }
+
+            @Override
+            public void forceCacheVerification() {
+            }
         };
  
         private CachedRailPiece() {
@@ -275,6 +283,12 @@ public final class RailLookup {
          * @return True if this information is still validly cached
          */
         public abstract boolean verifyExists();
+
+        /**
+         * Forces rail type verification to occur the very next time {@link #verify()}
+         * is called.
+         */
+        public abstract void forceCacheVerification();
 
         /**
          * Gets a list of cached Minecart Members that occupy these rails.

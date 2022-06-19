@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.debug.DebugTool;
 import com.bergerkiller.bukkit.tc.editor.TCMapControl;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -681,6 +682,11 @@ public class TCListener implements Listener {
 
                     // Let the rail type handle any custom physics
                     type.onBlockPhysics(event);
+
+                    // Force verification of this Rails Block in case it changes
+                    // This is especially important for powered/activator rails, which change
+                    // type and behavior due to physics.
+                    RailPiece.create(type, block).forceCacheVerification();
                     break;
                 }
             }

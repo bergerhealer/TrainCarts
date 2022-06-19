@@ -28,6 +28,11 @@ public class RailTypePowered extends RailTypeRegular {
     }
 
     @Override
+    public String toString() {
+        return "RailTypePowered{powered=" + isPowered + "}";
+    }
+
+    @Override
     public void onBlockPlaced(Block railsBlock) {
         super.onBlockPlaced(railsBlock);
 
@@ -106,5 +111,4 @@ public class RailTypePowered extends RailTypeRegular {
     public boolean isRail(BlockData blockData) {
         return blockData.isType(Material.POWERED_RAIL) && ((blockData.getRawData() & 0x8) == 0x8) == isPowered;
     }
-
 }
