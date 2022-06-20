@@ -140,6 +140,12 @@ public class DebugToolTypeListDestinations extends DebugToolTrackWalkerType {
     private static void debugListRoutesFrom(Player player, RailState state, String destinationName, boolean reroute, double initialDistance) {
         PathProvider provider = TrainCarts.plugin.getPathProvider();
 
+        // Check early
+        if (!state.railLookup().isValid()) {
+            player.sendMessage(ChatColor.RED + "Failed to list destinations - World is no longer loaded!");
+            return;
+        }
+
         // Find the node at this rails block
         PathNode node = provider.getWorld(state.railWorld()).getNodeAtRail(state.railBlock());
         if (node == null) {

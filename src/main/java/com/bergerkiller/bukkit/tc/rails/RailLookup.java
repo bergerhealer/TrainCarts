@@ -14,6 +14,7 @@ import org.bukkit.block.Sign;
 import com.bergerkiller.bukkit.common.block.SignChangeTracker;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -52,7 +53,7 @@ public final class RailLookup {
     static final List<MinecartMember<?>> DEFAULT_MEMBER_LIST = Collections.emptyList();
 
     // Stores all WorldRailLookup instances that are in use
-    private static final IdentityHashMap<World, WorldRailLookup> byWorld = new IdentityHashMap<>();
+    private static final IdentityHashMap<World, WorldRailLookupImpl> byWorld = new IdentityHashMap<>();
 
     /**
      * Gets the World-specific Rail Lookup. This is more efficient to use than this RailLookup's
@@ -62,12 +63,12 @@ public final class RailLookup {
      * @return World Rail Lookup cache for this World
      */
     public static WorldRailLookup forWorld(World world) {
-        WorldRailLookup lookup = byWorld.get(world);
+        WorldRailLookupImpl lookup = (WorldRailLookupImpl) byWorld.get(world);
         if (lookup == null) {
             if (world == null) {
                 return WorldRailLookup.NONE;
             }
-            lookup = new WorldRailLookup(world);
+            lookup = new WorldRailLookupImpl(world);
             byWorld.put(world, lookup); // computeIfAbsent won't work, potential concurrent modification
                                         // if someone runs forWorld() during initialization
 
@@ -84,14 +85,19 @@ public final class RailLookup {
      * @return World Rail Lookup cache for this World if initialized, otherwise {@link WorldRailLookup#NONE}
      */
     public static WorldRailLookup forWorldIfInitialized(World world) {
-        return byWorld.getOrDefault(world, WorldRailLookup.NONE);
+        // Bleh.
+        IdentityHashMap<World, WorldRailLookup> byWorldCast = CommonUtil.unsafeCast(byWorld);
+        return byWorldCast.getOrDefault(world, WorldRailLookup.NONE);
     }
 
     /**
      * Discovers the RailPieces that are active for controlling the movement of a Minecart
      * at the RailState position information specified. The caller should further filter which of
      * these rail pieces truly control the movement, but the returned array is efficiently
-     * cached.
+     * cached.<br>
+     * <br>
+     * Caller must make sure the World of the position block is loaded. If it is not, a
+     * {@link WorldRailLookup.ClosedException} is thrown.
      *
      * @param state RailState with position information
      * @return Array of rail pieces active here, or an empty array if there are no rails nearby
@@ -104,7 +110,10 @@ public final class RailLookup {
      * Discovers the RailPieces that are active for controlling the movement of a Minecart
      * moving within the Block position specified. The caller should further filter which of
      * these rail pieces truly control the movement, but the returned array is efficiently
-     * cached.
+     * cached.<br>
+     * <br>
+     * Caller must make sure the World of the position block is loaded. If it is not, a
+     * {@link WorldRailLookup.ClosedException} is thrown.
      *
      * @param positionBlock Block position
      * @return Array of rail pieces active here, or an empty array if there are no rails nearby
@@ -125,7 +134,25 @@ public final class RailLookup {
      * @return List of members on this block
      */
     public static List<MinecartMember<?>> findMembersOnRail(OfflineBlock railOfflineBlock) {
-        return forWorld(railOfflineBlock.getLoadedWorld()).findMembersOnRail(railOfflineBlock);
+        return forWorldIfInitialized(railOfflineBlock.getLoadedWorld()).findMembersOnRail(railOfflineBlock);
+    }
+
+    /**
+     * API Note: you should never have to call this function. It's used internally by RailPiece.<br>
+     * <br>
+     * Looks up cached rail information about the provided rail block, if such information is currently
+     * cached. If not, {@link RailLookup.CachedRailPiece#NONE} is returned instead. If no rail lookup
+     * cache is initialized yet for the World, assumes there is no cached data, and also returns NONE
+     * without initializing a new cache.
+     *
+     * @param railOfflineBlock Rail offline block, key
+     * @param railType Rail type
+     * @return Rail piece information backed by this lookup cache, or NONE if missing.
+     */
+    public static RailLookup.CachedRailPiece lookupCachedRailPieceIfCached(final OfflineBlock railOfflineBlock,
+                                                                           final RailType railType
+    ) {
+        return forWorldIfInitialized(railOfflineBlock.getLoadedWorld()).lookupCachedRailPieceIfCached(railOfflineBlock, railType);
     }
 
     /**
@@ -134,7 +161,7 @@ public final class RailLookup {
      * particular rails. If that's a problem, use {@link #forceRecalculation()} instead.
      */
     public static void clear() {
-        byWorld.values().forEach(WorldRailLookup::remove);
+        byWorld.values().forEach(WorldRailLookupImpl::close);
         byWorld.clear();
     }
 
@@ -144,7 +171,7 @@ public final class RailLookup {
      * type, or when a rail type significantly alters behavior/reloads.
      */
     public static void forceRecalculation() {
-        byWorld.values().forEach(WorldRailLookup::refreshAllBuckets);
+        byWorld.values().forEach(WorldRailLookupImpl::refreshAllBuckets);
 
         // Increment life timer so that all rail access is re-validated
         // Set the timer to when buckets with life=1 expire (set earlier)
@@ -170,10 +197,10 @@ public final class RailLookup {
      */
     public static void update() {
         final int deadTimeout = lifeTimer - TCConfig.cacheExpireTicks - TCConfig.cacheVerificationTicks;
-        for (Iterator<WorldRailLookup> iter = byWorld.values().iterator(); iter.hasNext();) {
-            WorldRailLookup lookup = iter.next();
+        for (Iterator<WorldRailLookupImpl> iter = byWorld.values().iterator(); iter.hasNext();) {
+            WorldRailLookupImpl lookup = iter.next();
             if (lookup.checkCanBeRemoved()) {
-                lookup.remove();
+                lookup.close();
                 iter.remove();
             } else {
                 lookup.update(deadTimeout);

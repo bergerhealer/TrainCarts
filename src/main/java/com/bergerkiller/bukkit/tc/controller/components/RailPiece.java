@@ -8,6 +8,7 @@ import org.bukkit.block.Block;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
@@ -24,9 +25,13 @@ import com.bergerkiller.bukkit.tc.utils.RailJunctionSwitcher;
 public class RailPiece {
     public static final RailPiece NONE = createWorldPlaceholder(WorldRailLookup.NONE);
     private final RailType type;
-    private final WorldRailLookup railLookup;
-    private final Block block;
     private final OfflineBlock offlineBlock;
+
+    /*
+     * These can be changed when the World unloads and loads again later
+     */
+    private WorldRailLookup railLookup;
+    private Block block;
 
     /**
      * The cached rail piece is initialized with information from {@link RailLookup}
@@ -77,6 +82,7 @@ public class RailPiece {
      * @return rail block
      */
     public Block block() {
+        this.railLookup(); // Verify still valid
         return this.block;
     }
 
@@ -179,11 +185,23 @@ public class RailPiece {
 
     /**
      * Gets the {@link WorldRailLookup} that is used for this Rail Piece.
+     * If the World is not currently loaded, returns {@link WorldRailLookup#NONE}.
+     * Whether it's safe to use can be checked using {@link WorldRailLookup#isValid()}.
      *
      * @return world rail lookup
      */
     public WorldRailLookup railLookup() {
-        return this.railLookup;
+        WorldRailLookup lookup = this.railLookup;
+        if (!lookup.isValid()) {
+            lookup = RailLookup.forWorld(lookup.getOfflineWorld().getLoadedWorld());
+            if (lookup.isValid()) {
+                this.railLookup = lookup;
+                this.block = BlockUtil.getBlock(lookup.getWorld(), this.offlineBlock.getPosition());
+            } else {
+                this.block = null; // Invalidate, not loaded!
+            }
+        }
+        return lookup;
     }
 
     private RailLookup.CachedRailPiece accessCache() {
@@ -191,7 +209,7 @@ public class RailPiece {
         if (cached.verify()) {
             return cached;
         } else {
-            return this.cached = this.railLookup.lookupCachedRailPiece(this.offlineBlock, this.block, this.type);
+            return this.cached = this.railLookup().lookupCachedRailPiece(this.offlineBlock, this.block, this.type);
         }
     }
 
@@ -200,7 +218,7 @@ public class RailPiece {
         if (cached.verifyExists()) {
             return cached;
         } else {
-            return this.cached = this.railLookup.lookupCachedRailPiece(this.offlineBlock, this.block, this.type);
+            return this.cached = this.railLookup().lookupCachedRailPiece(this.offlineBlock, this.block, this.type);
         }
     }
 
@@ -212,7 +230,7 @@ public class RailPiece {
     public void forceCacheVerification() {
         RailLookup.CachedRailPiece cached = this.cached;
         if (!cached.verifyExists()) {
-            this.cached = cached = this.railLookup.lookupCachedRailPieceIfCached(this.offlineBlock, this.type);
+            this.cached = cached = this.railLookup().lookupCachedRailPieceIfCached(this.offlineBlock, this.type);
         }
         cached.forceCacheVerification(); // Does nothing if not cached (then NONE is returned)
     }

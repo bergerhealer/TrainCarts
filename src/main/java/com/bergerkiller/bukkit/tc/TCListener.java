@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.events.ChunkLoadEntitiesEvent;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveFromServerEvent;
+import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.*;
@@ -20,7 +21,6 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
-import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.debug.DebugTool;
 import com.bergerkiller.bukkit.tc.editor.TCMapControl;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -686,8 +686,10 @@ public class TCListener implements Listener {
                     // Force verification of this Rails Block in case it changes
                     // This is especially important for powered/activator rails, which change
                     // type and behavior due to physics.
-                    RailPiece.create(type, block).forceCacheVerification();
-                    break;
+                    RailLookup.CachedRailPiece cachedRailPiece = RailLookup.lookupCachedRailPieceIfCached(OfflineBlock.of(block), type);
+                    if (!cachedRailPiece.isNone()) {
+                        cachedRailPiece.forceCacheVerification();
+                    }
                 }
             }
         }

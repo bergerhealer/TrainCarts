@@ -984,10 +984,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return World Rail Lookup
      */
     public WorldRailLookup railLookup() {
-        World world = entity.getWorld();
         WorldRailLookup result = this.railLookup;
-        if (result.getWorld() != world) {
-            result = this.railLookup = RailLookup.forWorld(world);
+        if (!result.isValidForWorld(entity.getWorld())) {
+            result = this.railLookup = RailLookup.forWorld(entity.getWorld());
         }
         return result;
     }
