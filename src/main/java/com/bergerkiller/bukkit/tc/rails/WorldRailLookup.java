@@ -159,7 +159,7 @@ public class WorldRailLookup {
      * @return True if this by-world rail lookup can be removed safely
      */
     boolean checkCanBeRemoved() {
-        return this.offlineWorld.getLoadedWorld() != this.world || this.cacheValues.isEmpty();
+        return this.offlineWorld.getLoadedWorld() != this.world;
     }
 
     /**
