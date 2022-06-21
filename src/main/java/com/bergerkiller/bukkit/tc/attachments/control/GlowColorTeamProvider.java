@@ -264,12 +264,14 @@ public class GlowColorTeamProvider {
             private PacketPlayOutScoreboardTeamHandle createPacket(int method) {
                 PacketPlayOutScoreboardTeamHandle packet = PacketPlayOutScoreboardTeamHandle.createNew();
                 packet.setName(this.name);
+                packet.setDisplayName(ChatText.fromMessage(this.name));
+                packet.setColor(this.color);
+                packet.setPrefix(this.prefix);
+                packet.setSuffix(ChatText.empty());
                 packet.setMethod(method);
+                packet.setVisibility("always");
+                packet.setCollisionRule("always");
                 if (method == 0) {
-                    packet.setVisibility("always");
-                    packet.setCollisionRule("always");
-                    packet.setPrefix(this.prefix);
-                    packet.setColor(this.color);
                     packet.setTeamOptionFlags(0x3);
                 }
                 return packet;
