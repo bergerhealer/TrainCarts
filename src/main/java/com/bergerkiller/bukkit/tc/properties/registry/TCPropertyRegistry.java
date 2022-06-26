@@ -36,6 +36,7 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.PropertySelectorCondition;
+import com.bergerkiller.bukkit.tc.properties.api.context.PropertyInputContext;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.mountiplex.reflection.ReflectionUtil;
 import com.bergerkiller.mountiplex.reflection.util.BoxedType;
@@ -523,7 +524,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
         }
 
         @Override
-        public PropertyParseResult<T> parse(IProperties properties, String input) {
+        public PropertyParseResult<T> parse(IProperties properties, PropertyInputContext inputContext) {
             // Property and name as understood by this parser
             IProperty<T> property = this.getProperty();
             String name = this.getName();
@@ -532,7 +533,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
                 T value;
                 if (this.parser.inputIsString) {
                     // Send input value straight to the parser
-                    value = this.parser.method.invoke(property, input);
+                    value = this.parser.method.invoke(property, inputContext.input());
                 } else {
                     // Current value, or default if this fails
                     T currentValue;
@@ -554,7 +555,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
                             properties,
                             currentValue,
                             name,
-                            input,
+                            inputContext,
                             this.matchResult
                     );
 
@@ -568,14 +569,14 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
             {
                 return PropertyParseResult.failInvalidInput(property, name,
                         Localization.PROPERTY_INVALID_INPUT.get(
-                                name, input, ex.getMessage()));
+                                name, inputContext.input(), ex.getMessage()));
             }
             catch (Throwable t)
             {
                 this.plugin.getLogger().log(Level.SEVERE,
                         "Failed to parse property '" + this.name + "'", t);
 
-                return PropertyParseResult.failError(property, this.name, input);
+                return PropertyParseResult.failError(property, this.name, inputContext.input());
             }
         }
     }

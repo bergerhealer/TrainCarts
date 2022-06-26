@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
+import com.bergerkiller.bukkit.tc.properties.api.context.PropertyInputContext;
 
 import org.bukkit.entity.Player;
 
@@ -68,6 +69,21 @@ public interface IProperties extends IParsable {
      */
     default PropertyParseResult<?> parseAndSet(String name, String input) {
         return IPropertyRegistry.instance().parseAndSet(this, name, input);
+    }
+
+    /**
+     * Parses the property by name and attempts to parse the property. If successful,
+     * applies the parsed value to these properties.
+     * 
+     * @param <T> Type of value the property has
+     * @param name Name of the property to parse
+     * @param inputContext Input value with context to parse
+     * @return Result of parsing, if not successful, the property will not have been set.
+     *         Is never null, if parsing fails the {@link PropertyParseResult#getReason()}
+     *         can be checked.
+     */
+    default PropertyParseResult<?> parseAndSet(String name, PropertyInputContext inputContext) {
+        return IPropertyRegistry.instance().parseAndSet(this, name, inputContext);
     }
 
     /**

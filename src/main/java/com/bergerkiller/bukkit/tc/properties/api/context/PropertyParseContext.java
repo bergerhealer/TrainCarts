@@ -18,10 +18,10 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 public final class PropertyParseContext<T> extends PropertyContext {
     private final T current;
     private final String name;
-    private final String input;
+    private final PropertyInputContext input;
     private final MatchResult matchResult;
 
-    public PropertyParseContext(IProperties properties, T current, String name, String input, MatchResult matchResult) {
+    public PropertyParseContext(IProperties properties, T current, String name, PropertyInputContext input, MatchResult matchResult) {
         super(properties);
         this.current = current;
         this.name = name;
@@ -60,6 +60,15 @@ public final class PropertyParseContext<T> extends PropertyContext {
      * @return value String
      */
     public String input() {
+        return this.input.input();
+    }
+
+    /**
+     * Gets the input value and all contextual information around it
+     *
+     * @return Input context
+     */
+    public PropertyInputContext inputContext() {
         return this.input;
     }
 

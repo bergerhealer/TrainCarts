@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
+import com.bergerkiller.bukkit.tc.properties.api.context.PropertyInputContext;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import org.bukkit.Location;
@@ -19,7 +20,7 @@ import org.bukkit.block.BlockFace;
 public class SignActionProperties extends SignAction {
 
     private static PropertyParseResult.Reason parseAndSet(IProperties properties, SignActionEvent info) {
-        return properties.parseAndSet(info.getLine(2), info.getLine(3)).getReason();
+        return properties.parseAndSet(info.getLine(2), PropertyInputContext.of(info.getLine(3)).signEvent(info)).getReason();
     }
 
     @Override

@@ -5,9 +5,9 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
+import com.bergerkiller.bukkit.tc.properties.api.context.PropertyInputContext;
 
 /**
  * Registers and tracks all possible cart and train properties.
@@ -82,7 +82,7 @@ public interface IPropertyRegistry {
      * @see #parse(IProperties, String, String)
      */
     default <T> PropertyParseResult<T> parseAndSet(IProperties properties, String name, String input) {
-        return parseAndSet(properties, name, input, LogicUtil.noopConsumer());
+        return parseAndSet(properties, name, PropertyInputContext.of(input));
     }
 
     /**
@@ -105,11 +105,35 @@ public interface IPropertyRegistry {
             IProperties properties,
             String name,
             String input,
-            Consumer<PropertyParseResult<T>> beforeSet
+            Consumer<PropertyParseResult<?>> beforeSet
+    ) {
+        return parseAndSet(properties, name, PropertyInputContext.of(input).beforeSet(beforeSet));
+    }
+
+    /**
+     * Parses the input using a parser supplied by a property with the given name,
+     * then applies the new value to the properties.<br>
+     * <br>
+     * A consumer can be specified to process the parse result before it is applied to the
+     * train or cart. This can be used to cancel the operation by throwing exceptions.
+     * 
+     * @param <T>
+     * @param properties The properties the value is parsed for
+     * @param name Name of the property to parse, matches with {@link PropertyParser}
+     * @param inputContext Input value with context to parse using the property parser, if found
+     * @param beforeSet Consumer of the parse result before the property is updated.
+     *                  Can throw exceptions to cancel the operation.
+     * @return result of parsing the property by this name using the value
+     * @see #parse(IProperties, String, String)
+     */
+    default <T> PropertyParseResult<T> parseAndSet(
+            IProperties properties,
+            String name,
+            PropertyInputContext inputContext
     ) {
         Optional<IPropertyParser<T>> optParser = findParser(name);
         if (optParser.isPresent()) {
-            return optParser.get().parseAndSet(properties, input);
+            return optParser.get().parseAndSet(properties, inputContext);
         } else {
             return PropertyParseResult.failPropertyNotFound(name);
         }
