@@ -183,7 +183,7 @@ public interface IPropertyParser<T> {
             }
         }
         if (successful) {
-            result = PropertyParseResult.success(this.getProperty(), name,
+            result = PropertyParseResult.success(inputContext, this.getProperty(), name,
                     properties.get(this.getProperty()));
         }
         return result;

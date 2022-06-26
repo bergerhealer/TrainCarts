@@ -3,18 +3,21 @@ package com.bergerkiller.bukkit.tc.properties.api;
 import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.tc.Localization;
+import com.bergerkiller.bukkit.tc.properties.api.context.PropertyInputContext;
 
 /**
  * The result of trying to parse a value of a property
  */
 public class PropertyParseResult<T> {
+    private final PropertyInputContext inputContext;
     private final IProperty<T> property;
     private final String name;
     private final T value;
     private final Reason reason;
     private final String message;
 
-    private PropertyParseResult(IProperty<T> property, String name, T value, Reason reason, String message) {
+    private PropertyParseResult(PropertyInputContext inputContext, IProperty<T> property, String name, T value, Reason reason, String message) {
+        this.inputContext = inputContext;
         this.property = property;
         this.name = name;
         this.value = value;
@@ -29,6 +32,15 @@ public class PropertyParseResult<T> {
      */
     public boolean isSuccessful() {
         return this.reason == Reason.NONE;
+    }
+
+    /**
+     * Gets the input context that resulted in this parsing result
+     *
+     * @return Input context
+     */
+    public PropertyInputContext getInputContext() {
+        return this.inputContext;
     }
 
     /**
@@ -100,11 +112,12 @@ public class PropertyParseResult<T> {
      * a name could not be found
      * 
      * @param <T> Type of property value
+     * @param inputContext Input value context that was going to be parsed
      * @param name Name of the property that could not be found
      * @return new property parse result
      */
-    public static <T> PropertyParseResult<T> failPropertyNotFound(String name) {
-        return new PropertyParseResult<T>(null, name, null, Reason.PROPERTY_NOT_FOUND,
+    public static <T> PropertyParseResult<T> failPropertyNotFound(PropertyInputContext inputContext, String name) {
+        return new PropertyParseResult<T>(inputContext, null, name, null, Reason.PROPERTY_NOT_FOUND,
                 Localization.PROPERTY_NOTFOUND.get(name));
     }
 
@@ -113,27 +126,28 @@ public class PropertyParseResult<T> {
      * input is invalid
      * 
      * @param <T> Type of property value
+     * @param inputContext Input that was parsed but failed to be parsed
      * @param property The property that was parsed
      * @param message The message accompanying the invalid input failure
      * @return new property parse result
      */
-    public static <T> PropertyParseResult<T> failInvalidInput(IProperty<T> property, String name, String message) {
-        return new PropertyParseResult<T>(property, name, null, Reason.INVALID_INPUT, message);
+    public static <T> PropertyParseResult<T> failInvalidInput(PropertyInputContext inputContext, IProperty<T> property, String name, String message) {
+        return new PropertyParseResult<T>(inputContext, property, name, null, Reason.INVALID_INPUT, message);
     }
 
     /**
      * Creates a new property parse result for when an error occurs
      * while parsing
-     * 
+     * @param inputContext Input that was parsed but failed to be parsed due to some error
      * @param <T> Type of property value
      * @param property The property that was parsed
      * @param name Name of the property that could not be found
      * @param input The input text that was parsed that caused the error
      * @return new property parse result
      */
-    public static <T> PropertyParseResult<T> failError(IProperty<T> property, String name, String input) {
-        return new PropertyParseResult<T>(property, name, null, Reason.ERROR,
-                Localization.PROPERTY_ERROR.get(name, input));
+    public static <T> PropertyParseResult<T> failError(PropertyInputContext inputContext, IProperty<T> property, String name) {
+        return new PropertyParseResult<T>(inputContext, property, name, null, Reason.ERROR,
+                Localization.PROPERTY_ERROR.get(name, inputContext.input()));
     }
 
     /**
@@ -144,8 +158,8 @@ public class PropertyParseResult<T> {
      * @param value Value result
      * @return new property parse result
      */
-    public static <T> PropertyParseResult<T> success(IProperty<T> property, String name, T value) {
-        return new PropertyParseResult<T>(property, name, value, Reason.NONE, "");
+    public static <T> PropertyParseResult<T> success(PropertyInputContext inputContext, IProperty<T> property, String name, T value) {
+        return new PropertyParseResult<T>(inputContext, property, name, value, Reason.NONE, "");
     }
 
     /**

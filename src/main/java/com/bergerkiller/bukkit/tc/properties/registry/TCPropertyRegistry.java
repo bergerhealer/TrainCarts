@@ -563,11 +563,11 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
                     value = this.parser.method.invoke(property, context);
                 }
 
-                return PropertyParseResult.success(property, name, value);
+                return PropertyParseResult.success(inputContext, property, name, value);
             }
             catch (PropertyInvalidInputException ex)
             {
-                return PropertyParseResult.failInvalidInput(property, name,
+                return PropertyParseResult.failInvalidInput(inputContext, property, name,
                         Localization.PROPERTY_INVALID_INPUT.get(
                                 name, inputContext.input(), ex.getMessage()));
             }
@@ -576,7 +576,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
                 this.plugin.getLogger().log(Level.SEVERE,
                         "Failed to parse property '" + this.name + "'", t);
 
-                return PropertyParseResult.failError(property, this.name, inputContext.input());
+                return PropertyParseResult.failError(inputContext, property, this.name);
             }
         }
     }

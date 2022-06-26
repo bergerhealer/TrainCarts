@@ -62,11 +62,33 @@ public interface IPropertyRegistry {
      * @see #findParser(String)
      */
     default <T> PropertyParseResult<T> parse(IProperties properties, String name, String input) {
+        return parse(properties, name, PropertyInputContext.of(input));
+    }
+
+    /**
+     * Looks up a previously registered property by name, then attempts
+     * to parse the input value to a value for that property.
+     * To check whether parsing succeeded, use
+     * {@link PropertyParseResult#isSuccessful()}. If parsing failed, the
+     * reason for failing can be found using {@link PropertyParseResult#getReason()}.
+     * 
+     * @param <T> Type of property value
+     * @param properties The properties the value is parsed for, can be train or cart
+     *        properties. The previous (current) value is read from these properties
+     *        before parsing. This is used in case a parser makes use of the current
+     *        value to parse a value, for example, when adding elements to a list.
+     *        If <i>null</i> is provided, the default value of the property is used.
+     * @param name Name of the property to parse, matches with {@link PropertyParser}
+     * @param inputContext Input value with context to parse using the property parser, if found
+     * @return result of parsing the property by this name using the value
+     * @see #findParser(String)
+     */
+    default <T> PropertyParseResult<T> parse(IProperties properties, String name, PropertyInputContext inputContext) {
         Optional<IPropertyParser<T>> optParser = findParser(name);
         if (optParser.isPresent()) {
-            return optParser.get().parse(properties, input);
+            return optParser.get().parse(properties, inputContext);
         } else {
-            return PropertyParseResult.failPropertyNotFound(name);
+            return PropertyParseResult.failPropertyNotFound(inputContext, name);
         }
     }
 
@@ -135,7 +157,7 @@ public interface IPropertyRegistry {
         if (optParser.isPresent()) {
             return optParser.get().parseAndSet(properties, inputContext);
         } else {
-            return PropertyParseResult.failPropertyNotFound(name);
+            return PropertyParseResult.failPropertyNotFound(inputContext, name);
         }
     }
 
