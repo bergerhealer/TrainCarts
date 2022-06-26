@@ -138,16 +138,33 @@ public class PropertyParseResult<T> {
     /**
      * Creates a new property parse result for when an error occurs
      * while parsing
+     *
      * @param inputContext Input that was parsed but failed to be parsed due to some error
      * @param <T> Type of property value
+     * @param inputContext Input that was parsed but failed to be parsed
      * @param property The property that was parsed
-     * @param name Name of the property that could not be found
+     * @param name Name of the property
      * @param input The input text that was parsed that caused the error
      * @return new property parse result
      */
     public static <T> PropertyParseResult<T> failError(PropertyInputContext inputContext, IProperty<T> property, String name) {
         return new PropertyParseResult<T>(inputContext, property, name, null, Reason.ERROR,
                 Localization.PROPERTY_ERROR.get(name, inputContext.input()));
+    }
+
+    /**
+     * Creates a new property parse result for when setting should be aborted/suppressed due
+     * to a change of mind of the original caller.
+     *
+     * @param <T> Type of property value
+     * @param inputContext Input that was parsed
+     * @param property The property
+     * @param name Name of the property
+     * @return new property parse result
+     */
+    public static <T> PropertyParseResult<T> failSuppressed(PropertyInputContext inputContext, IProperty<T> property, String name) {
+        // Note: message will not actually ever be displayed. So no localization needed.
+        return new PropertyParseResult<T>(inputContext, property, name, null, Reason.SUPPRESSED, "Suppressed");
     }
 
     /**
@@ -173,6 +190,8 @@ public class PropertyParseResult<T> {
         PROPERTY_NOT_FOUND,
         /** Input value is invalid and cannot be parsed to a value for the property */
         INVALID_INPUT,
+        /** Setting is suppressed because it wasn't supposed to actually happen in this state */
+        SUPPRESSED,
         /** An error occurred while parsing the value */
         ERROR
     }

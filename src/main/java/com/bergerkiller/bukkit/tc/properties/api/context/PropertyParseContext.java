@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
+import com.bergerkiller.bukkit.tc.statements.Statement;
 
 /**
  * Argument passed to {@link PropertyParser} annotated methods
@@ -135,7 +136,21 @@ public final class PropertyParseContext<T> extends PropertyContext {
      */
     public boolean inputBoolean() {
         if (!ParseUtil.isBool(input())) {
-            throw new PropertyInvalidInputException("Not a boolean (true/false expression)");
+            // Try to match the value using statements
+            Statement.Matcher matcher = Statement.Matcher.of(input())
+                    .withSignEvent(this.input.signEvent())
+                    .withGroup(isTrainProperties() ? trainProperties().getHolder() : null)
+                    .withMember(isCartProperties() ? cartProperties().getHolder() : null);
+            boolean result = matcher.match();
+
+            // We do want a failure result if no real statement gets matched.
+            // It always matches the tag statement as a fall-back, so suppress that one.
+            if (!matcher.lastResultWasExactMatch()) {
+                throw new PropertyInvalidInputException("Not a boolean (true/false) or Statement expression");
+            }
+
+            this.input.setHasParsedStatements(true);
+            return result;
         }
         return ParseUtil.parseBool(input());
     }

@@ -19,8 +19,18 @@ import org.bukkit.block.BlockFace;
 
 public class SignActionProperties extends SignAction {
 
-    private static PropertyParseResult.Reason parseAndSet(IProperties properties, SignActionEvent info) {
-        return properties.parseAndSet(info.getLine(2), PropertyInputContext.of(info.getLine(3)).signEvent(info)).getReason();
+    private static PropertyParseResult.Reason parseAndSet(IProperties properties, SignActionEvent info, final boolean conditional) {
+        return properties.parseAndSet(info.getLine(2),
+                PropertyInputContext.of(info.getLine(3))
+                                    .signEvent(info)
+                                    .beforeSet(result -> {
+                                        if (conditional && !result.getInputContext().hasParsedStatements()) {
+                                            return PropertyParseResult.failSuppressed(result.getInputContext(),
+                                                    result.getProperty(), result.getName());
+                                        }
+
+                                        return result;
+                                    })).getReason();
     }
 
     @Override
@@ -32,15 +42,33 @@ public class SignActionProperties extends SignAction {
     public void execute(SignActionEvent info) {
         if (!info.isPowered()) return;
 
+        // These trigger moments only get used when a conditional statement is used as value on the property sign
+        // We abort the set operation if after parsing we find out this isn't the case
+        // This prevents a property being applied multiple times when, for example, players enter/exit a train.
+        boolean isConditionalCart = false;
+        boolean isConditionalTrain = false;
+        if (!info.getHeader().onPowerFalling() && !info.getHeader().onPowerRising()) {
+            if (info.isAction(SignActionType.REDSTONE_CHANGE)) {
+                isConditionalCart = true;
+                isConditionalTrain = true;
+            } else if (info.isAction(SignActionType.MEMBER_UPDATE)) {
+                isConditionalCart = true;
+            } else if (info.isAction(SignActionType.GROUP_UPDATE)) {
+                isConditionalTrain = true;
+            }
+        }
+
         PropertyParseResult.Reason result;
-        if (info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON) && info.isCartSign() && info.hasMember()) {
-            result = parseAndSet(info.getMember().getProperties(), info);
-        } else if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON) && info.isTrainSign() && info.hasGroup()) {
-            result = parseAndSet(info.getGroup().getProperties(), info);
+        if ((isConditionalCart || info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON)) && info.isCartSign() && info.hasMember()) {
+            // Sign activation with redstone / member entering it
+            result = parseAndSet(info.getMember().getProperties(), info, isConditionalCart);
+        } else if ((isConditionalTrain || info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON)) && info.isTrainSign() && info.hasGroup()) {
+            // Sign activation with redstone / group entering it
+            result = parseAndSet(info.getGroup().getProperties(), info, isConditionalTrain);
         } else if (info.isAction(SignActionType.REDSTONE_ON) && info.isRCSign()) {
             result = PropertyParseResult.Reason.NONE;
             for (TrainProperties prop : info.getRCTrainProperties()) {
-                PropertyParseResult.Reason singleResult = parseAndSet(prop, info);
+                PropertyParseResult.Reason singleResult = parseAndSet(prop, info, false);
                 if (singleResult != PropertyParseResult.Reason.NONE) {
                     result = singleResult;
                 }
@@ -71,6 +99,7 @@ public class SignActionProperties extends SignAction {
             Util.spawnDustParticle(effectLocation, 255.0, 0.0, 0.0);
             WorldUtil.playSound(effectLocation, SoundEffect.EXTINGUISH, 1.0f, 2.0f);
             break;
+        case SUPPRESSED:
         default:
             break;
         }

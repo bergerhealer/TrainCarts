@@ -83,42 +83,7 @@ public abstract class Statement {
      * @return True if successful, False if not
      */
     public static boolean has(MinecartMember<?> member, MinecartGroup group, String text, SignActionEvent event) {
-        boolean inv = false;
-        text = TCConfig.statementShortcuts.replace(text);
-        while (text.startsWith("!")) {
-            text = text.substring(1);
-            inv = !inv;
-        }
-        if (text.isEmpty()) {
-            return inv;
-        }
-        String lowerText = text.toLowerCase();
-        int idx = lowerText.indexOf('@');
-        String arrayText = idx == -1 ? null : lowerText.substring(0, idx);
-        String[] array = idx == -1 ? null : parseArray(text.substring(idx + 1));
-        for (Statement statement : statements) {
-            if (event == null && statement.requiredEvent()) {
-                continue;
-            }
-            if (arrayText != null && statement.matchArray(arrayText)) {
-                if (member != null) {
-                    return statement.handleArray(member, array, event) != inv;
-                } else if (group != null) {
-                    return statement.handleArray(group, array, event) != inv;
-                } else if (!statement.requiresTrain()) {
-                    return statement.handleArray((MinecartMember<?>) null, array, event) != inv;
-                }
-            } else if (statement.match(lowerText)) {
-                if (member != null) {
-                    return statement.handle(member, text, event) != inv;
-                } else if (group != null) {
-                    return statement.handle(group, text, event) != inv;
-                } else if (!statement.requiresTrain()) {
-                    return statement.handle((MinecartMember<?>) null, text, event) != inv;
-                }
-            }
-        }
-        return inv;
+        return Matcher.of(text).withMember(member).withGroup(group).withSignEvent(event).match();
     }
 
     public static boolean hasMultiple(MinecartMember<?> member, Iterable<String> statementTexts, SignActionEvent event) {
@@ -247,5 +212,140 @@ public abstract class Statement {
 
     public boolean handleArray(MinecartMember<?> member, String[] text, SignActionEvent event) {
         return false;
+    }
+
+    /**
+     * Matches input text to find the statement and evaluate it against a group, member and/or
+     * with sign context information.
+     */
+    public static class Matcher {
+        private final String text;
+        private MinecartGroup group;
+        private MinecartMember<?> member;
+        private SignActionEvent signEvent;
+        private Statement lastStatement;
+        private boolean lastStatementIsArray;
+
+        private Matcher(String text) {
+            this.text = text;
+        }
+
+        public static Matcher of(String text) {
+            return new Matcher(text);
+        }
+
+        public Matcher withGroup(MinecartGroup group) {
+            this.group = group;
+            return this;
+        }
+
+        public Matcher withMember(MinecartMember<?> member) {
+            this.member = member;
+            return this;
+        }
+
+        public Matcher withSignEvent(SignActionEvent event) {
+            this.signEvent = event;
+            return this;
+        }
+
+        /**
+         * Gets the Statement matched using the last {@link #match()} call<br>
+         * <br>
+         * Note that this will include statements that have failed to parse fully
+         * because they require more information (sign event, group, member), but would
+         * have parsed if that information existed.
+         *
+         * @return Statement that was matched
+         */
+        public Statement lastStatement() {
+            return this.lastStatement;
+        }
+
+        /**
+         * Gets whether the {@link #lastStatement()} matched was matched against
+         * the array syntax.<br>
+         * <br>
+         * Note that this will include statements that have failed to parse fully
+         * because they require more information (sign event, group, member), but would
+         * have parsed if that information existed.
+         *
+         * @return True if an array statement syntax was matched
+         */
+        public boolean lastStatementIsArray() {
+            return this.lastStatementIsArray;
+        }
+
+        /**
+         * Gets whether the last {@link #match()} result actually matched a statement,
+         * or that a fallback result was produced using the Tag fallback.<br>
+         * <br>
+         * Note that this will include statements that have failed to parse fully
+         * because they require more information (sign event, group, member), but would
+         * have parsed if that information existed.
+         *
+         * @return True if a result was actually matched. For tag statements this requires
+         *         use of t@.
+         */
+        public boolean lastResultWasExactMatch() {
+            return this.lastStatement != null &&
+                    (!(this.lastStatement instanceof StatementTag) || this.lastStatementIsArray);
+        }
+
+        /**
+         * Matches the input text against a compatible statement and returns
+         * the result of whether the condition is True.
+         *
+         * @return Match result
+         */
+        public boolean match() {
+            // Reset
+            this.lastStatement = null;
+            this.lastStatementIsArray = false;
+
+            boolean inv = false;
+            String text = TCConfig.statementShortcuts.replace(this.text);
+            while (!text.isEmpty() && text.charAt(0) == '!') {
+                text = text.substring(1);
+                inv = !inv;
+            }
+            if (text.isEmpty()) {
+                return inv;
+            }
+            String lowerText = text.toLowerCase();
+            int idx = lowerText.indexOf('@');
+            String arrayText = idx == -1 ? null : lowerText.substring(0, idx);
+            String[] array = idx == -1 ? null : parseArray(text.substring(idx + 1));
+            for (Statement statement : statements) {
+                if (arrayText != null && statement.matchArray(arrayText)) {
+                    this.lastStatement = statement;
+                    this.lastStatementIsArray = true;
+                    if (signEvent == null && statement.requiredEvent()) {
+                        continue;
+                    }
+                    if (member != null) {
+                        return statement.handleArray(member, array, signEvent) != inv;
+                    } else if (group != null) {
+                        return statement.handleArray(group, array, signEvent) != inv;
+                    } else if (!statement.requiresTrain()) {
+                        return statement.handleArray((MinecartMember<?>) null, array, signEvent) != inv;
+                    }
+                } else if (statement.match(lowerText)) {
+                    this.lastStatement = statement;
+                    this.lastStatementIsArray = true;
+                    if (signEvent == null && statement.requiredEvent()) {
+                        continue;
+                    }
+                    if (member != null) {
+                        return statement.handle(member, text, signEvent) != inv;
+                    } else if (group != null) {
+                        return statement.handle(group, text, signEvent) != inv;
+                    } else if (!statement.requiresTrain()) {
+                        return statement.handle((MinecartMember<?>) null, text, signEvent) != inv;
+                    }
+                }
+            }
+            return inv;
+        }
     }
 }

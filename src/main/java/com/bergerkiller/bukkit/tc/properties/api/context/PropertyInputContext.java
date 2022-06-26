@@ -17,11 +17,13 @@ public class PropertyInputContext {
     private final String input;
     private UnaryOperator<PropertyParseResult<?>> beforeSet;
     private SignActionEvent signEvent;
+    private boolean hasParsedStatements;
 
     protected PropertyInputContext(String input) {
         this.input = input;
         this.beforeSet = UnaryOperator.identity();
         this.signEvent = null;
+        this.hasParsedStatements = false;
     }
 
     /**
@@ -95,6 +97,21 @@ public class PropertyInputContext {
      */
     public SignActionEvent signEvent() {
         return this.signEvent;
+    }
+
+    /**
+     * After parsing a property will be set to True if a statement was matched against
+     * the value to find the end-result. This indicates that the true value can change
+     * due to outside circumstances.
+     *
+     * @return True if a statement was matched against this input value during parsing
+     */
+    public boolean hasParsedStatements() {
+        return this.hasParsedStatements;
+    }
+
+    void setHasParsedStatements(boolean state) {
+        this.hasParsedStatements = state;
     }
 
     /**
