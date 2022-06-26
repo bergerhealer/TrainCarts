@@ -125,11 +125,10 @@ public class SignControllerWorld {
      */
     public void forEachNearbyVerify(Block block, Consumer<SignController.Entry> handler) {
         for (SignController.Entry entry : this.findNearby(block)) {
-            entry.sign.update();
-            if (entry.sign.isRemoved()) {
-                this.removeInvalidEntry(entry);
-            } else {
+            if (verifyEntry(entry)) {
                 handler.accept(entry);
+            } else {
+                removeInvalidEntry(entry);
             }
         }
     }
@@ -200,14 +199,13 @@ public class SignControllerWorld {
     private boolean verifySignColumnSlice(long key, BlockFace direction, SignController.Entry entry) {
         // Find relative direction the sign is at
         BlockFace offset = LongBlockCoordinates.findDirection(entry.blockKey, key);
-        if (offset == direction || offset == direction.getOppositeFace()) {
+        if (offset == null || offset == direction || offset == direction.getOppositeFace()) {
             return false;
         }
 
         // Check sign still exists
-        entry.sign.update();
-        if (entry.sign.isRemoved()) {
-            this.removeInvalidEntry(entry);
+        if (!verifyEntry(entry)) {
+            removeInvalidEntry(entry);
             return false;
         }
 
@@ -270,7 +268,7 @@ public class SignControllerWorld {
             atChunk.add(entry);
         }
 
-        this.addChunkByBlockEntry(entry);
+        entry.blocks.forAllBlocks(entry, this::addChunkByBlockEntry);
 
         this.controller.activateEntry(entry);
 
@@ -294,11 +292,10 @@ public class SignControllerWorld {
             if (atChunk != null) {
                 for (Iterator<SignController.Entry> iter = atChunk.iterator(); iter.hasNext();) {
                     SignController.Entry entry = iter.next();
-                    entry.sign.update();
-                    if (entry.sign.isRemoved()) {
+                    if (!verifyEntry(entry)) {
                         // Remove loaded sign information
                         iter.remove();
-                        this.removeFromByBlockEntry(entry);
+                        entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
 
                         // Remove from the offline signs cache as well
                         controller.getPlugin().getOfflineSigns().removeAll(entry.sign.getBlock());
@@ -351,12 +348,11 @@ public class SignControllerWorld {
                 SignController.Entry entry = iter.next();
                 if (!entry.activated) {
                     // Check sign still truly exists, and if so, notify its activation
-                    entry.sign.update();
-                    if (entry.sign.isRemoved()) {
-                        iter.remove();
-                        this.removeFromByBlockEntry(entry);
-                    } else {
+                    if (verifyEntry(entry)) {
                         this.controller.activateEntry(entry);
+                    } else {
+                        iter.remove();
+                        entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
                     }
                 }
             }
@@ -379,7 +375,7 @@ public class SignControllerWorld {
                     // Protect against NPE
                     if (entry.sign.isRemoved()) {
                         iter.remove();
-                        this.removeFromByBlockEntry(entry);
+                        entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
                     } else {
                         this.controller.deactivateEntry(entry);
                     }
@@ -412,7 +408,7 @@ public class SignControllerWorld {
                     this.signsByChunk.put(chunkKey, entriesAtChunk);
                 }
                 entriesAtChunk.add(entry);
-                addChunkByBlockEntry(entry);
+                entry.blocks.forAllBlocks(entry, this::addChunkByBlockEntry);
             }
         }
 
@@ -451,17 +447,6 @@ public class SignControllerWorld {
         }
     }
 
-    private void addChunkByBlockEntry(SignController.Entry entry) {
-        final long key = entry.blockKey;
-        addChunkByBlockEntry(entry, key);
-        addChunkByBlockEntry(entry, LongBlockCoordinates.shiftUp(key));
-        addChunkByBlockEntry(entry, LongBlockCoordinates.shiftDown(key));
-        addChunkByBlockEntry(entry, LongBlockCoordinates.shiftEast(key));
-        addChunkByBlockEntry(entry, LongBlockCoordinates.shiftWest(key));
-        addChunkByBlockEntry(entry, LongBlockCoordinates.shiftSouth(key));
-        addChunkByBlockEntry(entry, LongBlockCoordinates.shiftNorth(key));
-    }
-
     private void addChunkByBlockEntry(final SignController.Entry entry, long key) {
         this.signsByNeighbouringBlock.merge(key, entry.singletonArray, (a, b) -> {
             int len = a.length;
@@ -486,9 +471,22 @@ public class SignControllerWorld {
                     this.controller.deactivateEntry(entry);
                 }
 
-                this.removeFromByBlockEntry(entry);
+                entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
             }
         }
+    }
+
+    boolean verifyEntry(SignController.Entry entry) {
+        entry.sign.update();
+        if (entry.sign.isRemoved()) {
+            return false;
+        }
+        if (entry.sign.getAttachedFace() != entry.blocks.getAttachedFace()) {
+            entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
+            entry.blocks = SignBlocksAround.of(entry.sign.getAttachedFace());
+            entry.blocks.forAllBlocks(entry, this::addChunkByBlockEntry);
+        }
+        return true;
     }
 
     void removeInvalidEntry(SignController.Entry entry) {
@@ -499,18 +497,7 @@ public class SignControllerWorld {
         }
 
         // Remove entry from by-block mapping
-        removeFromByBlockEntry(entry);
-    }
-
-    void removeFromByBlockEntry(SignController.Entry entry) {
-        final long key = entry.blockKey;
-        removeChunkByBlockEntry(entry, key);
-        removeChunkByBlockEntry(entry, LongBlockCoordinates.shiftUp(key));
-        removeChunkByBlockEntry(entry, LongBlockCoordinates.shiftDown(key));
-        removeChunkByBlockEntry(entry, LongBlockCoordinates.shiftEast(key));
-        removeChunkByBlockEntry(entry, LongBlockCoordinates.shiftWest(key));
-        removeChunkByBlockEntry(entry, LongBlockCoordinates.shiftSouth(key));
-        removeChunkByBlockEntry(entry, LongBlockCoordinates.shiftNorth(key));
+        entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
     }
 
     private void removeChunkByBlockEntry(SignController.Entry entry, long key) {

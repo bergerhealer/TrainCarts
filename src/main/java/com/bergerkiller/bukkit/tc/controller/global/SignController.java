@@ -165,10 +165,9 @@ public class SignController implements LibraryComponent, Listener {
     public void notifySignRemoved(Block signBlock) {
         // Remove loaded sign information
         SignControllerWorld worldController = forWorld(signBlock.getWorld());
-        for (Entry entry : worldController.findNearby(signBlock)) {
-            if (entry.sign.getBlock().equals(signBlock)) {
-                worldController.removeInvalidEntry(entry);
-            }
+        Entry entry = worldController.findForSign(signBlock);
+        if (entry != null) {
+            worldController.removeInvalidEntry(entry);
         }
 
         // Remove from the offline signs cache as well
@@ -244,6 +243,7 @@ public class SignController implements LibraryComponent, Listener {
         if (TrainCarts.isWorldDisabled(event)) {
             return;
         }
+
         BlockData event_block_data = WorldUtil.getBlockData(event.getBlock());
         if (event_block_data.isType(Material.LEVER)) {
             final Block leverBlock = event.getBlock();
@@ -318,12 +318,18 @@ public class SignController implements LibraryComponent, Listener {
             return;
         }
 
-        entry.sign.update(); // Updates text
+        // Update text & verify attached face / exists
+        // If different, force an update (requires slow by-world lookup)
+        entry.sign.update();
         if (entry.sign.isRemoved()) {
-            forWorld(entry.sign.getBlock().getWorld()).removeInvalidEntry(entry);
-        } else {
-            entry.updateRedstonePower();
+            forWorld(entry.sign.getWorld()).removeInvalidEntry(entry);
+            return;
         }
+        if (entry.sign.getAttachedFace() != entry.blocks.getAttachedFace()) {
+            forWorld(entry.sign.getWorld()).verifyEntry(entry); // Updates mapping
+        }
+
+        entry.updateRedstonePower();
     }
 
     /**
@@ -337,6 +343,7 @@ public class SignController implements LibraryComponent, Listener {
         private final FastTrackedUpdateSet.Tracker<Entry> redstoneUpdateTracker;
         private final FastTrackedUpdateSet.Tracker<Entry> ignoreRedstoneUpdateTracker;
         final long blockKey;
+        SignBlocksAround blocks;
         final long chunkKey;
         final Entry[] singletonArray;
 
@@ -348,6 +355,7 @@ public class SignController implements LibraryComponent, Listener {
             this.ignoreRedstoneUpdateTracker = controller.ignoreRedstoneUpdates.track(this);
             this.blockKey = blockKey;
             this.chunkKey = chunkKey;
+            this.blocks = SignBlocksAround.of(this.sign.getAttachedFace());
             this.singletonArray = new Entry[] { this };
         }
 

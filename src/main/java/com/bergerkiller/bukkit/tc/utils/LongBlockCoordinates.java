@@ -129,8 +129,7 @@ public class LongBlockCoordinates {
      *
      * @param from Long block coordinates
      * @param to Long block coordinates
-     * @return Direction
-     * @throws IllegalArgumentException If from and to are not neighbours
+     * @return Direction, null if from and to are not neighbours
      */
     public static BlockFace findDirection(long from, long to) {
         // Subtracts the masked portions, and encodes it as a single long value
@@ -165,9 +164,10 @@ public class LongBlockCoordinates {
             if (diff == (PACKED_Y_MASK << Y_OFFSET))
                 return BlockFace.DOWN;
         default:
-            throw new IllegalArgumentException("Blocks not neighbours: " +
-                    "{x=" + getX(from) + ", y=" + getY(from) + ", z=" + getZ(from) + "} and " +
-                    "{x=" + getX(to) + ", y=" + getY(to) + ", z=" + getZ(to) + "}");
+            return null;
+            //throw new IllegalArgumentException("Blocks not neighbours: " +
+            //        "{x=" + getX(from) + ", y=" + getY(from) + ", z=" + getZ(from) + "} and " +
+            //        "{x=" + getX(to) + ", y=" + getY(to) + ", z=" + getZ(to) + "}");
         }
     }
 
