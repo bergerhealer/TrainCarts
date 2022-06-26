@@ -31,6 +31,7 @@ public class StandardProperties {
     public static final CollisionProperty COLLISION = new CollisionProperty();
     public static final PlayerEnterProperty ALLOW_PLAYER_ENTER = new PlayerEnterProperty();
     public static final PlayerExitProperty ALLOW_PLAYER_EXIT = new PlayerExitProperty();
+    public static final PlayerEnterAndExitProperty ALLOW_PLAYER_ENTER_AND_EXIT = new PlayerEnterAndExitProperty();
     public static final GravityProperty GRAVITY = new GravityProperty();
     public static final FrictionProperty FRICTION = new FrictionProperty();
     public static final SpeedLimitProperty SPEEDLIMIT = new SpeedLimitProperty();
