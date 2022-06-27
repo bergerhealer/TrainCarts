@@ -4,6 +4,8 @@ import java.util.function.LongUnaryOperator;
 
 import org.bukkit.block.BlockFace;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
+
 /**
  * Maps Block coordinates to longs, similar to how Minecraft does that now.
  * Does not work for Y-ranges beyond 4096. Keys should not be decoded, store such information
@@ -171,13 +173,14 @@ public class LongBlockCoordinates {
         }
     }
 
-    // Efficiently checks whether a long coordinate refers to a block within a chunk,
-    // and not one at the edge of the chunk. Blocks that are not at the edge receive
-    // some optimizations to skip certain logic on chunk load/unload.
-    public static boolean isWithinChunk(long key) {
-        long relx = key & (0xFL << X_OFFSET);
-        long relz = key & (0xFL << Z_OFFSET);
-        return relx != 0L && relx != (0xFL << X_OFFSET) && relz != 0L && relz != (0xFL << Z_OFFSET);
+    // Computes the number of blocks between the block itself and the nearest
+    // edge block of the chunk. If 0, it is on the edge. If 1, 1 away from the edge, etc.
+    public static int getChunkEdgeDistance(long key) {
+        int relx = (int) (key >> X_OFFSET) & 0xF;
+        int relz = (int) (key >> Z_OFFSET) & 0xF;
+        if ((relx & 0x8) != 0) relx = 0xF - relx;
+        if ((relz & 0x8) != 0) relz = 0xF - relz;
+        return Math.min(relx, relz);
     }
 
     // Avoid using these if you can
@@ -193,5 +196,10 @@ public class LongBlockCoordinates {
     // Avoid using these if you can
     public static int getZ(long i) {
         return (int) (i << 64 - Z_OFFSET - PACKED_Z_LENGTH >> 64 - PACKED_Z_LENGTH);
+    }
+
+    // Avoid using these if you can
+    public static IntVector3 get(long i) {
+        return new IntVector3(getX(i), getY(i), getZ(i));
     }
 }

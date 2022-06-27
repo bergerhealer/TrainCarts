@@ -471,7 +471,7 @@ public class SignControllerWorld {
                     this.controller.deactivateEntry(entry);
                 }
 
-                entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
+                entry.blocks.forAllBlocks(entry, (e, key) -> removeChunkByBlockEntry(e, key, true));
             }
         }
     }
@@ -501,13 +501,12 @@ public class SignControllerWorld {
     }
 
     private void removeChunkByBlockEntry(SignController.Entry entry, long key) {
-        SignController.Entry[] entries = this.signsByNeighbouringBlock.remove(key);
+        removeChunkByBlockEntry(entry, key, false);
+    }
 
-        // If already removed, ignore
-        // The range of coordinates that fall well within the chunk can be removed entirely without
-        // thinking too hard about it. There is a guarantee that this mask works thanks to the
-        // neighbour being at most one block away.
-        if (entries == null || LongBlockCoordinates.isWithinChunk(key)) {
+    private void removeChunkByBlockEntry(SignController.Entry entry, long key, boolean purgeAllInSameChunk) {
+        SignController.Entry[] entries = this.signsByNeighbouringBlock.remove(key);
+        if (entries == null || (purgeAllInSameChunk && LongBlockCoordinates.getChunkEdgeDistance(key) >= 2)) {
             return;
         }
 
@@ -518,14 +517,11 @@ public class SignControllerWorld {
         int len = entries.length;
         while (--len >= 0) {
             SignController.Entry e = entries[len];
-            if (e == entry || e.chunkKey == entry.chunkKey) {
-                continue; // Entry to remove / same chunk. Yeet!
+            if (e != entry && (!purgeAllInSameChunk || e.chunkKey != entry.chunkKey)) {
+                newEntries = Arrays.copyOf(newEntries, numNewEntries + 1);
+                newEntries[numNewEntries] = e;
+                numNewEntries++;
             }
-
-            // Different chunk. Keep!
-            newEntries = Arrays.copyOf(newEntries, numNewEntries + 1);
-            newEntries[numNewEntries] = e;
-            numNewEntries++;
         }
 
         // Put if there are entries to keep
