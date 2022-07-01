@@ -21,11 +21,9 @@ import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.common.block.SignChangeTracker;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
@@ -78,8 +76,8 @@ final class WorldRailLookupImpl implements WorldRailLookup {
     private OfflineWorld offlineWorld;
     private Map<IntVector3, Bucket> cache;
     private List<Bucket> cacheValues;
-    private final MutexZoneCacheWorld mutexZones;
-    private final SignControllerWorld signController;
+    private MutexZoneCacheWorld mutexZones;
+    private SignControllerWorld signController;
     private int ticksWithEmptyCache;
 
     WorldRailLookupImpl(World world) {
@@ -88,8 +86,19 @@ final class WorldRailLookupImpl implements WorldRailLookup {
         this.cache = new HashMap<>();
         this.cacheValues = new ArrayList<>();
         this.mutexZones = MutexZoneCache.forWorld(this.offlineWorld);
-        this.signController = TrainCarts.plugin.getSignController().forWorld(this.world);
+        this.signController = TrainCarts.plugin.getSignController().forWorldSkipInitialization(this.world);
         this.ticksWithEmptyCache = 0;
+    }
+
+    /**
+     * Orders initialization of this lookup cache. Information mapped to blocks should be
+     * stored into the cache at this point.
+     */
+    void initialize() {
+        // NOW we can start activating signs (sign action loaded events are fired)
+        this.signController.initialize();
+
+        DetectorRegion.fillRailLookup(this);
     }
 
     @Override
@@ -158,14 +167,6 @@ final class WorldRailLookupImpl implements WorldRailLookup {
         cache = Collections.emptyMap(); // Free memory
         cacheValues = Collections.emptyList(); // Free memory
         world = null; // Forces errors / checking
-    }
-
-    /**
-     * Orders initialization of this lookup cache. Information mapped to blocks should be
-     * stored into the cache at this point.
-     */
-    void initialize() {
-        DetectorRegion.fillRailLookup(this);
     }
 
     @Override
@@ -303,19 +304,14 @@ final class WorldRailLookupImpl implements WorldRailLookup {
 
     @Override
     public TrackedSign[] discoverSignsAtRailPiece(RailPiece rail) {
-        Block columnStart = rail.type().getSignColumnStart(rail.block());
-        if (columnStart == null) {
-            return RailLookup.NO_SIGNS;
-        }
-
-        BlockFace direction = rail.type().getSignColumnDirection(rail.block());
-        if (direction == null || direction == BlockFace.SELF) {
-            return RailLookup.NO_SIGNS;
-        }
-
         try (TrackedSignList cache = SIGN_LIST_CACHE.start(rail)) {
-            this.signController.forEachSignInColumn(columnStart, direction, cache::add);
-            return cache.build();
+            try {
+                rail.type().discoverSigns(rail, this.signController, cache.signs);
+                return cache.build();
+            } catch (Throwable t) {
+                TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed discover signs for " + rail, t);
+                return RailLookup.NO_SIGNS;
+            }
         }
     }
 
@@ -892,25 +888,11 @@ final class WorldRailLookupImpl implements WorldRailLookup {
             if (signs == RailLookup.MISSING_RAILS_NO_SIGNS) {
                 this.signs = RailLookup.discoverSignsAtRailPiece(this);
             } else {
-                // Check all tracked signs to see if any of them have been removed
-                // If they change in other ways (update()), re-create the TrackedSign instance
-                for (int i = 0; i < signs.length; i++) {
-                    TrackedSign sign = signs[i];
-                    if (!sign.tracker.update()) {
-                        continue;
-                    }
-                    if (sign.tracker.isRemoved()) {
+                // Check all tracked signs to see if any of them have been removed or changed
+                for (TrackedSign sign : signs) {
+                    if (!sign.verify()) {
                         // Regenerate, the entire sign is gone, so there's likely more changes
                         this.signs = RailLookup.discoverSignsAtRailPiece(this);
-                        break;
-                    }
-
-                    // Only re-create the TrackedSign to update the Sign state
-                    try {
-                        this.signs[i] = new TrackedSign(sign.tracker, sign.rail);
-                    } catch (Throwable t) {
-                        this.signs = signs = LogicUtil.removeArrayElement(signs, i);
-                        i--;
                         break;
                     }
                 }
@@ -954,14 +936,6 @@ final class WorldRailLookupImpl implements WorldRailLookup {
         public void close() {
             this.signs.clear();
             this.rail = null;
-        }
-
-        public void add(SignChangeTracker tracker) {
-            try {
-                this.signs.add(new TrackedSign(tracker, this.rail));
-            } catch (Throwable t) {
-                TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to load sign at " + tracker.getBlock(), t);
-            }
         }
 
         public TrackedSign[] build() {

@@ -12,8 +12,10 @@ import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath.Position;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
+import com.bergerkiller.bukkit.tc.controller.global.SignControllerWorld;
 import com.bergerkiller.bukkit.tc.editor.RailsTexture;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
+import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicAir;
 
@@ -518,6 +520,36 @@ public abstract class RailType {
      */
     public Block getSignColumnStart(Block railsBlock) {
         return railsBlock;
+    }
+
+    /**
+     * Discovers the {@link TrackedSign} signs activated by trains when they drive over this RailType
+     * on a particular rail block. The input railPiece should be used when initializing the TrackedSign,
+     * and the input signController can be used to efficiently look up real sign blocks.<br>
+     * <br>
+     * It is allowed to return a custom TrackedSign implementation here that represents a fake sign.<Br>
+     * <br>
+     * By default uses {@link #getSignColumnDirection(Block)} and {@link #getSignColumnStart(Block)} to
+     * search for real sign blocks.
+     *
+     * @param railPiece Rail Piece with the same RailType as this one being queried
+     * @param signController Sign Controller which can be queried for real sign blocks near the rails
+     * @param result List of tracked signs to write the found signs to
+     */
+    public void discoverSigns(RailPiece railPiece, SignControllerWorld signController, List<TrackedSign> result) {
+        Block columnStart = getSignColumnStart(railPiece.block());
+        if (columnStart == null) {
+            return;
+        }
+
+        BlockFace direction = getSignColumnDirection(railPiece.block());
+        if (direction == null || direction == BlockFace.SELF) {
+            return;
+        }
+
+        signController.forEachSignInColumn(columnStart, direction, tracker -> {
+            result.add(TrackedSign.forRealSign(tracker, railPiece));
+        });
     }
 
     /**

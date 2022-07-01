@@ -29,6 +29,11 @@ public class SignActionMutex extends SignAction {
     }
 
     @Override
+    public boolean canSupportFakeSign(SignActionEvent info) {
+        return false;
+    }
+
+    @Override
     public boolean build(SignChangeActionEvent event) {
         // Check mutex zone isnt too big
         {

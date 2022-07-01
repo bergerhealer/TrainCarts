@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.events;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.PowerState;
@@ -19,7 +18,6 @@ import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
-import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
@@ -43,13 +41,10 @@ import org.bukkit.util.Vector;
 
 public class SignActionEvent extends Event implements Cancellable {
     private static final HandlerList handlers = new HandlerList();
-    private final Block signblock;
-    private BlockFace facing;
-    private final SignActionHeader header;
-    private final Sign sign;
+
+    private final TrackedSign sign;
     private final String lowerSecondCleanedLine;
     private BlockFace[] watchedDirections;
-    private RailPiece rail;
     private SignActionType actionType;
     private BlockFace raildirection = null;
     private MinecartMember<?> member = null;
@@ -95,42 +90,29 @@ public class SignActionEvent extends Event implements Cancellable {
         this.memberchecked = true;
     }
 
-    public SignActionEvent(final Block signblock) {
-        this(signblock, (RailPiece) null);
+    public SignActionEvent(final Block signBlock) {
+        this(TrackedSign.forRealSign(signBlock, null));
     }
 
     public SignActionEvent(final Block signblock, RailPiece rail) {
-        this(signblock, signblock == null ? null : BlockUtil.getSign(signblock), rail);
-    }
-
-    public SignActionEvent(TrackedSign trackedSign) {
-        this(trackedSign.signBlock, trackedSign.sign, trackedSign.rail);
+        this(TrackedSign.forRealSign(signblock, rail));
     }
 
     public SignActionEvent(final Block signblock, final Sign sign, RailPiece rail) {
-        this(signblock, sign, null, rail);
+        this(TrackedSign.forRealSign(sign, signblock, rail));
     }
 
-    public SignActionEvent(final Block signblock, final Sign sign, BlockFace signFacing, RailPiece rail) {
-        this.signblock = signblock;
-        this.sign = sign;
-        this.rail = rail;
-        this.actionType = SignActionType.NONE;
-        this.facing = signFacing;
-        if (this.sign == null) {
-            // No sign available - set default values and abort
-            this.header = SignActionHeader.parse(null);
-            this.lowerSecondCleanedLine = "";
-            this.watchedDirections = FaceUtil.AXIS;
-        } else {
-            // Sign available - initialize the sign
-            this.header = SignActionHeader.parseFromEvent(this);
-            this.lowerSecondCleanedLine = Util.cleanSignLine(sign.getLine(1)).toLowerCase(Locale.ENGLISH);
-            if (this.header.isLegacyConverted() && this.header.isValid()) {
-                this.setLine(0, this.header.toString());
-            }
-            this.watchedDirections = null;
+    public SignActionEvent(TrackedSign sign) {
+        if (sign == null) {
+            throw new IllegalArgumentException("Tracked sign is null");
         }
+        this.sign = sign;
+        this.actionType = SignActionType.NONE;
+        this.lowerSecondCleanedLine = Util.cleanSignLine(sign.sign.getLine(1)).toLowerCase(Locale.ENGLISH);
+        if (this.sign.header.isLegacyConverted() && this.sign.header.isValid()) {
+            this.setLine(0, this.sign.header.toString());
+        }
+        this.watchedDirections = null;
     }
 
     public static HandlerList getHandlerList() {
@@ -143,7 +125,10 @@ public class SignActionEvent extends Event implements Cancellable {
      * @param down state to set to
      */
     public void setLevers(boolean down) {
-        BlockUtil.setLeversAroundBlock(this.getAttachedBlock(), down);
+        Block attachedBlock = this.getAttachedBlock();
+        if (attachedBlock != null) {
+            BlockUtil.setLeversAroundBlock(attachedBlock, down);
+        }
     }
 
     /**
@@ -492,27 +477,29 @@ public class SignActionEvent extends Event implements Cancellable {
             return;
         }
 
+        RailPiece rail = this.sign.rail;
+
         // If from and to are the same, the train is launched back towards where it came
         // In this special case, select another junction part of the path as the from
         // and launch the train backwards
         if (fromJunction.name().equals(toJunction.name())) {
             // Pick any other junction that is not equal to 'to'
             // Prefer junctions that have already been selected (assert from rail path)
-            RailState state = RailState.getSpawnState(this.rail);
+            RailState state = RailState.getSpawnState(rail);
             RailPath path = state.loadRailLogic().getPath();
             RailPath.Position p0 = path.getStartPosition();
             RailPath.Position p1 = path.getEndPosition();
             double min_dist = Double.MAX_VALUE;
-            for (RailJunction junc : this.rail.getJunctions()) {
+            for (RailJunction junc : rail.getJunctions()) {
                 if (junc.name().equals(fromJunction.name())) {
                     continue;
                 }
                 if (junc.position().relative) {
-                    p0.makeRelative(this.rail.block());
-                    p1.makeRelative(this.rail.block());
+                    p0.makeRelative(rail.block());
+                    p1.makeRelative(rail.block());
                 } else {
-                    p0.makeAbsolute(this.rail.block());
-                    p1.makeAbsolute(this.rail.block());
+                    p0.makeAbsolute(rail.block());
+                    p1.makeAbsolute(rail.block());
                 }
                 double dist_sq = Math.min(p0.distanceSquared(junc.position()),
                                           p1.distanceSquared(junc.position()));
@@ -523,7 +510,7 @@ public class SignActionEvent extends Event implements Cancellable {
             }
 
             // Switch it
-            this.rail.switchJunction(fromJunction, toJunction);
+            rail.switchJunction(fromJunction, toJunction);
 
             // Launch train into the opposite direction, if required
             if (this.hasMember()) {
@@ -543,7 +530,7 @@ public class SignActionEvent extends Event implements Cancellable {
         }
 
         // All the switching logic under normal conditions happens here
-        this.rail.switchJunction(fromJunction, toJunction);
+        rail.switchJunction(fromJunction, toJunction);
     }
 
     /**
@@ -592,7 +579,7 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return sign header
      */
     public SignActionHeader getHeader() {
-        return this.header;
+        return this.sign.header;
     }
 
     /**
@@ -618,14 +605,14 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     public PowerState getPower(BlockFace from) {
-        return PowerState.get(this.signblock, from);
+        return this.sign.getPower(from);
     }
 
     public boolean isPowered(BlockFace from) {
-        if (this.header.isAlwaysOff()) {
+        if (this.sign.header.isAlwaysOff()) {
             return false;
         }
-        return this.header.isAlwaysOn() || this.header.isInverted() != this.getPower(from).hasPower();
+        return this.sign.header.isAlwaysOn() || this.sign.header.isInverted() != this.getPower(from).hasPower();
     }
 
     /**
@@ -643,19 +630,20 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return True if the sign is powered, False if not
      */
     public boolean isPowered() {
-        if (this.header.isAlwaysOff()) {
+        SignActionHeader header = this.sign.header;
+        if (header.isAlwaysOff()) {
             return false;
         }
         if (this.actionType == SignActionType.REDSTONE_ON) {
             return true;
         }
-        if (this.header.onPowerRising() || this.header.onPowerFalling()) {
+        if (header.onPowerRising() || header.onPowerFalling()) {
             return false; // Only redstone transition changes can power the sign temporarily
         }
         if (this.actionType == SignActionType.REDSTONE_OFF) {
             return false;
         }
-        return this.header.isAlwaysOn() || this.isPoweredRaw(this.header.isInverted());
+        return header.isAlwaysOn() || this.isPoweredRaw(header.isInverted());
     }
 
     /**
@@ -668,19 +656,35 @@ public class SignActionEvent extends Event implements Cancellable {
      */
     @Deprecated
     public boolean isPoweredRaw(boolean invert) {
-        return PowerState.isSignPowered(this.signblock, invert);
+        if (invert) {
+            for (BlockFace face : FaceUtil.BLOCK_SIDES) {
+                if (this.sign.getPower(face) == PowerState.ON) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            for (BlockFace face : FaceUtil.BLOCK_SIDES) {
+                if (this.sign.getPower(face).hasPower()) return true;
+            }
+            return false;
+        }
     }
 
     public boolean isPoweredFacing() {
         return this.actionType == SignActionType.REDSTONE_ON || (this.isFacing() && this.isPowered());
     }
 
+    public TrackedSign getTrackedSign() {
+        return this.sign;
+    }
+
     public Block getBlock() {
-        return this.signblock;
+        return this.sign.signBlock;
     }
 
     public Block getAttachedBlock() {
-        return BlockUtil.getAttachedBlock(this.signblock);
+        return this.sign.getAttachedBlock();
     }
 
     /**
@@ -690,10 +694,7 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return RailPiece if found or set, NONE if not found
      */
     public RailPiece getRailPiece() {
-        if (this.rail == null) {
-            this.rail = RailLookup.discoverRailPieceFromSign(this.signblock);
-        }
-        return this.rail;
+        return this.sign.rail;
     }
 
     public RailType getRailType() {
@@ -705,7 +706,7 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     public World getWorld() {
-        return this.signblock.getWorld();
+        return this.sign.signBlock.getWorld();
     }
 
     public boolean hasRails() {
@@ -721,7 +722,7 @@ public class SignActionEvent extends Event implements Cancellable {
     public BlockFace getRailDirection() {
         if (!this.hasRails()) return null;
         if (this.raildirection == null) {
-            this.raildirection = this.rail.type().getDirection(this.rail.block());
+            this.raildirection = this.sign.rail.type().getDirection(this.sign.rail.block());
         }
         return this.raildirection;
     }
@@ -744,18 +745,15 @@ public class SignActionEvent extends Event implements Cancellable {
      */
     public Location getRailLocation() {
         if (!this.hasRails()) return null;
-        return this.rail.block().getLocation().add(0.5, 0, 0.5);
+        return this.sign.rail.block().getLocation().add(0.5, 0, 0.5);
     }
 
     public Location getLocation() {
-        return this.signblock.getLocation();
+        return this.sign.signBlock.getLocation();
     }
 
     public BlockFace getFacing() {
-        if (this.facing == null) {
-            this.facing = BlockUtil.getFacing(this.signblock);
-        }
-        return this.facing;
+        return this.sign.getFacing();
     }
 
     /**
@@ -780,26 +778,18 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return Sign
      */
     public Sign getSign() {
-        return this.sign;
+        return this.sign.sign;
     }
 
     /**
-     * Finds all signs below this sign that can extend the amount of lines
+     * Searches for additional signs below this sign that extend the number of lines on
+     * this sign. These extra signs may not match other types of sign actions.
      *
-     * @return Signs below this sign
+     * @return Extra lines on signs below this sign. Returns an empty array of there are
+     *         none.
      */
-    public Sign[] findSignsBelow() {
-        ArrayList<Sign> below = new ArrayList<>(1);
-        //other signs below this sign we could parse?
-        Block signblock = this.getBlock();
-        while (MaterialUtil.ISSIGN.get(signblock = signblock.getRelative(BlockFace.DOWN))) {
-            Sign sign = BlockUtil.getSign(signblock);
-            if (sign == null || BlockUtil.getFacing(signblock) != this.getFacing()) {
-                break;
-            }
-            below.add(sign);
-        }
-        return below.toArray(new Sign[0]);
+    public String[] getExtraLinesBelow() {
+        return this.sign.getExtraLines();
     }
 
     /**
@@ -837,7 +827,7 @@ public class SignActionEvent extends Event implements Cancellable {
      */
     public String getRCName() {
         if (this.isRCSign()) {
-            return this.header.getRemoteName();
+            return this.sign.header.getRemoteName();
         } else {
             return null;
         }
@@ -862,7 +852,7 @@ public class SignActionEvent extends Event implements Cancellable {
                 } else {
                     // Get the Minecart in the group that contains this sign
                     for (MinecartMember<?> member : this.group) {
-                        if (member.getSignTracker().containsSign(this.signblock)) {
+                        if (member.getSignTracker().containsSign(this.sign)) {
                             this.member = member;
                             break;
                         }
@@ -933,9 +923,9 @@ public class SignActionEvent extends Event implements Cancellable {
         // Lazy initialization here
         if (this.watchedDirections == null) {
             // Find out what directions are watched by this sign
-            if (this.header.hasDirections()) {
+            if (this.sign.header.hasDirections()) {
                 // From first line header ([train:left] -> blockface[] for left)
-                this.watchedDirections = this.header.getFaces(this.getFacing().getOppositeFace());
+                this.watchedDirections = this.sign.header.getFaces(this.getFacing().getOppositeFace());
             } else if (TCConfig.trainsCheckSignFacing) {
                 // Ask rails, the RailType NONE also handled this function, so no NPE here
                 this.watchedDirections = this.getRailPiece().type().getSignTriggerDirections(
@@ -1031,16 +1021,16 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     public String getLine(int index) {
-        return Util.getCleanLine(this.sign, index);
+        return Util.getCleanLine(this.sign.sign, index);
     }
 
     public String[] getLines() {
-        return Util.cleanSignLines(this.sign.getLines());
+        return Util.cleanSignLines(this.sign.sign.getLines());
     }
 
     public void setLine(int index, String line) {
-        this.sign.setLine(index, line);
-        this.sign.update(true);
+        this.sign.sign.setLine(index, line);
+        this.sign.sign.update(true);
     }
 
     /**
@@ -1100,7 +1090,8 @@ public class SignActionEvent extends Event implements Cancellable {
 
     @Override
     public String toString() {
-        String text = "{ block=[" + signblock.getX() + "," + signblock.getY() + "," + signblock.getZ() + "]";
+        Block signBlock = this.sign.signBlock;
+        String text = "{ block=[" + signBlock.getX() + "," + signBlock.getY() + "," + signBlock.getZ() + "]";
         text += ", action=" + this.actionType;
         text += ", watched=[";
         for (int i = 0; i < this.getWatchedDirections().length; i++) {

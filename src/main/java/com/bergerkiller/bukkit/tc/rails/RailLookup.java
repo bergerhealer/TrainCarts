@@ -9,12 +9,14 @@ import java.util.List;
 
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 
 import com.bergerkiller.bukkit.common.block.SignChangeTracker;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.tc.PowerState;
+import com.bergerkiller.bukkit.tc.SignActionHeader;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -373,10 +375,10 @@ public final class RailLookup {
     /**
      * A single sign that is tracked
      */
-    public static class TrackedSign {
-        final SignChangeTracker tracker;
+    public static abstract class TrackedSign {
         public final Sign sign;
         public final Block signBlock;
+        public final SignActionHeader header;
         public final RailPiece rail;
         /** @deprecated Is now part of {@link #rail} */
         @Deprecated
@@ -386,42 +388,84 @@ public final class RailLookup {
         public final Block railBlock;
         public final SignAction action;
 
-        public TrackedSign(Block signBlock, RailPiece rail) {
-            this(SignChangeTracker.track(signBlock), rail);
-        }
-
-        TrackedSign(SignChangeTracker tracker, RailPiece rail) {
-            if (tracker.isRemoved()) {
-                throw new IllegalArgumentException("There is no sign at " + tracker.getBlock());
+        protected TrackedSign(Sign sign, Block signBlock, RailPiece rail) {
+            if (sign == null) {
+                throw new IllegalArgumentException("There is no sign at " + signBlock);
             }
 
             // Canned assignment stuff
-            this.tracker = tracker;
-            this.sign = tracker.getSign();
-            this.signBlock = tracker.getBlock();
+            this.sign = sign;
+            this.signBlock = signBlock;
+            this.header = SignActionHeader.parseFromSign(sign);
             this.rail = rail;
             this.railType = rail.type();
             this.railBlock = rail.block();
-            this.action = SignAction.getSignAction(createEvent(SignActionType.NONE));
+
+            // Detect SignAction
+            this.action = SignAction.getSignAction(this.createEvent(SignActionType.NONE));
         }
 
         /**
-         * Verifies that this tracked sign is really still there on the server
+         * Verifies that this tracked sign with the same information is really still there on the server.
+         * If the sign was removed, changed facing or the text was changed, will return false
+         * to tell the system the signs need to be refreshed.
          *
-         * @return True if the sign is there
+         * @return True if the sign is there with the same sign information as this tracked sign
          */
-        public boolean verify() {
-            return BlockUtil.ISSIGN.get(signBlock);
-        }
+        public abstract boolean verify();
 
         /**
          * Gets whether this TrackedSign refers to a Sign that has since been removed from the
-         * server. This can happen when a sign is broken and this was detected during an update.
+         * server. This can happen when a sign is broken and this was detected during a previous
+         * {@link #verify()}.
          *
-         * @return True if the sign was removed
+         * @return True if this tracked sign was removed
          */
-        public boolean isRemoved() {
-            return this.tracker.isRemoved();
+        public abstract boolean isRemoved();
+
+        /**
+         * Gets the facing orientation of this TrackedSign. This is used to decide the trigger directions
+         * for the sign, among other things.
+         *
+         * @return Sign facing
+         */
+        public abstract BlockFace getFacing();
+
+        /**
+         * Gets the Block this TrackedSign is attached to. This is the Block that levers will be
+         * toggled on. If there is no such block, null can be returned.
+         *
+         * @return Block the sign is attached to.
+         */
+        public abstract Block getAttachedBlock();
+
+        /**
+         * Searches for additional signs below this sign which extend the number of lines. Custom
+         * tracked sign implementations can return lines beyond the first 4 here. Some sign actions,
+         * like the switcher can, can use these extra lines for additional rules.
+         *
+         * @return Extra lines
+         */
+        public abstract String[] getExtraLines();
+
+        /**
+         * Gets the Redstone Power state of this sign, from a given BlockFace. Custom tracked sign
+         * implementation can choose to always return on or off, or do something special with it.
+         *
+         * @param from BlockFace relative to the sign to check
+         * @return PowerState of the sign
+         */
+        public abstract PowerState getPower(BlockFace from);
+
+        /**
+         * Gets whether this TrackedSign refers to a real sign block or not. If this is the case, then
+         * metadata can be tied to the sign block, and this tracked sign can be obtained from a sign
+         * block alone.
+         *
+         * @return True if this TrackedSign refers to a really-existing sign
+         */
+        public boolean isRealSign() {
+            return false;
         }
 
         /**
@@ -431,7 +475,7 @@ public final class RailLookup {
          * @return new SignActionEvent
          */
         public SignActionEvent createEvent(SignActionType action) {
-            return (new SignActionEvent(this.signBlock, this.sign, this.tracker.getFacing(), this.rail)).setAction(action);
+            return (new SignActionEvent(this)).setAction(action);
         }
 
         /**
@@ -485,6 +529,140 @@ public final class RailLookup {
         @Override
         public boolean equals(Object o) {
             return ((TrackedSign) o).signBlock.equals(this.signBlock);
+        }
+
+        /**
+         * Returns a new TrackedSign that tracks a real existing Sign Block.
+         *
+         * @param signTracker Sign Tracker for the Sign
+         * @param rail Rail Piece the sign is for. If null, searches for the rail at the sign
+         * @return TrackedSign for the sign tracked by the signTracker
+         */
+        public static TrackedSign forRealSign(SignChangeTracker signTracker, RailPiece rail) {
+            if (signTracker.isRemoved()) {
+                throw new IllegalArgumentException("Sign does not exist at sign block " + signTracker.getBlock());
+            }
+            if (rail == null) {
+                rail = RailLookup.discoverRailPieceFromSign(signTracker.getBlock());
+            }
+            return new TrackedRealSign(signTracker, rail);
+        }
+
+        /**
+         * Returns a new TrackedSign that tracks a real existing Sign Block.
+         *
+         * @param signBlock Sign Block
+         * @param rail Rail Piece the sign is for. If null, searches for the rail at the sign
+         * @return TrackedSign for the sign tracked by the signTracker
+         */
+        public static TrackedSign forRealSign(Block signBlock, RailPiece rail) {
+            if (signBlock == null) {
+                throw new IllegalArgumentException("Sign block is null");
+            }
+            return forRealSign(SignChangeTracker.track(signBlock), rail);
+        }
+
+        /**
+         * Returns a new TrackedSign that tracks a real existing Sign Block.
+         *
+         * @param sign Sign
+         * @param rail Rail Piece the sign is for. If null, searches for the rail at the sign
+         * @return TrackedSign for the sign tracked by the signTracker
+         */
+        public static TrackedSign forRealSign(Sign sign, RailPiece rail) {
+            if (sign == null) {
+                throw new IllegalArgumentException("Sign is null");
+            }
+            return forRealSign(SignChangeTracker.track(sign), rail);
+        }
+
+        /**
+         * Returns a new TrackedSign that tracks a real existing Sign Block.
+         *
+         * @param sign Sign. If null, searches for a Sign at the signBlock instead
+         * @param signBlock Sign Block. If null, uses sign instead
+         * @param rail Rail Piece the sign is for. If null, searches for the rail at the sign
+         * @return TrackedSign for the sign tracked by the signTracker
+         */
+        public static TrackedSign forRealSign(Sign sign, Block signBlock, RailPiece rail) {
+            if (sign != null) {
+                return forRealSign(SignChangeTracker.track(sign), rail);
+            } else if (signBlock != null) {
+                return forRealSign(SignChangeTracker.track(signBlock), rail);
+            } else {
+                throw new IllegalArgumentException("No sign or sign block specified (null)");
+            }
+        }
+    }
+
+    private static class TrackedRealSign extends TrackedSign {
+        private final SignChangeTracker tracker;
+        private final BlockFace facing;
+
+        private TrackedRealSign(SignChangeTracker tracker, RailPiece rail) {
+            super(tracker.getSign(), tracker.getBlock(), rail);
+            this.facing = tracker.getFacing();
+            this.tracker = tracker;
+        }
+
+        @Override
+        public boolean verify() {
+            this.tracker.update();
+            return !this.tracker.isRemoved() &&
+                   this.tracker.getFacing() == this.facing &&
+                   this.tracker.getSign() == this.sign;
+        }
+
+        @Override
+        public boolean isRemoved() {
+            return this.tracker.isRemoved();
+        }
+
+        @Override
+        public BlockFace getFacing() {
+            return this.facing;
+        }
+
+        @Override
+        public boolean isRealSign() {
+            return true;
+        }
+
+        @Override
+        public String[] getExtraLines() {
+            List<String> lines = new ArrayList<>();
+
+            // Find other TrackedSign instances which are below this sign, repeatedly
+            // Ignore tracked signs which match a SignAction by itself.
+            Block signBlock = this.signBlock.getRelative(BlockFace.DOWN);
+            boolean found;
+            do {
+                found = false;
+                for (TrackedSign sign : this.rail.signs()) {
+                    if (!(sign instanceof TrackedRealSign) || sign.action != null) {
+                        continue;
+                    }
+
+                    if (sign.signBlock.equals(signBlock)) {
+                        lines.addAll(Arrays.asList(sign.sign.getLines()));
+                        found = true;
+                        signBlock = signBlock.getRelative(BlockFace.DOWN);
+                        break;
+                    }
+                }
+            } while (found);
+
+            return lines.toArray(new String[lines.size()]);
+        }
+
+        @Override
+        public Block getAttachedBlock() {
+            return this.signBlock.getRelative(this.tracker.getAttachedFace());
+        }
+
+        @Override
+        public PowerState getPower(BlockFace from) {
+            return PowerState.get(this.signBlock, from, true);
         }
     }
 }

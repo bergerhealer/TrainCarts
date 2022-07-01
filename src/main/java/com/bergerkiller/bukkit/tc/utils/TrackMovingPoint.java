@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.utils;
 
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 
@@ -18,6 +19,7 @@ import java.util.NoSuchElementException;
  */
 public class TrackMovingPoint {
     public Block current, next;
+    public RailPiece currentRailPiece, nextRailPiece;
     public Vector currentDirection, nextDirection;
     public Location currentLocation, nextLocation;
     public RailType currentRail, nextRail;
@@ -66,6 +68,7 @@ public class TrackMovingPoint {
     private TrackMovingPoint(TrackWalkingPoint walkingPoint) {
         this.walkingPoint = walkingPoint;
         if (this.walkingPoint.state.railType() != RailType.NONE) {
+            this.currentRailPiece = this.nextRailPiece = this.walkingPoint.state.railPiece();
             this.current = this.next = this.walkingPoint.state.railBlock();
             this.currentTrack = this.nextTrack = this.current;
             this.currentDirection = this.nextDirection = this.walkingPoint.state.enterDirection();
@@ -73,6 +76,7 @@ public class TrackMovingPoint {
             this.currentRail = this.nextRail = this.walkingPoint.state.railType();
             this.hasNext = true;
         } else {
+            this.currentRailPiece = this.nextRailPiece = RailPiece.NONE;
             this.current = this.next = null;
             this.currentTrack = this.nextTrack = null;
             this.currentDirection = this.nextDirection = new Vector();
@@ -133,6 +137,7 @@ public class TrackMovingPoint {
 
         // Store the currently returned next track information
         this.current = this.next;
+        this.currentRailPiece = this.nextRailPiece;
         this.currentTrack = this.nextTrack;
         this.currentDirection = this.nextDirection;
         this.currentLocation = this.nextLocation;
@@ -151,6 +156,7 @@ public class TrackMovingPoint {
         }
 
         this.next = this.walkingPoint.state.railBlock();
+        this.nextRailPiece = this.walkingPoint.state.railPiece();
         this.nextTrack = this.next; // legacy!
         this.nextRail = this.walkingPoint.state.railType();
         this.nextDirection = this.walkingPoint.state.enterDirection();

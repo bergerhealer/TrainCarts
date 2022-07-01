@@ -8,8 +8,6 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
-import org.bukkit.block.Sign;
-
 public class SignActionAnnounce extends SignAction {
 
     public static void sendMessage(SignActionEvent info, MinecartGroup group, String message) {
@@ -26,10 +24,8 @@ public class SignActionAnnounce extends SignAction {
         StringBuilder message = new StringBuilder(32);
         message.append(info.getLine(2));
         message.append(info.getLine(3));
-        for (Sign sign : info.findSignsBelow()) {
-            for (String line : sign.getLines()) {
-                message.append(line);
-            }
+        for (String line : info.getExtraLinesBelow()) {
+            message.append(line);
         }
         return TrainCarts.getMessage(message.toString());
     }

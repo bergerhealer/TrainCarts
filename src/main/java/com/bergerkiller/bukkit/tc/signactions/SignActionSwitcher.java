@@ -23,7 +23,6 @@ import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import org.bukkit.block.Block;
-import org.bukkit.block.Sign;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -77,25 +76,15 @@ public class SignActionSwitcher extends SignAction {
             }
         }
         //other signs below this sign we could parse?
-        for (Sign sign : info.findSignsBelow()) {
-            boolean valid = true;
-            for (String line : sign.getLines()) {
-                if (line.isEmpty()) {
-                    continue;
-                }
-                DirectionStatement stat = new DirectionStatement(line, "");
-                if (stat.direction.isEmpty()) {
-                    valid = false;
-                    break;
-                } else {
-                    statements.add(stat);
-                }
+        for (String line : info.getExtraLinesBelow()) {
+            if (line.isEmpty()) {
+                continue;
             }
-            if (!valid) {
-                break;
+            DirectionStatement stat = new DirectionStatement(line, "");
+            if (!stat.direction.isEmpty()) {
+                statements.add(stat);
             }
         }
-        
         return statements;
     }
 

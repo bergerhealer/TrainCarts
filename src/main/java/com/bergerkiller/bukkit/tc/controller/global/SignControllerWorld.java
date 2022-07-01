@@ -48,12 +48,14 @@ public class SignControllerWorld {
     private final LongHashMap<List<SignController.Entry>> signsByChunk = new LongHashMap<>();
     private final LongHashMap<SignController.Entry[]> signsByNeighbouringBlock = new LongHashMap<>();
     private final ChunkFutureProvider chunkFutureProvider;
+    private boolean needsInitialization;
 
     SignControllerWorld(SignController controller) {
         this.controller = controller;
         this.world = null;
         this.offlineWorld = OfflineWorld.NONE;
         this.chunkFutureProvider = null;
+        this.needsInitialization = true;
     }
 
     SignControllerWorld(SignController controller, World world) {
@@ -61,6 +63,7 @@ public class SignControllerWorld {
         this.world = world;
         this.offlineWorld = OfflineWorld.of(world);
         this.chunkFutureProvider = ChunkFutureProvider.of(controller.getPlugin());
+        this.needsInitialization = true;
     }
 
     public World getWorld() {
@@ -79,6 +82,22 @@ public class SignControllerWorld {
      */
     public boolean isEnabled() {
         return true;
+    }
+
+    /**
+     * If this World Sign Controller has not yet been initialized, because of using
+     * {@link SignController#forWorldSkipInitialization(World)}, performs that initialization now.
+     * If this controller was already initialized once, this method does nothing.
+     */
+    public void initialize() {
+        if (this.needsInitialization) {
+            this.needsInitialization = false;
+            if (this.isEnabled()) {
+                for (Chunk chunk : this.world.getLoadedChunks()) {
+                    this.loadChunk(chunk);
+                }
+            }
+        }
     }
 
     /**
@@ -390,6 +409,11 @@ public class SignControllerWorld {
      * @param chunk
      */
     void loadChunk(Chunk chunk) {
+        // If this sign cache hasn't been initialized with all loaded chunks yet, don't do anything here
+        if (this.needsInitialization) {
+            return;
+        }
+
         long chunkKey = MathUtil.longHashToLong(chunk.getX(), chunk.getZ());
 
         // Skip if already added. Might be some edge conditions during world load...
@@ -462,6 +486,11 @@ public class SignControllerWorld {
      * @param chunk
      */
     void unloadChunk(Chunk chunk) {
+        // If this sign cache hasn't been initialized with all loaded chunks yet, don't do anything here
+        if (this.needsInitialization) {
+            return;
+        }
+
         List<SignController.Entry> atChunk = this.signsByChunk.remove(chunk.getX(), chunk.getZ());
         if (atChunk != null) {
             // Remove all entries from the by-neighbour-block mapping

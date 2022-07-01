@@ -40,6 +40,19 @@ public abstract class SignTracker {
         return this.detectorRegions;
     }
 
+    public boolean containsSign(TrackedSign sign) {
+        if (sign != null) {
+            TrackedSign tracked = activeSigns.get(sign.signBlock);
+            if (sign == tracked) {
+                return true;
+            }
+            if (tracked != null && sign.isRealSign() && tracked.isRealSign()) {
+                return sign.signBlock.equals(tracked.signBlock);
+            }
+        }
+        return false;
+    }
+
     public boolean containsSign(Block signblock) {
         return signblock != null && activeSigns.containsKey(signblock);
     }

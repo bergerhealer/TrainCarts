@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 
 import org.bukkit.block.Block;
@@ -62,6 +63,10 @@ public class TrackMap extends ArrayList<Block> {
 
     public Block getBlock() {
         return this.iterator.current();
+    }
+
+    public RailPiece getRailPiece() {
+        return this.iterator.currentRailPiece();
     }
 
     public RailType getRailType() {

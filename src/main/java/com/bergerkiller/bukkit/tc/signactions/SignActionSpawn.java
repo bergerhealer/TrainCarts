@@ -33,6 +33,13 @@ public class SignActionSpawn extends SignAction {
     }
 
     @Override
+    public boolean canSupportFakeSign(SignActionEvent info) {
+        // If no auto-spawning logic is used, then it is supported
+        // The auto-spawning logic requires a real sign to exist for it to work...
+        return SpawnSign.SpawnOptions.fromEvent(info).autoSpawnInterval == 0;
+    }
+
+    @Override
     public void execute(SignActionEvent info) {
         if (!info.isAction(SignActionType.REDSTONE_ON, SignActionType.REDSTONE_OFF)) {
             return;

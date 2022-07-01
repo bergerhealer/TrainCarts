@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSign;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignMetadataHandler;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
+import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.signactions.detector.DetectorSign;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
@@ -125,6 +126,11 @@ public class SignActionDetector extends SignAction {
         return info != null && info.getMode() != SignActionMode.NONE && info.isType("detect");
     }
 
+    @Override
+    public boolean canSupportFakeSign(SignActionEvent info) {
+        return false;
+    }
+
     /**
      * Matches the sign to check that it is indeed a detector sign. If labels are used on either
      * sign, then the labels must match as well. If label is null, but the sign has a label, then
@@ -225,13 +231,14 @@ public class SignActionDetector extends SignAction {
         Block endsign;
         SignActionEvent info;
         while (map.hasNext()) {
-            for (Block signblock : Util.getSignsFromRails(map.next())) {
-                if (signblock.equals(startSignBlock)) {
+            map.next();
+            for (TrackedSign sign : map.getRailPiece().signs()) {
+                if (sign.signBlock.equals(startSignBlock) || !sign.isRealSign()) {
                     continue;
                 }
-                info = new SignActionEvent(signblock);
+                info = new SignActionEvent(sign);
                 if (matchLabel(info, label)) {
-                    endsign = signblock;
+                    endsign = sign.signBlock;
 
                     // Create a new DetectorRegion using the path we found inbetween
                     DetectorRegion region = DetectorRegion.create(map);

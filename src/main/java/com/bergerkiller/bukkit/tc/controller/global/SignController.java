@@ -84,25 +84,50 @@ public class SignController implements LibraryComponent, Listener {
         SignControllerWorld c = byWorldLastGet;
         if (c.getWorld() == world) {
             return c;
+        } else if ((c = byWorld.get(world)) != null) {
+            return byWorldLastGet = c;
+        } else if (disabled) {
+            throw new IllegalStateException("Can't use SignController, Traincarts is disabled!");
         } else {
-            return byWorldLastGet = byWorld.computeIfAbsent(world, w -> {
-                if (disabled) {
-                    throw new IllegalStateException("Can't use SignController, Traincarts is disabled!");
-                } else {
-                    SignControllerWorld controller;
-                    if (TrainCarts.isWorldDisabled(w)) {
-                        controller = new SignControllerWorld.SignControllerWorldDisabled(SignController.this, w);
-                    } else {
-                        controller = new SignControllerWorld(SignController.this, w);
-                    }
-                    if (controller.isEnabled()) {
-                        for (Chunk loadedChunk : w.getLoadedChunks()) {
-                            controller.loadChunk(loadedChunk);
-                        }
-                    }
-                    return controller;
-                }
-            });
+            if (TrainCarts.isWorldDisabled(world)) {
+                c = new SignControllerWorld.SignControllerWorldDisabled(SignController.this, world);
+            } else {
+                c = new SignControllerWorld(SignController.this, world);
+            }
+            byWorld.put(world, c);
+            byWorldLastGet = c;
+            c.initialize();
+            return c;
+        }
+    }
+
+    /**
+     * Gets the SignController for a certain World, and if one doesn't already exists, creates
+     * a new one without initializing the sign that are already loaded. The caller should call
+     * {@link SignControllerWorld#initialize()} once that can safely be done.<br>
+     * <br>
+     * Internal use only.
+     *
+     * @param world
+     * @return SignController
+     */
+    public SignControllerWorld forWorldSkipInitialization(World world) {
+        SignControllerWorld c = byWorldLastGet;
+        if (c.getWorld() == world) {
+            return c;
+        } else if ((c = byWorld.get(world)) != null) {
+            return byWorldLastGet = c;
+        } else if (disabled) {
+            throw new IllegalStateException("Can't use SignController, Traincarts is disabled!");
+        } else {
+            if (TrainCarts.isWorldDisabled(world)) {
+                c = new SignControllerWorld.SignControllerWorldDisabled(SignController.this, world);
+            } else {
+                c = new SignControllerWorld(SignController.this, world);
+            }
+            byWorld.put(world, c);
+            byWorldLastGet = c;
+            return c;
         }
     }
 

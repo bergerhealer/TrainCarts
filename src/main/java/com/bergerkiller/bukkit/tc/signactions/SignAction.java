@@ -183,15 +183,24 @@ public abstract class SignAction {
     }
 
     public static void handleBuild(SignChangeEvent event) {
-        final SignChangeActionEvent info = new SignChangeActionEvent(event);
+        handleBuild(new SignChangeActionEvent(event));
+    }
+
+    public static void handleBuild(SignChangeActionEvent info) {
         SignAction action = getSignAction(info);
         if (action != null) {
+            if (!info.getTrackedSign().isRealSign() && !action.canSupportFakeSign(info)) {
+                info.getPlayer().sendMessage(ChatColor.RED + "A real sign is required for this type of action");
+                info.setCancelled(true);
+                return;
+            }
+
             if (action.build(info)) {
                 // Inform about use of RC when not supported
                 if (!action.canSupportRC() && info.isRCSign()) {
-                    event.getPlayer().sendMessage(ChatColor.RED + "This sign does not support remote control!");
+                    info.getPlayer().sendMessage(ChatColor.RED + "This sign does not support remote control!");
                     info.getHeader().setMode(SignActionMode.TRAIN);
-                    event.setLine(0, info.getHeader().toString());
+                    info.setLine(0, info.getHeader().toString());
                 }
 
                 // For signs that define path finding destinations, report about duplicate names
@@ -199,7 +208,7 @@ public abstract class SignAction {
                 if (destinationName != null) {
                     PathNode node = TrainCarts.plugin.getPathProvider().getWorld(info.getWorld()).getNodeByName(destinationName);
                     if (node != null) {
-                        Player p = event.getPlayer();
+                        Player p = info.getPlayer();
                         p.sendMessage(ChatColor.RED + "Another destination with the same name already exists!");
                         p.sendMessage(ChatColor.RED + "Please remove either sign and use /train reroute to fix");
 
@@ -207,7 +216,7 @@ public abstract class SignAction {
                         BlockLocation loc = node.location;
                         StringBuilder locMsg = new StringBuilder(100);
                         locMsg.append(ChatColor.RED).append("Other destination '" + destinationName + "' is ");
-                        if (loc.getWorld() != event.getPlayer().getWorld()) {
+                        if (loc.getWorld() != info.getPlayer().getWorld()) {
                             locMsg.append("on world ").append(ChatColor.WHITE).append(node.location.world);
                             locMsg.append(' ').append(ChatColor.RED);
                         }
@@ -229,18 +238,18 @@ public abstract class SignAction {
                 // Call loaded
                 action.loadedChanged(info, true);
             } else {
-                event.setCancelled(true);
+                info.setCancelled(true);
             }
-            if (event.isCancelled()) {
+            if (info.isCancelled()) {
                 return;
             }
         }
 
         // Snap to fixed 45-degree angle
-        if (info.getMode() != SignActionMode.NONE) {
-            BlockData data = WorldUtil.getBlockData(event.getBlock());
+        if (info.getMode() != SignActionMode.NONE && info.getTrackedSign().isRealSign()) {
+            BlockData data = WorldUtil.getBlockData(info.getBlock());
             if (MaterialUtil.ISSIGN.get(data) && FaceUtil.isVertical(data.getAttachedFace())) {
-                BlockUtil.setFacing(event.getBlock(), Util.snapFace(data.getFacingDirection()));
+                BlockUtil.setFacing(info.getBlock(), Util.snapFace(data.getFacingDirection()));
             }
         }
     }
@@ -338,6 +347,11 @@ public abstract class SignAction {
             return;
         }
 
+        // If fake signs aren't supported, don't call the SignAction itself
+        if (!info.getTrackedSign().isRealSign() && !action.canSupportFakeSign(info)) {
+            return;
+        }
+
         // When not facing the sign (unless overrided), do not process it
         if (!action.overrideFacing() && info.getAction().isMovement() && !info.isFacing()) {
             return;
@@ -429,6 +443,18 @@ public abstract class SignAction {
      */
     public boolean canSupportRC() {
         return false;
+    }
+
+    /**
+     * Gets whether this sign action supports fake signs. If true, it may be
+     * executed with signs that don't have an actual physical sign block. If false,
+     * then building the sign will fail with a message, and the sign will not be executed.
+     *
+     * @param info SignActionEvent for the fake sign
+     * @return True if fake signs are supported
+     */
+    public boolean canSupportFakeSign(SignActionEvent info) {
+        return true;
     }
 
     /**

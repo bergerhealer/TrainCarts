@@ -138,7 +138,7 @@ public class SpawnSignManager {
         SpawnSign result = this.signs.get(position);
         if (result != null) {
             result.updateUsingEvent(signEvent);
-        } else {
+        } else if (signEvent.getTrackedSign().isRealSign()) {
             // Install new metadata for this sign
             SpawnSign.SpawnOptions options = SpawnSign.SpawnOptions.fromEvent(signEvent);
             SpawnSignMetadata metadata = new SpawnSignMetadata(
@@ -152,6 +152,14 @@ public class SpawnSignManager {
             if (result == null) {
                 throw new IllegalStateException("No SpawnSign was put, onAdded() not called");
             }
+        } else {
+            // Fake it, don't store it.
+            SpawnSign.SpawnOptions options = SpawnSign.SpawnOptions.fromEvent(signEvent);
+            SpawnSignMetadata metadata = new SpawnSignMetadata(
+                    /*  interval  */ options.autoSpawnInterval,
+                    /* last spawn */ System.currentTimeMillis() + options.autoSpawnInterval,
+                    /*   active   */ signEvent.isPowered());
+            result = new SpawnSign(null, OfflineSign.fromSign(signEvent.getSign()), metadata);
         }
         return result;
     }

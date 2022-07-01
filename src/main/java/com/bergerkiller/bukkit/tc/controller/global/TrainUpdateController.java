@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.global;
 
 import java.util.Random;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 
 import org.bukkit.plugin.java.JavaPlugin;

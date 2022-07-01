@@ -62,15 +62,6 @@ public class RailSignCache {
         return RailLookup.discoverSignsAtRailPiece(rail);
     }
 
-    public static boolean verifySigns(TrackedSign[] signs) {
-        for (TrackedSign sign : signs) {
-            if (!sign.verify()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     /**
      * Gets the rails type and rails block that are linked with a given sign block
      * 

@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 
 import org.bukkit.Location;
@@ -199,6 +200,10 @@ public class TrackIterator implements Iterator<Block> {
 
     public Block current() {
         return this.movingPoint.current;
+    }
+
+    public RailPiece currentRailPiece() {
+        return this.movingPoint.currentRailPiece;
     }
 
     public RailType currentRailType() {
