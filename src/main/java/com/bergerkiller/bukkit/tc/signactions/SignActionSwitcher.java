@@ -395,7 +395,7 @@ public class SignActionSwitcher extends SignAction {
                     if (stat.hasCounter()) {
                         if (signcounter == null) {
                             signcounter = getSwitchedTimes(info.getBlock());
-                            if (info.isCartSign() && incrementCounters) {
+                            if (info.isCartSign() && incrementCounters && info.hasGroup()) {
                                 signcounter.syncCartSignEnter(info.getGroup(), info.getRailPiece());
                             }
                         }
