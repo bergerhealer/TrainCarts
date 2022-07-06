@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.PowerState;
 import com.bergerkiller.bukkit.tc.SignActionHeader;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
@@ -27,6 +28,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.utils.FakeSign;
 
 /**
  * Manages the {@link WorldRailLookup} caches for all worlds they exist on.
@@ -378,7 +380,6 @@ public final class RailLookup {
     public static abstract class TrackedSign {
         public final Sign sign;
         public final Block signBlock;
-        public final SignActionHeader header;
         public final RailPiece rail;
         /** @deprecated Is now part of {@link #rail} */
         @Deprecated
@@ -386,9 +387,13 @@ public final class RailLookup {
         /** @deprecated Is now part of {@link #rail} */
         @Deprecated
         public final Block railBlock;
-        public final SignAction action;
 
-        protected TrackedSign(Sign sign, Block signBlock, RailPiece rail) {
+        // Cached properties parsed using sign lines
+        private SignActionHeader cachedHeader = null;
+        private boolean cachedActionSet = false;
+        private SignAction cachedAction = null;
+
+        TrackedSign(Sign sign, Block signBlock, RailPiece rail) {
             if (sign == null) {
                 throw new IllegalArgumentException("There is no sign at " + signBlock);
             }
@@ -396,13 +401,9 @@ public final class RailLookup {
             // Canned assignment stuff
             this.sign = sign;
             this.signBlock = signBlock;
-            this.header = SignActionHeader.parseFromSign(sign);
             this.rail = rail;
             this.railType = rail.type();
             this.railBlock = rail.block();
-
-            // Detect SignAction
-            this.action = SignAction.getSignAction(this.createEvent(SignActionType.NONE));
         }
 
         /**
@@ -442,7 +443,7 @@ public final class RailLookup {
         /**
          * Searches for additional signs below this sign which extend the number of lines. Custom
          * tracked sign implementations can return lines beyond the first 4 here. Some sign actions,
-         * like the switcher can, can use these extra lines for additional rules.
+         * like the switcher, can use these extra lines for additional rules.
          *
          * @return Extra lines
          */
@@ -464,8 +465,53 @@ public final class RailLookup {
          *
          * @return True if this TrackedSign refers to a really-existing sign
          */
-        public boolean isRealSign() {
-            return false;
+        public abstract boolean isRealSign();
+
+        /**
+         * Gets a line of text on this sign
+         *
+         * @param index Line index. Should support [0..3]
+         * @return Line at the index
+         * @throws IndexOutOfBoundsException
+         */
+        public abstract String getLine(int index) throws IndexOutOfBoundsException;
+
+        /**
+         * Sets a line of text on this sign
+         *
+         * @param index Line index. Should support [0..3]
+         * @param line Line at the index
+         * @throws IndexOutOfBoundsException
+         */
+        public abstract void setLine(int index, String line) throws IndexOutOfBoundsException;
+
+        /**
+         * Parses the first line of this tracked sign to get the typical sign action header
+         * Traincarts uses. This is the [train] syntax.
+         *
+         * @return Sign action header parsed from the first line of the sign
+         */
+        public SignActionHeader getHeader() {
+            SignActionHeader header = this.cachedHeader;
+            if (header == null) {
+                this.cachedHeader = header = SignActionHeader.parse(Util.cleanSignLine(this.getLine(0)));
+            }
+            return header;
+        }
+
+        /**
+         * Gets the SignAction that matches the sign text contents of this tracked sign.
+         * Is cached.
+         *
+         * @return SignAction of this sign
+         */
+        public SignAction getAction() {
+            if (cachedActionSet) {
+                return cachedAction;
+            } else {
+                cachedActionSet = true;
+                return cachedAction = SignAction.getSignAction(this.createEvent(SignActionType.NONE));
+            }
         }
 
         /**
@@ -490,7 +536,7 @@ public final class RailLookup {
             if (!isRemoved() && member.isInteractable()) {
                 SignActionEvent event = createEvent(action);
                 event.setMember(member);
-                SignAction.executeOne(this.action, event);
+                SignAction.executeOne(this.getAction(), event);
             }
         }
 
@@ -506,7 +552,7 @@ public final class RailLookup {
             if (!isRemoved() && !group.isUnloaded()) {
                 SignActionEvent event = createEvent(action);
                 event.setGroup(group);
-                SignAction.executeOne(this.action, event);
+                SignAction.executeOne(this.getAction(), event);
             }
         }
 
@@ -528,7 +574,7 @@ public final class RailLookup {
 
         @Override
         public boolean equals(Object o) {
-            return ((TrackedSign) o).signBlock.equals(this.signBlock);
+            return this == o;
         }
 
         /**
@@ -595,6 +641,70 @@ public final class RailLookup {
         }
     }
 
+    /**
+     * Base implementation for a fake tracked sign. This behaves mostly like a Sign to Traincarts
+     * but doesn't require an actual sign block to exist at the sign block coordinates.
+     * Some sign actions require an actual addressable sign block, and won't support this type
+     * of sign.
+     */
+    public static abstract class TrackedFakeSign extends TrackedSign {
+
+        public TrackedFakeSign(RailPiece rail) {
+            this(rail.block(), rail);
+        }
+
+        public TrackedFakeSign(Block signBlock, RailPiece rail) {
+            super(new FakeSignImpl(signBlock), signBlock, rail);
+            ((FakeSignImpl) this.sign).fakeSign = this;
+        }
+
+        /**
+         * Gets a line of text on this fake sign
+         *
+         * @param index Line index. Should support [0..3]
+         * @return Line at the index
+         * @throws IndexOutOfBoundsException
+         */
+        public abstract String getLine(int index) throws IndexOutOfBoundsException;
+
+        /**
+         * Sets a line of text on this fake sign
+         *
+         * @param index Line index. Should support [0..3]
+         * @param line Line at the index
+         * @throws IndexOutOfBoundsException
+         */
+        public abstract void setLine(int index, String line) throws IndexOutOfBoundsException;
+
+        @Override
+        public boolean isRealSign() {
+            return false;
+        }
+
+        private static class FakeSignImpl extends FakeSign {
+            private TrackedFakeSign fakeSign;
+
+            public FakeSignImpl(Block block) {
+                super(block);
+            }
+
+            @Override
+            public String getLine(int index) throws IndexOutOfBoundsException {
+                return fakeSign.getLine(index);
+            }
+
+            @Override
+            public void setLine(int index, String line) throws IndexOutOfBoundsException {
+                fakeSign.setLine(index, line);
+            }
+
+            @Override
+            public boolean update() {
+                return true;
+            }
+        }
+    }
+
     private static class TrackedRealSign extends TrackedSign {
         private final SignChangeTracker tracker;
         private final BlockFace facing;
@@ -639,7 +749,7 @@ public final class RailLookup {
             do {
                 found = false;
                 for (TrackedSign sign : this.rail.signs()) {
-                    if (!(sign instanceof TrackedRealSign) || sign.action != null) {
+                    if (!(sign instanceof TrackedRealSign) || sign.getAction() != null) {
                         continue;
                     }
 
@@ -663,6 +773,25 @@ public final class RailLookup {
         @Override
         public PowerState getPower(BlockFace from) {
             return PowerState.get(this.signBlock, from, true);
+        }
+
+        @Override
+        public String getLine(int index) throws IndexOutOfBoundsException {
+            return this.sign.getLine(index);
+        }
+
+        @Override
+        public void setLine(int index, String line) throws IndexOutOfBoundsException {
+            this.sign.setLine(index, line);
+            this.sign.update(true);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o instanceof TrackedRealSign) {
+                return ((TrackedSign) o).signBlock.equals(this.signBlock);
+            }
+            return false;
         }
     }
 }

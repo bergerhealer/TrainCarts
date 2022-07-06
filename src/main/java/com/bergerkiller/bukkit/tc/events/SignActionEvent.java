@@ -109,8 +109,8 @@ public class SignActionEvent extends Event implements Cancellable {
         this.sign = sign;
         this.actionType = SignActionType.NONE;
         this.lowerSecondCleanedLine = Util.cleanSignLine(sign.sign.getLine(1)).toLowerCase(Locale.ENGLISH);
-        if (this.sign.header.isLegacyConverted() && this.sign.header.isValid()) {
-            this.setLine(0, this.sign.header.toString());
+        if (this.sign.getHeader().isLegacyConverted() && this.sign.getHeader().isValid()) {
+            this.setLine(0, this.sign.getHeader().toString());
         }
         this.watchedDirections = null;
     }
@@ -579,7 +579,7 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return sign header
      */
     public SignActionHeader getHeader() {
-        return this.sign.header;
+        return this.sign.getHeader();
     }
 
     /**
@@ -609,10 +609,10 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     public boolean isPowered(BlockFace from) {
-        if (this.sign.header.isAlwaysOff()) {
+        if (this.sign.getHeader().isAlwaysOff()) {
             return false;
         }
-        return this.sign.header.isAlwaysOn() || this.sign.header.isInverted() != this.getPower(from).hasPower();
+        return this.sign.getHeader().isAlwaysOn() || this.sign.getHeader().isInverted() != this.getPower(from).hasPower();
     }
 
     /**
@@ -630,7 +630,7 @@ public class SignActionEvent extends Event implements Cancellable {
      * @return True if the sign is powered, False if not
      */
     public boolean isPowered() {
-        SignActionHeader header = this.sign.header;
+        SignActionHeader header = this.sign.getHeader();
         if (header.isAlwaysOff()) {
             return false;
         }
@@ -827,7 +827,7 @@ public class SignActionEvent extends Event implements Cancellable {
      */
     public String getRCName() {
         if (this.isRCSign()) {
-            return this.sign.header.getRemoteName();
+            return this.sign.getHeader().getRemoteName();
         } else {
             return null;
         }
@@ -923,9 +923,9 @@ public class SignActionEvent extends Event implements Cancellable {
         // Lazy initialization here
         if (this.watchedDirections == null) {
             // Find out what directions are watched by this sign
-            if (this.sign.header.hasDirections()) {
+            if (this.sign.getHeader().hasDirections()) {
                 // From first line header ([train:left] -> blockface[] for left)
-                this.watchedDirections = this.sign.header.getFaces(this.getFacing().getOppositeFace());
+                this.watchedDirections = this.sign.getHeader().getFaces(this.getFacing().getOppositeFace());
             } else if (TCConfig.trainsCheckSignFacing) {
                 // Ask rails, the RailType NONE also handled this function, so no NPE here
                 this.watchedDirections = this.getRailPiece().type().getSignTriggerDirections(
@@ -1021,16 +1021,19 @@ public class SignActionEvent extends Event implements Cancellable {
     }
 
     public String getLine(int index) {
-        return Util.getCleanLine(this.sign.sign, index);
+        return Util.cleanSignLine(this.sign.getLine(index));
     }
 
     public String[] getLines() {
-        return Util.cleanSignLines(this.sign.sign.getLines());
+        String[] lines = new String[4];
+        for (int i = 0; i < 4; i++) {
+            lines[i] = Util.cleanSignLine(this.sign.getLine(i));
+        }
+        return lines;
     }
 
     public void setLine(int index, String line) {
-        this.sign.sign.setLine(index, line);
-        this.sign.sign.update(true);
+        this.sign.setLine(index, line);
     }
 
     /**

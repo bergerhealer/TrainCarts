@@ -1,7 +1,8 @@
 package com.bergerkiller.bukkit.tc.events;
 
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
-import com.bergerkiller.bukkit.tc.utils.ChangingSign;
+import com.bergerkiller.bukkit.tc.utils.FakeSign;
+
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.SignChangeEvent;
 
@@ -13,8 +14,12 @@ public class SignChangeActionEvent extends SignActionEvent {
     private final SignChangeEvent event;
 
     public SignChangeActionEvent(SignChangeEvent event) {
-        super(event.getBlock(), new ChangingSign(event), null);
+        super(event.getBlock(), FakeSign.changing(event), null);
         this.event = event;
+    }
+
+    public SignChangeActionEvent(Player player, TrackedSign sign) {
+        this(new SignChangeEvent(sign.signBlock, player, sign.sign.getLines()), sign);
     }
 
     public SignChangeActionEvent(SignChangeEvent event, TrackedSign sign) {
