@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.api;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -539,5 +540,24 @@ public interface Attachment {
             }
         }
         return target;
+    }
+
+    /**
+     * Gets absolute path of this attachment relative to the root of the
+     * attachment tree. This is an array of parent-to-child indices.
+     *
+     * @return path
+     */
+    default int[] getPath() {
+        Attachment parent = this.getParent();
+        if (parent == null) {
+            return new int[0];
+        } else {
+            int[] result = parent.getPath();
+            int len = result.length;
+            result = Arrays.copyOf(result, len + 1);
+            result[len] = parent.getChildren().indexOf(this);
+            return result;
+        }
     }
 }
