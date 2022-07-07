@@ -13,7 +13,6 @@ import org.bukkit.block.Sign;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
@@ -255,6 +254,9 @@ public class SignController implements LibraryComponent, Listener {
         }
     }
 
+    // This is now handled by the BlockRedstoneEvent
+    // Looks like no more is needed
+    /*
     @EventHandler(priority = EventPriority.MONITOR)
     private void onBlockPhysics(BlockPhysicsEvent event) {
         Block block = event.getBlock();
@@ -262,6 +264,7 @@ public class SignController implements LibraryComponent, Listener {
             e.updateRedstoneLater();
         }
     }
+    */
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onBlockRedstoneChange(BlockRedstoneEvent event) {
@@ -269,6 +272,15 @@ public class SignController implements LibraryComponent, Listener {
             return;
         }
 
+        // Refresh nearby signs
+        {
+            Block block = event.getBlock();
+            for (Entry e : forWorld(block.getWorld()).findNearby(block)) {
+                e.updateRedstoneLater();
+            }
+        }
+
+        // If lever, suppress changes on signs nearby (self-triggering)
         BlockData event_block_data = WorldUtil.getBlockData(event.getBlock());
         if (event_block_data.isType(Material.LEVER)) {
             final Block leverBlock = event.getBlock();
