@@ -13,6 +13,7 @@ import org.bukkit.block.Sign;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
@@ -254,9 +255,7 @@ public class SignController implements LibraryComponent, Listener {
         }
     }
 
-    // This is now handled by the BlockRedstoneEvent
-    // Looks like no more is needed
-    /*
+    // This is also needed to support block placement / piston / WR / etc.
     @EventHandler(priority = EventPriority.MONITOR)
     private void onBlockPhysics(BlockPhysicsEvent event) {
         Block block = event.getBlock();
@@ -264,7 +263,6 @@ public class SignController implements LibraryComponent, Listener {
             e.updateRedstoneLater();
         }
     }
-    */
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onBlockRedstoneChange(BlockRedstoneEvent event) {
