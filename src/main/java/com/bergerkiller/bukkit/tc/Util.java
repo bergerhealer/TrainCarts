@@ -115,11 +115,7 @@ public class Util {
      * @return minimal index.
      */
     public static int minStringIndex(int a, int b) {
-        if (a == -1 || b == -1) {
-            return (a > b) ? a : b;
-        } else {
-            return (a < b) ? a : b;
-        }
+        return a == -1 || b == -1 ? Math.max(a, b) : Math.min(a, b);
     }
 
     /**
