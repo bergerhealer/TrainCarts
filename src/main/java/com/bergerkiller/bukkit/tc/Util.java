@@ -94,7 +94,7 @@ public class Util {
 
     // Internal use
     private static NumberFormat createNumberFormat(int min_fractionDigits, int max_fractionDigits) {
-        NumberFormat fmt = NumberFormat.getNumberInstance(Locale.ENGLISH);
+        final NumberFormat fmt = NumberFormat.getNumberInstance(Locale.ENGLISH);
         fmt.setMinimumFractionDigits(min_fractionDigits);
         fmt.setMaximumFractionDigits(max_fractionDigits);
         fmt.setGroupingUsed(false);
