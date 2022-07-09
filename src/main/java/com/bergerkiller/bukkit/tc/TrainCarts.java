@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc;
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.bases.ExtendedEntity;
 import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
 import com.bergerkiller.bukkit.common.collections.ImplicitlySharedSet;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
@@ -52,11 +53,9 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bergerkiller.mountiplex.conversion.Conversion;
-
 import me.m56738.smoothcoasters.api.SmoothCoastersAPI;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -76,17 +75,20 @@ import java.util.stream.Collectors;
 
 public class TrainCarts extends PluginBase {
     public static TrainCarts plugin;
+    private final List<ChunkPreloadTask> chunkPreloadTasks = new ArrayList<>();
+    private final SpawnSignManager spawnSignManager = new SpawnSignManager(this);
+    private final TCSelectorHandlerRegistry selectorHandlerRegistry = new TCSelectorHandlerRegistry(this);
+    private final OfflineSignStore offlineSignStore = new OfflineSignStore(this);
+    private final SignController signController = new SignController(this);
     private Task signtask;
     private Task autosaveTask;
     private Task cacheCleanupTask;
     private Task mutexZoneUpdateTask;
-    private final List<ChunkPreloadTask> chunkPreloadTasks = new ArrayList<>();
     private TCPropertyRegistry propertyRegistry;
     private TCPacketListener packetListener;
     private TCInteractionPacketListener interactionPacketListener;
     private FileConfiguration config;
     private AttachmentModelStore attachmentModels;
-    private final SpawnSignManager spawnSignManager = new SpawnSignManager(this);
     private SavedTrainPropertiesStore savedTrainsStore;
     private SeatAttachmentMap seatAttachmentMap;
     private GlowColorTeamProvider glowColorTeamProvider;
@@ -94,17 +96,101 @@ public class TrainCarts extends PluginBase {
     private RouteManager routeManager;
     private TrainLocator trainLocator;
     private TrainUpdateController trainUpdateController = new TrainUpdateController(this);
-    private final TCSelectorHandlerRegistry selectorHandlerRegistry = new TCSelectorHandlerRegistry(this);
-    private final OfflineSignStore offlineSignStore = new OfflineSignStore(this);
-    private final SignController signController = new SignController(this);
     private Economy econ = null;
     private SmoothCoastersAPI smoothCoastersAPI;
     private Commands commands;
 
+    public static boolean canBreak(Material type) {
+        return TCConfig.allowedBlockBreakTypes.contains(type);
+    }
+
+    /**
+     * Gets the Currency text to display a currency value
+     *
+     * @param value to display
+     * @return currency text
+     */
+    public static String getCurrencyText(double value) {
+        final Economy econ = TrainCarts.plugin.econ;
+        return econ != null ? econ.format(value) : TCConfig.currencyFormat.replace("%value%", Double.toString(value));
+    }
+
+    /**
+     * Converts generic text to a formatted message based on style codes and message shortcuts
+     *
+     * @param text to convert
+     * @return message
+     */
+    public static String getMessage(String text) {
+        return StringUtil.ampToColor(TCConfig.messageShortcuts.replace(text));
+    }
+
+    /**
+     * Sends a message to a player, keeping player-specific text variables in mind
+     *
+     * @param player to send the message to
+     * @param text   to send
+     */
+    public static void sendMessage(Player player, String text) {
+        if (TCConfig.SignLinkEnabled) {
+            //TODO: SignLink 1.16.5-v1 supports far more functionality, such as escaping using %% and
+            //      filtering out variable names with spaces in them. This code doesn't do that.
+            //      Improvements could definitely be made.
+            int startindex, endindex = 0;
+            while ((startindex = text.indexOf('%', endindex)) != -1 && (endindex = text.indexOf('%', startindex + 1)) != -1) {
+                final String varName = text.substring(startindex + 1, endindex);
+                final String value = varName.isEmpty() ? "%" : Variables.get(varName).get(player.getName());
+                text = text.substring(0, startindex) + value + text.substring(endindex + 1);
+
+                // Search from beyond this point to avoid infinite loops if value contains %-characters
+                endindex = startindex + value.length();
+            }
+        }
+        player.sendMessage(text);
+    }
+
+    public static boolean isWorldDisabled(BlockEvent event) {
+        return isWorldDisabled(event.getBlock().getWorld());
+    }
+
+    public static boolean isWorldDisabled(Block worldContainer) {
+        return isWorldDisabled(worldContainer.getWorld());
+    }
+
+    public static boolean isWorldDisabled(World world) {
+        return !TCConfig.enabledWorlds.isEmpty()
+                ? !TCConfig.enabledWorlds.contains(world)
+                : TCConfig.disabledWorlds.contains(world);
+
+    }
+
+    public static boolean isWorldDisabled(String worldName) {
+        return !TCConfig.enabledWorlds.isEmpty()
+                ? !TCConfig.enabledWorlds.contains(worldName)
+                : TCConfig.disabledWorlds.contains(worldName);
+
+    }
+
+    public static boolean handlePlayerVehicleChange(Player player, Entity newVehicle) {
+        try {
+            MinecartMember<?> newMinecart = MinecartMemberStore.getFromEntity(newVehicle);
+
+            // Allow exiting the current minecart
+            MinecartMember<?> entered = MinecartMemberStore.getFromEntity(player.getVehicle());
+            if (entered != null && !entered.getProperties().getPlayersExit()) return false;
+
+            // Allow entering the new minecart
+            if (newMinecart != null && !newMinecart.getProperties().getPlayersEnter()) return false;
+        } catch (Throwable t) {
+            TrainCarts.plugin.handle(t);
+        }
+        return true;
+    }
+
     /**
      * Gets the property registry which tracks all train and cart properties
      * that have been registered.
-     * 
+     *
      * @return property registry
      */
     public IPropertyRegistry getPropertyRegistry() {
@@ -114,7 +200,7 @@ public class TrainCarts extends PluginBase {
     /**
      * Gets a helper class for assigning (fake) entities to teams to change their glowing effect
      * color.
-     * 
+     *
      * @return glow color team provider
      */
     public GlowColorTeamProvider getGlowColorTeamProvider() {
@@ -124,7 +210,7 @@ public class TrainCarts extends PluginBase {
     /**
      * Gets a mapping of passenger entity Ids to the cart attachment seat they are occupying,
      * if any.
-     * 
+     *
      * @return seat attachment map
      */
     public SeatAttachmentMap getSeatAttachmentMap() {
@@ -133,7 +219,7 @@ public class TrainCarts extends PluginBase {
 
     /**
      * Gets the program component responsible for automatically spawning trains from spawn signs periodically.
-     * 
+     *
      * @return spawn sign manager
      */
     public SpawnSignManager getSpawnSignManager() {
@@ -142,7 +228,7 @@ public class TrainCarts extends PluginBase {
 
     /**
      * Gets access to the place where attachment models are stored, loaded and saved
-     * 
+     *
      * @return attachment model store
      */
     public AttachmentModelStore getAttachmentModels() {
@@ -151,7 +237,7 @@ public class TrainCarts extends PluginBase {
 
     /**
      * Gets access to a manager for saved trains
-     * 
+     *
      * @return saved trains store
      */
     public SavedTrainPropertiesStore getSavedTrains() {
@@ -160,7 +246,7 @@ public class TrainCarts extends PluginBase {
 
     /**
      * Gets the path provider, which is responsible for finding the route to destinations
-     * 
+     *
      * @return path provider
      */
     public PathProvider getPathProvider() {
@@ -170,7 +256,7 @@ public class TrainCarts extends PluginBase {
     /**
      * Gets the route manager, which stores the routes a train can go when set by name.
      * Each route consists of a list of destinations.
-     * 
+     *
      * @return route manager
      */
     public RouteManager getRouteManager() {
@@ -243,115 +329,17 @@ public class TrainCarts extends PluginBase {
         return smoothCoastersAPI;
     }
 
-    public static boolean canBreak(Material type) {
-        return TCConfig.allowedBlockBreakTypes.contains(type);
-    }
-
-    /**
-     * Gets the Currency text to display a currency value
-     *
-     * @param value to display
-     * @return currency text
-     */
-    public static String getCurrencyText(double value) {
-        Economy econ = TrainCarts.plugin.econ;
-        if (econ != null) {
-            return econ.format(value);
-        }
-        return TCConfig.currencyFormat.replace("%value%", Double.toString(value));
-    }
-
-    /**
-     * Converts generic text to a formatted message based on style codes and message shortcuts
-     *
-     * @param text to convert
-     * @return message
-     */
-    public static String getMessage(String text) {
-        return StringUtil.ampToColor(TCConfig.messageShortcuts.replace(text));
-    }
-
-    /**
-     * Sends a message to a player, keeping player-specific text variables in mind
-     *
-     * @param player to send the message to
-     * @param text   to send
-     */
-    public static void sendMessage(Player player, String text) {
-        if (TCConfig.SignLinkEnabled) {
-            //TODO: SignLink 1.16.5-v1 supports far more functionality, such as escaping using %% and
-            //      filtering out variable names with spaces in them. This code doesn't do that.
-            //      Improvements could definitely be made.
-            int startindex, endindex = 0;
-            while ((startindex = text.indexOf('%', endindex)) != -1 && (endindex = text.indexOf('%', startindex + 1)) != -1) {
-                String varname = text.substring(startindex + 1, endindex);
-                String value = varname.isEmpty() ? "%" : Variables.get(varname).get(player.getName());
-                text = text.substring(0, startindex) + value + text.substring(endindex + 1);
-
-                // Search from beyond this point to avoid infinite loops if value contains %-characters
-                endindex = startindex + value.length();
-            }
-        }
-        player.sendMessage(text);
-    }
-
     /**
      * Setup the Vault service
      *
      * @return boolean  whether Vault was registered successfully
      */
     private boolean setupEconomy() {
-        if (getServer().getPluginManager().getPlugin("Vault") == null) {
-            return false;
-        }
-        RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
-        if (rsp == null) {
-            return false;
-        }
+        if (getServer().getPluginManager().getPlugin("Vault") == null) return false;
+        final RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
+        if (rsp == null) return false;
         econ = rsp.getProvider();
         return econ != null;
-    }
-
-    public static boolean isWorldDisabled(BlockEvent event) {
-        return isWorldDisabled(event.getBlock().getWorld());
-    }
-
-    public static boolean isWorldDisabled(Block worldContainer) {
-        return isWorldDisabled(worldContainer.getWorld());
-    }
-
-    public static boolean isWorldDisabled(World world) {
-        if(!TCConfig.enabledWorlds.isEmpty())
-            return !TCConfig.enabledWorlds.contains(world);
-
-        return TCConfig.disabledWorlds.contains(world);
-    }
-
-    public static boolean isWorldDisabled(String worldname) {
-        if(!TCConfig.enabledWorlds.isEmpty())
-            return !TCConfig.enabledWorlds.contains(worldname);
-
-        return TCConfig.disabledWorlds.contains(worldname);
-    }
-
-    public static boolean handlePlayerVehicleChange(Player player, Entity newVehicle) {
-        try {
-            MinecartMember<?> newMinecart = MinecartMemberStore.getFromEntity(newVehicle);
-
-            // Allow exiting the current minecart
-            MinecartMember<?> entered = MinecartMemberStore.getFromEntity(player.getVehicle());
-            if (entered != null && !entered.getProperties().getPlayersExit()) {
-                return false;
-            }
-
-            // Allow entering the new minecart
-            if (newMinecart != null && !newMinecart.getProperties().getPlayersEnter()) {
-                return false;
-            }
-        } catch (Throwable t) {
-            TrainCarts.plugin.handle(t);
-        }
-        return true;
     }
 
     /**
@@ -373,22 +361,14 @@ public class TrainCarts extends PluginBase {
     public ItemParser[] getParsers(String key, int amount) {
         ItemParser[] rval = TCConfig.parsers.get(key.toLowerCase(Locale.ENGLISH));
 
-        if (rval == null) {
+        if (rval == null)
             return new ItemParser[]{ItemParser.parse(key, amount == -1 ? null : Integer.toString(amount))};
-        }
         // Clone to avoid altering the values in the map
         rval = LogicUtil.cloneArray(rval);
-        if (amount == -1) {
-            // Set to any amount
-            for (int i = 0; i < rval.length; i++) {
-                rval[i] = rval[i].setAmount(-1);
-            }
-        } else if (amount > 1) {
-            // Multiply by amount (ignore 1)
-            for (int i = 0; i < rval.length; i++) {
-                rval[i] = rval[i].multiplyAmount(amount);
-            }
-        }
+        // Set to any amount
+        if (amount == -1) for (int i = 0; i < rval.length; i++) rval[i] = rval[i].setAmount(-1);
+        else // Multiply by amount (ignore 1)
+            if (amount > 1) for (int i = 0; i < rval.length; i++) rval[i] = rval[i].multiplyAmount(amount);
         return rval;
     }
 
@@ -448,9 +428,7 @@ public class TrainCarts extends PluginBase {
                         }
                     };
                     signtask.start(0, 10);
-                } else {
-                    signtask = null;
-                }
+                } else signtask = null;
                 break;
             case "LightAPI":
                 log(Level.INFO, "LightAPI detected, the Light attachment is now available");
@@ -458,7 +436,6 @@ public class TrainCarts extends PluginBase {
                     AttachmentTypeRegistry.instance().register(CartAttachmentLight.TYPE);
                 else
                     AttachmentTypeRegistry.instance().unregister(CartAttachmentLight.TYPE);
-                break;
         }
     }
 
@@ -480,13 +457,12 @@ public class TrainCarts extends PluginBase {
         propertyRegistry.registerAll(StandardProperties.class);
 
         // Paper player view distance
-        if (Util.hasPaperViewDistanceSupport()) {
+        if (Util.hasPaperViewDistanceSupport())
             try {
                 propertyRegistry.register(PaperPlayerViewDistanceProperty.INSTANCE);
             } catch (Throwable t) {
                 getLogger().log(Level.SEVERE, "Failed to register paper player view distance property", t);
             }
-        }
 
         // Register TrainCarts default attachment types
         CartAttachment.registerDefaultAttachments();
@@ -538,13 +514,9 @@ public class TrainCarts extends PluginBase {
         selectorHandlerRegistry.enable();
 
         // And this
-        {
-            // BEFORE we load configurations!
-            Plugin lightAPI = Bukkit.getPluginManager().getPlugin("LightAPI");
-            if (lightAPI != null && lightAPI.isEnabled()) {
-                updateDependency(lightAPI, lightAPI.getName(), true);
-            }
-        }
+        // BEFORE we load configurations!
+        final Plugin lightAPI = Bukkit.getPluginManager().getPlugin("LightAPI");
+        if (lightAPI != null && lightAPI.isEnabled()) updateDependency(lightAPI, lightAPI.getName(), true);
 
         // Routinely saves TrainCarts changed state information to disk (autosave=true)
         // Configured by loadConfig() so instantiate it here
@@ -554,13 +526,8 @@ public class TrainCarts extends PluginBase {
         loadConfig();
 
         //update max item stack
-        if (TCConfig.maxMinecartStackSize != 1) {
-            for (Material material : MaterialsByName.getAllMaterials()) {
-                if (MaterialUtil.ISMINECART.get(material)) {
-                    Util.setItemMaxSize(material, TCConfig.maxMinecartStackSize);
-                }
-            }
-        }
+        if (TCConfig.maxMinecartStackSize != 1) for (Material material : MaterialsByName.getAllMaterials())
+            if (MaterialUtil.ISMINECART.get(material)) Util.setItemMaxSize(material, TCConfig.maxMinecartStackSize);
 
         //Automatically tracks the signs that are loaded
         this.signController.enable();
@@ -645,13 +612,7 @@ public class TrainCarts extends PluginBase {
         this.spawnSignManager.enable();
 
         //Properly dispose of partly-referenced carts
-        CommonUtil.nextTick(new Runnable() {
-            public void run() {
-                for (World world : WorldUtil.getWorlds()) {
-                    OfflineGroupManager.removeBuggedMinecarts(world);
-                }
-            }
-        });
+        CommonUtil.nextTick(() -> WorldUtil.getWorlds().forEach(OfflineGroupManager::removeBuggedMinecarts));
 
         // Register listeners
         this.register(packetListener = new TCPacketListener(), TCPacketListener.LISTENED_TYPES);
@@ -661,44 +622,35 @@ public class TrainCarts extends PluginBase {
         this.register(TrainChestListener.class);
 
         // Paper player view distance logic handling
-        if (Util.hasPaperViewDistanceSupport()) {
-            try {
-                PaperPlayerViewDistanceProperty.INSTANCE.enable(this);
-            } catch (Throwable t) {
-                getLogger().log(Level.SEVERE, "Failed to enable paper player view distance property", t);
-                this.propertyRegistry.unregister(PaperPlayerViewDistanceProperty.INSTANCE);
-            }
+        if (Util.hasPaperViewDistanceSupport()) try {
+            PaperPlayerViewDistanceProperty.INSTANCE.enable(this);
+        } catch (Throwable t) {
+            getLogger().log(Level.SEVERE, "Failed to enable paper player view distance property", t);
+            this.propertyRegistry.unregister(PaperPlayerViewDistanceProperty.INSTANCE);
         }
 
         // Destroy all trains after initializing if specified
-        if (TCConfig.destroyAllOnShutdown) {
-            OfflineGroupManager.destroyAllAsync(false).thenAccept(count -> {
-                getLogger().info("[DestroyOnShutdown] Destroyed " + count + " trains");
-            });
-        }
+        if (TCConfig.destroyAllOnShutdown) OfflineGroupManager.destroyAllAsync(false)
+                .thenAccept(count -> getLogger().info("[DestroyOnShutdown] Destroyed " + count + " trains"));
     }
 
     @Override
     public void disable() {
         //Destroy all LOADED trains after initializing if specified
         //We can't destroy unloaded trains - the asynchronous nature makes it impossible
-        if (TCConfig.destroyAllOnShutdown) {
+        if (TCConfig.destroyAllOnShutdown)
             try (ImplicitlySharedSet<MinecartGroup> groups = MinecartGroupStore.getGroups().clone()) {
-                for (MinecartGroup group : groups) {
-                    group.destroy();
-                }
+                for (MinecartGroup group : groups) group.destroy();
                 getLogger().info("[DestroyOnShutdown] Destroyed " + groups.size() + " trains");
             }
-        }
 
         // Disable Paper player view distance logic handling
-        if (Util.hasPaperViewDistanceSupport()) {
+        if (Util.hasPaperViewDistanceSupport())
             try {
                 PaperPlayerViewDistanceProperty.INSTANCE.disable(this);
             } catch (Throwable t) {
                 getLogger().log(Level.SEVERE, "Failed to disable paper player view distance property", t);
             }
-        }
 
         //Unregister listeners
         this.unregister(packetListener);
@@ -718,42 +670,27 @@ public class TrainCarts extends PluginBase {
         Task.stop(mutexZoneUpdateTask);
 
         //Stop preloading chunks (happens when quickly disabling after enabling)
-        for (ChunkPreloadTask preloadTask : this.chunkPreloadTasks) {
-            preloadTask.abortPreloading();
-        }
+        for (ChunkPreloadTask preloadTask : this.chunkPreloadTasks) preloadTask.abortPreloading();
 
         //stop updating
         trainUpdateController.disable();
 
         //update max item stack
-        if (TCConfig.maxMinecartStackSize != 1) {
-            for (Material material : MaterialsByName.getAllMaterials()) {
-                if (MaterialUtil.ISMINECART.get(material)) {
-                    Util.setItemMaxSize(material, 1);
-                }
-            }
-        }
+        if (TCConfig.maxMinecartStackSize != 1) for (Material material : MaterialsByName.getAllMaterials())
+            if (MaterialUtil.ISMINECART.get(material)) Util.setItemMaxSize(material, 1);
 
         //this corrects minecart positions before saving
         MinecartGroupStore.doPostMoveLogic();
 
         //go by all minecart member entities on the server and eject those that have players inside
         //this makes sure that the default save function doesn't overwrite it
-        for (World world : WorldUtil.getWorlds()) {
-            for (Chunk chunk : WorldUtil.getChunks(world)) {
-                for (org.bukkit.entity.Entity entity : ChunkUtil.getEntities(chunk)) {
-                    if (entity instanceof Minecart) {
-                        CommonEntity<?> commonEntity = CommonEntity.get(entity);
-                        if (commonEntity.hasPlayerPassenger()) {
-                            MinecartMember<?> member = commonEntity.getController(MinecartMember.class);
-                            if (member != null && !member.isPlayerTakable()) {
-                                commonEntity.eject();
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        WorldUtil.getWorlds().stream().flatMap(world -> WorldUtil.getChunks(world).stream())
+                .flatMap(chunk -> ChunkUtil.getEntities(chunk).stream())
+                .filter(entity -> entity instanceof Minecart).map(CommonEntity::get)
+                .filter(ExtendedEntity::hasPlayerPassenger).forEach(commonEntity -> {
+            final MinecartMember<?> member = commonEntity.getController(MinecartMember.class);
+            if (member != null && !member.isPlayerTakable()) commonEntity.eject();
+        });
 
         //store all forced chunk instances of all groups currently in use
         //this delays unloading the chunks until after all trains have unloaded / controllers disabled
@@ -767,36 +704,25 @@ public class TrainCarts extends PluginBase {
 
             //double-check all entities on all worlds, to see no unlinked groups exist. Unload those too.
             //replace all MinecartMember controllers with default controllers too
-            for (World world : WorldUtil.getWorlds()) {
-                for (Chunk chunk : WorldUtil.getChunks(world)) {
-                    for (org.bukkit.entity.Entity entity : ChunkUtil.getEntities(chunk)) {
-                        // Ignore dead/removed entities
-                        if (entity.isDead()) {
-                            continue;
-                        }
-
-                        // Double-check for groups
-                        MinecartGroup group = MinecartGroup.get(entity);
-                        if (group != null) {
-                            group.unload();
-                        }
-
-                        // Replace MinecartMember with default controller on shutdown
-                        // This prevents Traincarts classes staying around after disabling
-                        if (entity instanceof Minecart) {
-                            CommonEntity<?> commonEntity = CommonEntity.get(entity);
-                            if (commonEntity.getController(MinecartMember.class) != null) {
-                                commonEntity.setController(new DefaultEntityController());
-                            }
-                        }
+            // Ignore dead/removed entities
+            // Double-check for groups
+            // Replace MinecartMember with default controller on shutdown
+            // This prevents Traincarts classes staying around after disabling
+            for (World world : WorldUtil.getWorlds())
+                WorldUtil.getChunks(world).stream()
+                        .flatMap(chunk -> ChunkUtil.getEntities(chunk).stream())
+                        .filter(entity -> !entity.isDead()).forEach(entity -> {
+                    MinecartGroup group = MinecartGroup.get(entity);
+                    if (group != null) group.unload();
+                    if (entity instanceof Minecart) {
+                        final CommonEntity<?> commonEntity = CommonEntity.get(entity);
+                        if (commonEntity.getController(MinecartMember.class) != null)
+                            commonEntity.setController(new DefaultEntityController());
                     }
-                }
-            }
+                });
         } finally {
             // This will potentially unload the chunks
-            for (ForcedChunk forcedChunk : allForcedChunks) {
-                forcedChunk.close();
-            }
+            for (ForcedChunk forcedChunk : allForcedChunks) forcedChunk.close();
             allForcedChunks.clear();
         }
 
@@ -827,7 +753,7 @@ public class TrainCarts extends PluginBase {
 
         this.trainLocator.disable();
         this.trainLocator = null;
- 
+
         AttachmentTypeRegistry.instance().unregisterAll();
 
         // De-register any offline sign handlers
@@ -840,16 +766,11 @@ public class TrainCarts extends PluginBase {
     @SuppressWarnings({"rawtypes", "deprecation", "unchecked"})
     private void undoAllTCControllers() {
         List<Entity> entities = new ArrayList<Entity>();
-        for (World world : WorldUtil.getWorlds()) {
-            for (Entity entity : WorldUtil.getEntities(world)) {
-                CommonEntity ce = CommonEntity.get(entity);
-                if (ce.getController(MinecartMember.class) != null ||
-                    ce.getNetworkController() instanceof MinecartMemberNetwork
-                ) {
-                    entities.add(entity);
-                }
-            }
-        }
+        WorldUtil.getWorlds().forEach(world -> WorldUtil.getEntities(world).forEach(entity -> {
+            final CommonEntity ce = CommonEntity.get(entity);
+            if (ce.getController(MinecartMember.class) != null
+                    || ce.getNetworkController() instanceof MinecartMemberNetwork) entities.add(entity);
+        }));
         entities.forEach(CommonEntity::clearControllers);
     }
 
@@ -870,9 +791,7 @@ public class TrainCarts extends PluginBase {
         pathProvider.save(autosave, getDataFolder() + File.separator + "destinations.dat");
 
         //Save arrival times
-        if (!autosave) {
-            ArrivalSigns.save(getDataFolder() + File.separator + "arrivaltimes.txt");
-        }
+        if (!autosave) ArrivalSigns.save(getDataFolder() + File.separator + "arrivaltimes.txt");
 
         //Save detector regions
         DetectorRegion.save(this, autosave);
@@ -884,9 +803,7 @@ public class TrainCarts extends PluginBase {
         routeManager.save(autosave);
 
         // Save train information
-        if (!autosave) {
-            OfflineGroupManager.save(getDataFolder() + File.separator + "trains.groupdata");
-        }
+        if (!autosave) OfflineGroupManager.save(getDataFolder() + File.separator + "trains.groupdata");
     }
 
     private void enableOfflineSignHandlers() {
@@ -1000,17 +917,17 @@ public class TrainCarts extends PluginBase {
             // Check if deadline is exceeded, and stop trying at that point
             if (!this.chunks.isEmpty() && ticks > this.deadline) {
                 List<String> trainNames = this.chunks.keySet().stream().map(g -> g.name).collect(Collectors.toList());
-                this.getPlugin().getLogger().log(Level.SEVERE, "Failed to restore " + trainNames.size() + " keep-chunks-loaded trains in time!");
-                if (trainNames.size() < 10) {
+                this.getPlugin().getLogger().log(Level.SEVERE, "Failed to restore " + trainNames.size()
+                        + " keep-chunks-loaded trains in time!");
+                if (trainNames.size() < 10)
                     this.getPlugin().getLogger().log(Level.SEVERE, "Trains: " + StringUtil.combineNames(trainNames));
-                }
                 this.abortPreloading();
                 return;
             }
 
             // Cleanup finished chunks
-            for (Iterator<FinishedChunks> iter = this.finished.iterator(); iter.hasNext();) {
-                FinishedChunks chunks = iter.next();
+            for (Iterator<FinishedChunks> iter = this.finished.iterator(); iter.hasNext(); ) {
+                final FinishedChunks chunks = iter.next();
                 if (ticks > chunks.deadline) {
                     chunks.close();
                     iter.remove();
@@ -1018,8 +935,8 @@ public class TrainCarts extends PluginBase {
             }
 
             // Check if other groups have been loaded
-            for (Iterator<Map.Entry<OfflineGroup, List<ForcedChunk>>> iter = this.chunks.entrySet().iterator(); iter.hasNext();) {
-                Map.Entry<OfflineGroup, List<ForcedChunk>> entry = iter.next();
+            for (Iterator<Map.Entry<OfflineGroup, List<ForcedChunk>>> iter = this.chunks.entrySet().iterator(); iter.hasNext(); ) {
+                final Map.Entry<OfflineGroup, List<ForcedChunk>> entry = iter.next();
                 if (entry.getKey().isLoadedAsGroup()) {
                     this.finished.add(new FinishedChunks(entry.getValue()));
                     iter.remove();
