@@ -1,17 +1,16 @@
 package com.bergerkiller.bukkit.tc;
 
-import java.util.Locale;
-
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 
+import java.util.Locale;
+
 public class DirectionStatement {
-    public String directionFrom;
-    public String direction;
-    public String text;
+    public final String directionFrom;
+    public String direction, text;
     public Counter counter;
 
     public DirectionStatement(String text, String defaultDirection) {
@@ -23,35 +22,30 @@ public class DirectionStatement {
             this.text = text.substring(idx + 1);
             this.direction = text.substring(0, idx);
         }
-        if (this.text.isEmpty()) {
-            this.text = "default";
-        }
+        if (this.text.isEmpty()) this.text = "default";
 
         // Using - between two directions to denote from and to directions
         // When not used, it switches from the direction the minecart came ('self')
         idx = this.direction.indexOf('-');
-        if (idx == -1) {
-            this.directionFrom = "self";
-        } else {
+        if (idx == -1) this.directionFrom = "self";
+        else {
             this.directionFrom = this.direction.substring(0, idx);
             this.direction = this.direction.substring(idx + 1);
         }
 
         // Number (counter) statements
-        if (this.text.endsWith("%")) {
-            String value = this.text.substring(0, this.text.length() - 1);
+        if (this.text.endsWith("%"))
             try {
-                this.counter = new CounterPercentage(Double.parseDouble(value));
+                this.counter = new CounterPercentage(Double.parseDouble(this.text.substring(0, this.text.length() - 1)));
             } catch (NumberFormatException ex) {
                 this.counter = null;
             }
-        } else {
+        else
             try {
                 this.counter = new CounterAbsolute(Integer.parseInt(this.text));
             } catch (NumberFormatException ex) {
                 this.counter = null;
             }
-        }
     }
 
     public boolean has(SignActionEvent event, MinecartMember<?> member) {
@@ -65,7 +59,7 @@ public class DirectionStatement {
     /**
      * Whether this switcher sign switches from the 'self' direction, that is,
      * the direction from which the train entered the switcher sign.
-     * 
+     *
      * @return True if switched from the train's direction
      */
     public boolean isSwitchedFromSelf() {
@@ -79,21 +73,19 @@ public class DirectionStatement {
     /**
      * Gets whether this statement is a default rule.
      * This means this direction should be chosen if no other statements match.
-     * 
+     *
      * @return True if this is a default rule
      */
     public boolean isDefault() {
-        String str = this.text.toLowerCase(Locale.ENGLISH);
+        final String str = this.text.toLowerCase(Locale.ENGLISH);
         return str.equals("def") || str.equals("default");
     }
 
     @Override
     public String toString() {
-        if (hasCounter()) {
-            return "{from=" + this.directionFrom + " to=" + this.direction + " every " + this.counter + "}";
-        } else {
-            return "{from=" + this.directionFrom + " to=" + this.direction + " when " + this.text + "}";
-        }
+        return "{from=" + this.directionFrom + " to=" + this.direction +
+                (!hasCounter() ? " when " + this.text : " every " + this.counter)
+                + "}";
     }
 
     /**
