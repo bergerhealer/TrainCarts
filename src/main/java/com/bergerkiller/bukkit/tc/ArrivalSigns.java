@@ -3,14 +3,12 @@ package com.bergerkiller.bukkit.tc;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.collections.BlockMap;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.utils.TimeDurationFormat;
-
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
@@ -26,7 +24,7 @@ public class ArrivalSigns {
     private static Task updateTask;
 
     public static TimeSign getTimer(String name) {
-        return timerSigns.computeIfAbsent(name, new_timesign_name -> new TimeSign(new_timesign_name));
+        return timerSigns.computeIfAbsent(name, TimeSign::new);
     }
 
     public static boolean isTrigger(Sign sign) {
@@ -36,23 +34,19 @@ public class ArrivalSigns {
 
     public static void trigger(Sign sign, MinecartMember<?> mm) {
         if (!TCConfig.SignLinkEnabled) return;
-        String name = Util.getCleanLine(sign, 2);
-        String duration = Util.getCleanLine(sign, 3);
+        final String name = Util.getCleanLine(sign, 2);
         if (name.isEmpty()) return;
         if (mm != null) {
             Variables.get(name + 'N').set(mm.getGroup().getProperties().getDisplayName());
-            if (mm.getProperties().hasDestination()) {
-                Variables.get(name + 'D').set(mm.getProperties().getDestination());
-            } else {
-                Variables.get(name + 'D').set("Unknown");
-            }
+            if (mm.getProperties().hasDestination()) Variables.get(name + 'D').set(mm.getProperties().getDestination());
+            else Variables.get(name + 'D').set("Unknown");
 
             double speed = MathUtil.round(mm.getRealSpeed(), 2);
             speed = Math.min(speed, mm.getGroup().getProperties().getSpeedLimit());
             Variables.get(name + 'V').set(Double.toString(speed));
         }
-        TimeSign t = getTimer(name);
-        t.duration = ParseUtil.parseTime(duration);
+        final TimeSign t = getTimer(name);
+        t.duration = ParseUtil.parseTime(Util.getCleanLine(sign, 3));
         if (t.duration == 0) {
             timeCalcStart(sign.getBlock(), mm);
         } else {
@@ -70,18 +64,14 @@ public class ArrivalSigns {
     }
 
     public static void updateAll() {
-        for (TimeSign t : timerSigns.values()) {
-            if (!t.update()) {
-                return;
-            }
-        }
+        for (TimeSign t : timerSigns.values()) if (!t.update()) return;
     }
 
     public static void init(String filename) {
-        FileConfiguration config = new FileConfiguration(filename);
+        final FileConfiguration config = new FileConfiguration(filename);
         config.load();
         for (String key : config.getKeys()) {
-            String dur = config.get(key, String.class, null);
+            final String dur = config.get(key, String.class, null);
             if (dur != null) {
                 TimeSign t = getTimer(key);
                 t.duration = ParseUtil.parseTime(dur);
@@ -91,10 +81,8 @@ public class ArrivalSigns {
     }
 
     public static void save(String filename) {
-        FileConfiguration config = new FileConfiguration(filename);
-        for (TimeSign sign : timerSigns.values()) {
-            config.set(sign.name, sign.getDuration());
-        }
+        final FileConfiguration config = new FileConfiguration(filename);
+        for (TimeSign sign : timerSigns.values()) config.set(sign.name, sign.getDuration());
         config.save();
     }
 
@@ -103,9 +91,7 @@ public class ArrivalSigns {
         timerSigns = null;
         timeCalculations.clear();
         timeCalculations = null;
-        if (updateTask != null && updateTask.isRunning()) {
-            updateTask.stop();
-        }
+        if (updateTask != null && updateTask.isRunning()) updateTask.stop();
         updateTask = null;
     }
 
@@ -115,13 +101,10 @@ public class ArrivalSigns {
         calc.signblock = signblock;
         calc.member = member;
         for (Player player : calc.signblock.getWorld().getPlayers()) {
-            if (player.hasPermission("train.build.trigger")) {
-                if (member == null) {
-                    player.sendMessage(ChatColor.YELLOW + "[Train Carts] Remove the power source to stop recording");
-                } else {
-                    player.sendMessage(ChatColor.YELLOW + "[Train Carts] Stop or destroy the minecart to stop recording");
-                }
-            }
+            if (player.hasPermission("train.build.trigger"))
+                player.sendMessage(member == null
+                        ? ChatColor.YELLOW + "[Train Carts] Remove the power source to stop recording"
+                        : ChatColor.YELLOW + "[Train Carts] Stop or destroy the minecart to stop recording");
         }
         timeCalculations.put(calc.signblock, calc);
         if (updateTask == null) {
@@ -131,25 +114,23 @@ public class ArrivalSigns {
                         this.stop();
                         updateTask = null;
                     }
-                    for (TimeCalculation calc : timeCalculations.values()) {
-                        if (calc.member != null) {
+                    for (TimeCalculation calc : timeCalculations.values())
+                        if (calc.member != null)
                             if (calc.member.isUnloaded() || calc.member.getEntity().getEntity().isDead() || !calc.member.getEntity().isMoving()) {
                                 calc.setTime();
                                 timeCalculations.remove(calc.signblock);
                                 return;
                             }
-                        }
-                    }
                 }
             }.start(0, 1);
         }
     }
 
-    public static void timeCalcStop(Block signblock) {
-        TimeCalculation calc = timeCalculations.get(signblock);
+    public static void timeCalcStop(Block signBlock) {
+        TimeCalculation calc = timeCalculations.get(signBlock);
         if (calc != null && calc.member == null) {
             calc.setTime();
-            timeCalculations.remove(signblock);
+            timeCalculations.remove(signBlock);
         }
     }
 
@@ -166,11 +147,10 @@ public class ArrivalSigns {
                 sign.setLine(3, dur);
                 sign.update(true);
                 //Message
-                for (Player player : sign.getWorld().getPlayers()) {
-                    if (player.hasPermission("train.build.trigger")) {
-                        player.sendMessage(ChatColor.YELLOW + "[Train Carts] Trigger time of '" + sign.getLine(2) + "' set to " + dur);
-                    }
-                }
+                for (Player player : sign.getWorld().getPlayers())
+                    if (player.hasPermission("train.build.trigger"))
+                        player.sendMessage(ChatColor.YELLOW + "[Train Carts] Trigger time of '"
+                                + sign.getLine(2) + "' set to " + dur);
             }
         }
     }
@@ -201,16 +181,15 @@ public class ArrivalSigns {
 
         public boolean update() {
             if (!TCConfig.SignLinkEnabled) return false;
-            //Calculate the time to display
-            String dur = getDuration();
+            // Calculate the time to display
+            final String dur = getDuration();
             Variables.get(this.name).set(dur);
             Variables.get(this.name + 'T').set(dur);
             if (dur.equals("00:00:00")) {
                 timerSigns.remove(this.name);
                 return false;
-            } else {
-                return true;
             }
+            return true;
         }
     }
 }
