@@ -13,6 +13,8 @@ public class BlockActionSetLevers extends BlockAction {
 
     @Override
     public void start() {
-        BlockUtil.setLeversAroundBlock(this.getBlock(), this.down);
+        if (this.getBlock() != null) {
+            BlockUtil.setLeversAroundBlock(this.getBlock(), this.down);
+        }
     }
 }
