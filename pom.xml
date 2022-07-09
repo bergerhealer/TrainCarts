@@ -87,7 +87,7 @@
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot</artifactId>
-            <version>${project.cbversion}</version>
+            <version>1.17.1-R0.1-SNAPSHOT</version> <!-- TODO: project.cbversion-->
             <scope>test</scope>
         </dependency>
 
