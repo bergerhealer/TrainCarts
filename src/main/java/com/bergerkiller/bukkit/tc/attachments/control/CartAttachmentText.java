@@ -48,7 +48,7 @@ public class CartAttachmentText extends CartAttachment {
                 @Override
                 public void onAccept(String text) {
                     attachment.getConfig().set("text", text);
-                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
                     attachment.resetIcon();
                 }
             };
@@ -82,20 +82,27 @@ public class CartAttachmentText extends CartAttachment {
     @Override
     public void onAttached() {
         super.onAttached();
-        String text = this.getConfig().get("text", " ");
-        if (text.length() == 0) {
-            text = " ";
-        }
 
         this.entity = new VirtualEntity(this.getManager());
-
         this.entity.setEntityType(EntityType.ARMOR_STAND);
         // this.entity.setSyncMode(VirtualEntity.SyncMode.SEAT);
         this.entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
         this.entity.getMetaData().set(EntityHandle.DATA_NO_GRAVITY, true);
         this.entity.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, true);
-        this.entity.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, ChatText.fromMessage(text));
         this.entity.setRelativeOffset(0, -1.6, 0);
+    }
+
+    @Override
+    public void onLoad(ConfigurationNode config) {
+        super.onLoad(config);
+
+        String text = this.getConfig().get("text", " ");
+        if (text.length() == 0) {
+            text = " ";
+        }
+
+        this.entity.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, ChatText.fromMessage(text));
+        this.entity.syncMetadata();
     }
 
     @Override
