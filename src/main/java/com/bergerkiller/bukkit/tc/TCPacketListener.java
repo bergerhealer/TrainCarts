@@ -179,9 +179,7 @@ class TCPacketListener implements PacketListener {
         }
 
         // If member is unloaded or was despawned during this time, it's no longer valid
-        if (member == null || member.isUnloaded() || player == null || !player.isOnline()) {
-            return;
-        }
+        if (member == null || member.isUnloaded() || player == null || !player.isOnline()) return;
 
         // Pre-1.9
         if (EnumHandHandle.T.isAvailable()) {
