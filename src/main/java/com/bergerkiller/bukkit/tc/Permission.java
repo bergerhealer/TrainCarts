@@ -135,20 +135,16 @@ public enum Permission implements IPermissionEnum {
     private final PermissionDefault _default;
     private final String _description;
 
-    private Permission(final String node, final PermissionDefault permdefault, final String desc) {
+    Permission(final String node, final PermissionDefault permDefault, final String desc) {
         this._root = node;
-        this._default = permdefault;
+        this._default = permDefault;
         this._description = desc;
     }
 
     @Override
     public boolean has(CommandSender sender) {
         // Brigadier nags us about this after the plugin disables, which causes problems
-        if (CommonPlugin.hasInstance()) {
-            return IPermissionEnum.super.has(sender);
-        } else {
-            return sender.hasPermission(this.getName());
-        }
+        return CommonPlugin.hasInstance() ? IPermissionEnum.super.has(sender) : sender.hasPermission(this.getName());
     }
 
     @Override
