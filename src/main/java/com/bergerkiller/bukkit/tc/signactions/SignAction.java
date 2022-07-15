@@ -262,7 +262,7 @@ public abstract class SignAction {
         if (action != null) {
             // First, remove this sign from all Minecarts on the world
             for (MinecartGroup group : MinecartGroup.getGroups().cloneAsIterable()) {
-                group.getSignTracker().removeSign(info.getBlock());
+                group.getSignTracker().removeSign(info.getTrackedSign());
             }
 
             // Handle sign destroy logic

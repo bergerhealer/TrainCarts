@@ -572,6 +572,20 @@ public final class RailLookup {
             return this.signBlock.hashCode();
         }
 
+        /**
+         * Gets a unique key by which this tracked sign can be identified. For real signs,
+         * this is this the sign block. For custom signs a custom tracking key can be
+         * added. A unique key is required to prevent one tracked sign overwriting another
+         * during tracking by trains.<br>
+         * <br>
+         * This key should not change during the lifetime of this TrackedSign
+         *
+         * @return unique key
+         */
+        public Object getUniqueKey() {
+            return this.signBlock;
+        }
+
         @Override
         public boolean equals(Object o) {
             return this == o;
@@ -679,6 +693,11 @@ public final class RailLookup {
         @Override
         public boolean isRealSign() {
             return false;
+        }
+
+        @Override
+        public Object getUniqueKey() {
+            return this; // Use fake sign instance for uniqueness - can be changed
         }
 
         private static class FakeSignImpl extends FakeSign {

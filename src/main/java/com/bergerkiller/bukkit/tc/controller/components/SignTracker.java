@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.controller.components;
 
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.collections.ImplicitlySharedList;
+import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
@@ -19,7 +20,7 @@ import java.util.logging.Level;
  */
 public abstract class SignTracker {
     protected static final Set<TrackedSign> blockBuffer = new HashSet<TrackedSign>();
-    protected final Map<Block, TrackedSign> activeSigns = new LinkedHashMap<Block, TrackedSign>();
+    private final Map<Object, TrackedSign> activeSigns = new LinkedHashMap<Object, TrackedSign>();
     protected ImplicitlySharedList<DetectorRegion> detectorRegions = new ImplicitlySharedList<>();
     protected final ToggledState needsUpdate = new ToggledState();
     protected final SignSkipTracker signSkipTracker;
@@ -32,17 +33,13 @@ public abstract class SignTracker {
         return Collections.unmodifiableCollection(activeSigns.values());
     }
 
-    public Collection<Block> getActiveSigns() {
-        return Collections.unmodifiableSet(activeSigns.keySet());
-    }
-
     public Collection<DetectorRegion> getActiveDetectorRegions() {
         return this.detectorRegions;
     }
 
     public boolean containsSign(TrackedSign sign) {
         if (sign != null) {
-            TrackedSign tracked = activeSigns.get(sign.signBlock);
+            TrackedSign tracked = activeSigns.get(sign.getUniqueKey());
             if (sign == tracked) {
                 return true;
             }
@@ -53,8 +50,24 @@ public abstract class SignTracker {
         return false;
     }
 
-    public boolean containsSign(Block signblock) {
-        return signblock != null && activeSigns.containsKey(signblock);
+    /**
+     * Removes an active sign
+     *
+     * @param sign TrackedSign to remove
+     * @return True if the Sign was removed, False if not
+     */
+    public boolean removeSign(TrackedSign sign) {
+        if (sign == null) {
+            return false;
+        }
+
+        TrackedSign removed = activeSigns.remove(sign.getUniqueKey());
+        if (removed != null) {
+            onSignChange(removed, false);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public boolean hasSigns() {
@@ -92,22 +105,6 @@ public abstract class SignTracker {
      */
     public void update() {
         needsUpdate.set();
-    }
-
-    /**
-     * Removes an active sign
-     *
-     * @param signBlock to remove
-     * @return True if the Block was removed, False if not
-     */
-    public boolean removeSign(Block signBlock) {
-        TrackedSign sign = activeSigns.remove(signBlock);
-        if (sign != null) {
-            onSignChange(sign, false);
-            return true;
-        } else {
-            return false;
-        }
     }
 
     /**
@@ -168,7 +165,7 @@ public abstract class SignTracker {
         // If this succeeds, fire an 'enter' event
         // This enter event might modify the list, if so, restart from the beginning
         for (TrackedSign newActiveSign : list) {
-            TrackedSign prevActiveSign = activeSigns.put(newActiveSign.signBlock, newActiveSign);
+            TrackedSign prevActiveSign = activeSigns.put(newActiveSign.getUniqueKey(), newActiveSign);
             if (prevActiveSign != newActiveSign) {
                 if (prevActiveSign != null) {
                     // If old and new signs have identical text, don't fire any events
@@ -197,8 +194,10 @@ public abstract class SignTracker {
             // Remove all the signs that are now inactive
             // This leave event might cause the list to change, if so, restart from the beginning
             for (TrackedSign old : blockBuffer) {
-                activeSigns.remove(old.signBlock);
-                onSignChange(old, false);
+                TrackedSign removed = activeSigns.remove(old.getUniqueKey());
+                if (removed == old) {
+                    onSignChange(old, false);
+                }
 
                 // If list changed, restart from the beginning
                 if (list.getModCount() != mod_start) {
@@ -209,5 +208,49 @@ public abstract class SignTracker {
 
         // Done!
         return true;
+    }
+
+    /*
+     * Below methods should not be used, because they only work for real sign blocks.
+     * Fake signs added by add-ons are not supported at all, and are ignored.
+     */
+
+    /**
+     * @deprecated Only works with real sign blocks
+     */
+    @Deprecated
+    public Collection<Block> getActiveSigns() {
+        return getActiveTrackedSigns().stream()
+                .filter(TrackedSign::isRealSign)
+                .map(s -> s.signBlock)
+                .collect(StreamUtil.toUnmodifiableList());
+    }
+
+    /**
+     * @deprecated Only works with real sign blocks
+     */
+    @Deprecated
+    public boolean containsSign(Block signblock) {
+        TrackedSign sign = activeSigns.get(signblock);
+        return sign != null && sign.isRealSign();
+    }
+
+    /**
+     * Removes an active sign
+     *
+     * @param signBlock to remove
+     * @return True if the Block was removed, False if not
+     * @deprecated Only works with real sign blocks
+     */
+    @Deprecated
+    public boolean removeSign(Block signBlock) {
+        TrackedSign removed = activeSigns.remove(signBlock);
+        if (removed != null && removed.isRealSign()) {
+            onSignChange(removed, false);
+            return true;
+        } else {
+            activeSigns.put(signBlock, removed);
+            return false;
+        }
     }
 }

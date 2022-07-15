@@ -119,10 +119,23 @@ public class SignTrackerGroup extends SignTracker {
     }
 
     @Override
+    @Deprecated
     public boolean removeSign(Block signBlock) {
         if (super.removeSign(signBlock)) {
             for (MinecartMember<?> member : owner) {
                 member.getSignTracker().removeSign(signBlock);
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean removeSign(TrackedSign sign) {
+        if (super.removeSign(sign)) {
+            for (MinecartMember<?> member : owner) {
+                member.getSignTracker().removeSign(sign);
             }
             return true;
         } else {
