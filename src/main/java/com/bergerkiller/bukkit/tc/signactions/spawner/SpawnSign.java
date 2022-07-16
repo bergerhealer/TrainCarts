@@ -157,8 +157,10 @@ public class SpawnSign {
      * after the current system time.
      */
     public void resetSpawnTime() {
-        this.store.putIfPresent(this.location, this.state.setAutoSpawnStart(
-                System.currentTimeMillis() + this.state.intervalMillis));
+        if (this.store != null) {
+            this.store.putIfPresent(this.location, this.state.setAutoSpawnStart(
+                    System.currentTimeMillis() + this.state.intervalMillis));
+        }
     }
 
     /**
@@ -252,7 +254,7 @@ public class SpawnSign {
     public void spawn(SignActionEvent sign) {
         try (Timings t = TCTimings.SIGNACTION_SPAWN.start()) {
             // Before proceeding, verify the sign's contents again. May have changed!
-            if (store.verifySign(sign.getSign(), SpawnSignManager.SpawnSignMetadata.class) == null) {
+            if (store != null && store.verifySign(sign.getSign(), SpawnSignManager.SpawnSignMetadata.class) == null) {
                 return; // removed
             }
 
