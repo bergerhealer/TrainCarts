@@ -23,7 +23,7 @@ import com.bergerkiller.bukkit.tc.utils.RailJunctionSwitcher;
  * Extra properties about the rail are cached for faster lookup of this rarely changing information.
  */
 public class RailPiece {
-    public static final RailPiece NONE = createWorldPlaceholder(WorldRailLookup.NONE);
+    public static final RailPiece NONE = new RailPieceNone();
     private final RailType type;
     private final OfflineBlock offlineBlock;
 
@@ -46,7 +46,7 @@ public class RailPiece {
         this.offlineBlock = null;
         this.block = null;
         this.type = RailType.NONE;
-        this.cached = null; // Should never even be used
+        this.cached = null; // Should never be used
     }
 
     private RailPiece(WorldRailLookup railLookup) {
@@ -124,11 +124,13 @@ public class RailPiece {
 
     /**
      * Gets whether this rail piece refers to missing rails.
-     * The {@link #NONE} constant qualifies.
+     * The {@link #NONE} constant qualifies. This is also the case
+     * when the world this rail piece is on, isn't loaded (anymore).
      * 
      * @return is none (block is null)
      */
     public boolean isNone() {
+        this.railLookup();
         return this.block == null;
     }
 
@@ -204,7 +206,7 @@ public class RailPiece {
         return lookup;
     }
 
-    private RailLookup.CachedRailPiece accessCache() {
+    protected RailLookup.CachedRailPiece accessCache() {
         RailLookup.CachedRailPiece cached = this.cached;
         if (cached.verify()) {
             return cached;
@@ -213,7 +215,7 @@ public class RailPiece {
         }
     }
 
-    private RailLookup.CachedRailPiece accessCacheExists() {
+    protected RailLookup.CachedRailPiece accessCacheExists() {
         RailLookup.CachedRailPiece cached = this.cached;
         if (cached.verifyExists()) {
             return cached;
@@ -378,5 +380,42 @@ public class RailPiece {
      */
     public static RailPiece createWorldPlaceholder(WorldRailLookup railLookup) {
         return new RailPiece(railLookup);
+    }
+
+    private static class RailPieceNone extends RailPiece {
+
+        public RailPieceNone() {
+            super(WorldRailLookup.NONE);
+        }
+
+        @Override
+        public boolean isNone() {
+            return true;
+        }
+
+        @Override
+        public WorldRailLookup railLookup() {
+            return WorldRailLookup.NONE;
+        }
+
+        @Override
+        public Block block() {
+            return null;
+        }
+
+        @Override
+        public IntVector3 blockPosition() {
+            throw new IllegalStateException("This rail piece is a NONE and has no rail block");
+        }
+
+        @Override
+        protected RailLookup.CachedRailPiece accessCache() {
+            throw new IllegalStateException("This rail piece is a NONE and has no metadata");
+        }
+
+        @Override
+        protected RailLookup.CachedRailPiece accessCacheExists() {
+            throw new IllegalStateException("This rail piece is a NONE and has no metadata");
+        }
     }
 }

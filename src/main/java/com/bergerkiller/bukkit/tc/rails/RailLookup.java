@@ -15,6 +15,7 @@ import org.bukkit.block.Sign;
 import com.bergerkiller.bukkit.common.block.SignChangeTracker;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.PowerState;
 import com.bergerkiller.bukkit.tc.SignActionHeader;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -759,15 +760,23 @@ public final class RailLookup {
 
         @Override
         public String[] getExtraLines() {
+            // If rail is none we sadly can't deduce the other signs
+            // There is a way to do it, but it's freaking warm here in the Netherlands right now
+            // and I don't want to bother writing block iteration or sign cache logic for it.
+            if (this.rail.isNone()) {
+                return StringUtil.EMPTY_ARRAY;
+            }
+
             List<String> lines = new ArrayList<>();
 
             // Find other TrackedSign instances which are below this sign, repeatedly
             // Ignore tracked signs which match a SignAction by itself.
+            TrackedSign[] signs = this.rail.signs();
             Block signBlock = this.signBlock.getRelative(BlockFace.DOWN);
             boolean found;
             do {
                 found = false;
-                for (TrackedSign sign : this.rail.signs()) {
+                for (TrackedSign sign : signs) {
                     if (!(sign instanceof TrackedRealSign) || sign.getAction() != null) {
                         continue;
                     }
