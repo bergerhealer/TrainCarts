@@ -181,7 +181,7 @@ public class SignActionSwitcher extends SignAction {
 
             DirectionStatement activeDirection = null;
             if (!statements.isEmpty() && facing) {
-                activeDirection = this.selectStatement(true);
+                activeDirection = this.selectStatement(false);
 
                 // If not powered or rails cannot be switched, don't switch rails at all
                 // Also don't do this after the path finding logic has concluded.
