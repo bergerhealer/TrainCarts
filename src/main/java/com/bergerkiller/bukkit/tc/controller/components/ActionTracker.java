@@ -4,10 +4,12 @@ import com.bergerkiller.bukkit.tc.actions.Action;
 import com.bergerkiller.bukkit.tc.actions.BlockActionSetLevers;
 import com.bergerkiller.bukkit.tc.actions.MemberAction;
 import com.bergerkiller.bukkit.tc.actions.MovementAction;
+import com.bergerkiller.bukkit.tc.actions.TrackedSignActionSetOutput;
 import com.bergerkiller.bukkit.tc.actions.WaitAction;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatusProvider;
+import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -88,6 +90,20 @@ public class ActionTracker implements TrainStatusProvider {
      */
     public BlockActionSetLevers addActionSetLevers(Block block, boolean down) {
         return addAction(new BlockActionSetLevers(block, down));
+    }
+
+    /**
+     * Adds an action that toggles the output state of a Sign. For real signs, this
+     * toggles levers around the block the sign is attached to, similar to
+     * {@link #addActionSetLevers(Block, boolean)}. Unlike that method, this method
+     * also supports fake signs which handle outputs in their own way.
+     *
+     * @param sign TrackedSign whose output to change
+     * @param output New output state
+     * @return the added action
+     */
+    public TrackedSignActionSetOutput addActionSetSignOutput(TrackedSign sign, boolean output) {
+        return addAction(new TrackedSignActionSetOutput(sign, output));
     }
 
     /**

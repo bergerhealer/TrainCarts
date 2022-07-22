@@ -3,12 +3,11 @@ package com.bergerkiller.bukkit.tc.actions;
 import java.util.Collections;
 import java.util.List;
 
-import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.tc.controller.components.ObstacleTracker;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
+import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 
 public class MemberActionWaitOccupied extends MemberAction implements WaitAction {
     private final double maxDistance;
@@ -20,7 +19,7 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
     private double launchforce;
     private int counter = 20;
     private boolean breakCode = false;
-    private Block toggleLeversOf = null;
+    private TrackedSign toggleOutputOf = null;
     private ObstacleTracker.TrainObstacle trainObstacle = null;
 
     public MemberActionWaitOccupied(final double maxDistance, final long delay, final double launchDistance, BlockFace launchDirection, Double launchVelocity) {
@@ -32,14 +31,16 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
     }
 
     /**
-     * Toggles levers as part of this action
+     * Toggles output state of a sign as part of this action
      * 
-     * @param block
+     * @param sign
      * @return this
      */
-    public MemberActionWaitOccupied setToggleLeversOf(Block block) {
-        this.toggleLeversOf = block;
-        BlockUtil.setLeversAroundBlock(block, true);
+    public MemberActionWaitOccupied setToggleOutputOf(TrackedSign sign) {
+        this.toggleOutputOf = sign;
+        if (!sign.isRemoved()) {
+            sign.setOutput(true);
+        }
         return this;
     }
 
@@ -69,8 +70,8 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
     public void start() {
         if (this.handleOccupied()) {
             this.getGroup().stop(true);
-            if (this.toggleLeversOf != null) {
-                BlockUtil.setLeversAroundBlock(this.toggleLeversOf, true);
+            if (this.toggleOutputOf != null && !toggleOutputOf.isRemoved()) {
+                toggleOutputOf.setOutput(true);
             }
         } else {
             breakCode = true;
@@ -114,11 +115,12 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
                 }
 
                 // Toggle levers back up, after the delay if a delay is used
-                if (this.toggleLeversOf != null) {
+                if (this.toggleOutputOf != null && !toggleOutputOf.isRemoved()) {
                     if (this.delay > 0) {
-                        this.getGroup().getActions().addActionSetLevers(this.toggleLeversOf, false);
+                        toggleOutputOf.setOutput(false);
+                        this.getGroup().getActions().addActionSetSignOutput(toggleOutputOf, false);
                     } else {
-                        BlockUtil.setLeversAroundBlock(this.toggleLeversOf, false);
+                        toggleOutputOf.setOutput(false);
                     }
                 }
 
@@ -140,8 +142,8 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
     @Override
     public void cancel() {
         // Toggle lever back up
-        if (this.toggleLeversOf != null) {
-            BlockUtil.setLeversAroundBlock(this.toggleLeversOf, false);
+        if (toggleOutputOf != null && !toggleOutputOf.isRemoved()) {
+            toggleOutputOf.setOutput(false);
         }
     }
 

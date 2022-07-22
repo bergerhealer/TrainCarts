@@ -309,7 +309,7 @@ public class Station {
     }
 
     public void setLevers(boolean down) {
-        info.getGroup().getActions().addActionSetLevers(info.getAttachedBlock(), down).addTag(this.getTag());
+        info.getGroup().getActions().addActionSetSignOutput(info.getTrackedSign(), down).addTag(this.getTag());
     }
 
     /**

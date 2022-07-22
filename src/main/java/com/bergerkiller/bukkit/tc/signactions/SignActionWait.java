@@ -98,7 +98,7 @@ public class SignActionWait extends SignAction {
             if (info.getGroup().isObstacleAhead(distance, true, false)) {
                 info.getGroup().getActions().clear();
                 info.getMember().getActions().addActionWaitOccupied(distance, delay, launchDistance, launchDirection, launchVelocity)
-                        .setToggleLeversOf(info.getAttachedBlock());
+                        .setToggleOutputOf(info.getTrackedSign());
             }
         } else if (info.isAction(SignActionType.REDSTONE_OFF)) {
             info.setLevers(false);
