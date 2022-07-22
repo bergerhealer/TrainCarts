@@ -14,6 +14,7 @@ import org.bukkit.block.Sign;
 
 import com.bergerkiller.bukkit.common.block.SignChangeTracker;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.PowerState;
@@ -440,6 +441,19 @@ public final class RailLookup {
          * @return Block the sign is attached to.
          */
         public abstract Block getAttachedBlock();
+
+        /**
+         * Sets the toggled level output state of this sign. This is called from
+         * {@link SignActionEvent#setLevers(boolean)} to update state.
+         *
+         * @param output New output state
+         */
+        public void setOutput(boolean output) {
+            Block attachedBlock = this.getAttachedBlock();
+            if (attachedBlock != null) {
+                BlockUtil.setLeversAroundBlock(attachedBlock, output);
+            }
+        }
 
         /**
          * Searches for additional signs below this sign which extend the number of lines. Custom

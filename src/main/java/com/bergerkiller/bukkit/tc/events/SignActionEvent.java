@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.events;
 
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -125,10 +124,7 @@ public class SignActionEvent extends Event implements Cancellable {
      * @param down state to set to
      */
     public void setLevers(boolean down) {
-        Block attachedBlock = this.getAttachedBlock();
-        if (attachedBlock != null) {
-            BlockUtil.setLeversAroundBlock(attachedBlock, down);
-        }
+        this.getTrackedSign().setOutput(down);
     }
 
     /**
