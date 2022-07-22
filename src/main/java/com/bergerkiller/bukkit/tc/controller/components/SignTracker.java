@@ -20,7 +20,8 @@ import java.util.logging.Level;
  */
 public abstract class SignTracker {
     protected static final Set<TrackedSign> blockBuffer = new HashSet<TrackedSign>();
-    private final Map<Object, TrackedSign> activeSigns = new LinkedHashMap<Object, TrackedSign>();
+    private final Map<Object, TrackedSign> activeSignsByKey = new LinkedHashMap<Object, TrackedSign>();
+    private final ImplicitlySharedList<TrackedSign> activeSigns = new ImplicitlySharedList<>();
     protected ImplicitlySharedList<DetectorRegion> detectorRegions = new ImplicitlySharedList<>();
     protected final ToggledState needsUpdate = new ToggledState();
     protected final SignSkipTracker signSkipTracker;
@@ -29,8 +30,14 @@ public abstract class SignTracker {
         this.signSkipTracker = new SignSkipTracker(owner);
     }
 
-    public Collection<TrackedSign> getActiveTrackedSigns() {
-        return Collections.unmodifiableCollection(activeSigns.values());
+    /**
+     * Gets all actively tracked signs. Can use implicit clone/copy iteration functions to
+     * safely iterate the signs without causing concurrent modification exceptions.
+     *
+     * @return list of signs
+     */
+    public ImplicitlySharedList<TrackedSign> getActiveTrackedSigns() {
+        return activeSigns;
     }
 
     public Collection<DetectorRegion> getActiveDetectorRegions() {
@@ -39,7 +46,7 @@ public abstract class SignTracker {
 
     public boolean containsSign(TrackedSign sign) {
         if (sign != null) {
-            TrackedSign tracked = activeSigns.get(sign.getUniqueKey());
+            TrackedSign tracked = activeSignsByKey.get(sign.getUniqueKey());
             if (sign == tracked) {
                 return true;
             }
@@ -61,8 +68,9 @@ public abstract class SignTracker {
             return false;
         }
 
-        TrackedSign removed = activeSigns.remove(sign.getUniqueKey());
+        TrackedSign removed = activeSignsByKey.remove(sign.getUniqueKey());
         if (removed != null) {
+            activeSigns.remove(removed);
             onSignChange(removed, false);
             return true;
         } else {
@@ -78,25 +86,30 @@ public abstract class SignTracker {
      * Clears all active signs and other Block info, resulting in leave events being fired
      */
     public void clear() {
-        if (!activeSigns.isEmpty()) {
+        if (!activeSignsByKey.isEmpty()) {
             int maxResetIterCtr = 100; // happens more than this, infinite loop suspected
-            int expectedCount = activeSigns.size();
-            Iterator<TrackedSign> iter = activeSigns.values().iterator();
+            int expectedCount = activeSignsByKey.size();
+            Iterator<TrackedSign> iter = activeSignsByKey.values().iterator();
             while (iter.hasNext()) {
                 TrackedSign sign = iter.next();
                 iter.remove();
+                activeSigns.remove(sign);
                 expectedCount--;
                 onSignChange(sign, false);
 
-                if (expectedCount != activeSigns.size()) {
-                    expectedCount = activeSigns.size();
-                    iter = activeSigns.values().iterator();
+                if (expectedCount != activeSignsByKey.size()) {
+                    expectedCount = activeSignsByKey.size();
+                    iter = activeSignsByKey.values().iterator();
                     if (--maxResetIterCtr <= 0) {
                         TrainCarts.plugin.log(Level.WARNING, "[SignTracker] Number of iteration reset attempts exceeded limit");
                         break;
                     }
                 }
             }
+
+            // Just to be sure
+            activeSigns.clear();
+            activeSignsByKey.clear();
         }
     }
 
@@ -145,10 +158,12 @@ public abstract class SignTracker {
         // When there are no signs, only remove previously detected signs
         if (list.isEmpty()) {
             if (hadSigns) {
-                Iterator<TrackedSign> iter = activeSigns.values().iterator();
+                Iterator<TrackedSign> iter = activeSignsByKey.values().iterator();
                 while (iter.hasNext()) {
-                    onSignChange(iter.next(), false);
+                    TrackedSign sign = iter.next();
+                    activeSigns.remove(sign);
                     iter.remove();
+                    onSignChange(sign, false);
 
                     // If list changed, restart from the beginning
                     if (list.getModCount() != mod_start) {
@@ -165,16 +180,20 @@ public abstract class SignTracker {
         // If this succeeds, fire an 'enter' event
         // This enter event might modify the list, if so, restart from the beginning
         for (TrackedSign newActiveSign : list) {
-            TrackedSign prevActiveSign = activeSigns.put(newActiveSign.getUniqueKey(), newActiveSign);
+            TrackedSign prevActiveSign = activeSignsByKey.put(newActiveSign.getUniqueKey(), newActiveSign);
             if (prevActiveSign != newActiveSign) {
                 if (prevActiveSign != null) {
+                    activeSigns.remove(prevActiveSign);
+
                     // If old and new signs have identical text, don't fire any events
                     if (prevActiveSign.hasIdenticalText(newActiveSign)) {
+                        activeSigns.add(newActiveSign);
                         continue;
                     }
 
                     onSignChange(prevActiveSign, false);
                 }
+                activeSigns.add(newActiveSign);
                 onSignChange(newActiveSign, true);
 
                 // If list changed, restart from the beginning
@@ -188,13 +207,16 @@ public abstract class SignTracker {
         if (hadSigns) {
             // Calculate all the signs that are now missing
             blockBuffer.clear();
-            blockBuffer.addAll(activeSigns.values());
+            blockBuffer.addAll(activeSigns);
             blockBuffer.removeAll(list);
 
             // Remove all the signs that are now inactive
             // This leave event might cause the list to change, if so, restart from the beginning
             for (TrackedSign old : blockBuffer) {
-                TrackedSign removed = activeSigns.remove(old.getUniqueKey());
+                TrackedSign removed = activeSignsByKey.remove(old.getUniqueKey());
+                if (removed != null) {
+                    activeSigns.remove(removed);
+                }
                 if (removed == old) {
                     onSignChange(old, false);
                 }
@@ -231,7 +253,7 @@ public abstract class SignTracker {
      */
     @Deprecated
     public boolean containsSign(Block signblock) {
-        TrackedSign sign = activeSigns.get(signblock);
+        TrackedSign sign = activeSignsByKey.get(signblock);
         return sign != null && sign.isRealSign();
     }
 
@@ -244,12 +266,13 @@ public abstract class SignTracker {
      */
     @Deprecated
     public boolean removeSign(Block signBlock) {
-        TrackedSign removed = activeSigns.remove(signBlock);
+        TrackedSign removed = activeSignsByKey.remove(signBlock);
         if (removed != null && removed.isRealSign()) {
+            activeSigns.remove(removed);
             onSignChange(removed, false);
             return true;
         } else {
-            activeSigns.put(signBlock, removed);
+            activeSignsByKey.put(signBlock, removed);
             return false;
         }
     }

@@ -2232,11 +2232,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
             // Execute signs MEMBER_MOVE
             try (Timings t = TCTimings.MEMBER_PHYSICS_POST_SIGN_MEMBER_MOVE.start()) {
-                Collection<TrackedSign> trackedSigns = this.getSignTracker().getActiveTrackedSigns();
-                if (!trackedSigns.isEmpty()) {
-                    for (TrackedSign sign : trackedSigns) {
-                        sign.executeEventForMember(SignActionType.MEMBER_MOVE, this);
-                    }
+                for (TrackedSign sign : this.getSignTracker().getActiveTrackedSigns().cloneAsIterable()) {
+                    sign.executeEventForMember(SignActionType.MEMBER_MOVE, this);
                 }
             }
         }
