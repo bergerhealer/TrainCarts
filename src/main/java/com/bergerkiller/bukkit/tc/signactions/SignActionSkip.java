@@ -1,6 +1,8 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -25,7 +27,7 @@ public class SignActionSkip extends SignAction {
     public void execute(SignActionEvent info) {
         if (!info.isPowered()) return;
 
-        List<String> statements = Arrays.asList(info.getLine(2), info.getLine(3));
+        List<String> statements = getStatements(info);
         if (info.isCartSign() && info.isAction(SignActionType.REDSTONE_CHANGE, SignActionType.MEMBER_ENTER)) {
             if (!info.hasRailedMember()) return;
 
@@ -44,6 +46,42 @@ public class SignActionSkip extends SignAction {
                 if (Statement.hasMultiple(prop.getHolder(), statements, info)) {
                     prop.setSkipOptions(opt);
                 }
+            }
+        }
+    }
+
+    public List<String> getStatements(SignActionEvent info) {
+        String line1 = info.getLine(2);
+        String line2 = info.getLine(3);
+        if (line2.isEmpty()) {
+            if (line1.isEmpty()) {
+                return Collections.emptyList();
+            } else {
+                return Collections.singletonList(line1);
+            }
+        }
+
+        // Last line of the sign isn't empty, so we got to check for extra signs below the sign
+        String[] extraLines = info.getExtraLinesBelow();
+        if (extraLines.length > 0) {
+            ArrayList<String> statements = new ArrayList<>(extraLines.length + 2);
+            if (!line1.isEmpty()) {
+                statements.add(line1);
+            }
+            statements.add(line2);
+            for (String line : extraLines) {
+                if (line.isEmpty()) {
+                    break;
+                } else {
+                    statements.add(line);
+                }
+            }
+            return statements;
+        } else {
+            if (line1.isEmpty()) {
+                return Collections.singletonList(line2);
+            } else {
+                return Arrays.asList(line1, line2);
             }
         }
     }
