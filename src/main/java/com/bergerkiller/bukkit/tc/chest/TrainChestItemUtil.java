@@ -32,6 +32,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailPath.Position;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
+import com.bergerkiller.bukkit.tc.debug.DebugToolUtil;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.google.common.io.ByteStreams;
@@ -73,6 +74,10 @@ public class TrainChestItemUtil {
         } else {
             ItemUtil.addLoreChatText(item, ChatText.fromMessage(ChatColor.DARK_PURPLE + "Infinite uses"));
         }
+        double speed = getSpeed(item);
+        if (speed > 0.0) {
+            ItemUtil.addLoreChatText(item, ChatText.fromMessage(ChatColor.YELLOW + "Speed " + DebugToolUtil.formatNumber(speed) + "b/t"));
+        }
         if (isLocked(item)) {
             ItemUtil.addLoreChatText(item, ChatText.fromMessage(ChatColor.RED + "Locked"));
         }
@@ -102,12 +107,23 @@ public class TrainChestItemUtil {
         }
     }
 
+    public static void setSpeed(ItemStack item, double speed) {
+        if (isItem(item)) {
+            ItemUtil.getMetaTag(item, true).putValue("speed", speed);
+            updateTitle(item);
+        }
+    }
+
     public static boolean isLocked(ItemStack item) {
         return isItem(item) && ItemUtil.getMetaTag(item).getValue("locked", false);
     }
 
     public static boolean isFiniteSpawns(ItemStack item) {
         return isItem(item) && ItemUtil.getMetaTag(item).getValue("finite", false);
+    }
+
+    public static double getSpeed(ItemStack item) {
+        return isItem(item) ? ItemUtil.getMetaTag(item).getValue("speed", 0.0) : 0.0;
     }
 
     public static void setName(ItemStack item, String name) {
@@ -224,7 +240,7 @@ public class TrainChestItemUtil {
         return group;
     }
 
-    public static SpawnResult spawnAtBlock(SpawnableGroup group, Player player, Block clickedBlock) {
+    public static SpawnResult spawnAtBlock(SpawnableGroup group, Player player, Block clickedBlock, double initialSpeed) {
         if (group == null) {
             return SpawnResult.FAIL_EMPTY;
         }
@@ -274,13 +290,16 @@ public class TrainChestItemUtil {
 
         // Spawn.
         MinecartGroup spawnedGroup = group.spawn(locationList);
+        if (initialSpeed > 0.0) {
+            spawnedGroup.setForwardForce(initialSpeed);
+        }
         if (spawnedGroup != null && !spawnedGroup.isEmpty()) {
             CartProperties.setEditing(player, spawnedGroup.tail().getProperties());
         }
         return SpawnResult.SUCCESS;
     }
 
-    public static SpawnResult spawnLookingAt(SpawnableGroup group, Player player, Location eyeLocation) {
+    public static SpawnResult spawnLookingAt(SpawnableGroup group, Player player, Location eyeLocation, double initialSpeed) {
         // Clicked in the air. Perform a raytrace hit-test to find
         // possible rails in range of where the player clicked.
         // No need to make this complicated, we only need to get close
@@ -324,11 +343,11 @@ public class TrainChestItemUtil {
             bestState.initEnterDirection();
 
             // Try spawning
-            return spawnAtState(group, player, bestState);
+            return spawnAtState(group, player, bestState, initialSpeed);
         }
     }
 
-    public static SpawnResult spawnAtState(SpawnableGroup group, Player player, RailState state) {
+    public static SpawnResult spawnAtState(SpawnableGroup group, Player player, RailState state, double initialSpeed) {
         if (group == null) {
             return SpawnResult.FAIL_EMPTY;
         }
@@ -352,6 +371,9 @@ public class TrainChestItemUtil {
 
         // Spawn.
         MinecartGroup spawnedGroup = group.spawn(locationList);
+        if (initialSpeed > 0.0) {
+            spawnedGroup.setForwardForce(initialSpeed);
+        }
         if (spawnedGroup != null && !spawnedGroup.isEmpty()) {
             CartProperties.setEditing(player, spawnedGroup.tail().getProperties());
         }

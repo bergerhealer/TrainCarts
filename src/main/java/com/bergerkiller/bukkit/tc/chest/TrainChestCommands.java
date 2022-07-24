@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainStorageChestItemException;
+import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
 
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
@@ -147,6 +148,16 @@ public class TrainChestCommands {
             final @Argument("finite_spawns") boolean finite
     ) {
         updateChestItemInInventory(player, item -> TrainChestItemUtil.setFiniteSpawns(item, finite));
+    }
+
+    @CommandRequiresPermission(Permission.COMMAND_STORAGE_CHEST_CREATE)
+    @CommandMethod("train chest speed <speed>")
+    @CommandDescription("Sets the initial speed of the train when spawning")
+    private void commandChestItemSetSpeed(
+            final Player player,
+            final @Argument("speed") FormattedSpeed speed
+    ) {
+        updateChestItemInInventory(player, item -> TrainChestItemUtil.setSpeed(item, speed.getValue()));
     }
 
     @CommandRequiresPermission(Permission.COMMAND_STORAGE_CHEST_CREATE)
