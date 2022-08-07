@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
@@ -145,6 +146,62 @@ public class TicketCommands {
         for (String playerName : playerNames) {
             Player player = Util.findPlayer(sender, playerName);
             if (player != null) {
+                ItemStack item = ticket.createItem(player);
+                player.getInventory().addItem(item);
+                sender.sendMessage(ChatColor.GREEN + "Ticket " + ChatColor.YELLOW + ticket.getName() + ChatColor.GREEN + 
+                        " sold to player " + ChatColor.YELLOW + player.getName());
+            }
+        }
+    }
+
+    @CommandRequiresPermission(Permission.TICKET_MANAGE)
+    @CommandMethod("train ticket sell <ticket> <price> <players>")
+    @CommandDescription("Sells a ticket by name to one or more players by charging them money")
+    private void commandSellTicket(
+              final CommandSender sender,
+              final TrainCarts plugin,
+              final @Argument("ticket") Ticket ticket,
+              final @Argument("price") double price,
+              final @Argument(value="players", suggestions="targetplayer") String[] playerNames
+    ) {
+        // Retrieve economy api, fail if none is available
+        net.milkbowl.vault.economy.Economy econ = plugin.getEconomy();
+        if (econ == null) {
+            sender.sendMessage(ChatColor.RED + "No Vault-compatible economy plugin is installed!");
+            for (String playerName : playerNames) {
+                Player player = Util.findPlayer(sender, playerName);
+                if (player != null && player != sender) {
+                    sender.sendMessage(ChatColor.RED + "Failed to buy ticket: no vault-compatible economy plugin is installed!");
+                }
+            }
+            return;
+        }
+
+        // Check not negative price
+        if (price < 0.0) {
+            sender.sendMessage(ChatColor.RED + "Price must be positive");
+            return;
+        }
+
+        for (String playerName : playerNames) {
+            Player player = Util.findPlayer(sender, playerName);
+            if (player != null) {
+                //TODO: Do we actually need to check user has the amount of money required
+                if (!econ.has(player, player.getWorld().getName(), price)) {
+                    Localization.TICKET_BUYFAIL.message(player, TrainCarts.getCurrencyText(price));
+                    continue;
+                }
+
+                // Charge money using Vault economy api
+                // TODO: Is the response check required? Added just in case.
+                net.milkbowl.vault.economy.EconomyResponse resp = econ.withdrawPlayer(player, player.getWorld().getName(), price);
+                if (resp.type != net.milkbowl.vault.economy.EconomyResponse.ResponseType.SUCCESS) {
+                    Localization.TICKET_BUYFAIL.message(player, TrainCarts.getCurrencyText(price));
+                    continue;
+                }
+
+                Localization.TICKET_BUY.message(player, TrainCarts.getCurrencyText(price));
+
                 ItemStack item = ticket.createItem(player);
                 player.getInventory().addItem(item);
                 sender.sendMessage(ChatColor.GREEN + "Ticket " + ChatColor.YELLOW + ticket.getName() + ChatColor.GREEN + 
