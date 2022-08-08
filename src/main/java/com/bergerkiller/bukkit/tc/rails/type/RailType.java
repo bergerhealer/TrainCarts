@@ -47,9 +47,11 @@ public abstract class RailType {
     private static List<RailType> values = new ArrayList<RailType>();
     private final boolean _isComplexRailBlock;
     private final boolean _isHandlingPhysics;
+    private boolean _registered = false;
 
     static {
         for (RailType type : CommonUtil.getClassConstants(RailType.class)) {
+            type._registered = true; // Including NONE, as it's used as a valid type of rail fallback (air)
             if (type != NONE) {
                 values.add(type);
             }
@@ -94,7 +96,8 @@ public abstract class RailType {
         ArrayList<RailType> newValues = new ArrayList<RailType>(values);
         if (newValues.remove(type)) {
             values = newValues;
-            RailLookup.forceRecalculation();
+            type._registered = false;
+            RailLookup.forceUnloadRail(type);
         }
     }
 
@@ -112,6 +115,7 @@ public abstract class RailType {
             newValues.add(type);
         }
         values = newValues;
+        type._registered = true;
         RailLookup.forceRecalculation();
     }
 
@@ -317,6 +321,17 @@ public abstract class RailType {
      */
     public final boolean isRail(Block block) {
         return isRail(block.getWorld(), block.getX(), block.getY(), block.getZ());
+    }
+
+    /**
+     * Gets whether this RailType is still registered. If this rail type was never
+     * registered using {@link #register(RailType, boolean)}, or was last unregistered
+     * using {@link #unregister(RailType)}, then this method will return false.
+     *
+     * @return True if this RailType is still registered, and can be used
+     */
+    public final boolean isRegistered() {
+        return this._registered;
     }
 
     /**
