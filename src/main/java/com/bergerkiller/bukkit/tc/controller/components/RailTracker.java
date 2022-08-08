@@ -5,6 +5,7 @@ import org.bukkit.block.Block;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
@@ -92,6 +93,14 @@ public abstract class RailTracker {
          */
         public TrackedRail changeMember(MinecartMember<?> member) {
             return new TrackedRail(member, this.state, this.disconnected);
+        }
+
+        void handleMemberRemove() {
+            try {
+                state.railPiece().mutableMembers().remove(member);
+            } catch (RailLookup.RailTypeNotRegisteredException ex) {
+                /* ignore */
+            }
         }
 
         public RailLogic getLogic() {

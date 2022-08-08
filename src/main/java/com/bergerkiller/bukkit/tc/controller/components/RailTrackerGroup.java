@@ -46,9 +46,7 @@ public class RailTrackerGroup extends RailTracker {
      * to be unregistered from any caches.
      */
     public void unload() {
-        for (TrackedRail oldRail : this.rails) {
-            oldRail.state.railPiece().mutableMembers().remove(oldRail.member);
-        }
+        this.rails.forEach(TrackedRail::handleMemberRemove);
         this.rails.clear();
         this.prevRails.clear();
     }
@@ -255,9 +253,7 @@ public class RailTrackerGroup extends RailTracker {
                         membersAt.add(newRail.member);
                     }
                 }
-                for (TrackedRail oldRail : this.railsBuffer) {
-                    oldRail.state.railPiece().mutableMembers().remove(oldRail.member);
-                }
+                this.railsBuffer.forEach(TrackedRail::handleMemberRemove);
             }
 
             // Alternative: remove and re-add all the members

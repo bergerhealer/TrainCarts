@@ -145,6 +145,7 @@ public interface WorldRailLookup {
      * @param railBlock Bukkit Block version of railOfflineBlock
      * @param railType Rail type
      * @return Rail piece information backed by this lookup cache. The information is verified.
+     * @throws RailLookup.RailTypeNotRegisteredException If the specified RailType is unloaded
      */
     RailLookup.CachedRailPiece lookupCachedRailPiece(final OfflineBlock railOfflineBlock,
                                                      final Block railBlock,
@@ -191,6 +192,7 @@ public interface WorldRailLookup {
      * @param railType of the rail
      * @param railBlock of the rail
      * @return signs belonging to this rail
+     * @throws RailLookup.RailTypeNotRegisteredException If the specified rail's RailType is unloaded
      */
     TrackedSign[] discoverSignsAtRailPiece(RailPiece rail);
 

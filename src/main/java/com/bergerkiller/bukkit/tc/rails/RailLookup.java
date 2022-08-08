@@ -172,6 +172,21 @@ public final class RailLookup {
     }
 
     /**
+     * Forces all cached rail information about the specified Rail Type to be unloaded. In the event
+     * persistent metadata is tied to it, like members, the data is lost. Members should refresh
+     * this information as needed.
+     *
+     * @param type Rail Type to un-register
+     */
+    public static void forceUnloadRail(RailType type) {
+        // For good measure, first clean up all rail types that aren't in use
+        forceRecalculation();
+
+        // Now forcefully unload stuff
+        byWorld.values().forEach(lookup -> lookup.unloadRailType(type));
+    }
+
+    /**
      * Forces all cached information to be invalidated so that it is recalculated the next time
      * information is accessed. This should be called when registering and un-registering a rail
      * type, or when a rail type significantly alters behavior/reloads.
@@ -377,6 +392,19 @@ public final class RailLookup {
     }
 
     /**
+     * Exception thrown by the lookup cache if a rail type is specified that was not
+     * registered inside the RailType lookup table. This might happen when a rail type
+     * is unloaded while the server is running, or during server shutdown.
+     */
+    public static final class RailTypeNotRegisteredException extends IllegalArgumentException {
+        private static final long serialVersionUID = -3651967639525705930L;
+
+        public RailTypeNotRegisteredException(RailType type) {
+            super("Rail type " + type + " is not registered");
+        }
+    }
+
+    /**
      * A single sign that is tracked
      */
     public static abstract class TrackedSign {
@@ -539,6 +567,10 @@ public final class RailLookup {
             return (new SignActionEvent(this)).setAction(action);
         }
 
+        private final boolean canFireEvents() {
+            return !isRemoved() && this.rail.type().isRegistered();
+        }
+
         /**
          * Executes a {@link SignActionEvent} with the given action type, for a MinecartMember.
          * If the member is unloaded or dead, the event is not fired.
@@ -548,7 +580,7 @@ public final class RailLookup {
          * @see #createEvent(SignActionType)
          */
         public void executeEventForMember(SignActionType action, MinecartMember<?> member) {
-            if (!isRemoved() && member.isInteractable()) {
+            if (canFireEvents() && member.isInteractable()) {
                 SignActionEvent event = createEvent(action);
                 event.setMember(member);
                 SignAction.executeOne(this.getAction(), event);
@@ -564,7 +596,7 @@ public final class RailLookup {
          * @see #createEvent(SignActionType)
          */
         public void executeEventForGroup(SignActionType action, MinecartGroup group) {
-            if (!isRemoved() && !group.isUnloaded()) {
+            if (canFireEvents() && !group.isUnloaded()) {
                 SignActionEvent event = createEvent(action);
                 event.setGroup(group);
                 SignAction.executeOne(this.getAction(), event);

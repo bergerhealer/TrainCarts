@@ -257,6 +257,9 @@ final class WorldRailLookupImpl implements WorldRailLookup {
         IntVector3 cacheKey = createCacheKey(railOfflineBlock);
         Bucket inCache = cache.get(cacheKey);
         if (inCache == null) {
+            if (!railType.isRegistered()) {
+                throw new RailLookup.RailTypeNotRegisteredException(railType);
+            }
             inCache = new Bucket(railOfflineBlock, railBlock, railType);
             addToCache(cacheKey, inCache);
             inCache.signs = RailLookup.discoverSignsAtRailPiece(inCache);
@@ -306,7 +309,11 @@ final class WorldRailLookupImpl implements WorldRailLookup {
     public TrackedSign[] discoverSignsAtRailPiece(RailPiece rail) {
         try (TrackedSignList cache = SIGN_LIST_CACHE.start(rail)) {
             try {
-                rail.type().discoverSigns(rail, this.signController, cache.signs);
+                RailType type = rail.type();
+                if (!type.isRegistered()) {
+                    throw new RailLookup.RailTypeNotRegisteredException(type);
+                }
+                type.discoverSigns(rail, this.signController, cache.signs);
                 return cache.build();
             } catch (Throwable t) {
                 TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed discover signs for " + rail, t);
@@ -379,6 +386,15 @@ final class WorldRailLookupImpl implements WorldRailLookup {
     }
 
     /**
+     * Forcefully unloads all information stored about a particular rail type
+     *
+     * @param type
+     */
+    void unloadRailType(RailType type) {
+        refreshBuckets(bucket -> bucket.type() != type, true);
+    }
+
+    /**
      * Refreshes all bucket information, forcing a re-calculation
      */
     void refreshAllBuckets() {
@@ -391,19 +407,19 @@ final class WorldRailLookupImpl implements WorldRailLookup {
             bucket.rails_at_position = NO_RAILS_AT_POSITION;
             bucket.signs = RailLookup.MISSING_RAILS_NO_SIGNS;
             return false;
-        });
+        }, false);
     }
 
     void update(int deadTimeout) {
-        refreshBuckets(b -> b.checkStillValid(deadTimeout));
+        refreshBuckets(b -> b.checkStillValid(deadTimeout), false);
     }
 
-    private void refreshBuckets(Predicate<Bucket> validChecker) {
+    private void refreshBuckets(Predicate<Bucket> validChecker, boolean ignoreCanBePurged) {
         for (ListIterator<Bucket> iter = cacheValues.listIterator(); iter.hasNext();) {
             Bucket bucket = iter.next();
-            if (validChecker.test(bucket) || !bucket.canBePurged(bucket.next == null)) {
+            if (validChecker.test(bucket) || (!ignoreCanBePurged && !bucket.canBePurged(bucket.next == null))) {
                 // Only remove invalid buckets from the next chain
-                bucket.removeInvalidBucketsFromChain(validChecker);
+                bucket.removeInvalidBucketsFromChain(validChecker, ignoreCanBePurged);
             } else {
                 // If bucket has a next value, put that one in instead. Remove if all dead.
                 IntVector3 cacheKey = createCacheKey(bucket.blockPosition());
@@ -415,9 +431,9 @@ final class WorldRailLookupImpl implements WorldRailLookup {
                         iter.remove();
                         cache.remove(cacheKey);
                         break;
-                    } else if (validChecker.test(bucket) || !bucket.canBePurged(true)) {
+                    } else if (validChecker.test(bucket) || (!ignoreCanBePurged && !bucket.canBePurged(true))) {
                         // Set this one, instead. Do remove further next entries that aren't valid
-                        bucket.removeInvalidBucketsFromChain(validChecker);
+                        bucket.removeInvalidBucketsFromChain(validChecker, ignoreCanBePurged);
                         iter.set(bucket);
                         cache.put(cacheKey, bucket);
                         break;
@@ -678,6 +694,7 @@ final class WorldRailLookupImpl implements WorldRailLookup {
          *
          * @param railType
          * @return Newly added Bucket
+         * @throws RailLookup.RailTypeNotRegisteredException If the specified rail type is not registered
          */
         public Bucket swapOutNoneType(RailType railType) {
             Bucket newBucket = this.cloneAsType(railType);
@@ -743,12 +760,13 @@ final class WorldRailLookupImpl implements WorldRailLookup {
          * aren't valid anymore according to a valid checker.
          *
          * @param validChecker
+         * @param ignoreCanBePurged Whether to ignore immutable buckets (members, metadata)
          */
-        public void removeInvalidBucketsFromChain(Predicate<Bucket> validChecker) {
+        public void removeInvalidBucketsFromChain(Predicate<Bucket> validChecker, boolean ignoreCanBePurged) {
             Bucket curr = this;
             Bucket next;
             while ((next = curr.next) != null) {
-                if (validChecker.test(next) || !next.canBePurged(false)) {
+                if (validChecker.test(next) || (!ignoreCanBePurged && !next.canBePurged(false))) {
                     curr = next;
                 } else {
                     next.rail_life = 0;
@@ -789,8 +807,12 @@ final class WorldRailLookupImpl implements WorldRailLookup {
          *
          * @param railType
          * @return New Bucket
+         * @throws RailLookup.RailTypeNotRegisteredException If the specified rail type is not registered
          */
         private Bucket cloneAsType(RailType railType) {
+            if (!railType.isRegistered()) {
+                throw new RailLookup.RailTypeNotRegisteredException(railType);
+            }
             Bucket newBucket = new Bucket(this.offlineBlock(), this.block(), railType);
             newBucket.detectorRegions = this.detectorRegions;
             return newBucket;
