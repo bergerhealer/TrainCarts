@@ -8,6 +8,7 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
@@ -338,6 +339,11 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
         return ExitOffset.create(context.current().isAbsolute(),
                 context.current().getPosition(),
                 new_yaw, new_pitch);
+    }
+
+    @Override
+    public boolean hasPermission(CommandSender sender, String name) {
+        return Permission.PROPERTY_EXIT_OFFSET.has(sender);
     }
 
     @Override
