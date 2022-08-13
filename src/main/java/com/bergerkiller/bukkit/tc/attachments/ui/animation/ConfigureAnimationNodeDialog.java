@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
+import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
@@ -98,7 +99,12 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             @Override
             public void onAttached() {
                 super.onAttached();
-                setDescription("Enter a scene start marker name - put spaces to reset");
+                setDescription("Enter a scene start marker name\nPut empty space to remove");
+            }
+
+            @SuppressWarnings("unused") // @Override BKCommonLib 1.19.2-v2 or later
+            public ChatText getTitle() {
+                return ChatText.fromMessage("Enter marker name");
             }
 
             @Override
