@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.ui.animation;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
@@ -37,6 +38,18 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
      * Called when this node needs to be duplicated one down
      */
     public void onDuplicate() {
+    }
+
+    /**
+     * Called when the selected nodes' contents need to be copied to the player clipboard
+     */
+    public void onCopy() {
+    }
+
+    /**
+     * Called when player clipboard contents should be pasted below the selected node(s)
+     */
+    public void onPaste() {
     }
 
     /**
@@ -84,17 +97,17 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         // Adjust own bounds to be relative to where parent is at
         this.setBounds(5 - this.parent.getX(), 15 - this.parent.getY(), 105, 88);
         
-        int slider_width = 71;
-        int x_offset = 32;
+        int slider_width = 72;
+        int x_offset = 31;
         int y_offset = 4;
         int y_step = 10;
-        int mtmpx = x_offset + 6;
+        int mtmpx = x_offset - 25;
         final int mtmpx_step = 12;
 
         // Assign a scene marker to this node, so the animation can be played from this node onwards
         // Clicking will open an anvil dialog to enter a marker name - or empty to clear it
         MapWidgetSceneBlinkyButton sceneMarkerButton = this.addWidget(new MapWidgetSceneBlinkyButton());
-        sceneMarkerButton.setTooltip("Scene marker").setPosition(x_offset - 5, y_offset);
+        sceneMarkerButton.setTooltip("Scene marker").setPosition(mtmpx, y_offset);
         sceneMarkerSubmit = this.addWidget(new MapWidgetSubmitText() {
             @Override
             public void onAttached() {
@@ -115,6 +128,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         });
 
         // Activate/de-activate the node - checkbox or slider?
+        mtmpx += mtmpx_step;
         this.addWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onAttached() {
@@ -148,7 +162,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
                     return num_active >= (_nodes.size()>>1);
                 }
             }
-        }.setPosition(x_offset + 7, y_offset));
+        }.setPosition(mtmpx, y_offset));
 
         // Select a range of animation frames from the currently selected node
         mtmpx += mtmpx_step;
@@ -170,9 +184,57 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             }
         }).setTooltip("Change order").setIcon("attachments/anim_node_reorder.png").setPosition(mtmpx, y_offset);
 
+        // Copy selected nodes to the clipboard of the player
+        mtmpx += mtmpx_step;
+        this.addWidget(new MapWidgetBlinkyButton() {
+            @Override
+            public void onActivate() {
+                this.onClick(); // Disable extinquish sfx
+            }
+
+            @Override
+            public void onClick() {
+                onCopy();
+                ConfigureAnimationNodeDialog.this.close();
+            }
+        }).setTooltip("Copy to Clipboard").setIcon("attachments/anim_node_copy.png").setPosition(mtmpx, y_offset);
+
+        // Paste clipboard contents of the player below the selected nodes
+        mtmpx += mtmpx_step;
+        this.addWidget(new MapWidgetBlinkyButton() {
+            @Override
+            public void onAttached() {
+                super.onAttached();
+
+                boolean hasClipboard = false;
+                for (Player player : display.getOwners()) {
+                    if (display.isControlling(player)) {
+                        hasClipboard |= AnimationNodeClipboard.hasClipboard(player);
+                    }
+                }
+                this.setEnabled(hasClipboard);
+            }
+
+            @Override
+            public void onActivate() {
+                this.onClick(); // Disable extinquish sfx
+            }
+
+            @Override
+            public void onClick() {
+                onPaste();
+                ConfigureAnimationNodeDialog.this.close();
+            }
+        }).setTooltip("Paste from Clipboard").setIcon("attachments/anim_node_paste.png").setPosition(mtmpx, y_offset);
+
         // Duplicate node below this one node
         mtmpx += mtmpx_step;
         MapWidget duplicateButton = this.addWidget(new MapWidgetBlinkyButton() {
+            @Override
+            public void onActivate() {
+                this.onClick(); // Disable extinquish sfx
+            }
+
             @Override
             public void onClick() {
                 onDuplicate();
@@ -181,16 +243,17 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         }).setTooltip("Duplicate").setIcon("attachments/anim_node_duplicate.png").setPosition(mtmpx, y_offset);
 
         // Delete the node
+        mtmpx += mtmpx_step;
         this.addWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onClick() {
                 onDelete();
                 ConfigureAnimationNodeDialog.this.close();
             }
-        }).setTooltip("Delete").setIcon("attachments/anim_node_delete.png").setPosition(x_offset + slider_width - 17, y_offset);
+        }).setTooltip("Delete").setIcon("attachments/anim_node_delete.png").setPosition(mtmpx, y_offset);
 
         y_offset += 12;
-        
+
         this.addWidget(new MapWidgetNumberBox() { // Delta Time
             @Override
             public void onAttached() {

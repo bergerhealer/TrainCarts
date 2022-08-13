@@ -485,6 +485,9 @@ public class MapWidgetAnimationView extends MapWidget {
         this._multiSelectActive = false;
         display.playSound(SoundEffect.PISTON_CONTRACT);
         this.updateView();
+
+        // Automatically open edit dialog, as that is going to be the user intention 99% of the time
+        this.onSelectionActivated();
     }
 
     /**

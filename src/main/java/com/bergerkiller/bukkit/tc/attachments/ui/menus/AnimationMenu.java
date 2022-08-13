@@ -2,10 +2,14 @@ package com.bergerkiller.bukkit.tc.attachments.ui.menus;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.function.Supplier;
 
+import org.bukkit.entity.Player;
+
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapFont;
@@ -22,6 +26,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetToggleButton;
+import com.bergerkiller.bukkit.tc.attachments.ui.animation.AnimationNodeClipboard;
 import com.bergerkiller.bukkit.tc.attachments.ui.animation.ConfigureAnimationDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.animation.ConfigureAnimationNodeDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.animation.ConfirmAnimationDeleteDialog;
@@ -88,6 +93,16 @@ public class AnimationMenu extends MapWidgetMenu {
                     @Override
                     public void onDuplicate() {
                         duplicateAnimationNodes();
+                    }
+
+                    @Override
+                    public void onCopy() {
+                        copyAnimationNodes();
+                    }
+
+                    @Override
+                    public void onPaste() {
+                        pasteAnimationNodes();
                     }
 
                     @Override
@@ -373,24 +388,76 @@ public class AnimationMenu extends MapWidgetMenu {
     }
 
     /**
+     * Copies the selected nodes to the player's clipboard
+     */
+    public void copyAnimationNodes() {
+        for (Player player : display.getOwners()) {
+            if (display.isControlling(player)) {
+                AnimationNodeClipboard.of(player).store(this.animView.getSelectedNodes());
+                if (CommonCapabilities.KEYED_EFFECTS) {
+                    display.playSound(SoundEffect.fromName("block.note_block.hat"));
+                } else {
+                    display.playSound(SoundEffect.fromName("note.hat"));
+                }
+            }
+        }
+    }
+
+    /**
+     * Pastes clipboard contents
+     */
+    public void pasteAnimationNodes() {
+        for (Player player : display.getOwners()) {
+            if (display.isControlling(player)) {
+                List<AnimationNode> contents = AnimationNodeClipboard.of(player).contents();
+                if (!contents.isEmpty()) {
+                    insertNewAnimationNodes(contents);
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
      * Duplicates the node at the index and inserts a clone at index+1.
      * 
      * @param index
      */
     public void duplicateAnimationNodes() {
+        insertNewAnimationNodes(this.animView.getSelectedNodes());
+    }
+
+    /**
+     * Inserts the nodes specified below the current selection.
+     * Selects the newly inserted nodes.
+     *
+     * @param nodes
+     */
+    public void insertNewAnimationNodes(List<AnimationNode> nodes) {
+        if (nodes.isEmpty()) {
+            return;
+        }
+
         Animation old_anim = this.animView.getAnimation();
         if (old_anim == null) {
             return;
         }
 
-        int start = this.animView.getSelectionStart();
-        int end = this.animView.getSelectionEnd();
-        int count = (end-start+1);
-
-        ArrayList<AnimationNode> tmp = new ArrayList<AnimationNode>(Arrays.asList(old_anim.getNodeArray()));
-        for (int i = start; i <= end; i++) {
-            tmp.add(i+count, tmp.get(i).cloneWithoutSceneMarker());
+        // Avoid duplicate scene names. Clone without scene name if already used.
+        // In the case of duplicate() this will always clone without scene name.
+        HashSet<String> usedSceneNames = new HashSet<>(old_anim.getSceneNames());
+        List<AnimationNode> originalNodes = Arrays.asList(old_anim.getNodeArray());
+        int newGroupStartIndex = this.animView.getSelectionEnd() + 1;
+        ArrayList<AnimationNode> tmp = new ArrayList<AnimationNode>(originalNodes.size() + nodes.size());
+        tmp.addAll(originalNodes.subList(0, newGroupStartIndex));
+        for (AnimationNode node : nodes) {
+            if (!node.hasSceneMarker() || usedSceneNames.add(node.getSceneMarker())) {
+                tmp.add(node.clone());
+            } else {
+                tmp.add(node.cloneWithoutSceneMarker());
+            }
         }
+        tmp.addAll(originalNodes.subList(newGroupStartIndex, originalNodes.size()));
 
         AnimationNode[] new_nodes = LogicUtil.toArray(tmp, AnimationNode.class);
         Animation replacement = new Animation(old_anim.getOptions().getName(), new_nodes);
@@ -398,7 +465,15 @@ public class AnimationMenu extends MapWidgetMenu {
         setAnimation(replacement);
 
         // Note: if multiple were selected, selects the entire newly created group
-        animView.setSelectedIndex(this.animView.getSelectedIndex() + count);
+        animView.setSelectedIndex(newGroupStartIndex);
+        animView.setSelectedItemRange(nodes.size() - 1);
+
+        // Feedback tune
+        if (CommonCapabilities.KEYED_EFFECTS) {
+            display.playSound(SoundEffect.fromName("block.note_block.snare"));
+        } else {
+            display.playSound(SoundEffect.fromName("note.snare"));
+        }
     }
 
     /**
