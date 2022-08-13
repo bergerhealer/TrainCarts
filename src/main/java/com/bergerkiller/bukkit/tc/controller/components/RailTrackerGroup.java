@@ -216,7 +216,7 @@ public class RailTrackerGroup extends RailTracker {
                     RailLookup.removeMemberFromAll(member);
                 }
                 for (TrackedRail newRail : this.rails) {
-                    newRail.state.railPiece().mutableMembers().add(newRail.member);
+                    newRail.handleMemberAdd();
                 }
             } else {
                 // Moving

@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
+import java.util.List;
+
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.util.Vector;
@@ -100,6 +102,13 @@ public abstract class RailTracker {
                 state.railPiece().mutableMembers().remove(member);
             } catch (RailLookup.RailTypeNotRegisteredException ex) {
                 /* ignore */
+            }
+        }
+
+        void handleMemberAdd() {
+            List<MinecartMember<?>> members = state.railPiece().mutableMembers();
+            if (!members.contains(member)) {
+                members.add(member);
             }
         }
 
