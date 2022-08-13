@@ -9,6 +9,7 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
+import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
@@ -35,6 +36,23 @@ public class MapWidgetAnimationView extends MapWidget {
     private Animation _animation = null;
     private MapTexture _scrollbarBG = MapTexture.createEmpty();
     private final MapWidgetTooltip sceneMarkerTooltip = new MapWidgetTooltip();
+    private final MapWidget focusEditTooltip = new MapWidget() {
+        @Override
+        public void onDraw() {
+            // Draw background
+            view.fill(MapColorPalette.COLOR_BLACK);
+
+            // Draw text in the middle
+            view.setAlignment(MapFont.Alignment.MIDDLE);
+            view.draw(MapFont.MINECRAFT, getWidth()/2, 1, MapColorPalette.COLOR_WHITE,
+                    "Enter [space] to edit");
+        }
+    };
+
+    public MapWidgetAnimationView() {
+        this.focusEditTooltip.setDepthOffset(2);
+        this.focusEditTooltip.setBounds(1, 28, 106, 10);
+    }
 
     /**
      * Called when the player activates (presses spacebar) with a node selected
@@ -123,6 +141,17 @@ public class MapWidgetAnimationView extends MapWidget {
     }
 
     @Override
+    public void onFocus() {
+        this.focusEditTooltip.removeWidget();
+        this.addWidget(this.focusEditTooltip);
+    }
+
+    @Override
+    public void onBlur() {
+        this.focusEditTooltip.removeWidget();
+    }
+
+    @Override
     public void onDraw() {
         int scroll_height = getHeight()-8;
         int scroll_x = getWidth()-SCROLL_WIDTH-1;
@@ -203,6 +232,7 @@ public class MapWidgetAnimationView extends MapWidget {
             node.setSelected(false);
         }
         this.sceneMarkerTooltip.removeWidget();
+        this.focusEditTooltip.removeWidget();
     }
 
     @Override
