@@ -23,6 +23,9 @@ public class AnimationOptions implements Cloneable {
     private boolean _hasLoopOption;
     private boolean _reset;
     private boolean _queue;
+    private boolean _hasMovementControlledOption;
+    private boolean _movementControlled;
+    private boolean _autoplay;
 
     protected AnimationOptions(AnimationOptions source) {
         this._name = source._name;
@@ -35,6 +38,9 @@ public class AnimationOptions implements Cloneable {
         this._hasLoopOption = source._hasLoopOption;
         this._reset = source._reset;
         this._queue = source._queue;
+        this._hasMovementControlledOption = source._hasMovementControlledOption;
+        this._movementControlled = source._movementControlled;
+        this._autoplay = source._autoplay;
     }
 
     public AnimationOptions() {
@@ -52,6 +58,9 @@ public class AnimationOptions implements Cloneable {
         this._hasLoopOption = false;
         this._reset = false;
         this._queue = false;
+        this._hasMovementControlledOption = false;
+        this._movementControlled = false;
+        this._autoplay = false;
     }
 
     /**
@@ -248,6 +257,26 @@ public class AnimationOptions implements Cloneable {
     }
 
     /**
+     * Gets whether auto-play is set. If true, then the animation will play as soon as the
+     * attachment is created.
+     *
+     * @return True if auto-play is active
+     */
+    public boolean isAutoPlay() {
+        return this._autoplay;
+    }
+
+    /**
+     * Sets whether auto-play is set. If true, then the animation will play as soon as the
+     * attachment is created.
+     *
+     * @param autoplay Whether to automatically play the animation on attachment creation
+     */
+    public void setAutoPlay(boolean autoplay) {
+        this._autoplay = autoplay;
+    }
+
+    /**
      * Sets whether the animation should be reset to the beginning before playing the animation.
      * When playing in reverse, it resets to the end of the animation.
      * 
@@ -288,6 +317,47 @@ public class AnimationOptions implements Cloneable {
     }
 
     /**
+     * Gets whether the {@link #setMovementControlled(boolean)} option was set
+     * for these options or not.
+     *
+     * @return True if movement controlled was set
+     */
+    public boolean hasMovementControlledOption() {
+        return this._hasMovementControlledOption;
+    }
+
+    /**
+     * Gets whether the animation speed is controlled by the forward-movement
+     * of the attachment itself. The speed option is multiplied with that speed.
+     *
+     * @return True if the animation speed is controlled by attachment movement
+     */
+    public boolean isMovementControlled() {
+        return this._movementControlled;
+    }
+
+    /**
+     * Sets whether the animation speed is controlled by the forward-movement
+     * of the attachment itself. The speed option is multiplied with that speed.
+     *
+     * @param controlled Whether movement controls speed
+     */
+    public void setMovementControlled(boolean controlled) {
+        this._movementControlled = controlled;
+        this._hasMovementControlledOption = true;
+    }
+
+    /**
+     * Disables a previously set movement controlled option
+     * 
+     * @see #setMovementControlled(boolean)
+     */
+    public void clearMovementControlled() {
+        this._movementControlled = false;
+        this._hasMovementControlledOption = false;
+    }
+
+    /**
      * Applies additional animation options to this one.
      * The speed, delay and looping options are updated.
      * 
@@ -298,6 +368,12 @@ public class AnimationOptions implements Cloneable {
         this.setSpeed(this.getSpeed() * options.getSpeed());
         if (options.hasLoopOption()) {
             this.setLooped(options.isLooped());
+        }
+        if (options.hasMovementControlledOption()) {
+            this.setMovementControlled(options.isMovementControlled());
+        }
+        if (options.isAutoPlay()) {
+            this.setAutoPlay(true);
         }
         if (options.hasSceneOption()) {
             this.setScene(options.getSceneBegin(), options.getSceneEnd());
@@ -323,6 +399,17 @@ public class AnimationOptions implements Cloneable {
         } else {
             this._looped = false;
         }
+
+        // Movement controlled
+        this._hasMovementControlledOption = config.contains("movementControlled");
+        if (this._hasMovementControlledOption) {
+            this._movementControlled = config.get("movementControlled", false);
+        } else {
+            this._movementControlled = false;
+        }
+
+        // Autoplay
+        this._autoplay = config.contains("autoplay") && config.get("autoplay", false);
     }
 
     /**
@@ -352,6 +439,20 @@ public class AnimationOptions implements Cloneable {
         } else {
             config.remove("looped");
         }
+
+        // Movement controlled
+        if (this._hasMovementControlledOption) {
+            config.set("movementControlled", this._movementControlled);
+        } else {
+            config.remove("movementControlled");
+        }
+
+        // Autoplay
+        if (this._autoplay) {
+            config.set("autoplay", true);
+        } else {
+            config.remove("autoplay");
+        }
     }
 
     /**
@@ -371,6 +472,8 @@ public class AnimationOptions implements Cloneable {
                 this.setReset(true);
             } else if (LogicUtil.contains(part, "queue", "que", "q")) {
                 this.setQueue(true);
+            } else if (LogicUtil.contains(part, "move", "mv", "m")) {
+                this.setMovementControlled(true);
             }
         }
 
@@ -409,36 +512,6 @@ public class AnimationOptions implements Cloneable {
     }
 
     /**
-     * Loads the contents of these options from commandline arguments
-     * 
-     * @param args
-     */
-    public void loadCommandArgs(String[] args) {
-        boolean found_name = false;
-        boolean found_speed = false;
-        for (String arg : args) {
-            String lower_arg = arg.toLowerCase(Locale.ENGLISH);
-            if (lower_arg.equals("noloop") || lower_arg.equals("unlooped")) {
-                this.setLooped(false);
-            } else if (lower_arg.equals("loop") || lower_arg.equals("looped")) {
-                this.setLooped(true);
-            } else if (lower_arg.equals("reset")) {
-                this.setReset(true);
-            } else if (lower_arg.equals("queue")) {
-                this.setQueue(true);
-            } else if (!found_name && !ParseUtil.isNumeric(arg)) {
-                this.setName(arg);
-                found_name = true;
-            } else if (!found_speed) {
-                this.setSpeed(ParseUtil.parseDouble(arg, 1.0));
-                found_speed = true;
-            } else {
-                this.setDelay(ParseUtil.parseDouble(arg, 0.0));
-            }
-        }
-    }
-
-    /**
      * Gets the message displayed to the user when executing the animation command successfully
      * 
      * @return success message
@@ -463,6 +536,13 @@ public class AnimationOptions implements Cloneable {
                 name += " (looped)";
             } else {
                 name += " (not looped)";
+            }
+        }
+        if (this.hasMovementControlledOption()) {
+            if (this.isMovementControlled()) {
+                name += " (movement controlled)";
+            } else {
+                name += " (not movement controlled)";
             }
         }
         if (this._reset) {

@@ -8,7 +8,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.bukkit.util.Vector;
+
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 
 /**
  * An animation consisting of key frame nodes with time-domain transformations.
@@ -21,6 +25,7 @@ public class Animation implements Cloneable {
     private final Map<String, Scene> _scenes;
     private final Scene _entireAnimationScene;
     private Scene _currentScene;
+    private MovementSpeedController _speedControl;
     private double _time;
     private boolean _startedPlaying;
     private boolean _reachedEnd;
@@ -31,6 +36,7 @@ public class Animation implements Cloneable {
         this._scenes = source._scenes;
         this._entireAnimationScene = source._entireAnimationScene;
         this._currentScene = source._currentScene;
+        this._speedControl = null; // Reset it
         this._time = source._time;
         this._startedPlaying = source._startedPlaying;
         this._reachedEnd = source._reachedEnd;
@@ -122,6 +128,9 @@ public class Animation implements Cloneable {
         this._time -= (this._options.getDelay() - old_delay);
         this.updateScene(this.createScene(options));
         this._reachedEnd = false;
+        if (!this._options.hasMovementControlledOption()) {
+            this._speedControl = null; // Reset
+        }
         return this;
     }
 
@@ -148,6 +157,9 @@ public class Animation implements Cloneable {
         this._time -= (this._options.getDelay() - old_delay);
         this.updateScene(this.createScene(options));
         this._reachedEnd = false;
+        if (!this._options.hasMovementControlledOption()) {
+            this._speedControl = null; // Reset
+        }
         return this;
     }
 
@@ -217,11 +229,12 @@ public class Animation implements Cloneable {
 
     /**
      * Updates this animation a single time step
-     * 
-     * @param dt - delta time in seconds since previous update
+     *
+     * @param dt Delta time in seconds since previous update
+     * @param speedControlTransform If movement speed control is active, used to control animation speed
      * @return animation node, null if animation is disabled at this time
      */
-    public AnimationNode update(double dt) {
+    public AnimationNode update(double dt, Matrix4x4 speedControlTransform) {
         // Missing animation check - do nothing
         if (this._nodes.length == 0) {
             this._startedPlaying = false;
@@ -240,6 +253,18 @@ public class Animation implements Cloneable {
         // If reached end, don't do any more time updates
         if (this._reachedEnd) {
             return this._nodes[this._options.isReversed() ? scene.nodeBeginIndex() : scene.nodeEndIndex()];
+        }
+
+        // Movement speed control
+        if (this._options.isMovementControlled()) {
+            MovementSpeedController control = this._speedControl;
+            if (control == null) {
+                this._speedControl = new MovementSpeedController(speedControlTransform);
+                dt = 0.0; // No movement in the first tick
+            } else {
+                // We omit the original dt to keep animation synchronized with movement
+                dt = control.update(speedControlTransform);
+            }
         }
 
         // Use time before the update to allow for t=0 to display
@@ -490,6 +515,32 @@ public class Animation implements Cloneable {
          */
         public boolean isSingleFrame() {
             return this._nodeBegin == this._nodeEnd || this._duration <= 1e-20;
+        }
+    }
+
+    /**
+     * Uses a change in transformation matrix to control the speed of the animation
+     */
+    private static final class MovementSpeedController {
+        private final Vector prevPosition;
+        private final Vector prevForward;
+
+        public MovementSpeedController(Matrix4x4 initial) {
+            this.prevPosition = initial.toVector();
+            this.prevForward = initial.getRotation().forwardVector();
+        }
+
+        public double update(Matrix4x4 transform) {
+            Vector newPosition = transform.toVector();
+
+            // Compute difference in position
+            Vector diff = newPosition.clone().subtract(this.prevPosition);
+            // Dot by forward vector of original transform
+            double d = diff.dot(prevForward);
+            // Update
+            MathUtil.setVector(this.prevPosition, newPosition);
+            MathUtil.setVector(this.prevForward, transform.getRotation().forwardVector());
+            return d;
         }
     }
 }

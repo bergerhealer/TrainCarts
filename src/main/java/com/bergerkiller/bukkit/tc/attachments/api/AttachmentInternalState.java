@@ -155,6 +155,9 @@ public class AttachmentInternalState {
                 Animation anim = Animation.loadFromConfig(animationConfig);
                 if (anim != null) {
                     this.animations.put(anim.getOptions().getName(), anim);
+                    if (anim.getOptions().isAutoPlay()) {
+                        this.currentAnimation = anim;
+                    }
                 }
             }
         }
@@ -165,6 +168,7 @@ public class AttachmentInternalState {
      */
     public void reset() {
         this.animations.clear();
+        this.currentAnimation = null;
         this.last_transform = null;
         this.curr_transform = null;
         this.transformUpdateTask = null;
@@ -231,7 +235,7 @@ public class AttachmentInternalState {
         } else if (!currentAnimation.hasReachedEnd()) {
             // TODO: Do we need dt here?
             double dt = ((CartAttachment) attachment).getController().getAnimationDeltaTime();
-            AnimationNode animNode = currentAnimation.update(dt);
+            AnimationNode animNode = currentAnimation.update(dt, initialTransform);
             if (animNode != null) {
                 lastAnimationState = animNode;
             }

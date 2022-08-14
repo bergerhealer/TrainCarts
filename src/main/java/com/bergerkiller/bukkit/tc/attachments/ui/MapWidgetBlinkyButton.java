@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.resources.ResourceKey;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 
@@ -21,6 +22,7 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
     private boolean isRepeatClicking = false;
     private boolean blinkMode = false;
     private boolean enableRepeatClicking = false;
+    private ResourceKey<SoundEffect> clickSound = SoundEffect.EXTINGUISH;
     public final MapWidgetTooltip tooltip = new MapWidgetTooltip();
 
     public MapWidgetBlinkyButton() {
@@ -82,6 +84,11 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
         }
     }
 
+    public MapWidgetBlinkyButton setClickSound(ResourceKey<SoundEffect> effect) {
+        this.clickSound = effect;
+        return this;
+    }
+
     @Override
     public void onTick() {
         if (this.isFocused()) {
@@ -139,7 +146,9 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
 
     @Override
     public void onActivate() {
-        display.playSound(SoundEffect.EXTINGUISH);
+        if (this.clickSound != null) {
+            display.playSound(this.clickSound);
+        }
         this.onClick();
     }
 

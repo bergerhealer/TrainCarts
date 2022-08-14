@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
@@ -310,7 +311,20 @@ public class AnimationMenu extends MapWidgetMenu {
      * @param reverse
      * @param looped
      */
-    public void playAnimation(boolean reverse, boolean looped) {
+    public void playAnimation(final boolean reverse, final boolean looped) {
+        playAnimation(opt -> {
+            opt.setSpeed(reverse ? -1.0 : 1.0);
+            opt.setLooped(looped);
+            opt.setReset(!looped);
+        });
+    }
+
+    /**
+     * Plays the selected animation
+     * 
+     * @param optionFunc Callback that sets the animation playback options
+     */
+    public void playAnimation(Consumer<AnimationOptions> optionFunc) {
         AttachmentEditor editor = (AttachmentEditor) this.getDisplay();
         MinecartMember<?> member = editor.editedCart.getHolder();
         if (member == null) {
@@ -318,9 +332,7 @@ public class AnimationMenu extends MapWidgetMenu {
         }
 
         AnimationOptions options = new AnimationOptions(this.animSelectionBox.getSelectedItem());
-        options.setSpeed(reverse ? -1.0 : 1.0);
-        options.setLooped(looped);
-        options.setReset(!looped);
+        optionFunc.accept(options);
         this.playbackMode.applyOptions(options, this.animView::getSelectedScene);
         if (this.playForAll) {
             // Target the entire model
