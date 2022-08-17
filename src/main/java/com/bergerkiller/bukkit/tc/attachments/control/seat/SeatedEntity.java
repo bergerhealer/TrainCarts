@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
+import com.bergerkiller.bukkit.tc.utils.tab.TabNameTagHider;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutUpdateAttributesHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
@@ -48,6 +49,9 @@ public abstract class SeatedEntity {
     // This is the case when it is displayed in first-person, as a third-person view mode
     // This is set/unset when makeVisibleFirstPerson and makeHiddenFirstPerson are called.
     private boolean madeVisibleInFirstPerson = false;
+
+    // Used to hide & restore custom TAB plugin nametags
+    private TabNameTagHider tabNameTagHider = null;
 
     public SeatedEntity(CartAttachmentSeat seat) {
         this.seat = seat;
@@ -130,7 +134,23 @@ public abstract class SeatedEntity {
      * @param entity
      */
     public final void setEntity(Entity entity) {
+        // Restore nametag if one was hidden
+        if (this.tabNameTagHider != null) {
+            this.tabNameTagHider.show();
+            this.tabNameTagHider = null;
+        }
+
+        // Update entity
         this.entity = entity;
+
+        // Hide if view mode is no-nametag
+        if (entity instanceof Player && this.getDisplayMode() == DisplayMode.NO_NAMETAG) {
+            this.tabNameTagHider = seat.getPlugin().getTabNameHider((Player) entity);
+            if (this.tabNameTagHider != null) {
+                this.tabNameTagHider.hide();
+            }
+        }
+
         this.updateMode(true);
     }
 

@@ -51,6 +51,8 @@ import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
+import com.bergerkiller.bukkit.tc.utils.tab.TabNameTagHider;
+import com.bergerkiller.bukkit.tc.utils.tab.TabNameTagHiderImpl;
 import com.bergerkiller.mountiplex.conversion.Conversion;
 
 import me.m56738.smoothcoasters.api.SmoothCoastersAPI;
@@ -98,6 +100,7 @@ public class TrainCarts extends PluginBase {
     private final OfflineSignStore offlineSignStore = new OfflineSignStore(this);
     private final SignController signController = new SignController(this);
     private Economy econ = null;
+    private boolean isTabPluginEnabled = false;
     private SmoothCoastersAPI smoothCoastersAPI;
     private Commands commands;
 
@@ -228,6 +231,33 @@ public class TrainCarts extends PluginBase {
      */
     public SignController getSignController() {
         return this.signController;
+    }
+
+    /**
+     * Gets a TAB plugin custom nametag hider. This is used when the TAB plugin is installed
+     * to hide the armorstand-supported custom name while players are in a seat marked no-nametag.
+     *
+     * @param player
+     * @return Tab name tag hider if supported, null if the plugin isn't active or name
+     *         can't be hidden
+     */
+    public TabNameTagHider getTabNameHider(Player player) {
+        if (!isTabPluginEnabled) {
+            return null;
+        }
+
+        try {
+            Class.forName("me.neznamy.tab.api.TabAPI");
+        } catch (Throwable t) {
+            return null; // For good measure in case of plugin name conflicts or something
+        }
+
+        try {
+            return TabNameTagHiderImpl.ofPlayer(player);
+        } catch (Throwable t) {
+            getLogger().log(Level.SEVERE, "Failed to interface with TAB plugin to hide nametag", t);
+            return null; // Error???
+        }
     }
 
     /**
@@ -458,6 +488,10 @@ public class TrainCarts extends PluginBase {
                     AttachmentTypeRegistry.instance().register(CartAttachmentLight.TYPE);
                 else
                     AttachmentTypeRegistry.instance().unregister(CartAttachmentLight.TYPE);
+                break;
+            case "TAB":
+                log(Level.INFO, "TAB plugin detected, seats with nametag hidden will also hide TAB nametags");
+                isTabPluginEnabled = enabled;
                 break;
         }
     }
