@@ -15,10 +15,11 @@
         <project.build.number>NO-CI</project.build.number>
         <project.mcversion>1.18.1</project.mcversion>
         <project.cbversion>${project.mcversion}-R0.1-SNAPSHOT</project.cbversion>
-        <project.bkcversion>1.19-v1</project.bkcversion>
+        <project.bkcversion>1.19.2-v2-SNAPSHOT</project.bkcversion>
         <project.slversion>1.11.2-v2-SNAPSHOT</project.slversion>
         <project.mwversion>1.11.2-v2-SNAPSHOT</project.mwversion>
         <project.preloaderversion>1.6</project.preloaderversion>
+        <project.cloud.version>1.8.0-SNAPSHOT</project.cloud.version>
         <junit.version>4.11</junit.version>
     </properties>
 
@@ -129,6 +130,26 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- Cloud command framework - provided by BKCommonLib -->
+        <dependency>
+            <groupId>org.bergerhealer.cloud.commandframework</groupId>
+            <artifactId>cloud-paper</artifactId>
+            <version>${project.cloud.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.bergerhealer.cloud.commandframework</groupId>
+            <artifactId>cloud-annotations</artifactId>
+            <version>${project.cloud.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.bergerhealer.cloud.commandframework</groupId>
+            <artifactId>cloud-minecraft-extras</artifactId>
+            <version>${project.cloud.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>com.bergerkiller.bukkit</groupId>
             <artifactId>SignLink</artifactId>
@@ -177,11 +198,14 @@
             <artifactId>PluginPreloader</artifactId>
             <version>${project.preloaderversion}</version>
             <scope>compile</scope>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>me.m56738</groupId>
             <artifactId>SmoothCoastersAPI</artifactId>
             <version>1.8</version>
+            <scope>compile</scope>
+            <optional>true</optional>
         </dependency>
 
         <!-- TAB (for hiding nametags) -->
