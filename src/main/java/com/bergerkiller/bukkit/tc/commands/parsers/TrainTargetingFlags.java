@@ -23,6 +23,7 @@ import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.commands.suggestions.TrainNameSuggestionProvider;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainNearbyException;
@@ -105,45 +106,6 @@ public class TrainTargetingFlags implements BiFunction<CommandTargetTrain, Comma
             }
         }
 
-        // Process --cart selector
-        if (context.flags().hasFlag(flagCart.getName())) {
-            CartSelectorResult cartSelector = context.flags().get(flagCart.getName());
-            if (cartSelector.cart_result != null) {
-                // If --train was used to set a train, disallow selecting a cart not from that train
-                if (trainProperties != null && trainProperties != cartSelector.cart_result.getTrainProperties()) {
-                    throw new LocalizedParserException(context,
-                            Localization.COMMAND_CART_NOT_FOUND_IN_TRAIN,
-                            "uuid=" + cartSelector.cart_result.getUUID().toString());
-                }
-
-                cartProperties = cartSelector.cart_result;
-                trainProperties = cartProperties.getTrainProperties();
-            } else {
-                // Cart by number in the selected train
-                // If no --train was specified, assume the currently editing train is meant
-                if (trainProperties == null && context.getSender() instanceof Player) {
-                    CartProperties editing = CartPropertiesStore.getEditing((Player) context.getSender());
-                    if (editing != null) {
-                        trainProperties = editing.getTrainProperties();
-                    }
-                }
-                if (trainProperties == null) {
-                    throw new NoTrainSelectedException();
-                }
-
-                // Check in range
-                int indexInCart = cartSelector.index_in_train < 0
-                        ? (trainProperties.size() + cartSelector.index_in_train) : cartSelector.index_in_train;
-                if (indexInCart >= 0 && indexInCart < trainProperties.size()) {
-                    cartProperties = trainProperties.get(indexInCart);
-                } else {
-                    throw new LocalizedParserException(context,
-                            Localization.COMMAND_CART_NOT_FOUND_IN_TRAIN,
-                            "index=" + cartSelector.index_in_train);
-                }
-            }
-        }
-
         // For --near world and to filter results from global selectors
         World atWorld = context.flags().getValue(flagWorld.getName(), null);
 
@@ -205,6 +167,45 @@ public class TrainTargetingFlags implements BiFunction<CommandTargetTrain, Comma
             cartProperties = CartPropertiesStore.getEditing((Player) context.getSender());
             if (cartProperties != null) {
                 trainProperties = cartProperties.getTrainProperties();
+            }
+        }
+
+        // Process --cart selector last
+        if (context.flags().hasFlag(flagCart.getName())) {
+            CartSelectorResult cartSelector = context.flags().get(flagCart.getName());
+            if (cartSelector.cart_result != null) {
+                // If --train was used to set a train, disallow selecting a cart not from that train
+                if (trainProperties != null && trainProperties != cartSelector.cart_result.getTrainProperties()) {
+                    throw new LocalizedParserException(context,
+                            Localization.COMMAND_CART_NOT_FOUND_IN_TRAIN,
+                            "uuid=" + cartSelector.cart_result.getUUID().toString());
+                }
+
+                cartProperties = cartSelector.cart_result;
+                trainProperties = cartProperties.getTrainProperties();
+            } else {
+                // Cart by number in the selected train
+                // For this, a train must have been selected somehow before.
+                if (trainProperties == null) {
+                    throw new NoTrainSelectedException();
+                }
+
+                // Check in range
+                int indexInCart = cartSelector.index_in_train < 0
+                        ? (trainProperties.size() + cartSelector.index_in_train) : cartSelector.index_in_train;
+                if (indexInCart >= 0 && indexInCart < trainProperties.size()) {
+                    MinecartGroup group = trainProperties.getHolder();
+                    if (group == null) {
+                        // Might not be the right order
+                        cartProperties = trainProperties.get(indexInCart);
+                    } else {
+                        cartProperties = group.get(indexInCart).getProperties();
+                    }
+                } else {
+                    throw new LocalizedParserException(context,
+                            Localization.COMMAND_CART_NOT_FOUND_IN_TRAIN,
+                            "index=" + cartSelector.index_in_train);
+                }
             }
         }
 
