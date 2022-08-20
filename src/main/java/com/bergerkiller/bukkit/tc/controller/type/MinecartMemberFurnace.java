@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.type;
 
+import com.bergerkiller.bukkit.common.Common;
+import com.bergerkiller.bukkit.common.MaterialTypeProperty;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartFurnace;
 import com.bergerkiller.bukkit.common.utils.*;
@@ -13,9 +15,11 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.PoweredCartSoundLoop;
 import com.bergerkiller.bukkit.tc.events.MemberCoalUsedEvent;
 
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.HumanEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
@@ -23,6 +27,10 @@ import org.bukkit.util.Vector;
 public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace> {
     private int fuelCheckCounter = 0;
     private boolean isPushingForwards = true; // Whether pushing forwards, or backwards, relative to orientation
+
+    private static final MaterialTypeProperty IS_FUEL_ITEM = Common.evaluateMCVersion(">=", "1.13")
+            ? new MaterialTypeProperty(MaterialUtil.getMaterial("COAL"), MaterialUtil.getMaterial("CHARCOAL"))
+            : new MaterialTypeProperty(MaterialUtil.getMaterial("LEGACY_COAL"));
 
     @Override
     public void onAttached() {
@@ -69,9 +77,11 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
         }
 
         ItemStack itemstack = HumanHand.getHeldItem(human, hand);
-        if (itemstack != null && itemstack.getType() == Material.COAL) {
-            ItemUtil.subtractAmount(itemstack, 1);
-            HumanHand.setHeldItem(human, hand, itemstack);
+        if (itemstack != null && IS_FUEL_ITEM.get(itemstack)) {
+            if (!(human instanceof Player) || ((Player) human).getGameMode() != GameMode.CREATIVE) {
+                ItemUtil.subtractAmount(itemstack, 1);
+                HumanHand.setHeldItem(human, hand, itemstack);
+            }
             addFuelTicks(CommonMinecartFurnace.COAL_FUEL);
         }
 
