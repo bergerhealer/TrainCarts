@@ -4,7 +4,6 @@ import java.util.Queue;
 
 import org.bukkit.command.CommandSender;
 
-import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
 
 import cloud.commandframework.arguments.parser.ArgumentParseResult;
@@ -29,13 +28,15 @@ public class TrainNameFormatParser implements ArgumentParser<CommandSender, Trai
             ));
         }
 
-        String name = inputQueue.peek();
-        if (name.isEmpty()) {
+        String inputName = inputQueue.peek();
+        TrainNameFormat name = TrainNameFormat.parse(inputName);
+        TrainNameFormat.VerifyResult verify = name.verify();
+        if (verify != TrainNameFormat.VerifyResult.OK) {
             return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
-                    Localization.COMMAND_INPUT_NAME_EMPTY, name));
+                    verify.getMessage(), inputName));
         }
 
         inputQueue.poll();
-        return ArgumentParseResult.success(TrainNameFormat.parse(name));
+        return ArgumentParseResult.success(name);
     }
 }

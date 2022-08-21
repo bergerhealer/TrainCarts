@@ -4,6 +4,8 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.bergerkiller.bukkit.tc.Localization;
+
 /**
  * Stores the train name format used to name a train.
  * Handles the automatic generation of train names, using
@@ -110,6 +112,23 @@ public final class TrainNameFormat {
     }
 
     /**
+     * Verifies that this name format is valid and doesn't result in an illegal train name
+     * being generated.
+     *
+     * @param trainName
+     * @return VerifyResult OK if ok, an error value if not ok
+     */
+    public VerifyResult verify() {
+        if (this._optionalNumber && this._prefix.isEmpty() && this._postfix.isEmpty()) {
+            return VerifyResult.ERR_EMPTY;
+        }
+        if (this._prefix.indexOf('.') != -1 || this._postfix.indexOf('.') != -1) {
+            return VerifyResult.ERR_INVALID_CHAR;
+        }
+        return VerifyResult.OK;
+    }
+
+    /**
      * Parses a train name format. The #-character in the format denotes
      * where in the format a random number should be inserted to
      * make the name unique. If no such characters are included, a number
@@ -170,6 +189,22 @@ public final class TrainNameFormat {
             return _prefix + _postfix;
         } else {
             return _prefix + "#" + _postfix;
+        }
+    }
+
+    public static enum VerifyResult {
+        OK(null),
+        ERR_EMPTY(Localization.COMMAND_INPUT_NAME_EMPTY),
+        ERR_INVALID_CHAR(Localization.COMMAND_INPUT_NAME_INVALID);
+
+        private final Localization message;
+
+        private VerifyResult(Localization message) {
+            this.message = message;
+        }
+
+        public Localization getMessage() {
+            return this.message;
         }
     }
 }

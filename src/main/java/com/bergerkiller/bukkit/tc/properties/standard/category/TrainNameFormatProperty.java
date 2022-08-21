@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
+import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.PropertySelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
@@ -96,7 +97,12 @@ public final class TrainNameFormatProperty implements ITrainProperty<TrainNameFo
 
     @PropertyParser("name|rename|setname|settrainname")
     public TrainNameFormat parseRename(String nameFormat) {
-        return TrainNameFormat.parse(nameFormat);
+        TrainNameFormat name = TrainNameFormat.parse(nameFormat);
+        TrainNameFormat.VerifyResult verify = name.verify();
+        if (verify != TrainNameFormat.VerifyResult.OK) {
+            throw new PropertyInvalidInputException(verify.getMessage().get(nameFormat));
+        }
+        return name;
     }
 
     @PropertySelectorCondition("name")
