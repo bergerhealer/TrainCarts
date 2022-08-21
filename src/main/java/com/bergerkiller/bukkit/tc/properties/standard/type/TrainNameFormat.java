@@ -4,6 +4,7 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
 import com.bergerkiller.bukkit.tc.Localization;
 
 /**
@@ -122,9 +123,35 @@ public final class TrainNameFormat {
         if (this._optionalNumber && this._prefix.isEmpty() && this._postfix.isEmpty()) {
             return VerifyResult.ERR_EMPTY;
         }
-        if (this._prefix.indexOf('.') != -1 || this._postfix.indexOf('.') != -1) {
+        VerifyResult result;
+        result = verify(this._prefix);
+        if (result != VerifyResult.OK && result != VerifyResult.ERR_EMPTY) {
+            return result;
+        }
+        result = verify(this._postfix);
+        if (result != VerifyResult.OK && result != VerifyResult.ERR_EMPTY) {
+            return result;
+        }
+        return VerifyResult.OK;
+    }
+
+    /**
+     * Verifies that the input name is valid and doesn't result in an illegal name being generated.
+     * This specifically checks that using this name as key in YAML won't cause corruptions/errors.
+     *
+     * @param name Name to check
+     * @return VerifyResult OK if ok, an error value if not ok
+     */
+    public static VerifyResult verify(String name) {
+        if (name.isEmpty()) {
+            return VerifyResult.ERR_EMPTY;
+        }
+
+        YamlPath path = YamlPath.create(name);
+        if (path.depth() != 1 || path.isListElement()) {
             return VerifyResult.ERR_INVALID_CHAR;
         }
+
         return VerifyResult.OK;
     }
 

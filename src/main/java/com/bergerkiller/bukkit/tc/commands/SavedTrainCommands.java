@@ -30,6 +30,7 @@ import com.bergerkiller.bukkit.tc.exception.command.InvalidClaimPlayerNameExcept
 import com.bergerkiller.bukkit.tc.properties.SavedTrainProperties;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore.Claim;
+import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
 
 import cloud.commandframework.CommandManager;
 import cloud.commandframework.annotations.Argument;
@@ -661,13 +662,10 @@ public class SavedTrainCommands {
             }
 
             // Verify not an invalid name that will brick YAML
-            if (input.isEmpty()) {
+            TrainNameFormat.VerifyResult verify = TrainNameFormat.verify(input);
+            if (verify != TrainNameFormat.VerifyResult.OK) {
                 return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
-                        Localization.COMMAND_INPUT_NAME_EMPTY, input));
-            }
-            if (input.indexOf('.') != -1) {
-                return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
-                        Localization.COMMAND_INPUT_NAME_INVALID, input));
+                        verify.getMessage(), input));
             }
 
             inputQueue.remove();

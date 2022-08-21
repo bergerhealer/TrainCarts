@@ -340,8 +340,12 @@ public class Commands {
      */
     public static boolean checkSavePermissions(TrainCarts plugin, CommandSender sender, String trainName, boolean force) {
         // Verify name isn't invalid
-        if (verifySaveName(sender, trainName)) {
-            return false;
+        {
+            TrainNameFormat.VerifyResult verify = TrainNameFormat.verify(trainName);
+            if (verify != TrainNameFormat.VerifyResult.OK) {
+                verify.getMessage().message(sender, trainName);
+                return false;
+            }
         }
 
         // Actual checks
@@ -377,8 +381,12 @@ public class Commands {
      */
     public static boolean checkSavePermissionsOverwrite(TrainCarts plugin, CommandSender sender, String trainName, boolean force) {
         // Verify name isn't invalid
-        if (verifySaveName(sender, trainName)) {
-            return false;
+        {
+            TrainNameFormat.VerifyResult verify = TrainNameFormat.verify(trainName);
+            if (verify != TrainNameFormat.VerifyResult.OK) {
+                verify.getMessage().message(sender, trainName);
+                return false;
+            }
         }
 
         // If the saved train doesn't even exist yet, always allow
@@ -405,20 +413,6 @@ public class Commands {
             }
             sender.sendMessage(ChatColor.RED + "/savedtrain " + trainName + " info  -  View saved train details");
             sender.sendMessage(ChatColor.RED + "If you are sure you want to overwrite it, pass --force");
-            return false;
-        }
-
-        return true;
-    }
-
-    public static boolean verifySaveName(CommandSender sender, String trainName) {
-        // Verify name isn't invalid
-        if (trainName.isEmpty()) {
-            Localization.COMMAND_INPUT_NAME_EMPTY.message(sender, trainName);
-            return false;
-        }
-        if (trainName.indexOf('.') != -1) {
-            Localization.COMMAND_INPUT_NAME_INVALID.message(sender, trainName);
             return false;
         }
 
