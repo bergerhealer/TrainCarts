@@ -94,6 +94,11 @@ public class MapWidgetAnimationView extends MapWidget {
      * @return this animation view widget
      */
     public MapWidgetAnimationView setAnimation(Animation animation) {
+        // Reset scroll position to the beginning when scrolling to avoid weird issues
+        if (animation != null && (this._animation == null || !this._animation.isSame(animation))) {
+            this._scrollOffset = 0;
+        }
+
         this._animation = animation;
         this.setFocusable(animation != null && animation.getNodeCount() > 0);
         this.updateView();
@@ -546,12 +551,10 @@ public class MapWidgetAnimationView extends MapWidget {
         }
 
         // Correct scrollbar offset that is out of bounds
-        if (this._animation != null) {
-            if (this._scrollOffset < 0) {
-                this._scrollOffset = 0;
-            } else if (this._scrollOffset >= this._animation.getNodeCount()) {
-                this._scrollOffset = this._animation.getNodeCount()-1;
-            }
+        if (this._scrollOffset < 0) {
+            this._scrollOffset = 0;
+        } else if (this._animation != null && this._scrollOffset >= this._animation.getNodeCount()) {
+            this._scrollOffset = this._animation.getNodeCount()-1;
         }
 
         // Invalidate self - we must redraw the scrollbar sometimes
