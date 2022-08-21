@@ -24,6 +24,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.annotations.SavedTrainImplicitlyCreated;
 import com.bergerkiller.bukkit.tc.commands.annotations.SavedTrainRequiresAccess;
+import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.exception.command.InvalidClaimPlayerNameException;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainProperties;
@@ -657,6 +658,16 @@ public class SavedTrainCommands {
                         SavedTrainPropertiesParser.class,
                         commandContext
                 ));
+            }
+
+            // Verify not an invalid name that will brick YAML
+            if (input.isEmpty()) {
+                return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
+                        Localization.COMMAND_INPUT_NAME_EMPTY, input));
+            }
+            if (input.indexOf('.') != -1) {
+                return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
+                        Localization.COMMAND_INPUT_NAME_INVALID, input));
             }
 
             inputQueue.remove();
