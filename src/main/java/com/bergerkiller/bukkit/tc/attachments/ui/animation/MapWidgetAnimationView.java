@@ -518,21 +518,29 @@ public class MapWidgetAnimationView extends MapWidget {
     private void updateView() {
         // Ensure selected node index is within range
         boolean selectionWasWrong = false;
-        if (this._animation != null && this._selectedNodeIndex >= this._animation.getNodeCount()) {
-            this._selectedNodeIndex = this._animation.getNodeCount()-1;
-            selectionWasWrong = true;
-        }
-        if (this._selectedNodeRange < 0) {
-            int numBefore = this._selectedNodeIndex;
-            if ((-this._selectedNodeRange) > numBefore) {
-                this._selectedNodeRange = -numBefore;
+        if (this._animation == null) {
+            if (this._selectedNodeIndex != 0 || this._selectedNodeRange != 0) {
+                this._selectedNodeIndex = 0;
+                this._selectedNodeRange = 0;
                 selectionWasWrong = true;
             }
-        } else if (this._selectedNodeRange > 0) {
-            int numAfter = (this._animation.getNodeCount() - this._selectedNodeIndex - 1);
-            if (this._selectedNodeRange > numAfter) {
-                this._selectedNodeRange = numAfter;
+        } else {
+            if (this._selectedNodeIndex >= this._animation.getNodeCount()) {
+                this._selectedNodeIndex = this._animation.getNodeCount()-1;
                 selectionWasWrong = true;
+            }
+            if (this._selectedNodeRange < 0) {
+                int numBefore = this._selectedNodeIndex;
+                if ((-this._selectedNodeRange) > numBefore) {
+                    this._selectedNodeRange = -numBefore;
+                    selectionWasWrong = true;
+                }
+            } else if (this._selectedNodeRange > 0) {
+                int numAfter = (this._animation.getNodeCount() - this._selectedNodeIndex - 1);
+                if (this._selectedNodeRange > numAfter) {
+                    this._selectedNodeRange = numAfter;
+                    selectionWasWrong = true;
+                }
             }
         }
         if (selectionWasWrong) {
