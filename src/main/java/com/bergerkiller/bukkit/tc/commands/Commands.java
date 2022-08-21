@@ -339,6 +339,12 @@ public class Commands {
      * @return True if saving to this train name is allowed
      */
     public static boolean checkSavePermissions(TrainCarts plugin, CommandSender sender, String trainName, boolean force) {
+        // Verify name isn't invalid
+        if (verifySaveName(sender, trainName)) {
+            return false;
+        }
+
+        // Actual checks
         if (!plugin.getSavedTrains().hasPermission(sender, trainName)) {
             // Check that the player has global editing permission
             if (!Permission.COMMAND_SAVEDTRAIN_GLOBAL.has(sender)) {
@@ -370,6 +376,11 @@ public class Commands {
      * @return True if saving to this train name is allowed
      */
     public static boolean checkSavePermissionsOverwrite(TrainCarts plugin, CommandSender sender, String trainName, boolean force) {
+        // Verify name isn't invalid
+        if (verifySaveName(sender, trainName)) {
+            return false;
+        }
+
         // If the saved train doesn't even exist yet, always allow
         if (!plugin.getSavedTrains().containsTrain(trainName)) {
             return true;
@@ -394,6 +405,20 @@ public class Commands {
             }
             sender.sendMessage(ChatColor.RED + "/savedtrain " + trainName + " info  -  View saved train details");
             sender.sendMessage(ChatColor.RED + "If you are sure you want to overwrite it, pass --force");
+            return false;
+        }
+
+        return true;
+    }
+
+    public static boolean verifySaveName(CommandSender sender, String trainName) {
+        // Verify name isn't invalid
+        if (trainName.isEmpty()) {
+            Localization.COMMAND_INPUT_NAME_EMPTY.message(sender, trainName);
+            return false;
+        }
+        if (trainName.indexOf('.') != -1) {
+            Localization.COMMAND_INPUT_NAME_INVALID.message(sender, trainName);
             return false;
         }
 
