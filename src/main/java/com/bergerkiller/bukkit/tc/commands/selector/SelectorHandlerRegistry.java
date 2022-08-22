@@ -205,9 +205,10 @@ public class SelectorHandlerRegistry implements Listener {
                     // a plugin receive the selector itself. So for now, just show an informative message
                     // and cancel the command. It might be this must be changed in the future.
 
-                    // continue;
-                    Localization.COMMAND_INPUT_SELECTOR_INVALID.message(sender, conditionsString);
-                    return Collections.emptyList();
+                    if (this.plugin != null) {
+                        Localization.COMMAND_INPUT_SELECTOR_INVALID.message(sender, conditionsString);
+                    }
+                    continue;
                 }
             }
 
