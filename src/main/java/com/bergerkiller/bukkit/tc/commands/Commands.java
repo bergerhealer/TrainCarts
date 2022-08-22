@@ -29,6 +29,7 @@ import com.bergerkiller.bukkit.tc.commands.parsers.FormattedSpeedParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.TrainTargetingFlags;
 import com.bergerkiller.bukkit.tc.commands.suggestions.AnimationNameSuggestionProvider;
 import com.bergerkiller.bukkit.tc.commands.suggestions.AnimationSceneSuggestionProvider;
+import com.bergerkiller.bukkit.tc.commands.suggestions.TrainListFilterSuggestionProvider;
 import com.bergerkiller.bukkit.tc.commands.suggestions.TrainNameSuggestionProvider;
 import com.bergerkiller.bukkit.tc.commands.suggestions.TrainSpawnPatternSuggestionProvider;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -211,6 +212,7 @@ public class Commands {
 
         // Register provider for train names a player can edit
         cloud.suggest("trainnames", new TrainNameSuggestionProvider());
+        cloud.suggest("trainlistfilter", new TrainListFilterSuggestionProvider());
 
         // Register provider for spawn patterns
         cloud.suggest("trainspawnpattern", new TrainSpawnPatternSuggestionProvider());

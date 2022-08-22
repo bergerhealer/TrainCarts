@@ -34,4 +34,16 @@ public interface SelectorHandler {
      * @return list of supported options
      */
     List<SelectorHandlerConditionOption> options(CommandSender sender, String selector, List<SelectorCondition> conditions);
+
+    /**
+     * Gets whether a particular command is handled by this selector, or not.
+     * Only gets called if this selector is used in the command. The selector text
+     * itself is excluded in the input command, only what precedes is kept.
+     *
+     * @param command Command text before the selector was encountered
+     * @return True if this command should be handled
+     */
+    default boolean isCommandHandled(String command) {
+        return true;
+    }
 }

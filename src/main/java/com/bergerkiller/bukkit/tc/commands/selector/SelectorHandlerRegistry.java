@@ -24,6 +24,7 @@ import org.bukkit.event.server.RemoteServerCommandEvent;
 import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.generated.net.minecraft.server.network.PlayerConnectionHandle;
 
 /**
@@ -161,6 +162,19 @@ public class SelectorHandlerRegistry implements Listener {
                     continue;
                 }
 
+                // Having identified a selector we handle, first check whether this particular command
+                // should be excluded from expanding. This is the case with, for example, the
+                // train list command.
+                {
+                    int priorEnd = selectorStartIndex - 1;
+                    while (priorEnd > 0 && command.charAt(priorEnd) == ' ') {
+                        priorEnd--;
+                    }
+                    if (!handler.isCommandHandled(command.substring(0, priorEnd + 1))) {
+                        continue;
+                    }
+                }
+
                 // If we found conditions before, try to decode them
                 // If we cannot find a valid conditions range, skip it
                 if (hasConditions) {
@@ -184,50 +198,16 @@ public class SelectorHandlerRegistry implements Listener {
             if (conditionsString == null) {
                 conditions = Collections.emptyList();
             } else {
-                int separator = conditionsString.indexOf(',');
-                final int length = conditionsString.length();
-                if (separator == -1) {
-                    // A single condition provided
-                    // Parse as a singleton list, with an expected key=value syntax
-                    // Reject invalid matches such as value, =value and value=
-                    int equals = conditionsString.indexOf('=');
-                    if (equals == -1 || equals == 0 || equals == (length-1)) {
-                        continue;
-                    }
-                    conditions = Collections.singletonList(
-                            SelectorCondition.parse(conditionsString.substring(0, equals),
-                                                conditionsString.substring(equals+1)));
-                } else {
-                    // Multiple conditions provided, build a hashmap with them
-                    conditions = new ArrayList<SelectorCondition>(10);
-                    int argStart = 0;
-                    int argEnd = separator;
-                    boolean valid = true;
-                    while (true) {
-                        int equals = conditionsString.indexOf('=', argStart);
-                        if (equals == -1 || equals == argStart || equals >= (argEnd-1)) {
-                            valid = false;
-                            break;
-                        }
+                conditions = SelectorCondition.parseAll(conditionsString);
+                if (conditions == null) {
+                    // Invalid syntax detected. We can either skip and don't replace the selector, or
+                    // cancel the entire command. It's unlikely somebody using @train or @ptrain desires that
+                    // a plugin receive the selector itself. So for now, just show an informative message
+                    // and cancel the command. It might be this must be changed in the future.
 
-                        conditions.add(SelectorCondition.parse(conditionsString.substring(argStart, equals),
-                                                          conditionsString.substring(equals+1, argEnd)));
-
-                        // End of String
-                        if (argEnd == length) {
-                            break;
-                        }
-
-                        // Find next separator. If none found, condition is until end of String.
-                        argStart = argEnd + 1;
-                        argEnd = conditionsString.indexOf(',', argEnd + 1);
-                        if (argEnd == -1) {
-                            argEnd = length;
-                        }
-                    }
-                    if (!valid) {
-                        continue;
-                    }
+                    // continue;
+                    Localization.COMMAND_INPUT_SELECTOR_INVALID.message(sender, conditionsString);
+                    return Collections.emptyList();
                 }
             }
 

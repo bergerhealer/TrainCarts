@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.commands.selector;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -260,6 +261,61 @@ public class SelectorCondition {
 
         // Normal text value, nothing special
         return new SelectorCondition(key, value);
+    }
+
+    /**
+     * Tries to parse all conditions specified within a conditions string.
+     * If parsing fails, returns null.
+     *
+     * @param conditionsString String of conditions to parse
+     * @return Parsed conditions, or null if parsing failed (invalid syntax)
+     */
+    public static List<SelectorCondition> parseAll(String conditionsString) {
+        int separator = conditionsString.indexOf(',');
+        final int length = conditionsString.length();
+        if (separator == -1) {
+            // A single condition provided
+            // Parse as a singleton list, with an expected key=value syntax
+            // Reject invalid matches such as value, =value and value=
+            int equals = conditionsString.indexOf('=');
+            if (equals == -1 || equals == 0 || equals == (length-1)) {
+                return null;
+            }
+            return Collections.singletonList(parse(conditionsString.substring(0, equals),
+                                                   conditionsString.substring(equals+1)));
+        } else {
+            // Multiple conditions provided, build a hashmap with them
+            List<SelectorCondition> conditions = new ArrayList<SelectorCondition>(10);
+            int argStart = 0;
+            int argEnd = separator;
+            boolean valid = true;
+            while (true) {
+                int equals = conditionsString.indexOf('=', argStart);
+                if (equals == -1 || equals == argStart || equals >= (argEnd-1)) {
+                    valid = false;
+                    break;
+                }
+
+                conditions.add(parse(conditionsString.substring(argStart, equals),
+                                     conditionsString.substring(equals+1, argEnd)));
+
+                // End of String
+                if (argEnd == length) {
+                    break;
+                }
+
+                // Find next separator. If none found, condition is until end of String.
+                argStart = argEnd + 1;
+                argEnd = conditionsString.indexOf(',', argEnd + 1);
+                if (argEnd == -1) {
+                    argEnd = length;
+                }
+            }
+            if (!valid) {
+                return null;
+            }
+            return conditions;
+        }
     }
 
     /**

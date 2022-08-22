@@ -36,6 +36,7 @@ public class Localization extends LocalizationEnum {
     public static final Localization COMMAND_INPUT_DIRECTION_INVALID = new Localization("command.input.direction.invalid", ChatColor.RED + "Input value %0% is not a valid direction");
     public static final Localization COMMAND_INPUT_NAME_EMPTY = new Localization("command.input.name.empty", ChatColor.RED + "Input train name is empty!");
     public static final Localization COMMAND_INPUT_NAME_INVALID = new Localization("command.input.name.invalid", ChatColor.RED + "Input train name '%0%' contains invalid characters!");
+    public static final Localization COMMAND_INPUT_SELECTOR_INVALID = new Localization("command.input.selector.invalid", ChatColor.RED + "[TrainCarts] Selector condition contains syntax errors!");
 
     public static final Localization PROPERTY_NOTFOUND = new Localization("property.notfound", ChatColor.RED + "Property with name '%0%' does not exist");
     public static final Localization PROPERTY_ERROR = new Localization("property.error", ChatColor.RED + "An internal error occurred while parsing value '%1%' for property '%0%'");
@@ -43,9 +44,11 @@ public class Localization extends LocalizationEnum {
     public static final Localization PROPERTY_NOPERM_ANY = new Localization("property.nopermissionany", ChatColor.RED + "You do not have permission to modify train properties");
     public static final Localization PROPERTY_NOPERM = new Localization("property.nopermission", ChatColor.RED + "You do not have permission to modify the property with name '%0%'");
 
+    public static final Localization EDIT_SUCCESS = new Localization("edit.success", ChatColor.GREEN + "You are now editing train '" + ChatColor.YELLOW + "%0%" + ChatColor.GREEN + "'!");
     public static final Localization EDIT_NOSELECT = new Localization("edit.noselect", ChatColor.YELLOW + "You haven't selected a train to edit yet!");
     public static final Localization EDIT_NOTALLOWED = new Localization("edit.notallowed", ChatColor.RED + "You are not allowed to own trains!");
     public static final Localization EDIT_NONEFOUND = new Localization("edit.nonefound", ChatColor.RED + "You do not own any trains you can edit.");
+    public static final Localization EDIT_NOTFOUND = new Localization("edit.notfound", ChatColor.RED + "Could not find a valid train named '%0%'!");
     public static final Localization EDIT_NOTOWNED = new Localization("edit.notowned", ChatColor.RED + "You do not own this train!");
     public static final Localization EDIT_NOTLOADED = new Localization("edit.notloaded", ChatColor.RED + "The selected train is not loaded right now!");
 

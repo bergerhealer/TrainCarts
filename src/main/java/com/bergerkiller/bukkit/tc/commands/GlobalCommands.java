@@ -2,6 +2,8 @@ package com.bergerkiller.bukkit.tc.commands;
 
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.internal.CommonPlugin;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
@@ -19,6 +21,8 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.attachments.ui.SetValueTarget;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
+import com.bergerkiller.bukkit.tc.commands.selector.SelectorCondition;
+import com.bergerkiller.bukkit.tc.commands.selector.SelectorException;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -59,7 +63,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Pattern;
 
 public class GlobalCommands {
 
@@ -107,38 +113,44 @@ public class GlobalCommands {
         builder.send(sender);
     }
 
-    @CommandMethod("train list [statement]")
+    @CommandMethod("train list [filter]")
     @CommandDescription("Lists all the trains on the server that match the specified statement")
     private void commandListTrains(
+            final TrainCarts plugin,
             final CommandSender sender,
-            final @Argument("statement") @Greedy String statementText
+            final @Argument(value="filter", suggestions="trainlistfilter") @Greedy String filter
     ) {
-        // Trains
-        int count = 0, moving = 0;
-        for (MinecartGroup group : MinecartGroupStore.getGroups()) {
-            count++;
-            if (group.isMoving()) {
-                moving++;
+        // Arg-less list command also shows global stats
+        if (filter == null || filter.isEmpty()) {
+            // Trains
+            int count = 0, moving = 0;
+            for (MinecartGroup group : MinecartGroupStore.getGroups()) {
+                count++;
+                if (group.isMoving()) {
+                    moving++;
+                }
+                // Get properties: ensures that ALL trains are listed
+                group.getProperties();
             }
-            // Get properties: ensures that ALL trains are listed
-            group.getProperties();
-        }
-        count += OfflineGroupManager.getStoredCountInLoadedWorlds();
-        int minecartCount = 0;
-        for (World world : WorldUtil.getWorlds()) {
-            for (org.bukkit.entity.Entity e : WorldUtil.getEntities(world)) {
-                if (e instanceof Minecart) {
-                    minecartCount++;
+            count += OfflineGroupManager.getStoredCountInLoadedWorlds();
+            int minecartCount = 0;
+            for (World world : WorldUtil.getWorlds()) {
+                for (org.bukkit.entity.Entity e : WorldUtil.getEntities(world)) {
+                    if (e instanceof Minecart) {
+                        minecartCount++;
+                    }
                 }
             }
+
+            MessageBuilder builder = new MessageBuilder();
+            builder.green("There are ").yellow(count).green(" trains on this server (of which ");
+            builder.yellow(moving).green(" are moving)");
+            builder.newLine().green("There are ").yellow(minecartCount).green(" minecart entities");
+            builder.send(sender);
         }
-        MessageBuilder builder = new MessageBuilder();
-        builder.green("There are ").yellow(count).green(" trains on this server (of which ");
-        builder.yellow(moving).green(" are moving)");
-        builder.newLine().green("There are ").yellow(minecartCount).green(" minecart entities");
-        builder.send(sender);
+
         // Show additional information about owned trains to players
-        listTrains(sender, statementText == null ? "" : statementText);
+        listTrains(plugin, sender, filter == null ? "" : filter);
     }
 
     @CommandRequiresPermission(Permission.COMMAND_MESSAGE)
@@ -340,6 +352,7 @@ public class GlobalCommands {
     @CommandMethod("train edit")
     @CommandDescription("Selects a train the player is looking at for editing")
     private void commandEditLookingAt(
+            final TrainCarts plugin,
             final Player player
     ) {
         // Create an inverted camera transformation of the player's view direction
@@ -387,7 +400,7 @@ public class GlobalCommands {
         }
 
         if (bestMember != null && !bestMember.getProperties().hasOwnership(player)) {
-            player.sendMessage(ChatColor.RED + "You do not own this train and can not edit it!");
+            Localization.EDIT_NOTOWNED.message(player);
         } else if (bestMember != null) {
             // Play a particle effect shooting upwards from the Minecart
             final Entity memberEntity = bestMember.getEntity().getEntity();
@@ -412,17 +425,18 @@ public class GlobalCommands {
 
             // Mark minecart as editing
             CartProperties.setEditing(player, bestMember.getProperties());
-            player.sendMessage(ChatColor.GREEN + "You are now editing train '" + bestMember.getGroup().getProperties().getTrainName() + "'!");
+            Localization.EDIT_SUCCESS.message(player, bestMember.getGroup().getProperties().getTrainName());
         } else {
             player.sendMessage(ChatColor.RED + "You are not looking at any Minecart right now");
             player.sendMessage(ChatColor.RED + "Please enter the exact name of the train to edit");
-            commandListTrains(player, null);
+            commandListTrains(plugin, player, null);
         }
     }
 
     @CommandMethod("train edit <trainname>")
     @CommandDescription("Forcibly removes minecarts and trackers that have glitched out")
     private void commandEditByName(
+            final TrainCarts plugin,
             final Player sender,
             final @Quoted @Argument(value="trainname", suggestions="trainnames") String trainName
     ) {
@@ -433,13 +447,13 @@ public class GlobalCommands {
         if (prop != null && !prop.isEmpty()) {
             if (prop.hasOwnership((Player) sender)) {
                 CartPropertiesStore.setEditing((Player) sender, prop.get(0));
-                sender.sendMessage(ChatColor.GREEN + "You are now editing train '" + prop.getTrainName() + "'!");
+                Localization.EDIT_SUCCESS.message(sender, prop.getTrainName());
             } else {
-                sender.sendMessage(ChatColor.RED + "You do not own this train and can not edit it!");
+                Localization.EDIT_NOTOWNED.message(sender);
             }
         } else {
-            sender.sendMessage(ChatColor.RED + "Could not find a valid train named '" + trainName + "'!");
-            commandListTrains(sender, null);
+            Localization.EDIT_NOTFOUND.message(sender, trainName);
+            commandListTrains(plugin, sender, null);
         }
     }
 
@@ -660,43 +674,122 @@ public class GlobalCommands {
         sender.sendMessage(ChatColor.GREEN + "Given a Traincarts attachments editor");
     }
 
-    public static void listTrains(CommandSender sender, String statement) {
+    public static void listTrains(TrainCarts plugin, CommandSender sender, String filter) {
         MessageBuilder builder = new MessageBuilder();
-        if (sender instanceof Player) {
-            builder.yellow("You are the proud owner of the following trains:");
+        builder.setSeparator(" / ");
+
+        if (filter.startsWith("@train[")) {
+            // Trim trailing spaces
+            while (filter.endsWith(" ")) {
+                filter = filter.substring(0, filter.length() - 1);
+            }
+
+            // Check closed
+            if (!filter.endsWith("]")) {
+                Localization.COMMAND_INPUT_SELECTOR_INVALID.message(sender, filter.substring(7));
+                return;
+            }
+
+            // Fully parse out the selector conditions specified
+            String conditionsString = filter.substring(7, filter.length() - 1);
+            List<SelectorCondition> conditions = SelectorCondition.parseAll(conditionsString);
+            if (conditions == null) {
+                Localization.COMMAND_INPUT_SELECTOR_INVALID.message(sender, conditionsString);
+                return;
+            }
+
+            // Let the train name handler handle this one
+            try {
+                plugin.getSelectorHandlerRegistry().find("train")
+                                                   .handle(sender, "train", conditions)
+                                                   .forEach(builder::append);
+            } catch (SelectorException ex) {
+                sender.sendMessage(ChatColor.RED + "[TrainCarts] " + ex.getMessage());
+                return;
+            }
+
+            ChatText.fromMessage(ChatColor.YELLOW + "The ")
+                .append(ChatText.fromClickableContent(ChatColor.BLUE.toString() + ChatColor.UNDERLINE + "selector", filter)
+                                .setHoverText("Click to copy selector to Clipboard"))
+                .append(ChatColor.YELLOW + " matches the following trains:")
+                .sendTo(sender);
         } else {
-            builder.yellow("The following trains exist on this server:");
-        }
-        builder.newLine().setSeparator(ChatColor.WHITE, " / ");
-        boolean found = false;
-        for (TrainProperties prop : TrainProperties.getAll()) {
-            if (sender instanceof Player && !prop.hasOwnership((Player) sender)) {
-                continue;
+            // Default list command / uses statements
+            if (sender instanceof Player) {
+                sender.sendMessage(ChatColor.YELLOW + "You are the proud owner of the following trains:");
+            } else {
+                sender.sendMessage(ChatColor.YELLOW + "The following trains exist on this server:");
             }
 
-            // Check if train is loaded, or stored in a loaded world
-            if (!prop.hasHolder() && !OfflineGroupManager.containsInLoadedWorld(prop.getTrainName())) {
-                continue;
-            }
-
-            if (prop.hasHolder() && statement.length() > 0) {
-                MinecartGroup group = prop.getHolder();
-                SignActionEvent event = new SignActionEvent((Block) null, group);
-                if (!Statement.has(group, statement, event)) {
+            boolean found = false;
+            for (TrainProperties prop : TrainProperties.getAll()) {
+                if (sender instanceof Player && !prop.hasOwnership((Player) sender)) {
                     continue;
                 }
+
+                // Check if train is loaded, or stored in a loaded world
+                if (!prop.hasHolder() && !OfflineGroupManager.containsInLoadedWorld(prop.getTrainName())) {
+                    continue;
+                }
+
+                if (prop.hasHolder() && !filter.isEmpty()) {
+                    MinecartGroup group = prop.getHolder();
+                    SignActionEvent event = new SignActionEvent((Block) null, group);
+                    if (!Statement.has(group, filter, event)) {
+                        continue;
+                    }
+                }
+                found = true;
+                builder.append(prop.getTrainName());
             }
-            found = true;
-            if (prop.isLoaded()) {
-                builder.green(prop.getTrainName());
-            } else {
-                builder.red(prop.getTrainName());
+            if (!found) {
+                Localization.EDIT_NONEFOUND.message(sender);
+                return;
             }
         }
-        if (found) {
-            builder.send(sender);
+
+        //builder.send(sender);
+
+        // Turn the train names into clickable items, which when clicked, run /train edit [trainname]
+        for (String line : builder.lines()) {
+            String[] trainNames = line.split(Pattern.quote(" / "));
+
+            // Rebuild a new line with clickable items and hover display details
+            ChatText combined = ChatText.empty();
+            for (int i = 0; i < trainNames.length; i++) {
+                if (i > 0) {
+                    combined.append(ChatColor.WHITE + " / ");
+                }
+                combined.append(listFormatTrainName(trainNames[i]));
+            }
+            combined.sendTo(sender);
+        }
+    }
+
+    private static ChatText listFormatTrainName(String name) {
+        TrainProperties properties = TrainProperties.get(name);
+        if (properties == null) {
+            return ChatText.fromMessage(ChatColor.RED + name);
+        }
+
+        ChatText text;
+        if (properties.isLoaded() && !properties.isEmpty()) {
+            CommonEntity<?> head = properties.getHolder().head().getEntity();
+            String worldName = head.getWorld().getName();
+            IntVector3 block = head.loc.block();
+            text = ChatText.fromMessage(ChatColor.GREEN.toString() + ChatColor.UNDERLINE + name);
+            text.setHoverText(ChatColor.GREEN + "Loaded in world " + ChatColor.YELLOW + worldName +
+                              ChatColor.GREEN + " at " +
+                              ChatColor.WHITE + block.x + "/" + block.y + "/" + block.z);
         } else {
-            Localization.EDIT_NONEFOUND.message(sender);
+            text = ChatText.fromMessage(ChatColor.RED.toString() + ChatColor.UNDERLINE + name);
+            text.setHoverText(ChatColor.RED + "Not loaded");
         }
+        if (name.indexOf(' ') != -1) {
+            text.setClickableRunCommand("/train edit \"" + name + "\"");
+        } else {
+            text.setClickableRunCommand("/train edit " + name);
+        }
+        return text;
     }
 }
