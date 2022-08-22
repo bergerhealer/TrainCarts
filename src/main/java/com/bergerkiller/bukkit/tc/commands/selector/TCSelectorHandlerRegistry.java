@@ -102,6 +102,9 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
             }
             return condition.matchesBoolean(derailed);
         });
+        registerCondition("unloaded", (properties, condition) -> {
+            return condition.matchesBoolean(!properties.isLoaded());
+        });
     }
 
     /**
