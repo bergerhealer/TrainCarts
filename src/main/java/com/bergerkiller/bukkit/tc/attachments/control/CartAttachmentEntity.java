@@ -229,13 +229,14 @@ public class CartAttachmentEntity extends CartAttachment {
 
         EntityType entityType = this.getConfig().get("entityType", EntityType.MINECART);
         boolean sitting = this.getConfig().get("sitting", false);
+        boolean hasCustomName = this.getConfig().isNode("nametag") && this.getConfig().get("nametag.used", true);
 
         // Some entity types cannot be spawned, use placeholder
         if (!isEntityTypeSupported(entityType)) {
             entityType = EntityType.MINECART;
         }
 
-        if (this.getParent() != null || !VirtualEntity.isMinecart(entityType)) {
+        if (this.getParent() != null || !VirtualEntity.isMinecart(entityType) || hasCustomName) {
             // Generate entity (UU)ID
             this.entity = new VirtualEntity(this.getManager());
         } else {
@@ -253,15 +254,12 @@ public class CartAttachmentEntity extends CartAttachment {
         }
 
         // Nametag
-        if (this.getConfig().isNode("nametag")) {
+        if (hasCustomName) {
             ConfigurationNode nametag = this.getConfig().getNode("nametag");
-            boolean used = nametag.get("used", true);
             boolean visible = nametag.get("visible", true);
             String text = nametag.get("text", "");
-            if (used) {
-                this.entity.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, ChatText.fromMessage(text));
-                this.entity.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, visible);
-            }
+            this.entity.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, ChatText.fromMessage(text));
+            this.entity.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, visible);
         }
 
         // Minecarts have a 'strange' rotation point - fix it!
