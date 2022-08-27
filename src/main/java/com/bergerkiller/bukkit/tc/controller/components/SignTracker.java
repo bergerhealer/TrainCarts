@@ -31,6 +31,13 @@ public abstract class SignTracker {
     }
 
     /**
+     * Gets the Owner of this sign tracker. This owner must be part of TrainCarts.
+     *
+     * @return owner
+     */
+    public abstract TrainCarts.Provider getOwner();
+
+    /**
      * Gets all actively tracked signs. Can use implicit clone/copy iteration functions to
      * safely iterate the signs without causing concurrent modification exceptions.
      *
@@ -101,7 +108,7 @@ public abstract class SignTracker {
                     expectedCount = activeSignsByKey.size();
                     iter = activeSignsByKey.values().iterator();
                     if (--maxResetIterCtr <= 0) {
-                        TrainCarts.plugin.log(Level.WARNING, "[SignTracker] Number of iteration reset attempts exceeded limit");
+                        getOwner().getTrainCarts().log(Level.WARNING, "[SignTracker] Number of iteration reset attempts exceeded limit");
                         break;
                     }
                 }
@@ -139,7 +146,7 @@ public abstract class SignTracker {
         while (!tryUpdateActiveSigns(activeSignListSupplier.get())) {
             // Check for infinite loops, just in case, you know?
             if (--limit == 0) {
-                TrainCarts.plugin.getLogger().log(Level.SEVERE, "Reached limit of loops updating active signs");
+                getOwner().getTrainCarts().getLogger().log(Level.SEVERE, "Reached limit of loops updating active signs");
                 break;
             }
         }

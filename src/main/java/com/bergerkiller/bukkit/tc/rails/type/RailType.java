@@ -72,9 +72,10 @@ public abstract class RailType {
             return;
         }
 
+        TrainCarts traincarts = TrainCarts.plugin;
         Plugin plugin = CommonUtil.getPluginByClass(railType.getClass());
-        Logger logger = TrainCarts.plugin.getLogger();
-        if (plugin == TrainCarts.plugin) {
+        Logger logger = traincarts.getLogger();
+        if (plugin == traincarts) {
             logger.log(Level.SEVERE, "An error occurred in RailType '" + railType.getClass().getSimpleName() + "'", reason);
         } else if (plugin != null) {
             logger.log(Level.SEVERE, "An error occurred in RailType '" + railType.getClass().getSimpleName() + "' " +

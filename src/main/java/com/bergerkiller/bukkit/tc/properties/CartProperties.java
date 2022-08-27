@@ -32,16 +32,23 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class CartProperties extends CartPropertiesStore implements IProperties {
+    private final TrainCarts traincarts;
     private SoftReference<MinecartMember<?>> member = new SoftReference<>();
     protected TrainProperties group = null;
     private final FieldBackedStandardCartProperty.CartInternalDataHolder standardProperties = new FieldBackedStandardCartProperty.CartInternalDataHolder();
     private ConfigurationNode config;
     private final UUID uuid;
 
-    protected CartProperties(TrainProperties group, ConfigurationNode config, UUID uuid) {
+    protected CartProperties(TrainCarts traincarts, TrainProperties group, ConfigurationNode config, UUID uuid) {
+        this.traincarts = traincarts;
         this.uuid = uuid;
         this.group = group;
         this.config = config;
+    }
+
+    @Override
+    public TrainCarts getTrainCarts() {
+        return traincarts;
     }
 
     /**

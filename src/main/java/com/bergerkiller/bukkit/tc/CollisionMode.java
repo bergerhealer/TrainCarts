@@ -195,7 +195,7 @@ public enum CollisionMode {
                 return true;
             case SKIP:
                 // Should not ever be called. If it is, do nothing.
-                TrainCarts.plugin.log(Level.WARNING, "Collision mode SKIP should not be called");
+                member.getTrainCarts().log(Level.WARNING, "Collision mode SKIP should not be called");
                 return false;
             default:
                 // If movement controlled, don't allow entities to cause the launch to fail

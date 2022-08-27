@@ -57,7 +57,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
         } else {
             msg.append(" is trying to reach ").green(lastName).newLine();
 
-            PathWorld pathWorld = TrainCarts.plugin.getPathProvider().getWorld(holder.getWorld());
+            PathWorld pathWorld = prop.getTrainCarts().getPathProvider().getWorld(holder.getWorld());
             final PathNode first = pathWorld.getNodeByName(prop.getLastPathNode());
             if (first == null) {
                 msg.yellow("It has not yet visited a destination or switcher, so no route is available yet.");
@@ -327,7 +327,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
     }
 
     private void setPropertyLoadRouteGeneric(CommandSender sender, IProperties properties, String routeName) {
-        List<String> newRoute = TrainCarts.plugin.getRouteManager().findRoute(routeName);
+        List<String> newRoute = properties.getTrainCarts().getRouteManager().findRoute(routeName);
         properties.setDestinationRoute(newRoute);
         if (newRoute.isEmpty()) {
             sender.sendMessage(ChatColor.RED + "Route '"  + routeName + "' is empty or does not exist!");
@@ -361,8 +361,8 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
     }
 
     @PropertyParser("loadroute|route load")
-    public List<String> parseLoad(String input) {
-        return TrainCarts.plugin.getRouteManager().findRoute(input);
+    public List<String> parseLoad(PropertyParseContext<String> context) {
+        return context.getTrainCarts().getRouteManager().findRoute(context.input());
     }
 
     @PropertyParser(value="addroute|route add", processPerCart = true)
@@ -380,7 +380,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
 
     @PropertyParser(value="route add route", processPerCart = true)
     public List<String> parseAddRoute(PropertyParseContext<List<String>> context) {
-        List<String> route = TrainCarts.plugin.getRouteManager().findRoute(context.input());
+        List<String> route = context.getTrainCarts().getRouteManager().findRoute(context.input());
         if (route.isEmpty()) {
             return context.current();
         } else {
@@ -403,7 +403,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
 
     @PropertyParser(value="route remove route|route rem route", processPerCart = true)
     public List<String> parseRemoveRoute(PropertyParseContext<List<String>> context) {
-        List<String> route = TrainCarts.plugin.getRouteManager().findRoute(context.input());
+        List<String> route = context.getTrainCarts().getRouteManager().findRoute(context.input());
         if (route.isEmpty()) {
             return context.current();
         } else {

@@ -38,12 +38,17 @@ class TCPacketListener implements PacketListener {
             PacketType.IN_POSITION, PacketType.IN_POSITION_LOOK
     };
 
+    private final TrainCarts traincarts;
     private final Map<Player, Long> lastHitTime = new HashMap<Player, Long>();
+
+    public TCPacketListener(TrainCarts traincarts) {
+        this.traincarts = traincarts;
+    }
 
     public void suppressAttacksFor(Player player, int durationMillis) {
         synchronized (lastHitTime) {
             if (lastHitTime.isEmpty()) {
-                new HitTimeCleanTask(TrainCarts.plugin).start(1, 1);
+                new HitTimeCleanTask(traincarts).start(1, 1);
             }
             lastHitTime.put(player, System.currentTimeMillis() + durationMillis);
         }
@@ -75,8 +80,8 @@ class TCPacketListener implements PacketListener {
             if (action.equals("START_SNEAKING") || action.equals("PRESS_SHIFT_KEY")) {
                 // Player wants to exit, if inside a vehicle
                 if (player.getVehicle() == null) {
-                    TCSeatChangeListener.markForUnmounting(player);
-                } else if (!TrainCarts.handlePlayerVehicleChange(player, null)) {
+                    TCSeatChangeListener.markForUnmounting(traincarts, player);
+                } else if (!traincarts.handlePlayerVehicleChange(player, null)) {
                     // Cancel it!
                     event.setCancelled(true);
                 }
@@ -85,8 +90,8 @@ class TCPacketListener implements PacketListener {
         if (event.getType() == PacketType.IN_STEER_VEHICLE && packet.read(PacketType.IN_STEER_VEHICLE.unmount)) {
             // Handle vehicle exit cancelling
             if (player.getVehicle() == null) {
-                TCSeatChangeListener.markForUnmounting(player);
-            } else if (!TrainCarts.handlePlayerVehicleChange(player, null)) {
+                TCSeatChangeListener.markForUnmounting(traincarts, player);
+            } else if (!traincarts.handlePlayerVehicleChange(player, null)) {
                 packet.write(PacketType.IN_STEER_VEHICLE.unmount, false);
             }
         }
@@ -98,8 +103,8 @@ class TCPacketListener implements PacketListener {
             // If we're inside a vehicle, disable it
             if (packet_use.isUsingSecondaryAction()) {
                 if (player.getVehicle() == null) {
-                    TCSeatChangeListener.markForUnmounting(player);
-                } else if (!TrainCarts.handlePlayerVehicleChange(player, null)) {
+                    TCSeatChangeListener.markForUnmounting(traincarts, player);
+                } else if (!traincarts.handlePlayerVehicleChange(player, null)) {
                     packet_use.setUsingSecondaryAction(false);
                 }
             }

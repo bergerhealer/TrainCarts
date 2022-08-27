@@ -439,8 +439,8 @@ public class TicketStore {
         hasChanges = true;
     }
 
-    public static void load() {
-        FileConfiguration config = new FileConfiguration(TrainCarts.plugin, saveFileName);
+    public static void load(TrainCarts traincarts) {
+        FileConfiguration config = new FileConfiguration(traincarts, saveFileName);
         config.load();
 
         // Clear before (re?)loading
@@ -456,15 +456,15 @@ public class TicketStore {
         hasChanges = false;
 
         // Create 'images' directory, if it does not already exist
-        TrainCarts.plugin.getDataFile("images").mkdirs();
+        traincarts.getDataFile("images").mkdirs();
     }
 
-    public static void save(boolean autosave) {
+    public static void save(TrainCarts traincarts, boolean autosave) {
         if (autosave && !hasChanges) {
             return;
         }
 
-        FileConfiguration config = new FileConfiguration(TrainCarts.plugin, saveFileName);
+        FileConfiguration config = new FileConfiguration(traincarts, saveFileName);
         for (Ticket ticket : ticketMap.values()) {
             ticket.save(config.getNode(ticket.getName()));
         }

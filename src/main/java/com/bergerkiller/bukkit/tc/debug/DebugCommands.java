@@ -136,9 +136,10 @@ public class DebugCommands {
     @CommandMethod("train debug mutex")
     @CommandDescription("Displays the area of effect of all nearby mutex signs")
     private void commandDebugMutex(
-            final Player player
+            final Player player,
+            final TrainCarts traincarts
     ) {
-        DebugTool.showMutexZones(player);
+        DebugTool.showMutexZones(traincarts, player);
         player.sendMessage(ChatColor.GREEN + "Displaying mutex zones near your position");
     }
 

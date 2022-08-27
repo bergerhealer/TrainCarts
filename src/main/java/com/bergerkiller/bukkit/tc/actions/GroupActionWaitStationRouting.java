@@ -43,14 +43,14 @@ public class GroupActionWaitStationRouting extends GroupAction implements WaitAc
             if (tryFallback()) {
                 return true;
             }
-        } else if (!TrainCarts.plugin.getPathProvider().isProcessing()) {
+        } else if (!getTrainCarts().getPathProvider().isProcessing()) {
             // If path finding is ready, see if this destination can be reached
-            PathNode node = TrainCarts.plugin.getPathProvider().getWorld(rails.world())
+            PathNode node = getTrainCarts().getPathProvider().getWorld(rails.world())
                     .getNodeAtRail(rails.block());
             if (node == null && !discoveryStarted) {
                 // Not found yet, may need to be discovered. Actually, probably will need to be!
                 discoveryStarted = true;
-                TrainCarts.plugin.getPathProvider().discoverFromRail(new BlockLocation(rails.block()));
+                getTrainCarts().getPathProvider().discoverFromRail(new BlockLocation(rails.block()));
             } else if (node != null && !node.getNames().contains(destination)) {
                 // Node found. Is this our destination? If so, don't do anything.
                 // If it is not, try to find a route to the destination

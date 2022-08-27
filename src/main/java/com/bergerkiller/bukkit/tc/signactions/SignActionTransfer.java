@@ -31,7 +31,7 @@ public class SignActionTransfer extends SignAction {
     public static final String COLLECT = "collect";
     public static final String KEY_TYPE_TARGET = "target";
 
-    private static void setTargetConstant(Collection<InventoryHolder> inventories) {
+    private static void setTargetConstant(TrainCarts traincarts, Collection<InventoryHolder> inventories) {
         HashSet<String> types = new HashSet<>();
         StringBuilder nameBuilder = new StringBuilder();
         for (InventoryHolder holder : inventories) {
@@ -53,7 +53,7 @@ public class SignActionTransfer extends SignAction {
         for (int i = 0; i < parsers.length; i++) {
             parsers[i] = ItemParser.parse(iter.next());
         }
-        TrainCarts.plugin.putParsers(KEY_TYPE_TARGET, parsers);
+        traincarts.putParsers(KEY_TYPE_TARGET, parsers);
     }
 
     @Override
@@ -97,18 +97,18 @@ public class SignActionTransfer extends SignAction {
         // Get item parsers to use for transferring
         // Make sure that the 'target' constant is properly updated
         if (collect) {
-            setTargetConstant(trainInvs);
+            setTargetConstant(info.getTrainCarts(), trainInvs);
         } else {
-            setTargetConstant(otherInvs);
+            setTargetConstant(info.getTrainCarts(), otherInvs);
         }
         ItemParser[] parsers = Util.getParsers(info.getLine(2), info.getLine(3));
-        TrainCarts.plugin.putParsers(KEY_TYPE_TARGET, null);
+        info.getTrainCarts().putParsers(KEY_TYPE_TARGET, null);
 
         // Perform the transfer logic (collect OR deposit)
         if (collect) {
             // Collect logic: simplified
             for (ItemParser parser : parsers) {
-                TransferSignUtil.transferAllItems(otherInvs, trainInvs, parser, false);
+                TransferSignUtil.transferAllItems(info.getTrainCarts(), otherInvs, trainInvs, parser, false);
             }
         } else {
             // Deposit logic: take care of furnaces
@@ -127,7 +127,7 @@ public class SignActionTransfer extends SignAction {
 
             // Go through all item parsers, handling them one by one
             for (int i = 0; i < parsers.length; i++) {
-                TransferSignUtil.transferAllItems(trainInvs, otherInvs, parsers[i], i >= fuelHalfIndex);
+                TransferSignUtil.transferAllItems(info.getTrainCarts(), trainInvs, otherInvs, parsers[i], i >= fuelHalfIndex);
             }
         }
         // Perform physics on the 'other' inventories if they are blocks

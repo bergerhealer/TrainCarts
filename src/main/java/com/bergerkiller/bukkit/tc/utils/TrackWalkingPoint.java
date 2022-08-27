@@ -450,7 +450,7 @@ public class TrackWalkingPoint {
         public final PathPredictEvent event;
 
         public Predictor(RailState railState, MinecartMember<?> member) {
-            this.event = new PathPredictEvent(TrainCarts.plugin.getPathProvider(), railState, member);
+            this.event = new PathPredictEvent(member.getTrainCarts().getPathProvider(), railState, member);
         }
 
         public void predict() {

@@ -106,11 +106,11 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityLivingHandle;
 import com.bergerkiller.generated.net.minecraft.world.phys.AxisAlignedBBHandle;
 
 public abstract class MinecartMember<T extends CommonMinecart<?>> extends EntityController<T>
-        implements IPropertiesHolder, AttachmentModelOwner, AnimationController {
+        implements IPropertiesHolder, AttachmentModelOwner, AnimationController, TrainCarts.Provider {
     public static final double GRAVITY_MULTIPLIER_RAILED = 0.015625;
     public static final double GRAVITY_MULTIPLIER = 0.04;
     public static final int MAXIMUM_DAMAGE_SUSTAINED = 40;
-    private final TrainCarts plugin;
+    private final TrainCarts traincarts;
     protected final ToggledState forcedBlockUpdate = new ToggledState(true);
     private final SignTrackerMember signTracker = new SignTrackerMember(this);
     private final ActionTrackerMember actionTracker = new ActionTrackerMember(this);
@@ -145,17 +145,13 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private boolean wasMoving = false; // for starting driveSound property. TODO: Attachment?
     private WorldRailLookup railLookup = WorldRailLookup.NONE; // current-world rail lookup
 
-    public MinecartMember(TrainCarts plugin) {
-        this.plugin = plugin;
+    public MinecartMember(TrainCarts traincarts) {
+        this.traincarts = traincarts;
     }
 
-    /**
-     * Gets the TrainCarts plugin instance
-     *
-     * @return TrainCarts plugin
-     */
-    public TrainCarts getPlugin() {
-        return this.plugin;
+    @Override
+    public TrainCarts getTrainCarts() {
+        return traincarts;
     }
 
     public static boolean isTrackConnected(MinecartMember<?> m1, MinecartMember<?> m2) {
@@ -1384,7 +1380,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 }
             }
         } catch (Throwable t) {
-            TrainCarts.plugin.handle(t);
+            traincarts.handle(t);
         }
         return executePostLogic;
     }
@@ -1429,7 +1425,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 this.died = true;
             }
         } catch (Throwable t) {
-            TrainCarts.plugin.handle(t);
+            traincarts.handle(t);
         }
     }
 
@@ -2207,7 +2203,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             /*
             double distanceFromPath = preMoveState.loadRailLogic().getPath().distanceSquared(preMoveState.railPosition());
             if (distanceFromPath > 0.1) {
-                TrainCarts.plugin.log(Level.INFO, "TOO BIG DISTANCE: " + distanceFromPath);
+                plugin.log(Level.INFO, "TOO BIG DISTANCE: " + distanceFromPath);
             }
             */
             onMove(MoveType.SELF, vel.getX(), vel.getY(), vel.getZ());
@@ -2240,7 +2236,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                     p.currentRailLogic.onPostMove(this);
                     p.state.railType().onPostMove(this);
                 } else {
-                    // TrainCarts.plugin.log(Level.INFO, "[Debug] Failed to move on track: " + p.failReason);
+                    // plugin.log(Level.INFO, "[Debug] Failed to move on track: " + p.failReason);
 
                     // Moved some portion of the track. Assume we're moving the
                     // rest of it forwards in a straight line.
@@ -2392,7 +2388,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
         MinecartGroup g = this.getGroup();
         if (g != null && g.ticked.set()) {
-            g.doPhysics(TrainCarts.plugin);
+            g.doPhysics(traincarts);
         }
     }
 

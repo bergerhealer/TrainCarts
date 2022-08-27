@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.properties;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
@@ -18,7 +19,7 @@ import java.util.function.Function;
 /**
  * Contains train or cart property getters and setters
  */
-public interface IProperties extends IParsable {
+public interface IProperties extends IParsable, TrainCarts.Provider {
 
     /**
      * Gets a single property stored in this collection of properties

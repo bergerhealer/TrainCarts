@@ -5,11 +5,12 @@ import java.util.HashSet;
 import java.util.List;
 
 import com.bergerkiller.bukkit.common.ToggledState;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatusProvider;
 
-public class Action implements TrainStatusProvider {
+public abstract class Action implements TrainStatusProvider, TrainCarts.Provider {
     private final ToggledState started = new ToggledState();
     private int _timeTicks = 0;
     private int _subTicks = 1;

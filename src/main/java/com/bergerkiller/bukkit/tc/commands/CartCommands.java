@@ -90,8 +90,8 @@ public class CartCommands {
     @CommandMethod("cart save <name>")
     @CommandDescription("Saves the selected cart as a train under a name")
     private void commandSave(
-            final CommandSender sender,
             final TrainCarts plugin,
+            final CommandSender sender,
             final MinecartMember<?> member,
             final @Quoted @Argument("name") String name,
             final @Flag(value="force", description="Force saving when the train is claimed by someone else") boolean force,
@@ -107,7 +107,7 @@ public class CartCommands {
             String moduleString = "";
             if (module != null && !module.isEmpty()) {
                 moduleString = " in module " + module;
-                TrainCarts.plugin.getSavedTrains().setModuleNameOfTrain(name, module);
+                plugin.getSavedTrains().setModuleNameOfTrain(name, module);
             }
 
             if (wasContained) {

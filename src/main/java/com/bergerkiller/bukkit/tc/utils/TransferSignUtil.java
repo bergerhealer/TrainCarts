@@ -54,13 +54,13 @@ public class TransferSignUtil {
         }
     }
 
-    public static int depositInFurnace(Inventory from, Furnace toFurnace, ItemParser parser, boolean isFuelPreferred) {
+    public static int depositInFurnace(TrainCarts traincarts, Inventory from, Furnace toFurnace, ItemParser parser, boolean isFuelPreferred) {
         final Inventory to = toFurnace.getInventory();
         List<ItemParser> heatables = new ArrayList<>();
         List<ItemParser> fuels = new ArrayList<>();
         if (!parser.hasType()) {
             // Add all heatables and fuels
-            for (ItemParser p : TrainCarts.plugin.getParsers("heatable", 1)) {
+            for (ItemParser p : traincarts.getParsers("heatable", 1)) {
                 if (p == null || !p.hasType()) {
                     heatables.clear();
                     break;
@@ -68,7 +68,7 @@ public class TransferSignUtil {
                     heatables.add(p);
                 }
             }
-            for (ItemParser p : TrainCarts.plugin.getParsers("fuel", 1)) {
+            for (ItemParser p : traincarts.getParsers("fuel", 1)) {
                 if (p == null || !p.hasType()) {
                     fuels.clear();
                     break;
@@ -309,7 +309,7 @@ public class TransferSignUtil {
         return rval;
     }
 
-    public static int transferAllItems(Collection<InventoryHolder> fromHolders, Collection<InventoryHolder> toHolders, ItemParser itemParser, boolean isFuelPreferred) {
+    public static int transferAllItems(TrainCarts traincarts, Collection<InventoryHolder> fromHolders, Collection<InventoryHolder> toHolders, ItemParser itemParser, boolean isFuelPreferred) {
         int amount, transferred = 0;
         for (InventoryHolder fromHolder : fromHolders) {
             Inventory from = fromHolder.getInventory();
@@ -327,7 +327,7 @@ public class TransferSignUtil {
                     // Go by all inventories
                     for (InventoryHolder toHolder : toHolders) {
                         Inventory to = toHolder.getInventory();
-                        amount = transferItems(from, to, single, isFuelPreferred);
+                        amount = transferItems(traincarts, from, to, single, isFuelPreferred);
                         if (amount > 0) {
                             transferred += amount;
                             transferredAmount += amount;
@@ -342,7 +342,7 @@ public class TransferSignUtil {
                 // Perform regular item transfer: fill one by one
                 for (InventoryHolder toHolder : toHolders) {
                     Inventory to = toHolder.getInventory();
-                    amount = transferItems(from, to, itemParser, isFuelPreferred);
+                    amount = transferItems(traincarts, from, to, itemParser, isFuelPreferred);
                     transferred += amount;
                     // Update item parser amount
                     if (amount > 0 && itemParser.hasAmount()) {
@@ -357,13 +357,14 @@ public class TransferSignUtil {
     /**
      * Performs item transfer from one inventory to the other, utilizing the item parser specified
      *
+     * @param traincarts      TrainCarts main plugin instance
      * @param from            inventory
      * @param to              inventory
      * @param itemParser      to use
      * @param isFuelPreferred - whether (when depositing into furnaces) fuel is preferred over heatable
      * @return the amount of items transferred
      */
-    public static int transferItems(Inventory from, Inventory to, ItemParser itemParser, boolean isFuelPreferred) {
+    public static int transferItems(TrainCarts traincarts, Inventory from, Inventory to, ItemParser itemParser, boolean isFuelPreferred) {
         final InventoryHolder toHolder = to.getHolder();
         final InventoryHolder fromHolder = from.getHolder();
 
@@ -395,7 +396,7 @@ public class TransferSignUtil {
 
         // Depositing into a furnace or other type of inventory?
         if (toHolder instanceof Furnace) {
-            return depositInFurnace(from, (Furnace) toHolder, itemParser, isFuelPreferred);
+            return depositInFurnace(traincarts, from, (Furnace) toHolder, itemParser, isFuelPreferred);
         } else {
             return ItemUtil.transfer(from, to, itemParser, itemParser.getAmount());
         }

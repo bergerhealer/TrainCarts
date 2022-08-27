@@ -596,7 +596,7 @@ public class SpawnableGroup {
             String name = plugin.getSavedTrains().findName(typesText.substring(typeTextIdx));
             if (name != null && (name.length() > 1 || findVanillaCartType(c) == null)) {
                 typeTextIdx += name.length() - 1;
-                ConfigurationNode savedTrainConfig = TrainCarts.plugin.getSavedTrains().getConfig(name);
+                ConfigurationNode savedTrainConfig = plugin.getSavedTrains().getConfig(name);
                 countAdded += result.applyConfig(savedTrainConfig);
             } else {
                 EntityType type = findVanillaCartType(c);

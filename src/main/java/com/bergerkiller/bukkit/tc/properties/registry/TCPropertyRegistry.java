@@ -552,6 +552,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
 
                     // Context
                     PropertyParseContext<T> context = new PropertyParseContext<T>(
+                            plugin,
                             properties,
                             currentValue,
                             name,

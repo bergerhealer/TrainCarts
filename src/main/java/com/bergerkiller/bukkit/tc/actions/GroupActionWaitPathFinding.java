@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.List;
 
 import com.bergerkiller.bukkit.tc.Localization;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -27,7 +26,7 @@ public class GroupActionWaitPathFinding extends GroupActionWaitForever {
 
     @Override
     public boolean update() {
-        if (TrainCarts.plugin.getPathProvider().isProcessing()) {
+        if (getTrainCarts().getPathProvider().isProcessing()) {
             if (this.failCounter++ == 20) {
                 Localization.PATHING_BUSY.broadcast(this.getGroup());
             }

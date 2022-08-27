@@ -251,7 +251,7 @@ public class PathNode {
             if (this.names.isEmpty()) {
                 dbg += " AND IS NOW BEING REMOVED (NO NAMES)";
             }
-            TrainCarts.plugin.log(Level.INFO, dbg);
+            world.getTrainCarts().log(Level.INFO, dbg);
         }
         if (this.names.isEmpty() && !this.containsSwitcher()) {
             this.remove();
@@ -420,7 +420,7 @@ public class PathNode {
      */
     public void addSwitcher() {
         if (PathProvider.DEBUG_MODE && !this.isRailSwitchable) {
-            TrainCarts.plugin.log(Level.INFO, "NODE AT " + this.location.toString() + " ADDED SWITCHER");
+            world.getTrainCarts().log(Level.INFO, "NODE AT " + this.location.toString() + " ADDED SWITCHER");
         }
         this.isRailSwitchable = true;
     }
@@ -479,7 +479,7 @@ public class PathNode {
     public void addName(String name) {
         if (this.names.add(name)) {
             if (PathProvider.DEBUG_MODE) {
-                TrainCarts.plugin.log(Level.INFO, "NODE AT " + this.location.toString() + " ADDED DESTINATION " + name);
+                world.getTrainCarts().log(Level.INFO, "NODE AT " + this.location.toString() + " ADDED DESTINATION " + name);
             }
             world.addNodeName(this, name);
         }

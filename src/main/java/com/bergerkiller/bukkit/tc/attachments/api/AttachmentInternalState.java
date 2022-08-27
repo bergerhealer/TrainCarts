@@ -12,7 +12,6 @@ import org.bukkit.plugin.Plugin;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
@@ -137,7 +136,7 @@ public class AttachmentInternalState {
         try {
             attachmentType.migrateConfiguration(config);
         } catch (Throwable t) {
-            TrainCarts.plugin.getLogger().log(Level.SEVERE,
+            attachmentType.getPlugin().getLogger().log(Level.SEVERE,
                     "Failed to migrate attachment configuration of " + attachmentType.getName(), t);
         }
 
@@ -260,7 +259,7 @@ public class AttachmentInternalState {
         try {
             attachment.onTransformChanged(curr_transform);
         } catch (Throwable t) {
-            TrainCarts.plugin.getLogger().log(Level.SEVERE,
+            this.plugin.getLogger().log(Level.SEVERE,
                     "Failed to execute onTransformChanged() on attachment " + attachment.getClass().getName(),
                     t);
         }

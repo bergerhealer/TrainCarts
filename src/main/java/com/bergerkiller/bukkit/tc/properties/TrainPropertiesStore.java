@@ -278,7 +278,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
 
     private static TrainProperties createDefaultWithName(String newTrainName) {
         ConfigurationNode newTrainConfig = config.getNode(newTrainName);
-        TrainProperties prop = new TrainProperties(newTrainName, newTrainConfig);
+        TrainProperties prop = new TrainProperties(TrainCarts.plugin, newTrainName, newTrainConfig);
         trainProperties.add(newTrainName, prop);
         prop.onConfigurationChanged(true);
         prop.setDefault();
@@ -301,7 +301,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         fromTrainProperties.saveToConfig().cloneIntoExcept(newTrainConfig, Collections.singleton("carts"));
 
         // Create new properties with this configuration
-        TrainProperties prop = new TrainProperties(name, newTrainConfig);
+        TrainProperties prop = new TrainProperties(fromTrainProperties.getTrainCarts(), name, newTrainConfig);
         trainProperties.add(name, prop);
         prop.onConfigurationChanged(false);
 
@@ -330,7 +330,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         savedTrainConfig.cloneIntoExcept(newTrainConfig, Collections.singleton("carts"));
 
         // Create new properties with this configuration
-        TrainProperties prop = new TrainProperties(name, newTrainConfig);
+        TrainProperties prop = new TrainProperties(TrainCarts.plugin, name, newTrainConfig);
         trainProperties.add(name, prop);
         prop.onConfigurationChanged(false);
 
@@ -372,21 +372,23 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
 
     /**
      * Loads all Train Properties and defaults from disk
+     *
+     * @param traincarts TrainCarts main plugin instance
      */
-    public static void load() {
-        loadDefaults();
-        config = new FileConfiguration(TrainCarts.plugin, propertiesFile);
+    public static void load(TrainCarts traincarts) {
+        loadDefaults(traincarts);
+        config = new FileConfiguration(traincarts, propertiesFile);
         config.load();
         if (fixDeprecation(config)) {
             config.save();
         }
         for (ConfigurationNode node : config.getNodes()) {
-            TrainProperties prop = new TrainProperties(node.getName(), node);
+            TrainProperties prop = new TrainProperties(traincarts, node.getName(), node);
             if (prop.isEmpty()) {
                 // Carts could not be decoded, invalid properties
                 // Get rid of it
                 config.remove(node.getName());
-                TrainCarts.plugin.log(Level.WARNING, "Train properties with name " + prop.getTrainName() + " has no carts!");
+                traincarts.log(Level.WARNING, "Train properties with name " + prop.getTrainName() + " has no carts!");
                 continue;
             }
 
@@ -470,9 +472,11 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
 
     /**
      * Loads the default Train Properties from file
+     *
+     * @param traincarts TrainCarts main plugin instance
      */
-    public static void loadDefaults() {
-        defconfig = new FileConfiguration(TrainCarts.plugin, defaultPropertiesFile);
+    public static void loadDefaults(TrainCarts traincarts) {
+        defconfig = new FileConfiguration(traincarts, defaultPropertiesFile);
         defconfig.load();
         boolean changed = false;
         if (!defconfig.contains("default")) {

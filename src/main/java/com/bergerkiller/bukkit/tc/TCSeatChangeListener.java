@@ -277,13 +277,14 @@ public class TCSeatChangeListener implements Listener {
     /**
      * Tells the listener that a player decided, for itself, to exit the Minecart, but that
      * it is not known yet what vehicle the player is inside of.
-     * 
+     *
+     * @param traincarts TrainCarts main plugin instance
      * @param player
      */
-    public static void markForUnmounting(Player player) {
+    public static void markForUnmounting(TrainCarts traincarts, Player player) {
         synchronized (markedForUnmounting) {
             if (markedForUnmounting.isEmpty()) {
-                new Task(TrainCarts.plugin) {
+                new Task(traincarts) {
                     @Override
                     public void run() {
                         synchronized (markedForUnmounting) {

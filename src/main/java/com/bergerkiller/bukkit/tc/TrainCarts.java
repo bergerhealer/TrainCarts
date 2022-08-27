@@ -364,7 +364,7 @@ public class TrainCarts extends PluginBase {
         return TCConfig.disabledWorlds.contains(worldname);
     }
 
-    public static boolean handlePlayerVehicleChange(Player player, Entity newVehicle) {
+    public boolean handlePlayerVehicleChange(Player player, Entity newVehicle) {
         try {
             MinecartMember<?> newMinecart = MinecartMemberStore.getFromEntity(newVehicle);
 
@@ -379,7 +379,7 @@ public class TrainCarts extends PluginBase {
                 return false;
             }
         } catch (Throwable t) {
-            TrainCarts.plugin.handle(t);
+            handle(t);
         }
         return true;
     }
@@ -407,7 +407,7 @@ public class TrainCarts extends PluginBase {
             return new ItemParser[]{ItemParser.parse(key, amount == -1 ? null : Integer.toString(amount))};
         }
         // Clone to avoid altering the values in the map
-        rval = LogicUtil.cloneArray(rval);
+        rval = rval.clone();
         if (amount == -1) {
             // Set to any amount
             for (int i = 0; i < rval.length; i++) {
@@ -452,7 +452,7 @@ public class TrainCarts extends PluginBase {
     public void loadConfig() {
         config = new FileConfiguration(this);
         config.load();
-        TCConfig.load(config);
+        TCConfig.load(this, config);
         config.save();
 
         // Refresh
@@ -460,7 +460,7 @@ public class TrainCarts extends PluginBase {
     }
 
     public void loadSavedTrains() {
-        this.savedTrainsStore = new SavedTrainPropertiesStore(null, getDataFolder() + File.separator + "SavedTrainProperties.yml");
+        this.savedTrainsStore = new SavedTrainPropertiesStore(this, null, getDataFolder() + File.separator + "SavedTrainProperties.yml");
         this.savedTrainsStore.loadModules(getDataFolder() + File.separator + "savedTrainModules");
     }
 
@@ -640,16 +640,16 @@ public class TrainCarts extends PluginBase {
         this.trainUpdateController.preEnable();
 
         //Load properties
-        TrainProperties.load();
+        TrainProperties.load(this);
 
         //Load tickets
-        TicketStore.load();
+        TicketStore.load(this);
 
         //Load saved trains
         loadSavedTrains();
 
         //Load groups
-        OfflineGroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
+        OfflineGroupManager.init(this, getDataFolder() + File.separator + "trains.groupdata");
 
         //Convert Minecarts
         MinecartMemberStore.convertAllAutomatically(this);
@@ -658,7 +658,7 @@ public class TrainCarts extends PluginBase {
         ArrivalSigns.init(getDataFolder() + File.separator + "arrivaltimes.txt");
 
         //Restore carts where possible
-        TrainCarts.plugin.log(Level.INFO, "Restoring trains and loading nearby chunks...");
+        log(Level.INFO, "Restoring trains and loading nearby chunks...");
         {
             // Check chunks that are already loaded first
             OfflineGroupManager.refresh(this);
@@ -689,7 +689,7 @@ public class TrainCarts extends PluginBase {
         });
 
         // Register listeners
-        this.register(packetListener = new TCPacketListener(), TCPacketListener.LISTENED_TYPES);
+        this.register(packetListener = new TCPacketListener(this), TCPacketListener.LISTENED_TYPES);
         this.register(interactionPacketListener = new TCInteractionPacketListener(packetListener), TCInteractionPacketListener.TYPES);
         this.register(new TCListener(this));
         this.register(new TCSeatChangeListener());
@@ -902,7 +902,7 @@ public class TrainCarts extends PluginBase {
         this.savedTrainsStore.save(autosave);
 
         //Save Train tickets
-        TicketStore.save(autosave);
+        TicketStore.save(this, autosave);
 
         //Save destinations
         pathProvider.save(autosave, getDataFolder() + File.separator + "destinations.dat");
@@ -1080,5 +1080,19 @@ public class TrainCarts extends PluginBase {
                 this.chunks.clear();
             }
         }
+    }
+
+    /**
+     * Designates a Class to be making a TrainCarts plugin instance accessible
+     */
+    public static interface Provider {
+
+        /**
+         * Gets the TrainCarts main plugin instance. From here all of TrainCarts' API
+         * can be accessed
+         *
+         * @return TrainCarts plugin instance
+         */
+        TrainCarts getTrainCarts();
     }
 }

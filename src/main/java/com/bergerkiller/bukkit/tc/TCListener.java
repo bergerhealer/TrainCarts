@@ -304,7 +304,7 @@ public class TCListener implements Listener {
         }
 
         if (event.getAction() == Action.LEFT_CLICK_AIR || event.getAction() == Action.LEFT_CLICK_BLOCK) {
-            if (DebugTool.onDebugInteract(event.getPlayer(), event.getClickedBlock(), event.getItem(), false)) {
+            if (DebugTool.onDebugInteract(plugin, event.getPlayer(), event.getClickedBlock(), event.getItem(), false)) {
                 event.setUseInteractedBlock(Result.DENY);
                 return;
             }
@@ -338,7 +338,7 @@ public class TCListener implements Listener {
             }
 
             // Debug tools
-            if (DebugTool.onDebugInteract(event.getPlayer(), clickedBlock, event.getItem(), true)) {
+            if (DebugTool.onDebugInteract(plugin, event.getPlayer(), clickedBlock, event.getItem(), true)) {
                 event.setUseInteractedBlock(Result.DENY);
                 return;
             }
@@ -619,7 +619,7 @@ public class TCListener implements Listener {
 
         // Handle the vehicle change
         if (event.getRightClicked() instanceof RideableMinecart) {
-            event.setCancelled(!TrainCarts.handlePlayerVehicleChange(event.getPlayer(), event.getRightClicked()));
+            event.setCancelled(!plugin.handlePlayerVehicleChange(event.getPlayer(), event.getRightClicked()));
 
             // Store right now what seats a player is eligible for based on where the player clicked
             // If the Player indeed does enter the Minecart, then we know what seat to pick

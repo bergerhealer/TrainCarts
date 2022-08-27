@@ -9,11 +9,12 @@ import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.collections.BlockMap;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 
 /**
  * A single world on which path nodes are stored
  */
-public class PathWorld {
+public class PathWorld implements TrainCarts.Provider {
     private final PathProvider _provider;
     private final String _name;
     private final BlockMap<PathNode> _blockNodes;
@@ -24,6 +25,11 @@ public class PathWorld {
         _name = worldName;
         _blockNodes = new BlockMap<>();
         _nodes = new HashMap<>();
+    }
+
+    @Override
+    public TrainCarts getTrainCarts() {
+        return _provider.getTrainCarts();
     }
 
     /**

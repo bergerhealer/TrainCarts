@@ -91,7 +91,8 @@ public class GlobalCommands {
     @CommandMethod("train list destinations")
     @CommandDescription("Lists all the destination names that exist on the server")
     private void commandListDestinations(
-            final CommandSender sender
+            final CommandSender sender,
+            final TrainCarts plugin
     ) {
         MessageBuilder builder = new MessageBuilder();
         builder.yellow("The following train destinations are available:");
@@ -99,9 +100,9 @@ public class GlobalCommands {
         Collection<PathWorld> worlds;
         if (sender instanceof Player) {
             World playerWorld = ((Player) sender).getWorld();
-            worlds = Collections.singleton(TrainCarts.plugin.getPathProvider().getWorld(playerWorld));
+            worlds = Collections.singleton(plugin.getPathProvider().getWorld(playerWorld));
         } else {
-            worlds = TrainCarts.plugin.getPathProvider().getWorlds();
+            worlds = plugin.getPathProvider().getWorlds();
         }
         for (PathWorld world : worlds) {
             for (PathNode node : world.getNodes()) {
@@ -173,13 +174,14 @@ public class GlobalCommands {
     @CommandDescription("Checks what value is assigned to a given message key")
     private void commandSetMessage(
             final CommandSender sender,
+            final TrainCarts plugin,
             final @Argument("key") String key,
             final @Argument("value") @Greedy String value
     ) {
         String conv_value = StringUtil.ampToColor(value);
         TCConfig.messageShortcuts.remove(key);
         TCConfig.messageShortcuts.add(key, conv_value);
-        TrainCarts.plugin.saveShortcuts();
+        plugin.saveShortcuts();
         sender.sendMessage(ChatColor.GREEN + "Shortcut '" + key + "' set to: " + ChatColor.WHITE + conv_value);
     }
 
@@ -278,6 +280,7 @@ public class GlobalCommands {
     @CommandDescription("Reloads one or more global TrainCarts configuration files from disk")
     private void commandReloadConfig(
             final CommandSender sender,
+            final TrainCarts traincarts,
             final @Flag(value="config", description="Reload config.yml") boolean config,
             final @Flag(value="routes", description="Reload routes.yml") boolean routes,
             final @Flag(value="defaulttrainproperties", description="Reload DefaultTrainProperties.yml") boolean defaultTrainproperties,
@@ -297,16 +300,16 @@ public class GlobalCommands {
         }
 
         if (config) {
-            TrainCarts.plugin.loadConfig();
+            traincarts.loadConfig();
         }
         if (routes) {
-            TrainCarts.plugin.getRouteManager().load();
+            traincarts.getRouteManager().load();
         }
         if (defaultTrainproperties) {
-            TrainProperties.loadDefaults();
+            TrainProperties.loadDefaults(traincarts);
         }
         if (savedTrainproperties) {
-            TrainCarts.plugin.loadSavedTrains();
+            traincarts.loadSavedTrains();
         }
         sender.sendMessage(ChatColor.YELLOW + "Configuration has been reloaded!");
     }
@@ -315,9 +318,10 @@ public class GlobalCommands {
     @CommandMethod("train globalconfig save")
     @CommandDescription("Forces a save of all configuration to disk")
     private void commandReloadConfig(
-            final CommandSender sender
+            final CommandSender sender,
+            final TrainCarts plugin
     ) {
-        TrainCarts.plugin.save(false);
+        plugin.save(false);
         sender.sendMessage(ChatColor.YELLOW + "TrainCarts' information has been saved to file.");
     }
 
@@ -327,9 +331,10 @@ public class GlobalCommands {
     @CommandDescription("Upgrades all saved train properties to correct for position changes during v1.12.2")
     private void commandUpgradeSavedTrains(
             final CommandSender sender,
+            final TrainCarts plugin,
             final @Flag("undo") boolean undo
     ) {
-        TrainCarts.plugin.getSavedTrains().upgradeSavedTrains(undo);
+        plugin.getSavedTrains().upgradeSavedTrains(undo);
         if (undo) {
             sender.sendMessage(ChatColor.YELLOW + "All saved trains have been restored to use the old position calibration of Traincarts v1.12.2-v2 (UNDO)");
         } else {
@@ -404,7 +409,7 @@ public class GlobalCommands {
         } else if (bestMember != null) {
             // Play a particle effect shooting upwards from the Minecart
             final Entity memberEntity = bestMember.getEntity().getEntity();
-            new Task(TrainCarts.plugin) {
+            new Task(plugin) {
                 final int batch_ctr = 5;
                 double dy = 0.0;
 
@@ -551,7 +556,8 @@ public class GlobalCommands {
     @CommandMethod("train issue")
     @CommandDescription("Shows helpful information for posting an issue ticket on our Github")
     private void commandIssueTicket(
-            final CommandSender sender
+            final CommandSender sender,
+            final TrainCarts plugin
     ) {
         if(sender instanceof Player){
             Player player = (Player)sender;
@@ -563,7 +569,7 @@ public class GlobalCommands {
                         "\nPlease provide the following information:" +
                         "\n" +
                         "\n- BKCommonLib Version: " + CommonPlugin.getInstance().getDebugVersion() +
-                        "\n- TrainCarts Version: " + TrainCarts.plugin.getDebugVersion() +
+                        "\n- TrainCarts Version: " + plugin.getDebugVersion() +
                         "\n- Server Type and Version: " + Bukkit.getVersion() +
                         "\n" +
                         "\n----" +
@@ -615,7 +621,7 @@ public class GlobalCommands {
                         "\nPlease provide the following information:" +
                         "\n" +
                         "\n- BKCommonLib Version: " + CommonPlugin.getInstance().getDebugVersion() +
-                        "\n- TrainCarts Version: " + TrainCarts.plugin.getDebugVersion() +
+                        "\n- TrainCarts Version: " + plugin.getDebugVersion() +
                         "\n- Server Type and Version: " + Bukkit.getVersion() +
                         "\n" +
                         "\n----" +

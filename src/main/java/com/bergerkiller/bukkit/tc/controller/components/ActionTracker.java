@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.actions.Action;
 import com.bergerkiller.bukkit.tc.actions.BlockActionSetLevers;
 import com.bergerkiller.bukkit.tc.actions.MemberAction;
@@ -22,12 +23,19 @@ import org.bukkit.block.Block;
 /**
  * Stores actions and updates them per tick
  */
-public class ActionTracker implements TrainStatusProvider {
+public abstract class ActionTracker implements TrainStatusProvider {
     private final Queue<Action> actions = new LinkedList<>();
 
     public boolean hasAction() {
         return !this.actions.isEmpty();
     }
+
+    /**
+     * Gets the Owner of this action tracker. This owner must be part of TrainCarts.
+     *
+     * @return owner
+     */
+    public abstract TrainCarts.Provider getOwner();
 
     /**
      * Clears all actions scheduled for the owner of this Action Tracker.
@@ -89,7 +97,7 @@ public class ActionTracker implements TrainStatusProvider {
      * @return the added action
      */
     public BlockActionSetLevers addActionSetLevers(Block block, boolean down) {
-        return addAction(new BlockActionSetLevers(block, down));
+        return addAction(new BlockActionSetLevers(getOwner().getTrainCarts(), block, down));
     }
 
     /**
@@ -103,7 +111,7 @@ public class ActionTracker implements TrainStatusProvider {
      * @return the added action
      */
     public TrackedSignActionSetOutput addActionSetSignOutput(TrackedSign sign, boolean output) {
-        return addAction(new TrackedSignActionSetOutput(sign, output));
+        return addAction(new TrackedSignActionSetOutput(getOwner().getTrainCarts(), sign, output));
     }
 
     /**

@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.PowerState;
 import com.bergerkiller.bukkit.tc.SignActionHeader;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -38,7 +39,7 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.util.Vector;
 
-public class SignActionEvent extends Event implements Cancellable {
+public class SignActionEvent extends Event implements Cancellable, TrainCarts.Provider {
     private static final HandlerList handlers = new HandlerList();
 
     private final TrackedSign sign;
@@ -112,6 +113,13 @@ public class SignActionEvent extends Event implements Cancellable {
             this.setLine(0, this.sign.getHeader().toString());
         }
         this.watchedDirections = null;
+    }
+
+    @Override
+    public TrainCarts getTrainCarts() {
+        //TODO: Actually store a reference to traincarts somewhere
+        //      Right now there is no good way without altering the constructor
+        return TrainCarts.plugin;
     }
 
     public static HandlerList getHandlerList() {

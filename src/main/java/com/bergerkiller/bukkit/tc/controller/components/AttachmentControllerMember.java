@@ -23,7 +23,6 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TCSeatChangeListener;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
@@ -552,7 +551,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
     public synchronized void syncRespawn() {
         List<Player> oldViewers = new ArrayList<>(this.getViewers());
         this.makeHiddenForAll();
-        this.member.getPlugin().getTrainUpdateController().syncPositions(this.member);
+        this.member.getTrainCarts().getTrainUpdateController().syncPositions(this.member);
         for (Player viewer : oldViewers) {
             this.makeVisible(viewer);
         }
@@ -717,7 +716,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
         // Attach new attachments - after this viewers see everything but passengers are not 'in'
         this.rootAttachment = this.createAttachment(model.getConfig());
         HelperMethods.perform_onAttached(this.rootAttachment);
-        TrainCarts.plugin.getTrainUpdateController().computeAttachmentTransform(
+        this.member.getTrainCarts().getTrainUpdateController().computeAttachmentTransform(
                 this.rootAttachment, this.getLiveTransform());
 
         this.seatAttachments.clear();
@@ -786,14 +785,14 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
         try {
             newAttachmentType.migrateConfiguration(config);
         } catch (Throwable t) {
-            TrainCarts.plugin.getLogger().log(Level.SEVERE,
+            this.member.getTrainCarts().getLogger().log(Level.SEVERE,
                     "Failed to migrate attachment configuration of " + newAttachmentType.getName(), t);
         }
         attachment.getInternalState().onLoad(this.getClass(), newAttachmentType, config);
         attachment.onLoad(config);
 
         // TODO: Maybe only update from the changed attachment onwards?
-        TrainCarts.plugin.getTrainUpdateController().computeAttachmentTransform(
+        this.member.getTrainCarts().getTrainUpdateController().computeAttachmentTransform(
                 this.rootAttachment, this.getLiveTransform());
     }
 

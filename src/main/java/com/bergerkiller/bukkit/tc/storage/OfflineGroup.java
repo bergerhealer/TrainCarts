@@ -153,15 +153,15 @@ public class OfflineGroup {
     /**
      * Tries to find all Minecarts based on their UID and creates a new group
      *
-     * @param plugin TrainCarts plugin instance
+     * @param traincarts TrainCarts plugin instance
      * @param world to find the Minecarts in
      * @return An array of Minecarts
      */
-    public MinecartGroup create(TrainCarts plugin, World world) {
+    public MinecartGroup create(TrainCarts traincarts, World world) {
         ArrayList<MinecartMember<?>> rval = new ArrayList<>(this.members.length);
         int missingNo = 0;
         for (OfflineMember member : this.members) {
-            MinecartMember<?> mm = member.create(plugin, world);
+            MinecartMember<?> mm = member.create(traincarts, world);
             if (mm != null) {
                 rval.add(mm);
             } else {
@@ -169,7 +169,7 @@ public class OfflineGroup {
             }
         }
         if (missingNo > 0) {
-            TrainCarts.plugin.log(Level.WARNING, missingNo + " carts of group '" + this.name + "' are missing! (externally edited?)");
+            traincarts.log(Level.WARNING, missingNo + " carts of group '" + this.name + "' are missing! (externally edited?)");
         }
         this.loaded = true;
         if (rval.isEmpty()) {

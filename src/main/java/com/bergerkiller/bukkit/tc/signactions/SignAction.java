@@ -206,7 +206,7 @@ public abstract class SignAction {
                 // For signs that define path finding destinations, report about duplicate names
                 String destinationName = action.getRailDestinationName(info);
                 if (destinationName != null) {
-                    PathNode node = TrainCarts.plugin.getPathProvider().getWorld(info.getWorld()).getNodeByName(destinationName);
+                    PathNode node = info.getTrainCarts().getPathProvider().getWorld(info.getWorld()).getNodeByName(destinationName);
                     if (node != null) {
                         Player p = info.getPlayer();
                         p.sendMessage(ChatColor.RED + "Another destination with the same name already exists!");
@@ -273,7 +273,7 @@ public abstract class SignAction {
 
             // Remove (invalidate) the rails block, if part of path finding logic
             if (destinationName != null) {
-                PathNode node = TrainCarts.plugin.getPathProvider().getWorld(info.getWorld()).getNodeByName(destinationName);
+                PathNode node = info.getTrainCarts().getPathProvider().getWorld(info.getWorld()).getNodeByName(destinationName);
                 if (node != null) {
                     node.removeName(destinationName);
                 }
@@ -361,7 +361,7 @@ public abstract class SignAction {
         try {
             action.execute(info);
         } catch (Throwable t) {
-            TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to execute " + info.getAction().toString() +
+            info.getTrainCarts().getLogger().log(Level.SEVERE, "Failed to execute " + info.getAction().toString() +
                     " for " + action.getClass().getSimpleName() + ":", CommonUtil.filterStackTrace(t));
         }
     }

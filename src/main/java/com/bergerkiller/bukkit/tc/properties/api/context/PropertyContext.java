@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.properties.api.context;
 
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -7,16 +8,24 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 /**
  * Base context of a parsing or formatting operation
  */
-public class PropertyContext {
+public class PropertyContext implements TrainCarts.Provider {
+    private final TrainCarts traincarts;
     private final IProperties properties;
 
     /**
      * Initializes a new PropertyContext
      *
+     * @param traincarts TrainCarts main plugin instance
      * @param properties Properties being parsed or formatted
      */
-    public PropertyContext(IProperties properties) {
+    public PropertyContext(TrainCarts traincarts, IProperties properties) {
+        this.traincarts = traincarts;
         this.properties = properties;
+    }
+
+    @Override
+    public TrainCarts getTrainCarts() {
+        return traincarts;
     }
 
     /**

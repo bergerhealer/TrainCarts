@@ -55,6 +55,7 @@ import com.bergerkiller.bukkit.tc.utils.SoftReference;
 public class TrainProperties extends TrainPropertiesStore implements IProperties {
     private static final long serialVersionUID = 1L;
 
+    private final TrainCarts traincarts;
     private final SoftReference<MinecartGroup> group = new SoftReference<>();
     private final FieldBackedStandardTrainProperty.TrainInternalDataHolder standardProperties = new FieldBackedStandardTrainProperty.TrainInternalDataHolder();
     private final ConfigurationNode config;
@@ -68,7 +69,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @param trainname
      * @param config
      */
-    protected TrainProperties(String trainname, ConfigurationNode config) {
+    protected TrainProperties(TrainCarts traincarts, String trainname, ConfigurationNode config) {
+        this.traincarts = traincarts;
         this.trainname = trainname;
         this.config = config;
 
@@ -80,7 +82,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                 try {
                     uuid = UUID.fromString(cartConfig.getName());
                 } catch (IllegalArgumentException ex) {
-                    TrainCarts.plugin.getLogger().log(Level.WARNING, "Invalid UUID for cart: " + cartConfig.getName());
+                    traincarts.getLogger().log(Level.WARNING, "Invalid UUID for cart: " + cartConfig.getName());
                     continue;
                 }
 
@@ -91,6 +93,11 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                 super.add(CartPropertiesStore.createNew(this, cartConfig, uuid));
             }
         }
+    }
+
+    @Override
+    public TrainCarts getTrainCarts() {
+        return traincarts;
     }
 
     @Override
@@ -169,14 +176,14 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             }
         }
         CompletableFuture<Void> whenAllChunkEntitiesLoaded;
-        whenAllChunkEntitiesLoaded = loadChunkFutureWithFutureProvider(chunksOfTrain);
+        whenAllChunkEntitiesLoaded = loadChunkFutureWithFutureProvider(traincarts, chunksOfTrain);
 
         final CompletableFuture<Boolean> result = new CompletableFuture<Boolean>();
         whenAllChunkEntitiesLoaded.thenAccept(unused -> {
             result.complete(hasHolder());
             chunksOfTrain.forEach(ForcedChunk::close);
         }).exceptionally(err -> {
-            TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to load chunks of train", err);
+            traincarts.getLogger().log(Level.SEVERE, "Failed to load chunks of train", err);
             result.complete(false);
             chunksOfTrain.forEach(ForcedChunk::close);
             return null;
@@ -185,8 +192,8 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         return result;
     }
 
-    private static CompletableFuture<Void> loadChunkFutureWithFutureProvider(List<ForcedChunk> chunks) {
-        ChunkFutureProvider provider = ChunkFutureProvider.of(TrainCarts.plugin);
+    private static CompletableFuture<Void> loadChunkFutureWithFutureProvider(TrainCarts traincarts, List<ForcedChunk> chunks) {
+        ChunkFutureProvider provider = ChunkFutureProvider.of(traincarts);
         return CompletableFuture.allOf(chunks.stream()
             .map(c -> provider.whenEntitiesLoaded(c.getWorld(), c.getX(), c.getZ()))
             .toArray(CompletableFuture[]::new));

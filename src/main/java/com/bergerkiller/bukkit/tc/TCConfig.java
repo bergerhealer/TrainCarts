@@ -119,7 +119,7 @@ public class TCConfig {
     public static Map<String, Animation> defaultAnimations = new HashMap<>();
     public static Hastebin hastebin = null;
 
-    public static void load(FileConfiguration config) {
+    public static void load(TrainCarts traincarts, FileConfiguration config) {
         config.setHeader("This is the configuration file of TrainCarts");
         config.addHeader("In here you can tweak TrainCarts to what you want");
         config.addHeader("For more information, you can visit the following websites:");
@@ -272,7 +272,7 @@ public class TCConfig {
 
         config.setHeader("hastebinServer", "\nThe hastebin server which is used to upload saved trains");
         config.addHeader("hastebinServer", "This will be used when using the /savedtrain [name] paste command");
-        hastebin = new Hastebin(TrainCarts.plugin, config.get("hastebinServer", config.get("hastebinServer", "https://paste.traincarts.net")));
+        hastebin = new Hastebin(traincarts, config.get("hastebinServer", config.get("hastebinServer", "https://paste.traincarts.net")));
 
         config.setHeader("enableSeatThirdPersonView", "\nEnable or disable seeing yourself in third-person on vertical rails");
         config.addHeader("enableSeatThirdPersonView", "Turning this off only causes this mode to activate when going upside-down");
@@ -486,7 +486,7 @@ public class TCConfig {
         config.setHeader("pathFindingMaxProcessingPerTick", "\nSets the maximum amount of time (in milliseconds) to spend, per tick,");
         config.addHeader("pathFindingMaxProcessingPerTick", "calculating train routing information. (/train reroute, reroute debug stick)");
         config.addHeader("pathFindingMaxProcessingPerTick", "Raising this can make computations go faster at the cost of server TPS");
-        TrainCarts.plugin.getPathProvider().setMaxProcessingPerTick(
+        traincarts.getPathProvider().setMaxProcessingPerTick(
                 config.get("pathFindingMaxProcessingPerTick", PathProvider.DEFAULT_MAX_PROCESSING_PER_TICK));
 
         config.setHeader("switcherResetCountersOnFirstCart", "\nFor [cart] signs that use counter statements, specifies whether");

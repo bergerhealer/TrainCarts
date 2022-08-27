@@ -78,7 +78,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         validateMembersArray(members);
 
         // There is not a group with this name already?
-        MinecartGroup g = new MinecartGroup(members[0].getPlugin());
+        MinecartGroup g = new MinecartGroup(members[0].getTrainCarts());
         if (name != null) {
             g.setProperties(TrainPropertiesStore.create(name));
         }
@@ -100,7 +100,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         validateMembersArray(members);
 
         // Create new group and assign it the properties of a split group
-        MinecartGroup g = new MinecartGroup(members[0].getPlugin());
+        MinecartGroup g = new MinecartGroup(members[0].getTrainCarts());
         g.setProperties(TrainPropertiesStore.createSplitFrom(properties));
         addMembersAndFinalize(g, members);
         g.getSignTracker().refresh();

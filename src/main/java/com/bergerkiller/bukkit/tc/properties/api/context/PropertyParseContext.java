@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.properties.api.context;
 import java.util.regex.MatchResult;
 
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
@@ -22,8 +23,8 @@ public final class PropertyParseContext<T> extends PropertyContext {
     private final PropertyInputContext input;
     private final MatchResult matchResult;
 
-    public PropertyParseContext(IProperties properties, T current, String name, PropertyInputContext input, MatchResult matchResult) {
-        super(properties);
+    public PropertyParseContext(TrainCarts traincarts, IProperties properties, T current, String name, PropertyInputContext input, MatchResult matchResult) {
+        super(traincarts, properties);
         this.current = current;
         this.name = name;
         this.input = input;

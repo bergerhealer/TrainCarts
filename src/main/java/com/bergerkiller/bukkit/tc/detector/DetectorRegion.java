@@ -238,7 +238,7 @@ public final class DetectorRegion {
                 if (pos != null) {
                     posStr = "[" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + "]";
                 }
-                TrainCarts.plugin.getLogger().warning("[Detector] Purged unloaded Minecart at " + posStr);
+                mm.getTrainCarts().getLogger().warning("[Detector] Purged unloaded Minecart at " + posStr);
             }
         }
     }

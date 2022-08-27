@@ -71,10 +71,10 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
-public class MinecartGroup extends MinecartGroupStore implements IPropertiesHolder, AnimationController, TrainStatusProvider {
+public class MinecartGroup extends MinecartGroupStore implements IPropertiesHolder, AnimationController, TrainStatusProvider, TrainCarts.Provider {
     private static final long serialVersionUID = 3;
     private static final LongHashSet chunksBuffer = new LongHashSet(50);
-    private final TrainCarts plugin;
+    private final TrainCarts traincarts;
     protected final ToggledState ticked = new ToggledState();
     protected final ChunkArea chunkArea = new ChunkArea();
     private boolean chunkAreaValid = false;
@@ -92,18 +92,14 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     private int updateStepNr = 1;
     private boolean unloaded = false;
 
-    protected MinecartGroup(TrainCarts plugin) {
-        this.plugin = plugin;
+    protected MinecartGroup(TrainCarts traincarts) {
+        this.traincarts = traincarts;
         this.ticked.set();
     }
 
-    /**
-     * Gets the TrainCarts plugin instance
-     *
-     * @return TrainCarts plugin
-     */
-    public TrainCarts getPlugin() {
-        return this.plugin;
+    @Override
+    public TrainCarts getTrainCarts() {
+        return traincarts;
     }
 
     @Override
@@ -1529,7 +1525,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             msg.append(" - ").append(member.getEntity().vel);
             msg.append("]");
         }
-        TrainCarts.plugin.log(Level.INFO, msg.toString());
+        traincarts.log(Level.INFO, msg.toString());
     }
 
     /**
@@ -1733,8 +1729,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             //this group is gone
         } catch (Throwable t) {
             final TrainProperties p = getProperties();
-            TrainCarts.plugin.log(Level.SEVERE, "Failed to perform physics on train '" + p.getTrainName() + "' at " + p.getLocation() + ":");
-            TrainCarts.plugin.handle(t);
+            plugin.log(Level.SEVERE, "Failed to perform physics on train '" + p.getTrainName() + "' at " + p.getLocation() + ":");
+            plugin.handle(t);
         }
     }
 
@@ -1924,14 +1920,14 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                         double distanceSqSinceDerailed = member.getEntity().loc.distanceSquared(derailedStartPos);
                         if (distanceSqSinceDerailed > thres) {
                             Location loc = member.getEntity().getLocation();
-                            TrainCarts.plugin.getLogger().log(Level.WARNING, "A cart of train " +
+                            traincarts.getLogger().log(Level.WARNING, "A cart of train " +
                                     this.getProperties().getTrainName() + " at world=" +
                                     loc.getWorld().getName() + " x=" + loc.getBlockX() +
                                     " y=" + loc.getBlockY() + " z=" + loc.getBlockZ() +
                                     " derailed and went moving/flying off into nowhere!");
-                            TrainCarts.plugin.getLogger().log(Level.WARNING, "The train's keepChunksLoaded property has been " +
+                            traincarts.getLogger().log(Level.WARNING, "The train's keepChunksLoaded property has been " +
                                     " reset to false to prevent endless chunks being generated");
-                            TrainCarts.plugin.getLogger().log(Level.WARNING, "The derailment likely occurred at " +
+                            traincarts.getLogger().log(Level.WARNING, "The derailment likely occurred at " +
                                     "x=" + derailedStartPos.getBlockX() + " y=" + derailedStartPos.getBlockY() +
                                     " z=" + derailedStartPos.getBlockZ());
                             getProperties().setKeepChunksLoaded(false);

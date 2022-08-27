@@ -16,7 +16,6 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TCTimings;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -198,7 +197,7 @@ public class RailTrackerGroup extends RailTracker {
             for (TrackedRail rail : this.rails) {
                 s += "[" + rail.member.getIndex() + " " + rail.position + "]";
             }
-            TrainCarts.plugin.log(Level.INFO, s);
+            this.owner.getPlugin().log(Level.INFO, s);
             */
 
             // TODO: Detect when the rails are changed
@@ -340,7 +339,7 @@ public class RailTrackerGroup extends RailTracker {
             int limit = 1000;
             do {
                 if (p.moveStep(wheelDistance - p.movedTotal) && --limit == 0) {
-                    TrainCarts.plugin.log(Level.WARNING, "Reached maximum loops refreshing front wheel position (" +
+                    this.owner.getTrainCarts().log(Level.WARNING, "Reached maximum loops refreshing front wheel position (" +
                             "train=" + this.owner.getProperties().getTrainName() +
                             " x=" + tail.getEntity().loc.getX() +
                             " y=" + tail.getEntity().loc.getY() +
@@ -496,7 +495,7 @@ public class RailTrackerGroup extends RailTracker {
                 int limit = 1000;
                 do {
                     if (p.moveStep(wheelDistance - p.movedTotal) && --limit == 1000) {
-                        TrainCarts.plugin.log(Level.WARNING, "Reached maximum loops refreshing back wheel position (" +
+                        this.owner.getTrainCarts().log(Level.WARNING, "Reached maximum loops refreshing back wheel position (" +
                                 "train=" + this.owner.getProperties().getTrainName() +
                                 " x=" + tail.getEntity().loc.getX() +
                                 " y=" + tail.getEntity().loc.getY() +

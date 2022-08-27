@@ -30,10 +30,11 @@ public class DebugTool {
 
     /**
      * Shows a box-shaped particle display for all mutex zones for a few seconds
-     * 
+     *
+     * @param traincarts
      * @param player
      */
-    public static void showMutexZones(final Player player) {
+    public static void showMutexZones(final TrainCarts traincarts, final Player player) {
         Location loc = player.getEyeLocation();
         final List<MutexZone> zones = MutexZoneCache.findNearbyZones(
                 OfflineWorld.of(loc.getWorld()),
@@ -46,7 +47,7 @@ public class DebugTool {
 
         final int PARTICLE_DURATION = 100;
         final int PARTICLE_INTERVAL = 4;
-        new Task(TrainCarts.plugin) {
+        new Task(traincarts) {
             int life = PARTICLE_DURATION / PARTICLE_INTERVAL;
 
             @Override
@@ -108,13 +109,14 @@ public class DebugTool {
     /**
      * Called when a player interacts with a block using a (stick) debug item
      * 
+     * @param traincarts TrainCarts main plugin instance
      * @param player
      * @param clickedBlock
      * @param item
      * @param isRightClick Whether this is a right click interaction (true) or left-click break (false)
      * @return true if handled, false if not and should interact like normal
      */
-    public static boolean onDebugInteract(Player player, Block clickedBlock, ItemStack item, boolean isRightClick) {
+    public static boolean onDebugInteract(TrainCarts traincarts, Player player, Block clickedBlock, ItemStack item, boolean isRightClick) {
         if (item == null) {
             return false;
         }
@@ -145,7 +147,7 @@ public class DebugTool {
             return false;
         }
 
-        match.get().onBlockInteract(player, clickedBlock, item, isRightClick);
+        match.get().onBlockInteract(traincarts, player, clickedBlock, item, isRightClick);
         return true;
     }
 }

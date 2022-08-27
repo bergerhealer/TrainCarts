@@ -1,10 +1,16 @@
 package com.bergerkiller.bukkit.tc.actions;
 
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import org.bukkit.World;
 
 public class GroupAction extends Action {
     private MinecartGroup group;
+
+    @Override
+    public TrainCarts getTrainCarts() {
+        return this.group.getTrainCarts();
+    }
 
     @Override
     public boolean doTick() {

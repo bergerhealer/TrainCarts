@@ -318,7 +318,7 @@ public class SignActionSwitcher extends SignAction {
                     // Continue with path finding if a valid destination is specified
                     // If the current node denotes the destination - don't switch!
                     if (!LogicUtil.nullOrEmpty(destination) && !node.containsName(destination)) {
-                        if (TrainCarts.plugin.getPathProvider().isProcessing()) {
+                        if (info.getTrainCarts().getPathProvider().isProcessing()) {
                             double currentForce = info.getGroup().getAverageForce();
                             // Add an action to let the train wait until the node IS explored
                             info.getGroup().getActions().addAction(new GroupActionWaitPathFinding(info, node, destination));
@@ -351,7 +351,7 @@ public class SignActionSwitcher extends SignAction {
             if (facing || !info.isWatchedDirectionsDefined()) {
                 PathNode node = PathNode.getOrCreate(info);
                 if (node != null) {
-                    if (TrainCarts.plugin.getPathProvider().isProcessing()) {
+                    if (info.getTrainCarts().getPathProvider().isProcessing()) {
                         // Train should wait until this is done. Polls every tick.
                         prediction.setSpeedLimit(0.0);
                     } else {

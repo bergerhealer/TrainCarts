@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.PowerState;
 import com.bergerkiller.bukkit.tc.SignActionHeader;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -74,7 +75,7 @@ public final class RailLookup {
             if (world == null) {
                 return WorldRailLookup.NONE;
             }
-            lookup = new WorldRailLookupImpl(world);
+            lookup = new WorldRailLookupImpl(TrainCarts.plugin, world);
             byWorld.put(world, lookup); // computeIfAbsent won't work, potential concurrent modification
                                         // if someone runs forWorld() during initialization
 

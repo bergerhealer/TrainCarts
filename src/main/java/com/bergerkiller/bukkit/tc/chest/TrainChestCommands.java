@@ -180,11 +180,12 @@ public class TrainChestCommands {
     @CommandDescription("Imports a saved train into the chest item from an online hastebin server by url")
     private void commandImportChestItem(
             final Player player,
+            final TrainCarts plugin,
             final @Argument("url") String url
     ) {
         final ItemStack item_when_started = HumanHand.getItemInMainHand(player);
 
-        Commands.importTrain(player, url, config -> {
+        Commands.importTrain(plugin, player, url, config -> {
             if (TrainChestItemUtil.isItem(item_when_started)) {
                 // Store into the item held while doing the command
                 TrainChestItemUtil.store(item_when_started, config);

@@ -280,10 +280,10 @@ public class Commands {
 
     @CommandMethod("train")
     @CommandDescription("Displays the TrainCarts plugin about message, with version information")
-    private void commandShowAbout(final CommandSender sender) {
+    private void commandShowAbout(final TrainCarts plugin, final CommandSender sender) {
         // Build a message showing 'TrainCarts <version>, followed by a clickable link to the wiki
         // with a message (usage). We try to find 'wiki' in the message, and make
-        sender.sendMessage(ChatColor.BLUE + "TrainCarts " + TrainCarts.plugin.getDebugVersion());
+        sender.sendMessage(ChatColor.BLUE + "TrainCarts " + plugin.getDebugVersion());
 
         // Experimental link syntax in localization, may eventually be moved to BKCommonLib if it proves useful elsewhere
         String message = Localization.COMMAND_USAGE.get();
@@ -425,11 +425,12 @@ public class Commands {
      * Downloads the full YAML configuration of a train from hastebin, and
      * calls the callback with the configuration if successful.
      *
+     * @param plugin TrainCarts plugin instance
      * @param sender Command Sender to send a message to when problems occur
      * @param url The URL of the hastebin paste to download
      * @param callback The callback to call when successfully downloaded
      */
-    public static void importTrain(final CommandSender sender, final String url, final Consumer<ConfigurationNode> callback) {
+    public static void importTrain(final TrainCarts plugin, final CommandSender sender, final String url, final Consumer<ConfigurationNode> callback) {
         TCConfig.hastebin.download(url).thenAccept(new Consumer<DownloadResult>() {
             @Override
             public void accept(DownloadResult result) {
@@ -448,7 +449,7 @@ public class Commands {
                     return;
                 } catch (Throwable t) {
                     sender.sendMessage(ChatColor.RED + "An error occurred trying to import the train YAML: " + t.getMessage());
-                    TrainCarts.plugin.getLogger().log(Level.SEVERE, "Import error for " + url, t);
+                    plugin.getLogger().log(Level.SEVERE, "Import error for " + url, t);
                     return;
                 }
 

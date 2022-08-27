@@ -204,7 +204,7 @@ public class TrainCommands {
             String moduleString = "";
             if (module != null && !module.isEmpty()) {
                 moduleString = " in module " + module;
-                TrainCarts.plugin.getSavedTrains().setModuleNameOfTrain(name, module);
+                plugin.getSavedTrains().setModuleNameOfTrain(name, module);
             }
 
             if (wasContained) {

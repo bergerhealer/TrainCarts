@@ -30,6 +30,7 @@ public class SignTrackerMember extends SignTracker {
      *
      * @return the Owner
      */
+    @Override
     public MinecartMember<?> getOwner() {
         return owner;
     }

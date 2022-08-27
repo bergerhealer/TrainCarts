@@ -31,7 +31,7 @@ public class SignActionTicket extends SignAction {
 
     @Override
     public void execute(SignActionEvent info) {
-        Economy economy = TrainCarts.plugin.getEconomy();
+        Economy economy = info.getTrainCarts().getEconomy();
         if (economy == null) {
             return;
         }

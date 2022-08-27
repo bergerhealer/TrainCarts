@@ -67,7 +67,7 @@ public class SignActionMutex extends SignAction {
         // Note: we ignore unloading, it stays active even while the sign chunk isn't loaded
         // Removal occurs when the offline sign metadata store signals the sign is gone
         if (loaded) {
-            TrainCarts.plugin.getOfflineSigns().computeIfAbsent(info.getSign(), MutexSignMetadata.class,
+            info.getTrainCarts().getOfflineSigns().computeIfAbsent(info.getSign(), MutexSignMetadata.class,
                     offline -> MutexSignMetadata.fromSign(info));
         }
     }

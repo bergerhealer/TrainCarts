@@ -140,14 +140,14 @@ public class OfflineGroupManager {
         }
     }
 
-    public static void refresh(TrainCarts plugin, World world) {
+    public static void refresh(TrainCarts traincarts, World world) {
         synchronized (managers) {
             OfflineGroupMapImpl map = managers.get(world);
             if (map != null) {
                 if (map.isEmpty()) {
                     managers.remove(world);
                 } else if (map.canRestoreGroups()) {
-                    map.refreshGroups(plugin);
+                    map.refreshGroups(traincarts);
                 }
             }
         }
@@ -409,9 +409,10 @@ public class OfflineGroupManager {
     /**
      * Loads the buffered groups from file
      *
+     * @param traincarts TrainCarts main plugin instance
      * @param filename - The groupdata file to read from
      */
-    public static void init(String filename) {
+    public static void init(TrainCarts traincarts, String filename) {
         synchronized (managers) {
             deinit();
             new DataReader(filename) {
@@ -443,7 +444,7 @@ public class OfflineGroupManager {
                     msg += ". (" + totalmembers + " Minecart";
                     if (totalmembers != 1) msg += "s";
                     msg += ")";
-                    TrainCarts.plugin.log(Level.INFO, msg);
+                    traincarts.log(Level.INFO, msg);
                 }
             }.read();
         }
@@ -609,7 +610,7 @@ public class OfflineGroupManager {
             group.create(plugin, group.world.getLoadedWorld());
         }
 
-        public void refreshGroups(TrainCarts plugin) {
+        public void refreshGroups(TrainCarts traincarts) {
             // While refreshing, ignore incoming Chunk Load events
             // We do not want the group map to change concurrently!
             isRefreshingGroups = true;
@@ -625,12 +626,12 @@ public class OfflineGroupManager {
                     groupsBuffer.addAll(this.values());
                     for (OfflineGroup group : groupsBuffer) {
                         if (group.updateLoadedChunks(this)) {
-                            restoreGroup(plugin, group);
+                            restoreGroup(traincarts, group);
                         }
                     }
                 } while (chunkLoadReq);
             } catch (Throwable t) {
-                TrainCarts.plugin.getLogger().log(Level.SEVERE, "Unhandled error handling train restoring", t);
+                traincarts.getLogger().log(Level.SEVERE, "Unhandled error handling train restoring", t);
             }
             isRefreshingGroups = false;
         }

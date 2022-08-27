@@ -199,7 +199,7 @@ public abstract class MinecartMemberStore {
             }
             return null;
         } catch (Throwable t) {
-            TrainCarts.plugin.handle(t);
+            plugin.handle(t);
             return null;
         }
     }
@@ -218,7 +218,7 @@ public abstract class MinecartMemberStore {
         try {
             return controllerConstr.apply(plugin);
         } catch (Throwable t) {
-            TrainCarts.plugin.handle(t);
+            plugin.handle(t);
             return null;
         }
     }

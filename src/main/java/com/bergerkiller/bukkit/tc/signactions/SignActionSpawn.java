@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.signactions;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
@@ -46,7 +45,7 @@ public class SignActionSpawn extends SignAction {
         }
 
         // Find and parse the spawn sign
-        SpawnSign sign = TrainCarts.plugin.getSpawnSignManager().create(info);
+        SpawnSign sign = info.getTrainCarts().getSpawnSignManager().create(info);
         if (sign.isActive()) {
             sign.spawn(info);
             sign.resetSpawnTime();
@@ -66,7 +65,7 @@ public class SignActionSpawn extends SignAction {
         }
 
         // Create a new spawn sign by parsing the event
-        SpawnSign sign = TrainCarts.plugin.getSpawnSignManager().create(event);
+        SpawnSign sign = event.getTrainCarts().getSpawnSignManager().create(event);
 
         // When an interval is specified, check permission for it.
         // No permission? Cancel the building of the sign.
@@ -92,7 +91,7 @@ public class SignActionSpawn extends SignAction {
 
     @Override
     public void destroy(SignActionEvent info) {
-        TrainCarts.plugin.getSpawnSignManager().remove(info);
+        info.getTrainCarts().getSpawnSignManager().remove(info);
     }
 
     // only called from spawn sign

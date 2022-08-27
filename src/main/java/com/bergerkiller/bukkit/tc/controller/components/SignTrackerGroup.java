@@ -37,6 +37,7 @@ public class SignTrackerGroup extends SignTracker {
      *
      * @return the Owner
      */
+    @Override
     public MinecartGroup getOwner() {
         return owner;
     }

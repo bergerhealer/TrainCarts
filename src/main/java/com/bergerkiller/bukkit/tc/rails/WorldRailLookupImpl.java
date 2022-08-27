@@ -72,6 +72,7 @@ final class WorldRailLookupImpl implements WorldRailLookup {
     private static BlockFace[] SIGN_FACES_ORDERED = {BlockFace.UP, BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.DOWN};
 
     // Per-world data
+    private final TrainCarts traincarts;
     private World world;
     private OfflineWorld offlineWorld;
     private Map<IntVector3, Bucket> cache;
@@ -80,13 +81,14 @@ final class WorldRailLookupImpl implements WorldRailLookup {
     private SignControllerWorld signController;
     private int ticksWithEmptyCache;
 
-    WorldRailLookupImpl(World world) {
+    WorldRailLookupImpl(TrainCarts traincarts, World world) {
+        this.traincarts = traincarts;
         this.offlineWorld = OfflineWorld.of(world);
         this.world = world;
         this.cache = new HashMap<>();
         this.cacheValues = new ArrayList<>();
         this.mutexZones = MutexZoneCache.forWorld(this.offlineWorld);
-        this.signController = TrainCarts.plugin.getSignController().forWorldSkipInitialization(this.world);
+        this.signController = traincarts.getSignController().forWorldSkipInitialization(this.world);
         this.ticksWithEmptyCache = 0;
     }
 
@@ -316,7 +318,7 @@ final class WorldRailLookupImpl implements WorldRailLookup {
                 type.discoverSigns(rail, this.signController, cache.signs);
                 return cache.build();
             } catch (Throwable t) {
-                TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed discover signs for " + rail, t);
+                traincarts.getLogger().log(Level.SEVERE, "Failed discover signs for " + rail, t);
                 return RailLookup.NO_SIGNS;
             }
         }
@@ -657,7 +659,7 @@ final class WorldRailLookupImpl implements WorldRailLookup {
                     MinecartMember<?> member = iter.next();
                     if (member.isUnloaded()) {
                         iter.remove();
-                        TrainCarts.plugin.log(Level.WARNING, "Purged unloaded minecart from rail cache at " +
+                        traincarts.log(Level.WARNING, "Purged unloaded minecart from rail cache at " +
                                     offlineBlock().getPosition());
                     }
                 }

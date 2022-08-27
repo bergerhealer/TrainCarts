@@ -35,9 +35,10 @@ import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
  * Stores the train and cart properties for trains that have been saved using /train save.
  * These properties can also be used on spawner signs, or fused into spawning items.
  */
-public class SavedTrainPropertiesStore {
+public class SavedTrainPropertiesStore implements TrainCarts.Provider {
     private static final String KEY_SAVED_NAME = "savedName";
 
+    private final TrainCarts traincarts;
     private final FileConfiguration savedTrainsConfig;
     private String name;
     private String modulesDirectory = "";
@@ -46,11 +47,12 @@ public class SavedTrainPropertiesStore {
     protected boolean changed = false;
     private boolean allowModules;
 
-    public SavedTrainPropertiesStore(String name, String filename) {
-        this(name, filename, true);
+    public SavedTrainPropertiesStore(TrainCarts traincarts, String name, String filename) {
+        this(traincarts, name, filename, true);
     }
 
-    public SavedTrainPropertiesStore(String name, String filename, boolean allowModules) {
+    public SavedTrainPropertiesStore(TrainCarts traincarts, String name, String filename, boolean allowModules) {
+        this.traincarts = traincarts;
         this.savedTrainsConfig = new FileConfiguration(filename);
         this.savedTrainsConfig.load();
         this.name = name;
@@ -59,6 +61,11 @@ public class SavedTrainPropertiesStore {
 
         renameTrainsBeginningWithDigits();
         storeSavedNameInConfig();
+    }
+
+    @Override
+    public TrainCarts getTrainCarts() {
+        return traincarts;
     }
 
     public void loadModules(String directory) {
@@ -74,7 +81,7 @@ public class SavedTrainPropertiesStore {
                 if (ext.endsWith(".yml")) {
                     createModule(name);
                 } else if (ext.endsWith(".zip")) {
-                    TrainCarts.plugin.getLogger().warning("Zip files are not read, please extract '" + name + "'!");
+                    traincarts.getLogger().warning("Zip files are not read, please extract '" + name + "'!");
                 }
             }
         } else {
@@ -219,7 +226,7 @@ public class SavedTrainPropertiesStore {
         }
         name = name.toLowerCase(Locale.ENGLISH);
 
-        modules.put(name, new SavedTrainPropertiesStore(name, modulesDirectory + File.separator + fileName, false));
+        modules.put(name, new SavedTrainPropertiesStore(traincarts, name, modulesDirectory + File.separator + fileName, false));
     }
 
     /**
@@ -568,7 +575,7 @@ public class SavedTrainPropertiesStore {
                 new_name = "t" + name + i;
             }
 
-            TrainCarts.plugin.log(Level.WARNING, "Train name '"  + name + "' starts with a digit, renamed to " + new_name);
+            traincarts.log(Level.WARNING, "Train name '"  + name + "' starts with a digit, renamed to " + new_name);
             iter.set(new_name);
 
             {
@@ -597,7 +604,7 @@ public class SavedTrainPropertiesStore {
             if (!config.getName().equals(setName)) {
                 // Note: people may have intended to rename these properties
                 // It is best to notify about this.
-                TrainCarts.plugin.log(Level.WARNING, "Saved train '" + config.getName() + "' has a different "
+                traincarts.log(Level.WARNING, "Saved train '" + config.getName() + "' has a different "
                         + "name set: '" + setName + "'");
                 logSavedNameFieldWarning = true;
 
@@ -605,7 +612,7 @@ public class SavedTrainPropertiesStore {
             }
         }
         if (logSavedNameFieldWarning) {
-            TrainCarts.plugin.log(Level.WARNING, "If the intention was to rename the train, instead "
+            traincarts.log(Level.WARNING, "If the intention was to rename the train, instead "
                     + "rename the key, not field '" + KEY_SAVED_NAME + "'");
         }
     }

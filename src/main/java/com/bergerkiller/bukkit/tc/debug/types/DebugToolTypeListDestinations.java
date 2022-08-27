@@ -83,21 +83,24 @@ public class DebugToolTypeListDestinations extends DebugToolTrackWalkerType {
      * If a destination name is specified, it will attempt to route towards this destination. If null,
      * it will list all destinations encountered.
      * 
+     * @param trainCarts TrainCarts main plugin instance
      * @param player Player that is performing the search
      * @param walker Walking point from which to start searching for nodes
+     * @param ItemStack Item interacted with
+     * @param isRightClick Whether this is a right-click interaction
      */
     @Override
-    public void onBlockInteract(Player player, TrackWalkingPoint walker, ItemStack item, boolean isRightClick) {
+    public void onBlockInteract(TrainCarts trainCarts, Player player, TrackWalkingPoint walker, ItemStack item, boolean isRightClick) {
         // TODO Auto-generated method stub
-        PathProvider provider = TrainCarts.plugin.getPathProvider();
+        PathProvider provider = trainCarts.getPathProvider();
         Block old_railBlock = null;
         double stopDistance = walker.movedTotal + 2000.0; // 2000 blocks at a time
         int lim = 10000;
         while (true) {
             if (--lim == 0 || walker.movedTotal >= stopDistance) {
                 // Reached the limit for the current tick. Resume next tick.
-                CommonUtil.getPluginExecutor(TrainCarts.plugin).execute(() -> {
-                    onBlockInteract(player, walker, item, isRightClick);
+                CommonUtil.getPluginExecutor(trainCarts).execute(() -> {
+                    onBlockInteract(trainCarts, player, walker, item, isRightClick);
                 });
                 break;
             } else if (this.destination != null) {
@@ -131,14 +134,14 @@ public class DebugToolTypeListDestinations extends DebugToolTrackWalkerType {
                         ChatColor.RED + " is blocking trains!");
                 break;
             } else if (info == PathRailInfo.NODE) {
-                debugListRoutesFrom(player, walker.state, this.destination, player.isSneaking(), walker.movedTotal);
+                debugListRoutesFrom(trainCarts, player, walker.state, this.destination, player.isSneaking(), walker.movedTotal);
                 break;
             }
         }
     }
 
-    private static void debugListRoutesFrom(Player player, RailState state, String destinationName, boolean reroute, double initialDistance) {
-        PathProvider provider = TrainCarts.plugin.getPathProvider();
+    private static void debugListRoutesFrom(TrainCarts trainCarts, Player player, RailState state, String destinationName, boolean reroute, double initialDistance) {
+        PathProvider provider = trainCarts.getPathProvider();
 
         // Check early
         if (!state.railLookup().isValid()) {
@@ -161,12 +164,12 @@ public class DebugToolTypeListDestinations extends DebugToolTrackWalkerType {
         if (provider.isProcessing()) {
             final boolean f_reroute = reroute;
             Localization.PATHING_BUSY.message(player);
-            new Task(TrainCarts.plugin) {
+            new Task(trainCarts) {
                 @Override
                 public void run() {
                     if (!provider.isProcessing()) {
                         stop();
-                        debugListRoutesFrom(player, state, destinationName, f_reroute, initialDistance);
+                        debugListRoutesFrom(trainCarts, player, state, destinationName, f_reroute, initialDistance);
                     }
                 }
             }.start(1, 1);

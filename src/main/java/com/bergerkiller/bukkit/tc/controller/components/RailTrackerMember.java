@@ -219,7 +219,7 @@ public class RailTrackerMember extends RailTracker {
     }
 
     public void refresh(TrackedRail newInfo) {
-        //TrainCarts.plugin.log(Level.INFO, "DIR[" + owner.getIndex() + "] = " + newInfo.direction + " [" +
+        //this.owner.getPlugin().log(Level.INFO, "DIR[" + owner.getIndex() + "] = " + newInfo.direction + " [" +
         //           newInfo.block.getX() + " / " + newInfo.block.getY() + " / " + newInfo.block.getZ() + "]");
 
         // Gather rail information

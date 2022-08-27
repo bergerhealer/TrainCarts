@@ -103,7 +103,7 @@ public class AttachmentControllerGroup {
         }
 
         members.forEach(RespawnedMember::hide);
-        group.getPlugin().getTrainUpdateController().syncPositions(Collections.singletonList(group));
+        group.getTrainCarts().getTrainUpdateController().syncPositions(Collections.singletonList(group));
         members.forEach(RespawnedMember::show);
     }
 

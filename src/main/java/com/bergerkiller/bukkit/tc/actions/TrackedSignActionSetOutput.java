@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.actions;
 
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 
 /**
@@ -7,12 +8,19 @@ import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
  * own output mechanics.
  */
 public class TrackedSignActionSetOutput extends Action {
+    private final TrainCarts traincarts;
     private final TrackedSign sign;
     private final boolean output;
 
-    public TrackedSignActionSetOutput(TrackedSign sign, boolean output) {
+    public TrackedSignActionSetOutput(TrainCarts traincarts, TrackedSign sign, boolean output) {
+        this.traincarts = traincarts;
         this.sign = sign;
         this.output = output;
+    }
+
+    @Override
+    public TrainCarts getTrainCarts() {
+        return traincarts;
     }
 
     @Override

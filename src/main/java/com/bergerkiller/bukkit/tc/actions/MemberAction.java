@@ -1,12 +1,18 @@
 package com.bergerkiller.bukkit.tc.actions;
 
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import org.bukkit.World;
 
 public class MemberAction extends Action {
     private MinecartMember<?> member;
+
+    @Override
+    public TrainCarts getTrainCarts() {
+        return this.member.getTrainCarts();
+    }
 
     @Override
     public boolean doTick() {

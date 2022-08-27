@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 
 /**
  * Debug tool instance
@@ -56,12 +57,13 @@ public interface DebugToolType {
     /**
      * Called when a player interacts with a block
      *
+     * @param trainCarts TrainCarts main plugin instance
      * @param player Player that interacted
      * @param clickedBlock Block that was interacted with
      * @param item The debug tool item player is holding while interacting
      * @param isRightClick Whether this is a right-click (true) or left-click (false)
      */
-    void onBlockInteract(Player player, Block clickedBlock, ItemStack item, boolean isRightClick);
+    void onBlockInteract(TrainCarts trainCarts, Player player, Block clickedBlock, ItemStack item, boolean isRightClick);
 
     /**
      * Gives this debug tool type as an item to a player

@@ -421,7 +421,7 @@ public class SavedTrainCommands {
             final @Argument(value="url", description="The URL to a Hastebin-hosted paste to download from") String url,
             final @Flag("force") boolean force
     ) {
-        Commands.importTrain(sender, url, config -> {
+        Commands.importTrain(plugin, sender, url, config -> {
             // Retrieve previous train properties
             boolean isNewTrain = savedTrain.isEmpty();
 

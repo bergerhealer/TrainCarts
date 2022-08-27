@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.properties;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
@@ -140,7 +141,7 @@ public class CartPropertiesStore {
         if (prop != null) {
             prop.reassign(train, config);
         } else {
-            prop = new CartProperties(train, config, uuid);
+            prop = new CartProperties(TrainCarts.plugin, train, config, uuid);
             properties.put(uuid, prop);
         }
         return prop;
@@ -165,7 +166,7 @@ public class CartPropertiesStore {
         TrainProperties trainProperties = member.isUnloaded()
                 ? null : member.getGroup().getProperties();
 
-        prop = new CartProperties(trainProperties, new ConfigurationNode(), uuid);
+        prop = new CartProperties(member.getTrainCarts(), trainProperties, new ConfigurationNode(), uuid);
         properties.put(uuid, prop);
         prop.setHolder(member);
         prop.onConfigurationChanged();

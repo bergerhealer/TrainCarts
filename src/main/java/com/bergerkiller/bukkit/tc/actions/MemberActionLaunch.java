@@ -55,7 +55,7 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         try {
             this.function = config.getFunction().newInstance();
         } catch (Throwable t) {
-            TrainCarts.plugin.getLogger().log(Level.SEVERE, "Unhandled error initializing launch function", t);
+            getTrainCarts().getLogger().log(Level.SEVERE, "Unhandled error initializing launch function", t);
             this.function = new LaunchFunction.Linear();
         }
 

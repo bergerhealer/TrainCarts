@@ -169,7 +169,7 @@ public class SignActionDetector extends SignAction {
         // I lied! We have to double-check a detector region for this detector sign exists
         // Just in case data is corrupted, it can be restored by the first train driving over the detector
         if (info.getAction().isRedstone() || info.isAction(SignActionType.GROUP_ENTER)) {
-            if (TrainCarts.plugin.getOfflineSigns().get(info.getBlock(), DetectorSign.Metadata.class) == null) {
+            if (info.getTrainCarts().getOfflineSigns().get(info.getBlock(), DetectorSign.Metadata.class) == null) {
                 handlePlacement(info);
             }
         }
@@ -214,9 +214,9 @@ public class SignActionDetector extends SignAction {
         Block startrails = event.getRails();
         BlockFace dir = event.getFacing();
         String label = getLabel(event);
-        if (!tryBuild(label, startrails, startSignBlock, startSign, dir)) {
-            if (!tryBuild(label, startrails, startSignBlock, startSign, FaceUtil.rotate(dir, 2))) {
-                if (!tryBuild(label, startrails, startSignBlock, startSign, FaceUtil.rotate(dir, -2))) {
+        if (!tryBuild(event.getTrainCarts(), label, startrails, startSignBlock, startSign, dir)) {
+            if (!tryBuild(event.getTrainCarts(), label, startrails, startSignBlock, startSign, FaceUtil.rotate(dir, 2))) {
+                if (!tryBuild(event.getTrainCarts(), label, startrails, startSignBlock, startSign, FaceUtil.rotate(dir, -2))) {
                     return false;
                 }
             }
@@ -224,7 +224,7 @@ public class SignActionDetector extends SignAction {
         return true;
     }
 
-    public boolean tryBuild(String label, Block startrails, Block startSignBlock, Sign startSign, BlockFace direction) {
+    public boolean tryBuild(TrainCarts traincarts, String label, Block startrails, Block startSignBlock, Sign startSign, BlockFace direction) {
         final TrackMap map = new TrackMap(startrails, direction, TCConfig.maxDetectorLength);
         map.next();
         //now try to find the end rails : find the other sign
@@ -245,7 +245,7 @@ public class SignActionDetector extends SignAction {
 
                     // Register detector sign metadata for both start and end sign with this region
                     // The handler will initialize the rest (listeners, etc.)
-                    OfflineSignStore store = TrainCarts.plugin.getOfflineSigns();
+                    OfflineSignStore store = traincarts.getOfflineSigns();
                     store.put(startSign, new DetectorSign.Metadata(OfflineBlock.of(endsign), region, false));
                     store.put(endsign, new DetectorSign.Metadata(OfflineBlock.of(startSignBlock), region, false));
 

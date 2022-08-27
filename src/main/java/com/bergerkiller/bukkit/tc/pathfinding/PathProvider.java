@@ -26,7 +26,6 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -43,7 +42,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
-public class PathProvider extends Task {
+public class PathProvider extends Task implements TrainCarts.Provider {
     private static final String SWITCHER_NAME_FALLBACK = "::traincarts::switchable::";
     public static final int DEFAULT_MAX_PROCESSING_PER_TICK = 30; // Maximum processing time in Ms per tick
     public static boolean DEBUG_MODE = false;
@@ -83,7 +82,7 @@ public class PathProvider extends Task {
     private boolean hasChanges = false;
     private int maxProcessingPerTick = DEFAULT_MAX_PROCESSING_PER_TICK;
 
-    public PathProvider(JavaPlugin plugin) {
+    public PathProvider(TrainCarts plugin) {
         super(plugin);
 
         // Default TrainCarts routing handler - for signs
@@ -141,6 +140,11 @@ public class PathProvider extends Task {
                 }
             }
         });
+    }
+
+    @Override
+    public TrainCarts getTrainCarts() {
+        return (TrainCarts) super.getPlugin();
     }
 
     /**
@@ -442,7 +446,7 @@ public class PathProvider extends Task {
     public Task stop() {
         addPendingNodes();
         if (!this.pendingOperations.isEmpty()) {
-            TrainCarts.plugin.log(Level.INFO, "Performing " + this.pendingOperations.size() + " pending path finding operations (can take a while)...");
+            getTrainCarts().log(Level.INFO, "Performing " + this.pendingOperations.size() + " pending path finding operations (can take a while)...");
             while (!this.pendingOperations.isEmpty()) {
                 PathFindOperation operation = this.pendingOperations.poll();
                 while (operation.next()) ;
@@ -482,7 +486,7 @@ public class PathProvider extends Task {
             PathFindOperation operation = this.pendingOperations.peek();
             done = false;
             if (DEBUG_MODE) {
-                TrainCarts.plugin.log(Level.INFO, "DISCOVERING EVERYTHING FROM " + operation.startNode.getDisplayName() +
+                getTrainCarts().log(Level.INFO, "DISCOVERING EVERYTHING FROM " + operation.startNode.getDisplayName() +
                         " INTO " + operation.getJunctionName());
             }
             // Perform the operations in steps
@@ -548,7 +552,7 @@ public class PathProvider extends Task {
                 }
                 if (node.containsSwitcher()) {
                     if (DEBUG_MODE) {
-                        TrainCarts.plugin.log(Level.INFO, "NODE " + node.getDisplayName() + " CONTAINS A SWITCHER, BRANCHING OFF");
+                        getTrainCarts().log(Level.INFO, "NODE " + node.getDisplayName() + " CONTAINS A SWITCHER, BRANCHING OFF");
                     }
 
                     // Check north-east-south-west for possible routes
@@ -672,7 +676,8 @@ public class PathProvider extends Task {
                 // Add neighbour
                 this.startNode.addNeighbour(foundNode, totalDistance, this.getJunctionName());
                 if (DEBUG_MODE) {
-                    TrainCarts.plugin.log(Level.INFO, "MADE CONNECTION FROM " + startNode.getDisplayName() + " TO " + foundNode.getDisplayName());
+                    routeEvent.provider().getTrainCarts().log(Level.INFO, "MADE CONNECTION FROM " +
+                            startNode.getDisplayName() + " TO " + foundNode.getDisplayName());
                 }
                 return true; // Finished
             }

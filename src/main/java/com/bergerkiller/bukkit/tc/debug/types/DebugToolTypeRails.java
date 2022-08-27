@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.debug.DebugToolUtil;
@@ -34,7 +35,7 @@ public class DebugToolTypeRails extends DebugToolTrackWalkerType {
     }
 
     @Override
-    public void onBlockInteract(Player player, TrackWalkingPoint walker, ItemStack item, boolean isRightClick) {
+    public void onBlockInteract(TrainCarts plugin, Player player, TrackWalkingPoint walker, ItemStack item, boolean isRightClick) {
         player.sendMessage(ChatColor.YELLOW + "Checking for rails from path [" +
                 MathUtil.round(walker.state.position().posX, 3) + "/" +
                 MathUtil.round(walker.state.position().posY, 3) + "/" +

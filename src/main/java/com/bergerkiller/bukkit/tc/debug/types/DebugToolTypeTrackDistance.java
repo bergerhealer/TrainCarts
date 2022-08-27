@@ -11,6 +11,7 @@ import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
@@ -47,7 +48,7 @@ public class DebugToolTypeTrackDistance extends DebugToolTrackWalkerType {
     }
 
     @Override
-    public void onBlockInteract(Player player, TrackWalkingPoint walker, ItemStack item, boolean isRightClick) {
+    public void onBlockInteract(TrainCarts plugin, Player player, TrackWalkingPoint walker, ItemStack item, boolean isRightClick) {
         // Update pos1/pos2 in the item's metadata
         item = ItemUtil.cloneItem(item);
         RailState start, goal;
