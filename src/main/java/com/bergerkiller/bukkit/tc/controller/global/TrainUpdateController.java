@@ -77,17 +77,21 @@ public class TrainUpdateController {
         this.tickUpdateNow += number;
     }
 
-    public void enable() {
+    public void preEnable() {
         this.updateTask = new TrainUpdateTask(this.plugin);
         this.updateTask.start(1, 1);
 
         this.networkSyncTask = new TrainNetworkSyncTask(this.plugin);
         this.networkSyncTask.start(1, 1);
 
-        this.updateTransformHelper = AttachmentUpdateTransformHelper.create(TCConfig.attachmentTransformParallelism);
+        this.updateTransformHelper = AttachmentUpdateTransformHelper.create(1);
 
         // Note: just for testing, is normally disabled
         //new DebugArtificialLag(this.plugin).start(1, 1);
+    }
+
+    public void postEnable() {
+        this.updateTransformHelper = AttachmentUpdateTransformHelper.create(TCConfig.attachmentTransformParallelism);
     }
 
     public void disable() {

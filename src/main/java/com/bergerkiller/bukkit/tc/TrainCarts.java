@@ -636,7 +636,8 @@ public class TrainCarts extends PluginBase {
         this.pathProvider.enable(getDataFolder() + File.separator + "destinations.dat");
 
         // Initialize train updater task
-        this.trainUpdateController.enable();
+        // This initially uses a single-threaded updater because of a paper synchronization bug
+        this.trainUpdateController.preEnable();
 
         //Load properties
         TrainProperties.load();
@@ -710,6 +711,9 @@ public class TrainCarts extends PluginBase {
                 getLogger().info("[DestroyOnShutdown] Destroyed " + count + " trains");
             });
         }
+
+        // Now all is setup right, start a (potential) multithreaded updater
+        this.trainUpdateController.postEnable();
     }
 
     @Override
