@@ -30,6 +30,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
+import com.bergerkiller.bukkit.tc.attachments.helper.AttachmentUpdateTransformHelper;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.seat.MemberBeforeSeatChangeEvent;
@@ -468,6 +469,14 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
         }
     }
 
+    public synchronized void makeHiddenForAll() {
+        for (Iterator<Player> iter = this.viewers.iterator(); iter.hasNext();) {
+            Player viewer = iter.next();
+            iter.remove();
+            HelperMethods.makeHiddenRecursive(this.rootAttachment, true, viewer);
+        }
+    }
+
     /**
      * Gets the viewers viewing this cart's attachments
      *
@@ -527,6 +536,26 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
      */
     public void syncUnloaded() {
         this.syncMovement(false);
+    }
+
+    public synchronized void syncPrePositionUpdate(AttachmentUpdateTransformHelper updater) {
+        if (isAttached()) {
+            syncPrePositionUpdate();
+            updater.start(getRootAttachment(), getLiveTransform());
+        }
+    }
+
+    /**
+     * Synchronizes all attachments by first de-spawning and then re-spawning
+     * all attachments to all viewers of the member.
+     */
+    public synchronized void syncRespawn() {
+        List<Player> oldViewers = new ArrayList<>(this.getViewers());
+        this.makeHiddenForAll();
+        this.member.getPlugin().getTrainUpdateController().syncPositions(this.member);
+        for (Player viewer : oldViewers) {
+            this.makeVisible(viewer);
+        }
     }
 
     /**
@@ -678,11 +707,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
 
         // Detach old attachments - after this viewers see nothing anymore
         if (this.rootAttachment != null) {
-            for (Iterator<Player> iter = this.viewers.iterator(); iter.hasNext();) {
-                HelperMethods.makeHiddenRecursive(this.rootAttachment, true, iter.next());
-                iter.remove();
-            }
-
+            makeHiddenForAll();
             HelperMethods.perform_onDetached(this.rootAttachment);
             this.rootAttachment = null;
         } else {

@@ -74,6 +74,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
+import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRailWalker;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.SignTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.SoundLoop;
@@ -493,6 +494,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         Quaternion orientation = this.getOrientation();
         orientation.rotateYFlip();
         this.setOrientation(orientation);
+
+        // Force a respawn right now
+        this.getWheels().startTeleport();
+        this.getWheels().update();
+        this.getAttachments().syncRespawn();
     }
 
     public MinecartMember<?> getNeighbour(int offset) {
@@ -1645,6 +1651,81 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         double dy = Math.max(0.0, Math.max(y_min - point.getY(), point.getY() - y_max));
         double dz = Math.max(0.0, Math.max(z_min - point.getZ(), point.getZ() - z_max));
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    /**
+     * Calculates the distance on the rails between this member and another member of the
+     * same train as this train. If the member ahead isn't part of the same train, then
+     * the rails are walked to calculate the distance that way.
+     *
+     * @return Distance between this member and the member ahead.
+     *         Returns NaN if no valid path can be detected or either member is derailed.
+     */
+    public double calculateRailDistanceToMemberAhead(MinecartMember<?> memberAhead) {
+        // If either is derailed, just use the as-the-crow-flies distance
+        if (this.isDerailed() || memberAhead.isDerailed()) {
+            return Double.NaN;
+        }
+
+        // Walks along the tracked rail information
+        TrackedRailWalker walker = this.getRailTracker().getTrackedRailWalker();
+
+        // Target position and distance to reach it
+        // At most allow for walking 5x the amount of distance before failing
+        final RailPath.Position targetPos = memberAhead.getRailTracker().getRail().state.position();
+        double distanceRemaining = walker.position().distance(targetPos);
+        double distanceLimit = 5.0 * distanceRemaining;
+
+        // Walk from the from cart to the to cart, making use of the tracked rails if possible
+        // If for whatever reason we run out, fall back to walking the track itself
+        // Can't do this if the members are part of different groups
+        double distanceMoved = 0.0;
+        if (this.getGroup() == memberAhead.group) {
+            double moved;
+            while ((moved = walker.move(distanceRemaining)) > 0.0) {
+                distanceMoved += moved;
+
+                // Refresh remaining distance after the move, check reached goal
+                distanceRemaining = walker.position().distance(targetPos);
+                if (distanceRemaining < 1e-10) {
+                    return distanceMoved;
+                }
+
+                // Break out if we've been moving for too long a distance
+                if (distanceMoved > distanceLimit) {
+                    // Can't find the other cart. Abort.
+                    return Double.NaN;
+                }
+            }
+        }
+
+        // Couldn't find the other minecart for whatever reason. Maybe the rail information is outdated?
+        // Try to use a track walking point instead, with a sensible limit
+        walker.state().initEnterDirection();
+        TrackWalkingPoint p = new TrackWalkingPoint(walker.state());
+        p.skipFirst();
+        p.movedTotal = distanceMoved;
+        int zeroMoveLimit = 100;
+        while (p.move(distanceRemaining)) {
+            distanceRemaining = p.state.position().distance(targetPos);
+            if (distanceRemaining < 1e-10) {
+                return p.movedTotal;
+            }
+
+            // Break out if we've been moving for too long a distance
+            if (p.movedTotal > distanceLimit) {
+                break;
+            }
+
+            // Break out if we've been 'moving' 0 distance too many times
+            // Here just to prevent infinite loops, dunno if it's needed at all.
+            if (p.moved < 1e-10 && --zeroMoveLimit == 0) {
+                break;
+            }
+        }
+
+        // No path between the members - fallback distance
+        return Double.NaN;
     }
 
     /**

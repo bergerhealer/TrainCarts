@@ -318,6 +318,32 @@ public class TrainCommands {
         }
     }
 
+    @CommandTargetTrain
+    @CommandRequiresPermission(Permission.COMMAND_FLIP)
+    @CommandMethod("train flip")
+    @CommandDescription("Flips the orientation of an entire train 180 degrees")
+    private void commandFlip(
+            final CommandSender sender,
+            final TrainProperties trainProperties,
+            final @Flag(value="percart", description="Flip individual carts instead of the entire train") boolean perCart
+    ) {
+        MinecartGroup group = trainProperties.getHolder();
+        if (group == null || group.isUnloaded()) {
+            sender.sendMessage(ChatColor.RED + "Can not flip the train: it is not loaded");
+            return;
+        }
+
+        if (perCart) {
+            for (MinecartMember<?> member : group) {
+                member.flipOrientation();
+            }
+            sender.sendMessage(ChatColor.GREEN + "Carts of the selected train flipped!");
+        } else {
+            group.flipOrientation();
+            sender.sendMessage(ChatColor.GREEN + "Selected train flipped!");
+        }
+    }
+
     @CommandRequiresPermission(Permission.COMMAND_LAUNCH)
     @CommandMethod("train launch")
     @CommandDescription("Launches the train forwards at station launch speed")

@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import java.util.Locale;
+
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -20,16 +22,25 @@ public class SignActionFlip extends SignAction {
             return;
         }
 
+        boolean perCart = info.getLine(1).toLowerCase(Locale.ENGLISH).contains("percart");
         if (info.isTrainSign() && info.hasGroup() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER)) {
-            for (MinecartMember<?> member : info.getGroup()) {
-                member.flipOrientation();
+            if (perCart) {
+                for (MinecartMember<?> member : info.getGroup()) {
+                    member.flipOrientation();
+                }
+            } else {
+                info.getGroup().flipOrientation();
             }
         } else if (info.isCartSign() && info.hasMember() && info.isAction(SignActionType.REDSTONE_ON, SignActionType.MEMBER_ENTER)) {
             info.getMember().flipOrientation();
         } else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
             for (MinecartGroup group : info.getRCTrainGroups()) {
-                for (MinecartMember<?> member : group) {
-                    member.flipOrientation();
+                if (perCart) {
+                    for (MinecartMember<?> member : group) {
+                        member.flipOrientation();
+                    }
+                } else {
+                    group.flipOrientation();
                 }
             }
         }

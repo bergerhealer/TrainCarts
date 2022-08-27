@@ -1,5 +1,11 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import org.bukkit.entity.Player;
+
 import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.attachments.helper.AttachmentUpdateTransformHelper;
@@ -26,10 +32,15 @@ public class AttachmentControllerGroup {
 
     public void syncPrePositionUpdate(AttachmentUpdateTransformHelper updater) {
         for (MinecartMember<?> member : this.group) {
-            AttachmentControllerMember controller = member.getAttachments();
-            if (controller.isAttached()) {
-                controller.syncPrePositionUpdate();
-                updater.start(controller.getRootAttachment(), controller.getLiveTransform());
+            member.getAttachments().syncPrePositionUpdate(updater);
+        }
+    }
+
+    public void syncPositionAbsolute() {
+        this.ticksSinceLocationSync = 0;
+        try (Timings t = TCTimings.NETWORK_PERFORM_MOVEMENT.start()) {
+            for (MinecartMember<?> member : group) {
+                member.getAttachments().syncMovement(true);
             }
         }
     }
@@ -75,6 +86,48 @@ public class AttachmentControllerGroup {
                     // Perform actual updates
                     for (MinecartMember<?> member : group) {
                         member.getAttachments().syncMovement(false);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Synchronizes all attachments by first de-spawning and then re-spawning
+     * all attachments to all viewers of the train.
+     */
+    public void syncRespawn() {
+        List<RespawnedMember> members = new ArrayList<>(group.size());
+        for (MinecartMember<?> member : group) {
+            members.add(new RespawnedMember(member));
+        }
+
+        members.forEach(RespawnedMember::hide);
+        group.getPlugin().getTrainUpdateController().syncPositions(Collections.singletonList(group));
+        members.forEach(RespawnedMember::show);
+    }
+
+    private static class RespawnedMember {
+        public final MinecartMember<?> member;
+        private List<Player> players;
+
+        public RespawnedMember(MinecartMember<?> member) {
+            this.member = member;
+            this.players = Collections.emptyList();
+        }
+
+        public void hide() {
+            synchronized (member.getAttachments()) {
+                players = new ArrayList<>(member.getAttachments().getViewers());
+                member.getAttachments().makeHiddenForAll();
+            }
+        }
+
+        public void show() {
+            synchronized (member.getAttachments()) {
+                for (Player viewer : this.players) {
+                    if (!member.getAttachments().isViewer(viewer)) {
+                        member.getAttachments().makeVisible(viewer);
                     }
                 }
             }

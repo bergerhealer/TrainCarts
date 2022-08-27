@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -29,6 +30,9 @@ import com.bergerkiller.bukkit.tc.controller.components.AnimationController;
 import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.SignTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.ObstacleTracker;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
+import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
+import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRailWalker;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberFurnace;
@@ -55,6 +59,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -668,6 +673,200 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         }
         member.getWheels().startTeleport();
         member.getEntity().teleport(location);
+    }
+
+    /**
+     * Flips the orientation of this entire Train, making the front cart the back cart
+     * and also flipping the orientation of all individual carts. This will actively
+     * teleport carts around to make this happen.
+     */
+    public void flipOrientation() {
+        // Shortcuts
+        if (this.isEmpty()) {
+            return;
+        } else if (this.size() == 1) {
+            this.head().flipOrientation();
+            return;
+        }
+
+        // The amount of extra distance to move forwards/backwards
+        double shiftDistance = 0.5 * ((double) this.tail().getEntity().getWidth() - (double) this.head().getEntity().getWidth());
+
+        // Compute distances between members on the rails before
+        // This is a linked list of members from front to back
+        // As we spawn from back to front, this flips the members around
+        FlippedMember currentMember = null;
+        boolean areAllCartsReachable = true;
+        for (int i = this.size() - 1; i >= 1; i--) {
+            double distance = this.head(i).calculateRailDistanceToMemberAhead(this.head(i - 1));
+            if (Double.isNaN(distance)) {
+                // As fallback use the ideal distance between the carts
+                distance = this.head(i).getPreferredDistance(this.head(i - 1));
+                areAllCartsReachable = false;
+            }
+            FlippedMember next = new FlippedMember(this.head(i), distance);
+            next.next = currentMember;
+            currentMember = next;
+        }
+        {
+            FlippedMember next = new FlippedMember(this.head(), Math.max(0.0, -shiftDistance));
+            next.next = currentMember;
+            currentMember = next;
+        }
+        final FlippedMember rootMember = currentMember;
+
+        // If not all carts are reachable to one-another, some carts might be on different track
+        // or derailed entirely. This complicates things. In that case, we can't really use
+        // the train rail information to compute distances, and must do the entire thing
+        // using a rail walking point.
+        RailState current;
+        if (areAllCartsReachable) {
+            TrackedRailWalker walker = this.tail().getRailTracker().getTrackedRailWalker();
+
+            // If shift distance is negative, then the first spawn position is behind the start position
+            // For this we must move a small distance backwards. For as most as we can, we use the train
+            // rail information.
+            if (shiftDistance > 0.0) {
+                walker.invertMotion();
+                shiftDistance -= walker.move(shiftDistance);
+                walker.invertMotion();
+            }
+
+            if (shiftDistance > 0.0) {
+                // Can't walk the full distance backwards using the walker alone
+                // Will need to use a track walking point to walk the rest of the distance
+                walker.invertMotion();
+                walker.state().initEnterDirection();
+                TrackWalkingPoint p = new TrackWalkingPoint(walker.state());
+                p.skipFirst();
+                p.move(shiftDistance);
+                current = p.state;
+                current.position().invertMotion();
+                current.initEnterDirection();
+            } else {
+                // Walk to the current member until we can no longer find them
+                while (true) {
+                    currentMember.distanceRemaining -= walker.move(currentMember.distanceRemaining);
+                    if (currentMember.distanceRemaining <= 0.0) {
+                        currentMember.flippedState = walker.state().clone();
+                        currentMember.flippedState.initEnterDirection();
+                        currentMember = currentMember.next;
+                        if (currentMember == null) {
+                            break;
+                        }
+                    } else {
+                        // End of track. Rest must be done with a rail walking point
+                        break;
+                    }
+                }
+
+                current = walker.state();
+                current.initEnterDirection();
+            }
+        } else {
+            TrackedRail currentRail = null;
+            for (int i = size() - 1; i >= 0; i--) {
+                MinecartMember<?> member = this.get(i);
+                if (!member.isDerailed()) {
+                    currentRail = member.getRailTracker().getRail();
+                    break;
+                }
+            }
+            if (currentRail == null) {
+                // None of the minecarts are on rails. Got to abort.
+                flipOrientationFallback();
+                return;
+            }
+
+            current = currentRail.state.clone();
+            current.initEnterDirection();
+        }
+
+        // Move the remaining steps using a track walking point
+        if (currentMember != null) {
+            TrackWalkingPoint p = new TrackWalkingPoint(current);
+            p.skipFirst();
+            do {
+                if (!p.move(currentMember.distanceRemaining)) {
+                    // End of the rails encountered. Can't do a proper re-spawning.
+                    flipOrientationFallback();
+                    return;
+                }
+                currentMember.flippedState = p.state.clone();
+                currentMember = currentMember.next;
+            } while (currentMember != null);
+        }
+
+        applyFlippedStates(rootMember);
+    }
+
+    /**
+     * Flips orientation of the train by teleporting the front cart to the
+     * back cart and flipping each cart's orientation. This doesn't take into
+     * account the relative distances of the carts.
+     */
+    private void flipOrientationFallback() {
+        FlippedMember current = null;
+        for (int i = 0; i < size(); i++) {
+            MinecartMember<?> member = head(i);
+            MinecartMember<?> swapped = tail(i);
+            if (member == swapped) {
+                continue;
+            }
+
+            FlippedMember flipped = new FlippedMember(member, 0.0);
+            flipped.flippedState = swapped.getRailTracker().getState().clone();
+            flipped.next = current;
+            current = flipped;
+        }
+
+        applyFlippedStates(current);
+    }
+
+    private void applyFlippedStates(FlippedMember rootMember) {
+        // Teleport all the members
+        for (FlippedMember currentMember = rootMember; currentMember != null; currentMember = currentMember.next) {
+            currentMember.apply();
+        }
+
+        // Refresh direction and wheel information to make everything correct
+        this.updateDirection();
+        this.updateWheels();
+        this.getAttachments().syncRespawn();
+    }
+    
+    private static class FlippedMember {
+        public final MinecartMember<?> member;
+        public final boolean orientationInverted;
+        public final double velocity;
+        public double distanceRemaining;
+        public RailState flippedState;
+        public FlippedMember next;
+
+        public FlippedMember(MinecartMember<?> member, double distanceFromBehind) {
+            this.member = member;
+            this.orientationInverted = member.isOrientationInverted();
+            this.velocity = member.getForce();
+            this.distanceRemaining = distanceFromBehind;
+            this.flippedState = null;
+            this.next = null;
+        }
+
+        public void apply() {
+            Location position = flippedState.position().toLocation(flippedState.railBlock());
+            Vector velocityVec = flippedState.motionVector().clone().multiply(velocity);
+            Vector upVector = flippedState.position().getWheelOrientation().upVector();
+            Vector forwardVector = flippedState.motionVector();
+            if (!orientationInverted) { // Note: inverse, as we WANT to flip orientation
+                forwardVector.multiply(-1.0);
+            }
+            Quaternion orientation = Quaternion.fromLookDirection(forwardVector, upVector);
+
+            this.member.getEntity().setPosition(position.getX(), position.getY(), position.getZ());
+            this.member.getEntity().setVelocity(velocityVec);
+            this.member.setOrientation(orientation);
+            this.member.getWheels().startTeleport();
+        }
     }
 
     /**

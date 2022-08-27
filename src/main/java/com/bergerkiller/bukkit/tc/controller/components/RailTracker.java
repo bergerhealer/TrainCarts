@@ -167,4 +167,75 @@ public abstract class RailTracker {
                    + "END{x=" + end.posX + ",y=" + end.posY + ",z=" + end.posZ + "}";
         }
     }
+
+    /**
+     * Walks distances along train tracked rail information
+     */
+    public static class TrackedRailWalker {
+        private final List<TrackedRail> rails;
+        private TrackedRail currentRail;
+        private int currentRailIndex;
+        private int order;
+        private final RailState state;
+
+        public TrackedRailWalker(List<TrackedRail> rails, TrackedRail currentRail) {
+            this.rails = rails;
+            this.currentRail = currentRail;
+            this.currentRailIndex = this.rails.indexOf(currentRail);
+            this.order = -1;
+            this.state = currentRail.state.clone();
+            this.state.position().makeAbsolute(this.state.railBlock());
+        }
+
+        public RailState state() {
+            return this.state;
+        }
+
+        public RailPath.Position position() {
+            return this.state.position();
+        }
+
+        public void invertMotion() {
+            this.state.position().invertMotion();
+            this.order = -this.order;
+        }
+
+        /**
+         * Moves a distance on the tracked rails
+         *
+         * @param distance Distance to move
+         * @return Actual distance moved. 0.0 if no more movement is possible.
+         */
+        public double move(double distance) {
+            // Guard against init failures when we don't have tracked rails at all
+            if (currentRailIndex == -1) {
+                return 0.0;
+            }
+
+            double movedTotal = 0.0;
+            double distanceRemaining = distance;
+            while (true) {
+                double moved = currentRail.getPath().move(state, distanceRemaining);
+                movedTotal += moved;
+                if (moved >= distanceRemaining) {
+                    return distance; //movedTotal;
+                }
+
+                // Next rail, keep within bounds so invertMotion() stays functional
+                currentRailIndex += order;
+                if (currentRailIndex < 0) {
+                    currentRailIndex = 0;
+                    break;
+                } else if (currentRailIndex >= rails.size()) {
+                    currentRailIndex = rails.size() - 1;
+                    break;
+                }
+                currentRail = rails.get(currentRailIndex);
+                state.setRailPiece(currentRail.state.railPiece());
+                distanceRemaining = distance - movedTotal;
+            }
+
+            return movedTotal;
+        }
+    }
 }

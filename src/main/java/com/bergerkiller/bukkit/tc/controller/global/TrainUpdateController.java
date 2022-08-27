@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.global;
 
+import java.util.Collection;
 import java.util.Random;
 import java.util.logging.Level;
 
@@ -7,6 +8,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.Timings;
+import com.bergerkiller.bukkit.common.collections.ImplicitlySharedSet;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -17,6 +19,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.helper.AttachmentUpdateTransformHelper;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 /**
@@ -105,6 +108,87 @@ public class TrainUpdateController {
         updateTransformHelper.startAndFinish(attachment, initialTransform);
     }
 
+    /**
+     * Updates the attachment positions, without performing any relative movement updates or updating
+     * attachment onTick().
+     *
+     * @param groups Groups to sync positions of
+     */
+    public void syncPositions(Collection<MinecartGroup> groups) {
+        update(groups, true);
+    }
+
+    /**
+     * Updates the attachment positions, without performing any relative movement updates or updating
+     * attachment onTick().
+     *
+     * @param member MinecartMember to sync positions of
+     */
+    public void syncPositions(MinecartMember<?> member) {
+        try (Timings t = TCTimings.NETWORK_UPDATE_POSITIONS.start()) {
+            // First do a pre-movement update
+            try {
+                member.getAttachments().syncPrePositionUpdate(updateTransformHelper);
+            } catch (Throwable ex) {
+                syncFail(member.getGroup(), ex);
+            }
+
+            // Sync
+            updateTransformHelper.finish();
+        }
+
+        // Post-updates
+        try {
+            try (Timings t = TCTimings.NETWORK_PERFORM_MOVEMENT.start()) {
+                member.getAttachments().syncMovement(true);
+            }
+        } catch (Throwable t) {
+            syncFail(member.getGroup(), t);
+        }
+    }
+
+    /**
+     * Updates the attachments of all the groups specified
+     *
+     * @param groups Collection of groups to update
+     * @param positionSync Whether to only synchronize position of the attachments. This will not
+     *                     update attachment onTick() and will force attachment positions to be sync'd.
+     */
+    private void update(Collection<MinecartGroup> groups, boolean positionSync) {
+        try (Timings t = TCTimings.NETWORK_UPDATE_POSITIONS.start()) {
+            // First do a pre-movement update for all trains
+            for (MinecartGroup group : groups) {
+                try {
+                    group.getAttachments().syncPrePositionUpdate(updateTransformHelper);
+                } catch (Throwable ex) {
+                    syncFail(group, ex);
+                }
+            }
+
+            // Sync
+            updateTransformHelper.finish();
+        }
+
+        // Post-updates
+        for (MinecartGroup group : groups) {
+            try {
+                if (positionSync) {
+                    group.getAttachments().syncPositionAbsolute();
+                } else {
+                    group.getAttachments().syncPostPositionUpdate();
+                }
+            } catch (Throwable t) {
+                syncFail(group, t);
+            }
+        }
+    }
+
+    private void syncFail(MinecartGroup group, Throwable ex) {
+        final TrainProperties p = group.getProperties();
+        plugin.log(Level.SEVERE, "Failed to synchronize a network controller of train '" + p.getTrainName() + "' at " + p.getLocation() + ":");
+        plugin.handle(ex);
+    }
+
     private class TrainUpdateTask extends Task {
         int ctr = 0;
         long lastTick = Long.MAX_VALUE;
@@ -149,32 +233,9 @@ public class TrainUpdateController {
 
         @Override
         public void run() {
-            try (Timings t = TCTimings.NETWORK_UPDATE_POSITIONS.start()) {
-                // First do a pre-movement update for all trains
-                for (MinecartGroup group : MinecartGroupStore.getGroups().cloneAsIterable()) {
-                    try {
-                        group.getAttachments().syncPrePositionUpdate(updateTransformHelper);
-                    } catch (Throwable ex) {
-                        final TrainProperties p = group.getProperties();
-                        plugin.log(Level.SEVERE, "Failed to synchronize a network controller of train '" + p.getTrainName() + "' at " + p.getLocation() + ":");
-                        plugin.handle(ex);
-                    }
-                }
-
-                // Sync
-                updateTransformHelper.finish();
+            try (ImplicitlySharedSet<MinecartGroup> groups = MinecartGroupStore.getGroups().clone()) {
+                update(groups, false);
             }
-
-            // Post-updates
-            for (MinecartGroup group : MinecartGroupStore.getGroups().cloneAsIterable()) {
-                try {
-                    group.getAttachments().syncPostPositionUpdate();
-                } catch (Throwable t) {
-                    final TrainProperties p = group.getProperties();
-                    plugin.log(Level.SEVERE, "Failed to synchronize a network controller of train '" + p.getTrainName() + "' at " + p.getLocation() + ":");
-                    plugin.handle(t);
-                }
-            }            
         }
     }
 

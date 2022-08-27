@@ -305,6 +305,24 @@ public class CartCommands {
     }
 
     @CommandTargetTrain
+    @CommandRequiresPermission(Permission.COMMAND_FLIP)
+    @CommandMethod("cart flip")
+    @CommandDescription("Flips the orientation of a cart 180 degrees")
+    private void commandFlip(
+            final CommandSender sender,
+            final CartProperties cartProperties
+    ) {
+        MinecartMember<?> member = cartProperties.getHolder();
+        if (member == null || member.isUnloaded()) {
+            sender.sendMessage(ChatColor.RED + "Can not flip the cart: it is not loaded");
+            return;
+        }
+
+        member.flipOrientation();
+        sender.sendMessage(ChatColor.GREEN + "Selected cart flipped!");
+    }
+
+    @CommandTargetTrain
     @CommandMethod("cart <property> <value>")
     @CommandDescription("Updates the value of a property of a cart by name")
     private void commandCart(

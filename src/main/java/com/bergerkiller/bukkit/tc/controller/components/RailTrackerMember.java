@@ -52,6 +52,18 @@ public class RailTrackerMember extends RailTracker {
     }
 
     /**
+     * Creates a new tracked rail walker that walks from this member's current rail forwards,
+     * along cached tracked rail information of the train. No actual rail lookups will be performed,
+     * making this method much more efficient.
+     *
+     * @return Tracked rail walker
+     */
+    public TrackedRailWalker getTrackedRailWalker() {
+        MinecartMember<?> owner = this.owner;
+        return new TrackedRailWalker(owner.getGroup().getRailTracker().getRailInformation(), this.getRail());
+    }
+
+    /**
      * Obtains a new track iterator iterating the tracks from this point towards the direction
      * the Minecart is moving.
      *
