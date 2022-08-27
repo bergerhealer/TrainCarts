@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import org.bukkit.Effect;
@@ -18,6 +19,10 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 public class MinecartMemberChest extends MinecartMember<CommonMinecartChest> {
+
+    public MinecartMemberChest(TrainCarts plugin) {
+        super(plugin);
+    }
 
     @Override
     public void onAttached() {

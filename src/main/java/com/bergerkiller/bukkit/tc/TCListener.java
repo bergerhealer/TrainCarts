@@ -158,13 +158,13 @@ public class TCListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onChunkLoadEntities(ChunkLoadEntitiesEvent event) {
-        OfflineGroupManager.loadChunk(event.getChunk());
+        OfflineGroupManager.loadChunk(plugin, event.getChunk());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onWorldLoad(WorldLoadEvent event) {
         // Refresh the groups on this world
-        OfflineGroupManager.refresh(event.getWorld());
+        OfflineGroupManager.refresh(plugin, event.getWorld());
 
         // Start loading the chunks kept loaded by trains with property keep chunks loaded
         Map<OfflineGroup, List<ForcedChunk>> chunks = OfflineGroupManager.getForceLoadedChunks(event.getWorld());
@@ -211,7 +211,7 @@ public class TCListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onEntityAdd(EntityAddEvent event) {
         if (MinecartMemberStore.canConvertAutomatically(event.getEntity())) {
-            MinecartMemberStore.convert((Minecart) event.getEntity());
+            MinecartMemberStore.convert(plugin, (Minecart) event.getEntity());
         }
     }
 
@@ -251,7 +251,7 @@ public class TCListener implements Listener {
                 // For the next tick: update the storage system to restore trains here and there
                 CommonUtil.nextTick(new Runnable() {
                     public void run() {
-                        OfflineGroupManager.refresh();
+                        OfflineGroupManager.refresh(plugin);
                     }
                 });
             }
@@ -584,7 +584,7 @@ public class TCListener implements Listener {
         ////    return true;
         //}
 
-        MinecartMemberStore.spawnBy(at, player);
+        MinecartMemberStore.spawnBy(plugin, at, player);
         return false;
 
         /*

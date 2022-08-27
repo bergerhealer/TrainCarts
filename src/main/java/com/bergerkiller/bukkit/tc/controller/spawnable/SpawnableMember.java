@@ -6,6 +6,7 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 
@@ -35,6 +36,15 @@ public class SpawnableMember {
     }
 
     /**
+     * Gets the TrainCarts plugin instance that manages this SpawnableMember
+     *
+     * @return TrainCarts plugin instance
+     */
+    public TrainCarts getPlugin() {
+        return this.group.getPlugin();
+    }
+
+    /**
      * Spawns this Spawnable Member in the world
      * 
      * @param spawnLoc
@@ -42,7 +52,7 @@ public class SpawnableMember {
      */
     public MinecartMember<?> spawn(Location spawnLoc) {
         // When initializing the config, act as unloaded to avoid creation of group
-        MinecartMember<?> mm = MinecartMemberStore.spawn(spawnLoc, getEntityType());
+        MinecartMember<?> mm = MinecartMemberStore.spawn(this.getPlugin(), spawnLoc, getEntityType());
         mm.setUnloaded(true);
         mm.getProperties().load(this.config);
         if (this.config.isNode("data")) {

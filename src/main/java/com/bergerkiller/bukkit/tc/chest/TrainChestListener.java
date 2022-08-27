@@ -28,7 +28,12 @@ import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
  */
 public class TrainChestListener implements Listener {
     private static final int INTERACT_TIMEOUT_TICKS = 5;
+    private final TrainCarts plugin;
     private final EntityMap<Player, Integer> ticksSinceLastAction = new EntityMap<Player, Integer>();
+
+    public TrainChestListener(TrainCarts plugin) {
+        this.plugin = plugin;
+    }
 
     /**
      * Interaction events can (in part due to TCInteractionPacketListener) result
@@ -83,7 +88,7 @@ public class TrainChestListener implements Listener {
 
         // Parse group, check not empty
         TrainChestItemUtil.SpawnResult result;
-        SpawnableGroup group = TrainChestItemUtil.getSpawnableGroup(heldItem);
+        SpawnableGroup group = TrainChestItemUtil.getSpawnableGroup(plugin, heldItem);
         double speed = TrainChestItemUtil.getSpeed(heldItem);
         if (group == null) {
             // Invalid item, or empty item

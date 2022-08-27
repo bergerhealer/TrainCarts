@@ -6,10 +6,15 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.wrappers.MobSpawner;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public class MinecartMemberMobSpawner extends MinecartMember<CommonMinecartMobSpawner> {
+
+    public MinecartMemberMobSpawner(TrainCarts plugin) {
+        super(plugin);
+    }
 
     @Override
     public void onPhysicsPostMove() throws MemberMissingException, GroupUnloadedException {

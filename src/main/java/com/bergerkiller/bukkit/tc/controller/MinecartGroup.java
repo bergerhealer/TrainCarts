@@ -69,6 +69,7 @@ import java.util.stream.Collectors;
 public class MinecartGroup extends MinecartGroupStore implements IPropertiesHolder, AnimationController, TrainStatusProvider {
     private static final long serialVersionUID = 3;
     private static final LongHashSet chunksBuffer = new LongHashSet(50);
+    private final TrainCarts plugin;
     protected final ToggledState ticked = new ToggledState();
     protected final ChunkArea chunkArea = new ChunkArea();
     private boolean chunkAreaValid = false;
@@ -86,8 +87,18 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     private int updateStepNr = 1;
     private boolean unloaded = false;
 
-    protected MinecartGroup() {
+    protected MinecartGroup(TrainCarts plugin) {
+        this.plugin = plugin;
         this.ticked.set();
+    }
+
+    /**
+     * Gets the TrainCarts plugin instance
+     *
+     * @return TrainCarts plugin
+     */
+    public TrainCarts getPlugin() {
+        return this.plugin;
     }
 
     @Override

@@ -35,24 +35,25 @@ import org.bukkit.inventory.ItemStack;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 public abstract class MinecartMemberStore {
-    private static ClassMap<Class<?>> controllers = new ClassMap<>();
+    private static ClassMap<Function<TrainCarts, ? extends MinecartMember<?>>> controllers = new ClassMap<>();
 
     static {
-        controllers.put(CommonMinecartRideable.class, MinecartMemberRideable.class);
-        controllers.put(CommonMinecartFurnace.class, MinecartMemberFurnace.class);
-        controllers.put(CommonMinecartChest.class, MinecartMemberChest.class);
-        controllers.put(CommonMinecartHopper.class, MinecartMemberHopper.class);
-        controllers.put(CommonMinecartTNT.class, MinecartMemberTNT.class);
-        controllers.put(CommonMinecartMobSpawner.class, MinecartMemberMobSpawner.class);
-        controllers.put(CommonMinecartCommandBlock.class, MinecartMemberCommandBlock.class);
+        controllers.put(CommonMinecartRideable.class, MinecartMemberRideable::new);
+        controllers.put(CommonMinecartFurnace.class, MinecartMemberFurnace::new);
+        controllers.put(CommonMinecartChest.class, MinecartMemberChest::new);
+        controllers.put(CommonMinecartHopper.class, MinecartMemberHopper::new);
+        controllers.put(CommonMinecartTNT.class, MinecartMemberTNT::new);
+        controllers.put(CommonMinecartMobSpawner.class, MinecartMemberMobSpawner::new);
+        controllers.put(CommonMinecartCommandBlock.class, MinecartMemberCommandBlock::new);
     }
 
     /**
      * Converts all Minecarts on all enabled worlds into Minecart Members
      */
-    public static void convertAllAutomatically() {
+    public static void convertAllAutomatically(TrainCarts plugin) {
         List<Minecart> minecarts = new ArrayList<>();
         for (org.bukkit.World world : WorldUtil.getWorlds()) {
             if (TrainCarts.isWorldDisabled(world)) {
@@ -66,7 +67,7 @@ public abstract class MinecartMemberStore {
         }
         // Convert
         for (Minecart minecart : minecarts) {
-            convert(minecart);
+            convert(plugin, minecart);
         }
         minecarts.clear();
     }
@@ -129,7 +130,7 @@ public abstract class MinecartMemberStore {
      * @return Minecart Member conversion
      */
     @SuppressWarnings("rawtypes")
-    public static MinecartMember<?> convert(Minecart source) {
+    public static MinecartMember<?> convert(TrainCarts plugin, Minecart source) {
         if (source.isDead()) {
             return null;
         }
@@ -147,7 +148,7 @@ public abstract class MinecartMemberStore {
         }
 
         // Create a new Minecart controller for this type
-        MinecartMember newController = createController(entity);
+        MinecartMember newController = createController(plugin, entity);
         if (newController == null) {
             // Unsupported
             return null;
@@ -188,13 +189,13 @@ public abstract class MinecartMemberStore {
      * @param entityType of the controller to create
      * @return new MinecartMember instance suitable for the type of Entity, or null if none found
      */
-    public static MinecartMember<?> createController(EntityType entityType) {
+    public static MinecartMember<?> createController(TrainCarts plugin, EntityType entityType) {
         try {
             Class<?> commonType = CommonEntityType.byEntityType(entityType).commonType.getType();
-            Class<?> controllerClass = controllers.get(commonType);
+            Function<TrainCarts, ? extends MinecartMember<?>> controllerConstr = controllers.get(commonType);
 
-            if (controllerClass != null) {
-                return (MinecartMember<?>) controllerClass.newInstance();
+            if (controllerConstr != null) {
+                return controllerConstr.apply(plugin);
             }
             return null;
         } catch (Throwable t) {
@@ -202,20 +203,20 @@ public abstract class MinecartMemberStore {
             return null;
         }
     }
-    
+
     /**
      * Creates a suitable Minecart Member controller for an Entity
      *
      * @param entity to create a controller for
      * @return new MinecartMember instance suitable for the type of Entity, or null if none found
      */
-    public static MinecartMember<?> createController(CommonEntity<?> entity) {
-        Class<?> controllerClass = controllers.get(entity);
-        if (controllerClass == null) {
+    public static MinecartMember<?> createController(TrainCarts plugin, CommonEntity<?> entity) {
+        Function<TrainCarts, ? extends MinecartMember<?>> controllerConstr = controllers.get(entity);
+        if (controllerConstr == null) {
             return null;
         }
         try {
-            return (MinecartMember<?>) controllerClass.newInstance();
+            return controllerConstr.apply(plugin);
         } catch (Throwable t) {
             TrainCarts.plugin.handle(t);
             return null;
@@ -229,7 +230,7 @@ public abstract class MinecartMemberStore {
      * @param player that placed something
      * @return the spawned Minecart Member, or null if it failed
      */
-    public static MinecartMember<?> spawnBy(Location at, Player player) {
+    public static MinecartMember<?> spawnBy(TrainCarts plugin, Location at, Player player) {
         ItemStack item = HumanHand.getItemInMainHand(player);
         if (LogicUtil.nullOrEmpty(item)) {
             return null;
@@ -250,7 +251,7 @@ public abstract class MinecartMemberStore {
         }
 
         // spawn and fire event
-        MinecartMember<?> spawned = spawn(at, type);
+        MinecartMember<?> spawned = spawn(plugin, at, type);
         if (spawned != null && !spawned.getEntity().isDead()) {
             spawned.getGroup().getProperties().setDefault(player);
             if (TCConfig.setOwnerOnPlacement) {
@@ -263,8 +264,8 @@ public abstract class MinecartMemberStore {
         return spawned;
     }
 
-    public static MinecartMember<?> spawn(Location at, EntityType type) {
-        MinecartMember<?> controller = createController(type);
+    public static MinecartMember<?> spawn(TrainCarts plugin, Location at, EntityType type) {
+        MinecartMember<?> controller = createController(plugin, type);
         if (controller == null) {
             throw new IllegalArgumentException("No suitable MinecartMember type for " + type);
         }

@@ -51,7 +51,7 @@ public class SpawnSignManager {
 
             @Override
             public void onAdded(OfflineSignStore store, OfflineSign sign, SpawnSignMetadata metadata) {
-                SpawnSign newSpawnSign = new SpawnSign(store, sign, metadata);
+                SpawnSign newSpawnSign = new SpawnSign(plugin, store, sign, metadata);
                 signs.put(sign.getBlock(), newSpawnSign);
                 notifyChanged();
             }
@@ -159,7 +159,7 @@ public class SpawnSignManager {
                     /*  interval  */ options.autoSpawnInterval,
                     /* last spawn */ System.currentTimeMillis() + options.autoSpawnInterval,
                     /*   active   */ signEvent.isPowered());
-            result = new SpawnSign(null, OfflineSign.fromSign(signEvent.getSign()), metadata);
+            result = new SpawnSign(plugin, null, OfflineSign.fromSign(signEvent.getSign()), metadata);
         }
         return result;
     }

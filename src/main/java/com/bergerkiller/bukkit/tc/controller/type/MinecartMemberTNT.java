@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.entity.type.CommonMinecartTNT;
 import com.bergerkiller.bukkit.common.wrappers.DamageSource;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import org.bukkit.Effect;
@@ -11,6 +12,10 @@ import org.bukkit.block.BlockFace;
 
 public class MinecartMemberTNT extends MinecartMember<CommonMinecartTNT> {
     private boolean ignoreDamage = false;
+
+    public MinecartMemberTNT(TrainCarts plugin) {
+        super(plugin);
+    }
 
     @Override
     public boolean onDamage(DamageSource damagesource, double damage) {

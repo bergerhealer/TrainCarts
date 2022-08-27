@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
 import com.bergerkiller.bukkit.tc.TCTimings;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableMember;
@@ -26,6 +27,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 
 public class SpawnSign {
+    private final TrainCarts plugin;
     private final OfflineSignStore store;
     private final OfflineBlock location;
     private SpawnSignManager.SpawnSignMetadata state;
@@ -35,7 +37,8 @@ public class SpawnSign {
     private LongHashMap<SignSpawnChunk> chunks = new LongHashMap<SignSpawnChunk>();
     private int num_chunks_loaded = 0;
 
-    SpawnSign(OfflineSignStore store, OfflineSign sign, SpawnSignManager.SpawnSignMetadata metadata) {
+    SpawnSign(TrainCarts plugin, OfflineSignStore store, OfflineSign sign, SpawnSignManager.SpawnSignMetadata metadata) {
+        this.plugin = plugin;
         this.store = store;
         this.location = sign.getBlock();
         this.updateState(sign, metadata);
@@ -50,6 +53,15 @@ public class SpawnSign {
                 this.chunks.put(cx, cz, new SignSpawnChunk(this.location.getWorldUUID(), cx, cz));
             }
         }
+    }
+
+    /**
+     * Gets the TrainCarts plugin instance managing this spawn sign
+     *
+     * @return plugin instance
+     */
+    public TrainCarts getPlugin() {
+        return this.plugin;
     }
 
     void updateState(OfflineSign sign, SpawnSignManager.SpawnSignMetadata metadata) {
@@ -149,7 +161,7 @@ public class SpawnSign {
      * @return spawnable group
      */
     public SpawnableGroup getSpawnableGroup() {
-        return SpawnableGroup.parse(this.spawnFormat);
+        return SpawnableGroup.parse(this.getPlugin(), this.spawnFormat);
     }
 
     /**

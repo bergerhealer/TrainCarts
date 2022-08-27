@@ -85,7 +85,7 @@ public class OfflineGroupManager {
         }
     }
 
-    public static void loadChunk(Chunk chunk) {
+    public static void loadChunk(TrainCarts plugin, Chunk chunk) {
         chunkLoadReq = true;
         // Ignore chunk loads while refreshing
         if (isRefreshingGroups) {
@@ -103,7 +103,7 @@ public class OfflineGroupManager {
                             if (group.testFullyLoaded()) {
                                 //a participant to be restored
                                 if (group.updateLoadedChunks(map)) {
-                                    map.restoreGroup(group);
+                                    map.restoreGroup(plugin, group);
                                 } else {
                                     //add it again
                                     map.add(group);
@@ -134,20 +134,20 @@ public class OfflineGroupManager {
         }
     }
 
-    public static void refresh() {
+    public static void refresh(TrainCarts plugin) {
         for (World world : WorldUtil.getWorlds()) {
-            refresh(world);
+            refresh(plugin, world);
         }
     }
 
-    public static void refresh(World world) {
+    public static void refresh(TrainCarts plugin, World world) {
         synchronized (managers) {
             OfflineGroupMapImpl map = managers.get(world);
             if (map != null) {
                 if (map.isEmpty()) {
                     managers.remove(world);
                 } else if (map.canRestoreGroups()) {
-                    map.refreshGroups();
+                    map.refreshGroups(plugin);
                 }
             }
         }
@@ -604,12 +604,12 @@ public class OfflineGroupManager {
             super(world);
         }
 
-        public void restoreGroup(OfflineGroup group) {
+        public void restoreGroup(TrainCarts plugin, OfflineGroup group) {
             this.remove(group);
-            group.create(group.world.getLoadedWorld());
+            group.create(plugin, group.world.getLoadedWorld());
         }
 
-        public void refreshGroups() {
+        public void refreshGroups(TrainCarts plugin) {
             // While refreshing, ignore incoming Chunk Load events
             // We do not want the group map to change concurrently!
             isRefreshingGroups = true;
@@ -625,7 +625,7 @@ public class OfflineGroupManager {
                     groupsBuffer.addAll(this.values());
                     for (OfflineGroup group : groupsBuffer) {
                         if (group.updateLoadedChunks(this)) {
-                            restoreGroup(group);
+                            restoreGroup(plugin, group);
                         }
                     }
                 } while (chunkLoadReq);

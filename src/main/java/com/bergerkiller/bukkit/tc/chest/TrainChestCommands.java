@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
@@ -32,6 +33,7 @@ public class TrainChestCommands {
     @CommandMethod("train chest give <target_player>")
     @CommandDescription("Gives a pre-configured train-storing chest item to another player")
     private void commandGiveChestItemToPlayer(
+            final TrainCarts plugin,
             final CommandSender sender,
             final @Argument(value="target_player", description="Who to give it to", suggestions="targetplayer") String targetPlayerName,
             final @Flag(value="train", description="Initial train spawn configuration", suggestions="trainspawnpattern") String spawnConfig,
@@ -48,7 +50,7 @@ public class TrainChestCommands {
         ItemStack item = TrainChestItemUtil.createItem();
         if (spawnConfig != null && !spawnConfig.isEmpty()) {
             // Types permission check
-            if (sender instanceof Player && !SpawnableGroup.parse(spawnConfig).checkSpawnPermissions((Player) sender)) {
+            if (sender instanceof Player && !SpawnableGroup.parse(plugin, spawnConfig).checkSpawnPermissions((Player) sender)) {
                 return;
             }
 
@@ -77,6 +79,7 @@ public class TrainChestCommands {
     @CommandMethod("train chest [spawnconfig]")
     @CommandDescription("Gives a new train-storing chest item to the sender, train information to store can be specified")
     private void commandGiveChestItem(
+            final TrainCarts plugin,
             final Player sender,
             final @Argument("spawnconfig") @Greedy String spawnConfig
     ) {
@@ -84,7 +87,7 @@ public class TrainChestCommands {
         ItemStack item = TrainChestItemUtil.createItem();
         if (spawnConfig != null && !spawnConfig.isEmpty()) {
             // Types permission check
-            if (!SpawnableGroup.parse(spawnConfig).checkSpawnPermissions(sender)) {
+            if (!SpawnableGroup.parse(plugin, spawnConfig).checkSpawnPermissions(sender)) {
                 return;
             }
 
@@ -99,11 +102,12 @@ public class TrainChestCommands {
     @CommandMethod("train chest set [spawnconfig]")
     @CommandDescription("Clears the train-storing chest item the player is currently holding")
     private void commandSetChestItem(
+            final TrainCarts plugin,
             final Player player,
             final @Argument(value="spawnconfig", suggestions="trainspawnpattern") @Greedy String spawnConfig
     ) {
         if (spawnConfig != null && !spawnConfig.isEmpty() &&
-                !SpawnableGroup.parse(spawnConfig).checkSpawnPermissions(player)
+                !SpawnableGroup.parse(plugin, spawnConfig).checkSpawnPermissions(player)
         ) {
             return;
         }
@@ -200,6 +204,7 @@ public class TrainChestCommands {
     @CommandMethod("train chest export")
     @CommandDescription("Exports the train configuration in the chest item to a hastebin server")
     private void commandExportChestItem(
+            final TrainCarts plugin,
             final Player player
     ) {
         ItemStack item = HumanHand.getItemInMainHand(player);
@@ -207,7 +212,7 @@ public class TrainChestCommands {
             throw new NoTrainStorageChestItemException();
         }
 
-        SpawnableGroup spawnable = TrainChestItemUtil.getSpawnableGroup(item);
+        SpawnableGroup spawnable = TrainChestItemUtil.getSpawnableGroup(plugin, item);
         if (spawnable == null) {
             Localization.CHEST_SPAWN_EMPTY.message(player);
             return;

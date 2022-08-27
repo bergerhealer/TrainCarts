@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
@@ -21,6 +22,10 @@ import org.bukkit.entity.Player;
 
 public class MinecartMemberRideable extends MinecartMember<CommonMinecartRideable> {
     private List<Entity> oldPassengers = new ArrayList<Entity>();
+
+    public MinecartMemberRideable(TrainCarts plugin) {
+        super(plugin);
+    }
 
     @Override
     public InteractionResult onInteractBy(HumanEntity interacter, HumanHand hand) {

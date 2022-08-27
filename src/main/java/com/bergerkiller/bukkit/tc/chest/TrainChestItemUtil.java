@@ -198,11 +198,12 @@ public class TrainChestItemUtil {
      * Supports both when the configuration itself, as when the train name is
      * referenced.
      *
+     * @param plugin TrainCarts plugin instance
      * @param item Input train chest item
      * @return group configured in the item. Is null if the item is not a train
      *         chest item, or is empty.
      */
-    public static SpawnableGroup getSpawnableGroup(ItemStack item) {
+    public static SpawnableGroup getSpawnableGroup(TrainCarts plugin, ItemStack item) {
         if (!isItem(item)) {
             return null;
         }
@@ -213,7 +214,7 @@ public class TrainChestItemUtil {
         // Attempt parsing the Item's configuration into a SpawnableGroup
         SpawnableGroup group;
         if (ItemUtil.getMetaTag(item).getValue("parsed", false)) {
-            group = SpawnableGroup.parse(ItemUtil.getMetaTag(item).getValue("config", ""));
+            group = SpawnableGroup.parse(plugin, ItemUtil.getMetaTag(item).getValue("config", ""));
         } else {
             BasicConfiguration basicConfig = new BasicConfiguration();
             try {
@@ -228,10 +229,10 @@ public class TrainChestItemUtil {
                 }
                 basicConfig.loadFromStream(new ByteArrayInputStream(uncompressed));
             } catch (IOException ex) {
-                TrainCarts.plugin.getLogger().log(Level.SEVERE, "Unhandled IO error parsing train chest configuration", ex);
+                plugin.getLogger().log(Level.SEVERE, "Unhandled IO error parsing train chest configuration", ex);
                 return null;
             }
-            group = SpawnableGroup.fromConfig(basicConfig);
+            group = SpawnableGroup.fromConfig(plugin, basicConfig);
         }
         if (group.getMembers().isEmpty()) {
             return null;

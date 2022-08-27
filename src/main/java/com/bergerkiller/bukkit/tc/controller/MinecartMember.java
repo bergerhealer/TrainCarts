@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -110,6 +109,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public static final double GRAVITY_MULTIPLIER_RAILED = 0.015625;
     public static final double GRAVITY_MULTIPLIER = 0.04;
     public static final int MAXIMUM_DAMAGE_SUSTAINED = 40;
+    private final TrainCarts plugin;
     protected final ToggledState forcedBlockUpdate = new ToggledState(true);
     private final SignTrackerMember signTracker = new SignTrackerMember(this);
     private final ActionTrackerMember actionTracker = new ActionTrackerMember(this);
@@ -143,6 +143,19 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private List<Entity> enterForced = new ArrayList<Entity>(1);
     private boolean wasMoving = false; // for starting driveSound property. TODO: Attachment?
     private WorldRailLookup railLookup = WorldRailLookup.NONE; // current-world rail lookup
+
+    public MinecartMember(TrainCarts plugin) {
+        this.plugin = plugin;
+    }
+
+    /**
+     * Gets the TrainCarts plugin instance
+     *
+     * @return TrainCarts plugin
+     */
+    public TrainCarts getPlugin() {
+        return this.plugin;
+    }
 
     public static boolean isTrackConnected(MinecartMember<?> m1, MinecartMember<?> m2) {
         // Can the minecart reach the other?

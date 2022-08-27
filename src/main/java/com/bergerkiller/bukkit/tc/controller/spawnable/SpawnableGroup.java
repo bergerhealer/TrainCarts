@@ -33,6 +33,7 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
  * Stores information about a train prior to spawning
  */
 public class SpawnableGroup {
+    private final TrainCarts plugin;
     private final List<SpawnableMember> members = new ArrayList<SpawnableMember>();
     private final ConfigurationNode config;
     private CenterMode centerMode = CenterMode.NONE;
@@ -43,8 +44,26 @@ public class SpawnableGroup {
      */
     private static final double CAN_MOVE_DISTANCE = 2.0;
 
+    /**
+     * @deprecated Pass TrainCarts plugin instance using {@link #SpawnableGroup(TrainCarts)} instead
+     */
+    @Deprecated
     public SpawnableGroup() {
+        this(TrainCarts.plugin);
+    }
+
+    public SpawnableGroup(TrainCarts plugin) {
+        this.plugin = plugin;
         this.config = new ConfigurationNode();
+    }
+
+    /**
+     * Gets the TrainCarts plugin instance that manages this SpawnableGroup
+     *
+     * @return TrainCarts plugin instance
+     */
+    public TrainCarts getPlugin() {
+        return this.plugin;
     }
 
     /**
@@ -501,14 +520,23 @@ public class SpawnableGroup {
     }
 
     /**
+     * @deprecated Use {@link #fromConfig(TrainCarts, ConfigurationNode)} instead
+     */
+    @Deprecated
+    public static SpawnableGroup fromConfig(ConfigurationNode savedConfig) {
+        return fromConfig(TrainCarts.plugin, savedConfig);
+    }
+
+    /**
      * Creates a SpawnableGroup from the full contents of saved train properties, 
      * either from a real train or from the saved properties store.
-     * 
+     *
+     * @param plugin TrainCarts plugin instance
      * @param savedConfig
      * @return spawnable group
      */
-    public static SpawnableGroup fromConfig(ConfigurationNode savedConfig) {
-        SpawnableGroup result = new SpawnableGroup();
+    public static SpawnableGroup fromConfig(TrainCarts plugin, ConfigurationNode savedConfig) {
+        SpawnableGroup result = new SpawnableGroup(plugin);
         result.applyConfig(savedConfig);
         return result;
     }
@@ -532,14 +560,23 @@ public class SpawnableGroup {
     }
 
     /**
+     * @deprecated Use {@link #parse(TrainCarts, String)} instead
+     */
+    @Deprecated
+    public static SpawnableGroup parse(String typesText) {
+        return parse(TrainCarts.plugin, typesText);
+    }
+
+    /**
      * Parses the contents of a types-encoded String. This is a String token
      * in the same format as is used on the 3rd/4th lines on spawner signs.
-     * 
+     *
+     * @param plugin TrainCarts plugin instance
      * @param typesText
      * @return spawnable group parsed from the types text
      */
-    public static SpawnableGroup parse(String typesText) {
-        SpawnableGroup result = new SpawnableGroup();
+    public static SpawnableGroup parse(TrainCarts plugin, String typesText) {
+        SpawnableGroup result = new SpawnableGroup(plugin);
         StringBuilder amountBuilder = new StringBuilder();
 
         for (int typeTextIdx = 0; typeTextIdx < typesText.length(); typeTextIdx++) {
@@ -556,7 +593,7 @@ public class SpawnableGroup {
 
             // Attempt to parse a saved train name
             int countAdded = 0;
-            String name = TrainCarts.plugin.getSavedTrains().findName(typesText.substring(typeTextIdx));
+            String name = plugin.getSavedTrains().findName(typesText.substring(typeTextIdx));
             if (name != null && (name.length() > 1 || findVanillaCartType(c) == null)) {
                 typeTextIdx += name.length() - 1;
                 ConfigurationNode savedTrainConfig = TrainCarts.plugin.getSavedTrains().getConfig(name);
@@ -599,14 +636,23 @@ public class SpawnableGroup {
     }
 
     /**
+     * @deprecated Use {@link #ofMembers(TrainCarts, Iterable)} instead
+     */
+    @Deprecated
+    public static SpawnableGroup ofMembers(Iterable<SpawnableMember> members) {
+        return ofMembers(TrainCarts.plugin, members);
+    }
+
+    /**
      * Takes a list of members and turns it into a new group by calling {@link #addMember(SpawnableMember)}
      * for every member. The group configuration will be left to the defaults.
-     * 
+     *
+     * @param plugin TrainCarts plugin instance
      * @param members The members to add
      * @return new spawnable group
      */
-    public static SpawnableGroup ofMembers(Iterable<SpawnableMember> members) {
-        SpawnableGroup group = new SpawnableGroup();
+    public static SpawnableGroup ofMembers(TrainCarts plugin, Iterable<SpawnableMember> members) {
+        SpawnableGroup group = new SpawnableGroup(plugin);
         for (SpawnableMember member : members) {
             group.addMember(member);
         }

@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.storage;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
@@ -106,12 +107,12 @@ public class OfflineMember {
         return null;
     }
 
-    public MinecartMember<?> create(World world) {
+    public MinecartMember<?> create(TrainCarts plugin, World world) {
         Minecart entity = findEntity(world, false);
         if (entity == null || entity.isDead()) {
             return null;
         }
-        MinecartMember<?> mm = MinecartMemberStore.convert(entity);
+        MinecartMember<?> mm = MinecartMemberStore.convert(plugin, entity);
         if (mm == null) {
             return null;
         }

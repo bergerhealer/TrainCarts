@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SlowdownMode;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.PoweredCartSoundLoop;
 import com.bergerkiller.bukkit.tc.events.MemberCoalUsedEvent;
@@ -31,6 +32,10 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
     private static final MaterialTypeProperty IS_FUEL_ITEM = Common.evaluateMCVersion(">=", "1.13")
             ? new MaterialTypeProperty(MaterialUtil.getMaterial("COAL"), MaterialUtil.getMaterial("CHARCOAL"))
             : new MaterialTypeProperty(MaterialUtil.getMaterial("LEGACY_COAL"));
+
+    public MinecartMemberFurnace(TrainCarts plugin) {
+        super(plugin);
+    }
 
     @Override
     public void onAttached() {

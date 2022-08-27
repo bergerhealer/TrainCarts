@@ -652,7 +652,7 @@ public class TrainCarts extends PluginBase {
         OfflineGroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
 
         //Convert Minecarts
-        MinecartMemberStore.convertAllAutomatically();
+        MinecartMemberStore.convertAllAutomatically(this);
 
         //Load arrival times
         ArrivalSigns.init(getDataFolder() + File.separator + "arrivaltimes.txt");
@@ -661,7 +661,7 @@ public class TrainCarts extends PluginBase {
         TrainCarts.plugin.log(Level.INFO, "Restoring trains and loading nearby chunks...");
         {
             // Check chunks that are already loaded first
-            OfflineGroupManager.refresh();
+            OfflineGroupManager.refresh(this);
 
             // Get all chunks to be kept loaded and load them right now
             preloadChunks(OfflineGroupManager.getForceLoadedChunks());
@@ -693,7 +693,7 @@ public class TrainCarts extends PluginBase {
         this.register(interactionPacketListener = new TCInteractionPacketListener(packetListener), TCInteractionPacketListener.TYPES);
         this.register(new TCListener(this));
         this.register(new TCSeatChangeListener());
-        this.register(TrainChestListener.class);
+        this.register(new TrainChestListener(this));
 
         // Paper player view distance logic handling
         if (Util.hasPaperViewDistanceSupport()) {
