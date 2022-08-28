@@ -233,7 +233,8 @@ public class AttachmentInternalState {
             lastAnimationState = null;
         } else if (!currentAnimation.hasReachedEnd()) {
             // TODO: Do we need dt here?
-            double dt = ((CartAttachment) attachment).getController().getAnimationDeltaTime();
+            final CartAttachment cart = (CartAttachment) attachment;
+            double dt = cart.hasController() ? cart.getController().getAnimationDeltaTime() : 1.0 / 20;
             AnimationNode animNode = currentAnimation.update(dt, initialTransform);
             if (animNode != null) {
                 lastAnimationState = animNode;

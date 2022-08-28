@@ -481,6 +481,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
      *
      * @return viewers
      */
+    @Override
     public Set<Player> getViewers() {
         return this.viewers;
     }

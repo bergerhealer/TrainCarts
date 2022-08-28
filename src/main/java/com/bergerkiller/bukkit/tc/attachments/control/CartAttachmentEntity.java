@@ -236,7 +236,7 @@ public class CartAttachmentEntity extends CartAttachment {
             entityType = EntityType.MINECART;
         }
 
-        if (this.getParent() != null || !VirtualEntity.isMinecart(entityType) || hasCustomName) {
+        if (this.getParent() != null || !VirtualEntity.isMinecart(entityType) || hasCustomName || !hasController()) {
             // Generate entity (UU)ID
             this.entity = new VirtualEntity(this.getManager());
         } else {
