@@ -38,7 +38,11 @@ public abstract class CartAttachment implements Attachment {
 
     @Override
     public Collection<Player> getViewers() {
-        return this.getController().getViewers();
+        return this.getManager().getViewers();
+    }
+
+    public boolean hasController() {
+        return this.getManager() instanceof AttachmentControllerMember;
     }
 
     /**

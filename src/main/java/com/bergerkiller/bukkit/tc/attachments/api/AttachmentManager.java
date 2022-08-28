@@ -1,6 +1,9 @@
 package com.bergerkiller.bukkit.tc.attachments.api;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import org.bukkit.entity.Player;
+
+import java.util.Collection;
 
 /**
  * Manages one or more trees of attachments on a more general level.
@@ -23,6 +26,11 @@ public interface AttachmentManager {
      * @return world
      */
     org.bukkit.World getWorld();
+
+    /**
+     * Gets the players who can currently view the attachments
+     */
+    Collection<Player> getViewers();
 
     /**
      * Gets the {@link AttachmentTypeRegistry} used to find and create new attachments from
