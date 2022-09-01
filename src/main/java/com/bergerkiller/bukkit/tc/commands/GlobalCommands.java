@@ -325,35 +325,6 @@ public class GlobalCommands {
         sender.sendMessage(ChatColor.YELLOW + "TrainCarts' information has been saved to file.");
     }
 
-    @Hidden
-    @CommandRequiresPermission(Permission.COMMAND_UPGRADESAVED)
-    @CommandMethod("train upgradesavedtrains")
-    @CommandDescription("Upgrades all saved train properties to correct for position changes during v1.12.2")
-    private void commandUpgradeSavedTrains(
-            final CommandSender sender,
-            final TrainCarts plugin,
-            final @Flag("undo") boolean undo
-    ) {
-        plugin.getSavedTrains().upgradeSavedTrains(undo);
-        if (undo) {
-            sender.sendMessage(ChatColor.YELLOW + "All saved trains have been restored to use the old position calibration of Traincarts v1.12.2-v2 (UNDO)");
-        } else {
-            sender.sendMessage(ChatColor.YELLOW + "All saved trains have been upgraded to use the new position calibration of Traincarts v1.12.2-v3");
-        }
-    }
-
-    @CommandRequiresPermission(Permission.COMMAND_FIXBUGGED)
-    @CommandMethod("train fixbugged")
-    @CommandDescription("Forcibly removes minecarts and trackers that have glitched out")
-    private void commandFixBugged(
-            final CommandSender sender
-    ) {
-        for (World world : WorldUtil.getWorlds()) {
-            OfflineGroupManager.removeBuggedMinecarts(world);
-        }
-        sender.sendMessage(ChatColor.YELLOW + "Bugged minecarts have been forcibly removed.");
-    }
-
     @CommandMethod("train edit")
     @CommandDescription("Selects a train the player is looking at for editing")
     private void commandEditLookingAt(
@@ -656,7 +627,7 @@ public class GlobalCommands {
 
     @Hidden
     @CommandRequiresPermission(Permission.COMMAND_GIVE_EDITOR)
-    @CommandMethod("train editor")
+    @CommandMethod("train debug editor")
     @CommandDescription("Gives a legacy editor map item (broken)")
     private void commandGiveEditor(
             final Player sender
