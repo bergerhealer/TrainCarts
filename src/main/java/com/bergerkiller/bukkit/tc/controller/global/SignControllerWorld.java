@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.LongUnaryOperator;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 
 import org.bukkit.Chunk;
@@ -361,21 +362,8 @@ public class SignControllerWorld {
      * @param chunk
      */
     private void activateSignsInChunk(Chunk chunk) {
-        List<SignController.Entry> entries = this.signsByChunk.get(chunk.getX(), chunk.getZ());
-        if (entries != null) {
-            for (Iterator<SignController.Entry> iter = entries.iterator(); iter.hasNext();) {
-                SignController.Entry entry = iter.next();
-                if (!entry.activated) {
-                    // Check sign still truly exists, and if so, notify its activation
-                    if (verifyEntry(entry)) {
-                        this.controller.activateEntry(entry);
-                    } else {
-                        iter.remove();
-                        entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
-                    }
-                }
-            }
-        }
+        // Use verifyEntry which updates the sign state, important when activating
+        changeActiveForEntriesInChunk(chunk, true, this::verifyEntry, this.controller::activateEntry);
     }
 
     /**
@@ -386,17 +374,62 @@ public class SignControllerWorld {
      * @param chunk
      */
     private void deactivateSignsInChunk(Chunk chunk) {
+        // Use isRemoved() because we just want to know whether the sign is there to avoid NPE
+        changeActiveForEntriesInChunk(chunk, false, e -> !e.sign.isRemoved(), this.controller::deactivateEntry);
+    }
+
+    private void changeActiveForEntriesInChunk(
+            Chunk chunk,
+            boolean activating,
+            Predicate<SignController.Entry> verify,
+            Consumer<SignController.Entry> handler
+    ) {
         List<SignController.Entry> entries = this.signsByChunk.get(chunk.getX(), chunk.getZ());
-        if (entries != null) {
-            for (Iterator<SignController.Entry> iter = entries.iterator(); iter.hasNext();) {
-                SignController.Entry entry = iter.next();
-                if (entry.activated) {
-                    // Protect against NPE
-                    if (entry.sign.isRemoved()) {
-                        iter.remove();
-                        entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
+        if (entries == null) {
+            return;
+        }
+
+        int retryLimit = 100;
+        while (true) {
+            // Check that any of the entries need activating/de-activating at all
+            {
+                boolean hasEntriesToHandle = false;
+                for (SignController.Entry entry : entries) {
+                    if (entry.activated != activating) {
+                        hasEntriesToHandle = true;
+                        break;
+                    }
+                }
+                if (!hasEntriesToHandle) {
+                    break;
+                }
+            }
+
+            // Prevent a crash if anything goes wrong here
+            if (--retryLimit == 0) {
+                controller.getPlugin().log(Level.SEVERE, "Infinite loop " +
+                        (activating ? "activating" : "de-activating") +
+                        " signs in chunk [" + chunk.getX() + "/" + chunk.getZ() + "]. Signs:");
+                for (SignController.Entry entry : entries) {
+                    controller.getPlugin().log(Level.SEVERE, "- at " + entry.sign.getBlock());
+                }
+                break;
+            }
+
+            // De-activate or activate all entries
+            // We might find some signs become invalid - remove from original list.
+            // Risks concurrent modification if SignAction loadedChanged modifies this,
+            // so iterate a copy.
+            for (SignController.Entry entry : new ArrayList<>(entries)) {
+                if (entry.activated != activating) {
+                    if (verify.test(entry)) {
+                        // Callbacks
+                        handler.accept(entry);
                     } else {
-                        this.controller.deactivateEntry(entry);
+                        // Sign is gone. Remove it.
+                        entries.remove(entry);
+                        entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
+                        System.out.println("YEET");
                     }
                 }
             }
