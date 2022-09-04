@@ -30,7 +30,6 @@ public class SpawnSign {
     private final TrainCarts plugin;
     private final OfflineSignStore store;
     private final OfflineBlock location;
-    private OfflineSign sign;
     private SpawnSignManager.SpawnSignMetadata state;
     private int ticksUntilFreeing = 0;
     private double spawnForce = 0.0;
@@ -42,7 +41,6 @@ public class SpawnSign {
         this.plugin = plugin;
         this.store = store;
         this.location = sign.getBlock();
-        this.sign = sign;
         this.updateState(sign, metadata);
 
         // Add the 5x5 area of chunks around the sign as the initial chunks to load
@@ -70,16 +68,11 @@ public class SpawnSign {
         this.spawnForce = SpawnOptions.fromOfflineSign(sign).launchVelocity;
         this.spawnFormat = sign.getLine(2) + sign.getLine(3);
         this.state = metadata;
-        this.sign = sign;
     }
 
     void updateUsingEvent(SignActionEvent event) {
-        // If known offline sign text mismatches with the event, got to re-add the sign completely.
-        // This calls updateState() after the onUpdated() callback.
-        if (!this.sign.verify(event.getSign())) {
-            this.store.put(event.getBlock(), this.state.setActive(event.isPowered()));
-            return;
-        }
+        // Make sure stuff is up to date
+        this.store.verifySign(event.getSign(), SpawnSignManager.SpawnSignMetadata.class);
 
         // Update active (redstone) state in case it changed without us knowing
         boolean active = event.isPowered();
