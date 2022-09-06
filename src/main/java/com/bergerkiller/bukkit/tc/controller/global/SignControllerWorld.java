@@ -429,7 +429,6 @@ public class SignControllerWorld {
                         // Sign is gone. Remove it.
                         entries.remove(entry);
                         entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
-                        System.out.println("YEET");
                     }
                 }
             }
