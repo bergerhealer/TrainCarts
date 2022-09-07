@@ -345,6 +345,7 @@ public class ObstacleTracker implements TrainStatusProvider {
         public List<Obstacle> search() {
             // Not sure if fixed, but skip if this train is empty
             if (group.isEmpty()) {
+                group.getChunkArea().getForwardChunkArea().reset();
                 return Collections.emptyList();
             }
 
@@ -353,6 +354,7 @@ public class ObstacleTracker implements TrainStatusProvider {
 
             // If no wait distance is set and no mutex zones are anywhere close, skip these expensive calculations
             if (distance <= 0.0 && trainDistance <= 0.0 && (!checkRailObstacles || !mutexZones.isNear())) {
+                group.getChunkArea().getForwardChunkArea().reset();
                 return Collections.emptyList();
             }
 
@@ -365,6 +367,8 @@ public class ObstacleTracker implements TrainStatusProvider {
             if (group.getProperties().isKeepingChunksLoaded()) {
                 forwardChunks = group.getChunkArea().getForwardChunkArea();
                 forwardChunks.begin();
+            } else {
+                group.getChunkArea().getForwardChunkArea().reset();
             }
 
             while (iter.movedTotal <= checkDistance && iter.moveFull()) {
