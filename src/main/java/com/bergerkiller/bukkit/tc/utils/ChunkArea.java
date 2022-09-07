@@ -27,6 +27,7 @@ public class ChunkArea {
     public static final int CHUNK_EDGE = 2 * CHUNK_RANGE + 1;
     public static final int CHUNK_AREA = CHUNK_EDGE * CHUNK_EDGE;
     private World current_world = null;
+    private final ForwardChunkArea forward_chunk_area = new ForwardChunkArea();
     private final LongHashSet added_chunk_centers = new LongHashSet();
     private LongHashMap<OwnedChunk> chunks = new LongHashMap<OwnedChunk>();
     private final List<OwnedChunk> all_chunks = new ArrayList<OwnedChunk>();
@@ -46,6 +47,7 @@ public class ChunkArea {
         this.all_chunks.clear();
         this.removed_chunks.clear();
         this.added_chunks.clear();
+        this.forward_chunk_area.reset();
     }
 
     /**
@@ -70,6 +72,9 @@ public class ChunkArea {
             this.added_chunk_centers.clear();
             this.chunks = new LongHashMap<OwnedChunk>();
             this.all_chunks.clear();
+
+            // Don't care about the forward area on the previous world
+            this.forward_chunk_area.reset();
         }
 
         // Sync previous distance
@@ -208,6 +213,16 @@ public class ChunkArea {
      */
     public boolean containsChunk(int chunkX, int chunkZ) {
         return containsChunk(MathUtil.longHashToLong(chunkX, chunkZ));
+    }
+
+    /**
+     * Gets the forward chunk area. These are chunks frequently visited to refresh
+     * detecting the rails up ahead.
+     *
+     * @return forward chunk area
+     */
+    public ForwardChunkArea getForwardChunkArea() {
+        return this.forward_chunk_area;
     }
 
     /**

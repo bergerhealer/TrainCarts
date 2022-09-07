@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZone;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCacheWorld;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneSlot;
+import com.bergerkiller.bukkit.tc.utils.ForwardChunkArea;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 /**
@@ -359,10 +360,22 @@ public class ObstacleTracker implements TrainStatusProvider {
             if (group.getProperties().isWaitPredicted()) {
                 iter.setFollowPredictedPath(group.head());
             }
+
+            ForwardChunkArea forwardChunks = null;
+            if (group.getProperties().isKeepingChunksLoaded()) {
+                forwardChunks = group.getChunkArea().getForwardChunkArea();
+                forwardChunks.begin();
+            }
+
             while (iter.movedTotal <= checkDistance && iter.moveFull()) {
                 // The distance traveled from the physical front of the cart
                 // The first iteration will likely have a negative distance
                 double distanceFromFront = iter.movedTotal - selfCartOffset;
+
+                // Refresh that we've visited this rail/position block, keeping the area loaded for this tick
+                if (forwardChunks != null) {
+                    forwardChunks.addBlock(iter.state.railBlock());
+                }
 
                 if (checkRailObstacles) {
                     // Check last smart mutex still valid for the current rail
