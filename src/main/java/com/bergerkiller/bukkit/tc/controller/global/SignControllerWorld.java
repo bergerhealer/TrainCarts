@@ -243,7 +243,6 @@ public class SignControllerWorld {
         int cx = x >> 4;
         int cz = z >> 4;
         result = checkChunkMayHaveSigns(cx, cz, x, y, z);
-        world.getChunkAt(cx, cz);
 
         int bx = x & 0xF;
         if (bx == 0) {
