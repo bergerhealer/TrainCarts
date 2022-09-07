@@ -354,7 +354,7 @@ public class ObstacleTracker implements TrainStatusProvider {
 
             // If no wait distance is set and no mutex zones are anywhere close, skip these expensive calculations
             if (distance <= 0.0 && trainDistance <= 0.0 && (!checkRailObstacles || !mutexZones.isNear())) {
-                group.getChunkArea().getForwardChunkArea().reset();
+                group.getChunkArea().getForwardChunkArea().begin();
                 return Collections.emptyList();
             }
 

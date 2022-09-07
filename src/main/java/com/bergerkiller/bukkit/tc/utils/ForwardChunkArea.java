@@ -7,6 +7,7 @@ import java.util.List;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
+import com.bergerkiller.bukkit.common.TickTracker;
 import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -19,6 +20,7 @@ import com.bergerkiller.mountiplex.reflection.SafeMethod;
  * reducing the chunk load/unload jitter that it can otherwise cause.
  */
 public class ForwardChunkArea {
+    private final TickTracker beginTickTracker;
     private World world;
     private final LongHashMap<Entry> entries;
     private final List<Entry> entriesList;
@@ -31,18 +33,9 @@ public class ForwardChunkArea {
         this.entriesList = new ArrayList<>();
         this.lastEntry = null;
         this.state = false;
-    }
-
-    /**
-     * Must be called at the beginning of each new track iteration call, ideally
-     * at the start of the tick. Afterwards, {@link #add(int, int)} can be
-     * called to keep all the chunks that need to stay loaded.
-     */
-    public void begin() {
-        // Wipe previous entries whose state mismatches
-        // This could be a separate finish() called at the end, but this way makes
-        // logic a lot simpler. Only have to call begin() once at the beginning.
-        {
+        this.beginTickTracker = new TickTracker();
+        this.beginTickTracker.setRunnable(() -> {
+            // Wipe previous entries whose state mismatches, which indicates it hasn't been add()-ed
             boolean expectedState = state;
             for (Iterator<Entry> iter = entriesList.iterator(); iter.hasNext();) {
                 Entry e = iter.next();
@@ -52,10 +45,23 @@ public class ForwardChunkArea {
                     e.chunk.close();
                 }
             }
-        }
 
-        // Flip state
-        state = !state;
+            // Flip state
+            state = !expectedState;
+        });
+    }
+
+    /**
+     * Must be called at the beginning of each new track iteration call, ideally
+     * at the start of the tick. Afterwards, {@link #add(int, int)} can be
+     * called to keep all the chunks that need to stay loaded.
+     */
+    public void begin() {
+        // Only run this once a tick at most. This makes sure that when the
+        // forward path prediction runs multiple times (maybe some add-on calls it),
+        // it doesn't repeatedly create and clear a chunk area. Instead, it will
+        // combine the add() that occur in both cleanly.
+        this.beginTickTracker.update();
     }
 
     /**
