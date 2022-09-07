@@ -349,26 +349,25 @@ public class ObstacleTracker implements TrainStatusProvider {
                 return Collections.emptyList();
             }
 
-            MutexZoneCacheWorld.MovingPoint mutexZones = group.head().railLookup().getMutexZones()
-                    .track(group.head().getEntity().loc.block());
-
-            // If no wait distance is set and no mutex zones are anywhere close, skip these expensive calculations
-            if (distance <= 0.0 && trainDistance <= 0.0 && (!checkRailObstacles || !mutexZones.isNear())) {
-                group.getChunkArea().getForwardChunkArea().begin();
-                return Collections.emptyList();
-            }
-
-            TrackWalkingPoint iter = new TrackWalkingPoint(group.head().discoverRail());
-            if (group.getProperties().isWaitPredicted()) {
-                iter.setFollowPredictedPath(group.head());
-            }
-
             ForwardChunkArea forwardChunks = null;
             if (group.getProperties().isKeepingChunksLoaded()) {
                 forwardChunks = group.getChunkArea().getForwardChunkArea();
                 forwardChunks.begin();
             } else {
                 group.getChunkArea().getForwardChunkArea().reset();
+            }
+
+            MutexZoneCacheWorld.MovingPoint mutexZones = group.head().railLookup().getMutexZones()
+                    .track(group.head().getEntity().loc.block());
+
+            // If no wait distance is set and no mutex zones are anywhere close, skip these expensive calculations
+            if (distance <= 0.0 && trainDistance <= 0.0 && (!checkRailObstacles || !mutexZones.isNear())) {
+                return Collections.emptyList();
+            }
+
+            TrackWalkingPoint iter = new TrackWalkingPoint(group.head().discoverRail());
+            if (group.getProperties().isWaitPredicted()) {
+                iter.setFollowPredictedPath(group.head());
             }
 
             while (iter.movedTotal <= checkDistance && iter.moveFull()) {
