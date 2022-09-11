@@ -149,12 +149,14 @@ public class CartAttachmentItem extends CartAttachment {
     @Override
     public void onTransformChanged(Matrix4x4 transform) {
         this.entity.updatePosition(transform);
+
+        // Sync right now! Not only when moving!
+        // This is a slow method due to packet constructor, so send the packet async
+        this.entity.syncMetadata();
     }
 
     @Override
     public void onTick() {
-        // Sync right now! Not only when moving!
-        this.entity.syncMetadata();
     }
 
     @Override
