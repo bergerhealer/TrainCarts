@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.controller;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.collections.ClassMap;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.controller.DefaultEntityController;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
@@ -265,15 +266,40 @@ public abstract class MinecartMemberStore {
     }
 
     public static MinecartMember<?> spawn(TrainCarts plugin, Location at, EntityType type) {
+        return spawn(plugin, at, type, null);
+    }
+
+    public static MinecartMember<?> spawn(TrainCarts plugin, Location at, EntityType type, ConfigurationNode config) {
         MinecartMember<?> controller = createController(plugin, type);
         if (controller == null) {
             throw new IllegalArgumentException("No suitable MinecartMember type for " + type);
         }
+
+        // If configuration specifies a model, do not load in the default model when the member is spawned
+        boolean disableDefaultModel = (config != null && config.isNode("model"));
+        if (disableDefaultModel) {
+            controller.getAttachments().setHidden(true);
+        }
+
         CommonEntity.spawn(type, at, controller, createNetworkController());
         controller.setDirectionForward();
         controller.updateDirection();
         MinecartMember<?> result = MemberSpawnEvent.call(controller).getMember();
-        result.setUnloaded(false);
+
+        // Load configuration if specified.
+        // When initializing the config, act as unloaded to avoid creation of a group
+        if (config != null) {
+            controller.setUnloaded(true);
+            controller.getProperties().load(config);
+            if (config.isNode("data")) {
+                controller.onTrainSpawned(config.getNode("data"));
+            }
+        }
+
+        if (disableDefaultModel) {
+            controller.getAttachments().setHidden(false);
+        }
+        controller.setUnloaded(false);
 
         // Check
         PaperRedstonePhysicsChecker.check(at.getWorld());

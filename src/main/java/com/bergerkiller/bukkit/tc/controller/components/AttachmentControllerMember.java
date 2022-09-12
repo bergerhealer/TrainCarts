@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -21,6 +22,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TCSeatChangeListener;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
@@ -52,11 +54,13 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 public class AttachmentControllerMember implements AttachmentModelOwner, AttachmentManager {
     private final MinecartMember<?> member;
     private Attachment rootAttachment;
-    private List<CartAttachmentSeat> seatAttachments = new ArrayList<CartAttachmentSeat>();
+    private List<CartAttachmentSeat> seatAttachments = Collections.emptyList();
+    private List<Attachment> flattenedAttachments = Collections.emptyList();
     private Map<Entity, SeatHint> seatHints = new HashMap<Entity, SeatHint>();
     private final Set<Player> viewers = new HashSet<Player>();
     protected final ToggledState networkInvalid = new ToggledState();
     private boolean attached = false;
+    private boolean hidden = false;
 
     private long animationCurrentTime = 0;
     private double animationDeltaTime = 0.0;
@@ -87,10 +91,46 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
     public synchronized void onDetached() {
         this.attached = false;
         if (this.rootAttachment != null) {
-            HelperMethods.perform_onDetached(this.rootAttachment);
-            this.rootAttachment = null;
+            detachRootAttachment();
         }
         this.member.getProperties().getModel().removeOwner(this);
+    }
+
+    public boolean isHidden() {
+        return this.hidden;
+    }
+
+    public void setHidden(boolean hidden) {
+        if (this.hidden == hidden) {
+            return;
+        }
+
+        this.hidden = hidden;
+        if (hidden) {
+            // Despawn everything
+            if (this.rootAttachment != null) {
+                makeHiddenForAll();
+                detachRootAttachment();
+            }
+        } else {
+            // Spawn in for the first time. Done by retrieving the model
+            if (this.rootAttachment == null) {
+                onModelChanged(this.member.getProperties().getModel());
+            }
+        }
+    }
+
+    private void detachRootAttachment() {
+        try {
+            ListIterator<Attachment> iter = this.flattenedAttachments.listIterator(this.flattenedAttachments.size());
+            while (iter.hasPrevious()) {
+                HelperMethods.perform_onDetached_single(iter.previous());
+            }
+        } finally {
+            this.rootAttachment = null;
+            this.flattenedAttachments = Collections.emptyList();
+            this.seatAttachments = Collections.emptyList();
+        }
     }
 
     /**
@@ -127,12 +167,25 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
         if (!this.attached) {
             throw new IllegalStateException("This member has no network presence and was probably unloaded");
         }
+        if (this.hidden) {
+            throw new IllegalStateException("This member's attachments are temporarily hidden");
+        }
         // Set attachment to a fallback if for whatever reason it is null
         if (this.rootAttachment == null) {
             this.onModelChanged(AttachmentModel.getDefaultModel(this.member.getEntity().getType()));
         }
         // Return
         return this.rootAttachment;
+    }
+
+    /**
+     * Gets a full list of all attachments currently displayed for this member.
+     * If the member is unloaded, returns an empty list.
+     *
+     * @return flattened list of all attachments of this member
+     */
+    public List<Attachment> getAllAttachments() {
+        return this.flattenedAttachments;
     }
 
     /**
@@ -391,7 +444,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
 
     private List<CartAttachmentSeat> getSeatsClosestToPosition(Vector position) {
         if (this.seatAttachments.size() <= 1) {
-            return Collections.unmodifiableList(this.seatAttachments);
+            return this.seatAttachments;
         }
 
         ArrayList<CartAttachmentSeat> result = new ArrayList<CartAttachmentSeat>(this.seatAttachments);
@@ -405,7 +458,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
 
     private List<CartAttachmentSeat> getSeatsClosestToHitTest(Location eyeLocation) {
         if (this.seatAttachments.size() <= 1) {
-            return Collections.unmodifiableList(this.seatAttachments);
+            return this.seatAttachments;
         }
 
         Matrix4x4 cameraTransform = new Matrix4x4();
@@ -455,7 +508,9 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
     // Called from NetworkController
     public synchronized void makeVisible(Player viewer) {
         viewers.add(viewer);
-        HelperMethods.makeVisibleRecursive(this.getRootAttachment(), true, viewer);
+        if (!this.hidden) {
+            HelperMethods.makeVisibleRecursive(this.getRootAttachment(), true, viewer);
+        }
     }
 
     // Called from NetworkController
@@ -463,7 +518,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
         //super.makeHidden(viewer, instant);
 
         viewers.remove(viewer);
-        if (this.rootAttachment != null) {
+        if (!this.hidden && this.rootAttachment != null) {
             HelperMethods.makeHiddenRecursive(this.rootAttachment, true, viewer);
         }
     }
@@ -503,7 +558,12 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
      * @return True if an attachment uses this Entity Id
      */
     public synchronized boolean isAttachment(int entityId) {
-        return HelperMethods.findAttachmentWithEntityId(this.rootAttachment, entityId) != null;
+        for (Attachment attachment : this.flattenedAttachments) {
+            if (attachment.containsEntityId(entityId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -608,7 +668,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
             return;
         }
 
-        HelperMethods.perform_onTick(this.rootAttachment);
+        this.flattenedAttachments.forEach(Attachment::onTick);
     }
 
     @SuppressWarnings("deprecation")
@@ -632,7 +692,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
 
         // Perform actual movement, which sends movement update packets
         if (this.rootAttachment != null) {
-            HelperMethods.perform_onMove(this.rootAttachment, absolute);
+            this.flattenedAttachments.forEach(a -> a.onMove(absolute));
         }
     }
 
@@ -649,15 +709,6 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
         transform.rotate(this.member.getOrientation());
         transform.rotateZ(this.member.getRoll());
         return transform;
-    }
-
-    private void discoverSeats(Attachment attachment) {
-        if (attachment instanceof CartAttachmentSeat) {
-            this.seatAttachments.add((CartAttachmentSeat) attachment);
-        }
-        for (Attachment child : attachment.getChildren()) {
-            discoverSeats(child);
-        }
     }
 
     /**
@@ -683,8 +734,8 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
 
     @Override
     public synchronized void onModelChanged(AttachmentModel model) {
-        // If not attached don't do anything to prevent bad things from happening
-        if (!this.attached) {
+        // If not attached or hidden don't do anything to prevent bad things from happening
+        if (!this.attached || this.hidden) {
             return;
         }
 
@@ -708,20 +759,21 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
         // Detach old attachments - after this viewers see nothing anymore
         if (this.rootAttachment != null) {
             makeHiddenForAll();
-            HelperMethods.perform_onDetached(this.rootAttachment);
-            this.rootAttachment = null;
+            detachRootAttachment();
         } else {
             this.viewers.clear(); // Silent
         }
 
         // Attach new attachments - after this viewers see everything but passengers are not 'in'
         this.rootAttachment = this.createAttachment(model.getConfig());
-        HelperMethods.perform_onAttached(this.rootAttachment);
+        this.flattenedAttachments = HelperMethods.listAllAttachments(this.rootAttachment);
+        this.flattenedAttachments.forEach(HelperMethods::perform_onAttached_single);
+        this.seatAttachments = this.flattenedAttachments.stream()
+                .filter(attachment -> attachment instanceof CartAttachmentSeat)
+                .map(attachment -> (CartAttachmentSeat) attachment)
+                .collect(StreamUtil.toUnmodifiableList());
         this.member.getTrainCarts().getTrainUpdateController().computeAttachmentTransform(
                 this.rootAttachment, this.getLiveTransform());
-
-        this.seatAttachments.clear();
-        this.discoverSeats(this.rootAttachment);
 
         // Re-show the attachments and repopulate the viewers set
         for (Player viewer : originalViewers) {

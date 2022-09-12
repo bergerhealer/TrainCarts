@@ -51,15 +51,7 @@ public class SpawnableMember {
      * @return spawned Minecart
      */
     public MinecartMember<?> spawn(Location spawnLoc) {
-        // When initializing the config, act as unloaded to avoid creation of group
-        MinecartMember<?> mm = MinecartMemberStore.spawn(this.getPlugin(), spawnLoc, getEntityType());
-        mm.setUnloaded(true);
-        mm.getProperties().load(this.config);
-        if (this.config.isNode("data")) {
-            mm.onTrainSpawned(this.config.getNode("data"));
-        }
-        mm.setUnloaded(false);
-        return mm;
+        return MinecartMemberStore.spawn(this.getPlugin(), spawnLoc, getEntityType(), this.config);
     }
 
     /**

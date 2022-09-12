@@ -1,6 +1,9 @@
 package com.bergerkiller.bukkit.tc.attachments.helper;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import org.bukkit.ChatColor;
@@ -144,14 +147,18 @@ public class HelperMethods {
     }
 
     public static void perform_onAttached(Attachment attachment) {
+        perform_onAttached_single(attachment);
+        for (Attachment child : attachment.getChildren()) {
+            perform_onAttached(child);
+        }
+    }
+
+    public static void perform_onAttached_single(Attachment attachment) {
         attachment.getInternalState().attached = true;
         attachment.onAttached();
         attachment.onLoad(attachment.getConfig());
         if (attachment.isFocused()) {
             attachment.onFocus();
-        }
-        for (Attachment child : attachment.getChildren()) {
-            perform_onAttached(child);
         }
     }
 
@@ -159,6 +166,10 @@ public class HelperMethods {
         for (Attachment child : attachment.getChildren()) {
             perform_onDetached(child);
         }
+        perform_onDetached_single(attachment);
+    }
+
+    public static void perform_onDetached_single(Attachment attachment) {
         attachment.onDetached();
         attachment.getInternalState().attached = false;
         attachment.getInternalState().reset();
@@ -278,5 +289,29 @@ public class HelperMethods {
             found |= playStoredAnimationRecursive(child, options);
         }
         return found;
+    }
+
+    /**
+     * Gets a flattened list of the attachment and all child attachments, recursively.
+     * Iterating the list iterates the attachments in the same order a recursive
+     * update would.
+     *
+     * @param root Start attachment of the tree. If null, returns empty list.
+     * @return List of all attachments, with root at the first position. Unmodifiable.
+     */
+    public static List<Attachment> listAllAttachments(Attachment root) {
+        if (root == null) {
+            return Collections.emptyList();
+        }
+        List<Attachment> result = new ArrayList<>(16);
+        addAttachments(root, result);
+        return Collections.unmodifiableList(result);
+    }
+
+    private static void addAttachments(Attachment attachment, List<Attachment> dest) {
+        dest.add(attachment);
+        for (Attachment child : attachment.getChildren()) {
+            addAttachments(child, dest);
+        }
     }
 }
