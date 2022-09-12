@@ -160,16 +160,20 @@ public class OfflineGroup {
     public MinecartGroup create(TrainCarts traincarts, World world) {
         ArrayList<MinecartMember<?>> rval = new ArrayList<>(this.members.length);
         int missingNo = 0;
+        int cx = 0, cz = 0;
         for (OfflineMember member : this.members) {
             MinecartMember<?> mm = member.create(traincarts, world);
             if (mm != null) {
                 rval.add(mm);
             } else {
                 missingNo++;
+                cx = member.cx;
+                cz = member.cz;
             }
         }
         if (missingNo > 0) {
-            traincarts.log(Level.WARNING, missingNo + " carts of group '" + this.name + "' are missing! (externally edited?)");
+            traincarts.log(Level.WARNING, missingNo + " carts of group '" + this.name + "' " +
+                    "are missing near chunk [" + cx + ", " + cz + "]! (externally edited?)");
         }
         this.loaded = true;
         if (rval.isEmpty()) {

@@ -1,14 +1,17 @@
 package com.bergerkiller.bukkit.tc.storage;
 
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
@@ -18,6 +21,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.UUID;
+import java.util.logging.Level;
 
 /**
  * Contains the information to get and restore a Minecart
@@ -81,7 +85,7 @@ public class OfflineMember {
         return null;
     }
 
-    public Minecart findEntity(World world, boolean markChunkDirty) {
+    public Minecart findEntity(TrainCarts plugin, World world, boolean markChunkDirty) {
         // first try to find it in the chunk
         Minecart e = findEntity(world.getChunkAt(this.cx, this.cz), markChunkDirty);
         if (e != null) {
@@ -103,17 +107,43 @@ public class OfflineMember {
             }
         }
 
+        // Complete fallback just to make sure the entity is truly gone. It might be in an entirely different chunk,
+        // but loaded nevertheless. It's worth trying to load it.
+        Entity byUUID = EntityUtil.getEntity(world, this.entityUID);
+        if (byUUID instanceof Minecart) {
+            if (markChunkDirty) {
+                Chunk chunk = EntityHandle.fromBukkit(byUUID).getCurrentChunk();
+                if (chunk != null) {
+                    Util.markChunkDirty(chunk);
+                }
+            }
+
+            // This is a bit extraordinary, so log that we could not find the entity in any nearby chunks...
+            Location loc = byUUID.getLocation();
+            plugin.log(Level.WARNING, cartInfo() + " was not found in Chunk Entities, " +
+                    "yet was found in World at " +
+                    "[" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + "]");
+
+            return (Minecart) byUUID;
+        }
+
         // Not found
         return null;
     }
 
+    private String cartInfo() {
+        return "Cart [" + this.entityUID + "] of train '" + group.name + "' " +
+                "at chunk [" + this.cx + ", " + this.cz + "]";
+    }
+
     public MinecartMember<?> create(TrainCarts plugin, World world) {
-        Minecart entity = findEntity(world, false);
+        Minecart entity = findEntity(plugin, world, false);
         if (entity == null || entity.isDead()) {
             return null;
         }
         MinecartMember<?> mm = MinecartMemberStore.convert(plugin, entity);
         if (mm == null) {
+            plugin.log(Level.WARNING, cartInfo() + "Controller creation failed!");
             return null;
         }
 
