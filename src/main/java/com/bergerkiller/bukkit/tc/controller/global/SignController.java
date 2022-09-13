@@ -32,10 +32,13 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.PowerState;
+import com.bergerkiller.bukkit.tc.SignActionHeader;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.global.SignControllerWorld.RefreshResult;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 
@@ -308,8 +311,8 @@ public class SignController implements LibraryComponent, Listener {
         }
     }
 
-    Entry createEntry(Sign sign, long blockKey, long chunkKey) {
-        return new Entry(sign, blockKey, chunkKey, this);
+    Entry createEntry(Sign sign, SignControllerWorld world, long blockKey, long chunkKey) {
+        return new Entry(sign, world, blockKey, chunkKey, this);
     }
 
     void activateEntry(Entry entry) {
@@ -320,7 +323,7 @@ public class SignController implements LibraryComponent, Listener {
         Block b = entry.sign.getBlock();
         try {
             entry.activated = true;
-            entry.powered = PowerState.isSignPowered(b);
+            entry.initRedstonePower();
             SignAction.handleLoadChange(entry.sign.getSign(), true);
         } catch (Throwable t) {
             plugin.getLogger().log(Level.SEVERE, "Error while initializing sign in world " +
@@ -353,17 +356,12 @@ public class SignController implements LibraryComponent, Listener {
             return;
         }
 
-        // Update text & verify attached face / exists
-        // If different, force an update (requires slow by-world lookup)
-        entry.sign.update();
-        if (entry.sign.isRemoved()) {
-            forWorld(entry.sign.getWorld()).removeInvalidEntry(entry);
+        // Update sign text/information and check it still actually exists
+        if (!SignControllerWorld.verifyEntry(entry)) {
             return;
         }
-        if (entry.sign.getAttachedFace() != entry.blocks.getAttachedFace()) {
-            forWorld(entry.sign.getWorld()).verifyEntry(entry); // Updates mapping
-        }
 
+        // All good. Update redstone power now.
         entry.updateRedstonePower();
     }
 
@@ -373,8 +371,11 @@ public class SignController implements LibraryComponent, Listener {
     public static final class Entry {
         public static final Entry[] NO_ENTRIES = new Entry[0];
         public final SignChangeTracker sign;
+        public final SignControllerWorld world;
         public boolean powered;
         public boolean activated;
+        private SignActionHeader header;
+        private String headerLine;
         private final FastTrackedUpdateSet.Tracker<Entry> redstoneUpdateTracker;
         private final FastTrackedUpdateSet.Tracker<Entry> ignoreRedstoneUpdateTracker;
         final long blockKey;
@@ -382,10 +383,13 @@ public class SignController implements LibraryComponent, Listener {
         final long chunkKey;
         final Entry[] singletonArray;
 
-        private Entry(Sign sign, long blockKey, long chunkKey, SignController controller) {
+        private Entry(Sign sign, SignControllerWorld world, long blockKey, long chunkKey, SignController controller) {
             this.sign = SignChangeTracker.track(sign);
+            this.world = world;
             this.powered = false; // Initialized later once neighbouring chunks are also loaded
             this.activated = false; // Activated when neighbouring chunks load as well
+            this.headerLine = sign.getLine(0);
+            this.header = SignActionHeader.parse(Util.cleanSignLine(headerLine));
             this.redstoneUpdateTracker = controller.pendingRedstoneUpdates.track(this);
             this.ignoreRedstoneUpdateTracker = controller.ignoreRedstoneUpdates.track(this);
             this.blockKey = blockKey;
@@ -396,6 +400,16 @@ public class SignController implements LibraryComponent, Listener {
 
         public Block getBlock() {
             return this.sign.getBlock();
+        }
+
+        public SignActionHeader getHeader() {
+            String signLine = this.sign.getSign().getLine(0);
+            if (signLine.equals(this.headerLine)) {
+                return this.header;
+            } else {
+                this.headerLine = signLine;
+                return this.header = SignActionHeader.parse(Util.cleanSignLine(signLine));
+            }
         }
 
         /**
@@ -423,24 +437,48 @@ public class SignController implements LibraryComponent, Listener {
             this.redstoneUpdateTracker.set(true);
         }
 
+        public void initRedstonePower() {
+            SignActionHeader header = this.getHeader();
+            if (header.isAlwaysOn() || header.isAlwaysOff()) {
+                this.powered = false;
+            } else {
+                this.powered = PowerState.isSignPowered(this.sign.getBlock());
+            }
+        }
+
         public void updateRedstonePower() {
-            // Update power level
-            setRedstonePower(PowerState.isSignPowered(this.sign.getBlock()));
+            // Only handle the REDSTONE_CHANGE action when using [+train] or [-train]
+            // Improves performance by avoiding a needless isSignPowered() calculation
+            SignActionHeader header = this.getHeader();
+            if (header.isAlwaysOn() || header.isAlwaysOff()) {
+                this.setRedstonePowerChanged(header);
+                return;
+            }
+
+            setRedstonePower(header, PowerState.isSignPowered(this.sign.getBlock()));
         }
 
         public void updateRedstonePowerVerify(boolean isPowered) {
+            // Only handle the REDSTONE_CHANGE action when using [+train] or [-train]
+            // Improves performance by avoiding a needless isSignPowered() calculation
+            SignActionHeader header = this.getHeader();
+            if (header.isAlwaysOn() || header.isAlwaysOff()) {
+                this.setRedstonePowerChanged(header);
+                return;
+            }
+
             // Verify that the power state is correct
             if (PowerState.isSignPowered(this.sign.getBlock()) != isPowered) {
                 return;
             }
 
             // Update power level
-            setRedstonePower(isPowered);
+            setRedstonePower(header, isPowered);
         }
 
-        public void setRedstonePower(boolean newPowerState) {
+        public void setRedstonePower(SignActionHeader header, boolean newPowerState) {
             // Is the event allowed?
-            SignActionEvent info = new SignActionEvent(sign.getBlock(), sign.getSign(), (RailPiece) null);
+            SignActionEvent info = createSignActionEvent(header);
             SignActionType type = info.getHeader().getRedstoneAction(newPowerState);
 
             // Change in redstone power?
@@ -453,6 +491,17 @@ public class SignController implements LibraryComponent, Listener {
 
             // Fire a REDSTONE_CHANGE event afterwards at all times
             SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
+        }
+
+        public void setRedstonePowerChanged(SignActionHeader header) {
+            SignActionEvent info = createSignActionEvent(header);
+            SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
+        }
+
+        private SignActionEvent createSignActionEvent(SignActionHeader header) {
+            TrackedSign trackedSign = TrackedSign.forRealSign(this.sign, (RailPiece) null);
+            trackedSign.setCachedHeader(header);
+            return new SignActionEvent(trackedSign);
         }
     }
 

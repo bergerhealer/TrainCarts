@@ -544,6 +544,16 @@ public final class RailLookup {
         }
 
         /**
+         * Sets this TrackedSign to use a particular header, instead of calculating one from
+         * scratch the next time {@link #getHeader()} is called.
+         *
+         * @param header Header to cache
+         */
+        public void setCachedHeader(SignActionHeader header) {
+            this.cachedHeader = header;
+        }
+
+        /**
          * Gets the SignAction that matches the sign text contents of this tracked sign.
          * Is cached.
          *

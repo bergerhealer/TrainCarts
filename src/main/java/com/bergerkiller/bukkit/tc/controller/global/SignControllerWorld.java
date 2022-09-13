@@ -382,6 +382,7 @@ public class SignControllerWorld {
         // Create entry. Add it to by-chunk and by-block mapping.
         Block signBlock = sign.getBlock();
         SignController.Entry entry = this.controller.createEntry(sign,
+                this,
                 LongBlockCoordinates.map(signBlock.getX(), signBlock.getY(), signBlock.getZ()),
                 MathUtil.longHashToLong(MathUtil.toChunk(signBlock.getX()),
                                         MathUtil.toChunk(signBlock.getZ())));
@@ -469,7 +470,7 @@ public class SignControllerWorld {
      */
     private void activateSignsInChunk(Chunk chunk) {
         // Use verifyEntry which updates the sign state, important when activating
-        changeActiveForEntriesInChunk(chunk, true, this::verifyEntry, this.controller::activateEntry);
+        changeActiveForEntriesInChunk(chunk, true, SignControllerWorld::verifyEntry, this.controller::activateEntry);
     }
 
     /**
@@ -563,6 +564,7 @@ public class SignControllerWorld {
         for (BlockState blockState : getBlockStatesSafe(chunk)) {
             if (blockState instanceof Sign) {
                 SignController.Entry entry = this.controller.createEntry((Sign) blockState,
+                        this,
                         LongBlockCoordinates.map(blockState.getX(), blockState.getY(), blockState.getZ()),
                         chunkKey);
                 if (entriesAtChunk.isEmpty()) {
@@ -643,15 +645,15 @@ public class SignControllerWorld {
         }
     }
 
-    boolean verifyEntry(SignController.Entry entry) {
+    static boolean verifyEntry(SignController.Entry entry) {
         entry.sign.update();
         if (entry.sign.isRemoved()) {
             return false;
         }
         if (entry.sign.getAttachedFace() != entry.blocks.getAttachedFace()) {
-            entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
+            entry.blocks.forAllBlocks(entry, entry.world::removeChunkByBlockEntry);
             entry.blocks = SignBlocksAround.of(entry.sign.getAttachedFace());
-            entry.blocks.forAllBlocks(entry, this::addChunkByBlockEntry);
+            entry.blocks.forAllBlocks(entry, entry.world::addChunkByBlockEntry);
         }
         return true;
     }
