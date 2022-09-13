@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.debug;
 
+import java.util.Collection;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
@@ -22,14 +24,13 @@ import com.bergerkiller.bukkit.tc.controller.global.SignControllerWorld;
 import com.bergerkiller.bukkit.tc.debug.types.DebugToolTypeListDestinations;
 import com.bergerkiller.bukkit.tc.debug.types.DebugToolTypeRails;
 import com.bergerkiller.bukkit.tc.debug.types.DebugToolTypeTrackDistance;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.EventListenerHook;
 
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
-import cloud.commandframework.annotations.Flag;
-import cloud.commandframework.annotations.Hidden;
 import cloud.commandframework.annotations.specifier.Quoted;
 
 /**
@@ -230,6 +231,28 @@ public class DebugCommands {
             OfflineGroupManager.removeBuggedMinecarts(world);
         }
         sender.sendMessage(ChatColor.YELLOW + "Bugged minecarts have been forcibly removed.");
+    }
+
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
+    @CommandMethod("train debug railcache export")
+    @CommandDescription("Exports the rail block coordinates inside the current player world's rail cache")
+    private void commandDebugRailCacheExport(
+            final Player player,
+            final TrainCarts plugin
+    ) {
+        Collection<IntVector3> blocks = RailLookup.forWorld(player.getWorld()).getBlockIndex();
+        StringBuffer buffer = new StringBuffer(blocks.size() * 20);
+        for (IntVector3 block : blocks) {
+            buffer.append(block.x).append(' ').append(block.y).append(' ')
+                  .append(block.z).append("\r\n");
+        }
+        TCConfig.hastebin.upload(buffer.toString()).thenAccept(t -> {
+            if (t.success()) {
+                player.sendMessage(ChatColor.GREEN + "Rail cache block index exported: " + ChatColor.WHITE + ChatColor.UNDERLINE + t.url());
+            } else {
+                player.sendMessage(ChatColor.RED + "Failed to export rail cache block coordinates: " + t.error());
+            }
+        });
     }
 
     // There's no possibly way people still need this in 2022

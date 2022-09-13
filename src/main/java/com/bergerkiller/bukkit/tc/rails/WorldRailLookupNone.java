@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.rails;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -112,5 +113,10 @@ final class WorldRailLookupNone implements WorldRailLookup {
     @Override
     public DetectorRegion[] getDetectorRegions(IntVector3 coordinates) {
         throw new ClosedException();
+    }
+
+    @Override
+    public Collection<IntVector3> getBlockIndex() {
+        return Collections.emptySet();
     }
 }

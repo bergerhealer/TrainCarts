@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.rails;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.bukkit.World;
@@ -222,6 +223,14 @@ public interface WorldRailLookup {
      * @return Detector Regions at these coordinates
      */
     DetectorRegion[] getDetectorRegions(IntVector3 coordinates);
+
+    /**
+     * Gets the full by-block index to which rail information is cached.
+     * This includes both rail blocks and position-to-rail blocks.
+     *
+     * @return Block index
+     */
+    Collection<IntVector3> getBlockIndex();
 
     /**
      * Exception thrown when a WorldRailLookup is used that is no longer valid because it has

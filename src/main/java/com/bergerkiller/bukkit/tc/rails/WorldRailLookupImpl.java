@@ -4,6 +4,7 @@ import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -456,6 +457,11 @@ final class WorldRailLookupImpl implements WorldRailLookup {
     public DetectorRegion[] getDetectorRegions(IntVector3 coordinates) {
         Bucket bucket = this.cache.get(createCacheKey(coordinates));
         return (bucket == null) ? RailLookup.NO_DETECTOR_REGIONS : bucket.detectorRegions;
+    }
+
+    @Override
+    public Collection<IntVector3> getBlockIndex() {
+        return this.cache.keySet();
     }
 
     /**
