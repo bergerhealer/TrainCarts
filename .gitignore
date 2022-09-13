@@ -6,6 +6,7 @@
 # Minecraft stuff added during test
 minecraft/
 logs/
+hashtest
 
 # netbeans
 nbproject/
