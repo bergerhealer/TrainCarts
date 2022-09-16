@@ -165,6 +165,9 @@ public enum FakePlayerSpawner {
             return player.getUniqueId();
         }
 
+        // Avoid broken state
+        state.runAndClearCleanupTasksFor(viewer);
+
         // Send a tab list entry for this new (fake) player to be spawned
         final UUID uuid = state.getUUID(this);
         {
@@ -317,6 +320,21 @@ public enum FakePlayerSpawner {
             CleanupPlayerListEntryTask task = new CleanupPlayerListEntryTask(TrainCarts.plugin, this, viewer, playerName, playerUUID);
             this.pendingCleanup.add(task);
             task.start(TAB_LIST_CLEANUP_DELAY, 1);
+        }
+
+        /**
+         * Runs this before spawning a player, to avoid a team that is in a wrong state
+         *
+         * @param viewer
+         */
+        public void runAndClearCleanupTasksFor(Player viewer) {
+            for (Iterator<CleanupPlayerListEntryTask> iter = pendingCleanup.iterator(); iter.hasNext();) {
+                CleanupPlayerListEntryTask task = iter.next();
+                if (task.viewer == viewer) {
+                    iter.remove();
+                    task.finish();
+                }
+            }
         }
 
         /**
