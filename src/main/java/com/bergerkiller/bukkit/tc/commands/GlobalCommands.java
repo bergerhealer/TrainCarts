@@ -762,10 +762,15 @@ public class GlobalCommands {
             text = ChatText.fromMessage(ChatColor.RED.toString() + ChatColor.UNDERLINE + name);
             text.setHoverText(ChatColor.RED + "Not loaded");
         }
-        if (name.indexOf(' ') != -1) {
-            text.setClickableRunCommand("/train edit \"" + name + "\"");
+
+        String safeEditName = name;
+        if (safeEditName.indexOf(StringUtil.CHAT_STYLE_CHAR) != -1) {
+            safeEditName = ChatColor.stripColor(name).trim();
+        }
+        if (safeEditName.indexOf(' ') != -1) {
+            text.setClickableRunCommand("/train edit \"" + safeEditName + "\"");
         } else {
-            text.setClickableRunCommand("/train edit " + name);
+            text.setClickableRunCommand("/train edit " + safeEditName);
         }
         return text;
     }
