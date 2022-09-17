@@ -381,7 +381,7 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
      * @return junction, null if not found
      */
     public RailJunction findJunction(BlockFace face) {
-        return Util.faceToJunction(getJunctions(), face);
+        return RailJunction.findBest(getJunctions(), FaceUtil.faceToVector(face)).orElse(null);
     }
 
     /**

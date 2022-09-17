@@ -1184,12 +1184,7 @@ public class Util {
      * @return the best matching junction, null if not found
      */
     public static RailJunction faceToJunction(List<RailJunction> junctions, BlockFace face) {
-        for (RailJunction junc : junctions) {
-            if (junc.position().getMotionFace() == face) {
-                return junc;
-            }
-        }
-        return null;
+        return RailJunction.findBest(junctions, FaceUtil.faceToVector(face)).orElse(null);
     }
 
     /**
