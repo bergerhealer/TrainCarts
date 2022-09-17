@@ -9,11 +9,10 @@ import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
-import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
@@ -74,14 +73,14 @@ class SeatedEntityElytra extends SeatedEntity {
         DataWatcher meta = new DataWatcher();
         getMetadataFunction(invisible).accept(meta);
         PacketPlayOutEntityMetadataHandle packet = PacketPlayOutEntityMetadataHandle.createNew(entityId, meta, true);
-        for (Player viewer : seat.getViewers()) {
-            if (this.entity != viewer || isDummyPlayer() || isMadeVisibleInFirstPerson()) {
-                PacketUtil.sendPacket(viewer, packet);
+        for (AttachmentViewer viewer : seat.getAttachmentViewers()) {
+            if (this.entity != viewer.getPlayer() || isDummyPlayer() || isMadeVisibleInFirstPerson()) {
+                viewer.send(packet);
             }
         }
     }
 
-    public void makeFakePlayerVisible(VehicleMountController vmc, Player viewer) {
+    public void makeFakePlayerVisible(AttachmentViewer viewer) {
         // Spawn a vehicle for the two elytra-mode fake player entities
         if (this.fakeVehicle == null) {
             this.fakeVehicle = this.createPassengerVehicle();
@@ -108,6 +107,7 @@ class SeatedEntityElytra extends SeatedEntity {
 
         // Spawn and mount a fake elytra-pose player into an invisible vehicle
         // For dummy players entity is null, so spawns a dummy.
+        VehicleMountController vmc = viewer.getVehicleMountController();
         Consumer<DataWatcher> metaFunction = getMetadataFunction(false);
         FakePlayerSpawner.NO_NAMETAG_SECONDARY.spawnPlayer(viewer, (Player) this.entity, this._fakeEntityId, fpp, metaFunction);
         vmc.mount(this.fakeVehicle.getEntityId(), this._fakeEntityId);
@@ -125,12 +125,13 @@ class SeatedEntityElytra extends SeatedEntity {
         }
     }
 
-    public void makeFakePlayerHidden(VehicleMountController vmc, Player viewer) {
+    public void makeFakePlayerHidden(AttachmentViewer viewer) {
         if (this._fakeEntityId != -1 && (isPlayer() || isDummyPlayer())) {
             // Destroy old fake player entity
-            PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNewSingle(this._fakeEntityId));
-            PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNewSingle(this._fakeEntityIdFlipped));
+            viewer.send(PacketPlayOutEntityDestroyHandle.createNewSingle(this._fakeEntityId));
+            viewer.send(PacketPlayOutEntityDestroyHandle.createNewSingle(this._fakeEntityIdFlipped));
             this.fakeVehicle.destroy(viewer);
+            VehicleMountController vmc = viewer.getVehicleMountController();
             vmc.remove(this._fakeEntityId);
             vmc.remove(this._fakeEntityIdFlipped);
             vmc.remove(this.fakeVehicle.getEntityId());
@@ -161,39 +162,37 @@ class SeatedEntityElytra extends SeatedEntity {
     }
 
     @Override
-    public void makeVisible(Player viewer) {
-        VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
+    public void makeVisible(AttachmentViewer viewer) {
         if (isPlayer()) {
             // Show the fake player, and if not first-person, hide the real player
-            if (this.entity != viewer && !this.isDummyPlayer()) {
+            if (this.entity != viewer.getPlayer() && !this.isDummyPlayer()) {
                 hideRealPlayer(viewer);
             }
-            makeFakePlayerVisible(vmc, viewer);
+            makeFakePlayerVisible(viewer);
         } else if (!this.isEmpty()) {
             // Default behavior for non-player entities is just to mount them
-            vmc.mount(this.spawnVehicleMount(viewer), this.entity.getEntityId());
+            viewer.getVehicleMountController().mount(this.spawnVehicleMount(viewer), this.entity.getEntityId());
         } else if (isDummyPlayer()) {
             // Show the dummy
-            makeFakePlayerVisible(vmc, viewer);
+            makeFakePlayerVisible(viewer);
         }
     }
 
     @Override
-    public void makeHidden(Player viewer) {
-        VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
+    public void makeHidden(AttachmentViewer viewer) {
         if (isPlayer()) {
             // Hide the fake player, and if not first-person, re-show the real player too
-            makeFakePlayerHidden(vmc, viewer);
-            if (this.entity != viewer) {
+            makeFakePlayerHidden(viewer);
+            if (this.entity != viewer.getPlayer()) {
                 showRealPlayer(viewer);
             }
         } else if (!isEmpty()) {
             // Unmount for generic entities
-            vmc.unmount(this.parentMountId, this.entity.getEntityId());
+            viewer.getVehicleMountController().unmount(this.parentMountId, this.entity.getEntityId());
             despawnVehicleMount(viewer);
         } else if (isDummyPlayer()) {
             // Hide the dummy
-            makeFakePlayerHidden(vmc, viewer);
+            makeFakePlayerHidden(viewer);
         }
     }
 

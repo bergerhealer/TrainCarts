@@ -1,18 +1,17 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat.spectator;
 
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
@@ -46,11 +45,11 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
     // Used in HEAD mode for the skull item
     private final ItemStack skullItem;
 
-    public FirstPersonSpectatedEntityPlayer(CartAttachmentSeat seat, FirstPersonViewSpectator view, VehicleMountController vmc) {
-        super(seat, view, vmc);
+    public FirstPersonSpectatedEntityPlayer(CartAttachmentSeat seat, FirstPersonViewSpectator view, AttachmentViewer player) {
+        super(seat, view, player);
 
         if (view.getLiveMode() == FirstPersonViewMode.HEAD) {
-            skullItem = SeatedEntityHead.createSkullItem(vmc.getPlayer());
+            skullItem = SeatedEntityHead.createSkullItem(player.getPlayer());
         } else {
             skullItem = null;
         }
@@ -61,7 +60,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
         // Spawn the fake player using the FakePlayerSpawner. Initially the player is made invisible,
         // because the head is still rotating awkwardly. We spectate a different entity during this time,
         // and we don't want this player obscuring the view.
-        fakePlayer = PitchSwappedEntity.create(vmc,
+        fakePlayer = PitchSwappedEntity.create(player,
                 new FakeVirtualPlayer(seat.getManager(), FakePlayerSpawner.NO_NAMETAG),
                 new FakeVirtualPlayer(seat.getManager(), FakePlayerSpawner.NO_NAMETAG_SECONDARY),
                 new FakeVirtualPlayer(seat.getManager(), FakePlayerSpawner.NO_NAMETAG_TERTIARY));
@@ -73,10 +72,10 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             if (blindRespawn == null) {
                 if (view.getLiveMode() == FirstPersonViewMode.HEAD) {
                     // Swap which entity holds the player skull
-                    PacketUtil.sendPacket(player, PacketPlayOutEntityEquipmentHandle.createNew(
-                            fakePlayer.entity.getEntityId(), EquipmentSlot.HEAD, null), false);
-                    PacketUtil.sendPacket(player, PacketPlayOutEntityEquipmentHandle.createNew(
-                            swapped.getEntityId(), EquipmentSlot.HEAD, skullItem), false);
+                    player.sendSilent(PacketPlayOutEntityEquipmentHandle.createNew(
+                            fakePlayer.entity.getEntityId(), EquipmentSlot.HEAD, null));
+                    player.sendSilent(PacketPlayOutEntityEquipmentHandle.createNew(
+                            swapped.getEntityId(), EquipmentSlot.HEAD, skullItem));
                 } else {
                     // Swap visibility
                     fakePlayer.swapVisibility(swapped);
@@ -106,6 +105,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
     }
 
     private void mountInVehicle() {
+        VehicleMountController vmc = player.getVehicleMountController();
         int vehicleId = view.prepareVehicleEntityId();
         this.fakePlayer.entity.mount(vmc, vehicleId);
         this.fakePlayer.entityAlt.mount(vmc, vehicleId);
@@ -113,6 +113,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
     }
 
     private void prepareFakeMounts(Matrix4x4 baseTransform) {
+        VehicleMountController vmc = player.getVehicleMountController();
         if (PacketPlayOutMountHandle.T.isAvailable()) {
             // Only one fake mount needed
             VirtualEntity fakeMount = createFakeMount(baseTransform);
@@ -161,7 +162,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
         fakeMount.spawn(player, seat.calcMotion());
 
         // Hide health bar
-        PacketUtil.sendPacket(player, PacketPlayOutUpdateAttributesHandle.createZeroMaxHealth(fakeMount.getEntityId()));
+        player.send(PacketPlayOutUpdateAttributesHandle.createZeroMaxHealth(fakeMount.getEntityId()));
 
         return fakeMount;
     }
@@ -174,6 +175,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             blindRespawn = null;
         }
 
+        VehicleMountController vmc = player.getVehicleMountController();
         this.fakePlayer.entity.unmount(vmc);
         this.fakePlayer.entityAlt.unmount(vmc);
         this.fakePlayer.entityAltFlip.unmount(vmc);
@@ -196,8 +198,8 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
                 fakePlayer.spectateFrom(blindRespawn.spectated.getEntityId());
                 if (view.getLiveMode() == FirstPersonViewMode.HEAD) {
                     // Make only the head visible
-                    PacketUtil.sendPacket(player, PacketPlayOutEntityEquipmentHandle.createNew(
-                            fakePlayer.entity.getEntityId(), EquipmentSlot.HEAD, skullItem), false);
+                    player.sendSilent(PacketPlayOutEntityEquipmentHandle.createNew(
+                            fakePlayer.entity.getEntityId(), EquipmentSlot.HEAD, skullItem));
                 } else {
                     // Make entire body visible
                     fakePlayer.entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, false);
@@ -263,11 +265,11 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
             spectated.syncPosition(true);
             spectated.spawn(player, seat.calcMotion());
             spectated.forceSyncRotation();
-            vmc.startSpectating(spectated.getEntityId());
+            player.getVehicleMountController().startSpectating(spectated.getEntityId());
         }
 
         public void despawn() {
-            vmc.stopSpectating(spectated.getEntityId());
+            player.getVehicleMountController().stopSpectating(spectated.getEntityId());
             spectated.destroy(player);
         }
 
@@ -311,7 +313,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
         }
 
         @Override
-        protected void sendSpawnPackets(Player viewer, Vector motion) {
+        protected void sendSpawnPackets(AttachmentViewer viewer, Vector motion) {
             FakePlayerSpawner.FakePlayerPosition orientation = FakePlayerSpawner.FakePlayerPosition.create(
                     this.getPosX(), this.getPosY(), this.getPosZ(),
                     (float) this.getYawPitchRoll().getY(),
@@ -319,7 +321,7 @@ class FirstPersonSpectatedEntityPlayer extends FirstPersonSpectatedEntity {
                     (float) this.getYawPitchRoll().getY());
 
             addViewerWithoutSpawning(viewer);
-            fakePlayer.spawnPlayer(viewer, viewer, this.getEntityId(), orientation, meta -> {
+            fakePlayer.spawnPlayer(viewer, viewer.getPlayer(), this.getEntityId(), orientation, meta -> {
                 meta.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, true);
                 meta.set(EntityHandle.DATA_NO_GRAVITY, true);
                 FakeVirtualPlayer.this.metaData = meta;

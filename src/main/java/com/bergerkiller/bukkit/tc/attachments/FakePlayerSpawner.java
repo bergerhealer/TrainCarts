@@ -20,11 +20,11 @@ import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.com.mojang.authlib.GameProfileHandle;
 import com.bergerkiller.generated.com.mojang.authlib.properties.PropertyHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutNamedEntitySpawnHandle;
@@ -111,6 +111,20 @@ public enum FakePlayerSpawner {
      * @param metaFunction Applies changes to the metadata of the spawned player
      */
     public void spawnPlayer(Player viewer, Player player, int entityId, FakePlayerPosition position, Consumer<DataWatcher> metaFunction) {
+        spawnPlayer(AttachmentViewer.fallback(viewer), player, entityId, position, metaFunction);
+    }
+
+    /**
+     * (Re)spawns the player for a viewer with this profile name modifier applied
+     * 
+     * @param viewer Attachment Viewer to spawn all this for
+     * @param player The player whose metadata to use to define the player's appearance.
+     *               Specify <i>null</i> to spawn a dummy player with a random UUID.
+     * @param entityId the Id for the newly spawned entity
+     * @param position Position and orientation of where to spawn the player
+     * @param metaFunction Applies changes to the metadata of the spawned player
+     */
+    public void spawnPlayer(AttachmentViewer viewer, Player player, int entityId, FakePlayerPosition position, Consumer<DataWatcher> metaFunction) {
         spawnPlayerSimple(viewer, player, entityId, fakePlayerSpawnPacket -> {
             fakePlayerSpawnPacket.setPosX(position.getX());
             fakePlayerSpawnPacket.setPosY(position.getY());
@@ -123,7 +137,7 @@ public enum FakePlayerSpawner {
         CommonPacket headPacket = PacketType.OUT_ENTITY_HEAD_ROTATION.newInstance();
         headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId, entityId);
         headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, position.getHeadYaw());
-        PacketUtil.sendPacket(viewer, headPacket);
+        viewer.send(headPacket);
     }
 
     /**
@@ -139,8 +153,24 @@ public enum FakePlayerSpawner {
      * @param metaFunction Applies changes to the metadata of the spawned player
      */
     public void spawnPlayerSimple(Player viewer, Player player, int entityId, Consumer<PacketPlayOutNamedEntitySpawnHandle> applier, Consumer<DataWatcher> metaFunction) {
+        spawnPlayerSimple(AttachmentViewer.fallback(viewer), player, entityId, applier, metaFunction);
+    }
+
+    /**
+     * (Re)spawns the player for a viewer with this profile name modifier applied.
+     * Does not do any special positioning calculations and leaves that up to the caller
+     * using the applier function.
+     * 
+     * @param viewer AttachmentViewer to spawn all this for
+     * @param player The player whose metadata to use to define the player's appearance.
+     *               Specify <i>null</i> to spawn a dummy player with a random UUID.
+     * @param entityId the Id for the newly spawned entity
+     * @param applier Applies other options to the created spawn packet
+     * @param metaFunction Applies changes to the metadata of the spawned player
+     */
+    public void spawnPlayerSimple(AttachmentViewer viewer, Player player, int entityId, Consumer<PacketPlayOutNamedEntitySpawnHandle> applier, Consumer<DataWatcher> metaFunction) {
         // Send list info before spawning
-        ProfileState state = getProfileState(player, viewer);
+        ProfileState state = getProfileState(player, viewer.getPlayer());
         UUID uuidOfFakePlayer = this.sendPlayerProfileInfo(viewer, player, state);
 
         // Spawn in a fake player with the same UUID
@@ -156,10 +186,10 @@ public enum FakePlayerSpawner {
         DataWatcher metaData = (player == null) ? new DataWatcher() : EntityUtil.getDataWatcher(player).clone();
         //setMetaVisibility(metaData, false);
         metaFunction.accept(metaData);
-        PacketUtil.sendNamedEntitySpawnPacket(viewer, fakePlayerSpawnPacket, metaData);
+        viewer.sendNamedEntitySpawnPacket(fakePlayerSpawnPacket, metaData);
     }
 
-    private UUID sendPlayerProfileInfo(Player viewer, Player player, ProfileState state) {
+    private UUID sendPlayerProfileInfo(AttachmentViewer viewer, Player player, ProfileState state) {
         // For normal players there is nothing to do - those tab list entries aren't modified
         if (this == NORMAL && player != null) {
             return player.getUniqueId();
@@ -193,12 +223,12 @@ public enum FakePlayerSpawner {
                     playerListName
             );
             newInfoPacket.getPlayers().add(playerInfo);
-            PacketUtil.sendPacket(viewer, newInfoPacket);
+            viewer.send(newInfoPacket);
         }
 
         // Send scoreboard team to hide the nametag
         // Only do this once to prevent a client disconnect (duplicate team)
-        if (this._hideNametag && this._teamName != null && this._teamSentPlayers.add(viewer.getUniqueId())) {
+        if (this._hideNametag && this._teamName != null && this._teamSentPlayers.add(viewer.getPlayer().getUniqueId())) {
             PacketPlayOutScoreboardTeamHandle teamPacket = PacketPlayOutScoreboardTeamHandle.createNew();
             teamPacket.setMethod(PacketPlayOutScoreboardTeamHandle.METHOD_ADD);
             teamPacket.setName(this._teamName.getMessage());
@@ -210,7 +240,7 @@ public enum FakePlayerSpawner {
             teamPacket.setTeamOptionFlags(0x3);
             teamPacket.setPlayers(new ArrayList<String>(Collections.singleton(this._playerName)));
             teamPacket.setColor(ChatColor.RESET);
-            PacketUtil.sendPacket(viewer, teamPacket);
+            viewer.send(teamPacket);
         }
 
         // A few ticks delayed, instantly remove the tab player list entry again
@@ -305,7 +335,7 @@ public enum FakePlayerSpawner {
                     : ((type == NO_NAMETAG_TERTIARY) ? npcUUID3 : ((type == NO_NAMETAG_SECONDARY) ? npcUUID2 : npcUUID));
         }
 
-        public void scheduleCleanupTask(Player viewer, String playerName, UUID playerUUID) {
+        public void scheduleCleanupTask(AttachmentViewer viewer, String playerName, UUID playerUUID) {
             // Cancel any previous task
             Iterator<CleanupPlayerListEntryTask> iter = this.pendingCleanup.iterator();
             while (iter.hasNext()) {
@@ -327,10 +357,10 @@ public enum FakePlayerSpawner {
          *
          * @param viewer
          */
-        public void runAndClearCleanupTasksFor(Player viewer) {
+        public void runAndClearCleanupTasksFor(AttachmentViewer viewer) {
             for (Iterator<CleanupPlayerListEntryTask> iter = pendingCleanup.iterator(); iter.hasNext();) {
                 CleanupPlayerListEntryTask task = iter.next();
-                if (task.viewer == viewer) {
+                if (task.viewer.equals(viewer)) {
                     iter.remove();
                     task.finish();
                 }
@@ -356,12 +386,12 @@ public enum FakePlayerSpawner {
      */
     private static class CleanupPlayerListEntryTask extends Task {
         private final ProfileState state;
-        private final Player viewer;
+        private final AttachmentViewer viewer;
         private final long runWhen;
         public final String playerName;
         public final UUID playerUUID;
 
-        public CleanupPlayerListEntryTask(JavaPlugin plugin, ProfileState state, Player viewer, String playerName, UUID playerUUID) {
+        public CleanupPlayerListEntryTask(JavaPlugin plugin, ProfileState state, AttachmentViewer viewer, String playerName, UUID playerUUID) {
             super(plugin);
             this.state = state;
             this.viewer = viewer;
@@ -391,7 +421,7 @@ public enum FakePlayerSpawner {
                             ChatText.fromMessage("")
                     );
                     oldInfoPacket.getPlayers().add(oldPlayerInfo);
-                    PacketUtil.sendPacket(this.viewer, oldInfoPacket);
+                    this.viewer.send(oldInfoPacket);
                 }
             } finally {
                 // Cleanup ourselves from the list

@@ -13,9 +13,9 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutScoreboardTeamHandle;
 
 /**
@@ -45,7 +45,7 @@ public class GlowColorTeamProvider {
                         PacketPlayOutScoreboardTeamHandle packet = team.createPacket(PacketPlayOutScoreboardTeamHandle.METHOD_LEAVE);
                         packet.setPlayers(team.pendingRemove);
                         team.pendingRemove = Collections.emptySet();
-                        PacketUtil.sendPacket(team.state.viewer, packet);
+                        team.state.viewer.send(packet);
                     }
                     if (team.pendingAdd.isEmpty()) {
                         team.pendingAdd = Collections.emptySet();
@@ -64,13 +64,13 @@ public class GlowColorTeamProvider {
                         PacketPlayOutScoreboardTeamHandle packet = team.createPacket(PacketPlayOutScoreboardTeamHandle.METHOD_ADD);
                         packet.setPlayers(team.pendingAdd);
                         team.pendingAdd = Collections.emptySet();
-                        PacketUtil.sendPacket(team.state.viewer, packet);
+                        team.state.viewer.send(packet);
                     } else {
                         // Add the set of entities for this viewer
                         PacketPlayOutScoreboardTeamHandle packet = team.createPacket(PacketPlayOutScoreboardTeamHandle.METHOD_JOIN);
                         packet.setPlayers(team.pendingAdd);
                         team.pendingAdd = Collections.emptySet();
-                        PacketUtil.sendPacket(team.state.viewer, packet);
+                        team.state.viewer.send(packet);
                     }
                 }
                 pendingTeamUpdates.clear();
@@ -114,18 +114,32 @@ public class GlowColorTeamProvider {
      * @param viewer
      * @param entityUUID
      * @param color
+     * @deprecated Should use {@link #update(AttachmentViewer, UUID, ChatColor)} instead
      */
+    @Deprecated
     public void update(Player viewer, UUID entityUUID, ChatColor color) {
+        update(AttachmentViewer.fallback(viewer), entityUUID, color);
+    }
+
+    /**
+     * Assigns a color to the entity. If the entity was already part of a team
+     * with a different color, the entity is re-assigned to another team.
+     * 
+     * @param viewer
+     * @param entityUUID
+     * @param color
+     */
+    public void update(AttachmentViewer viewer, UUID entityUUID, ChatColor color) {
         // For chat color white, we don't need a team, just remove from any previous teams
         if (color == ChatColor.WHITE) {
-            this.reset(viewer, entityUUID);
+            this.reset(viewer.getPlayer(), entityUUID);
             return;
         }
 
-        ViewerState state = this.viewerStates.get(viewer);
+        ViewerState state = this.viewerStates.get(viewer.getPlayer());
         if (state == null) {
             state = new ViewerState(this, viewer);
-            this.viewerStates.put(viewer, state);
+            this.viewerStates.put(viewer.getPlayer(), state);
         }
         for (ViewerState.Team team : state.teams.values()) {
             if (team.color == color) {
@@ -142,6 +156,18 @@ public class GlowColorTeamProvider {
         if (newTeam != null) {
             newTeam.addEntity(entityUUID);
         }
+    }
+
+    /**
+     * Cleans up state when an entity that was possibly assigned a team is
+     * destroyed for a viewer, is no longer using the glow effect, or
+     * desires a white (default) glow effect
+     * 
+     * @param viewer
+     * @param entityUUID
+     */
+    public void reset(AttachmentViewer viewer, UUID entityUUID) {
+        reset(viewer.getPlayer(), entityUUID);
     }
 
     /**
@@ -179,10 +205,10 @@ public class GlowColorTeamProvider {
 
     private static final class ViewerState {
         private final GlowColorTeamProvider provider;
-        private final Player viewer;
+        private final AttachmentViewer viewer;
         private final EnumMap<ChatColor, Team> teams;
 
-        public ViewerState(GlowColorTeamProvider provider, Player viewer) {
+        public ViewerState(GlowColorTeamProvider provider, AttachmentViewer viewer) {
             this.provider = provider;
             this.viewer = viewer;
             this.teams = new EnumMap<ChatColor, Team>(ChatColor.class);
@@ -257,7 +283,7 @@ public class GlowColorTeamProvider {
                     this.pendingRemove = Collections.emptySet();
                     this.pendingAdd = Collections.emptySet();
                     this.entities.clear();
-                    PacketUtil.sendPacket(this.state.viewer, this.createPacket(PacketPlayOutScoreboardTeamHandle.METHOD_REMOVE));
+                    this.state.viewer.send(this.createPacket(PacketPlayOutScoreboardTeamHandle.METHOD_REMOVE));
                 }
             }
 

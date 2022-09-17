@@ -30,6 +30,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity;
@@ -286,7 +287,7 @@ public class CartAttachmentSeat extends CartAttachment {
     public SeatedEntity seated = null;
 
     // During makeVisible(viewer) this is set to that viewer, to ignore it when refreshing
-    private Player _makeVisibleCurrent = null;
+    private AttachmentViewer _makeVisibleCurrent = null;
 
     // Seat configuration
     private ObjectPosition _ejectPosition = new ObjectPosition();
@@ -324,11 +325,11 @@ public class CartAttachmentSeat extends CartAttachment {
      * 
      * @return synced viewers
      */
-    public Collection<Player> getViewersSynced() {
+    public Collection<AttachmentViewer> getAttachmentViewersSynced() {
         if (_makeVisibleCurrent == null) {
-            return this.getViewers();
+            return this.getAttachmentViewers();
         } else {
-            ArrayList<Player> tmp = new ArrayList<Player>(this.getViewers());
+            ArrayList<AttachmentViewer> tmp = new ArrayList<>(this.getAttachmentViewers());
             tmp.remove(_makeVisibleCurrent);
             return tmp;
         }
@@ -416,7 +417,19 @@ public class CartAttachmentSeat extends CartAttachment {
     }
 
     @Override
-    public void makeVisible(Player viewer) {
+    @Deprecated
+    public void makeVisible(Player player) {
+        makeVisible(getManager().asAttachmentViewer(player));
+    }
+
+    @Override
+    @Deprecated
+    public void makeHidden(Player player) {
+        makeHidden(getManager().asAttachmentViewer(player));
+    }
+
+    @Override
+    public void makeVisible(AttachmentViewer viewer) {
         try {
             this._makeVisibleCurrent = viewer;
             this.seated.updateMode(false);
@@ -427,16 +440,16 @@ public class CartAttachmentSeat extends CartAttachment {
     }
 
     @Override
-    public void makeHidden(Player viewer) {
+    public void makeHidden(AttachmentViewer viewer) {
         makeHiddenImpl(viewer, false);
     }
 
-    public void makeVisibleImpl(Player viewer, boolean isReload) {
+    public void makeVisibleImpl(AttachmentViewer viewer, boolean isReload) {
         if (!seated.isDisplayed()) {
             return;
         }
 
-        if (viewer == this.seated.getEntity()) {
+        if (viewer.getPlayer() == this.seated.getEntity()) {
             // Initialize the first-person mode for this viewer
             if (!isReload) {
                 FirstPersonViewMode liveMode = this.firstPerson.getLiveMode();
@@ -464,7 +477,7 @@ public class CartAttachmentSeat extends CartAttachment {
         }
     }
 
-    private void makeDisplayedItemVisible(Player viewer) {
+    private void makeDisplayedItemVisible(AttachmentViewer viewer) {
         if (!this._displayedItemEntity.hasViewers()) {
             // Set interpolation mode to match whatever parent vehicle is used
             this._displayedItemEntity.setUseMinecartInterpolation(this.isMinecartInterpolation());
@@ -486,8 +499,8 @@ public class CartAttachmentSeat extends CartAttachment {
         this._displayedItemEntity.updatePosition(transform);
     }
 
-    public void makeHiddenImpl(Player viewer, boolean isReload) {
-        if (this.seated.getEntity() == viewer) {
+    public void makeHiddenImpl(AttachmentViewer viewer, boolean isReload) {
+        if (this.seated.getEntity() == viewer.getPlayer()) {
             if (!isReload && this._displayedItemEntity != null && showDisplayedItemInFirstPerson()) {
                 this._displayedItemEntity.destroy(viewer);
             }
@@ -542,8 +555,8 @@ public class CartAttachmentSeat extends CartAttachment {
     public void sendSmoothCoastersRelativeRotation(Quaternion orientation, boolean instant) {
         if (this._useSmoothCoasters) {
             this.getPlugin().getSmoothCoastersAPI().setRotation(
-                    null,
-                    (Player) this.seated.getEntity(),
+                    this.firstPerson.getViewer().getSmoothCoastersNetwork(),
+                    this.firstPerson.getViewer().getPlayer(),
                     (float) orientation.getX(),
                     (float) orientation.getY(),
                     (float) orientation.getZ(),
@@ -622,7 +635,7 @@ public class CartAttachmentSeat extends CartAttachment {
 
         if (this.seated.isDisplayed()) {
             // If a previous entity was set, unseat it
-            for (Player viewer : this.getViewers()) {
+            for (AttachmentViewer viewer : this.getAttachmentViewers()) {
                 this.makeHiddenImpl(viewer, false);
             }
 
@@ -645,7 +658,7 @@ public class CartAttachmentSeat extends CartAttachment {
             TrainCarts.plugin.getSeatAttachmentMap().set(this.seated.getEntity().getEntityId(), this);
         }
         if (this.seated.isDisplayed()) {
-            for (Player viewer : this.getViewers()) {
+            for (AttachmentViewer viewer : this.getAttachmentViewers()) {
                 this.makeVisibleImpl(viewer, false);
             }
         }
@@ -683,10 +696,11 @@ public class CartAttachmentSeat extends CartAttachment {
             Player player = (Player) this.seated.getEntity();
             boolean enabled = getPlugin().getSmoothCoastersAPI().isEnabled(player);
             if (enabled != this._useSmoothCoasters) {
-                this.makeHiddenImpl(player, false);
+                AttachmentViewer viewer = getManager().asAttachmentViewer(player);
+                this.makeHiddenImpl(viewer, false);
                 this._useSmoothCoasters = enabled;
                 this.seated.updateMode(false);
-                this.makeVisibleImpl(player, false);
+                this.makeVisibleImpl(viewer, false);
             }
         }
     }
@@ -715,7 +729,7 @@ public class CartAttachmentSeat extends CartAttachment {
         if (!seated.isDummyPlayer()) {
             seated.setShowDummyPlayer(true);
             if (seated.isEmpty()) {
-                for (Player viewer : this.getViewers()) {
+                for (AttachmentViewer viewer : this.getAttachmentViewers()) {
                     this.makeVisibleImpl(viewer, false);
                 }
             }
@@ -730,7 +744,7 @@ public class CartAttachmentSeat extends CartAttachment {
         if (seated.isDummyPlayer()) {
             // Hide them all, don't show again
             if (seated.isEmpty()) {
-                for (Player viewer : this.getViewers()) {
+                for (AttachmentViewer viewer : this.getAttachmentViewers()) {
                     this.makeHiddenImpl(viewer, false);
                 }
             }

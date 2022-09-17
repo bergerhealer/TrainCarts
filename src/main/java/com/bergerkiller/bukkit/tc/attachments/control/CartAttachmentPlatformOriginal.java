@@ -7,11 +7,11 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
 public class CartAttachmentPlatformOriginal extends CartAttachment {
@@ -78,15 +78,27 @@ public class CartAttachmentPlatformOriginal extends CartAttachment {
     }
 
     @Override
-    public void makeVisible(Player viewer) {
-        // Send entity spawn packet
-        actual.spawn(viewer, new Vector());
-        entity.spawn(viewer, new Vector());
-        PlayerUtil.getVehicleMountController(viewer).mount(entity.getEntityId(), actual.getEntityId());
+    @Deprecated
+    public void makeVisible(Player player) {
+        makeVisible(getManager().asAttachmentViewer(player));
     }
 
     @Override
-    public void makeHidden(Player viewer) {
+    @Deprecated
+    public void makeHidden(Player player) {
+        makeHidden(getManager().asAttachmentViewer(player));
+    }
+
+    @Override
+    public void makeVisible(AttachmentViewer viewer) {
+        // Send entity spawn packet
+        actual.spawn(viewer, new Vector());
+        entity.spawn(viewer, new Vector());
+        viewer.getVehicleMountController().mount(entity.getEntityId(), actual.getEntityId());
+    }
+
+    @Override
+    public void makeHidden(AttachmentViewer viewer) {
         // Send entity destroy packet
         actual.destroy(viewer);
         entity.destroy(viewer);

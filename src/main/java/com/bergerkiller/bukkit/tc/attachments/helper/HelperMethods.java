@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 
 /**
  * Just some helper methods to keep the API clean
@@ -54,9 +55,9 @@ public class HelperMethods {
      * 
      * @param root attachment to hide, only root attachment is permitted
      * @param active whether the attachment and parent attachments are active
-     * @param viewer to hide it from
+     * @param viewer Attachment Viewer to hide it from
      */
-    public static void makeHiddenRecursive(Attachment root, boolean active, Player viewer) {
+    public static void makeHiddenRecursive(Attachment root, boolean active, AttachmentViewer viewer) {
         active &= root.isActive();
         for (Attachment child : root.getChildren()) {
             makeHiddenRecursive(child, active, viewer);
@@ -72,9 +73,9 @@ public class HelperMethods {
      * 
      * @param root attachment to make visible, only root attachment is permitted
      * @param active whether the attachment and parent attachments are active
-     * @param viewer to make it disable to
+     * @param viewer Attachment Viewer to make it visible for
      */
-    public static void makeVisibleRecursive(Attachment root, boolean active, Player viewer) {
+    public static void makeVisibleRecursive(Attachment root, boolean active, AttachmentViewer viewer) {
         active &= root.isActive();
         if (active || !root.isHiddenWhenInactive()) {
             root.makeVisible(viewer);

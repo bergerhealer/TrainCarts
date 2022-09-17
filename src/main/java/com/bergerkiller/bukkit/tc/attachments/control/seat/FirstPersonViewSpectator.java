@@ -1,15 +1,14 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
-import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.spectator.FirstPersonSpectatedEntity;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
@@ -31,7 +30,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
     // Tracks player input while inside this FPV mode
     private final SpectatorInput _input = new SpectatorInput();
 
-    public FirstPersonViewSpectator(CartAttachmentSeat seat, Player player) {
+    public FirstPersonViewSpectator(CartAttachmentSeat seat, AttachmentViewer player) {
         super(seat, player);
     }
 
@@ -85,7 +84,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
     }
 
     @Override
-    public void makeVisible(Player viewer, boolean isReload) {
+    public void makeVisible(AttachmentViewer viewer, boolean isReload) {
         // Make the player invisible - we don't want it to get in view
         setPlayerVisible(viewer, false);
         vehicleEntityId = -1;
@@ -99,8 +98,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
         Matrix4x4 eyeTransform = this.getEyeTransform();
 
         // Start spectator mode
-        VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
-        this._spectatedEntity = FirstPersonSpectatedEntity.create(seat, this, vmc);
+        this._spectatedEntity = FirstPersonSpectatedEntity.create(seat, this, viewer);
         this._spectatedEntity.start(eyeTransform);
 
         // Mount the player itself off-screen on a mount somewhere
@@ -122,7 +120,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
                     EntityArmorStandHandle.DATA_FLAG_IS_SMALL));
             this._playerMount.spawn(viewer, new Vector());
 
-            vmc.mount(this._playerMount.getEntityId(), viewer.getEntityId());
+            viewer.getVehicleMountController().mount(this._playerMount.getEntityId(), viewer.getEntityId());
         }
 
         // If third-person mode is used, also spawn the real seated entity for this viewer
@@ -132,7 +130,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
     }
 
     @Override
-    public void makeHidden(Player viewer, boolean isReload) {
+    public void makeHidden(AttachmentViewer viewer, boolean isReload) {
         // If third-person mode is used, also despawn the real seated entity for this viewer
         if (this.getLiveMode() == FirstPersonViewMode.THIRD_P) {
             seat.seated.makeHiddenFirstPerson(viewer);
@@ -140,7 +138,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
 
         // Remove player from the temporary mount
         if (_playerMount != null) {
-            VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
+            VehicleMountController vmc = viewer.getVehicleMountController();
             vmc.unmount(this._playerMount.getEntityId(), viewer.getEntityId());
 
             _playerMount.destroy(viewer);

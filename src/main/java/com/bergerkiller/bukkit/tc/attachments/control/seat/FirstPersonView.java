@@ -12,8 +12,8 @@ import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityEquipmentHandle;
@@ -25,7 +25,7 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
  */
 public abstract class FirstPersonView {
     protected final CartAttachmentSeat seat;
-    protected final Player player;
+    protected final AttachmentViewer player;
     private FirstPersonViewMode _liveMode = FirstPersonViewMode.DEFAULT;
     private FirstPersonViewMode _mode = FirstPersonViewMode.DYNAMIC;
     private FirstPersonViewLockMode _lock = FirstPersonViewLockMode.MOVE;
@@ -36,13 +36,17 @@ public abstract class FirstPersonView {
      */
     public static final float BODY_LOCK_FOV_LIMIT = 70.0f;
 
-    public FirstPersonView(CartAttachmentSeat seat, Player player) {
+    public FirstPersonView(CartAttachmentSeat seat, AttachmentViewer player) {
         this.seat = seat;
         this.player = player;
     }
 
     public ObjectPosition getEyePosition() {
         return this._eyePosition;
+    }
+
+    public AttachmentViewer getViewer() {
+        return this.player;
     }
 
     /**
@@ -92,19 +96,19 @@ public abstract class FirstPersonView {
      * Called when a Player entered the seat. Should make the first-person view mode
      * active for this viewer.
      *
-     * @param viewer Player that entered the seat
+     * @param viewer AttachmentViewer of the Player that entered the seat
      * @param isReload Whether this is a reload. If true, makeHidden with isReload true was called before
      */
-    public abstract void makeVisible(Player viewer, boolean isReload);
+    public abstract void makeVisible(AttachmentViewer viewer, boolean isReload);
 
     /**
      * Called when a Player was inside the seat, but now exited it, disabling the
      * first-person view.
      *
-     * @param viewer Player viewer that left the seat
+     * @param viewer AttachmentViewer of the Player viewer that left the seat
      * @param isReload Whether this is a reload. If true, makeVisible will be called later.
      */
-    public abstract void makeHidden(Player viewer, boolean isReload);
+    public abstract void makeHidden(AttachmentViewer viewer, boolean isReload);
 
     /**
      * Called every tick to perform any logic required
@@ -177,19 +181,19 @@ public abstract class FirstPersonView {
         this._lock = lock;
     }
 
-    protected static void setPlayerVisible(Player player, boolean visible) {
+    protected static void setPlayerVisible(AttachmentViewer player, boolean visible) {
         // Send metadata packet to make the actual player entity visible or invisible
         {
             DataWatcher metaTmp = new DataWatcher();
-            metaTmp.set(EntityHandle.DATA_FLAGS, EntityUtil.getDataWatcher(player).get(EntityHandle.DATA_FLAGS));
+            metaTmp.set(EntityHandle.DATA_FLAGS, EntityUtil.getDataWatcher(player.getPlayer()).get(EntityHandle.DATA_FLAGS));
             metaTmp.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, !visible);
             PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(player.getEntityId(), metaTmp, true);
-            PacketUtil.sendPacket(player, metaPacket);
+            player.send(metaPacket);
         }
 
         if (visible) {
             // Resend all original equipment information of the Player
-            PlayerInventory inv = player.getInventory();
+            PlayerInventory inv = player.getPlayer().getInventory();
             sendEquipment(player, EquipmentSlot.HEAD, inv.getHelmet());
             sendEquipment(player, EquipmentSlot.CHEST, inv.getChestplate());
             sendEquipment(player, EquipmentSlot.FEET, inv.getBoots());
@@ -203,13 +207,12 @@ public abstract class FirstPersonView {
         }
     }
 
-    protected static void sendEquipment(Player player, EquipmentSlot slot, ItemStack item) {
+    protected static void sendEquipment(AttachmentViewer player, EquipmentSlot slot, ItemStack item) {
         if (HAS_EQUIPMENT_SEND_METHOD) {
-            sendEquipmentUsingBukkit(player, slot, item);
+            sendEquipmentUsingBukkit(player.getPlayer(), slot, item);
         } else {
-            PacketUtil.sendPacket(player, PacketPlayOutEntityEquipmentHandle.createNew(
-                    player.getEntityId(), slot, item),
-                    false);
+            player.sendSilent(PacketPlayOutEntityEquipmentHandle.createNew(
+                    player.getEntityId(), slot, item));
         }
     }
 

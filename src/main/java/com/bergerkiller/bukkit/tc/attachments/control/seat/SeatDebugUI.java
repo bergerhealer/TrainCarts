@@ -7,6 +7,7 @@ import java.util.Map;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.spectator.FirstPersonEyePreview;
 
@@ -49,10 +50,13 @@ public class SeatDebugUI {
                 preview.stop();
                 onEyePreviewStopped(preview.player);
             }
-        } else if (this._eyePreviews.computeIfAbsent(player, p -> new FirstPersonEyePreview(seat, p))
-                    .start(numTicks, seat.firstPerson.getEyeTransform())
-        ) {
-            onEyePreviewStarted(player);
+            return;
+        }
+
+        FirstPersonEyePreview preview = this._eyePreviews.computeIfAbsent(player, p -> new FirstPersonEyePreview(seat,
+                seat.getManager().asAttachmentViewer(p)));
+        if (preview.start(numTicks, seat.firstPerson.getEyeTransform())) {
+            onEyePreviewStarted(preview.player);
         }
     }
 
@@ -61,7 +65,7 @@ public class SeatDebugUI {
      * Does nothing if the player is in first-person already or is not online,
      * or is previewing the eye.
      *
-     * @param player Player to show the arrow to
+     * @param player AttachmentViewer of the Player to show the arrow to
      * @param numTicks Number of ticks to display
      */
     public void showEyeArrow(Player player, int numTicks) {
@@ -71,9 +75,9 @@ public class SeatDebugUI {
         }
 
         if (numTicks <= 0) {
-            this._eyeArrow.stop(player);
+            this._eyeArrow.stop(seat.getManager().asAttachmentViewer(player));
         } else {
-            this._eyeArrow.start(player, numTicks);
+            this._eyeArrow.start(seat.getManager().asAttachmentViewer(player), numTicks);
         }
     }
 
@@ -142,7 +146,7 @@ public class SeatDebugUI {
                 seat.seated.isDisplayed() && seat.firstPerson.getLiveMode() != FirstPersonViewMode.THIRD_P;
     }
 
-    private void onEyePreviewStarted(Player player) {
+    private void onEyePreviewStarted(AttachmentViewer player) {
         // If player is also viewing the entity, make that entity invisible
         // This prevents things looking all glitched
         // Only needed when not viewed in third-p mode
@@ -154,7 +158,7 @@ public class SeatDebugUI {
         _eyeArrow.stop(player);
     }
 
-    private void onEyePreviewStopped(Player player) {
+    private void onEyePreviewStopped(AttachmentViewer player) {
         // Stopped the preview, can re-spawn any third person view
         if (seat.seated.isDisplayed() && seat.firstPerson.getLiveMode() != FirstPersonViewMode.THIRD_P) {
             seat.seated.makeVisible(player);

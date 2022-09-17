@@ -16,12 +16,12 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
-import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.debug.DebugToolUtil;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
@@ -65,11 +65,23 @@ public class CartAttachmentPlatform extends CartAttachment {
     }
 
     @Override
-    public void makeVisible(Player viewer) {
+    @Deprecated
+    public void makeVisible(Player player) {
+        makeVisible(getManager().asAttachmentViewer(player));
     }
 
     @Override
-    public void makeHidden(Player viewer) {
+    @Deprecated
+    public void makeHidden(Player player) {
+        makeHidden(getManager().asAttachmentViewer(player));
+    }
+
+    @Override
+    public void makeVisible(AttachmentViewer viewer) {
+    }
+
+    @Override
+    public void makeHidden(AttachmentViewer viewer) {
         Iterator<Grounded> iter = this.grounded.iterator();
         while (iter.hasNext()) {
             Grounded g = iter.next();
@@ -140,10 +152,10 @@ public class CartAttachmentPlatform extends CartAttachment {
         }
 
         // Track when viewers go on the platform
-        for (Player viewer : this.getViewers()) {
+        for (AttachmentViewer viewer : this.getAttachmentViewers()) {
             boolean isGrounded = false;
             for (Grounded g : this.grounded) {
-                if (g.player == viewer) {
+                if (g.viewer.equals(viewer)) {
                     isGrounded = true;
                     break;
                 }
@@ -155,7 +167,7 @@ public class CartAttachmentPlatform extends CartAttachment {
 
             // Check whether the player is within the width/length of the platform,
             // and above (y>0) it. If so, the player can potentially fall/land on the platform.
-            Vector p = viewer.getLocation().toVector();
+            Vector p = viewer.getPlayer().getLocation().toVector();
             double player_y = p.getY();
             transform_inv.transformPoint(p);
             if (p.getY() <= 0.0) continue;
@@ -243,8 +255,9 @@ public class CartAttachmentPlatform extends CartAttachment {
 
     private static class Grounded {
 
-        public Grounded(Player player, AttachmentManager manager) {
-            this.player = player;
+        public Grounded(AttachmentViewer viewer, AttachmentManager manager) {
+            this.player = viewer.getPlayer();
+            this.viewer = viewer;
             this.manager = manager;
 
             this.actual = new VirtualEntity(manager);
@@ -260,15 +273,15 @@ public class CartAttachmentPlatform extends CartAttachment {
         }
 
         public void spawn() {
-            this.actual.spawn(this.player, new Vector());
-            this.entity.spawn(this.player, new Vector());
-            PlayerUtil.getVehicleMountController(this.player).mount(entity.getEntityId(), actual.getEntityId());
+            this.actual.spawn(this.viewer, new Vector());
+            this.entity.spawn(this.viewer, new Vector());
+            viewer.getVehicleMountController().mount(entity.getEntityId(), actual.getEntityId());
         }
 
         public void destroy() {
             // Send entity destroy packet
-            actual.destroy(this.player);
-            entity.destroy(this.player);
+            actual.destroy(this.viewer);
+            entity.destroy(this.viewer);
         }
 
         public void update(Matrix4x4 platform_old_transform, Matrix4x4 platform_transform, Matrix4x4 transform, double player_y) {
@@ -543,6 +556,7 @@ public class CartAttachmentPlatform extends CartAttachment {
         }
 
         public final Player player;
+        public final AttachmentViewer viewer;
         public Location prev_pos = null;
         public Vector old_pos = null;
         public Vector on_platform_pos = null;

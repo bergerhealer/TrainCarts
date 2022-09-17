@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonView.HeadRotation;
 import com.bergerkiller.generated.net.minecraft.server.level.EntityTrackerEntryStateHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
@@ -22,6 +23,7 @@ class PitchSwappedEntity<E extends VirtualEntity> {
     private static final float MIN_PITCH = EntityTrackerEntryStateHandle.getRotationFromProtocol(-128); // Closest to -180
     private static final float MAX_PITCH = EntityTrackerEntryStateHandle.getRotationFromProtocol(127); // Closest to 180
 
+    private final AttachmentViewer viewer;
     private final VehicleMountController vmc;
     private Consumer<E> beforeSwap = e -> {};
     private Runnable afterSwap = () -> {};
@@ -33,8 +35,9 @@ class PitchSwappedEntity<E extends VirtualEntity> {
     public E entityAltFlip;
     private boolean spectating = false;
 
-    private PitchSwappedEntity(VehicleMountController vmc, E entity, E entityAlt, E entityAltFlip) {
-        this.vmc = vmc;
+    private PitchSwappedEntity(AttachmentViewer viewer, E entity, E entityAlt, E entityAltFlip) {
+        this.viewer = viewer;
+        this.vmc = viewer.getVehicleMountController();
         this.entity = entity;
         this.entityAlt = entityAlt;
         this.entityAltFlip = entityAltFlip;
@@ -78,11 +81,11 @@ class PitchSwappedEntity<E extends VirtualEntity> {
         this.entityAltFlip.updatePosition(eyeTransform, headRot.flipVertical().pyr);
         this.entityAltFlip.syncPosition(true);
 
-        this.entity.spawn(vmc.getPlayer(), motion);
+        this.entity.spawn(viewer, motion);
         this.entity.forceSyncRotation();
-        this.entityAlt.spawn(vmc.getPlayer(), motion);
+        this.entityAlt.spawn(viewer, motion);
         this.entityAlt.forceSyncRotation();
-        this.entityAltFlip.spawn(vmc.getPlayer(), motion);
+        this.entityAltFlip.spawn(viewer, motion);
         this.entityAltFlip.forceSyncRotation();
     }
 
@@ -91,9 +94,9 @@ class PitchSwappedEntity<E extends VirtualEntity> {
             spectating = false;
             vmc.stopSpectating(entity.getEntityId());
         }
-        entity.destroy(vmc.getPlayer());
-        entityAlt.destroy(vmc.getPlayer());
-        entityAltFlip.destroy(vmc.getPlayer());
+        entity.destroy(viewer);
+        entityAlt.destroy(viewer);
+        entityAltFlip.destroy(viewer);
     }
 
     public void spectate() {
@@ -230,12 +233,12 @@ class PitchSwappedEntity<E extends VirtualEntity> {
     public void onBeforeSwap() {
     }
 
-    public static <E extends VirtualEntity> PitchSwappedEntity<E> create(VehicleMountController vmc, E entity, E entityAlt, E entityAltFlip) {
-        return new PitchSwappedEntity<E>(vmc, entity, entityAlt, entityAltFlip);
+    public static <E extends VirtualEntity> PitchSwappedEntity<E> create(AttachmentViewer viewer, E entity, E entityAlt, E entityAltFlip) {
+        return new PitchSwappedEntity<E>(viewer, entity, entityAlt, entityAltFlip);
     }
 
-    public static <E extends VirtualEntity> PitchSwappedEntity<E> create(VehicleMountController vmc, Supplier<E> entityFactory) {
-        return new PitchSwappedEntity<E>(vmc, entityFactory.get(), entityFactory.get(), entityFactory.get());
+    public static <E extends VirtualEntity> PitchSwappedEntity<E> create(AttachmentViewer viewer, Supplier<E> entityFactory) {
+        return new PitchSwappedEntity<E>(viewer, entityFactory.get(), entityFactory.get(), entityFactory.get());
     }
 
     static float computeAltPitch(float currPitch, float currAltPitch) {

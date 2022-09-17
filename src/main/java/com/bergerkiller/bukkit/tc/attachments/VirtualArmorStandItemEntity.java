@@ -1,17 +1,16 @@
 package com.bergerkiller.bukkit.tc.attachments;
 
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
@@ -144,12 +143,12 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
     }
 
     @Override
-    protected void sendSpawnPackets(Player viewer, Vector motion) {
+    protected void sendSpawnPackets(AttachmentViewer viewer, Vector motion) {
         super.sendSpawnPackets(viewer, motion);
 
         // Set equipment
         if (this.item != null) {
-            PacketUtil.sendPacket(viewer, this.transformType.createEquipmentPacket(this.getEntityId(), this.item));
+            viewer.send(this.transformType.createEquipmentPacket(this.getEntityId(), this.item));
         }
     }
 }

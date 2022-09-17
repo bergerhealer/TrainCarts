@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import org.bukkit.entity.EntityType;
@@ -130,12 +131,24 @@ public class CartAttachmentText extends CartAttachment {
     }
 
     @Override
-    public void makeVisible(Player viewer) {
+    @Deprecated
+    public void makeVisible(Player player) {
+        makeVisible(getManager().asAttachmentViewer(player));
+    }
+
+    @Override
+    @Deprecated
+    public void makeHidden(Player player) {
+        makeHidden(getManager().asAttachmentViewer(player));
+    }
+
+    @Override
+    public void makeVisible(AttachmentViewer viewer) {
         entity.spawn(viewer, new Vector(0.0, 0.0, 0.0));
     }
 
     @Override
-    public void makeHidden(Player viewer) {
+    public void makeHidden(AttachmentViewer viewer) {
         entity.destroy(viewer);
     }
 

@@ -8,9 +8,8 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
-import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutUpdateAttributesHandle;
@@ -27,7 +26,7 @@ public class FirstPersonViewDefault extends FirstPersonView {
     private double _playerYawRemainder = 0.0;
     private double _playerPitchRemainder = 0.0;
 
-    public FirstPersonViewDefault(CartAttachmentSeat seat, Player player) {
+    public FirstPersonViewDefault(CartAttachmentSeat seat, AttachmentViewer player) {
         super(seat, player);
     }
 
@@ -60,8 +59,8 @@ public class FirstPersonViewDefault extends FirstPersonView {
     }
 
     @Override
-    public void makeVisible(Player viewer, boolean isReload) {
-        VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
+    public void makeVisible(AttachmentViewer viewer, boolean isReload) {
+        VehicleMountController vmc = viewer.getVehicleMountController();
         boolean useFakeCamera = this.isFakeCameraUsed();
         if (useFakeCamera || seat.useSmoothCoasters() || seat.isRotationLocked()) {
             // In these three cases the eye transform is used for some logic here
@@ -76,7 +75,9 @@ public class FirstPersonViewDefault extends FirstPersonView {
             } else if (this.seat.useSmoothCoasters()) {
                 if (seat.isRotationLocked()) {
                     // Body is locked, limit the local yaw
-                    seat.getPlugin().getSmoothCoastersAPI().setRotationLimit(null, viewer,
+                    seat.getPlugin().getSmoothCoastersAPI().setRotationLimit(
+                            viewer.getSmoothCoastersNetwork(),
+                            viewer.getPlayer(),
                             // yaw
                             -BODY_LOCK_FOV_LIMIT, BODY_LOCK_FOV_LIMIT,
                             // pitch
@@ -88,7 +89,7 @@ public class FirstPersonViewDefault extends FirstPersonView {
                 HeadRotation rot = HeadRotation.compute(eyeTransform).ensureLevel();
                 PacketPlayOutPositionHandle p = PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, rot.yaw, rot.pitch);
                 p.setRotationRelative(false);
-                PacketUtil.sendPacket(viewer, p);
+                viewer.send(p);
             }
 
             if (useFakeCamera) {
@@ -101,10 +102,8 @@ public class FirstPersonViewDefault extends FirstPersonView {
                     this._fakeCameraMount.spawn(viewer, seat.calcMotion());
 
                     // Also send zero-max-health
-                    PacketUtil.sendPacket(viewer, PacketPlayOutUpdateAttributesHandle.createZeroMaxHealth(this._fakeCameraMount.getEntityId()));
+                    viewer.send(PacketPlayOutUpdateAttributesHandle.createZeroMaxHealth(this._fakeCameraMount.getEntityId()));
                 }
-
-
             }
         }
 
@@ -116,7 +115,7 @@ public class FirstPersonViewDefault extends FirstPersonView {
 
         // If mode is HEAD, then assign a player head skull as equipment
         if (this.getLiveMode() == FirstPersonViewMode.HEAD) {
-            sendEquipment(viewer, EquipmentSlot.HEAD, SeatedEntityHead.createSkullItem(viewer));
+            sendEquipment(viewer, EquipmentSlot.HEAD, SeatedEntityHead.createSkullItem(viewer.getPlayer()));
         }
 
         if (!useFakeCamera) {
@@ -129,15 +128,18 @@ public class FirstPersonViewDefault extends FirstPersonView {
     }
 
     @Override
-    public void makeHidden(Player viewer, boolean isReload) {
-        VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
+    public void makeHidden(AttachmentViewer viewer, boolean isReload) {
+        VehicleMountController vmc = viewer.getVehicleMountController();
 
         // Reset everything smooth coasters has changed when the player exits the seat
         if (!isReload && seat.useSmoothCoasters()) {
-            seat.getPlugin().getSmoothCoastersAPI().setEntityRotation(null, viewer, viewer.getEntityId(),
+            seat.getPlugin().getSmoothCoastersAPI().setEntityRotation(
+                    viewer.getSmoothCoastersNetwork(), viewer.getPlayer(), viewer.getEntityId(),
                     0.0f, 0.0f, 0.0f, 1.0f, (byte) 0);
-            seat.getPlugin().getSmoothCoastersAPI().resetRotation(null, viewer);
-            seat.getPlugin().getSmoothCoastersAPI().resetRotationLimit(null, viewer);
+            seat.getPlugin().getSmoothCoastersAPI().resetRotation(
+                    viewer.getSmoothCoastersNetwork(), viewer.getPlayer());
+            seat.getPlugin().getSmoothCoastersAPI().resetRotationLimit(
+                    viewer.getSmoothCoastersNetwork(), viewer.getPlayer());
         }
 
         if (this._fakeCameraMount != null) {
@@ -193,7 +195,7 @@ public class FirstPersonViewDefault extends FirstPersonView {
                 PacketPlayOutPositionHandle p = PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, (float) pyr.getY(), (float) pyr.getX());
                 this._playerPitchRemainder = (pyr.getX() - p.getPitch());
                 this._playerYawRemainder = (pyr.getY() - p.getYaw());
-                PacketUtil.sendPacket((Player) this.seat.seated.getEntity(), p);
+                this.player.send(p);
             } else {
                 this._playerPitchRemainder = pyr.getX();
                 this._playerYawRemainder = pyr.getY();

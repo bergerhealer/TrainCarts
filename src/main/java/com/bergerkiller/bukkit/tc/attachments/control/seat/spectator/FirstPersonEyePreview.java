@@ -1,12 +1,11 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat.spectator;
 
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityLivingHandle;
@@ -17,11 +16,11 @@ import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityAr
  */
 public class FirstPersonEyePreview {
     public final CartAttachmentSeat seat;
-    public final Player player;
+    public final AttachmentViewer player;
     private int remaining = 0;
     private PitchSwappedEntity<VirtualEntity> entity;
 
-    public FirstPersonEyePreview(CartAttachmentSeat seat, Player player) {
+    public FirstPersonEyePreview(CartAttachmentSeat seat, AttachmentViewer player) {
         this.seat = seat;
         this.player = player;
     }
@@ -62,7 +61,7 @@ public class FirstPersonEyePreview {
     }
 
     private void handleStart(Matrix4x4 eyeTransform) {
-        entity = PitchSwappedEntity.create(PlayerUtil.getVehicleMountController(player), () -> {
+        entity = PitchSwappedEntity.create(player, () -> {
             VirtualEntity entity = new VirtualEntity(seat.getManager());
             entity.setEntityType(EntityType.ARMOR_STAND);
             entity.setSyncMode(SyncMode.NORMAL);

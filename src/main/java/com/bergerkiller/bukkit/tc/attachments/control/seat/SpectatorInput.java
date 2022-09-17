@@ -1,14 +1,13 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
 import org.bukkit.Location;
-import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
 
 /**
@@ -16,7 +15,7 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlay
  * camera around.
  */
 class SpectatorInput {
-    private Player player;
+    private AttachmentViewer player;
     private int blindTicks = 0;
     private float yawLimit = 360.0f;
 
@@ -37,7 +36,7 @@ class SpectatorInput {
      *
      * @param player
      */
-    public void start(Player player, float yawLimit) {
+    public void start(AttachmentViewer player, float yawLimit) {
         this.player = player;
         this.blindTicks = CommonUtil.getServerTicks() + 5; // no input for 5 ticks
         this.yawLimit = yawLimit;
@@ -119,7 +118,7 @@ class SpectatorInput {
         }
 
         // Track changes in look yaw and pitch
-        Location eye = player.getEyeLocation();
+        Location eye = player.getPlayer().getEyeLocation();
         this.deltaYaw += eye.getYaw() - this.lastYaw;
         this.deltaPitch += eye.getPitch() - this.lastPitch;
         this.deltaYaw = MathUtil.wrapAngle(this.deltaYaw);
@@ -157,13 +156,13 @@ class SpectatorInput {
     private void correctPitch(float correction) {
         pendingPitchCorrection = correction;
         pendingPitchCorrectionTicks = 0;
-        PacketUtil.sendPacket(player, PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, 0.0f, correction));
+        player.send(PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, 0.0f, correction));
     }
 
     private void sendRotation(float pitch, float yaw) {
         PacketPlayOutPositionHandle p = PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, yaw, pitch);
         p.setRotationRelative(false);
-        PacketUtil.sendPacket(player, p);
+        player.send(p);
     }
 
     private static boolean isUpsideDown(Quaternion q) {

@@ -115,7 +115,7 @@ public class TrainUpdateController {
      * @param groups Groups to sync positions of
      */
     public void syncPositions(Collection<MinecartGroup> groups) {
-        update(groups, true);
+        syncPositions(groups, true);
     }
 
     /**
@@ -154,7 +154,7 @@ public class TrainUpdateController {
      * @param positionSync Whether to only synchronize position of the attachments. This will not
      *                     update attachment onTick() and will force attachment positions to be sync'd.
      */
-    private void update(Collection<MinecartGroup> groups, boolean positionSync) {
+    private void syncPositions(Collection<MinecartGroup> groups, boolean positionSync) {
         try (Timings t = TCTimings.NETWORK_UPDATE_POSITIONS.start()) {
             // First do a pre-movement update for all trains
             for (MinecartGroup group : groups) {
@@ -233,8 +233,14 @@ public class TrainUpdateController {
 
         @Override
         public void run() {
+            // BEFORE we send a lot of packets to players synchronizing the network, process all
+            // packets queued up so far. By doing this before the actual sending, we give the server
+            // a full tick time to process everything.
+            ((TrainCarts) getPlugin()).getPacketQueueMap().syncAll();
+
+            // Actual sending of network updates
             try (ImplicitlySharedSet<MinecartGroup> groups = MinecartGroupStore.getGroups().clone()) {
-                update(groups, false);
+                syncPositions(groups, false);
             }
         }
     }

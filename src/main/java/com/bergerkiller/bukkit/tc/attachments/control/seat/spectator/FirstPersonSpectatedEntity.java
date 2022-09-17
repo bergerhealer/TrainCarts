@@ -1,10 +1,8 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat.spectator;
 
-import org.bukkit.entity.Player;
-
-import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
@@ -16,14 +14,12 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpecta
 public abstract class FirstPersonSpectatedEntity {
     protected final CartAttachmentSeat seat;
     protected final FirstPersonViewSpectator view;
-    protected final VehicleMountController vmc;
-    protected final Player player;
+    protected final AttachmentViewer player;
 
-    public FirstPersonSpectatedEntity(CartAttachmentSeat seat, FirstPersonViewSpectator view, VehicleMountController vmc) {
+    public FirstPersonSpectatedEntity(CartAttachmentSeat seat, FirstPersonViewSpectator view, AttachmentViewer player) {
         this.seat = seat;
         this.view = view;
-        this.vmc = vmc;
-        this.player = vmc.getPlayer();
+        this.player = player;
     }
 
     /**
@@ -51,12 +47,12 @@ public abstract class FirstPersonSpectatedEntity {
 
     public abstract VirtualEntity getCurrentEntity();
 
-    public static FirstPersonSpectatedEntity create(CartAttachmentSeat seat, FirstPersonViewSpectator view, VehicleMountController vmc) {
+    public static FirstPersonSpectatedEntity create(CartAttachmentSeat seat, FirstPersonViewSpectator view, AttachmentViewer player) {
         // In these two modes the actual player is made invisible
         if (view.getLiveMode() == FirstPersonViewMode.INVISIBLE ||
             view.getLiveMode() == FirstPersonViewMode.THIRD_P)
         {
-            return new FirstPersonSpectatedEntityInvisible(seat, view, vmc);
+            return new FirstPersonSpectatedEntityInvisible(seat, view, player);
         }
 
         // View through a floating armorstand. Head will be slightly above where the
@@ -67,6 +63,6 @@ public abstract class FirstPersonSpectatedEntity {
         //}
 
         // Default mode of showing the player itself
-        return new FirstPersonSpectatedEntityPlayer(seat, view, vmc);
+        return new FirstPersonSpectatedEntityPlayer(seat, view, player);
     }
 }

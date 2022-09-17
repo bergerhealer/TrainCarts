@@ -7,10 +7,10 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualArmorStandItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.com.mojang.authlib.GameProfileHandle;
@@ -43,10 +43,10 @@ public class SeatedEntityHead extends SeatedEntity {
     }
 
     @Override
-    public void makeVisible(Player viewer) {
+    public void makeVisible(AttachmentViewer viewer) {
         if (isPlayer() || isDummyPlayerDisplayed()) {
             // Despawn/hide original entity
-            if (entity != viewer && !isDummyPlayerDisplayed()) {
+            if (entity != viewer.getPlayer() && !isDummyPlayerDisplayed()) {
                 hideRealPlayer(viewer);
             }
 
@@ -66,12 +66,12 @@ public class SeatedEntityHead extends SeatedEntity {
             skull.spawn(viewer, seat.calcMotion());
         } else if (!isEmpty()) {
             // Default behavior for non-player entities is just to mount them
-            PlayerUtil.getVehicleMountController(viewer).mount(this.spawnVehicleMount(viewer), this.entity.getEntityId());
+            viewer.getVehicleMountController().mount(this.spawnVehicleMount(viewer), this.entity.getEntityId());
         }
     }
 
     @Override
-    public void makeHidden(Player viewer) {
+    public void makeHidden(AttachmentViewer viewer) {
         if (isPlayer() || isDummyPlayerDisplayed()) {
             if (skull != null) {
                 skull.destroy(viewer);
@@ -83,12 +83,12 @@ public class SeatedEntityHead extends SeatedEntity {
             }
 
             // Show real player again
-            if (viewer != entity && !isDummyPlayerDisplayed()) {
+            if (viewer.getPlayer() != entity && !isDummyPlayerDisplayed()) {
                 showRealPlayer(viewer);
             }
         } else if (!isEmpty()) {
             // Unmount for generic entities
-            PlayerUtil.getVehicleMountController(viewer).unmount(this.parentMountId, this.entity.getEntityId());
+            viewer.getVehicleMountController().unmount(this.parentMountId, this.entity.getEntityId());
             despawnVehicleMount(viewer);
         }
     }

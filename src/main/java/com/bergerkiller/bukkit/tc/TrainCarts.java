@@ -25,6 +25,7 @@ import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.commands.selector.SelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.commands.selector.TCSelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.controller.*;
+import com.bergerkiller.bukkit.tc.controller.global.PacketQueueMap;
 import com.bergerkiller.bukkit.tc.controller.global.SignController;
 import com.bergerkiller.bukkit.tc.controller.global.TrainUpdateController;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
@@ -99,6 +100,7 @@ public class TrainCarts extends PluginBase {
     private final TCSelectorHandlerRegistry selectorHandlerRegistry = new TCSelectorHandlerRegistry(this);
     private final OfflineSignStore offlineSignStore = new OfflineSignStore(this);
     private final SignController signController = new SignController(this);
+    private final PacketQueueMap packetQueueMap = new PacketQueueMap();
     private Economy econ = null;
     private boolean isTabPluginEnabled = false;
     private SmoothCoastersAPI smoothCoastersAPI;
@@ -231,6 +233,16 @@ public class TrainCarts extends PluginBase {
      */
     public SignController getSignController() {
         return this.signController;
+    }
+
+    /**
+     * Gets the packet queue map, which stores special queues per player to send packets
+     * asynchronously.
+     *
+     * @return packet queue map
+     */
+    public PacketQueueMap getPacketQueueMap() {
+        return this.packetQueueMap;
     }
 
     /**

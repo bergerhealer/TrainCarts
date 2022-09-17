@@ -1,9 +1,10 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -28,6 +29,7 @@ import com.bergerkiller.bukkit.tc.TCSeatChangeListener;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
@@ -57,7 +59,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
     private List<CartAttachmentSeat> seatAttachments = Collections.emptyList();
     private List<Attachment> flattenedAttachments = Collections.emptyList();
     private Map<Entity, SeatHint> seatHints = new HashMap<Entity, SeatHint>();
-    private final Set<Player> viewers = new HashSet<Player>();
+    private final Map<Player, AttachmentViewer> viewers = new IdentityHashMap<>();
     protected final ToggledState networkInvalid = new ToggledState();
     private boolean attached = false;
     private boolean hidden = false;
@@ -507,9 +509,10 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
 
     // Called from NetworkController
     public synchronized void makeVisible(Player viewer) {
-        viewers.add(viewer);
+        AttachmentViewer attachmentViewer = asAttachmentViewer(viewer);
+        viewers.put(viewer, attachmentViewer);
         if (!this.hidden) {
-            HelperMethods.makeVisibleRecursive(this.getRootAttachment(), true, viewer);
+            HelperMethods.makeVisibleRecursive(this.getRootAttachment(), true, attachmentViewer);
         }
     }
 
@@ -517,28 +520,47 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
     public synchronized void makeHidden(Player viewer) {
         //super.makeHidden(viewer, instant);
 
-        viewers.remove(viewer);
+        AttachmentViewer attachmentViewer = viewers.remove(viewer);
+        if (attachmentViewer == null) {
+            attachmentViewer = asAttachmentViewer(viewer);
+        }
+
         if (!this.hidden && this.rootAttachment != null) {
-            HelperMethods.makeHiddenRecursive(this.rootAttachment, true, viewer);
+            HelperMethods.makeHiddenRecursive(this.rootAttachment, true, attachmentViewer);
         }
     }
 
     public synchronized void makeHiddenForAll() {
-        for (Iterator<Player> iter = this.viewers.iterator(); iter.hasNext();) {
-            Player viewer = iter.next();
+        for (Iterator<AttachmentViewer> iter = this.viewers.values().iterator(); iter.hasNext();) {
+            AttachmentViewer attachmentViewer = iter.next();
             iter.remove();
-            HelperMethods.makeHiddenRecursive(this.rootAttachment, true, viewer);
+            HelperMethods.makeHiddenRecursive(this.rootAttachment, true, attachmentViewer);
         }
     }
 
     /**
-     * Gets the viewers viewing this cart's attachments
+     * Gets the Player viewers viewing this cart's attachments
      *
-     * @return viewers
+     * @return player viewers
      */
     @Override
     public Set<Player> getViewers() {
-        return this.viewers;
+        return this.viewers.keySet();
+    }
+
+    /**
+     * Gets the Attachment Viewers viewing this cart's attachments
+     *
+     * @return attachment viewers
+     */
+    @Override
+    public Collection<AttachmentViewer> getAttachmentViewers() {
+        return this.viewers.values();
+    }
+
+    @Override
+    public AttachmentViewer asAttachmentViewer(Player player) {
+        return this.member.getTrainCarts().getPacketQueueMap().getQueue(player);
     }
 
     /**
@@ -548,7 +570,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
      * @return True if visible to this player
      */
     public synchronized boolean isViewer(Player player) {
-        return this.viewers.contains(player);
+        return this.viewers.containsKey(player);
     }
 
     /**
@@ -754,7 +776,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
 
         // Use a temporary set for the players, so that we can clear them after hiding it for viewers
         // This makes sure getViewers() stays in sync with what makeVisible/makeHidden does
-        Set<Player> originalViewers = new HashSet<Player>(this.viewers);
+        ArrayList<AttachmentViewer> originalViewers = new ArrayList<>(this.viewers.values());
 
         // Detach old attachments - after this viewers see nothing anymore
         if (this.rootAttachment != null) {
@@ -776,9 +798,9 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
                 this.rootAttachment, this.getLiveTransform());
 
         // Re-show the attachments and repopulate the viewers set
-        for (Player viewer : originalViewers) {
+        for (AttachmentViewer viewer : originalViewers) {
             HelperMethods.makeVisibleRecursive(this.rootAttachment, true, viewer);
-            this.viewers.add(viewer);
+            this.viewers.put(viewer.getPlayer(), viewer);
         }
 
         // Let all passengers re-enter us

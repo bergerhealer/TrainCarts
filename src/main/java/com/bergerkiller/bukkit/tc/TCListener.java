@@ -106,6 +106,9 @@ public class TCListener implements Listener {
         // Clean up the fake teams we've sent
         FakePlayerSpawner.onViewerQuit(event.getPlayer());
         plugin.getGlowColorTeamProvider().reset(event.getPlayer());
+
+        // Disable any active packet queues
+        plugin.getPacketQueueMap().remove(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.LOWEST)

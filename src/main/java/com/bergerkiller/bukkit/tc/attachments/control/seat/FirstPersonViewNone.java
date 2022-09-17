@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
-import org.bukkit.entity.Player;
-
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 
 /**
@@ -14,11 +13,11 @@ public class FirstPersonViewNone extends FirstPersonView {
     }
 
     @Override
-    public void makeVisible(Player viewer, boolean isReload) {
+    public void makeVisible(AttachmentViewer viewer, boolean isReload) {
     }
 
     @Override
-    public void makeHidden(Player viewer, boolean isReload) {
+    public void makeHidden(AttachmentViewer viewer, boolean isReload) {
     }
 
     @Override

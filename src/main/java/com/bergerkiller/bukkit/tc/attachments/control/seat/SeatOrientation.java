@@ -5,9 +5,8 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
-import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityHeadRotationHandle;
@@ -40,15 +39,15 @@ public class SeatOrientation {
         return this._mountYaw;
     }
 
-    public void sendLockedRotations(Player viewer, int entityId) {
+    public void sendLockedRotations(AttachmentViewer viewer, int entityId) {
         // Do not send viewer to self - bad things happen
         if (entityId != viewer.getEntityId()) {
             PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, getPassengerHeadYaw());
-            PacketUtil.sendPacket(viewer, headPacket);
+            viewer.send(headPacket);
 
             PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(
                     entityId, getPassengerYaw(), getPassengerPitch(), false);
-            PacketUtil.sendPacket(viewer, lookPacket);
+            viewer.send(lookPacket);
         }
     }
 
@@ -116,10 +115,10 @@ public class SeatOrientation {
             PacketPlayOutEntityHeadRotationHandle headPacketFlipped =  PacketPlayOutEntityHeadRotationHandle.createNew(flippedId, headRot);
 
             this._entityLastHeadYaw = headPacket.getHeadYaw();
-            for (Player viewer : seat.getViewers()) {
-                if (viewer != viewerToIgnore) {
-                    PacketUtil.sendPacket(viewer, headPacket);
-                    PacketUtil.sendPacket(viewer, headPacketFlipped);
+            for (AttachmentViewer viewer : seat.getAttachmentViewers()) {
+                if (viewer.getPlayer() != viewerToIgnore) {
+                    viewer.send(headPacket);
+                    viewer.send(headPacketFlipped);
                 }
             }
         }
@@ -137,9 +136,9 @@ public class SeatOrientation {
             PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(entityId, _mountYaw, pitch, false);
             this._entityLastYaw = lookPacket.getYaw();
             this._entityLastPitch = lookPacket.getPitch();
-            for (Player viewer : seat.getViewers()) {
-                if (viewer != viewerToIgnore) {
-                    PacketUtil.sendPacket(viewer, lookPacket);
+            for (AttachmentViewer viewer : seat.getAttachmentViewers()) {
+                if (viewer.getPlayer() != viewerToIgnore) {
+                    viewer.send(lookPacket);
                 }
             }
 
@@ -148,9 +147,9 @@ public class SeatOrientation {
             float f = 10.0f;
             float flippedPitch = (this._entityLastPitch >= k) ? k+f : k-f;
             PacketPlayOutEntityLookHandle flipLookPacket = PacketPlayOutEntityLookHandle.createNew(flippedId, this._entityLastYaw, flippedPitch, false);
-            for (Player viewer : seat.getViewers()) {
-                if (viewer != viewerToIgnore) {
-                    PacketUtil.sendPacket(viewer, flipLookPacket);
+            for (AttachmentViewer viewer : seat.getAttachmentViewers()) {
+                if (viewer.getPlayer() != viewerToIgnore) {
+                    viewer.send(flipLookPacket);
                 }
             }
         } else {
@@ -211,31 +210,31 @@ public class SeatOrientation {
 
         // Send packets to all the players
         if (headPacket != null || lookPacket != null) {
-            for (Player viewer : seat.getViewers()) {
-                if (viewer == viewerToIgnore) {
+            for (AttachmentViewer viewer : seat.getAttachmentViewers()) {
+                if (viewer.getPlayer() == viewerToIgnore) {
                     continue;
                 }
-                if (seated.isUpsideDown() && PlayerUtil.evaluateGameVersion(viewer, "<=", "1.17.1")) {
+                if (seated.isUpsideDown() && viewer.evaluateGameVersion("<=", "1.17.1")) {
                     // Minecraft 1.17.1 and before requires some fixes to be made
                     if (headPacket != null) {
                         if (headPacket_1_17_fix == null) {
                             headPacket_1_17_fix = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, poseFixed.headYaw);
                         }
-                        PacketUtil.sendPacket(viewer, headPacket_1_17_fix);
+                        viewer.send(headPacket_1_17_fix);
                     }
                     if (lookPacket != null) {
                         if (lookPacket_1_17_fix == null) {
                             lookPacket_1_17_fix = PacketPlayOutEntityLookHandle.createNew(entityId, poseFixed.bodyYaw, poseFixed.headPitch, false);
                         }
-                        PacketUtil.sendPacket(viewer, lookPacket_1_17_fix);
+                        viewer.send(lookPacket_1_17_fix);
                     }
                 } else {
                     // Normal sync
                     if (headPacket != null) {
-                        PacketUtil.sendPacket(viewer, headPacket);
+                        viewer.send(headPacket);
                     }
                     if (lookPacket != null) {
-                        PacketUtil.sendPacket(viewer, lookPacket);
+                        viewer.send(lookPacket);
                     }
                 }
             }

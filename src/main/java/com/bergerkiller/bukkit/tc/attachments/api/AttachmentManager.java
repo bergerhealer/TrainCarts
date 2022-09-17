@@ -29,8 +29,25 @@ public interface AttachmentManager {
 
     /**
      * Gets the players who can currently view the attachments
+     *
+     * @return Collection of players
      */
     Collection<Player> getViewers();
+
+    /**
+     * Gets the Attachment Viewers who can currently view the attachments
+     *
+     * @return Collection of attachment viewers
+     */
+    Collection<AttachmentViewer> getAttachmentViewers();
+
+    /**
+     * Gets or creates the AttachmentViewer associated with a Player
+     *
+     * @param player Player
+     * @return attachment viewer for this player
+     */
+    AttachmentViewer asAttachmentViewer(Player player);
 
     /**
      * Gets the {@link AttachmentTypeRegistry} used to find and create new attachments from

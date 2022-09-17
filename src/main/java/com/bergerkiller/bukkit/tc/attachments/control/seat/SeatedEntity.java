@@ -11,13 +11,12 @@ import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
-import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.utils.tab.TabNameTagHider;
@@ -162,25 +161,25 @@ public abstract class SeatedEntity {
         this.displayMode = displayMode;
     }
 
-    protected void hideRealPlayer(Player viewer) {
-        if (this.entity == viewer) {
+    protected void hideRealPlayer(AttachmentViewer viewer) {
+        if (this.entity == viewer.getPlayer()) {
             // Sync to self: make the real player invisible using a metadata change
             FirstPersonView.setPlayerVisible(viewer, false);
         } else {
             // Sync to others: destroy the original player
-            PlayerUtil.getVehicleMountController(viewer).despawn(this.entity.getEntityId());
+            viewer.getVehicleMountController().despawn(this.entity.getEntityId());
         }
     }
 
-    protected void showRealPlayer(Player viewer) {
+    protected void showRealPlayer(AttachmentViewer viewer) {
         // Respawn the actual player or clean up the list
         // Only needed when the player is not the viewer
-        if (viewer == this.entity) {
+        if (viewer.getPlayer() == this.entity) {
             // Can not respawn yourself! Make visible using metadata.
             FirstPersonView.setPlayerVisible(viewer, true);
         } else {
             // Respawns the player as a normal player
-            VehicleMountController vmc = PlayerUtil.getVehicleMountController(viewer);
+            VehicleMountController vmc = viewer.getVehicleMountController();
             vmc.respawn((Player) this.entity, (theViewer, thePlayer) -> {
                 FakePlayerSpawner.NORMAL.spawnPlayer(theViewer, thePlayer, thePlayer.getEntityId(),
                         FakePlayerSpawner.FakePlayerPosition.ofPlayer(thePlayer),
@@ -194,9 +193,9 @@ public abstract class SeatedEntity {
      * 
      * @param viewer
      */
-    public void resetMetadata(Player viewer) {
+    public void resetMetadata(AttachmentViewer viewer) {
         DataWatcher metaTmp = EntityHandle.fromBukkit(this.entity).getDataWatcher();
-        PacketUtil.sendPacket(viewer, PacketPlayOutEntityMetadataHandle.createNew(this.entity.getEntityId(), metaTmp, true));
+        viewer.send(PacketPlayOutEntityMetadataHandle.createNew(this.entity.getEntityId(), metaTmp, true));
     }
 
     /**
@@ -306,7 +305,7 @@ public abstract class SeatedEntity {
      * @param viewer
      * @return vehicle mount id to which a passenger can be mounted
      */
-    public int spawnVehicleMount(Player viewer) {        
+    public int spawnVehicleMount(AttachmentViewer viewer) {
         // Spawn fake mount if one is needed
         if (this.parentMountId == -1) {
             // Use parent node for mounting point, unless not possible
@@ -337,8 +336,8 @@ public abstract class SeatedEntity {
             this.fakeMount.spawn(viewer, seat.calcMotion());
 
             // Also send zero-max-health if the viewer is the one sitting in the entity
-            if (this.entity == viewer) {
-                PacketUtil.sendPacket(viewer, PacketPlayOutUpdateAttributesHandle.createZeroMaxHealth(this.fakeMount.getEntityId()));
+            if (this.entity == viewer.getPlayer()) {
+                viewer.send(PacketPlayOutUpdateAttributesHandle.createZeroMaxHealth(this.fakeMount.getEntityId()));
             }
         }
 
@@ -351,7 +350,7 @@ public abstract class SeatedEntity {
      *
      * @param viewer
      */
-    public void despawnVehicleMount(Player viewer) {
+    public void despawnVehicleMount(AttachmentViewer viewer) {
         if (fakeMount != null) {
             fakeMount.destroy(viewer);
 
@@ -375,12 +374,12 @@ public abstract class SeatedEntity {
         }
     }
 
-    public final void makeVisibleFirstPerson(Player viewer) {
+    public final void makeVisibleFirstPerson(AttachmentViewer viewer) {
         madeVisibleInFirstPerson = true;
         makeVisible(viewer);
     }
 
-    public final void makeHiddenFirstPerson(Player viewer) {
+    public final void makeHiddenFirstPerson(AttachmentViewer viewer) {
         makeHidden(viewer);
         madeVisibleInFirstPerson = false;
     }
@@ -419,7 +418,7 @@ public abstract class SeatedEntity {
      *
      * @param viewer
      */
-    public abstract void makeVisible(Player viewer);
+    public abstract void makeVisible(AttachmentViewer viewer);
 
     /**
      * De-spawns this seated entity for a viewer. Unmounts any real entity
@@ -427,7 +426,7 @@ public abstract class SeatedEntity {
      *
      * @param viewer
      */
-    public abstract void makeHidden(Player viewer);
+    public abstract void makeHidden(AttachmentViewer viewer);
 
     /**
      * Updates the display mode of the Entity. Display-specific operations can occur here.
@@ -454,12 +453,13 @@ public abstract class SeatedEntity {
         }
 
         // Sometimes a full reset of the FPV controller is required. Avoid when silent.
+        AttachmentViewer viewer;
         if (!silent &&
             seat.firstPerson.doesViewModeChangeRequireReset(new_firstPersonMode) &&
-            seat.getViewersSynced().contains(this.getEntity()))
+            this.isPlayer() &&
+            seat.getAttachmentViewersSynced().contains(viewer = seat.getManager().asAttachmentViewer((Player) this.getEntity())))
         {
             // Hide, change, and make visible again, just for the first-player-view player
-            Player viewer = (Player) this.getEntity();
             seat.makeHiddenImpl(viewer, true);
             seat.firstPerson.setLiveMode(new_firstPersonMode);
             seat.makeVisibleImpl(viewer, true);

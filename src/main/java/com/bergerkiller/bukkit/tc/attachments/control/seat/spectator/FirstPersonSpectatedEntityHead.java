@@ -3,12 +3,12 @@ package com.bergerkiller.bukkit.tc.attachments.control.seat.spectator;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualArmorStandItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
@@ -29,14 +29,14 @@ class FirstPersonSpectatedEntityHead extends FirstPersonSpectatedEntity {
     private final ItemStack skullItem;
     private PitchSwappedEntity<VirtualArmorStandItemEntity> skull;
 
-    public FirstPersonSpectatedEntityHead(CartAttachmentSeat seat, FirstPersonViewSpectator view, VehicleMountController vmc) {
-        super(seat, view, vmc);
-        this.skullItem = SeatedEntityHead.createSkullItem(player);
+    public FirstPersonSpectatedEntityHead(CartAttachmentSeat seat, FirstPersonViewSpectator view, AttachmentViewer player) {
+        super(seat, view, player);
+        this.skullItem = SeatedEntityHead.createSkullItem(player.getPlayer());
     }
 
     @Override
     public void start(Matrix4x4 eyeTransform) {
-        skull = PitchSwappedEntity.create(vmc, () -> {
+        skull = PitchSwappedEntity.create(player, () -> {
             VirtualArmorStandItemEntity entity = new VirtualArmorStandItemEntity(seat.getManager());
             entity.setSyncMode(SyncMode.NORMAL);
             entity.setUseMinecartInterpolation(seat.isMinecartInterpolation());

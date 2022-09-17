@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
-import org.bukkit.entity.Player;
-
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 
 public class ThirdPersonDefault {
@@ -11,14 +10,14 @@ public class ThirdPersonDefault {
         this.seat = seat;
     }
 
-    public void makeVisible(Player viewer) {
-        if (!seat.debug.isSeatedEntityHiddenBecauseOfPreview(viewer)) {
+    public void makeVisible(AttachmentViewer viewer) {
+        if (!seat.debug.isSeatedEntityHiddenBecauseOfPreview(viewer.getPlayer())) {
             seat.seated.makeVisible(viewer);
         }
     }
 
-    public void makeHidden(Player viewer) {
-        if (!seat.debug.isSeatedEntityHiddenBecauseOfPreview(viewer)) {
+    public void makeHidden(AttachmentViewer viewer) {
+        if (!seat.debug.isSeatedEntityHiddenBecauseOfPreview(viewer.getPlayer())) {
             seat.seated.makeHidden(viewer);
         }
     }

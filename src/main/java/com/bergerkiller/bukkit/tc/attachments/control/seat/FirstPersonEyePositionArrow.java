@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
@@ -8,6 +7,7 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.attachments.VirtualArmorStandItemEntity;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
@@ -27,7 +27,7 @@ public final class FirstPersonEyePositionArrow {
         this.timeout = 0;
     }
 
-    public void start(Player viewer, int tickDuration) {
+    public void start(AttachmentViewer viewer, int tickDuration) {
         if (this.arrow == null) {
             this.arrow = new VirtualArmorStandItemEntity(seat.getManager());
             this.arrow.setItem(ItemTransformType.HEAD, new ItemStack(MaterialUtil.getFirst(
@@ -45,7 +45,7 @@ public final class FirstPersonEyePositionArrow {
         this.timeout = Math.max(this.timeout, tickDuration);
     }
 
-    public void stop(Player viewer) {
+    public void stop(AttachmentViewer viewer) {
         if (this.arrow != null && this.arrow.isViewer(viewer)) {
             this.arrow.destroy(viewer);
             if (!this.arrow.hasViewers()) {

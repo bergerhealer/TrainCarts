@@ -2,10 +2,10 @@ package com.bergerkiller.bukkit.tc.attachments.control.seat.spectator;
 
 import org.bukkit.entity.EntityType;
 
-import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
@@ -21,13 +21,13 @@ import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityAr
 class FirstPersonSpectatedEntityInvisible extends FirstPersonSpectatedEntity {
     private PitchSwappedEntity<VirtualEntity> entity;
 
-    public FirstPersonSpectatedEntityInvisible(CartAttachmentSeat seat, FirstPersonViewSpectator view, VehicleMountController vmc) {
-        super(seat, view, vmc);
+    public FirstPersonSpectatedEntityInvisible(CartAttachmentSeat seat, FirstPersonViewSpectator view, AttachmentViewer player) {
+        super(seat, view, player);
     }
 
     @Override
     public void start(Matrix4x4 eyeTransform) {
-        entity = PitchSwappedEntity.create(vmc, () -> {
+        entity = PitchSwappedEntity.create(player, () -> {
             VirtualEntity entity = new VirtualEntity(seat.getManager());
             entity.setEntityType(EntityType.ARMOR_STAND);
             entity.setSyncMode(SyncMode.NORMAL);

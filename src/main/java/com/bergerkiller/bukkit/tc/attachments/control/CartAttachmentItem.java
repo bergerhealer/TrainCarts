@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.attachments.VirtualArmorStandItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
@@ -105,23 +106,35 @@ public class CartAttachmentItem extends CartAttachment {
     }
 
     @Override
-    public void makeVisible(Player viewer) {
+    @Deprecated
+    public void makeVisible(Player player) {
+        makeVisible(getManager().asAttachmentViewer(player));
+    }
+
+    @Override
+    @Deprecated
+    public void makeHidden(Player player) {
+        makeHidden(getManager().asAttachmentViewer(player));
+    }
+
+    @Override
+    public void makeVisible(AttachmentViewer viewer) {
         // Send entity spawn packet
         entity.spawn(viewer, new Vector(0.0, 0.0, 0.0));
 
         // Apply focus color
         if (this.isFocused()) {
-            this.updateGlowColorFor(this.entity.getEntityUUID(), HelperMethods.getFocusGlowColor(this), viewer);
+            this.updateGlowColorFor(this.entity.getEntityUUID(), HelperMethods.getFocusGlowColor(this), viewer.getPlayer());
         }
     }
 
     @Override
-    public void makeHidden(Player viewer) {
+    public void makeHidden(AttachmentViewer viewer) {
         // Send entity destroy packet
         this.entity.destroy(viewer);
 
         // Undo focus color
-        this.updateGlowColorFor(this.entity.getEntityUUID(), null, viewer);
+        this.updateGlowColorFor(this.entity.getEntityUUID(), null, viewer.getPlayer());
     }
 
     @Override

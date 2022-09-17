@@ -203,20 +203,52 @@ public interface Attachment {
     /**
      * Makes this attachment visible to a viewer for the first time.
      * This is automatically called for you after {@link #onAttached()} is called,
-     * and whenever a new viewer moves within range.
+     * and whenever a new viewer moves within range.<br>
+     * <br>
+     * Besides implementing this method, {@link #makeVisible(AttachmentViewer)}
+     * can be implemented as well, which gives access to an AttachmentViewer.
+     * It's more efficient to send packets using that viewer. If that method
+     * is overrided, this method is no longer called.
      * 
-     * @param viewer to make it visible to
+     * @param viewer Player to make it visible to
      */
     void makeVisible(Player viewer);
+
+    /**
+     * Makes this attachment visible to a viewer for the first time.
+     * This is automatically called for you after {@link #onAttached()} is called,
+     * and whenever a new viewer moves within range.
+     * 
+     * @param viewer Attachment Viewer to make it visible to
+     */
+    default void makeVisible(AttachmentViewer viewer) {
+        this.makeVisible(viewer.getPlayer());
+    }
+
+    /**
+     * Makes this attachment invisible (despawns) for a viewer.
+     * This is automatically called for you before {@link #onDetached()} is called,
+     * and whenever a new viewer moves out of range.<br>
+     * <br>
+     * Besides implementing this method, {@link #makeHidden(AttachmentViewer)}
+     * can be implemented as well, which gives access to an AttachmentViewer.
+     * It's more efficient to send packets using that viewer. If that method
+     * is overrided, this method is no longer called.
+     * 
+     * @param viewer Player to hide it from
+     */
+    void makeHidden(Player viewer);
 
     /**
      * Makes this attachment invisible (despawns) for a viewer.
      * This is automatically called for you before {@link #onDetached()} is called,
      * and whenever a new viewer moves out of range.
      * 
-     * @param viewer to hide it from
+     * @param viewer Attachment Viewer to hide it from
      */
-    void makeHidden(Player viewer);
+    default void makeHidden(AttachmentViewer viewer) {
+        this.makeHidden(viewer.getPlayer());
+    }
 
     /**
      * Gets the configured parent-relative object position of this attachment.
@@ -284,6 +316,13 @@ public interface Attachment {
      * @return viewers
      */
     Collection<Player> getViewers();
+
+    /**
+     * Gets the Attachment Viewers who can currently view this attachment
+     *
+     * @return Collection of attachment viewers
+     */
+    Collection<AttachmentViewer> getAttachmentViewers();
 
     /**
      * Gets whether this attachment is hidden ( {@link #makeHidden(Player)} ) when the

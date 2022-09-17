@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
 import com.bergerkiller.generated.net.minecraft.world.entity.monster.EntityShulkerHandle;
@@ -39,6 +40,11 @@ public abstract class CartAttachment implements Attachment {
     @Override
     public Collection<Player> getViewers() {
         return this.getManager().getViewers();
+    }
+
+    @Override
+    public Collection<AttachmentViewer> getAttachmentViewers() {
+        return this.getManager().getAttachmentViewers();
     }
 
     public boolean hasController() {
@@ -83,6 +89,10 @@ public abstract class CartAttachment implements Attachment {
     }
 
     protected void updateGlowColorFor(UUID entityUUID, ChatColor color, Player viewer) {
+        updateGlowColorFor(entityUUID, color, getManager().asAttachmentViewer(viewer));
+    }
+
+    protected void updateGlowColorFor(UUID entityUUID, ChatColor color, AttachmentViewer viewer) {
         if (TrainCarts.plugin != null && TrainCarts.plugin.getGlowColorTeamProvider() != null) {
             if (color == null) {
                 TrainCarts.plugin.getGlowColorTeamProvider().reset(viewer, entityUUID);

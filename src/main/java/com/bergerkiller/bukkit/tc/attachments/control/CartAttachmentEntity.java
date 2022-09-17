@@ -18,7 +18,6 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
-import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.BoatWoodType;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -26,6 +25,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
@@ -343,14 +343,26 @@ public class CartAttachmentEntity extends CartAttachment {
     }
 
     @Override
-    public void makeVisible(Player viewer) {
+    @Deprecated
+    public void makeVisible(Player player) {
+        makeVisible(getManager().asAttachmentViewer(player));
+    }
+
+    @Override
+    @Deprecated
+    public void makeHidden(Player player) {
+        makeHidden(getManager().asAttachmentViewer(player));
+    }
+
+    @Override
+    public void makeVisible(AttachmentViewer viewer) {
         // Send entity spawn packet
         if (actual != null) {
             actual.spawn(viewer, new Vector());
         }
         entity.spawn(viewer, new Vector());
         if (actual != null) {
-            PlayerUtil.getVehicleMountController(viewer).mount(entity.getEntityId(), actual.getEntityId());
+            viewer.getVehicleMountController().mount(entity.getEntityId(), actual.getEntityId());
         }
 
         // Apply focus color
@@ -360,7 +372,7 @@ public class CartAttachmentEntity extends CartAttachment {
     }
 
     @Override
-    public void makeHidden(Player viewer) {
+    public void makeHidden(AttachmentViewer viewer) {
         // Send entity destroy packet
         if (actual != null) {
             actual.destroy(viewer);

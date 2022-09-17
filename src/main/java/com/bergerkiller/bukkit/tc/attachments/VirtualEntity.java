@@ -21,11 +21,10 @@ import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
-import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
@@ -80,7 +79,7 @@ public class VirtualEntity {
     private SyncMode syncMode = SyncMode.NORMAL;
     private boolean minecartInterpolation = false;
     private boolean useParentMetadata = false;
-    private final ArrayList<Player> viewers = new ArrayList<Player>();
+    private final ArrayList<AttachmentViewer> viewers = new ArrayList<AttachmentViewer>();
     private Vector yawPitchRoll = new Vector(0.0, 0.0, 0.0);
 
     public VirtualEntity(AttachmentManager manager) {
@@ -371,7 +370,20 @@ public class VirtualEntity {
         this.useParentMetadata = use;
     }
 
+    private AttachmentViewer asAttachmentViewer(Player player) {
+        if (this.manager != null) {
+            return this.manager.asAttachmentViewer(player);
+        } else {
+            return AttachmentViewer.fallback(player);
+        }
+    }
+
+    @Deprecated
     public void addViewerWithoutSpawning(Player viewer) {
+        addViewerWithoutSpawning(asAttachmentViewer(viewer));
+    }
+
+    public void addViewerWithoutSpawning(AttachmentViewer viewer) {
         if (!this.viewers.contains(viewer)) {
             this.viewers.add(viewer);
         }
@@ -381,11 +393,21 @@ public class VirtualEntity {
         return !this.viewers.isEmpty();
     }
 
+    @Deprecated
     public boolean isViewer(Player viewer) {
+        return isViewer(asAttachmentViewer(viewer));
+    }
+
+    public boolean isViewer(AttachmentViewer viewer) {
         return this.viewers.contains(viewer);
     }
 
+    @Deprecated
     public final void spawn(Player viewer, Vector motion) {
+        spawn(asAttachmentViewer(viewer), motion);
+    }
+
+    public final void spawn(AttachmentViewer viewer, Vector motion) {
         // Destroy first if needed. Shouldn't happen, but just in case.
         if (this.viewers.contains(viewer)) {
             this.destroy(viewer);
@@ -395,7 +417,7 @@ public class VirtualEntity {
         this.sendSpawnPackets(viewer, motion);
     }
 
-    protected void sendSpawnPackets(Player viewer, Vector motion) {
+    protected void sendSpawnPackets(AttachmentViewer viewer, Vector motion) {
         //motX = motY = motZ = 0.0;
 
         //System.out.println("SPAWN " + this.syncAbsX + "/" + this.syncAbsY + "/" + this.syncAbsZ + " ID=" + this.entityUUID);
@@ -416,7 +438,7 @@ public class VirtualEntity {
             spawnPacket.setYaw(this.syncYaw);
             spawnPacket.setPitch(this.syncPitch);
             spawnPacket.setHeadYaw((this.syncMode == SyncMode.ITEM) ? 0.0f : this.syncYaw);
-            PacketUtil.sendEntityLivingSpawnPacket(viewer, spawnPacket, getUsedMeta());
+            viewer.sendEntityLivingSpawnPacket(spawnPacket, getUsedMeta());
         } else {
             // Spawn entity (generic)
             PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.T.newHandleNull();
@@ -431,10 +453,10 @@ public class VirtualEntity {
             spawnPacket.setMotZ(motion.getZ());
             spawnPacket.setYaw(this.syncYaw);
             spawnPacket.setPitch(this.syncPitch);
-            PacketUtil.sendPacket(viewer, spawnPacket);
+            viewer.send(spawnPacket);
 
             PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.entityId, getUsedMeta(), true);
-            PacketUtil.sendPacket(viewer, metaPacket.toCommonPacket());
+            viewer.send(metaPacket.toCommonPacket());
         }
 
         if (this.syncMode == SyncMode.SEAT) {
@@ -444,15 +466,15 @@ public class VirtualEntity {
                     this.syncYaw,
                     this.syncPitch,
                     false);
-            PacketUtil.sendPacket(viewer, movePacket);
+            viewer.send(movePacket);
         } else if (motion.lengthSquared() > 0.001) {
             CommonPacket movePacket = PacketType.OUT_ENTITY_MOVE.newInstance(this.entityId, motion.getX(), motion.getY(), motion.getZ(), false);
-            PacketUtil.sendPacket(viewer, movePacket);
+            viewer.send(movePacket);
         }
 
         // Resend velocity if one is set
         if (this.syncVel > 0.0) {
-            PacketUtil.sendPacket(viewer, PacketPlayOutEntityVelocityHandle.createNew(this.entityId, this.syncVel, 0.0, 0.0));
+            viewer.send(PacketPlayOutEntityVelocityHandle.createNew(this.entityId, this.syncVel, 0.0, 0.0));
         }
     }
 
@@ -502,12 +524,10 @@ public class VirtualEntity {
 
         // Detect a glitched pitch rotation, and perform a respawn then
         if (this.respawnOnPitchFlip && this.syncPitch != this.livePitch && Util.isProtocolRotationGlitched(this.syncPitch, this.livePitch)) {
-            for (Player viewer : this.viewers) {
-                this.sendDestroyPackets(viewer);
-            }
+            this.viewers.forEach(this::sendDestroyPackets);
             this.syncPositionSilent();
-            for (Player viewer : this.viewers) {
-                this.sendSpawnPackets(viewer, largeChange ? new Vector() : new Vector(dx, dy, dz));
+            for (AttachmentViewer viewer : this.viewers) {
+                sendSpawnPackets(viewer, largeChange ? new Vector() : new Vector(dx, dy, dz));
             }
             return;
         }
@@ -579,8 +599,8 @@ public class VirtualEntity {
             broadcast(packet);
         } else if (rotated) {
             // Only rotation changed
-            for (Player viewer : this.viewers) {
-                if (PlayerUtil.evaluateGameVersion(viewer, ">=", "1.15")) {
+            for (AttachmentViewer viewer : this.viewers) {
+                if (viewer.evaluateGameVersion(">=", "1.15")) {
                     // On minecraft 1.15 and later there is a Minecraft client bug
                     // Sending an Entity Look packet causes the client to cancel/ignore previous movement updates
                     // This results in the entity position going out of sync
@@ -592,7 +612,7 @@ public class VirtualEntity {
                             this.livePitch,
                             false);
 
-                    PacketUtil.sendPacket(viewer, packet);
+                    viewer.send(packet);
                     this.syncYaw = packet.getYaw();
                     this.syncPitch = packet.getPitch();
                 } else {
@@ -602,7 +622,7 @@ public class VirtualEntity {
                             this.livePitch,
                             false);
 
-                    PacketUtil.sendPacket(viewer, packet);
+                    viewer.send(packet);
                     this.syncYaw = packet.getYaw();
                     this.syncPitch = packet.getPitch();
                 }
@@ -637,48 +657,45 @@ public class VirtualEntity {
         return isLivingEntity(this.entityType);
     }
 
-    public void respawnForAll(Vector motion) {
-        for (Player viewer : this.viewers) {
-            this.sendDestroyPackets(viewer);
-        }
+    public void respawnForAll(final Vector motion) {
+        viewers.forEach(this::sendDestroyPackets);
         this.syncPosition(true);
-        for (Player viewer : this.viewers) {
-            this.sendSpawnPackets(viewer, motion);
-        }
+        viewers.forEach(v -> sendSpawnPackets(v, motion));
     }
 
     public void destroyForAll() {
-        for (Player viewer : this.viewers) {
+        for (AttachmentViewer viewer : this.viewers) {
             this.sendDestroyPackets(viewer);
-            PlayerUtil.getVehicleMountController(viewer).remove(this.entityId);
+            viewer.getVehicleMountController().remove(this.entityId);
         }
         this.viewers.clear();
     }
 
+    @Deprecated
     public void destroy(Player viewer) {
-        this.viewers.remove(viewer);
-        this.sendDestroyPackets(viewer);
-        PlayerUtil.getVehicleMountController(viewer).remove(this.entityId);
+        destroy(asAttachmentViewer(viewer));
     }
 
-    private void sendDestroyPackets(Player viewer) {
+    public void destroy(AttachmentViewer viewer) {
+        this.viewers.remove(viewer);
+        this.sendDestroyPackets(viewer);
+        viewer.getVehicleMountController().remove(this.entityId);
+    }
+
+    private void sendDestroyPackets(AttachmentViewer viewer) {
         if (this.syncVel > 0.0) {
-            PacketUtil.sendPacket(viewer, PacketType.OUT_ENTITY_VELOCITY.newInstance(this.entityId, new Vector()));
+            viewer.send(PacketType.OUT_ENTITY_VELOCITY.newInstance(this.entityId, new Vector()));
         }
         PacketPlayOutEntityDestroyHandle destroyPacket = PacketPlayOutEntityDestroyHandle.createNewSingle(this.entityId);
-        PacketUtil.sendPacket(viewer, destroyPacket);
+        viewer.send(destroyPacket);
     }
 
     public void broadcast(CommonPacket packet) {
-        for (Player viewer : this.viewers) {
-            PacketUtil.sendPacket(viewer, packet);
-        }
+        viewers.forEach(v -> v.send(packet));
     }
 
     public void broadcast(PacketHandle packet) {
-        for (Player viewer : this.viewers) {
-            PacketUtil.sendPacket(viewer, packet);
-        }
+        viewers.forEach(v -> v.send(packet));
     }
 
     private DataWatcher getUsedMeta() {
