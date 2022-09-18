@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 
 /**
  * Handles the logic with which powered rails can power themselves in chains.
@@ -28,10 +29,11 @@ public class PoweredTrackLogic {
     }
 
     public void updateRedstone(Block railsBlock) {
-        PoweredRail rails = BlockUtil.getData(railsBlock, PoweredRail.class);
-        if (rails == null) {
+        BlockData railsBlockData = WorldUtil.getBlockData(railsBlock);
+        if (!(railsBlockData.getMaterialData() instanceof PoweredRail)) {
             return;
         }
+        PoweredRail rails = (PoweredRail) railsBlockData.newMaterialData();
 
         boolean oldPowered = rails.isPowered();
         boolean newPowered = checkPowered(railsBlock);
@@ -52,8 +54,8 @@ public class PoweredTrackLogic {
 
             // Also apply physics to the blocks directly down the two ends of this rails
             // This is needed, because the rails can be upside-down where this matters
-            BlockUtil.applyPhysics(railsBlock.getRelative(rails.getDirection()), this.railType, true);
-            BlockUtil.applyPhysics(railsBlock.getRelative(rails.getDirection().getOppositeFace()), this.railType, true);
+            TrainCarts.plugin.applyBlockPhysics(railsBlock.getRelative(rails.getDirection()), railsBlockData);
+            TrainCarts.plugin.applyBlockPhysics(railsBlock.getRelative(rails.getDirection().getOppositeFace()), railsBlockData);
         }
     }
 

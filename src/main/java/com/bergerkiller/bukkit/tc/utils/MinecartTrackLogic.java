@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.google.common.collect.Lists;
 
@@ -205,7 +206,7 @@ public class MinecartTrackLogic {
         }
 
         this.data = BlockData.fromMaterialData(newRails);
-        WorldUtil.setBlockData(this.world, this.pos, this.data);
+        TrainCarts.plugin.setBlockDataWithoutBreaking(this.pos.toBlock(this.world), this.data);
     }
 
     private boolean isSpecialNeighbour(IntVector3 blockposition) {
@@ -352,7 +353,7 @@ public class MinecartTrackLogic {
         this.getNeighbours(newRails);
         this.data = BlockData.fromMaterialData(newRails);
         if (forcePhysics || !WorldUtil.getBlockData(this.world, this.pos).equals(this.data)) {
-            WorldUtil.setBlockData(this.world, this.pos, this.data);
+            TrainCarts.plugin.setBlockDataWithoutBreaking(this.pos.toBlock(this.world), this.data);
 
             for (int i = 0; i < this.neigh.size(); ++i) {
                 MinecartTrackLogic blockminecarttrackabstract_minecarttracklogic = this.createTrackLogic(this.neigh.get(i));

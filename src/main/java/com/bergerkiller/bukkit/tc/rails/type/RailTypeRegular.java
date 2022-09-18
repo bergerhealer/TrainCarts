@@ -93,7 +93,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
             // Direction we are about to connect is supported?
             if (BlockUtil.isSuffocating(railsBlock.getRelative(dir))) {
                 rails.setDirection(dir, true);
-                BlockUtil.setData(railsBlock, rails);
+                TrainCarts.plugin.setBlockDataWithoutBreaking(railsBlock, BlockData.fromMaterialData(rails));
             }
         }
 
@@ -104,7 +104,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
                 Block aboveAt = above.getRelative(face);
                 if (Util.ISVERTRAIL.get(aboveAt)) {
                     rails.setDirection(face, true);
-                    BlockUtil.setData(railsBlock, rails);
+                    TrainCarts.plugin.setBlockDataWithoutBreaking(railsBlock, BlockData.fromMaterialData(rails));
                     break;
                 }
             }

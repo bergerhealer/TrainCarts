@@ -449,13 +449,14 @@ public class TCListener implements Listener {
                 // The onBlockPlace event trigger will shape up this track the next tick
                 BlockData railData = BlockData.fromMaterial(railType);
                 WorldUtil.setBlockDataFast(placedBlock, railData);
-                WorldUtil.queueBlockSend(placedBlock.getWorld(), placedBlock.getX(), placedBlock.getY(), placedBlock.getZ());
+                WorldUtil.queueBlockSend(placedBlock);
 
                 CommonUtil.callEvent(placeEvent);
                 if (placeEvent.isCancelled() || !placeEvent.canBuild()) {
                     WorldUtil.setBlockDataFast(placedBlock, BlockData.AIR);
                 } else {
-                    BlockUtil.applyPhysics(placedBlock, railType);
+                    // Note: this is completely broken since MC 1.19. Can't do this anymore without breaking the rails :(
+                    plugin.applyBlockPhysics(placedBlock, railData);
 
                     // If not survival, subtract one item from player's inventory
                     //TODO: Isn't this the 'instant build' property or something?
@@ -538,7 +539,7 @@ public class TCListener implements Listener {
                             rails.setDirection(direction, false);
                         }
                         // Update
-                        BlockUtil.setData(clickedBlock, rails);
+                        TrainCarts.plugin.setBlockDataWithoutBreaking(clickedBlock, BlockData.fromMaterialData(rails));
                         lastClickedDirection.put(player, direction);
                     }
                 }
@@ -654,10 +655,11 @@ public class TCListener implements Listener {
             final Block placed = event.getBlockPlaced();
             CommonUtil.nextTick(new Runnable() {
                 public void run() {
-                    RailType railType = RailType.getType(placed);
+                    BlockData blockData = WorldUtil.getBlockData(placed);
+                    RailType railType = RailType.getType(placed, blockData);
                     if (railType != RailType.NONE) {
                         railType.onBlockPlaced(placed);
-                        BlockUtil.applyPhysics(placed, placed.getType());
+                        plugin.applyBlockPhysics(placed, blockData);
                     }
                 }
             });

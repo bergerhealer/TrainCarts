@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.common.internal.legacy.MaterialsByName;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.utils.*;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
@@ -52,6 +53,7 @@ import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
+import com.bergerkiller.bukkit.tc.utils.BlockPhysicsEventDataAccessor;
 import com.bergerkiller.bukkit.tc.utils.tab.TabNameTagHider;
 import com.bergerkiller.bukkit.tc.utils.tab.TabNameTagHiderImpl;
 import com.bergerkiller.mountiplex.conversion.Conversion;
@@ -63,6 +65,7 @@ import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
@@ -85,6 +88,7 @@ public class TrainCarts extends PluginBase {
     private Task mutexZoneUpdateTask;
     private final List<ChunkPreloadTask> chunkPreloadTasks = new ArrayList<>();
     private TCPropertyRegistry propertyRegistry;
+    private TCListener listener;
     private TCPacketListener packetListener;
     private TCInteractionPacketListener interactionPacketListener;
     private FileConfiguration config;
@@ -703,7 +707,7 @@ public class TrainCarts extends PluginBase {
         // Register listeners
         this.register(packetListener = new TCPacketListener(this), TCPacketListener.LISTENED_TYPES);
         this.register(interactionPacketListener = new TCInteractionPacketListener(packetListener), TCInteractionPacketListener.TYPES);
-        this.register(new TCListener(this));
+        this.register(listener = new TCListener(this));
         this.register(new TCSeatChangeListener());
         this.register(new TrainChestListener(this));
 
@@ -754,6 +758,7 @@ public class TrainCarts extends PluginBase {
         this.unregister(packetListener);
         this.unregister(interactionPacketListener);
         smoothCoastersAPI.unregister();
+        listener = null;
         packetListener = null;
         interactionPacketListener = null;
         smoothCoastersAPI = null;
@@ -949,6 +954,30 @@ public class TrainCarts extends PluginBase {
         MutexZoneCache.deinit(this);
         this.spawnSignManager.disable();
         SignActionDetector.INSTANCE.disable(this);
+    }
+
+    public void setBlockDataWithoutBreaking(Block block, BlockData blockData) {
+        if (Common.evaluateMCVersion(">=", "1.19")) {
+            // Ugh...
+            WorldUtil.setBlockDataFast(block, blockData);
+            WorldUtil.queueBlockSend(block);
+            applyBlockPhysics(block, blockData);
+        } else {
+            WorldUtil.setBlockData(block, blockData);
+        }
+    }
+
+    public void applyBlockPhysics(Block block, BlockData blockData) {
+        if (Common.evaluateMCVersion(">=", "1.19")) {
+            // Broken cancellation on MC 1.19+. Must avoid firing actual block physics.
+            listener.onBlockPhysics(BlockPhysicsEventDataAccessor.INSTANCE.createEvent(block, blockData));
+            for (BlockFace face : FaceUtil.BLOCK_SIDES) {
+                listener.onBlockPhysics(BlockPhysicsEventDataAccessor.INSTANCE.createEvent(block.getRelative(face), blockData));
+            }
+        } else {
+            // This is OK
+            BlockUtil.applyPhysics(block, blockData.getType());
+        }
     }
 
     @Override
