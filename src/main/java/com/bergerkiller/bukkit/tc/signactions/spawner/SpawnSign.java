@@ -238,7 +238,8 @@ public class SpawnSign {
     }
 
     /**
-     * Attempts to spawn a train from this sign right this instant
+     * Attempts to spawn a train from this sign right this instant.
+     * This SpawnSign must be tracked in the Offline Sign Store to work properly.
      */
     public void spawn() {
         Block signBlock = this.location.getLoadedBlock();
@@ -269,6 +270,7 @@ public class SpawnSign {
     public void spawn(SignActionEvent sign) {
         try (Timings t = TCTimings.SIGNACTION_SPAWN.start()) {
             // Before proceeding, verify the sign's contents again. May have changed!
+            // Store can be null when a SpawnSign is created that is not tracked in the OfflineStore
             if (store != null && store.verifySign(sign.getSign(), SpawnSignManager.SpawnSignMetadata.class) == null) {
                 return; // removed
             }

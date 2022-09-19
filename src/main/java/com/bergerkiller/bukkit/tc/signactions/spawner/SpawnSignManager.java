@@ -138,30 +138,31 @@ public class SpawnSignManager {
         SpawnSign result = this.signs.get(position);
         if (result != null) {
             result.updateUsingEvent(signEvent);
-        } else if (signEvent.getTrackedSign().isRealSign()) {
-            // Install new metadata for this sign
-            SpawnSign.SpawnOptions options = SpawnSign.SpawnOptions.fromEvent(signEvent);
-            SpawnSignMetadata metadata = new SpawnSignMetadata(
-                    /*  interval  */ options.autoSpawnInterval,
-                    /* last spawn */ System.currentTimeMillis() + options.autoSpawnInterval,
-                    /*   active   */ signEvent.isPowered());
+            return result;
+        }
 
+        // Parse options of the spawn sign
+        SpawnSign.SpawnOptions options = SpawnSign.SpawnOptions.fromEvent(signEvent);
+        SpawnSignMetadata metadata = new SpawnSignMetadata(
+                /*  interval  */ options.autoSpawnInterval,
+                /* last spawn */ System.currentTimeMillis() + options.autoSpawnInterval,
+                /*   active   */ signEvent.isPowered());
+
+        // If an auto-spawn interval is put on the sign, it must be stored in the offline sign store
+        // If not, don't add it to the store, return a new spawn sign instead
+        // Only works for real signs
+        if (signEvent.getTrackedSign().isRealSign() && options.autoSpawnInterval > 0) {
             // Put metadata, which will also put an entry in the signs mapping
             this.plugin.getOfflineSigns().put(signEvent.getSign(), metadata);
             result = this.signs.get(position);
             if (result == null) {
                 throw new IllegalStateException("No SpawnSign was put, onAdded() not called");
             }
-        } else {
-            // Fake it, don't store it.
-            SpawnSign.SpawnOptions options = SpawnSign.SpawnOptions.fromEvent(signEvent);
-            SpawnSignMetadata metadata = new SpawnSignMetadata(
-                    /*  interval  */ options.autoSpawnInterval,
-                    /* last spawn */ System.currentTimeMillis() + options.autoSpawnInterval,
-                    /*   active   */ signEvent.isPowered());
-            result = new SpawnSign(plugin, null, OfflineSign.fromSign(signEvent.getSign()), metadata);
+            return result;
         }
-        return result;
+
+        // Don't store the sign in the store
+        return new SpawnSign(plugin, null, OfflineSign.fromSign(signEvent.getSign()), metadata);
     }
 
     public void remove(SignActionEvent signEvent) {
