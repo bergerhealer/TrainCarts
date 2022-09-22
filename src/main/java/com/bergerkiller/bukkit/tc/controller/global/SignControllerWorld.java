@@ -168,7 +168,8 @@ public class SignControllerWorld {
         int bx = block.getX();
         int by = block.getY();
         int bz = block.getZ();
-        if (!checkMayHaveSignsNearby(bx, by, bz)) {
+        int checkBorder = FaceUtil.isVertical(direction) ? 0 : 1;
+        if (!checkMayHaveSignsNearby(bx, by, bz, checkBorder)) {
             return;
         }
 
@@ -198,7 +199,7 @@ public class SignControllerWorld {
             if (!FaceUtil.isVertical(direction)) {
                 bx += direction.getModX();
                 bz += direction.getModZ();
-                if (!checkMayHaveSignsNearby(bx, by, bz)) {
+                if (!checkMayHaveSignsNearby(bx, by, bz, checkBorder)) {
                     break;
                 }
             }
@@ -216,7 +217,8 @@ public class SignControllerWorld {
      * @return True if there are wall signs attached to this block, False if not
      */
     public boolean hasSignsAroundColumn(Block block, BlockFace direction) {
-        if (!checkMayHaveSignsNearby(block.getX(), block.getY(), block.getZ())) {
+        int checkBorder = FaceUtil.isVertical(direction) ? 0 : 1;
+        if (!checkMayHaveSignsNearby(block.getX(), block.getY(), block.getZ(), checkBorder)) {
             return false;
         }
 
@@ -236,25 +238,26 @@ public class SignControllerWorld {
      * @param x Search X-position
      * @param y Search Y-position
      * @param z Search Z-position
+     * @param border X/Z chunk border check distance
      * @return True if signs might be nearby. False if there definitely are no signs.
      */
-    private boolean checkMayHaveSignsNearby(int x, int y, int z) {
+    private boolean checkMayHaveSignsNearby(int x, int y, int z, int border) {
         boolean result;
         int cx = x >> 4;
         int cz = z >> 4;
         result = checkChunkMayHaveSigns(cx, cz, x, y, z);
 
         int bx = x & 0xF;
-        if (bx == 0) {
+        if (bx <= border) {
             result |= checkChunkMayHaveSigns(cx - 1, cz, x, y, z);
-        } else if (bx == 15) {
+        } else if (bx >= (15-border)) {
             result |= checkChunkMayHaveSigns(cx + 1, cz, x, y, z);
         }
 
         int bz = z & 0xF;
-        if (bz == 0) {
+        if (bz <= border) {
             result |= checkChunkMayHaveSigns(cx, cz - 1, x, y, z);
-        } else if (bz == 15) {
+        } else if (bz >= (15-border)) {
             result |= checkChunkMayHaveSigns(cx, cz + 1, x, y, z);
         }
         return result;
@@ -302,9 +305,9 @@ public class SignControllerWorld {
         // Check whether any signs are neighbouring this x/y/z
         for (SignController.Entry entry : signsAtChunk) {
             Block b = entry.getBlock();
-            if (Math.abs(b.getX() - x) <= 1 &&
+            if (Math.abs(b.getX() - x) <= 2 &&
                 Math.abs(b.getY() - y) <= 2 &&
-                Math.abs(b.getZ() - z) <= 1
+                Math.abs(b.getZ() - z) <= 2
             ) {
                 return true;
             }
@@ -341,7 +344,8 @@ public class SignControllerWorld {
             if (offset != BlockFace.SELF)
                 return false;
         } else if (blockData.isType(WALL_SIGN_TYPE)) {
-            if (blockData.getAttachedFace() != offset)
+            BlockFace facing = blockData.getAttachedFace();
+            if (facing != offset && facing != direction.getOppositeFace())
                 return false;
         } else {
             // Doesn't map to either legacy wall or sign post type
