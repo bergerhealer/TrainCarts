@@ -191,7 +191,8 @@ public class VirtualArrowItem {
         metadata.set(EntityHandle.DATA_NO_GRAVITY, true);
         metadata.setByte(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_FLYING | EntityHandle.DATA_FLAG_INVISIBLE);
         metadata.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_ON_FIRE, Common.evaluateMCVersion(">", "1.8"));
-        metadata.setByte(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, EntityArmorStandHandle.DATA_FLAG_HAS_ARMS | EntityArmorStandHandle.DATA_FLAG_SET_MARKER);
+        metadata.setByte(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, EntityArmorStandHandle.DATA_FLAG_HAS_ARMS
+                | EntityArmorStandHandle.DATA_FLAG_SET_MARKER | EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE);
         if (glowing) {
             metadata.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, true);
         }

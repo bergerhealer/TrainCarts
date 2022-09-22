@@ -36,6 +36,8 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
         this.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
         this.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
                 EntityArmorStandHandle.DATA_FLAG_HAS_ARMS, true);
+        this.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
+                EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE, true);
 
         this.transformType = ItemTransformType.HEAD;
         this.item = null;
