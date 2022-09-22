@@ -431,7 +431,7 @@ public class ObstacleTracker implements TrainStatusProvider {
                 double minSpeedAhead = Double.MAX_VALUE;
                 double minDistanceAhead = 0.0;
                 for (MinecartMember<?> member : iter.state.railPiece().members()) {
-                    if (member.isUnloaded() || member.getGroup() == group) {
+                    if (member.isUnloaded() || member.getEntity().isRemoved() || member.getGroup() == group) {
                         continue;
                     }
 

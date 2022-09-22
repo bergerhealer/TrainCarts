@@ -237,11 +237,22 @@ public class RailTrackerGroup extends RailTracker {
                                 found = true; // No need to check this, really
                             } else {
                                 // Changed. Find the old one, put the new one.
+                                boolean addedNewMember = false;
                                 for (int i = 0; i < membersAt.size(); i++) {
-                                    if (membersAt.get(i) == oldRail.member) {
+                                    MinecartMember<?> currAt = membersAt.get(i);
+                                    if (addedNewMember) {
+                                        if (currAt == oldRail.member || currAt == newRail.member) {
+                                            // Remove it, avoid duplicates
+                                            membersAt.remove(i);
+                                            i--;
+                                        }
+                                    } else if (currAt == oldRail.member) {
                                         membersAt.set(i, newRail.member);
+                                        addedNewMember = true;
                                         found = true;
-                                        break;
+                                    } else if (currAt == newRail.member) {
+                                        addedNewMember = true;
+                                        found = true;
                                     }
                                 }
                             }
