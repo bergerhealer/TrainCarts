@@ -34,10 +34,12 @@ import java.util.List;
 import java.util.logging.Level;
 
 public abstract class SignAction {
-    private static List<SignAction> actions;
+    private static List<SignAction> actions = Collections.emptyList();
+    private static List<SignAction> actionsWithLoadedChangedHandler = Collections.emptyList();
 
     public static void init() {
         actions = new ArrayList<>();
+        actionsWithLoadedChangedHandler = new ArrayList<>();
         register(new SignActionStation());
         register(new SignActionLauncher());
         register(new SignActionSwitcher());
@@ -70,6 +72,7 @@ public abstract class SignAction {
 
     public static void deinit() {
         actions = Collections.emptyList();
+        actionsWithLoadedChangedHandler = Collections.emptyList();
     }
 
     /**
@@ -119,6 +122,16 @@ public abstract class SignAction {
                 actions.add(action);
             }
 
+            // If action implements loadedChanged(), also add it to the list of actions
+            // with such a handler
+            if (CommonUtil.isMethodOverrided(SignAction.class, action.getClass(), "loadedChanged", SignActionEvent.class, boolean.class)) {
+                if (priority) {
+                    actionsWithLoadedChangedHandler.add(0, action);
+                } else {
+                    actionsWithLoadedChangedHandler.add(action);
+                }
+            }
+
             // TrackedSign stores a SignAction too - make sure this is wiped
             RailLookup.forceRecalculation();
         }
@@ -128,6 +141,7 @@ public abstract class SignAction {
     public static void unregister(SignAction action) {
         if (actions.isEmpty()) return;
         actions.remove(action);
+        actionsWithLoadedChangedHandler.remove(action);
     }
 
     /**
@@ -147,8 +161,8 @@ public abstract class SignAction {
         trackedSign.rail = null; // Forces discovery of rail later
 
         final SignActionEvent info = new SignActionEvent(trackedSign);
-        for (SignAction action : actions) {
-            if (action._hasLoadedChangeHandler && action.match(info) && action.verify(info)) {
+        for (SignAction action : actionsWithLoadedChangedHandler) {
+            if (action.match(info) && action.verify(info)) {
                 action.loadedChanged(info, loaded);
                 return;
             }
@@ -375,11 +389,9 @@ public abstract class SignAction {
         }
     }
 
-    private final boolean _hasLoadedChangeHandler;
     private final boolean _hasPathPrediction;
 
     public SignAction() {
-        this._hasLoadedChangeHandler = CommonUtil.isMethodOverrided(SignAction.class, this.getClass(), "loadedChanged", SignActionEvent.class, boolean.class);
         this._hasPathPrediction = CommonUtil.isMethodOverrided(SignAction.class, this.getClass(), "predictPathFinding", SignActionEvent.class, PathPredictEvent.class);
     }
 
