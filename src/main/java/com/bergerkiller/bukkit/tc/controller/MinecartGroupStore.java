@@ -118,7 +118,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
                 throw new IllegalArgumentException("Member at index " + i + " of members array is null");
             } else if (member.getEntity() == null) {
                 throw new IllegalArgumentException("Member at index " + i + " of members array was never spawned as an entity");
-            } else if (member.getEntity().isDead()) {
+            } else if (member.getEntity().isRemoved()) {
                 Location lastLoc = member.getEntity().getLocation();
                 String worldName = lastLoc.getWorld() == null ? "null" : lastLoc.getWorld().getName();
                 throw new IllegalArgumentException(String.format(

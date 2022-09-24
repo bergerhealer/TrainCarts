@@ -30,7 +30,6 @@ import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.event.vehicle.VehicleUpdateEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.material.Rails;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.Timings;
@@ -277,7 +276,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     public int getIndex() {
         if (this.group == null) {
-            return entity.isDead() ? -1 : 0;
+            return entity.isRemoved() ? -1 : 0;
         } else {
             return this.group.indexOf(this);
         }
@@ -577,7 +576,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return True if interactable, False if not
      */
     public boolean isInteractable() {
-        return entity != null && !entity.isDead() && !this.isUnloaded();
+        return entity != null && !entity.isRemoved() && !this.isUnloaded();
     }
 
     /**
@@ -737,10 +736,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         return this.getBlock(FaceUtil.notchFaceOffset(direction, notchOffset));
     }
 
-    public Rails getRails() {
-        return BlockUtil.getRails(this.getBlock());
-    }
-
     public Block getGroundBlock() {
         return this.getBlock(0, -1, 0);
     }
@@ -895,7 +890,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public void checkMissing() throws MemberMissingException {
         if (entity == null) {
             throw new MemberMissingException();
-        } else if (entity.isDead()) {
+        } else if (entity.isRemoved()) {
             this.onDie(true);
             throw new MemberMissingException();
         } else if (this.isUnloaded()) {
@@ -1299,7 +1294,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     @Override
     public boolean onDamage(DamageSource damagesource, double damage) {
-        if (entity.isDead()) {
+        if (entity.isRemoved()) {
             return false;
         }
         if (damagesource.toString().equals("fireworks")) {
@@ -1388,7 +1383,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     @Override
     public void onDie(boolean killed) {
         try {
-            if (!entity.isDead() || !this.died) {
+            if (!entity.isRemoved() || !this.died) {
                 // Before we actually die, eject passengers and release the signs
                 // This must be done while the entity is still "alive"
                 boolean cancelDrops = false;

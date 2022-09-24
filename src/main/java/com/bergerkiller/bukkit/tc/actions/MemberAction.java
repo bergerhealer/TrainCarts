@@ -16,7 +16,7 @@ public class MemberAction extends Action {
 
     @Override
     public boolean doTick() {
-        return getEntity().isDead() || super.doTick();
+        return getEntity().isRemoved() || super.doTick();
     }
 
     @Override

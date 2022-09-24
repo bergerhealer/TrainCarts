@@ -646,7 +646,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
      * @return True if cart is unloaded or dead
      */
     public boolean isUnloadedOrDead() {
-        return this.member.isUnloaded() || this.member.getEntity().isDead();
+        return this.member.isUnloaded() || this.member.getEntity().isRemoved();
     }
 
     /**

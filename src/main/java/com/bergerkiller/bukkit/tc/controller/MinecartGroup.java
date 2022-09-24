@@ -444,7 +444,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         final TrainProperties properties = this.getProperties();
         for (MinecartMember<?> mm : this.toArray()) {
             properties.remove(mm.getProperties());
-            if (mm.getEntity().isDead()) {
+            if (mm.getEntity().isRemoved()) {
                 mm.onDie(true);
             } else {
                 // Unassign member from previous group
@@ -1640,7 +1640,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             finishedRemoving = true;
             for (int i = 0; i < this.size(); i++) {
                 MinecartMember<?> member = super.get(i);
-                if (member.getEntity().isDead()) {
+                if (member.getEntity().isRemoved()) {
                     this.remove(i);
                     finishedRemoving = false;
                     break;

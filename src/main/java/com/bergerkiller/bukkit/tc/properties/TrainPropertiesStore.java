@@ -122,7 +122,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
                 // un-assigns it from the previous train properties!
                 if (cProp.getHolder() == null
                         || cProp.getHolder().getEntity() == null
-                        || cProp.getHolder().getEntity().isDead())
+                        || cProp.getHolder().getEntity().isRemoved())
                 {
                     CartPropertiesStore.remove(cProp.getUUID());
                 }

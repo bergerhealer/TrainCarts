@@ -253,7 +253,7 @@ public abstract class MinecartMemberStore {
 
         // spawn and fire event
         MinecartMember<?> spawned = spawn(plugin, at, type);
-        if (spawned != null && !spawned.getEntity().isDead()) {
+        if (spawned != null && !spawned.getEntity().isRemoved()) {
             spawned.getGroup().getProperties().setDefault(player);
             if (TCConfig.setOwnerOnPlacement) {
                 spawned.getProperties().setOwner(player);

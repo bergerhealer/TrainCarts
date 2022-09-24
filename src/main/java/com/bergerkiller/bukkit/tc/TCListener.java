@@ -231,7 +231,7 @@ public class TCListener implements Listener {
                 }
             }
 
-            if (EntityHandle.fromBukkit(event.getEntity()).isDead()) {
+            if (EntityHandle.fromBukkit(event.getEntity()).isDestroyed()) {
                 OfflineGroupManager.removeMember(entityUUID);
             } else {
                 MinecartMember<?> member = MinecartMemberStore.getFromEntity(event.getEntity());

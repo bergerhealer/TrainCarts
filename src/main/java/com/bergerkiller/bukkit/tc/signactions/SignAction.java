@@ -252,9 +252,10 @@ public abstract class SignAction {
 
                 // Tell train above to update signs, if available
                 if (info.hasRails()) {
-                    final MinecartMember<?> member = MinecartMemberStore.getAt(info.getRails());
-                    if (member != null) {
-                        member.getGroup().getSignTracker().updatePosition();
+                    for (MinecartMember<?> member : info.getRailPiece().members()) {
+                        if (!member.isUnloaded() && !member.getEntity().isRemoved()) {
+                            member.getGroup().getSignTracker().updatePosition();
+                        }
                     }
                 }
 

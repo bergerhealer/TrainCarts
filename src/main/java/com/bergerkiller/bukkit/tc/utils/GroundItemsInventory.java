@@ -79,7 +79,7 @@ public class GroundItemsInventory extends InventoryBase {
         } else {
             // Set item stack, if null, kill the item
             Item item = this.items.get(index);
-            EntityUtil.setDead(item, LogicUtil.nullOrEmpty(stack));
+            EntityUtil.setDestroyed(item, LogicUtil.nullOrEmpty(stack));
             if (!item.isDead()) {
                 item.setItemStack(stack);
                 this.items.set(index, ItemUtil.respawnItem(item));

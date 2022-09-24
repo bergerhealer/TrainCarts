@@ -32,7 +32,7 @@ public class MinecartMemberHopper extends MinecartMember<CommonMinecartHopper> {
     public void onTick() {
         super.onTick();
 
-        if (entity.isDead() || !entity.isSuckingItems()) {
+        if (entity.isRemoved() || !entity.isSuckingItems()) {
             return;
         }
 
