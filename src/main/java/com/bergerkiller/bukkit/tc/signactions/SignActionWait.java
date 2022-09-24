@@ -70,7 +70,7 @@ public class SignActionWait extends SignAction {
                 walk:
                 while (walkingPoint.movedTotal < TCConfig.maxDetectorLength && walkingPoint.moveFull()) {
                     for (TrackedSign sign : walkingPoint.state.railSigns()) {
-                        if (sign.rail.block().equals(info.getRails())) {
+                        if (sign.getRail().block().equals(info.getRails())) {
                             continue;
                         }
 

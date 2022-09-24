@@ -481,7 +481,7 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
             return;
         }
 
-        RailPiece rail = this.sign.rail;
+        RailPiece rail = this.sign.getRail();
 
         // If from and to are the same, the train is launched back towards where it came
         // In this special case, select another junction part of the path as the from
@@ -698,7 +698,7 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
      * @return RailPiece if found or set, NONE if not found
      */
     public RailPiece getRailPiece() {
-        return this.sign.rail;
+        return this.sign.getRail();
     }
 
     public RailType getRailType() {
@@ -724,9 +724,10 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
      */
     @Deprecated
     public BlockFace getRailDirection() {
-        if (!this.hasRails()) return null;
+        RailPiece rail = this.getRailPiece();
+        if (rail.isNone()) return null;
         if (this.raildirection == null) {
-            this.raildirection = this.sign.rail.type().getDirection(this.sign.rail.block());
+            this.raildirection = rail.type().getDirection(rail.block());
         }
         return this.raildirection;
     }
@@ -748,8 +749,9 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
      * @return Rail location, or null if there are no rails
      */
     public Location getRailLocation() {
-        if (!this.hasRails()) return null;
-        return this.sign.rail.block().getLocation().add(0.5, 0, 0.5);
+        RailPiece rail = this.sign.getRail();
+        if (rail.isNone()) return null;
+        return rail.block().getLocation().add(0.5, 0, 0.5);
     }
 
     public Location getLocation() {

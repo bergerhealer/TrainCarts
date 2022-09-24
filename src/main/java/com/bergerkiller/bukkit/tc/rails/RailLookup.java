@@ -411,11 +411,13 @@ public final class RailLookup {
     public static abstract class TrackedSign {
         public final Sign sign;
         public final Block signBlock;
+        /** @deprecated Use {@link #getRail()} instead */
+        @Deprecated
         public final RailPiece rail;
-        /** @deprecated Is now part of {@link #rail} */
+        /** @deprecated Use {@link #getRail()} instead */
         @Deprecated
         public final RailType railType;
-        /** @deprecated Is now part of {@link #rail} */
+        /** @deprecated Use {@link #getRail()} instead */
         @Deprecated
         public final Block railBlock;
 
@@ -569,6 +571,16 @@ public final class RailLookup {
         }
 
         /**
+         * Gets the RailPiece rail that activates this sign
+         *
+         * @return rail piece
+         */
+        public RailPiece getRail() {
+            //TODO: Lazy initialization!
+            return this.rail;
+        }
+
+        /**
          * Initializes a new SignActionEvent using this tracked sign for sign and rail information
          *
          * @param action Sign action event type
@@ -579,7 +591,7 @@ public final class RailLookup {
         }
 
         private final boolean canFireEvents() {
-            return !isRemoved() && this.rail.type().isRegistered();
+            return !isRemoved() && (this.rail == null || this.rail.type().isRegistered());
         }
 
         /**
@@ -820,7 +832,8 @@ public final class RailLookup {
             // If rail is none we sadly can't deduce the other signs
             // There is a way to do it, but it's freaking warm here in the Netherlands right now
             // and I don't want to bother writing block iteration or sign cache logic for it.
-            if (this.rail.isNone()) {
+            RailPiece rail = this.getRail();
+            if (rail.isNone()) {
                 return StringUtil.EMPTY_ARRAY;
             }
 
@@ -828,7 +841,7 @@ public final class RailLookup {
 
             // Find other TrackedSign instances which are below this sign, repeatedly
             // Ignore tracked signs which match a SignAction by itself.
-            TrackedSign[] signs = this.rail.signs();
+            TrackedSign[] signs = rail.signs();
             Block signBlock = this.signBlock.getRelative(BlockFace.DOWN);
             boolean found;
             do {
