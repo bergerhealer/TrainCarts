@@ -12,12 +12,14 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathPredictEvent;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
+import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import org.bukkit.ChatColor;
@@ -135,8 +137,16 @@ public abstract class SignAction {
      * @param sign that was loaded/unloaded
      * @param loaded state change
      */
+    @SuppressWarnings("deprecation")
     public static void handleLoadChange(Sign sign, boolean loaded) {
-        final SignActionEvent info = new SignActionEvent(sign.getBlock(), sign, null);
+        // Initially use a NONE rail piece type when trying to match a sign action
+        // This avoids having to look up the rails for all signs on the server...
+        // If a SignAction needs rail info for whatever reason in loadedChanged(), then
+        // that sign action should use getRail() or get a NPE.
+        TrackedSign trackedSign = TrackedSign.forRealSign(sign, RailPiece.NONE);
+        trackedSign.rail = null; // Forces discovery of rail later
+
+        final SignActionEvent info = new SignActionEvent(trackedSign);
         for (SignAction action : actions) {
             if (action._hasLoadedChangeHandler && action.match(info) && action.verify(info)) {
                 action.loadedChanged(info, loaded);

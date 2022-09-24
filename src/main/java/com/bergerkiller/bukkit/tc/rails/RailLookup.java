@@ -413,13 +413,13 @@ public final class RailLookup {
         public final Block signBlock;
         /** @deprecated Use {@link #getRail()} instead */
         @Deprecated
-        public final RailPiece rail;
+        public RailPiece rail;
         /** @deprecated Use {@link #getRail()} instead */
         @Deprecated
-        public final RailType railType;
+        public RailType railType;
         /** @deprecated Use {@link #getRail()} instead */
         @Deprecated
-        public final Block railBlock;
+        public Block railBlock;
 
         // Cached properties parsed using sign lines
         private SignActionHeader cachedHeader = null;
@@ -576,8 +576,14 @@ public final class RailLookup {
          * @return rail piece
          */
         public RailPiece getRail() {
-            //TODO: Lazy initialization!
-            return this.rail;
+            // Lazily initializes the rail piece if not retrieved yet
+            RailPiece rail = this.rail;
+            if (rail == null) {
+                this.rail = rail = RailLookup.discoverRailPieceFromSign(this.signBlock);
+                this.railBlock = rail.block();
+                this.railType = rail.type();
+            }
+            return rail;
         }
 
         /**
