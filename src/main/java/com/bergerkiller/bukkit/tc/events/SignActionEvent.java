@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
+import com.bergerkiller.bukkit.tc.rails.type.RailTypeRegular;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 
@@ -397,10 +398,12 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
         }
         BlockFace to = direction.getDirection(this.getFacing());
         if (direction == Direction.LEFT || direction == Direction.RIGHT) {
-            if (!this.isConnectedRails(to)) {
+            // Only do this crap for switched vanilla rails. It completely confuses TC-Coasters!
+            if (this.getRailType() instanceof RailTypeRegular && !this.isConnectedRails(to)) {
                 to = Direction.FORWARD.getDirection(this.getFacing());
             }
         }
+
         return findJunction(to);
     }
 
