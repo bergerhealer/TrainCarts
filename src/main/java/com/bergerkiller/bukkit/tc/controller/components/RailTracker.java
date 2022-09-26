@@ -26,7 +26,7 @@ public abstract class RailTracker {
      * Represents a single Rails block that is tracked by the Rail Tracker.
      * Rail state information can be retrieved in relation to the minecarts on them.
      */
-    public static class TrackedRail {
+    public static class TrackedRail implements Cloneable {
         /** The minecart that uses this rail */
         public final MinecartMember<?> member;
         /** Block position of the minecart on the rails */
@@ -37,6 +37,8 @@ public abstract class RailTracker {
         public RailPath cachedPath = null;
         /** State on the rail when this TrackedRail was created */
         public final RailState state;
+        /** Helps with assigning/un-assigning the member from the RailPiece members list */
+        protected boolean memberAddedToRailPiece;
 
         public TrackedRail(MinecartMember<?> member, TrackWalkingPoint point, boolean disconnected) {
             this(member, point.state.clone(), disconnected);
@@ -49,6 +51,7 @@ public abstract class RailTracker {
             this.state.setMember(member);
             this.minecartBlock = state.positionBlock();
             this.disconnected = disconnected;
+            this.memberAddedToRailPiece = false;
         }
 
         // This constructor is used by RailTrackerMember for the uninitialized rail
@@ -61,6 +64,7 @@ public abstract class RailTracker {
             this.disconnected = false;
             this.state.position().setMotion(new Vector(0, -1, 0));
             this.state.initEnterDirection();
+            this.memberAddedToRailPiece = false;
         }
 
         /**
@@ -97,7 +101,13 @@ public abstract class RailTracker {
             return new TrackedRail(member, this.state, this.disconnected);
         }
 
+        @Override
+        public TrackedRail clone() {
+            return new TrackedRail(this.member, this.state, this.disconnected);
+        }
+
         void handleMemberRemove() {
+            memberAddedToRailPiece = false;
             try {
                 state.railPiece().mutableMembers().remove(member);
             } catch (RailLookup.RailTypeNotRegisteredException ex) {
@@ -106,6 +116,7 @@ public abstract class RailTracker {
         }
 
         void handleMemberAdd() {
+            memberAddedToRailPiece = true;
             List<MinecartMember<?>> members = state.railPiece().mutableMembers();
             if (!members.contains(member)) {
                 members.add(member);

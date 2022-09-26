@@ -663,7 +663,7 @@ final class WorldRailLookupImpl implements WorldRailLookup {
                 Iterator<MinecartMember<?>> iter = members.iterator();
                 while (iter.hasNext()) {
                     MinecartMember<?> member = iter.next();
-                    if (member.isUnloaded()) {
+                    if (member.isUnloaded() || member.getEntity().isRemoved()) {
                         iter.remove();
                         traincarts.log(Level.WARNING, "Purged unloaded minecart from rail cache at " +
                                     offlineBlock().getPosition());

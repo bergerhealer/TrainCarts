@@ -32,7 +32,6 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
  */
 public class RailTrackerGroup extends RailTracker {
     private final MinecartGroup owner;
-    private final ArrayList<TrackedRail> railsBuffer = new ArrayList<TrackedRail>();
     private final ArrayList<TrackedRail> prevRails = new ArrayList<TrackedRail>();
     private final ArrayList<TrackedRail> rails = new ArrayList<TrackedRail>();
 
@@ -219,62 +218,58 @@ public class RailTrackerGroup extends RailTracker {
                 }
             } else {
                 // Moving
-                this.railsBuffer.clear();
-                this.railsBuffer.addAll(this.prevRails);
-                
-                for (TrackedRail newRail : this.rails) {
-                    List<MinecartMember<?>> membersAt = newRail.state.railPiece().mutableMembers();
 
-                    boolean found = false;
-                    Iterator<TrackedRail> tmpIter = this.railsBuffer.iterator();
-                    while (tmpIter.hasNext()) {
-                        TrackedRail oldRail = tmpIter.next();
-                        if (oldRail.state.railPiece().isSameBlock(newRail.state.railPiece())) {
-                            tmpIter.remove();
+                // Go by all previous rails, and check whether their rail block matches
+                // a rail in the new list of rails. If so, skip the removal/re-add for that rail.
+                // For all previous rails not matched, remove member from the list of members
+                // of the rail piece. By handling removal first we avoid problems re-adding later.
+                for (TrackedRail prevRail : this.prevRails) {
+                    // This can happen because of the behind-rails logic
+                    if (!prevRail.memberAddedToRailPiece) {
+                        continue;
+                    }
 
-                            if (oldRail.member == newRail.member) {
-                                // Check contained
-                                found = true; // No need to check this, really
-                            } else {
-                                // Changed. Find the old one, put the new one.
-                                boolean addedNewMember = false;
-                                for (int i = 0; i < membersAt.size(); i++) {
-                                    MinecartMember<?> currAt = membersAt.get(i);
-                                    if (addedNewMember) {
-                                        if (currAt == oldRail.member || currAt == newRail.member) {
-                                            // Remove it, avoid duplicates
-                                            membersAt.remove(i);
-                                            i--;
-                                        }
-                                    } else if (currAt == oldRail.member) {
-                                        membersAt.set(i, newRail.member);
-                                        addedNewMember = true;
-                                        found = true;
-                                    } else if (currAt == newRail.member) {
-                                        addedNewMember = true;
-                                        found = true;
-                                    }
+                    // Iterate the new rails until we encounter the same members as prevRail
+                    // Once found, keep iterating while member matches, and check whether the rail
+                    // piece is the same
+                    // We can safely assume that all member's rails are in sequence, without gaps
+                    MinecartMember<?> memberToFind = prevRail.member;
+                    for (Iterator<TrackedRail> newRailIter = this.rails.iterator(); newRailIter.hasNext();) {
+                        TrackedRail newRail = newRailIter.next();
+                        if (newRail.member == memberToFind) {
+                            while (true) {
+                                // If RailPiece is the same, we can avoid a remove/add of the member for this piece
+                                if (prevRail.state.railPiece().isSameBlock(newRail.state.railPiece())) {
+                                    // Unchanged! Skip removal of the rail
+                                    prevRail.memberAddedToRailPiece = false;
+                                    // Avoid assigning member of the new rail, too!
+                                    newRail.memberAddedToRailPiece = true;
+                                }
+
+                                if (newRailIter.hasNext()) {
+                                    newRail = newRailIter.next();
+                                } else {
+                                    break;
                                 }
                             }
                             break;
                         }
                     }
-                    if (!found) {
-                        membersAt.add(newRail.member);
+
+                    // If memberAddedToRailPiece is still true, then we did not find a new rail to match
+                    // Remove it now
+                    if (prevRail.memberAddedToRailPiece) {
+                        prevRail.handleMemberRemove();
                     }
                 }
-                this.railsBuffer.forEach(TrackedRail::handleMemberRemove);
-            }
 
-            // Alternative: remove and re-add all the members
-            /*
-            for (TrackedRail prevRail : this.prevRails) {
-                RailMemberCache.removeBlock(prevRail.member, prevRail.block);
+                // Add members to all rail pieces to which it has not yet been added
+                for (TrackedRail newRail : this.rails) {
+                    if (!newRail.memberAddedToRailPiece) {
+                        newRail.handleMemberAdd();
+                    }
+                }
             }
-            for (TrackedRail newRail : this.rails) {
-                RailMemberCache.addBlock(newRail.member, newRail.block);
-            }
-            */
         }
     }
 
@@ -431,7 +426,7 @@ public class RailTrackerGroup extends RailTracker {
                         p.skipFirst();
                         if (p.moveFull()) {
                             if (p.state.isSameRails(startInfo.state) && p.currentRailPath.equals(startInfo.getPath())) {
-                                this.prevRails.add(i, startInfo);
+                                this.prevRails.add(i, startInfo.clone());
                                 prevRailStartIndex = i;
                             }
                         }
@@ -473,9 +468,8 @@ public class RailTrackerGroup extends RailTracker {
                         wheelDistance -= moved;
 
                         // Create a new version of the tracked rail with the correct member
-                        if (rail.member != startInfo.member) {
-                            rail = rail.changeMember(startInfo.member);
-                        }
+                        // This also clones the rail - important to avoid weirdness with memberAddedToRailPiece
+                        rail = rail.changeMember(startInfo.member);
 
                         // If the direction of the rail is wrong, fix it
                         if (order < 0) {
