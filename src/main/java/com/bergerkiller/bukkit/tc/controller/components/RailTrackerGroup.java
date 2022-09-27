@@ -238,7 +238,7 @@ public class RailTrackerGroup extends RailTracker {
                         if (newRail.member == memberToFind) {
                             while (true) {
                                 // If RailPiece is the same, we can avoid a remove/add of the member for this piece
-                                if (prevRail.state.railPiece().isSameBlock(newRail.state.railPiece())) {
+                                if (prevRail.member == newRail.member && prevRail.state.isSameRails(newRail.state)) {
                                     // Unchanged! Skip removal of the rail
                                     prevRail.memberAddedToRailPiece = false;
                                     // Avoid assigning member of the new rail, too!
