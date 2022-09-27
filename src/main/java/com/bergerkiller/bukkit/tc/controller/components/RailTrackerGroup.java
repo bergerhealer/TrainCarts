@@ -238,16 +238,15 @@ public class RailTrackerGroup extends RailTracker {
                         if (newRail.member == memberToFind) {
                             while (true) {
                                 // If RailPiece is the same, we can avoid a remove/add of the member for this piece
-                                if (prevRail.member == newRail.member && prevRail.state.isSameRails(newRail.state)) {
+                                if (prevRail.state.isSameRails(newRail.state)) {
                                     // Unchanged! Skip removal of the rail
                                     prevRail.memberAddedToRailPiece = false;
                                     // Avoid assigning member of the new rail, too!
                                     newRail.memberAddedToRailPiece = true;
                                 }
 
-                                if (newRailIter.hasNext()) {
-                                    newRail = newRailIter.next();
-                                } else {
+                                // Next rail. Stop when member is different / no more rails.
+                                if (!newRailIter.hasNext() || (newRail = newRailIter.next()).member != memberToFind) {
                                     break;
                                 }
                             }
