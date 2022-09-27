@@ -1747,7 +1747,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // We must limit it to 0.4, otherwise derailment can occur when the
             // minecart speeds up inside the physics update function
             {
-                double speedLimitClamped = MathUtil.clamp(this.getProperties().getSpeedLimit() * this.updateSpeedFactor, 0.4);
+                double speedLimitClamped = Math.min(this.getProperties().getSpeedLimit() * this.updateSpeedFactor, 0.4);
                 for (MinecartMember<?> mm : this) {
                     mm.checkMissing();
                     mm.getEntity().setMaxSpeed(speedLimitClamped);
@@ -1869,11 +1869,16 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                     this.obstacleTracker.update(forwardMovingSpeed / getUpdateSpeedFactor());
                 }
                 double limitedSpeed = this.obstacleTracker.getSpeedLimit();
-                if (limitedSpeed != Double.MAX_VALUE) {
-                    limitedSpeed = Math.min(0.4, this.updateSpeedFactor * limitedSpeed);
-                    for (MinecartMember<?> mm : this) {
-                        mm.getEntity().setMaxSpeed(limitedSpeed);
-                    }
+
+                // If not blocked, re-apply the speed limit as this may have changed during this tick!
+                if (limitedSpeed == Double.MAX_VALUE) {
+                    limitedSpeed = this.getProperties().getSpeedLimit();
+                }
+
+                // Apply to the carts. Take speed factor into account, limit to at most 0.4 block movement
+                limitedSpeed = Math.min(0.4, this.updateSpeedFactor * limitedSpeed);
+                for (MinecartMember<?> mm : this) {
+                    mm.getEntity().setMaxSpeed(limitedSpeed);
                 }
             }
 

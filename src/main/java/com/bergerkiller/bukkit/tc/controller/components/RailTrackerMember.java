@@ -6,7 +6,6 @@ import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicAir;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicGround;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
-import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
 import org.bukkit.block.Block;
 import org.bukkit.util.Vector;
@@ -70,8 +69,8 @@ public class RailTrackerMember extends RailTracker {
      * @return forward track iterator
      */
     @Deprecated
-    public TrackIterator getTrackIterator() {
-        return new TrackIterator(this.rail.state.railBlock(), this.owner.getDirectionTo());
+    public com.bergerkiller.bukkit.tc.utils.TrackIterator getTrackIterator() {
+        return new com.bergerkiller.bukkit.tc.utils.TrackIterator(this.rail.state.railBlock(), this.owner.getDirectionTo());
     }
 
     /**
