@@ -438,8 +438,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
     @Override
     public void clear() {
-        this.getSignTracker().clear();
-        this.getActions().clear();
+        // Stop tracking
+        unregisterFromServer();
 
         final TrainProperties properties = this.getProperties();
         for (MinecartMember<?> mm : this.toArray()) {
@@ -465,8 +465,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
         GroupRemoveEvent.call(this);
         this.clear();
-        this.updateChunkInformation(!this.canUnload(), true);
-        this.chunkArea.reset();
         if (this.prop != null) {
             TrainPropertiesStore.remove(this.prop.getTrainName());
             TrainPropertiesStore.unbindGroupFromProperties(this.prop, this);
@@ -515,11 +513,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // Event
             GroupUnloadEvent.call(this);
 
-            // Unload in detector regions
-            getSignTracker().unload();
-
-            // Remove from member-by-rail cache
-            getRailTracker().unload();
+            // Stop tracking
+            unregisterFromServer();
 
             // Store the group offline
             OfflineGroupManager.storeGroup(this);
@@ -546,6 +541,25 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             TrainPropertiesStore.unbindGroupFromProperties(this.prop, this);
         }
         this.prop = null;
+    }
+
+    /**
+     * Un-registers this train from the server. This disables presence in active
+     * detector regions and rail lookup cache.
+     */
+    private void unregisterFromServer() {
+        // Unload in detector regions
+        getSignTracker().unload();
+
+        // Remove from member-by-rail cache
+        getRailTracker().unload();
+
+        // Just for good measure
+        getActions().clear();
+
+        // Release chunks previously kept loaded by this train
+        this.chunkArea.reset();
+        this.chunkAreaValid = false;
     }
 
     /**
