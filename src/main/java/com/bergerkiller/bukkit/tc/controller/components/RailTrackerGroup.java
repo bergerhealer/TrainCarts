@@ -55,20 +55,19 @@ public class RailTrackerGroup extends RailTracker {
      * @param member to remove all rails for
      */
     public void removeMemberRails(MinecartMember<?> member) {
-        {
-            Iterator<TrackedRail> iter = prevRails.iterator();
-            while (iter.hasNext()) {
-                if (iter.next().member == member) {
-                    iter.remove();
+        removeMemberRails(prevRails, member);
+        removeMemberRails(rails, member);
+    }
+
+    private static void removeMemberRails(List<TrackedRail> rails, MinecartMember<?> member) {
+        Iterator<TrackedRail> iter = rails.iterator();
+        while (iter.hasNext()) {
+            TrackedRail rail = iter.next();
+            if (rail.member == member) {
+                if (rail.memberAddedToRailPiece) {
+                    rail.handleMemberRemove();
                 }
-            }
-        }
-        {
-            Iterator<TrackedRail> iter = rails.iterator();
-            while (iter.hasNext()) {
-                if (iter.next().member == member) {
-                    iter.remove();
-                }
+                iter.remove();
             }
         }
     }
