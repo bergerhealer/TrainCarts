@@ -5,8 +5,11 @@ import com.bergerkiller.bukkit.common.collections.ImplicitlySharedList;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
+import com.bergerkiller.bukkit.tc.signactions.SignAction;
+import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.utils.modlist.ModificationTrackedList;
 
 import org.bukkit.block.Block;
@@ -198,6 +201,17 @@ public abstract class SignTracker {
                         continue;
                     }
 
+                    // Ask SignAction (if available) whether we should trigger a change here
+                    SignAction action = newActiveSign.getAction();
+                    if (action != null && prevActiveSign.getAction() == action) {
+                        SignActionEvent event = newActiveSign.createEvent(SignActionType.NONE);
+                        if (!action.signTextChanged(event)) {
+                            activeSigns.add(newActiveSign);
+                            continue;
+                        }
+                    }
+
+                    // Fire events of removing the old sign
                     onSignChange(prevActiveSign, false);
                 }
                 activeSigns.add(newActiveSign);

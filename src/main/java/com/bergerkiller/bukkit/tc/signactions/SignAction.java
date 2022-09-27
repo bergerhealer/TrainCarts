@@ -11,7 +11,6 @@ import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -567,5 +566,16 @@ public abstract class SignAction {
      */
     public boolean click(SignActionEvent info, Player player) {
         return false;
+    }
+
+    /**
+     * Called when the contents of a Sign matching this SignAction have changed.
+     * Returns whether leave/enter events need to be fired as a result of it.
+     *
+     * @param event Details about the sign that changed
+     * @return True if the train should fire leave/enter events for the sign
+     */
+    public boolean signTextChanged(SignActionEvent event) {
+        return true;
     }
 }
