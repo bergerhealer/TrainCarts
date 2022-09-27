@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
@@ -796,7 +797,8 @@ public class SpawnableGroup {
          */
         public boolean isOccupied() {
             for (SpawnableMember.SpawnLocation loc : this.locations) {
-                if (MinecartMemberStore.getAt(loc.location) != null) {
+                MinecartMember<?> member = MinecartMemberStore.getAt(loc.location);
+                if (member != null && !member.isUnloaded() && !member.getEntity().isRemoved()) {
                     return true;
                 }
             }
