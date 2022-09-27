@@ -427,9 +427,6 @@ public class ObstacleTracker implements TrainStatusProvider {
                 // Check all other minecarts on the same rails to see if they are too close
                 Location state_position = null;
                 Location member_position = null;
-                MinecartMember<?> minMemberAhead = null;
-                double minSpeedAhead = Double.MAX_VALUE;
-                double minDistanceAhead = 0.0;
                 for (MinecartMember<?> member : iter.state.railPiece().members()) {
                     if (member.isUnloaded() || member.getEntity().isRemoved() || member.getGroup() == group) {
                         continue;
@@ -463,33 +460,20 @@ public class ObstacleTracker implements TrainStatusProvider {
                     double distanceToMember = member_position.distance(state_position) -
                                               (double) member.getEntity().getWidth() * 0.5;
 
-                    // Find the distance we can still move from our current position
-                    if ((distanceFromFront + distanceToMember) > waitDistance) {
-                        continue;
-                    }
-
                     // Movement speed of the minecart, taking maximum speed into account
                     Vector member_velocity = member.getEntity().getVelocity();
-                    double speedAhead = MathUtil.clamp(member_velocity.length(), member.getEntity().getMaxSpeed());
-
-                    // If moving towards me, stop right away! When barely moving, ignore this check.
-                    if (speedAhead > 1e-6 && iter.state.position().motDot(member_velocity) < 0.0) {
-                        obstacles.add(new TrainObstacle(distanceFromFront + distanceToMember, trainDistance, 0.0, member));
-                        continue;
-                    }
-
-                    // Too close, match the speed of the Minecart ahead. For the overshoot, slow ourselves down.
+                    double speedAhead = Math.min(member_velocity.length(), member.getEntity().getMaxSpeed());
                     if (speedAhead < 0.0) {
-                        speedAhead = 0.0;
+                        speedAhead = 0.0; // In case of negative max speed (???)
                     }
-                    if (speedAhead < minSpeedAhead) {
-                        minMemberAhead = member;
-                        minSpeedAhead = speedAhead;
-                        minDistanceAhead = distanceFromFront + distanceToMember;
+
+                    if (speedAhead > 1e-6 && iter.state.position().motDot(member_velocity) < 0.0) {
+                        // If moving towards me, assume speed of 0. If too close, will slow down to a stop.
+                        obstacles.add(new TrainObstacle(distanceFromFront + distanceToMember, trainDistance, 0.0, member));
+                    } else {
+                        // Following another train
+                        obstacles.add(new TrainObstacle(distanceFromFront + distanceToMember, trainDistance, speedAhead, member));
                     }
-                }
-                if (minSpeedAhead != Double.MAX_VALUE) {
-                    obstacles.add(new TrainObstacle(minDistanceAhead, trainDistance, minSpeedAhead, minMemberAhead));
                 }
             }
 
