@@ -368,13 +368,13 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         MemberRemoveEvent.call(member);
         super.remove(index);
         this.getActions().removeActions(member);
-        this.getSignTracker().updatePosition();
         onMemberRemoved(member);
         member.group = null;
         return member;
     }
 
     private void onMemberRemoved(MinecartMember<?> member) {
+        this.getSignTracker().onMemberRemoved(member);
         this.getProperties().remove(member.getProperties());
         this.getRailTracker().removeMemberRails(member);
         try (Timings t = TCTimings.RAILMEMBERCACHE.start()) {

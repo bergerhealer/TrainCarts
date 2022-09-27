@@ -113,6 +113,46 @@ public class SignTrackerGroup extends SignTracker {
     }
 
     /**
+     * Called when a member is removed from the group. Should update internal state
+     * here.
+     *
+     * @param member
+     */
+    public void onMemberRemoved(MinecartMember<?> member) {
+        removeDetectorRegionsOf(member);
+        updatePosition();
+    }
+
+    private void removeDetectorRegionsOf(MinecartMember<?> member) {
+        // Nothing to do here if none of our members entered any detector regions
+        if (this.detectorRegions.isEmpty()) {
+            return;
+        }
+
+        // Remove from any detectors to properly fire events
+        // A re-enter might occur if the member is reassigned to a different group
+        for (DetectorRegion region : member.getSignTracker().detectorRegions.cloneAsIterable()) {
+            region.remove(member);
+        }
+        member.getSignTracker().detectorRegions.clear();
+
+        // Update detectorRegions list of this group based on remaining members
+        for (Iterator<DetectorRegion> iter = this.detectorRegions.iterator(); iter.hasNext();) {
+            DetectorRegion region = iter.next();
+            boolean used = false;
+            for (MinecartMember<?> otherMember : owner) {
+                if (otherMember != member && otherMember.getSignTracker().detectorRegions.contains(region)) {
+                    used = true;
+                    break;
+                }
+            }
+            if (!used) {
+                iter.remove();
+            }
+        }
+    }
+
+    /**
      * Tells that this Block Tracker's Block Space (signs, detectors) needs to be updated at some point
      */
     public void updatePosition() {
