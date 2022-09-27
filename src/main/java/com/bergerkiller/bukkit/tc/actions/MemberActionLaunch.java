@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
 import com.bergerkiller.bukkit.tc.utils.LaunchFunction;
@@ -59,13 +58,10 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
             this.function = new LaunchFunction.Linear();
         }
 
-        // There seems to be a bug when distance/time is too short
+        // There seems to be a bug when distance is too short
         // It's unable to initiate the right launch direction then
         if (this.config.hasDistance() && this.config.getDistance() < 0.001) {
-            this.config.setDistance(0.001);
-        }
-        if (this.config.hasDuration() && this.config.getDuration() < 1) {
-            this.config.setDuration(1);
+            this.config.setDuration(0);
         }
 
         this.distance = 0;
@@ -161,6 +157,12 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         // Abort when derailed. We do permit vertical 'air-launching'
         if (this.getMember().isDerailed() && !this.getMember().isMovingVerticalOnly()) {
             this.onLaunchingDone(false);
+            return true;
+        }
+
+        // Do an instant launch when a timespan of 0 ticks or less is used
+        if (this.function.isInstantaneous()) {
+            this.onLaunchingDone(true);
             return true;
         }
 
