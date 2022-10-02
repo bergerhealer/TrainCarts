@@ -1,25 +1,43 @@
 package com.bergerkiller.bukkit.tc;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+
 import org.bukkit.block.BlockFace;
 
 import java.util.LinkedHashSet;
 
 public enum Direction {
-    NORTH("n", "north"), EAST("e", "east"), SOUTH("s", "south"),
-    WEST("w", "west"), LEFT("l", "left"), RIGHT("r", "right"),
-    FORWARD("f", "front", "forward", "forwards"),
-    BACKWARD("b", "back", "backward", "backwards"),
-    UP("u", "up", "upwards", "above"),
-    DOWN("d", "down", "downwards", "below"),
-    CONTINUE("c", "continue"),
-    REVERSE("r", "reverse"),
-    NONE("", "n", "none");
+    NORTH(true, "n", "north"),
+    EAST(true, "e", "east"),
+    SOUTH(true, "s", "south"),
+    WEST(true, "w", "west"),
+    LEFT(false, "l", "left"),
+    RIGHT(false, "r", "right"),
+    FORWARD(false, "f", "front", "forward", "forwards"),
+    BACKWARD(false, "b", "back", "backward", "backwards"),
+    UP(true, "u", "up", "upwards", "above"),
+    DOWN(true, "d", "down", "downwards", "below"),
+    CONTINUE(false, "continue"),
+    REVERSE(false, "reverse"),
+    NONE(true, "", "n", "none");
 
+    private final boolean absolute;
     private final String[] aliases;
 
-    Direction(String... aliases) {
+    Direction(boolean absolute, String... aliases) {
+        this.absolute = absolute;
         this.aliases = aliases;
+    }
+
+    /**
+     * Gets whether this Direction is absolute. If it is,
+     * {@link #getDirection(BlockFace)} will always output the same
+     * BlockFace.
+     *
+     * @return True if absolute
+     */
+    public boolean isAbsolute() {
+        return this.absolute;
     }
 
     public String[] aliases() {
