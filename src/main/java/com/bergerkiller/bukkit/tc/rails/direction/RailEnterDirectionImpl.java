@@ -18,8 +18,8 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
  * Some helper stuff nobody else has to be concerned about
  */
 class RailEnterDirectionImpl {
-    private static final RailEnterDirection[] NONE = new RailEnterDirection[0];
-    private static final RailEnterDirection[] ALL;
+    public static final RailEnterDirection[] NONE = new RailEnterDirection[0];
+    public static final RailEnterDirection[] ALL;
     private static final Map<String, DirectionEnterDirection> DIRECTION_BY_NAME;
     private static final Map<Character, Direction> DIRECTION_BY_CHAR;
     static {

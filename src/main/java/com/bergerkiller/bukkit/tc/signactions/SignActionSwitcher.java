@@ -177,7 +177,7 @@ public class SignActionSwitcher extends SignAction {
                 return;
             }
 
-            final boolean facing = info.isWatchedDirection(info.getCartEnterFace());
+            final boolean facing = info.isEnterActivated();
 
             DirectionStatement activeDirection = null;
             if (!statements.isEmpty() && facing) {

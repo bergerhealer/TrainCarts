@@ -3,10 +3,12 @@ package com.bergerkiller.bukkit.tc.rails.direction;
 import java.util.ArrayList;
 
 import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 
 /**
  * A direction a train can travel towards a particular rail. For vanilla rails this is
@@ -15,6 +17,10 @@ import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
  * directions for switched rails.
  */
 public interface RailEnterDirection {
+    /**
+     * All rail enter directions. Always triggers the sign.
+     */
+    public static final RailEnterDirection[] ALL = RailEnterDirectionImpl.ALL;
 
     /**
      * Gets the name that identifies this RailEnterDirection. If put on a direction
@@ -23,6 +29,25 @@ public interface RailEnterDirection {
      * @return Rail enter direction name
      */
     String name();
+
+    /**
+     * Computes the dot product between the motion vector specified and this rail
+     * enter direction. If this returns a positive value, then the input motion
+     * is in the same general direction as this enter direction.
+     *
+     * @param motion Motion direction vector
+     * @return Dot product of motion with this rail enter direction
+     */
+    double motionDot(Vector motion);
+
+    /**
+     * Gets whether a train at a particular position on the rails, moving a certain
+     * direction, activates according to this RailEnterDirection
+     *
+     * @param state RailState of the train
+     * @return True if this enter direction matches positively
+     */
+    boolean match(RailState state);
 
     /**
      * Gets a RailEnterDirection used for matching trains moving towards certain rail

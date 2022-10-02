@@ -1,14 +1,10 @@
 package com.bergerkiller.bukkit.tc.statements;
 
-import com.bergerkiller.bukkit.tc.Direction;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import com.bergerkiller.bukkit.tc.rails.direction.RailEnterDirection;
 
 import org.bukkit.block.BlockFace;
 
@@ -45,29 +41,24 @@ public class StatementDirection extends Statement {
 
     @Override
     public boolean handleArray(MinecartMember<?> member, String[] directionNames, SignActionEvent event) {
-        // Get faces to match
-        List<BlockFace> faces;
-        if (directionNames.length == 0) {
+        // Don't even bother with this crap
+        RailState enterState;
+        if (event.getMember() != member || (enterState = event.getCartEnterState()) == null) {
             return false;
-        } else if (directionNames.length == 1) {
-            faces = Arrays.asList(Direction.parseAll(directionNames[0], event.getFacing().getOppositeFace()));
-        } else {
-            faces = new ArrayList<BlockFace>();
-            for (String directionName : directionNames) {
-                faces.addAll(Arrays.asList(Direction.parseAll(directionName, event.getFacing().getOppositeFace())));
+        }
+
+        // Parse input text into valid directions
+        // Then match them against the enter state
+        BlockFace forwardDirection = event.getFacing().getOppositeFace();
+        for (String directionName : directionNames) {
+            for (RailEnterDirection dir : RailEnterDirection.parseAll(event.getRailPiece(), forwardDirection, directionName)) {
+                if (dir.match(enterState)) {
+                    return true;
+                }
             }
         }
 
-        // Find movement vector of Minecart
-        BlockFace enterFace;
-        if (event.getMember() == member) {
-            enterFace = event.getCartEnterFace();
-        } else {
-            enterFace = Util.vecToFace(member.getEntity().getVelocity(), false);
-        }
-
-        // Check if faces contains the current movement direction of the Minecart
-        return faces.contains(enterFace);
+        return false;
     }
 
     @Override

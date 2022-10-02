@@ -58,7 +58,7 @@ public class SignActionBlocker extends SignAction {
 
     @Override
     public boolean isPathFindingBlocked(SignActionEvent info, RailState state) {
-        return info.getHeader().isAlwaysOn() && info.isWatchedDirection(state.enterFace());
+        return info.getHeader().isAlwaysOn() && info.isEnterActivated(state);
     }
 
     @Override
@@ -68,7 +68,7 @@ public class SignActionBlocker extends SignAction {
             return;
         }
 
-        if (info.isWatchedDirection(info.getCartEnterFace()) && info.isPowered()) {
+        if (info.isEnterActivated() && info.isPowered()) {
             prediction.addSpeedLimit(0.0);
         }
     }

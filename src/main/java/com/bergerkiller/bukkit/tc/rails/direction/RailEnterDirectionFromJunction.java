@@ -1,6 +1,9 @@
 package com.bergerkiller.bukkit.tc.rails.direction;
 
+import org.bukkit.util.Vector;
+
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 
 /**
  * A type of {@link RailEnterDirection} that makes use of a named junction of the rails
@@ -25,6 +28,17 @@ public final class RailEnterDirectionFromJunction implements RailEnterDirection 
     @Override
     public String name() {
         return this.junction.name();
+    }
+
+    @Override
+    public double motionDot(Vector motion) {
+        return -this.junction.position().motDot(motion);
+    }
+
+    @Override
+    public boolean match(RailState state) {
+        // TODO Auto-generated method stub
+        return false;
     }
 
     @Override

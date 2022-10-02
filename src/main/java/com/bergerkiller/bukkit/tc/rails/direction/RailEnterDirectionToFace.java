@@ -4,8 +4,10 @@ import java.util.EnumMap;
 import java.util.Locale;
 
 import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 
 /**
  * A type of {@link RailEnterDirection} that refers to activation moving towards a certain
@@ -56,6 +58,16 @@ public final class RailEnterDirectionToFace implements RailEnterDirection {
     @Override
     public String name() {
         return name;
+    }
+
+    @Override
+    public double motionDot(Vector motion) {
+        return motion.dot(FaceUtil.faceToVector(face));
+    }
+
+    @Override
+    public boolean match(RailState state) {
+        return face == state.enterFace();
     }
 
     @Override

@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.events;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.PowerState;
 import com.bergerkiller.bukkit.tc.SignActionHeader;
@@ -19,6 +18,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
+import com.bergerkiller.bukkit.tc.rails.direction.RailEnterDirection;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.rails.type.RailTypeRegular;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
@@ -45,13 +45,12 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
 
     private final TrackedSign sign;
     private final String lowerSecondCleanedLine;
-    private BlockFace[] watchedDirections;
+    private RailEnterDirection[] enterDirections;
     private SignActionType actionType;
     private BlockFace raildirection = null;
     private MinecartMember<?> member = null;
     private MinecartGroup group = null;
-    private Vector overrideMemberEnterDirection = null;
-    private BlockFace overrideMemberEnterFace = null;
+    private RailState overrideMemberEnterState = null;
     private boolean memberchecked = false;
     private boolean cancelled = false;
 
@@ -113,7 +112,7 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
         if (this.sign.getHeader().isLegacyConverted() && this.sign.getHeader().isValid()) {
             this.setLine(0, this.sign.getHeader().toString());
         }
-        this.watchedDirections = null;
+        this.enterDirections = null;
     }
 
     @Override
@@ -158,16 +157,14 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
     }
 
     /**
-     * Overrides the output of {@link #getCartEnterDirection()} and {@link #getCartEnterFace()}
-     * to return the input values specified. This is important when the member is nowhere
-     * near the sign to calculate this automatically.
+     * Overrides the output of {@link #getCartEnterDirection()}, {@link #getCartEnterFace()}
+     * and {@link #getCartEnterState()} to return the information from the rail state specified.
+     * This is important when the member is nowhere near the sign to calculate this automatically.
      *
-     * @param enterDirection Vector of the direction of entering the rail
-     * @param enterFace BlockFace of the rail that was entered
+     * @param enterState RailState to set
      */
-    public void overrideCartEnterDirection(Vector enterDirection, BlockFace enterFace) {
-        this.overrideMemberEnterDirection = enterDirection;
-        this.overrideMemberEnterFace = enterFace;
+    public void overrideCartEnterState(RailState enterState) {
+        this.overrideMemberEnterState = enterState;
     }
 
     /**
@@ -178,28 +175,12 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
      * @return enter direction vector
      */
     public Vector getCartEnterDirection() {
-        // If enter direction is overrided, set it without computing anything.
+        // The expected
         {
-            Vector direction;
-            if ((direction = this.overrideMemberEnterDirection) != null) {
-                return direction;
+            RailState state = this.getCartEnterState();
+            if (state != null) {
+                return state.enterDirection();
             }
-        }
-
-        if (this.hasMember()) {
-            // Find the rails block matching the one that triggered this event
-            // Return the enter ('from') direction for that rails block if found
-            if (this.hasRails()) {
-                Block rails = this.getRails();
-                for (TrackedRail rail : this.member.getGroup().getRailTracker().getRailInformation()) {
-                    if (rail.member == this.member && rail.state.railBlock().equals(rails)) {
-                        return rail.state.enterDirection();
-                    }
-                }
-            }
-
-            // Ask the minecart itself alternatively
-            return this.member.getEntity().getVelocity();
         }
 
         // Find the facing direction from watched directions, or sign orientation
@@ -232,28 +213,12 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
      * @return enter direction face
      */
     public BlockFace getCartEnterFace() {
-        // If enter face is overrided, set it without computing anything.
+        // The expected
         {
-            BlockFace face;
-            if ((face = this.overrideMemberEnterFace) != null) {
-                return face;
+            RailState state = this.getCartEnterState();
+            if (state != null) {
+                return state.enterFace();
             }
-        }
-
-        if (this.hasMember()) {
-            // Find the rails block matching the one that triggered this event
-            // Return the enter ('from') direction for that rails block if found
-            if (this.hasRails()) {
-                Block rails = this.getRails();
-                for (TrackedRail rail : this.member.getGroup().getRailTracker().getRailInformation()) {
-                    if (rail.member == this.member && rail.state.railBlock().equals(rails)) {
-                        return rail.state.enterFace();
-                    }
-                }
-            }
-
-            // Ask the minecart itself alternatively
-            return Util.vecToFace(this.member.getEntity().getVelocity(), false);
         }
 
         // Find the facing direction from watched directions, or sign orientation
@@ -277,6 +242,40 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
         }
 
         return signDirection;
+    }
+
+    /**
+     * Gets the RailState of the cart that activated this sign at the moment of activating it.
+     * This information can be used to deduce whether or not the sign should be activated based
+     * on enter directions.<br>
+     * <br>
+     * May return null if this information is not available.
+     *
+     * @return RailState of the cart that activated this sign, upon activating it.
+     *         Returns null if this sign lacks rails, or no member was involved in activating
+     *         it.
+     */
+    public RailState getCartEnterState() {
+        // If enter state is overrided, set it without computing anything.
+        {
+            RailState state;
+            if ((state = this.overrideMemberEnterState) != null) {
+                return state;
+            }
+        }
+
+        if (this.hasRails() && this.hasMember()) {
+            // Find the rails block matching the one that triggered this event
+            // Return the enter ('from') direction for that rails block if found
+            RailPiece railPiece = this.getRailPiece();
+            for (TrackedRail rail : this.member.getGroup().getRailTracker().getRailInformation()) {
+                if (rail.member == this.member && rail.state.railPiece().equals(railPiece)) {
+                    return rail.state;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -766,9 +765,15 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
     }
 
     /**
-     * Checks whether the minecart that caused this event is facing the sign correctly
+     * Checks whether the minecart that caused this event is facing the sign correctly.
+     * More exactly, it checks whether the recent motion of the train matches the
+     * enter direction rules specified on the sign. If the train isn't moving,
+     * always returns true.<br>
+     * <br>
+     * If no train activated this event, always returns false.
      *
-     * @return True if the minecart is able to invoke this sign, False if not
+     * @return True if the minecart is able to activate this sign, False if not
+     * @see #isEnterActivated()
      */
     public boolean isFacing() {
         MinecartMember<?> member = this.getMember();
@@ -778,7 +783,7 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
         if (!member.isMoving()) {
             return true;
         }
-        return this.isWatchedDirection(this.getCartEnterFace());
+        return this.isEnterActivated();
     }
 
     /**
@@ -920,7 +925,7 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
      * @return True if defined, False if not
      */
     public boolean isWatchedDirectionsDefined() {
-        return this.getHeader().hasDirections();
+        return this.getHeader().hasEnterDirections();
     }
 
     /**
@@ -929,22 +934,69 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
      * @return Watched directions
      */
     public BlockFace[] getWatchedDirections() {
+        return RailEnterDirection.toFacesOnly(this.getEnterDirections());
+    }
+
+    /**
+     * Gets the directions that activate this sign, according to the trigger direction
+     * rules on the sign, or a default fallback behavior.
+     *
+     * @return Rail enter directions
+     */
+    public RailEnterDirection[] getEnterDirections() {
         // Lazy initialization here
-        if (this.watchedDirections == null) {
+        if (this.enterDirections == null) {
             // Find out what directions are watched by this sign
-            if (this.sign.getHeader().hasDirections()) {
+            if (this.sign.getHeader().hasEnterDirections()) {
                 // From first line header ([train:left] -> blockface[] for left)
-                this.watchedDirections = this.sign.getHeader().getFaces(this.getFacing().getOppositeFace());
+                this.enterDirections = this.sign.getHeader().getEnterDirections(
+                        this.getRailPiece(), this.getFacing().getOppositeFace());
             } else if (TCConfig.trainsCheckSignFacing) {
                 // Ask rails, the RailType NONE also handled this function, so no NPE here
-                this.watchedDirections = this.getRailPiece().type().getSignTriggerDirections(
+                BlockFace[] faces = this.getRailPiece().type().getSignTriggerDirections(
                         this.getRailPiece().block(), this.getBlock(), this.getFacing());
+                this.enterDirections = new RailEnterDirection[faces.length];
+                for (int i = 0; i < faces.length; i++) {
+                    this.enterDirections[i] = RailEnterDirection.toFace(faces[i]);
+                }
             } else {
                 // Always
-                this.watchedDirections = FaceUtil.BLOCK_SIDES;
+                this.enterDirections = RailEnterDirection.ALL;
             }
         }
-        return this.watchedDirections;
+        return this.enterDirections;
+    }
+
+    /**
+     * Gets whether the specified RailState would activate this sign according to
+     * the sign trigger direction rules.
+     *
+     * @param state RailState of the train
+     * @return True if it would activate this sign
+     * @see #isEnterActivated()
+     */
+    public boolean isEnterActivated(RailState state) {
+        for (RailEnterDirection dir : this.getEnterDirections()) {
+            if (dir.match(state)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Gets whether the train that activated this sign will actually activate this
+     * sign according to the sign trigger direction rules.<br>
+     * <br>
+     * Can only be used while handling group/member enter/leave events,
+     * or while computing path finding/prediction.
+     *
+     * @return True if it would activate this sign
+     * @see #isEnterActivated(RailState)
+     */
+    public boolean isEnterActivated() {
+        RailState state = this.getCartEnterState();
+        return state != null && isEnterActivated(state);
     }
 
     /**
@@ -953,9 +1005,10 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
      * @return spawn directions
      */
     public BlockFace[] getSpawnDirections() {
-        BlockFace[] spawndirs = new BlockFace[this.getWatchedDirections().length];
+        BlockFace[] watched = this.getWatchedDirections();
+        BlockFace[] spawndirs = new BlockFace[watched.length];
         for (int i = 0; i < spawndirs.length; i++) {
-            spawndirs[i] = this.getWatchedDirections()[i].getOppositeFace();
+            spawndirs[i] = watched[i].getOppositeFace();
         }
         return spawndirs;
     }
@@ -967,7 +1020,7 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
      * @return True if watched, False otherwise
      */
     public boolean isWatchedDirection(BlockFace direction) {
-        return LogicUtil.contains(direction, this.getWatchedDirections());
+        return LogicUtil.contains(RailEnterDirection.toFace(direction), this.getEnterDirections());
     }
 
     /**
@@ -978,8 +1031,8 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
      * @return True if watched, False otherwise
      */
     public boolean isWatchedDirection(Vector direction) {
-        for (BlockFace watched : this.getWatchedDirections()) {
-            if (MathUtil.isHeadingTo(watched, direction)) {
+        for (RailEnterDirection dir : this.getEnterDirections()) {
+            if (dir.motionDot(direction) > 0.0) {
                 return true;
             }
         }

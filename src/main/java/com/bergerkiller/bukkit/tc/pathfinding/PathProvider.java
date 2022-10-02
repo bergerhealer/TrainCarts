@@ -134,8 +134,7 @@ public class PathProvider extends Task implements TrainCarts.Provider {
                     // Execute logic to probe for speed limits / switchers / blockers
                     SignActionEvent signEvent = trackedSign.createEvent(SignActionType.GROUP_ENTER);
                     signEvent.setMember(event.member());
-                    signEvent.overrideCartEnterDirection(event.railState().enterDirection(),
-                                                         event.railState().enterFace());
+                    signEvent.overrideCartEnterState(event.railState());
                     action.predictPathFinding(signEvent, event);
                 }
             }
