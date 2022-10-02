@@ -385,11 +385,6 @@ public final class RailLookup {
         public final DetectorRegion[] cachedDetectorRegions() {
             return this.detectorRegions;
         }
-
-        @Override
-        public boolean equals(Object o) {
-            return o == this; // Used when removing a value, we don't want normal equals there
-        }
     }
 
     /**
