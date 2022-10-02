@@ -7,7 +7,9 @@ import org.bukkit.block.Sign;
 import org.bukkit.event.block.SignChangeEvent;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.rails.direction.RailEnterDirection;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 
@@ -24,7 +26,12 @@ public class SignActionHeader {
     private boolean is_converted = false;
     private String rc_name = "";
     private SignActionMode mode = SignActionMode.NONE;
-    private Direction[] directions = null;
+    private String directions_str = null;
+
+    // These are initialized/cached the first time rail enter directions are requested
+    private RailPiece rail_enter_dirs_rail = null;
+    private BlockFace rail_enter_dirs_fwd = null;
+    private RailEnterDirection[] rail_enter_dirs = null;
 
     /**
      * Checks whether this header is a valid TrainCarts sign header.
@@ -252,27 +259,123 @@ public class SignActionHeader {
      * If this returns False, environment-specific watched directions are used.
      * 
      * @return has directions
+     * @deprecated Use {@link #hasEnterDirections()} instead
      */
+    @Deprecated
     public boolean hasDirections() {
-        return directions != null;
+        return directions_str != null;
     }
 
     /**
      * Gets the directions specified in the sign header
      * 
      * @return directions
+     * @deprecated Doesn't support junctions, should use {@link #getEnterDirections(RailPiece, BlockFace)}
      */
+    @Deprecated
     public Direction[] getDirections() {
-        return directions;
+        return directions_str == null ? null : Direction.parseAll(directions_str);
+    }
+
+    /**
+     * Gets whether sign activation rail-enter directions are defined on the
+     * first line of the sign. If this returns True, the user-specified directions
+     * should be used. If this returns False, environment-specific rail
+     * enter directions should be used, instead.
+     *
+     * @return True if rail-enter trigger directions are defined
+     */
+    public boolean hasEnterDirections() {
+        return directions_str != null;
+    }
+
+    /**
+     * Gets the rail-enter directions that activate the sign
+     *
+     * @param rail Rail to resolve junction names
+     * @param forwardDirection Forward direction relative to which left/right/etc. directions are resolved
+     * @return RailEnterDirection array, or null if {@link #hasEnterDirections()"} returns false
+     */
+    public RailEnterDirection[] getEnterDirections(RailPiece rail, BlockFace forwardDirection) {
+        if (directions_str == null) {
+            return null;
+        }
+        if (rail_enter_dirs_rail == rail && rail_enter_dirs_fwd == forwardDirection) {
+            return rail_enter_dirs;
+        }
+
+        rail_enter_dirs_rail = rail;
+        rail_enter_dirs_fwd = forwardDirection;
+        return rail_enter_dirs = RailEnterDirection.parseAll(rail, forwardDirection, directions_str);
+    }
+
+    /**
+     * Sets the enter directions of this header using a text expression
+     *
+     * @param text
+     */
+    public void setEnterDirectionsText(String text) {
+        directions_str = text;
+        // Reset these
+        rail_enter_dirs_rail = null;
+        rail_enter_dirs_fwd = null;
+        rail_enter_dirs = null;
+    }
+
+    /**
+     * Sets the absolute enter directions of this header
+     *
+     * @param directions
+     */
+    public void setEnterDirections(RailEnterDirection[] directions) {
+        if (directions == null) {
+            setEnterDirectionsText(null);
+        } else if (directions.length == 0) {
+            setEnterDirectionsText("");
+        } else if (directions.length == 1) {
+            setEnterDirectionsText(directions[0].name());
+        } else {
+            StringBuilder str = new StringBuilder(directions.length * 2);
+            for (RailEnterDirection dir : directions) {
+                str.append(dir.name());
+            }
+            setEnterDirectionsText(str.toString());
+        }
     }
 
     /**
      * Sets the directions specified in the sign header
      * 
      * @param directions
+     * @deprecated Use {@link #setEnterDirections(RailEnterDirection[])} instead
      */
+    @Deprecated
     public void setDirections(Direction[] directions) {
-        this.directions = directions;
+        if (directions == null) {
+            setEnterDirectionsText(null);
+        } else {
+            // Ugh. Hardcode it I guess.
+            if (directions.length == 0) {
+                setEnterDirectionsText("");
+            } else if (directions.length == 1) {
+                Direction d = directions[0];
+                setEnterDirectionsText(isValidDirection(d) ? d.aliases()[0] : "");
+            } else {
+                StringBuilder str = new StringBuilder();
+                for (Direction d : directions) {
+                    if (isValidDirection(d)) {
+                        str.append(d.aliases()[0]);
+                    }
+                }
+                setEnterDirectionsText(str.toString());
+            }
+        }
+    }
+
+    private boolean isValidDirection(Direction direction) {
+        return direction != Direction.NONE &&
+               direction != Direction.CONTINUE &&
+               direction != Direction.REVERSE;
     }
 
     /**
@@ -280,16 +383,15 @@ public class SignActionHeader {
      * 
      * @param absoluteDirection to convert the directions with
      * @return BlockFace watched faces
+     * @deprecated Doesn't support junctions, use {@link #getEnterDirections(RailPiece, BlockFace)} instead
      */
+    @Deprecated
     public BlockFace[] getFaces(BlockFace absoluteDirection) {
-        if (directions == null) {
+        if (directions_str == null) {
             return FaceUtil.AXIS; // fallback: all directions
         }
-        BlockFace[] faces = new BlockFace[directions.length];
-        for (int i = 0; i < faces.length; i++) {
-            faces[i] = directions[i].getDirection(absoluteDirection);
-        }
-        return faces;
+
+        return RailEnterDirection.toFacesOnly(this.getEnterDirections(RailPiece.NONE, absoluteDirection));
     }
 
     /**
@@ -376,11 +478,8 @@ public class SignActionHeader {
 
         // :N
         String postfix = "";
-        if (this.hasDirections()) {
-            postfix += ":";
-            for (Direction d : this.directions) {
-                postfix += d.aliases()[0];
-            }
+        if (this.directions_str != null) {
+            postfix += ":" + this.directions_str;
         }
         postfix += "]";
 
@@ -522,7 +621,7 @@ public class SignActionHeader {
             // Check for directions defined following a :
             if (after_token.startsWith(":")) {
                 after_token = after_token.substring(1);
-                header.directions = Direction.parseAll(after_token);
+                header.directions_str = after_token;
             }
         }
 

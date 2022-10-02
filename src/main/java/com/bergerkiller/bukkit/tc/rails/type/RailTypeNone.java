@@ -3,10 +3,14 @@ package com.bergerkiller.bukkit.tc.rails.type;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicAir;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogicGround;
+
+import java.util.Collections;
+import java.util.List;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -60,6 +64,11 @@ public class RailTypeNone extends RailType {
     @Override
     public Block findRail(Block pos) {
         return pos;
+    }
+
+    @Override
+    public List<RailJunction> getJunctions(Block railBlock) {
+        return Collections.emptyList();
     }
 
     @Override

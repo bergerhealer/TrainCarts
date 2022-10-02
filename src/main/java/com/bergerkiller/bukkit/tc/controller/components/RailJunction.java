@@ -45,6 +45,19 @@ public final class RailJunction {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        } else if (o instanceof RailJunction) {
+            RailJunction other = (RailJunction) o;
+            return this.name().equals(other.name()) &&
+                   this.position().equals(other.position());
+        } else {
+            return false;
+        }
+    }
+
+    @Override
     public String toString() {
         return "{" + this._name + ": " + this._position.toString() + "}";
     }

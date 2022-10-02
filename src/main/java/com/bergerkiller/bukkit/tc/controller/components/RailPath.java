@@ -951,6 +951,26 @@ public class RailPath {
         }
 
         @Override
+        public boolean equals(Object o) {
+            // Note: not very practical, but useful for test cases...
+            if (o == this) {
+                return true;
+            } else if (o instanceof Position) {
+                Position other = (Position) o;
+                return this.posX == other.posX &&
+                       this.posY == other.posY &&
+                       this.posZ == other.posZ &&
+                       this.motX == other.motX &&
+                       this.motY == other.motY &&
+                       this.motZ == other.motZ &&
+                       this.relative == other.relative &&
+                       this.reverse == other.reverse;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
         public String toString() {
             return (this.relative ? "{r_pos={" : "{a_pos={") +
                     MathUtil.round(posX, 4) + "/" +

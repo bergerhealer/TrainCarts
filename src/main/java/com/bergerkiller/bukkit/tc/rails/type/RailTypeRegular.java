@@ -37,8 +37,6 @@ import org.bukkit.material.Rails;
  * Do not write an isType check that results in non-Rails material types.
  */
 public class RailTypeRegular extends RailTypeHorizontal {
-    private static final Material REGULAR_RAIL_TYPE = getFirst("RAIL", "LEGACY_RAILS");
-
     /**
      * Gets all possible directions a Minecart can go when on regular rails.
      * There is no 'UP' direction for vertical rails - it assumes the horizontal direction
@@ -275,7 +273,7 @@ public class RailTypeRegular extends RailTypeHorizontal {
 
     @Override
     public boolean isRail(BlockData blockData) {
-        return blockData.isType(REGULAR_RAIL_TYPE);
+        return blockData.isType(RailMaterials.REGULAR);
     }
 
     @Override
@@ -459,5 +457,16 @@ public class RailTypeRegular extends RailTypeHorizontal {
 
     private MapTexture getResource(Rails rails, String name) {
         return MapTexture.loadPluginResource(TrainCarts.plugin, getRailsTexturePath(rails, name));
+    }
+
+    /**
+     * Put in a separate class to avoid static initialization of MaterialUtil and other stuff
+     * When the RailTypeRegular is constructed. This is useful under test.
+     */
+    protected static class RailMaterials {
+        public static final Material REGULAR = getFirst("RAIL", "LEGACY_RAILS");
+        public static final Material DETECTOR = Material.DETECTOR_RAIL;
+        public static final Material POWERED = Material.POWERED_RAIL;
+        public static final Material ACTIVATOR = Material.ACTIVATOR_RAIL;
     }
 }

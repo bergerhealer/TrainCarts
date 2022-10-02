@@ -109,6 +109,6 @@ public class RailTypePowered extends RailTypeRegular {
 
     @Override
     public boolean isRail(BlockData blockData) {
-        return blockData.isType(Material.POWERED_RAIL) && ((blockData.getRawData() & 0x8) == 0x8) == isPowered;
+        return blockData.isType(RailMaterials.POWERED) && ((blockData.getRawData() & 0x8) == 0x8) == isPowered;
     }
 }
