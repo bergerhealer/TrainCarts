@@ -774,15 +774,15 @@ public class RailPath {
                 return MathUtil.distanceSquared(this.posX, this.posY, this.posZ,
                                                 pos.posX, pos.posY, pos.posZ);
             } else if (this.relative) {
-                return MathUtil.distanceSquared(this.posX + railBlock.getX(),
-                                                this.posY + railBlock.getY(),
-                                                this.posZ + railBlock.getZ(),
-                                                pos.posX, pos.posY, pos.posZ);
-            } else {
                 return MathUtil.distanceSquared(this.posX, this.posY, this.posZ,
-                                                pos.posX + railBlock.getX(),
-                                                pos.posY + railBlock.getY(),
-                                                pos.posZ + railBlock.getZ());
+                                                pos.posX - railBlock.getX(),
+                                                pos.posY - railBlock.getY(),
+                                                pos.posZ - railBlock.getZ());
+            } else {
+                return MathUtil.distanceSquared(this.posX - railBlock.getX(),
+                                                this.posY - railBlock.getY(),
+                                                this.posZ - railBlock.getZ(),
+                                                pos.posX, pos.posY, pos.posZ);
             }
         }
 
