@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.controller.components;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
-import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.utils.modlist.ModificationTrackedArrayList;
 import com.bergerkiller.bukkit.tc.utils.modlist.ModificationTrackedList;
@@ -18,7 +17,7 @@ import java.util.List;
  */
 public class SignTrackerMember extends SignTracker {
     private final MinecartMember<?> owner;
-    protected final ModificationTrackedList<TrackedSign> liveActiveSigns = new ModificationTrackedArrayList<>();
+    protected final ModificationTrackedList<ActiveSign> liveActiveSigns = new ModificationTrackedArrayList<>();
 
     public SignTrackerMember(MinecartMember<?> owner) {
         super(owner);
@@ -75,7 +74,7 @@ public class SignTrackerMember extends SignTracker {
     }
 
     @Override
-    protected void onSignChange(TrackedSign sign, boolean active) {
+    protected void onSignChange(ActiveSign sign, boolean active) {
         sign.executeEventForMember(active ? SignActionType.MEMBER_ENTER : SignActionType.MEMBER_LEAVE, owner);
     }
 

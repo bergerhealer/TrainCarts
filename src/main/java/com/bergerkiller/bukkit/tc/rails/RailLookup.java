@@ -604,9 +604,26 @@ public final class RailLookup {
          * @see #createEvent(SignActionType)
          */
         public void executeEventForMember(SignActionType action, MinecartMember<?> member) {
+            executeEventForMember(action, member, null);
+        }
+
+        /**
+         * Executes a {@link SignActionEvent} with the given action type, for a MinecartMember.
+         * If the member is unloaded or dead, the event is not fired.<br>
+         * <br>
+         * A RailState can be passed specifying the state of the member when first activating this sign.
+         * This is used for properly deciding the trigger directions/facing.
+         *
+         * @param action Action to execute
+         * @param member Member involved in the event
+         * @param enterState State of the member when first activating the sign
+         * @see #createEvent(SignActionType)
+         */
+        public void executeEventForMember(SignActionType action, MinecartMember<?> member, RailState enterState) {
             if (canFireEvents() && member.isInteractable()) {
                 SignActionEvent event = createEvent(action);
                 event.setMember(member);
+                event.overrideCartEnterState(enterState);
                 SignAction.executeOne(this.getAction(), event);
             }
         }
@@ -617,12 +634,30 @@ public final class RailLookup {
          *
          * @param action Action to execute
          * @param group Group involved in the event
+         * @param enterState State of the train's first member when first activating the sign
          * @see #createEvent(SignActionType)
          */
         public void executeEventForGroup(SignActionType action, MinecartGroup group) {
+            executeEventForGroup(action, group, null);
+        }
+
+        /**
+         * Executes a {@link SignActionEvent} with the given action type, for a MinecartGroup.
+         * If the group is unloaded, the event is not fired.<br>
+         * <br>
+         * A RailState can be passed specifying the state of the member when first activating this sign.
+         * This is used for properly deciding the trigger directions/facing.
+         *
+         * @param action Action to execute
+         * @param group Group involved in the event
+         * @param enterState State of the train's first member when first activating the sign
+         * @see #createEvent(SignActionType)
+         */
+        public void executeEventForGroup(SignActionType action, MinecartGroup group, RailState enterState) {
             if (canFireEvents() && !group.isUnloaded()) {
                 SignActionEvent event = createEvent(action);
                 event.setGroup(group);
+                event.overrideCartEnterState(enterState);
                 SignAction.executeOne(this.getAction(), event);
             }
         }

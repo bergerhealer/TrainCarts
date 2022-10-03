@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.utils.modlist.ModificationTrackedEmptyList;
+import com.bergerkiller.bukkit.tc.utils.modlist.ModificationTrackedList;
 import com.bergerkiller.bukkit.tc.utils.modlist.ModificationTrackedList2D;
 
 import org.bukkit.block.Block;
@@ -25,7 +26,7 @@ import java.util.*;
 public class SignTrackerGroup extends SignTracker {
     private final MinecartGroup owner;
     private final ToggledState needsPositionUpdate = new ToggledState(true);
-    private final ModificationTrackedList2D<TrackedSign> liveActiveSigns = new ModificationTrackedList2D<>();
+    private final ModificationTrackedList2D<ActiveSign> liveActiveSigns = new ModificationTrackedList2D<>();
 
     public SignTrackerGroup(MinecartGroup owner) {
         super(owner);
@@ -43,7 +44,7 @@ public class SignTrackerGroup extends SignTracker {
     }
 
     @Override
-    protected void onSignChange(TrackedSign sign, boolean active) {
+    protected void onSignChange(ActiveSign sign, boolean active) {
         sign.executeEventForGroup(active ? SignActionType.GROUP_ENTER : SignActionType.GROUP_LEAVE, owner);
     }
 
@@ -204,11 +205,15 @@ public class SignTrackerGroup extends SignTracker {
                 }
 
                 // Add all active signs to the block tracker of all members
+                // This stores, by member, the signs active and the state on the rails when activating
                 for (TrackedRail info : owner.getRailTracker().getRailInformation()) {
                     if (info.state.railType() != RailType.NONE) {
                         TrackedSign[] signs = info.state.railSigns();
                         if (signs.length > 0) {
-                            info.member.getSignTracker().liveActiveSigns.addAll(Arrays.asList(signs));
+                            ModificationTrackedList<ActiveSign> memberSigns = info.member.getSignTracker().liveActiveSigns;
+                            for (TrackedSign sign : signs) {
+                                memberSigns.add(new ActiveSign(sign, info.state));
+                            }
                         }
                     }
                 }
@@ -316,8 +321,8 @@ public class SignTrackerGroup extends SignTracker {
 
             // Perform routine update events
             if (needsUpdate.clear()) {
-                for (TrackedSign trackedSign : this.getActiveTrackedSigns().cloneAsIterable()) {
-                    trackedSign.executeEventForGroup(SignActionType.GROUP_UPDATE, owner);
+                for (ActiveSign activeSign : this.getActiveTrackedSigns().cloneAsIterable()) {
+                    activeSign.executeEventForGroup(SignActionType.GROUP_UPDATE, owner);
                 }
                 for (DetectorRegion region : detectorRegions.cloneAsIterable()) {
                     region.update(owner);
@@ -326,8 +331,8 @@ public class SignTrackerGroup extends SignTracker {
                 for (MinecartMember<?> member : owner) {
                     SignTrackerMember tracker = member.getSignTracker();
                     if (tracker.needsUpdate.clear()) {
-                        for (TrackedSign trackedSign : tracker.getActiveTrackedSigns()) {
-                            trackedSign.executeEventForMember(SignActionType.MEMBER_UPDATE, tracker.getOwner());
+                        for (ActiveSign activeSign : tracker.getActiveTrackedSigns()) {
+                            activeSign.executeEventForMember(SignActionType.MEMBER_UPDATE, tracker.getOwner());
                         }
                         for (DetectorRegion region : tracker.detectorRegions.cloneAsIterable()) {
                             region.update(tracker.getOwner());

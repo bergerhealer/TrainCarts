@@ -14,6 +14,7 @@ import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.controller.components.SignTracker.ActiveSign;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
@@ -40,7 +41,7 @@ public class SignSkipTracker {
      * 
      * @param signs
      */
-    public void loadSigns(List<TrackedSign> signs) {
+    public void loadSigns(List<SignTracker.ActiveSign> signs) {
         if (!this.isLoaded) {
             this.isLoaded = true;
             this.hasSkippedSigns = false;
@@ -52,28 +53,28 @@ public class SignSkipTracker {
             if (options.hasSkippedSigns()) {
                 // Signs were set to be skipped, more complicated initialization
                 for (BlockLocation signPos : options.skippedSigns()) {
-                    for (TrackedSign sign : signs) {
-                        Block signBlock = sign.signBlock;
+                    for (SignTracker.ActiveSign sign : signs) {
+                        Block signBlock = sign.getSign().signBlock;
                         if (signPos.x == signBlock.getX() &&
                             signPos.y == signBlock.getY() &&
                             signPos.z == signBlock.getZ() &&
                             signPos.world.equals(signBlock.getWorld().getName()))
                         {
-                            this.history.put(sign, Boolean.TRUE);
+                            this.history.put(sign.getSign(), Boolean.TRUE);
                             this.hasSkippedSigns = true;
                             break;
                         }
                     }
                 }
-                for (TrackedSign sign : signs) {
-                    if (!this.history.containsKey(sign)) {
-                        this.history.put(sign, Boolean.FALSE);
+                for (SignTracker.ActiveSign sign : signs) {
+                    if (!this.history.containsKey(sign.getSign())) {
+                        this.history.put(sign.getSign(), Boolean.FALSE);
                     }
                 }
             } else {
                 // Simplified
-                for (TrackedSign sign : signs) {
-                    this.history.put(sign, Boolean.FALSE);
+                for (SignTracker.ActiveSign sign : signs) {
+                    this.history.put(sign.getSign(), Boolean.FALSE);
                 }
             }
         }
@@ -95,7 +96,7 @@ public class SignSkipTracker {
      * 
      * @param signs (modifiable!)
      */
-    public void filterSigns(List<TrackedSign> signs) {
+    public void filterSigns(List<SignTracker.ActiveSign> signs) {
         // Load if needed
         if (!this.isLoaded) {
             this.loadSigns(signs);
@@ -108,8 +109,8 @@ public class SignSkipTracker {
         // Not active; simplified logic to minimize wasted CPU
         if (!options.isActive() && !this.hasSkippedSigns) {
             this.history.clear();
-            for (TrackedSign sign : signs) {
-                this.history.put(sign, Boolean.FALSE);
+            for (SignTracker.ActiveSign sign : signs) {
+                this.history.put(sign.getSign(), Boolean.FALSE);
             }
             return;
         }
@@ -123,7 +124,14 @@ public class SignSkipTracker {
             Iterator<Map.Entry<TrackedSign, Boolean>> iter = history.entrySet().iterator();
             while (iter.hasNext()) {
                 Map.Entry<TrackedSign, Boolean> e = iter.next();
-                if (!signs.contains(e.getKey())) {
+                boolean found = false;
+                for (ActiveSign sign : signs) {
+                    if (sign.getSign().equals(e.getKey())) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
                     changes.skippedSignsChanged |= e.getValue().booleanValue();
                     iter.remove();
                 }
@@ -133,9 +141,9 @@ public class SignSkipTracker {
         // Go by all signs and if they don't already exist, add them
         // Check if they need to be skipped when doing so
         this.hasSkippedSigns = false;
-        Iterator<TrackedSign> iter = signs.iterator();
+        Iterator<SignTracker.ActiveSign> iter = signs.iterator();
         while (iter.hasNext()) {
-            Boolean historyState = this.history.computeIfAbsent(iter.next(), sign -> {
+            Boolean historyState = this.history.computeIfAbsent(iter.next().getSign(), sign -> {
                 boolean passFilter = true;
                 if (options.hasFilter()) {
                     if (sign.sign == null) {

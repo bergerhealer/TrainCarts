@@ -75,6 +75,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRailWalker;
 import com.bergerkiller.bukkit.tc.controller.components.RailTrackerMember;
+import com.bergerkiller.bukkit.tc.controller.components.SignTracker;
 import com.bergerkiller.bukkit.tc.controller.components.SignTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.SoundLoop;
 import com.bergerkiller.bukkit.tc.controller.components.WheelTrackerMember;
@@ -2317,7 +2318,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
             // Execute signs MEMBER_MOVE
             try (Timings t = TCTimings.MEMBER_PHYSICS_POST_SIGN_MEMBER_MOVE.start()) {
-                for (TrackedSign sign : this.getSignTracker().getActiveTrackedSigns().cloneAsIterable()) {
+                for (SignTracker.ActiveSign sign : this.getSignTracker().getActiveTrackedSigns().cloneAsIterable()) {
                     sign.executeEventForMember(SignActionType.MEMBER_MOVE, this);
                 }
             }
