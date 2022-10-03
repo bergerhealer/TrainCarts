@@ -1,7 +1,5 @@
 package com.bergerkiller.bukkit.tc;
 
-import java.util.logging.Level;
-
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
@@ -26,7 +24,7 @@ import org.bukkit.util.Vector;
 public enum CollisionMode {
     DEFAULT("is stopped by"), PUSH("pushes"), CANCEL("ignores"), KILL("kills"),
     KILLNODROPS("kills without drops"), ENTER("takes in"), LINK("forms a group with"),
-    DAMAGE("damages"), DAMAGENODROPS("damages without drops"), SKIP("do not process");
+    DAMAGE("damages"), DAMAGENODROPS("damages without drops");
 
     private final String operationName;
 
@@ -41,6 +39,11 @@ public enum CollisionMode {
      * @return Collision Mode, or null if not parsed
      */
     public static CollisionMode parse(String text) {
+        // This used to be a thing / legacy...
+        if (text.equalsIgnoreCase("skip")) {
+            return CollisionMode.CANCEL;
+        }
+
         CollisionMode tf = ParseUtil.isBool(text) ? (ParseUtil.parseBool(text) ? DEFAULT : CANCEL) : null;
         return ParseUtil.parseEnum(CollisionMode.class, text, tf);
     }
@@ -193,10 +196,6 @@ public enum CollisionMode {
                     return !MinecartGroupStore.link(member, other);
                 }
                 return true;
-            case SKIP:
-                // Should not ever be called. If it is, do nothing.
-                member.getTrainCarts().log(Level.WARNING, "Collision mode SKIP should not be called");
-                return false;
             default:
                 // If movement controlled, don't allow entities to cause the launch to fail
                 if (member.isMovementControlled()) {

@@ -426,22 +426,22 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
 
             // Standard modes
             if (collisionConfig.contains("players")) {
-                builder.setPlayerMode(collisionConfig.get("players", CollisionOptions.DEFAULT.playerMode()));
+                builder.setPlayerMode(readMode(collisionConfig, "players", CollisionOptions.DEFAULT.playerMode()));
             }
             if (collisionConfig.contains("misc")) {
-                builder.setMiscMode(collisionConfig.get("misc", CollisionOptions.DEFAULT.miscMode()));
+                builder.setMiscMode(readMode(collisionConfig,"misc", CollisionOptions.DEFAULT.miscMode()));
             }
             if (collisionConfig.contains("train")) {
-                builder.setTrainMode(collisionConfig.get("train", CollisionOptions.DEFAULT.trainMode()));
+                builder.setTrainMode(readMode(collisionConfig,"train", CollisionOptions.DEFAULT.trainMode()));
             }
             if (collisionConfig.contains("block")) {
-                builder.setBlockMode(collisionConfig.get("block", CollisionOptions.DEFAULT.blockMode()));
+                builder.setBlockMode(readMode(collisionConfig,"block", CollisionOptions.DEFAULT.blockMode()));
             }
 
             // Mob collision modes
             for (CollisionMobCategory category : CollisionMobCategory.values()) {
                 if (collisionConfig.contains(category.getMobType())) {
-                    CollisionMode mode = collisionConfig.get(category.getMobType(), CollisionMode.class, null);
+                    CollisionMode mode = readMode(collisionConfig, category.getMobType(), null);
                     if (mode != null) {
                         builder.setMobMode(category, mode);
                     }
@@ -478,6 +478,16 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
             collisionConfig.set("block", data.blockMode());
         } else {
             config.remove("collision");
+        }
+    }
+
+    private CollisionMode readMode(ConfigurationNode config, String key, CollisionMode defValue) {
+        String name = config.get(key, String.class, null);
+        CollisionMode parsed;
+        if (name != null && (parsed = CollisionMode.parse(name)) != null) {
+            return parsed;
+        } else {
+            return null;
         }
     }
 
