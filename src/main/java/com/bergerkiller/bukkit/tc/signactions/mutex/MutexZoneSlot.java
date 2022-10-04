@@ -383,7 +383,7 @@ public class MutexZoneSlot {
                 // completely (HARD) or approach the zone carefully (SOFT)
                 this.active = false;
                 this.hardEnter = false;
-                return enteredGroup.hardEnter ? EnterResult.OCCUPIED_HARD : EnterResult.OCCUPIED_HARD;
+                return enteredGroup.hardEnter ? EnterResult.OCCUPIED_HARD : EnterResult.OCCUPIED_SOFT;
             }
 
             // Clear to go - update the existing group or add a new one
