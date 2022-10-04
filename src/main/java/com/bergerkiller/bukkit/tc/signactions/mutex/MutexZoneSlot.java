@@ -143,9 +143,10 @@ public class MutexZoneSlot {
      * being untracked again when rejected.
      *
      * @param group MinecartGroup to track
+     * @param distanceToMutex Distance from the front of the group to this mutex zone
      * @return EnteredGroup of this group
      */
-    public EnteredGroup track(MinecartGroup group) {
+    public EnteredGroup track(MinecartGroup group, double distanceToMutex) {
         // Verify using statements whether the group is even considered
         {
             List<String> statements = this.getStatements();
@@ -176,7 +177,7 @@ public class MutexZoneSlot {
                     }
 
                     // Ignored!
-                    return new IgnoredEnteredGroup(group);
+                    return new IgnoredEnteredGroup(group, distanceToMutex);
                 }
             }
         }
@@ -186,17 +187,19 @@ public class MutexZoneSlot {
             if (enteredGroup.group == group) {
                 if (enteredGroup.active) {
                     enteredGroup.isNew = false;
+                    enteredGroup.distanceToMutex = Math.min(enteredGroup.distanceToMutex, distanceToMutex);
                 } else {
                     enteredGroup.active = true;
                     enteredGroup.isNew = true;
                     enteredGroup.occupiedRails = null; // Revisit every rail to see if we can become active
+                    enteredGroup.distanceToMutex = distanceToMutex;
                 }
                 enteredGroup.time = CommonUtil.getServerTicks();
                 return enteredGroup;
             }
         }
 
-        EnteredGroup enteredGroup = new EnteredGroup(group);
+        EnteredGroup enteredGroup = new EnteredGroup(group, distanceToMutex);
         this.entered.add(enteredGroup);
         return enteredGroup;
     }
@@ -281,6 +284,8 @@ public class MutexZoneSlot {
         public boolean active = true;
         /** Whether the group only became active temporarily during the current tracking operation */
         public boolean isNew = true;
+        /** Distance from the front of the train to where this slot was first encountered */
+        public double distanceToMutex;
         /** Tick timestamp when the group last 'found' the mutex zone, updating its state */
         public int time;
         /** Tracks the tick where this entered group was created. Resolves hard-hard conflicts */
@@ -288,9 +293,10 @@ public class MutexZoneSlot {
         /** If used, the rail coordinates locked by the group (smart mutex) */
         private Set<IntVector3> occupiedRails = null;
 
-        public EnteredGroup(MinecartGroup group) {
+        public EnteredGroup(MinecartGroup group, double distanceToMutex) {
             this.group = group;
             this.creationTick = this.time = CommonUtil.getServerTicks();
+            this.distanceToMutex = distanceToMutex;
         }
 
         private boolean containsRail(IntVector3 coordinates) {
@@ -392,8 +398,8 @@ public class MutexZoneSlot {
 
     private final class IgnoredEnteredGroup extends EnteredGroup {
 
-        public IgnoredEnteredGroup(MinecartGroup group) {
-            super(group);
+        public IgnoredEnteredGroup(MinecartGroup group, double distanceToMutex) {
+            super(group, distanceToMutex);
         }
 
         @Override
