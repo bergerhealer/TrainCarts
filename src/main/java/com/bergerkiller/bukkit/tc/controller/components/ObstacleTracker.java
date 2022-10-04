@@ -7,6 +7,7 @@ import java.util.List;
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -488,8 +489,17 @@ public class ObstacleTracker implements TrainStatusProvider {
                     }
 
                     // Check still within mutex. If not, abort.
-                    if (!currentMutex.containsBlock(iter.state.positionOfflineBlock().getPosition())) {
-                        break;
+                    // Do check whether perhaps a different mutex zone with the same slot as the previous
+                    // one exists at this position. In that case, continue looking.
+                    IntVector3 currBlockPos = iter.state.positionOfflineBlock().getPosition();
+                    if (!currentMutex.containsBlock(currBlockPos)) {
+                        MutexZone otherMutex = mutexZones.get(currBlockPos);
+                        if (otherMutex == null || otherMutex.slot != currentMutex.slot) {
+                            break;
+                        }
+
+                        // Resume
+                        currentMutex = otherMutex;
                     }
 
                     // Update
