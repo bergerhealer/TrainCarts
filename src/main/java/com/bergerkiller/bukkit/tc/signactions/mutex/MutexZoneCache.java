@@ -155,10 +155,14 @@ public class MutexZoneCache {
         MutexZoneSlot slot;
         if (name.isEmpty()) {
             slot = new MutexZoneSlot("");
+            slotsList.add(slot);
         } else {
-            slot = slotsByName.computeIfAbsent(name, MutexZoneSlot::new);
+            slot = slotsByName.computeIfAbsent(name, n -> {
+                MutexZoneSlot newSlot = new MutexZoneSlot(n);
+                slotsList.add(newSlot);
+                return newSlot;
+            });
         }
-        slotsList.add(slot);
         return slot.addZone(zone);
     }
 
