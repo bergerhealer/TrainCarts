@@ -7,11 +7,11 @@ import com.bergerkiller.bukkit.tc.DirectionStatement;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.actions.GroupActionWaitPathFinding;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
+import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.events.MissingPathConnectionEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -192,7 +192,7 @@ public class SignActionSwitcher extends SignAction {
                 // If the active direction is non-default, activate it right away
                 // Skip path finding logic in that case
                 if (activeDirection != null && !activeDirection.isDefault()) {
-                    predictRails(prediction, activeDirection.direction);
+                    predictRails(prediction, activeDirection);
                     return; //don't do destination stuff
                 }
             }
@@ -213,7 +213,7 @@ public class SignActionSwitcher extends SignAction {
 
             // If a default direction was specified, switch that now that path finding also says nope
             if (activeDirection != null) {
-                predictRails(prediction, activeDirection.direction);
+                predictRails(prediction, activeDirection);
             }
         }
 
@@ -293,7 +293,31 @@ public class SignActionSwitcher extends SignAction {
             }
         }
 
-        private void predictRails(PathPredictEvent prediction, String name) {
+        private void predictRails(PathPredictEvent prediction, DirectionStatement direction) {
+            RailJunction a = info.findJunction(direction.direction);
+            RailJunction b = direction.isSwitchedFromSelf()
+                    ? null : info.findJunction(direction.directionFrom);
+            if (b == null) {
+                if (a == null) {
+                    return;
+                } else {
+                    prediction.setSwitchedJunction(a);
+                }
+            } else if (a == null) {
+                prediction.setSwitchedJunction(b);
+            } else {
+                // Figure out whether to switch to direction or directionFrom
+                // This is based on the current movement direction
+                RailPath.Position pos = prediction.railState().position();
+                if (a.position().motDot(pos) > b.position().motDot(pos)) {
+                    prediction.setSwitchedJunction(a);
+                } else {
+                    prediction.setSwitchedJunction(b);
+                }
+            }
+        }
+
+        private void predictRailsTo(PathPredictEvent prediction, String name) {
             RailJunction junction = info.findJunction(name);
             if (junction != null) {
                 prediction.setSwitchedJunction(junction);
@@ -368,7 +392,7 @@ public class SignActionSwitcher extends SignAction {
                         if (!LogicUtil.nullOrEmpty(destination) && !node.containsName(destination)) {
                             PathConnection conn = node.findConnection(destination);
                             if (conn != null) {
-                                this.predictRails(prediction, conn.junctionName);
+                                this.predictRailsTo(prediction, conn.junctionName);
                             }
                         }
                     }
