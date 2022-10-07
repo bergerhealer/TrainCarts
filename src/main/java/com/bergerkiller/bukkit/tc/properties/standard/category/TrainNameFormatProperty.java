@@ -108,7 +108,7 @@ public final class TrainNameFormatProperty implements ITrainProperty<TrainNameFo
     @PropertySelectorCondition("name")
     @PropertySelectorCondition("train") // deprecated!
     public String getSelectorMatchedTrainName(TrainProperties properties) {
-        return properties.getTrainName();
+        return Util.stripChatStyle(properties.getTrainName());
     }
 
     @Override

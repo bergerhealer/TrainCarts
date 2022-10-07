@@ -1,7 +1,5 @@
 package com.bergerkiller.bukkit.tc.tickets;
 
-import org.bukkit.ChatColor;
-
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.map.MapFont;
@@ -9,6 +7,7 @@ import com.bergerkiller.bukkit.common.map.MapSessionMode;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.tc.Localization;
+import com.bergerkiller.bukkit.tc.Util;
 
 public class TCTicketDisplay extends MapDisplay {
 
@@ -58,7 +57,7 @@ public class TCTicketDisplay extends MapDisplay {
             }
 
             String ownerName = ItemUtil.getMetaTag(this.getMapItem(), false).getValue("ticketOwnerName", "Unknown Owner");
-            ownerName = ChatColor.stripColor(ownerName);
+            ownerName = Util.stripChatStyle(ownerName);
             if (TicketStore.isTicketOwner(this.getOwners().get(0), this.getMapItem())) {
                 this.getLayer(1).draw(MapFont.MINECRAFT, 10, 74, MapColorPalette.COLOR_BLACK, ownerName);
             } else {

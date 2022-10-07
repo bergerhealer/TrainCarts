@@ -1666,4 +1666,35 @@ public class Util {
             return false;
         }
     }
+
+    /**
+     * More performant version of {@link ChatColor#stripColor(String)}.
+     * Taken from BKCommonLib. Replace with that one once BKCommonLib
+     * 1.19.2-v3 or later is a hard-dependency.
+     *
+     * @param text Text to strip chat styling characters of
+     * @return Text without any ChatColor style characters
+     */
+    public static String stripChatStyle(String text) {
+        int index = text.indexOf(StringUtil.CHAT_STYLE_CHAR);
+        if (index == -1) {
+            return text; // Shortcut, avoiding StringBuilder
+        }
+
+        int lastIndex = 0;
+        int textLength = text.length();
+        StringBuilder newStr = new StringBuilder(textLength);
+        do {
+            newStr.append(text, lastIndex, index);
+            lastIndex = index + 2;
+            if (lastIndex >= textLength) {
+                // Done! Avoid out of range errors.
+                return newStr.toString();
+            }
+        } while ((index = text.indexOf(StringUtil.CHAT_STYLE_CHAR, lastIndex)) != -1);
+
+        // Last bit
+        newStr.append(text, lastIndex, text.length());
+        return newStr.toString();
+    }
 }
