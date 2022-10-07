@@ -1,16 +1,20 @@
 package com.bergerkiller.bukkit.tc.controller.status;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
+import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.debug.DebugToolUtil;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZone;
+import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneSlot;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
 
 /**
@@ -27,6 +31,18 @@ public interface TrainStatus {
      * @return Message
      */
     String getMessage();
+
+    /**
+     * Gets a message summary about this status. This is what is sent in chat
+     * when requesting an overview. Chat styling like hover tooltips and clickable
+     * links can be included. By default calls {@link #getMessage()} and formats it
+     * to a ChatText.
+     *
+     * @return ChatText Message
+     */
+    default ChatText getChatMessage() {
+        return ChatText.fromMessage(getMessage());
+    }
 
     /**
      * Train is launching to a new speed
@@ -214,12 +230,12 @@ public interface TrainStatus {
         @Override
         public String getMessage() {
             StringBuilder str = new StringBuilder();
-            str.append(ChatColor.YELLOW).append("Waiting for mutex zone ");
+            str.append(ChatColor.YELLOW).append("Waiting for mutex zone");
             OfflineBlock pos = zone.signBlock;
             if (!zone.slot.isAnonymous()) {
-                str.append(ChatColor.RED).append(zone.slot.getName());
-                str.append(ChatColor.YELLOW).append(" at ");
+                str.append(" ").append(ChatColor.RED).append(zone.slot.getNameWithoutWorldUUID());
             }
+            str.append(ChatColor.YELLOW).append(" at sign ");
             str.append(ChatColor.RED);
             str.append(pos.getX()).append("/").append(pos.getY()).append("/").append(pos.getZ());
 
@@ -411,25 +427,98 @@ public interface TrainStatus {
     }
 
     public static final class EnteredMutexZone implements TrainStatus {
-        private final MutexZone zone;
+        private final MutexZoneSlot slot;
+        private final List<MutexZone> zones;
+        private final MutexZoneSlot.EnteredGroup group;
 
-        public EnteredMutexZone(MutexZone zone) {
-            this.zone = zone;
+        public EnteredMutexZone(MutexZoneSlot slot, List<MutexZone> zones, MutexZoneSlot.EnteredGroup group) {
+            this.slot = slot;
+            this.zones = zones;
+            this.group = group;
+        }
+
+        private boolean isSmart() {
+            for (MutexZone zone : zones) {
+                if (zone.smart) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         @Override
         public String getMessage() {
             StringBuilder str = new StringBuilder();
-            str.append(ChatColor.GREEN).append("Entered mutex zone ");
-            OfflineBlock pos = zone.signBlock;
-            if (!zone.slot.isAnonymous()) {
-                str.append(ChatColor.WHITE).append(zone.slot.getName());
-                str.append(ChatColor.GREEN).append(" at ");
+            str.append(ChatColor.GREEN);
+            if (group != null && !group.hardEnter) {
+                str.append("Approaching");
+            } else {
+                str.append("Entered");
             }
-            str.append(ChatColor.WHITE);
-            str.append(pos.getX()).append("/").append(pos.getY()).append("/").append(pos.getZ());
+            if (isSmart()) {
+                str.append(" smart");
+            }
+            str.append(" mutex zone");
+            if (!slot.isAnonymous()) {
+                str.append(" ").append(ChatColor.WHITE).append(slot.getNameWithoutWorldUUID());
+            }
+
+            {
+                boolean first = true;
+                str.append(ChatColor.GREEN).append(" at signs ");
+                for (MutexZone zone : zones) {
+                    if (first) {
+                        first = false;
+                    } else {
+                        str.append(ChatColor.GREEN).append(", ");
+                    }
+                    OfflineBlock pos = zone.signBlock;
+                    str.append(ChatColor.WHITE);
+                    str.append("[").append(pos.getX()).append("/").append(pos.getY())
+                       .append("/").append(pos.getZ()).append("]");
+                }
+            }
 
             return str.toString();
+        }
+
+        @Override
+        public ChatText getChatMessage() {
+            // Base info
+            ChatText text = ChatText.fromMessage(this.getMessage() + ChatColor.GREEN + " - ");
+
+            // Add a clickable link to view entered rail blocks
+            if (group != null) {
+                Collection<IntVector3> railBlocks = group.getRailBlocks();
+                StringBuilder str = new StringBuilder();
+                str.append("Full Name: ").append(slot.getName()).append("\r\n");
+                str.append("Active: ").append(group.active).append("\r\n");
+                str.append("Entered Mutex: ").append(group.hardEnter).append("\r\n");
+                str.append("Distance To Mutex: ").append(group.distanceToMutex).append("\r\n");
+                str.append("Mutex Signs:\r\n");
+                for (MutexZone zone : zones) {
+                    OfflineBlock pos = zone.signBlock;
+                    str.append("  [").append(pos.getX()).append("/").append(pos.getY())
+                       .append("/").append(pos.getZ()).append("]\r\n");
+                }
+                if (!railBlocks.isEmpty() || isSmart()) {
+                    if (railBlocks.isEmpty()) {
+                        str.append("Locked Rail Blocks: None\r\n");
+                    } else {
+                        str.append("Locked Rail Blocks:\r\n");
+                        for (IntVector3 rail : railBlocks) {
+                            str.append("  [").append(rail.x).append("/").append(rail.y)
+                               .append("/").append(rail.z).append("]\r\n");
+                        }
+                    }
+                }
+                ChatText clickable = ChatText.fromClickableContent(ChatColor.WHITE.toString() +
+                        ChatColor.UNDERLINE + "Copy Details", str.toString());
+                clickable.setHoverText("> Click to copy to your clipboard <");
+                text.append(clickable);
+            }
+
+            return text;
         }
     }
 }

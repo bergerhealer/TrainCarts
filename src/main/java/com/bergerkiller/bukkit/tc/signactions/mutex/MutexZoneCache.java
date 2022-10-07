@@ -182,8 +182,11 @@ public class MutexZoneCache {
     public static void refreshAll() {
         // Note: done by index on purpose to avoid concurrent modification exceptions
         // They may occur if a zone loads/unloads as a result of a lever toggle/etc.
-        for (int i = 0; i < slotsList.size(); i++) {
-            slotsList.get(i).refresh(false);
+        if (!slotsList.isEmpty()) {
+            MutexZoneSlot.Timestamp now = MutexZoneSlot.Timestamp.now();
+            for (int i = 0; i < slotsList.size(); i++) {
+                slotsList.get(i).refresh(false, now);
+            }
         }
     }
 }

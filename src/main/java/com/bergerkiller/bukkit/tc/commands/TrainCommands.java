@@ -136,7 +136,7 @@ public class TrainCommands {
             sender.sendMessage("");
             sender.sendMessage(ChatColor.YELLOW + "---- Status of " + properties.getTrainName() + " ----");;
             for (TrainStatus status : group.getStatusInfo()) {
-                sender.sendMessage(status.getMessage());
+                status.getChatMessage().sendTo(sender);
             }
         }
     }

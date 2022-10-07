@@ -174,6 +174,7 @@ public abstract class RailTracker {
             end.makeAbsolute(state.railBlock());
             RailPath.Position pos = state.position();
             return "POS{x=" + pos.posX + ",y=" + pos.posY + ",z=" + pos.posZ + "} "
+                   + "RAIL" + state.railPiece().blockPosition() + " "
                    + "START{x=" + start.posX + ",y=" + start.posY + ",z=" + start.posZ + "} "
                    + "END{x=" + end.posX + ",y=" + end.posY + ",z=" + end.posZ + "}";
         }

@@ -2,7 +2,9 @@ package com.bergerkiller.bukkit.tc.controller.components;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
@@ -17,6 +19,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZone;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCacheWorld;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneSlot;
+import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneSlot.EnteredGroup;
 import com.bergerkiller.bukkit.tc.utils.ForwardChunkArea;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
@@ -192,8 +195,26 @@ public class ObstacleTracker implements TrainStatusProvider {
 
         List<TrainStatus> statuses = new ArrayList<>();
 
-        for (MutexZone zone : this.enteredMutexZones) {
-            statuses.add(new TrainStatus.EnteredMutexZone(zone));
+        if (!this.enteredMutexZones.isEmpty()) {
+            // Group zones by slot
+            IdentityHashMap<MutexZoneSlot, List<MutexZone>> zones = new IdentityHashMap<>();
+            for (MutexZone zone : this.enteredMutexZones) {
+                zones.compute(zone.slot, (s, curr_zones) -> {
+                    ArrayList<MutexZone> newZones = new ArrayList<>();
+                    if (curr_zones != null) {
+                        newZones.addAll(curr_zones);
+                    }
+                    newZones.add(zone);
+                    return newZones;
+                });
+            }
+
+            // Add statuses
+            for (Map.Entry<MutexZoneSlot, List<MutexZone>> e : zones.entrySet()) {
+                // Find EnteredGroup that matches this owner
+                EnteredGroup entered = e.getKey().findEntered(group);
+                statuses.add(new TrainStatus.EnteredMutexZone(e.getKey(), e.getValue(), entered));
+            }
         }
 
         if (this.lastObstacleSpeedLimit.hasLimit()) {
@@ -365,7 +386,9 @@ public class ObstacleTracker implements TrainStatusProvider {
                 return Collections.emptyList();
             }
 
-            TrackWalkingPoint iter = new TrackWalkingPoint(group.head().discoverRail());
+            RailState startState = group.head().discoverRail();
+            startState.setMember(null); // Make sure this is NOT used for prediction
+            TrackWalkingPoint iter = new TrackWalkingPoint(startState);
             if (group.getProperties().isWaitPredicted()) {
                 iter.setFollowPredictedPath(group.head());
             }
@@ -382,6 +405,7 @@ public class ObstacleTracker implements TrainStatusProvider {
 
                 if (checkRailObstacles) {
                     // Check last smart mutex still valid for the current rail
+                    MutexZone prevMutex = currentMutex;
                     if (currentMutex != null && !currentMutex.containsBlock(iter.state.positionOfflineBlock().getPosition())) {
                         // Exited the mutex zone
                         currentMutex = null;
@@ -402,12 +426,20 @@ public class ObstacleTracker implements TrainStatusProvider {
                         }
 
                         // Check for mutex zones the next block. If one is found that is occupied, stop right away
-                        if (currentMutex == null && distanceFromFront < mutexSoftDistance) {
-                            currentMutex = mutexZones.get(iter.state.positionOfflineBlock().getPosition());
-                            if (currentMutex != null) {
-                                currentMutexGroup = currentMutex.slot.track(group, distanceFromFront);
-                                currentMutexHard = currentMutexGroup.distanceToMutex <= mutexHardDistance;
-                                handledNonSmartMutex = false;
+                        if (currentMutex == null) {
+                            boolean checkForNewMutexes = (distanceFromFront < mutexSoftDistance);
+                            if (prevMutex != null || checkForNewMutexes) {
+                                MutexZone newMutex = mutexZones.get(iter.state.positionOfflineBlock().getPosition());
+                                if (newMutex != null) {
+                                    // If checking for soft mutexes, always allow
+                                    // If not, it must be the same slot / expanded smart mutex zone to count
+                                    if (checkForNewMutexes || prevMutex.slot == newMutex.slot) {
+                                        currentMutex = newMutex;
+                                        currentMutexGroup = newMutex.slot.track(group, distanceFromFront);
+                                        currentMutexHard = currentMutexGroup.distanceToMutex <= mutexHardDistance;
+                                        handledNonSmartMutex = false;
+                                    }
+                                }
                             }
                         }
                     }
@@ -486,6 +518,11 @@ public class ObstacleTracker implements TrainStatusProvider {
                     if (iter.movedTotal >= enabledLoopFilterLimit) {
                         enabledLoopFilterLimit = Double.MAX_VALUE;
                         iter.setLoopFilter(true);
+                    }
+
+                    // Refresh that we've visited this rail/position block, keeping the area loaded for this tick
+                    if (forwardChunks != null) {
+                        forwardChunks.addBlock(iter.state.railBlock());
                     }
 
                     // Check still within mutex. If not, abort.
