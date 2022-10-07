@@ -611,7 +611,7 @@ public class ObstacleTracker implements TrainStatusProvider {
         public final double speed;
 
         public Obstacle(double distance, double speed) {
-            this.distance = Math.max(0.0, distance); // Avoid pain
+            this.distance = distance;
             this.speed = speed;
         }
 
@@ -637,7 +637,7 @@ public class ObstacleTracker implements TrainStatusProvider {
             // it already, so we need to stop and wait for the distance to go above
             // the safe wait distance threshold again.
             if (distance <= 0.0) {
-                return new ObstacleSpeedLimit(this, Math.max(0.0, speed), true);
+                return new ObstacleSpeedLimit(this, Math.max(0.0, speed + distance), true);
             }
 
             // If no wait deceleration is used, just keep on going at the speed following
