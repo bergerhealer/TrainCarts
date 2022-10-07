@@ -304,6 +304,30 @@ public class SavedTrainCommands {
                 ChatColor.GREEN + "' has been reversed!");
     }
 
+    @CommandMethod("savedtrain <savedtrainname> lockorientation <locked>")
+    @CommandDescription("Sets whether the train orientation is locked, so future saved can't change it")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_REVERSE)
+    private void commandLockOrientation(
+            final CommandSender sender,
+            final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain,
+            final @Argument("locked") boolean locked,
+            final @Flag("force") boolean force
+    ) {
+        savedTrain.setOrientationLocked(locked);
+        sender.sendMessage(ChatColor.GREEN + "Saved train '" + ChatColor.WHITE + savedTrain.getName() +
+                ChatColor.GREEN + "' spawn orientation is now " +
+                (locked ? (ChatColor.RED + "LOCKED") : (ChatColor.GREEN + "UNLOCKED")));
+        if (locked) {
+            sender.sendMessage(ChatColor.GREEN + "When this saved train is spawned, and players try to save that " +
+                    "train, then the forward-orientation of the train will remain unchanged. " +
+                    "Regardless of movement direction");
+        } else {
+            sender.sendMessage(ChatColor.GREEN + "When this saved train is spawned, and players try to save that " +
+                    "train, then the movement direction of the train is used to decide the forward-orientation.");
+        }
+    }
+
     @CommandMethod("savedtrain <savedtrainname> delete|remove")
     @CommandDescription("Deletes a saved train permanently")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)

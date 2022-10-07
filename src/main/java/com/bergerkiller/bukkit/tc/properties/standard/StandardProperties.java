@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.category.*;
+import com.bergerkiller.bukkit.tc.properties.standard.type.CartLockOrientation;
 
 /**
  * All standard TrainCarts built-in train and cart properties
@@ -205,4 +206,52 @@ public class StandardProperties {
      * Only used to make this available as a property.
      */
     public static final DefaultConfigSyntheticProperty DEFAULT_CONFIG = new DefaultConfigSyntheticProperty();
+
+    /**
+     * When the orientation to spawn a train with is locked, this property stores per cart the orientation
+     * the cart should have. This makes sure that when the train is saved again in the future, the train
+     * isn't reversed when it was saved while moving backwards.<br>
+     * <br>
+     * Internal use only.
+     */
+    public static final ICartProperty<CartLockOrientation> LOCK_ORIENTATION_FLIPPED = new ICartProperty<CartLockOrientation>() {
+        @Override
+        public CartLockOrientation getDefault() {
+            return CartLockOrientation.NONE;
+        }
+
+        @Override
+        public Optional<CartLockOrientation> readFromConfig(ConfigurationNode config) {
+            Boolean flipped = config.get("flippedAtSave", Boolean.class, null);
+            return (flipped == null)
+                    ? Optional.empty()
+                    : Optional.of(CartLockOrientation.locked(flipped.booleanValue()));
+        }
+
+        @Override
+        public void writeToConfig(ConfigurationNode config, Optional<CartLockOrientation> value) {
+            CartLockOrientation ori;
+            if (!value.isPresent() || (ori = value.get()) == CartLockOrientation.NONE) {
+                config.remove("flippedAtSave");
+            } else {
+                config.set("flippedAtSave", ori.isFlipped());
+            }
+        }
+    };
+
+    /**
+     * Updates the saved configuration of a single cart so that its orientation is flipped 180 degrees.
+     * Used when reversing a saved train.
+     *
+     * @param cartConfig Configuration of the cart
+     */
+    public static void reverseSavedCart(ConfigurationNode cartConfig) {
+        cartConfig.set("flipped", !cartConfig.get("flipped", false));
+
+        CartLockOrientation ori = LOCK_ORIENTATION_FLIPPED.readFromConfig(cartConfig).orElse(CartLockOrientation.NONE);
+        if (ori != CartLockOrientation.NONE) {
+            LOCK_ORIENTATION_FLIPPED.writeToConfig(cartConfig,
+                    Optional.of(CartLockOrientation.locked(!ori.isFlipped())));
+        }
+    }
 }

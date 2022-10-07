@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import com.bergerkiller.bukkit.tc.properties.SaveLockOrientationMode;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
@@ -192,6 +193,8 @@ public class TrainCommands {
             final MinecartGroup group,
             final @Quoted @Argument("name") String name,
             final @Flag(value="force", description="Force saving when the train is claimed by someone else") boolean force,
+            final @Flag(value="lockorientation",
+                        description="Locks the current forward direction of the train so future saves use it") boolean lockOrientation,
             final @Flag(value="module", description="Module to move the saved train to") String module
     ) {
         if (!Commands.checkSavePermissions(plugin, sender, name, force)) {
@@ -200,7 +203,20 @@ public class TrainCommands {
 
         boolean wasContained = plugin.getSavedTrains().getConfig(name) != null;
         try {
-            plugin.getSavedTrains().saveGroup(name, group);
+            // Saves train configuration. If --lockorientation was specified, enable this mode and overwrite the
+            // locked orientation flipped state with the current flipped state. This makes it easier to reverse
+            // a train again later, by running the same command again.
+            //
+            // There's two other SaveLockOrientationMode we aren't using, which is DISABLED and ENABLED.
+            // They enable/disable the lock orientation mode respectively. Instead of complicating the /save command
+            // I've decided to add a separate setter for this under /savedtrain people can use.
+            {
+                ConfigurationNode config;
+                config = group.saveConfig(lockOrientation ? SaveLockOrientationMode.ENABLED_OVERRIDE
+                                                          : SaveLockOrientationMode.AUTOMATIC);
+                plugin.getSavedTrains().setConfig(name, config);
+            }
+
             String moduleString = "";
             if (module != null && !module.isEmpty()) {
                 moduleString = " in module " + module;
@@ -214,6 +230,13 @@ public class TrainCommands {
                 if (TCConfig.claimNewSavedTrains && sender instanceof Player) {
                     plugin.getSavedTrains().setClaim(name, (Player) sender);
                 }
+            }
+
+            if (lockOrientation) {
+                sender.sendMessage(ChatColor.YELLOW + "Train orientation is now locked to the current forward direction!");
+                sender.sendMessage(ChatColor.YELLOW + "Future saves without --lockorientation passed will remember this orientation.");
+                sender.sendMessage(ChatColor.YELLOW + "This can be turned off using " + ChatColor.WHITE +
+                        "/savedtrain " + name + " lockorientation false");
             }
         } catch (IllegalNameException ex) {
             sender.sendMessage(ChatColor.RED + "The train could not be saved under this name: " + ex.getMessage());

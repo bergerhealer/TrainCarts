@@ -41,8 +41,11 @@ import com.bergerkiller.bukkit.tc.controller.status.TrainStatusProvider;
 import com.bergerkiller.bukkit.tc.events.*;
 import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.IPropertiesHolder;
+import com.bergerkiller.bukkit.tc.properties.SaveLockOrientationMode;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
+import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
+import com.bergerkiller.bukkit.tc.properties.standard.type.CartLockOrientation;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SlowdownMode;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
@@ -67,6 +70,7 @@ import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -137,17 +141,118 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
     /**
      * Saves the properties of this train, preserving information such the order of the carts
-     * and the orientation of each cart. Owner information is stripped.
-     * 
+     * and the orientation of each cart. Owner information is stripped.<br>
+     * <br>
+     * If for one or more carts the orientation was locked at some point, and the train is
+     * flipped according to a majority of those carts, the produced properties will have
+     * the carts flipped. As such, there is no guarantee the configuration will have the same
+     * order lists as the minecarts of this group.
+     *
      * @return configuration useful for saving as a train
      */
     public ConfigurationNode saveConfig() {
+        return saveConfig(SaveLockOrientationMode.AUTOMATIC);
+    }
+
+    /**
+     * Saves the properties of this train, preserving information such the order of the carts
+     * and the orientation of each cart. Owner information is stripped.<br>
+     * <br>
+     * A save lock mode can be set. This will make the train remember the flipped state of the
+     * carts when saving, so that future saves will remember the orientation the train had.
+     * With this method this locked mode can also be turned off again, by specifying
+     * {@link SaveLockOrientationMode#DISABLED}.<br>
+     * <br>
+     * If for one or more carts the orientation was locked at some point, and the train is
+     * flipped according to a majority of those carts, the produced properties will have
+     * the carts flipped. As such, there is no guarantee the configuration will have the same
+     * order lists as the minecarts of this group.
+     *
+     * @param setSaveLockMode Overrides whether the orientation of the train should be locked or not.
+     *                        Does nothing if set to AUTOMATIC.
+     * @return configuration useful for saving as a train
+     */
+    public ConfigurationNode saveConfig(SaveLockOrientationMode setSaveLockMode) {
         // Save train properties getConfig() to a new configuration node copy
         // Omit cart details, overwrite with the member configurations
         ConfigurationNode savedConfig = this.getProperties().saveToConfig().clone();
         savedConfig.remove("carts");
-        savedConfig.setNodeList("carts", this.stream().map(MinecartMember::saveConfig).collect(Collectors.toList()));
+
+        // Save carts
+        List<ConfigurationNode> carts = this.stream()
+                .map(MinecartMember::saveConfig)
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        if (setSaveLockMode == SaveLockOrientationMode.DISABLED) {
+            // If lock orientation mode is DISABLED, strip all carts from locked orientation information
+            for (ConfigurationNode cart : carts) {
+                StandardProperties.LOCK_ORIENTATION_FLIPPED.writeToConfig(cart, Optional.empty());
+            }
+
+        } else if (setSaveLockMode == SaveLockOrientationMode.ENABLED_OVERRIDE) {
+            // Enables the lock orientation mode. Saves current flipped state as the locked orientation.
+            for (ConfigurationNode cart : carts) {
+                StandardProperties.LOCK_ORIENTATION_FLIPPED.writeToConfig(cart,
+                        Optional.of(CartLockOrientation.locked(cart.get("flipped", false))));
+            }
+
+        } else if (setSaveLockMode == SaveLockOrientationMode.ENABLED ||
+                ( setSaveLockMode == SaveLockOrientationMode.AUTOMATIC &&
+                  this.isSavedTrainOrientationLocked() )
+        ) {
+            // If mode AUTOMATIC, detect whether or not any of the carts use locking or not
+            // if mode ENABLED, always use locking
+            // In here we handle the locking enabled logic
+
+            // Some carts will have both a 'flipped' and 'flippedAtSaved'
+            // Use these to decide whether the train orientation must be flipped around
+            int trainFlippedCounter = 0;
+            for (ConfigurationNode cart : carts) {
+                CartLockOrientation ori = StandardProperties.LOCK_ORIENTATION_FLIPPED.readFromConfig(cart)
+                        .orElse(CartLockOrientation.NONE);
+                if (ori != CartLockOrientation.NONE) {
+                    if (ori.isFlipped() == cart.get("flipped", false)) {
+                        trainFlippedCounter--;
+                    } else {
+                        trainFlippedCounter++;
+                    }
+                }
+            }
+
+            // If counter is positive, then almost surely the carts must all be reversed
+            if (trainFlippedCounter > 0) {
+                // Invert 'flipped' state of all carts, then reverse the list
+                // We also modify the 'flippedAtSave' inadvertently, but that's fine as we overwrite
+                // this later with the flipped state. It's a waste of cpu time, but oh well.
+                carts.forEach(StandardProperties::reverseSavedCart);
+                Collections.reverse(carts);
+            }
+
+            // Ensure that for all carts the lock orientation is set to the flipped state
+            for (ConfigurationNode cart : carts) {
+                StandardProperties.LOCK_ORIENTATION_FLIPPED.writeToConfig(cart,
+                        Optional.of(CartLockOrientation.locked(cart.get("flipped", false))));
+            }
+        }
+
+        savedConfig.setNodeList("carts", carts);
         return savedConfig;
+    }
+
+    /**
+     * Gets whether the orientation of the train is locked. This means that when the train
+     * is saved as a saved train, it will always face the same way. This can be changed
+     * using {@link #saveConfig(SaveLockOrientationMode)} and specifying a mode to use.
+     *
+     * @return True if the orientation of the train is locked and will not change when saving
+     */
+    public boolean isSavedTrainOrientationLocked() {
+        for (MinecartMember<?> member : this) {
+            if (member.getProperties().get(StandardProperties.LOCK_ORIENTATION_FLIPPED) != CartLockOrientation.NONE) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public SignTrackerGroup getSignTracker() {

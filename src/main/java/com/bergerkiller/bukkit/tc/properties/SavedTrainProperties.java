@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -16,6 +17,8 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore.Claim;
+import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
+import com.bergerkiller.bukkit.tc.properties.standard.type.CartLockOrientation;
 
 /**
  * Wraps a saved train configuration
@@ -75,9 +78,31 @@ public class SavedTrainProperties {
         }
 
         List<ConfigurationNode> carts = config.getNodeList("carts");
+        carts.forEach(StandardProperties::reverseSavedCart);
         Collections.reverse(carts);
+        config.setNodeList("carts", carts);
+        module.changed = true;
+    }
+
+    /**
+     * Sets whether the saved train orientation is locked. If locked, future saves cannot change
+     * the spawn orientation of the train.
+     *
+     * @param locked
+     */
+    public void setOrientationLocked(boolean locked) {
+        if (config == null || !config.contains("carts")) {
+            return;
+        }
+
+        List<ConfigurationNode> carts = config.getNodeList("carts");
         for (ConfigurationNode cart : carts) {
-            cart.set("flipped", !cart.get("flipped", false));
+            if (locked) {
+                StandardProperties.LOCK_ORIENTATION_FLIPPED.writeToConfig(cart,
+                        Optional.of(CartLockOrientation.locked(cart.get("flipped", false))));
+            } else {
+                StandardProperties.LOCK_ORIENTATION_FLIPPED.writeToConfig(cart, Optional.empty());
+            }
         }
         config.setNodeList("carts", carts);
         module.changed = true;
