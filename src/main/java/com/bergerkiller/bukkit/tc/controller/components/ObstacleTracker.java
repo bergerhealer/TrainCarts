@@ -616,6 +616,16 @@ public class ObstacleTracker implements TrainStatusProvider {
         }
 
         /**
+         * Whether this obstacle itself is actually moving at the {@link #speed} specified.
+         * In that case, the train behind should take distance into account while adjusting speed.
+         *
+         * @return True if this obstacle is a moving one
+         */
+        public boolean isObstacleMoving() {
+            return false;
+        }
+
+        /**
          * Creates a suitable train status for this Obstacle
          *
          * @param speedLimit Speed limit calculated using {@link #findSpeedLimit(double)}
@@ -637,7 +647,15 @@ public class ObstacleTracker implements TrainStatusProvider {
             // it already, so we need to stop and wait for the distance to go above
             // the safe wait distance threshold again.
             if (distance <= 0.0) {
-                return new ObstacleSpeedLimit(this, Math.max(0.0, speed + distance), true);
+                if (this.isObstacleMoving()) {
+                    // Adjust the distance spacing between this cart and the obstacle
+                    // We can do this because the obstacle ahead is moving (or, we just stop)
+                    return new ObstacleSpeedLimit(this, Math.max(0.0, speed + distance), true);
+                } else {
+                    // Obstacle is not a moving one. Maintain the speed as is desired by it.
+                    // This is used for blocker signs / speed traps
+                    return new ObstacleSpeedLimit(this, Math.max(0.0, speed), true);
+                }
             }
 
             // If no wait deceleration is used, just keep on going at the speed following
@@ -692,6 +710,11 @@ public class ObstacleTracker implements TrainStatusProvider {
             super(fullDistance - spaceDistance, speed);
             this.fullDistance = fullDistance;
             this.member = member;
+        }
+
+        @Override
+        public boolean isObstacleMoving() {
+            return true;
         }
 
         @Override
