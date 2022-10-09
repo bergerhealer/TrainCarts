@@ -512,6 +512,22 @@ public interface TrainStatus {
                         }
                     }
                 }
+                if (group.conflictPath != null) {
+                    MutexZoneSlot.ConflictPath c = group.conflictPath;
+                    str.append("Conflict Rail Block: [")
+                       .append(c.conflict.x).append("/").append(c.conflict.y)
+                       .append(c.conflict.z).append("]\r\n");
+                    str.append("Conflict Path:");
+                    if (c.path.isEmpty()) {
+                        str.append(" Instant\r\n");
+                    } else {
+                        str.append("\r\n");
+                        for (IntVector3 rail : c.path) {
+                            str.append("  [").append(rail.x).append("/").append(rail.y)
+                            .append("/").append(rail.z).append("]\r\n");
+                        }
+                    }
+                }
                 ChatText clickable = ChatText.fromClickableContent(ChatColor.WHITE.toString() +
                         ChatColor.UNDERLINE + "Copy Details", str.toString());
                 clickable.setHoverText("> Click to copy to your clipboard <");
