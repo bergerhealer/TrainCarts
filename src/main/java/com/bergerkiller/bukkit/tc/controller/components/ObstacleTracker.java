@@ -570,6 +570,14 @@ public class ObstacleTracker implements TrainStatusProvider {
                 result = MutexZoneSlot.EnterResult.IGNORED;
             }
 
+            // Track mutex zones we have entered or are approaching (train status!)
+            if (!enteredMutexZones.contains(currentMutex)) {
+                if (enteredMutexZones.isEmpty()) {
+                    enteredMutexZones = new ArrayList<MutexZone>();
+                }
+                enteredMutexZones.add(currentMutex);
+            }
+
             double currentMutexDistance = currentMutexGroup.distanceToMutex;
             if (result == MutexZoneSlot.EnterResult.OCCUPIED_HARD) {
                 // At this point the train is guaranteed stopped. Don't check for more mutex zones now.
@@ -585,13 +593,6 @@ public class ObstacleTracker implements TrainStatusProvider {
                 lastAddedSoftMutexObstacleDistance = currentMutexDistance;
                 obstacles.add(new MutexZoneObstacle(currentMutexDistance, 0.01, currentMutex));
             } else if (result == MutexZoneSlot.EnterResult.SUCCESS) {
-                // Track mutex zones we have entered (train status!)
-                if (!enteredMutexZones.contains(currentMutex)) {
-                    if (enteredMutexZones.isEmpty()) {
-                        enteredMutexZones = new ArrayList<MutexZone>();
-                    }
-                    enteredMutexZones.add(currentMutex);
-                }
             } else if (result == MutexZoneSlot.EnterResult.IGNORED) {
                 // Break out, no need to check this.
                 return false;
