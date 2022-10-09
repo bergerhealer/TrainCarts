@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.bukkit.block.Block;
@@ -215,6 +216,7 @@ public class MutexZoneSlot {
         for (EnteredGroup enteredGroup : this.entered) {
             if (enteredGroup.group == group) {
                 enteredGroup.time = Timestamp.now();
+                enteredGroup.conflictPath = null;
                 if (enteredGroup.active) {
                     enteredGroup.distanceToMutex = Math.min(enteredGroup.distanceToMutex, distanceToMutex);
                 } else {
@@ -322,7 +324,11 @@ public class MutexZoneSlot {
         /** Tracks the tick where this entered group was activated. Used to detect just-activated (new) groups. */
         public int activeTick;
         /** If used, the rail coordinates locked by the group (smart mutex) */
-        private Map<IntVector3, Timestamp> occupiedRails = null;
+        private Map<IntVector3, Timestamp> occupiedRails = Collections.emptyMap();
+        /** Whether the occupied rails need first-time initialization to store rails */
+        private boolean occupiedRailsNeedsInit = true;
+        /** If waiting for another train to clear the mutex, a conflict rail block/path */
+        public ConflictPath conflictPath = null;
 
         public EnteredGroup(MinecartGroup group, double distanceToMutex) {
             this.group = group;
@@ -331,10 +337,17 @@ public class MutexZoneSlot {
             this.distanceToMutex = distanceToMutex;
         }
 
-        private void deactivate() {
+        private void deactivate(IntVector3 conflictRail) {
             this.active = false;
             this.activeTick = -1;
-            this.occupiedRails = null;
+            if (this.occupiedRails != null && conflictRail != null) {
+                if (!this.occupiedRails.isEmpty()) {
+                    this.occupiedRails.remove(conflictRail);
+                }
+                this.conflictPath = new ConflictPath(this.occupiedRails.keySet(), conflictRail);
+            }
+            this.occupiedRails = Collections.emptyMap();
+            this.occupiedRailsNeedsInit = true;
         }
 
         private boolean isJustActivated() {
@@ -364,19 +377,22 @@ public class MutexZoneSlot {
          * Tries to enter a single rail within this mutex zone. This is used for 'smart' mutexes.
          *
          * @param hard Whether this is a hard-enter (train wants to enter the zone)
-         * @param railBlock The rail block the group tries to enter
+         * @param railBlock The rail block the group tries to enter. Null for non-smart mutex zones.
          * @return Enter Result
          */
         public EnterResult enterRail(boolean hard, IntVector3 railBlock) {
             // Initialize the tracked rail blocks the first time it happens
             // Subsequent times, ignore if the rail block was already successfully 'entered'
             if (railBlock != null) {
-                if (this.occupiedRails == null) {
+                if (this.occupiedRailsNeedsInit) {
+                    this.occupiedRailsNeedsInit = false;
                     this.occupiedRails = new LinkedHashMap<>();
                     this.occupiedRails.put(railBlock, this.time);
                 } else if (this.occupiedRails.put(railBlock, this.time) != null && hard == this.hardEnter) {
                     return EnterResult.SUCCESS;
                 }
+            } else {
+                this.occupiedRails = null; // Mark as non-smart mutex
             }
 
             // Remove all soft-entered groups that share rails in common (or if null, any and all)
@@ -399,7 +415,7 @@ public class MutexZoneSlot {
                         tickLastHardEntered < (this.time.ticks + 5) &&
                         enteredGroup.containsRail(railBlock)
                     ) {
-                        this.deactivate();
+                        this.deactivate(railBlock);
                         return EnterResult.OCCUPIED_HARD;
                     }
 
@@ -411,7 +427,7 @@ public class MutexZoneSlot {
 
                 // If hard-entered, revoke the previous soft slot
                 if (hard && !enteredGroup.hardEnter && this.creationTick < enteredGroup.creationTick) {
-                    enteredGroup.deactivate();
+                    enteredGroup.deactivate(railBlock);
                     continue;
                 }
 
@@ -431,7 +447,7 @@ public class MutexZoneSlot {
                 // Depending on what type of train is occupying the zone, slow the train down
                 // completely (HARD) or approach the zone carefully (SOFT)
                 this.hardEnter = false;
-                this.deactivate();
+                this.deactivate(railBlock);
                 return enteredGroup.hardEnter ? EnterResult.OCCUPIED_HARD : EnterResult.OCCUPIED_SOFT;
             }
 
@@ -485,6 +501,16 @@ public class MutexZoneSlot {
         @Override
         public boolean equals(Object o) {
             return ((Timestamp) o).ticks == ticks;
+        }
+    }
+
+    public static final class ConflictPath {
+        public final Set<IntVector3> path;
+        public final IntVector3 conflict;
+
+        public ConflictPath(Set<IntVector3> path, IntVector3 conflict) {
+            this.path = path;
+            this.conflict = conflict;
         }
     }
 }
