@@ -17,8 +17,11 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
+import com.bergerkiller.bukkit.tc.rails.WorldRailLookup;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 
@@ -360,7 +363,48 @@ public class MutexZoneSlot {
 
         private boolean containsRail(IntVector3 coordinates) {
             Map<IntVector3, Timestamp> rails = this.occupiedRails;
-            return rails == null || rails.containsKey(coordinates);
+            if (rails == null) {
+                // Not a smart mutex, train occupies all rails.
+                return true;
+            }
+
+            Timestamp timeOccupied = rails.get(coordinates);
+            if (timeOccupied == null) {
+                // Not visited this rail
+                return false;
+            }
+
+            if (timeOccupied.equals(this.time)) {
+                // Rail is at or ahead of this train, no need to check
+                return true;
+            }
+            if (group.isEmpty() || group.isUnloaded()) {
+                // Check group is even still there, or it might get stuck on this
+                //TODO: Make clean this up, if this happens at all...
+                return false;
+            }
+
+            // Verify that this particular rail block is still actually used by this group
+            // This detects when the tail of the train leaves particular track
+            // We can use the rail lookup cache to figure this out really efficiently, because
+            // members register themselves on the rail piece they occupy.
+            WorldRailLookup railLookup = group.head().railLookup();
+            for (RailLookup.CachedRailPiece railPiece : railLookup.lookupCachedRailPieces(
+                    railLookup.getOfflineWorld().getBlockAt(coordinates))
+            ) {
+                for (MinecartMember<?> member : railPiece.cachedMembers()) {
+                    if (member.isUnloaded() || member.getEntity().isRemoved()) {
+                        continue; // Skip
+                    }
+                    if (member.getGroup() == group) {
+                        return true;
+                    }
+                }
+            }
+
+            // Omit the rails, no longer occupied
+            rails.remove(coordinates);
+            return false;
         }
 
         /**

@@ -74,6 +74,11 @@ final class WorldRailLookupNone implements WorldRailLookup {
     }
 
     @Override
+    public List<CachedRailPiece> lookupCachedRailPieces(OfflineBlock railOfflineBlock) {
+        return Collections.emptyList();
+    }
+
+    @Override
     public CachedRailPiece lookupCachedRailPiece(OfflineBlock railOfflineBlock, Block railBlock, RailType railType) {
         throw new ClosedException();
     }

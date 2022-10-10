@@ -245,6 +245,24 @@ final class WorldRailLookupImpl implements WorldRailLookup {
     }
 
     @Override
+    public List<RailLookup.CachedRailPiece> lookupCachedRailPieces(final OfflineBlock railOfflineBlock) {
+        IntVector3 cacheKey = createCacheKey(railOfflineBlock);
+        Bucket inCache = cache.get(cacheKey);
+        if (inCache == null) {
+            return Collections.emptyList();
+        } else if (inCache.next == null) {
+            return Collections.singletonList(inCache);
+        } else {
+            List<RailLookup.CachedRailPiece> result = new ArrayList<>(5);
+            result.add(inCache);
+            while ((inCache = inCache.next) != null) {
+                result.add(inCache);
+            }
+            return result;
+        }
+    }
+
+    @Override
     public RailLookup.CachedRailPiece lookupCachedRailPiece(final OfflineBlock railOfflineBlock,
                                                             final Block railBlock,
                                                             final RailType railType

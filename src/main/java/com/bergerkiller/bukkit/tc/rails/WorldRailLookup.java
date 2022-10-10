@@ -136,6 +136,19 @@ public interface WorldRailLookup {
                                                                     final RailType railType);
 
     /**
+     * API Note: you probably don't need to use this function. It's a highly specific function used
+     * by mutex zone logic to check whether a particular rail block has a train on it.<br>
+     * <br>
+     * Looks up all cached rail pieces for the given rail block coordinates. Only cached rail pieces
+     * are returned which are actually cached and in use. This can be useful to discover what Minecarts
+     * are using a particular rail block, regardless of what RailType it represents.
+     *
+     * @param railOfflineBlock Rail offline block, key
+     * @return Rail piece information about these coordinates, empty list if there are none
+     */
+    List<RailLookup.CachedRailPiece> lookupCachedRailPieces(final OfflineBlock railOfflineBlock);
+
+    /**
      * API Note: you should never have to call this function. It's used internally by RailPiece.<br>
      * <br>
      * Looks up cached rail information about the provided rail block. If needed a new entry
