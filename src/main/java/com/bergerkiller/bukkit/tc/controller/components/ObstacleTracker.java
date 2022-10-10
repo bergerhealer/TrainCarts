@@ -341,7 +341,6 @@ public class ObstacleTracker implements TrainStatusProvider {
         // Tracks the current mutex zone the train is inside of while navigating the track
         MutexZone currentMutex = null;
         MutexZoneSlot.EnteredGroup currentMutexGroup = null;
-        double lastAddedSoftMutexObstacleDistance = Double.MAX_VALUE;
         boolean handledNonSmartMutex = false;
         boolean currentMutexHard = false;
 
@@ -579,19 +578,13 @@ public class ObstacleTracker implements TrainStatusProvider {
             }
 
             double currentMutexDistance = currentMutexGroup.distanceToMutex;
-            if (result == MutexZoneSlot.EnterResult.OCCUPIED_HARD) {
+            if (result == MutexZoneSlot.EnterResult.OCCUPIED) {
                 // At this point the train is guaranteed stopped. Don't check for more mutex zones now.
                 // This is a hard stop, so we slow down to speed 0
                 foundHardRailObstacle = true;
                 obstacles.add(new MutexZoneObstacle(currentMutexDistance, 0.0, currentMutex));
                 currentMutex = null; // stop checking
                 return false;
-            } else if (result == MutexZoneSlot.EnterResult.OCCUPIED_SOFT && currentMutexDistance < lastAddedSoftMutexObstacleDistance) {
-                // At this point the train is guaranteed stopped. Don't check for more mutex zones now.
-                // This is a soft stop, so we slow down to a crawl, but still moving
-                // We might find out later on that this changes from soft to hard...
-                lastAddedSoftMutexObstacleDistance = currentMutexDistance;
-                obstacles.add(new MutexZoneObstacle(currentMutexDistance, 0.01, currentMutex));
             } else if (result == MutexZoneSlot.EnterResult.SUCCESS) {
             } else if (result == MutexZoneSlot.EnterResult.IGNORED) {
                 // Break out, no need to check this.

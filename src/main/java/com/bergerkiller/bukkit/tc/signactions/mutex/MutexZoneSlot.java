@@ -296,12 +296,10 @@ public class MutexZoneSlot {
     public static enum EnterResult {
         /** The group does not match conditions to enter/be seen by the mutex zone */
         IGNORED,
-        /** The mutex zone was entered */
+        /** The mutex zone was entered so far */
         SUCCESS,
-        /** The mutex zone is occupied (hard, can't ever enter it) */
-        OCCUPIED_HARD,
-        /** The mutex zone is about to be occupied (soft, can enter but must slowly approach) */
-        OCCUPIED_SOFT
+        /** The mutex zone is occupied and the train cannot enter it */
+        OCCUPIED
     }
 
     /**
@@ -460,7 +458,7 @@ public class MutexZoneSlot {
                         enteredGroup.containsRail(railBlock)
                     ) {
                         this.deactivate(railBlock);
-                        return EnterResult.OCCUPIED_HARD;
+                        return EnterResult.OCCUPIED;
                     }
 
                     continue;
@@ -492,7 +490,7 @@ public class MutexZoneSlot {
                 // completely (HARD) or approach the zone carefully (SOFT)
                 this.hardEnter = false;
                 this.deactivate(railBlock);
-                return enteredGroup.hardEnter ? EnterResult.OCCUPIED_HARD : EnterResult.OCCUPIED_SOFT;
+                return EnterResult.OCCUPIED;
             }
 
             // Clear to go - update the existing group or add a new one
