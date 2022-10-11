@@ -23,7 +23,6 @@ public class MutexZoneCache {
     private static final OfflineWorldMap<MutexZoneCacheWorld> cachesByWorld = new OfflineWorldMap<>();
     private static final Map<String, MutexZoneSlot> slotsByName = new HashMap<>();
     private static final List<MutexZoneSlot> slotsList = new ArrayList<>();
-    private static int tickCounter = 0;
 
     public static void init(TrainCarts plugin) {
         plugin.getOfflineSigns().registerHandler(MutexSignMetadata.class, new OfflineSignMetadataHandler<MutexSignMetadata>() {
@@ -64,17 +63,6 @@ public class MutexZoneCache {
                 return new MutexSignMetadata(type, name, start, end, statement);
             }
         });
-    }
-
-    /**
-     * Gets the ticks that have elapsed since plugin startup. Incremented every tick mutex zone slots
-     * are refreshed. Due to how scheduling works, this slightly differs from
-     * CommonUtil.getServerTicks().
-     *
-     * @return Mutex cache tick counter
-     */
-    public static int getTickCounter() {
-        return tickCounter;
     }
 
     /**
@@ -195,10 +183,9 @@ public class MutexZoneCache {
     public static void refreshAll() {
         // Note: done by index on purpose to avoid concurrent modification exceptions
         // They may occur if a zone loads/unloads as a result of a lever toggle/etc.
-        int nowTicks = ++tickCounter;
         if (!slotsList.isEmpty()) {
             for (int i = 0; i < slotsList.size(); i++) {
-                slotsList.get(i).tick(nowTicks);
+                slotsList.get(i).onTick();
             }
         }
     }

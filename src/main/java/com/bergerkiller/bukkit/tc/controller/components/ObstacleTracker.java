@@ -45,6 +45,7 @@ public class ObstacleTracker implements TrainStatusProvider {
     private int waitRemainingTicks = Integer.MAX_VALUE;
     private ObstacleSpeedLimit lastObstacleSpeedLimit = ObstacleSpeedLimit.NONE;
     private List<MutexZone> enteredMutexZones = Collections.emptyList();
+    private int tickCounter = 0;
 
     public ObstacleTracker(MinecartGroup group) {
         this.group = group;
@@ -62,6 +63,17 @@ public class ObstacleTracker implements TrainStatusProvider {
     }
 
     /**
+     * Gets the number of obstacle tracker update ticks that have elapsed since the group's
+     * creation. This counter can be used by obstacles to check whether group has seen
+     * it since last tick.
+     *
+     * @return tick counter
+     */
+    public int getTickCounter() {
+        return this.tickCounter;
+    }
+
+    /**
      * Main update tick function. Checks if the train should slow down, or use altered speeds,
      * and if so, returns a new max speed value the train should use. This operates in the
      * speed-factor applied to domain. Meaning this update() function is called multiple
@@ -72,6 +84,9 @@ public class ObstacleTracker implements TrainStatusProvider {
      */
     public void update(double trainSpeed) {
         TrainProperties properties = group.getProperties();
+
+        // Increment mutex tick counter every tick this is called
+        ++tickCounter;
 
         // Calculate the amount of distance ahead of the train we have to look for other
         // trains or mutex zones or any other type of obstacle. This is calculated based

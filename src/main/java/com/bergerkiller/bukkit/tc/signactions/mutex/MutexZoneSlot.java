@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
@@ -107,14 +108,14 @@ public class MutexZoneSlot {
      * 
      * @param trainWaiting Whether this is called while a train is waiting for the mutex
      */
-    public void tick(int nowTicks) {
+    public void onTick() {
         if (!entered.isEmpty()) {
             Iterator<EnteredGroup> iter = entered.iterator();
             boolean hasHardEnteredGroup = false;
             boolean trainsHaveLeft = false;
             while (iter.hasNext()) {
                 EnteredGroup enteredGroup = iter.next();
-                if (!enteredGroup.refresh(nowTicks)) {
+                if (!enteredGroup.refresh()) {
                     iter.remove();
                     trainsHaveLeft = true;
                 } else if (enteredGroup.hardEnter) {
@@ -153,8 +154,7 @@ public class MutexZoneSlot {
      * @return EnteredGroup of this group
      */
     public EnteredGroup track(MinecartGroup group, double distanceToMutex) {
-        // Egh.
-        int nowTicks = MutexZoneCache.getTickCounter();
+        int nowTicks = group.getObstacleTracker().getTickCounter();
 
         // Verify using statements whether the group is even considered
         {
@@ -324,9 +324,9 @@ public class MutexZoneSlot {
          * This tick timestamp is also stored inside occupiedRails to check whether rails are ahead of
          * the group
          */
-        public int probeTick;
+        private int probeTick;
         /** Tracks the tick when this entered group was created. Resolves hard-hard conflicts */
-        public final int creationTick;
+        private final int creationTick;
         /** Tracks the tick when this entered group last failed to enter the mutex, and returned OCCUPIED */
         public int occupiedTick;
         /** The rail coordinates locked by the group that have positions within the mutex */
@@ -451,10 +451,10 @@ public class MutexZoneSlot {
                     // slower approach which follows true enter order. For this, we track how long ago
                     // the mutex gave green light to enter. If this was recently, then we ignore
                     // these checks temporarily.
-                    if (enteredGroup.creationTick < this.creationTick &&
-                        tickLastHardEntered < (this.probeTick + 5) &&
+                    if (enteredGroup.age() > this.age() &&
+                        tickLastHardEntered < (this.serverTickLastProbed() + 5) &&
                         (this.creationTick == this.probeTick || this.wasOccupiedLastTick()) &&
-                        enteredGroup.containsVerify(railBlock, this.probeTick)
+                        enteredGroup.containsVerify(railBlock)
                     ) {
                         this.hardEnter = false;
                         this.deactivate(railBlock);
@@ -463,14 +463,14 @@ public class MutexZoneSlot {
 
                     continue;
                 }
-                if (!enteredGroup.containsVerify(railBlock, this.probeTick)) {
+                if (!enteredGroup.containsVerify(railBlock)) {
                     continue;
                 }
 
                 // If the entered group contains this entered group to be de-activated, de-activate ourselves first.
                 if (hard) {
                     // If hard-entering and previous group entered softly, revoke the previous soft slot
-                    if (!enteredGroup.hardEnter && this.creationTick < enteredGroup.creationTick) {
+                    if (!enteredGroup.hardEnter && this.age() > enteredGroup.age()) {
                         if (!this.otherGroupsToDeactivate.contains(enteredGroup)) {
                             this.otherGroupsToDeactivate.add(enteredGroup);
                             enteredGroup.groupsDeactivatingMe.add(this);
@@ -502,7 +502,7 @@ public class MutexZoneSlot {
             // Clear to go - update the existing group or add a new one
             if (hard && successResult == EnterResult.SUCCESS && !this.hardEnter) {
                 this.hardEnter = true;
-                tickLastHardEntered = probeTick;
+                tickLastHardEntered = CommonUtil.getServerTicks();
                 setLevers(true);
             }
 
@@ -516,21 +516,37 @@ public class MutexZoneSlot {
             return successResult;
         }
 
+        /**
+         * Gets the age of this entered group. This is for how many ticks this group has
+         * been inside or waiting for the mutex.
+         *
+         * @return Age in ticks
+         */
+        public int age() {
+            return group.getObstacleTracker().getTickCounter() - this.creationTick;
+        }
+
+        public int serverTickLastProbed() {
+            return CommonUtil.getServerTicks() + probeTick - group.getObstacleTracker().getTickCounter();
+        }
+
         private boolean wasOccupiedLastTick() {
             return (this.probeTick - this.occupiedTick) <= 1;
         }
 
-        private boolean containsVerify(IntVector3 rail, int nowTicks) {
+        private boolean containsVerify(IntVector3 rail) {
+            int nowTicks = probeTick;
             return occupiedRails.isFullyLockedVerify(group, nowTicks) ||
                    occupiedRails.isSmartLockedVerify(group, nowTicks, rail);
         }
 
-        private boolean refresh(int nowTicks) {
+        private boolean refresh() {
             // If group unloads or is deleted weirdly, clean it up right away
             if (group.isUnloaded() || !MinecartGroupStore.getGroups().contains(group)) {
                 return false;
             }
             // If checked recently keep it around for now
+            int nowTicks = group.getObstacleTracker().getTickCounter();
             if ((nowTicks - probeTick) < TICK_DELAY_CLEAR_AUTOMATIC) {
                 return true;
             }
@@ -661,7 +677,7 @@ public class MutexZoneSlot {
             if (!railsFull.isEmpty()) {
                 for (Iterator<RailSlot> iter = this.railsFull.iterator(); iter.hasNext();) {
                     RailSlot slot = iter.next();
-                    if ((nowTicks - slot.ticksLastProbed()) <= 1 || isRailUsedByGroup(slot.rail(), group)) {
+                    if (nowTicks == slot.ticksLastProbed() || isRailUsedByGroup(slot.rail(), group)) {
                         return true;
                     } else {
                         // No longer used, release this particular rail block. Might release the entire mutex.
@@ -677,8 +693,8 @@ public class MutexZoneSlot {
             RailSlot slot = rails.get(rail);
             if (slot == null) {
                 return false; // Not stored
-            } else if ((nowTicks - slot.ticksLastProbed()) <= 1) {
-                return true; // Updated this or last tick, no need to verify
+            } else if (nowTicks == slot.ticksLastProbed()) {
+                return true; // Updated this tick, no need to verify
             }
 
             // Verify that, at this rail, it really does still store the group
