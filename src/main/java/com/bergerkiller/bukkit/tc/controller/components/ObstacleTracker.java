@@ -5,16 +5,21 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatusProvider;
+import com.bergerkiller.bukkit.tc.events.MutexZoneConflictEvent;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZone;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCacheWorld;
@@ -72,7 +77,7 @@ public class ObstacleTracker implements TrainStatusProvider {
         // trains or mutex zones or any other type of obstacle. This is calculated based
         // on the maximum projected movement the train will have this tick. This is the
         // full train speed, limited by the applied speed limit right now
-        double searchAheadDistance = 1.0; // Little extra to avoid sign block obstacle jitter
+        double searchAheadDistance = Math.max(1.0, properties.getSpeedLimit() + 0.5); // Little extra to avoid skipping past obstacles in a single tick
         if (properties.getWaitDeceleration() > 0.0) {
             double speedLimitLastTick = (this.waitDistanceLastSpeedLimit == Double.MAX_VALUE) ?
                     properties.getSpeedLimit() : this.waitDistanceLastSpeedLimit;
@@ -331,9 +336,10 @@ public class ObstacleTracker implements TrainStatusProvider {
         final double mutexSoftDistance;
         final double checkDistance;
 
-        // If true, encountered a rail obstacle that will put the train to a complete stop
-        // Rail obstacles don't have to be checked anymore if so, but trains do (train distance)
-        boolean foundHardRailObstacle = false;
+        // If rail obstacles are found which impose a 0-speed speed limit, this is set to the distance
+        // away from the train these are found. Is used to not add too many obstacles that fall after
+        // such a 0-speed obstacle, as there is no real use tracking those.
+        double closestHardRailObstacle = Double.MAX_VALUE;
 
         // Last-encountered speed limit imposed by a rail obstacle
         double lastRailSpeedLimit = Double.MAX_VALUE;
@@ -341,7 +347,6 @@ public class ObstacleTracker implements TrainStatusProvider {
         // Tracks the current mutex zone the train is inside of while navigating the track
         MutexZone currentMutex = null;
         MutexZoneSlot.EnteredGroup currentMutexGroup = null;
-        boolean handledNonSmartMutex = false;
         boolean currentMutexHard = false;
 
         // Mutex zones that have been (soft-) entered
@@ -410,34 +415,34 @@ public class ObstacleTracker implements TrainStatusProvider {
                         currentMutex = null;
                     }
 
-                    if (!foundHardRailObstacle) {
-                        // If the current rail block imposes a speed limit, set that right now
-                        // Ignore successive equal speed limits (speed traps), that would cause too many obstacles
-                        {
-                            double railSpeedLimit = iter.getPredictedSpeedLimit();
-                            if (railSpeedLimit < lastRailSpeedLimit) {
-                                lastRailSpeedLimit = railSpeedLimit;
-                                obstacles.add(new RailObstacle(distanceFromFront, railSpeedLimit, iter.state.railPiece()));
-                                if (railSpeedLimit <= 0.0) {
-                                    foundHardRailObstacle = true; // No need to check further
-                                }
+                    // If the current rail block imposes a speed limit, set that right now
+                    // Don't check for these if we already found a 0-speed obstacle before
+                    // Ignore successive equal speed limits (speed traps), that would cause too many obstacles
+                    boolean checkForNewHardObstacles = (distanceFromFront < closestHardRailObstacle);
+                    if (checkForNewHardObstacles) {
+                        double railSpeedLimit = iter.getPredictedSpeedLimit();
+                        if (railSpeedLimit < lastRailSpeedLimit) {
+                            lastRailSpeedLimit = railSpeedLimit;
+                            obstacles.add(new RailObstacle(distanceFromFront, railSpeedLimit, iter.state.railPiece()));
+                            if (railSpeedLimit <= 0.0) {
+                                closestHardRailObstacle = distanceFromFront;
+                                checkForNewHardObstacles = false;
                             }
                         }
+                    }
 
-                        // Check for mutex zones the next block. If one is found that is occupied, stop right away
-                        if (currentMutex == null) {
-                            boolean checkForNewMutexes = (distanceFromFront < mutexSoftDistance);
-                            if (prevMutex != null || checkForNewMutexes) {
-                                MutexZone newMutex = mutexZones.get(iter.state.positionOfflineBlock().getPosition());
-                                if (newMutex != null) {
-                                    // If checking for soft mutexes, always allow
-                                    // If not, it must be the same slot / expanded smart mutex zone to count
-                                    if (checkForNewMutexes || prevMutex.slot == newMutex.slot) {
-                                        currentMutex = newMutex;
-                                        currentMutexGroup = newMutex.slot.track(group, distanceFromFront);
-                                        currentMutexHard = currentMutexGroup.distanceToMutex <= mutexHardDistance;
-                                        handledNonSmartMutex = false;
-                                    }
+                    // Check for mutex zones the next block. If one is found that is occupied, stop right away
+                    if (currentMutex == null) {
+                        boolean checkForNewMutexes = (checkForNewHardObstacles && distanceFromFront < mutexSoftDistance);
+                        if (prevMutex != null || checkForNewMutexes) {
+                            MutexZone newMutex = mutexZones.get(iter.state.positionOfflineBlock().getPosition());
+                            if (newMutex != null) {
+                                // If checking for soft mutexes, always allow
+                                // If not, it must be the same slot / expanded smart mutex zone to count
+                                if (checkForNewMutexes || prevMutex.slot == newMutex.slot) {
+                                    currentMutex = newMutex;
+                                    currentMutexGroup = newMutex.slot.track(group, distanceFromFront);
+                                    currentMutexHard = currentMutexGroup.distanceToMutex <= mutexHardDistance;
                                 }
                             }
                         }
@@ -510,10 +515,10 @@ public class ObstacleTracker implements TrainStatusProvider {
             // While we are still updating mutex information, navigate the track until we exit the zone
             // This is only important for smart mutexes
             // This might cause a new obstacle to be inserted from when the train reached the start of the zone
-            if (currentMutex != null && currentMutex.smart) {
+            if (currentMutex != null) {
                 // Exceeding 64 blocks we enable the loop filter, as we probably reached an infinite loop of sorts...
                 double enabledLoopFilterLimit = iter.movedTotal + 64.0;
-                while (iter.moveFull()) {
+                while (!currentMutexGroup.isOccupiedFully() && iter.moveFull()) {
                     if (iter.movedTotal >= enabledLoopFilterLimit) {
                         enabledLoopFilterLimit = Double.MAX_VALUE;
                         iter.setLoopFilter(true);
@@ -556,18 +561,9 @@ public class ObstacleTracker implements TrainStatusProvider {
          */
         private boolean updateCurrentMutex(TrackWalkingPoint iter) {
             MutexZoneSlot.EnterResult result;
-            if (currentMutex.smart) {
-                // Track every rail block visited while navigating within the mutex zone
-                result = currentMutexGroup.enterRail(currentMutexHard,
-                                                     iter.state.railPiece().blockPosition());
-            } else if (!handledNonSmartMutex) {
-                // Only handle non-smart mutexes once. No need to check them often, as they won't change result.
-                result = currentMutexGroup.enterZone(currentMutexHard);
-                handledNonSmartMutex = true;
-            } else {
-                // Skip.
-                result = MutexZoneSlot.EnterResult.IGNORED;
-            }
+            result = currentMutexGroup.enter(currentMutex.type,                      /* Mutex zone slot type */
+                                             iter.state.railPiece().blockPosition(), /* Rail block */
+                                             currentMutexHard);                      /* Really needs to enter it */
 
             // Track mutex zones we have entered or are approaching (train status!)
             if (!enteredMutexZones.contains(currentMutex)) {
@@ -578,13 +574,40 @@ public class ObstacleTracker implements TrainStatusProvider {
             }
 
             double currentMutexDistance = currentMutexGroup.distanceToMutex;
-            if (result == MutexZoneSlot.EnterResult.OCCUPIED) {
-                // At this point the train is guaranteed stopped. Don't check for more mutex zones now.
-                // This is a hard stop, so we slow down to speed 0
-                foundHardRailObstacle = true;
-                obstacles.add(new MutexZoneObstacle(currentMutexDistance, 0.0, currentMutex));
-                currentMutex = null; // stop checking
+            if (result.isOccupied()) {
+                // Add the mutex zone as a new obstacle, if there is no other obstacle closerby
+                // This also protects against a large amount of obstacles with the OCCUPIED_DISCOVER result
+                if (currentMutexDistance < closestHardRailObstacle) {
+                    closestHardRailObstacle = currentMutexDistance;
+                    obstacles.add(new MutexZoneObstacle(currentMutexDistance, 0.0, currentMutex));
+                }
+
+                // For DISCOVER, discover more rails until we exit the zone to fully map out the blocks
+                if (result == MutexZoneSlot.EnterResult.OCCUPIED_DISCOVER) {
+                    return true;
+                }
+
+                // Hard occupied, we can stop checking this mutex or mutexes in general
+                currentMutex = null;
+                currentMutexGroup = null;
                 return false;
+            } else if (result.isConflict()) {
+                // Mutex broke! Just keep on moving and hope the problem "solves" itself...
+                if (result == MutexZoneSlot.EnterResult.CONFLICT) {
+                    MutexZoneConflictEvent conflict = currentMutexGroup.getConflict();
+                    if (TCConfig.logMutexConflicts) {
+                        Logger l = group.getTrainCarts().getLogger();
+                        l.log(Level.WARNING, "[Mutex] Train '" + group.getProperties().getTrainName() +
+                                "' is in violation inside mutex '" +
+                                conflict.getMutexZoneSlot().getNameWithoutWorldUUID() +
+                                "' crossing train '" +
+                                conflict.getGroupCrossed().getProperties().getTrainName() +
+                                "' at rail " + conflict.getRailPosition());
+                    }
+
+                    CommonUtil.callEvent(conflict);
+                }
+                return true;
             } else if (result == MutexZoneSlot.EnterResult.SUCCESS) {
             } else if (result == MutexZoneSlot.EnterResult.IGNORED) {
                 // Break out, no need to check this.

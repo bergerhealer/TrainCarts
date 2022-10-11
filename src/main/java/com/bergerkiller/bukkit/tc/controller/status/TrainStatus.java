@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.controller.status;
 
-import java.util.Collection;
 import java.util.List;
 
 import org.bukkit.ChatColor;
@@ -13,8 +12,10 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.debug.DebugToolUtil;
+import com.bergerkiller.bukkit.tc.events.MutexZoneConflictEvent;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZone;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneSlot;
+import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneSlotType;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
 
 /**
@@ -439,7 +440,7 @@ public interface TrainStatus {
 
         private boolean isSmart() {
             for (MutexZone zone : zones) {
-                if (zone.smart) {
+                if (zone.type == MutexZoneSlotType.SMART) {
                     return true;
                 }
             }
@@ -489,45 +490,55 @@ public interface TrainStatus {
 
             // Add a clickable link to view entered rail blocks
             if (group != null) {
-                Collection<IntVector3> railBlocks = group.getRailBlocks();
                 StringBuilder str = new StringBuilder();
                 str.append("Full Name: ").append(slot.getName()).append("\r\n");
                 str.append("Active: ").append(group.active).append("\r\n");
                 str.append("Entered Mutex: ").append(group.hardEnter).append("\r\n");
                 str.append("Distance To Mutex: ").append(group.distanceToMutex).append("\r\n");
+
                 str.append("Mutex Signs:\r\n");
                 for (MutexZone zone : zones) {
                     OfflineBlock pos = zone.signBlock;
                     str.append("  [").append(pos.getX()).append("/").append(pos.getY())
                        .append("/").append(pos.getZ()).append("]\r\n");
                 }
-                if (!railBlocks.isEmpty() || isSmart()) {
-                    if (railBlocks.isEmpty()) {
-                        str.append("Locked Rail Blocks: None\r\n");
-                    } else {
-                        str.append("Locked Rail Blocks:\r\n");
-                        for (IntVector3 rail : railBlocks) {
-                            str.append("  [").append(rail.x).append("/").append(rail.y)
-                               .append("/").append(rail.z).append("]\r\n");
-                        }
-                    }
-                }
-                if (group.conflictPath != null) {
-                    MutexZoneSlot.ConflictPath c = group.conflictPath;
-                    str.append("Conflict Rail Block: [")
-                       .append(c.conflict.x).append("/").append(c.conflict.y)
-                       .append(c.conflict.z).append("]\r\n");
-                    str.append("Conflict Path:");
-                    if (c.path.isEmpty()) {
-                        str.append(" Instant\r\n");
-                    } else {
+
+                if (group.active) {
+                    str.append("Locked Rail Blocks:\r\n");
+                    for (MutexZoneSlot.RailSlot slot : group.getLastPath()) {
+                        str.append("  ");
+                        slot.debugPrint(str);
                         str.append("\r\n");
-                        for (IntVector3 rail : c.path) {
-                            str.append("  [").append(rail.x).append("/").append(rail.y)
-                            .append("/").append(rail.z).append("]\r\n");
+                    }
+                } else {
+                    List<MutexZoneSlot.RailSlot> rails = group.getLastPath();
+                    if (rails.isEmpty()) {
+                        str.append("Waiting for Rail: Unknown\r\n");
+                    } else {
+                        str.append("Path taken through Mutex:\r\n");
+                        for (int i = 0; i < rails.size() - 1; i++) {
+                            MutexZoneSlot.RailSlot slot = rails.get(i);
+                            str.append("  ");
+                            slot.debugPrint(str);
+                            str.append("\r\n");
                         }
+                        str.append("Waiting for Rail: ");
+                        rails.get(rails.size() - 1).debugPrint(str);
+                        str.append("\r\n");
                     }
                 }
+
+                MutexZoneConflictEvent conflict = group.getConflict();
+                if (conflict != null) {
+                    IntVector3 rail = conflict.getRailPosition();
+                    str.append("Mutex Zone Conflict occurred:\r\n");
+                    str.append("  train: ")
+                       .append(conflict.getGroupCrossed().getProperties().getTrainName())
+                       .append("\r\n");
+                    str.append("  rail: [").append(rail.x).append("/").append(rail.y)
+                       .append("/").append(rail.z).append("]\r\n"); 
+                }
+
                 ChatText clickable = ChatText.fromClickableContent(ChatColor.WHITE.toString() +
                         ChatColor.UNDERLINE + "Copy Details", str.toString());
                 clickable.setHoverText("> Click to copy to your clipboard <");

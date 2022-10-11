@@ -101,6 +101,7 @@ public class TCConfig {
     public static boolean playHissWhenCartRemoved = true;
     public static boolean rerouteOnStartup = false;
     public static boolean switcherResetCountersOnFirstCart = true;
+    public static boolean logMutexConflicts = false;
     public static String launchFunctionType = "bezier";
     public static boolean parseOldSigns;
     public static boolean allowParenthesesFormat = true;
@@ -352,6 +353,9 @@ public class TCConfig {
 
         config.setHeader("collisionReEnterDelay", "\nThe delay (in ticks) between ejecting and re-entering by collision (e.g. mobs auto-entering carts)");
         collisionReEnterDelay = config.get("collisionReEnterDelay", collisionReEnterDelay);
+
+        config.setHeader("logMutexConflicts", "\nLogs a message to server log when two trains are inside a mutex zone, when they shouldn't be");
+        logMutexConflicts = config.get("logMutexConflicts", false);
 
         // Cache settings
         {

@@ -18,16 +18,16 @@ public class MutexZone {
     public final IntVector3 end;
     public final String statement;
     public final MutexZoneSlot slot;
-    public final boolean smart;
+    public final MutexZoneSlotType type;
     private Boolean leversDown = null; // Avoids excessive block access
 
-    private MutexZone(OfflineBlock signBlock, IntVector3 start, IntVector3 end, String name, String statement, boolean smart) {
+    private MutexZone(OfflineBlock signBlock, IntVector3 start, IntVector3 end, MutexZoneSlotType type, String name, String statement) {
         this.signBlock = signBlock;
         this.statement = statement;
         this.start = start;
         this.end = end;
         this.slot = MutexZoneCache.findSlot(name, this);
-        this.smart = smart;
+        this.type = type;
     }
 
     public boolean containsBlock(IntVector3 block) {
@@ -81,6 +81,6 @@ public class MutexZone {
     }
 
     public static MutexZone create(OfflineWorld world, IntVector3 signPosition, MutexSignMetadata metadata) {
-        return new MutexZone(world.getBlockAt(signPosition), metadata.start, metadata.end, metadata.name, metadata.statement, metadata.smart);
+        return new MutexZone(world.getBlockAt(signPosition), metadata.start, metadata.end, metadata.type, metadata.name, metadata.statement);
     }
 }
