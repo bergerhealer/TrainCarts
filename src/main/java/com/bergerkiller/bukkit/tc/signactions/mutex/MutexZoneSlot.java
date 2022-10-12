@@ -194,6 +194,7 @@ public class MutexZoneSlot {
         // Find existing
         for (EnteredGroup enteredGroup : this.entered) {
             if (enteredGroup.group == group) {
+                enteredGroup.deactivateByOtherGroups();
                 enteredGroup.probeTick = nowTicks;
                 if (enteredGroup.active) {
                     enteredGroup.distanceToMutex = Math.min(enteredGroup.distanceToMutex, distanceToMutex);
@@ -342,6 +343,7 @@ public class MutexZoneSlot {
          * Inverse of otherGroupsToDeactivate
          */
         private final ArrayList<EnteredGroup> groupsDeactivatingMe = new ArrayList<>(2);
+        private IntVector3 groupsDeactivatingMeConflictRail = null;
 
         public EnteredGroup(MinecartGroup group, double distanceToMutex, int nowTicks) {
             this.group = group;
@@ -357,8 +359,30 @@ public class MutexZoneSlot {
             if (!this.otherGroupsToDeactivate.isEmpty()) {
                 for (EnteredGroup group : this.otherGroupsToDeactivate) {
                     group.groupsDeactivatingMe.remove(this);
+                    if (group.groupsDeactivatingMe.isEmpty()) {
+                        group.groupsDeactivatingMeConflictRail = null;
+                    }
                 }
                 this.otherGroupsToDeactivate.clear();
+            }
+        }
+
+        private void deactivateByOtherGroups() {
+            if (!this.groupsDeactivatingMe.isEmpty()) {
+                for (EnteredGroup g : this.groupsDeactivatingMe) {
+                    g.otherGroupsToDeactivate.remove(this);
+                }
+                this.groupsDeactivatingMe.clear();
+                this.deactivate(this.groupsDeactivatingMeConflictRail);
+                this.groupsDeactivatingMeConflictRail = null;
+            }
+        }
+
+        private void deactivateOtherGroup(EnteredGroup otherGroup, IntVector3 conflictRail) {
+            if (!this.otherGroupsToDeactivate.contains(otherGroup)) {
+                this.otherGroupsToDeactivate.add(otherGroup);
+                otherGroup.groupsDeactivatingMe.add(this);
+                otherGroup.groupsDeactivatingMeConflictRail = conflictRail;
             }
         }
 
@@ -471,10 +495,7 @@ public class MutexZoneSlot {
                 if (hard) {
                     // If hard-entering and previous group entered softly, revoke the previous soft slot
                     if (!enteredGroup.hardEnter && this.age() > enteredGroup.age()) {
-                        if (!this.otherGroupsToDeactivate.contains(enteredGroup)) {
-                            this.otherGroupsToDeactivate.add(enteredGroup);
-                            enteredGroup.groupsDeactivatingMe.add(this);
-                        }
+                        deactivateOtherGroup(enteredGroup, railBlock);
                         continue;
                     }
 
