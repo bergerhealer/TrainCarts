@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller;
 
 import com.bergerkiller.bukkit.common.Timings;
-import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.bases.mutable.VectorAbstract;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -79,7 +78,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     private static final long serialVersionUID = 3;
     private static final LongHashSet chunksBuffer = new LongHashSet(50);
     private final TrainCarts traincarts;
-    protected final ToggledState ticked = new ToggledState();
     protected final ChunkArea chunkArea = new ChunkArea();
     private boolean chunkAreaValid = false;
     private final SignTrackerGroup signTracker = new SignTrackerGroup(this);
@@ -98,7 +96,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
     protected MinecartGroup(TrainCarts traincarts) {
         this.traincarts = traincarts;
-        this.ticked.set();
     }
 
     @Override

@@ -117,7 +117,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private final WheelTrackerMember wheelTracker = new WheelTrackerMember(this);
     private final AttachmentControllerMember attachmentController = new AttachmentControllerMember(this);
     private final ToggledState railActivated = new ToggledState(false);
-    protected final ToggledState ticked = new ToggledState();
     public boolean vertToSlope = false;
     protected MinecartGroup group;
     protected boolean died = false;
@@ -2377,13 +2376,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     @Override
     public void onTick() {
-        this.ticked.set();
-        if (this.isUnloaded()) {
-            return;
-        }
-        MinecartGroup g = this.getGroup();
-        if (g != null && g.ticked.set()) {
-            g.doPhysics(traincarts);
+        // Make sure at all times this member has a group, if not unloaded
+        // We don't do any actual updates here because paper RUINS it.
+        if (!this.isUnloaded()) {
+            this.getGroup();
         }
     }
 

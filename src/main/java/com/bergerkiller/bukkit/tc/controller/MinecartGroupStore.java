@@ -33,14 +33,12 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         try (ImplicitlySharedSet<MinecartGroup> groups_copy = groups.clone()) {
             try {
                 for (MinecartGroup group : groups_copy) {
-                    // Tick the train if required
-                    if (!group.ticked.clear()) {
-                        group.doPhysics(plugin);
-                    }
+                    // Tick the train
+                    group.doPhysics(plugin);
 
-                    // Perform post-tick physics for all Minecarts in the train, if not previously ticked
+                    // Perform post-tick physics for all Minecarts in the train
                     for (MinecartMember<?> member : group) {
-                        if (!member.ticked.clear() && !member.isUnloaded()) {
+                        if (!member.isUnloaded()) {
                             member.getEntity().doPostTick();
                         }
                     }
