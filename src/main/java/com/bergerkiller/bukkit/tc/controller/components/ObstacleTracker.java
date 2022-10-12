@@ -674,6 +674,12 @@ public class ObstacleTracker implements TrainStatusProvider {
          * @return speed of the train to stay clear of the obstacle
          */
         public ObstacleSpeedLimit findSpeedLimit(double deceleration) {
+            // If distance is extremely close to 0, only track the obstacle with constant speed
+            // Trying to correct for this causes horrible jitter in long train following chains
+            if (distance > -1e-6 && distance < 1e-6) {
+                return new ObstacleSpeedLimit(this, Math.max(0.0, speed), true);
+            }
+
             // If obstacle is closer than it is allowed to ever be, emergency stop
             // This also ignores the vehicle's actual speed, because we're too close to
             // it already, so we need to stop and wait for the distance to go above
