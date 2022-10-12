@@ -2186,6 +2186,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                     }
                 }
             }
+
+            // Notify signs about the change to support velocity==0 statement triggering
+            this.onPropertiesChanged();
         }
 
         // Save the state prior to moving, then move the entity the required distance
