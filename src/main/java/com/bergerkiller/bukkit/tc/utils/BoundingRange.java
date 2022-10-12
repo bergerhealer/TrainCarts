@@ -213,6 +213,9 @@ public class BoundingRange {
         }
 
         public static Axis forPoint(Location location) {
+            if (location == null) {
+                return empty();
+            }
             Axis axis = new Axis();
             axis.world = location.getWorld();
             axis.x = create(location.getX(), location.getX());
@@ -222,6 +225,9 @@ public class BoundingRange {
         }
 
         public static Axis forBlock(Block block) {
+            if (block == null) {
+                return empty();
+            }
             double x = (double) block.getX();
             double y = (double) block.getY();
             double z = (double) block.getZ();
