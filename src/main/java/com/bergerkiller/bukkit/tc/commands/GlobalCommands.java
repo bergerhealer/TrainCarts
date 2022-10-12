@@ -441,8 +441,7 @@ public class GlobalCommands {
             final CommandSender sender,
             final TrainCarts plugin
     ) {
-        plugin.getTrainUpdateController().setTickDivider(Integer.MAX_VALUE);
-        sender.sendMessage(ChatColor.YELLOW + "Train tick updates have been globally " + ChatColor.RED + "disabled");
+        commandSetTickEnabled(sender, plugin, false);
     }
 
     @CommandRequiresPermission(Permission.COMMAND_CHANGETICK)
@@ -452,8 +451,23 @@ public class GlobalCommands {
             final CommandSender sender,
             final TrainCarts plugin
     ) {
-        plugin.getTrainUpdateController().setTickDivider(1);
-        sender.sendMessage(ChatColor.YELLOW + "Train tick updates have been globally " + ChatColor.GREEN + "enabled");
+        commandSetTickEnabled(sender, plugin, true);
+    }
+
+    @CommandRequiresPermission(Permission.COMMAND_CHANGETICK)
+    @CommandMethod("train tick toggle")
+    @CommandDescription("Toggles ticking of all trains, causing all physics to pause or resume")
+    private void commandTickToggle(
+            final CommandSender sender,
+            final TrainCarts plugin
+    ) {
+        commandSetTickEnabled(sender, plugin, plugin.getTrainUpdateController().getTickDivider() == Integer.MAX_VALUE);
+    }
+
+    private void commandSetTickEnabled(CommandSender sender, TrainCarts plugin, boolean enabled) {
+        plugin.getTrainUpdateController().setTickDivider(enabled ? 1 : Integer.MAX_VALUE);
+        sender.sendMessage(ChatColor.YELLOW + "Train tick updates have been globally " +
+                (enabled ? (ChatColor.GREEN + "enabled") : (ChatColor.RED + "disabled")));
     }
 
     @CommandRequiresPermission(Permission.COMMAND_CHANGETICK)
