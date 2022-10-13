@@ -448,7 +448,8 @@ public class ObstacleTracker implements TrainStatusProvider {
 
                     // Check for mutex zones the next block. If one is found that is occupied, stop right away
                     if (currentMutex == null) {
-                        boolean checkForNewMutexes = (checkForNewHardObstacles && distanceFromFront < mutexSoftDistance);
+                        double mutexCheckDistance = mutexSoftDistance + iter.currentRailPath.getTotalDistance();
+                        boolean checkForNewMutexes = (checkForNewHardObstacles && distanceFromFront < mutexCheckDistance);
                         if (prevMutex != null || checkForNewMutexes) {
                             MutexZone newMutex = mutexZones.get(iter.state.positionOfflineBlock().getPosition());
                             if (newMutex != null) {
