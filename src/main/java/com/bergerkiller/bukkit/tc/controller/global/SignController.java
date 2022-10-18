@@ -15,6 +15,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
+import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldInitEvent;
@@ -29,6 +30,7 @@ import com.bergerkiller.bukkit.common.component.LibraryComponent;
 import com.bergerkiller.bukkit.common.events.MultiBlockChangeEvent;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.PowerState;
@@ -258,11 +260,23 @@ public class SignController implements LibraryComponent, Listener {
         }
     }
 
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onSignChange(SignChangeEvent event) {
+        Block signBlock = event.getBlock();
+        forWorld(signBlock.getWorld()).addSign(signBlock);
+    }
+
     // This is also needed to support block placement / piston / WR / etc.
     @EventHandler(priority = EventPriority.MONITOR)
     private void onBlockPhysics(BlockPhysicsEvent event) {
         Block block = event.getBlock();
-        for (Entry e : forWorld(block.getWorld()).findNearby(block)) {
+        SignControllerWorld controller = forWorld(block.getWorld());
+
+        if (MaterialUtil.ISSIGN.get(event.getChangedType())) {
+            controller.detectNewSigns(block);
+        }
+
+        for (Entry e : controller.findNearby(block)) {
             e.updateRedstoneLater();
         }
     }

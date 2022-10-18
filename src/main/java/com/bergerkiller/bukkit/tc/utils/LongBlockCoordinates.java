@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.utils;
 
 import java.util.function.LongUnaryOperator;
 
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
@@ -23,6 +24,16 @@ public class LongBlockCoordinates {
     public static final int Y_OFFSET = 0;
     public static final int Z_OFFSET = PACKED_Y_LENGTH;
     public static final int X_OFFSET = PACKED_Y_LENGTH + PACKED_Z_LENGTH;
+
+    /**
+     * Creates a long key to refer to the specified x/y/z coordinates
+     *
+     * @param block
+     * @return Mapped long key
+     */
+    public static long map(Block block) {
+        return map(block.getX(), block.getY(), block.getZ());
+    }
 
     /**
      * Creates a long key to refer to the specified x/y/z coordinates
@@ -122,6 +133,34 @@ public class LongBlockCoordinates {
             final BlockFace f = face;
             return key -> map(getX(key) + f.getModX(), getY(key) + f.getModY(), getZ(key) + f.getModZ());
         }
+    }
+
+    /**
+     * Iterates all 6 sides of a block, passing the BlockFace side and the block key
+     * for that side to the consumer. The input key is not accepted.
+     * There is no guaranteed order of block sides accepted.
+     *
+     * @param key Center block coordinate key
+     * @param consumer Consumer to notify of all 6 sides
+     */
+    public static void forAllBlockSides(long key, BlockSideConsumer consumer) {
+        consumer.accept(BlockFace.NORTH, shiftNorth(key));
+        consumer.accept(BlockFace.EAST, shiftEast(key));
+        consumer.accept(BlockFace.SOUTH, shiftSouth(key));
+        consumer.accept(BlockFace.WEST, shiftWest(key));
+        consumer.accept(BlockFace.UP, shiftUp(key));
+        consumer.accept(BlockFace.DOWN, shiftDown(key));
+    }
+
+    @FunctionalInterface
+    public static interface BlockSideConsumer {
+        /**
+         * Accepts a single block side
+         *
+         * @param face Face side of the block
+         * @param key Block coordinate key
+         */
+        void accept(BlockFace face, long key);
     }
 
     /**

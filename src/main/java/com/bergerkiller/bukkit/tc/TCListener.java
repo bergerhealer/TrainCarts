@@ -787,9 +787,6 @@ public class TCListener implements Listener {
 
             // Break the block
             event.getBlock().setType(Material.AIR);
-        } else {
-            // Notify sign controller that this new sign is now available
-            this.plugin.getSignController().notifySignAdded(event.getBlock());
         }
     }
 

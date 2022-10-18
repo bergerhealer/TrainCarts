@@ -21,6 +21,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
 
+import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.block.SignChangeTracker;
 import com.bergerkiller.bukkit.common.chunk.ChunkFutureProvider;
 import com.bergerkiller.bukkit.common.chunk.ChunkFutureProvider.ChunkNeighbourList;
@@ -28,7 +29,9 @@ import com.bergerkiller.bukkit.common.chunk.ChunkFutureProvider.ChunkStateListen
 import com.bergerkiller.bukkit.common.chunk.ChunkFutureProvider.ChunkStateTracker;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.ChunkUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
@@ -355,6 +358,48 @@ public class SignControllerWorld {
         }
 
         return true;
+    }
+
+    /**
+     * Checks the 6 blocks neighbouring a particular block for the placement of a new sign
+     * not yet known to this controller through the usual events.
+     *
+     * @param around
+     */
+    public void detectNewSigns(Block around) {
+        long blockKey = LongBlockCoordinates.map(around);
+        Entry[] nearby = findNearby(blockKey);
+        LongBlockCoordinates.forAllBlockSides(blockKey, (face, key) -> {
+            // Check not already in the nearby mapping
+            for (Entry e : nearby) {
+                if (e.blockKey == key) {
+                    return;
+                }
+            }
+
+            // If chunk is actually loaded, check if there is an actual sign here
+            int bx = around.getX() + face.getModX();
+            int by = around.getY() + face.getModY();
+            int bz = around.getZ() + face.getModZ();
+            Chunk chunk = WorldUtil.getChunk(world, bx >> 4, bz >> 4);
+            if (chunk == null) {
+                return;
+            }
+            if (!MaterialUtil.ISSIGN.get(ChunkUtil.getBlockData(chunk, bx, by, bz))) {
+                return;
+            }
+
+            // Missing entry! Add one now, but do so next tick in case text isn't loaded onto it yet.
+            final Block potentialSign = around.getRelative(face);
+            new Task(controller.getPlugin()) {
+                @Override
+                public void run() {
+                    if (MaterialUtil.ISSIGN.get(potentialSign)) {
+                        addSign(potentialSign);
+                    }
+                }
+            }.start();
+        });
     }
 
     /**
