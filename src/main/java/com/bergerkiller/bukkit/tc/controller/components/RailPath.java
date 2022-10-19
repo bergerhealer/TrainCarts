@@ -92,9 +92,9 @@ public class RailPath {
         p.posZ = firstSegment.p0.z;
         p.wheelSegment = firstSegment;
         p.wheelTheta = 0.0;
-        p.motX = -firstSegment.dt_norm.x;
-        p.motY = -firstSegment.dt_norm.y;
-        p.motZ = -firstSegment.dt_norm.z;
+        p.motX = -firstSegment.mot.getX();
+        p.motY = -firstSegment.mot.getY();
+        p.motZ = -firstSegment.mot.getZ();
         return p;
     }
 
@@ -113,9 +113,9 @@ public class RailPath {
         p.posZ = lastSegment.p1.z;
         p.wheelSegment = lastSegment;
         p.wheelTheta = 1.0;
-        p.motX = lastSegment.dt_norm.x;
-        p.motY = lastSegment.dt_norm.y;
-        p.motZ = lastSegment.dt_norm.z;
+        p.motX = lastSegment.mot.getX();
+        p.motY = lastSegment.mot.getY();
+        p.motZ = lastSegment.mot.getZ();
         return p;
     }
 
@@ -133,7 +133,7 @@ public class RailPath {
         if (s == null) {
             throw new IllegalArgumentException("Input position was never moved or snapped to a path!");
         }
-        Position end = (position.motDot(s.dt) > 0.0) ? getEndPosition() : getStartPosition();
+        Position end = (position.motDot(s.p_offset) > 0.0) ? getEndPosition() : getStartPosition();
         end.makeAbsolute(railBlock);
         return end;
     }
@@ -169,9 +169,9 @@ public class RailPath {
             if (tmpDistSquared < info.distanceSquared) {
                 info.distanceSquared = tmpDistSquared;
                 if (tmpTheta < 1e-5 && i == 0) {
-                    info.canMoveForward = tmpSegment.dt_norm.dot(motionVector) >= 0.0;
+                    info.canMoveForward = tmpSegment.mot.dot(motionVector) >= 0.0;
                 } else if (tmpTheta > (1.0-1e-5) && i == (this.segments.length-1)) {
-                    info.canMoveForward = tmpSegment.dt_norm.dot(motionVector) <= 0.0;
+                    info.canMoveForward = tmpSegment.mot.dot(motionVector) <= 0.0;
                 } else {
                     info.canMoveForward = true;
                 }
@@ -485,14 +485,15 @@ public class RailPath {
                 } else {
                     s = this.segments[segmentIndex];
                     theta = s.calcTheta(position);
+                    Vector mot = s.mot;
                     if (order > 0) {
-                        position.motX = s.dt_norm.x;
-                        position.motY = s.dt_norm.y;
-                        position.motZ = s.dt_norm.z;
+                        position.motX = mot.getX();
+                        position.motY = mot.getY();
+                        position.motZ = mot.getZ();
                     } else {
-                        position.motX = -s.dt_norm.x;
-                        position.motY = -s.dt_norm.y;
-                        position.motZ = -s.dt_norm.z;
+                        position.motX = -mot.getX();
+                        position.motY = -mot.getY();
+                        position.motZ = -mot.getZ();
                     }
                 }
             }
@@ -1208,34 +1209,50 @@ public class RailPath {
     public static class Segment {
         public final Point p0;
         public final Point p1;
-        public final Point dt;
-        public final Point dt_norm;
+        /** The normalized motion direction vector along this segment */
+        public final Vector mot;
+        /** The total offset between p0 and p1 (p1 - p0) */
+        public final Vector p_offset;
         public final Quaternion p0_orientation;
         public final Quaternion p1_orientation;
+        /** The up orientation vector changes at all during the movement along this segment */
         public final boolean has_changing_up_orientation;
+        /** The delta Y position changes significantly during the movement along this segment */
+        public final boolean has_vertical_slope;
         public final double l;
         public final double ls; // l*l
         public final double linv; // 1.0 / l
         private Segment prev, next;
 
+        /** @deprecated Use {@link #p_offset} instead */
+        @Deprecated
+        public final Point dt;
+        /** @deprecated use {@link #mot} instead */
+        @Deprecated
+        public final Point dt_norm;
+
         public Segment(Point p0, Point p1) {
-            this.dt = new Point(p1.x - p0.x, p1.y - p0.y, p1.z - p0.z);
-            this.ls = MathUtil.lengthSquared(this.dt.x, this.dt.y, this.dt.z);
-            this.l = Math.sqrt(this.ls);
-            this.linv = (this.l <= 1e-20) ? 0.0 : (1.0 / this.l);
+            p_offset = new Vector(p1.x - p0.x, p1.y - p0.y, p1.z - p0.z);
+            ls = p_offset.lengthSquared();
+            l = Math.sqrt(ls);
+            linv = (l <= 1e-20) ? 0.0 : (1.0 / l);
             if (this.isZeroLength()) {
-                this.dt_norm = new Point(0.0, 0.0, 0.0);
+                mot = new Vector();
             } else {
-                this.dt_norm = new Point(this.dt.x * this.linv, this.dt.y * this.linv, this.dt.z * this.linv);
+                mot = p_offset.clone().multiply(linv);
             }
+            has_vertical_slope = mot.getY() < -1e-10 || mot.getY() > 1e-10;
+
+            // Legacy stuff encoded this as Point which was just...weird
+            dt = new Point(p_offset);
+            dt_norm = new Point(mot);
 
             // Uses the roll values of the points and the segment slope
             // to calculate the normal 'up' vector. This is the direction
             // upwards that the Minecart faces. This is especially important
             // for positions like upside-down, vertical, and twisted
-            Vector dir = this.dt_norm.toVector();
-            Vector up0 = dir.clone().crossProduct(p0.up()).crossProduct(dir).normalize();
-            Vector up1 = dir.clone().crossProduct(p1.up()).crossProduct(dir).normalize();
+            Vector up0 = mot.clone().crossProduct(p0.up()).crossProduct(mot).normalize();
+            Vector up1 = mot.clone().crossProduct(p1.up()).crossProduct(mot).normalize();
             this.p0 = new Point(p0.x, p0.y, p0.z, up0.getX(), up0.getY(), up0.getZ());
             this.p1 = new Point(p1.x, p1.y, p1.z, up1.getX(), up1.getY(), up1.getZ());
             this.has_changing_up_orientation = (up0.distanceSquared(up1) > 1e-6);
@@ -1248,20 +1265,20 @@ public class RailPath {
          */
         public void postinit() {
             // Orientation of a wheel when at p0
-            Quaternion mid_up0 = Quaternion.fromLookDirection(this.dt_norm.toVector(), this.p0.up());
+            Quaternion mid_up0 = Quaternion.fromLookDirection(this.mot, this.p0.up());
             if (this.prev == null) {
                 this.p0_orientation.setTo(mid_up0);
             } else {
-                Quaternion prev_up = Quaternion.fromLookDirection(this.prev.dt_norm.toVector(), this.prev.p1.up());
+                Quaternion prev_up = Quaternion.fromLookDirection(this.prev.mot, this.prev.p1.up());
                 this.p0_orientation.setTo(Quaternion.slerp(prev_up, mid_up0, 0.5));
             }
 
             // Orientation of a wheel when at p1
-            Quaternion mid_up1 = Quaternion.fromLookDirection(this.dt_norm.toVector(), this.p1.up());
+            Quaternion mid_up1 = Quaternion.fromLookDirection(this.mot, this.p1.up());
             if (this.next == null) {
                 this.p1_orientation.setTo(mid_up1);
             } else {
-                Quaternion next_up = Quaternion.fromLookDirection(this.next.dt_norm.toVector(), this.next.p0.up());
+                Quaternion next_up = Quaternion.fromLookDirection(this.next.mot, this.next.p0.up());
                 this.p1_orientation.setTo(Quaternion.slerp(next_up, mid_up1, 0.5));
             }
         }
@@ -1285,14 +1302,14 @@ public class RailPath {
         public final Location getLocation(Block railsBlock, double theta) {
             return new Location(
                     railsBlock.getWorld(),
-                    railsBlock.getX() + p0.x + dt.x * theta,
-                    railsBlock.getY() + p0.y + dt.y * theta,
-                    railsBlock.getZ() + p0.z + dt.z * theta);
+                    railsBlock.getX() + p0.x + p_offset.getX() * theta,
+                    railsBlock.getY() + p0.y + p_offset.getY() * theta,
+                    railsBlock.getZ() + p0.z + p_offset.getZ() * theta);
         }
 
         private final int isHeadingToPrev(Position position) {
             if (this.prev != null) {
-                double dot = position.motDot(this.prev.dt_norm);
+                double dot = position.motDot(this.prev.mot);
                 if (dot < -0.0000001) {
                     return 1;
                 } else if (dot > 0.0000001) {
@@ -1307,7 +1324,7 @@ public class RailPath {
 
         private final int isHeadingToNext(Position position) {
             if (this.next != null) {
-                double dot = position.motDot(this.next.dt_norm);
+                double dot = position.motDot(this.next.mot);
                 if (dot > 0.0000001) {
                     return 1;
                 } else if (dot < -0.0000001) {
@@ -1330,8 +1347,8 @@ public class RailPath {
          * @return order (-1 for decrement, 1 for increment)
          */
         public final int calcDirection(Position position) {
-            Point dt = this.dt_norm;
-            double dot = position.motDot(dt);
+            Vector mot = this.mot;
+            double dot = position.motDot(mot);
 
             // Hitting the segment at a 90-degree angle
             // This means the path direction cannot be easily assessed from the direction
@@ -1358,14 +1375,14 @@ public class RailPath {
             }
 
             if (dot >= 0.0) {
-                position.motX = dt.x;
-                position.motY = dt.y;
-                position.motZ = dt.z;
+                position.motX = mot.getX();
+                position.motY = mot.getY();
+                position.motZ = mot.getZ();
                 return 1;
             } else {
-                position.motX = -dt.x;
-                position.motY = -dt.y;
-                position.motZ = -dt.z;
+                position.motX = -mot.getX();
+                position.motY = -mot.getY();
+                position.motZ = -mot.getZ();
                 return -1;
             }
         }
@@ -1445,9 +1462,9 @@ public class RailPath {
                 dy = p1.y;
                 dz = p1.z;
             } else {
-                dx = (p0.x + dt.x * theta);
-                dy = (p0.y + dt.y * theta);
-                dz = (p0.z + dt.z * theta);
+                dx = (p0.x + p_offset.getX() * theta);
+                dy = (p0.y + p_offset.getY() * theta);
+                dz = (p0.z + p_offset.getZ() * theta);
             }
             dx -= x; dy -= y; dz -= z;
             dx *= dx;
@@ -1469,9 +1486,9 @@ public class RailPath {
             } else if (theta >= 1.0) {
                 p1.toVector(position);
             } else {
-                position.setX(p0.x + dt.x * theta);
-                position.setY(p0.y + dt.y * theta);
-                position.setZ(p0.z + dt.z * theta);
+                position.setX(p0.x + p_offset.getX() * theta);
+                position.setY(p0.y + p_offset.getY() * theta);
+                position.setZ(p0.z + p_offset.getZ() * theta);
             }
         }
 
@@ -1494,9 +1511,9 @@ public class RailPath {
                 position.posY = p1.y;
                 position.posZ = p1.z;
             } else {
-                position.posX = p0.x + dt.x * theta;
-                position.posY = p0.y + dt.y * theta;
-                position.posZ = p0.z + dt.z * theta;
+                position.posX = p0.x + p_offset.getX() * theta;
+                position.posY = p0.y + p_offset.getY() * theta;
+                position.posZ = p0.z + p_offset.getZ() * theta;
             }
         }
 
@@ -1554,7 +1571,9 @@ public class RailPath {
          * @return theta
          */
         public final double calcTheta(double x, double y, double z) {
-            return -(((p0.x - x) * dt.x + (p0.y - y) * dt.y + (p0.z - z) * dt.z) / ls);
+            Point p0 = this.p0;
+            Vector mot = this.mot;
+            return -((p0.x - x) * mot.getX() + (p0.y - y) * mot.getY() + (p0.z - z) * mot.getZ());
         }
     }
 

@@ -30,9 +30,9 @@ public class BlockIterator {
         this(rails.x + segment.p0.x,
              rails.y + segment.p0.y,
              rails.z + segment.p0.z,
-             segment.dt_norm.x,
-             segment.dt_norm.y,
-             segment.dt_norm.z,
+             segment.mot.getX(),
+             segment.mot.getY(),
+             segment.mot.getZ(),
              segment.l);
     }
 
