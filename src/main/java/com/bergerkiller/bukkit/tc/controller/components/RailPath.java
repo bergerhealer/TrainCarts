@@ -1209,19 +1209,25 @@ public class RailPath {
     public static class Segment {
         public final Point p0;
         public final Point p1;
-        /** The normalized motion direction vector along this segment */
-        public final Vector mot;
         /** The total offset between p0 and p1 (p1 - p0) */
         public final Vector p_offset;
+        /** The normalized motion direction vector along this segment */
+        public final Vector mot;
+        /** p_offset / ls */
+        private final Vector mot_dt;
         public final Quaternion p0_orientation;
         public final Quaternion p1_orientation;
         /** The up orientation vector changes at all during the movement along this segment */
         public final boolean has_changing_up_orientation;
         /** The delta Y position changes significantly during the movement along this segment */
         public final boolean has_vertical_slope;
+        /** Segment length */
         public final double l;
+        /** Segment length squared */
         public final double ls; // l*l
+        /** 1 / segment length */
         public final double linv; // 1.0 / l
+
         private Segment prev, next;
 
         /** @deprecated Use {@link #p_offset} instead */
@@ -1235,11 +1241,14 @@ public class RailPath {
             p_offset = new Vector(p1.x - p0.x, p1.y - p0.y, p1.z - p0.z);
             ls = p_offset.lengthSquared();
             l = Math.sqrt(ls);
-            linv = (l <= 1e-20) ? 0.0 : (1.0 / l);
-            if (this.isZeroLength()) {
+            if (l <= 1e-20) {
+                linv = 0.0;
                 mot = new Vector();
+                mot_dt = new Vector();
             } else {
+                linv = 1.0 / l;
                 mot = p_offset.clone().multiply(linv);
+                mot_dt = p_offset.clone().multiply(1.0 / ls);
             }
             has_vertical_slope = mot.getY() < -1e-10 || mot.getY() > 1e-10;
 
@@ -1572,7 +1581,7 @@ public class RailPath {
          */
         public final double calcTheta(double x, double y, double z) {
             Point p0 = this.p0;
-            Vector mot = this.mot;
+            Vector mot = this.mot_dt;
             return -((p0.x - x) * mot.getX() + (p0.y - y) * mot.getY() + (p0.z - z) * mot.getZ());
         }
     }
