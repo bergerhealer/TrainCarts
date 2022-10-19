@@ -416,6 +416,9 @@ public final class RailLookup {
         @Deprecated
         public Block railBlock;
 
+        // Cached signblock hashCode(), because bukkit's one is slow
+        private final int signBlockHashCode;
+
         // Cached properties parsed using sign lines
         private SignActionHeader cachedHeader = null;
         private boolean cachedActionSet = false;
@@ -429,6 +432,7 @@ public final class RailLookup {
             // Canned assignment stuff
             this.sign = sign;
             this.signBlock = signBlock;
+            this.signBlockHashCode = signBlock.hashCode();
             this.rail = rail;
             this.railType = rail.type();
             this.railBlock = rail.block();
@@ -675,7 +679,7 @@ public final class RailLookup {
 
         @Override
         public int hashCode() {
-            return this.signBlock.hashCode();
+            return this.signBlockHashCode;
         }
 
         /**
