@@ -120,6 +120,25 @@ public class RailPath {
     }
 
     /**
+     * Gets the end position on this rail path if traveled infinitely forwards
+     * from the input position specified. Can only be used if the input position
+     * was previously moved/snapped on this path.
+     *
+     * @param railBlock Rail Block this path is for
+     * @param position Absolute position (on this path)
+     * @return Absolute position of the end of the path
+     */
+    public Position getEndOfPath(Block railBlock, RailPath.Position position) {
+        RailPath.Segment s = position.wheelSegment;
+        if (s == null) {
+            throw new IllegalArgumentException("Input position was never moved or snapped to a path!");
+        }
+        Position end = (position.motDot(s.dt) > 0.0) ? getEndPosition() : getStartPosition();
+        end.makeAbsolute(railBlock);
+        return end;
+    }
+
+    /**
      * Gets whether this Rail Path is empty. An empty rail path offers no
      * point information, essentially allowing free movement through the space.
      * This is the case when the number of segments is 0.

@@ -448,16 +448,22 @@ public class ObstacleTracker implements TrainStatusProvider {
 
                     // Check for mutex zones the next block. If one is found that is occupied, stop right away
                     if (currentMutex == null) {
-                        double mutexCheckDistance = mutexSoftDistance + iter.currentRailPath.getTotalDistance();
-                        boolean checkForNewMutexes = (checkForNewHardObstacles && distanceFromFront < mutexCheckDistance);
+                        boolean checkForNewMutexes = (checkForNewHardObstacles && distanceFromFront < mutexSoftDistance);
                         if (prevMutex != null || checkForNewMutexes) {
-                            MutexZone newMutex = mutexZones.get(iter.state.positionOfflineBlock().getPosition());
-                            if (newMutex != null) {
-                                // If checking for soft mutexes, always allow
+                            MutexZoneCacheWorld.MutexZoneResult newMutexResult = mutexZones.get(iter);
+                            if (newMutexResult != null) {
+                                // If checking for soft mutexes, always allow if its within range
                                 // If not, it must be the same slot / expanded smart mutex zone to count
-                                if (checkForNewMutexes || prevMutex.slot == newMutex.slot) {
-                                    currentMutex = newMutex;
-                                    currentMutexGroup = newMutex.slot.track(group, distanceFromFront);
+                                double distanceToMutex = distanceFromFront + newMutexResult.distance;
+                                boolean accept;
+                                if (prevMutex != null && prevMutex.slot == newMutexResult.zone.slot) {
+                                    accept = true;
+                                } else {
+                                    accept = checkForNewMutexes && (distanceToMutex < mutexSoftDistance);
+                                }
+                                if (accept) {
+                                    currentMutex = newMutexResult.zone;
+                                    currentMutexGroup = newMutexResult.zone.slot.track(group, distanceToMutex);
                                     currentMutexHard = currentMutexGroup.distanceToMutex <= mutexHardDistance;
                                 }
                             }
@@ -550,13 +556,13 @@ public class ObstacleTracker implements TrainStatusProvider {
                     // one exists at this position. In that case, continue looking.
                     IntVector3 currBlockPos = iter.state.positionOfflineBlock().getPosition();
                     if (!currentMutex.containsBlock(currBlockPos)) {
-                        MutexZone otherMutex = mutexZones.get(currBlockPos);
-                        if (otherMutex == null || otherMutex.slot != currentMutex.slot) {
+                        MutexZoneCacheWorld.MutexZoneResult otherMutex = mutexZones.get(iter);
+                        if (otherMutex == null || otherMutex.zone.slot != currentMutex.slot) {
                             break;
                         }
 
                         // Resume
-                        currentMutex = otherMutex;
+                        currentMutex = otherMutex.zone;
                     }
 
                     // Update
