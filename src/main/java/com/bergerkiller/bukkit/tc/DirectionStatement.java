@@ -38,19 +38,23 @@ public class DirectionStatement {
         }
 
         // Number (counter) statements
-        if (this.text.endsWith("%")) {
-            String value = this.text.substring(0, this.text.length() - 1);
-            try {
-                this.counter = new CounterPercentage(Double.parseDouble(value));
-            } catch (NumberFormatException ex) {
-                this.counter = null;
+        if (startsWithDigit(this.text)) {
+            if (this.text.endsWith("%")) {
+                String value = this.text.substring(0, this.text.length() - 1);
+                try {
+                    this.counter = new CounterPercentage(Double.parseDouble(value));
+                } catch (NumberFormatException ex) {
+                    this.counter = null;
+                }
+            } else {
+                try {
+                    this.counter = new CounterAbsolute(Integer.parseInt(this.text));
+                } catch (NumberFormatException ex) {
+                    this.counter = null;
+                }
             }
         } else {
-            try {
-                this.counter = new CounterAbsolute(Integer.parseInt(this.text));
-            } catch (NumberFormatException ex) {
-                this.counter = null;
-            }
+            this.counter = null;
         }
     }
 
@@ -94,6 +98,19 @@ public class DirectionStatement {
         } else {
             return "{from=" + this.directionFrom + " to=" + this.direction + " when " + this.text + "}";
         }
+    }
+
+    private static boolean startsWithDigit(String str) {
+        int len = str.length();
+        for (int i = 0; i < len; i++) {
+            char ch = str.charAt(i);
+            if (Character.isDigit(ch)) {
+                return true;
+            } else if (ch != ' ' && ch != '\t' && ch != '-' && ch != '+') {
+                return false;
+            }
+        }
+        return false;
     }
 
     /**
