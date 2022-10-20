@@ -25,6 +25,7 @@ import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedSta
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.annotations.specifier.FlagYielding;
 import cloud.commandframework.annotations.specifier.Greedy;
 
 /**
@@ -59,13 +60,14 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         setTrainTags(sender, properties, null);
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("tags")
     @CommandMethod("train tags set [tags]")
     @CommandDescription("Clears the previous tags and sets new tags for carts of the train")
     private void setTrainTags(
             final CommandSender sender,
             final TrainProperties properties,
-            final @Argument("tags") @Greedy String[] tags
+            final @FlagYielding @Argument("tags") String[] tags
     ) {
         if (tags != null && tags.length > 0) {
             properties.setTags(tags);
@@ -75,39 +77,6 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
             properties.setTags(new String[0]);
             sender.sendMessage(ChatColor.GREEN + "Tags of train have been cleared.");
         }
-    }
-
-    @CommandMethod("train tags add_many <tags>")
-    @CommandDescription("Adds tags to a train")
-    private void addTrainTags(
-            final CommandSender sender,
-            final TrainProperties properties,
-            final @Argument("tags") @Greedy String[] tags
-    ) {
-        if (tags != null && tags.length > 0) {
-            properties.addTags(tags);
-            sender.sendMessage(ChatColor.GREEN + "Added tags: "
-                    + ChatColor.WHITE + StringUtil.combineNames(tags));
-        }
-
-        getTrainTags(sender, properties);
-    }
-
-    @PropertyCheckPermission("tags")
-    @CommandMethod("train tags remove_many <tags>")
-    @CommandDescription("Removes tags from a train")
-    private void removeTrainTags(
-            final CommandSender sender,
-            final TrainProperties properties,
-            final @Argument("tags") @Greedy String[] tags
-    ) {
-        if (tags != null && tags.length > 0) {
-            properties.removeTags(tags);
-            sender.sendMessage(ChatColor.GREEN + "Removed tags: "
-                    + ChatColor.WHITE + StringUtil.combineNames(tags));
-        }
-
-        getTrainTags(sender, properties);
     }
 
     @CommandMethod("cart tags")
@@ -135,13 +104,14 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         setCartTags(sender, properties, null);
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("tags")
     @CommandMethod("cart tags set [tags]")
     @CommandDescription("Clears the previous tags and sets new tags for a cart")
     private void setCartTags(
             final CommandSender sender,
             final CartProperties properties,
-            final @Argument("tags") @Greedy String[] tags
+            final @FlagYielding @Argument("tags") String[] tags
     ) {
         if (tags != null && tags.length > 0) {
             properties.setTags(tags);
@@ -153,13 +123,50 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         }
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("tags")
-    @CommandMethod("cart tags add_many <tags>")
-    @CommandDescription("Adds tags to a cart")
-    private void addCartTags(
+    @CommandMethod("train tags add|add_many <tags>")
+    @CommandDescription("Adds one or more tags to the train")
+    private void addTrainSingleTag(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @FlagYielding @Argument("tags") String[] tags
+    ) {
+        if (tags != null && tags.length > 0) {
+            properties.addTags(tags);
+            sender.sendMessage(ChatColor.GREEN + "Added tags: "
+                    + ChatColor.WHITE + StringUtil.combineNames(tags));
+        }
+
+        getTrainTags(sender, properties);
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("tags")
+    @CommandMethod("train tags remove|remove_many <tags>")
+    @CommandDescription("Removes one or more tags from the train")
+    private void removeTrainSingleTag(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @FlagYielding @Argument("tags") String[] tags
+    ) {
+        if (tags != null && tags.length > 0) {
+            properties.removeTags(tags);
+            sender.sendMessage(ChatColor.GREEN + "Removed tags: "
+                    + ChatColor.WHITE + StringUtil.combineNames(tags));
+        }
+
+        getTrainTags(sender, properties);
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("tags")
+    @CommandMethod("cart tags add|add_many <tags>")
+    @CommandDescription("Adds one or more tags to the cart")
+    private void addCartSingleTag(
             final CommandSender sender,
             final CartProperties properties,
-            final @Argument("tags") @Greedy String[] tags
+            final @FlagYielding @Argument("tags") String[] tags
     ) {
         if (tags != null && tags.length > 0) {
             properties.addTags(tags);
@@ -170,13 +177,14 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         getCartTags(sender, properties);
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("tags")
-    @CommandMethod("cart tags remove_many <tags>")
-    @CommandDescription("Removes tags from a cart")
-    private void removeCartTags(
+    @CommandMethod("cart tags remove|remove_many <tags>")
+    @CommandDescription("Removes one or more tags from the cart")
+    private void removeCartSingleTag(
             final CommandSender sender,
             final CartProperties properties,
-            final @Argument("tags") @Greedy String[] tags
+            final @FlagYielding @Argument("tags") String[] tags
     ) {
         if (tags != null && tags.length > 0) {
             properties.removeTags(tags);
@@ -185,54 +193,6 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         }
 
         getCartTags(sender, properties);
-    }
-
-    @CommandTargetTrain
-    @PropertyCheckPermission("tags")
-    @CommandMethod("train tags add <tag>")
-    @CommandDescription("Adds a single tag to the train, supports targeting")
-    private void addTrainSingleTag(
-            final CommandSender sender,
-            final TrainProperties properties,
-            final @Argument("tag") String tag
-    ) {
-        addTrainTags(sender, properties, new String[] {tag});
-    }
-
-    @CommandTargetTrain
-    @PropertyCheckPermission("tags")
-    @CommandMethod("train tags remove <tag>")
-    @CommandDescription("Removes a single tag from the train, supports targeting")
-    private void removeTrainSingleTag(
-            final CommandSender sender,
-            final TrainProperties properties,
-            final @Argument("tag") String tag
-    ) {
-        removeTrainTags(sender, properties, new String[] {tag});
-    }
-
-    @CommandTargetTrain
-    @PropertyCheckPermission("tags")
-    @CommandMethod("cart tags add <tag>")
-    @CommandDescription("Adds a single tag to the cart, supports targeting")
-    private void addCartSingleTag(
-            final CommandSender sender,
-            final CartProperties properties,
-            final @Argument("tag") String tag
-    ) {
-        addCartTags(sender, properties, new String[] {tag});
-    }
-
-    @CommandTargetTrain
-    @PropertyCheckPermission("tags")
-    @CommandMethod("cart tags remove <tag>")
-    @CommandDescription("Removes a single tag from the cart, supports targeting")
-    private void removeCartSingleTag(
-            final CommandSender sender,
-            final CartProperties properties,
-            final @Argument("tag") String tag
-    ) {
-        removeCartTags(sender, properties, new String[] {tag});
     }
 
     @PropertyParser("settag|tags set")

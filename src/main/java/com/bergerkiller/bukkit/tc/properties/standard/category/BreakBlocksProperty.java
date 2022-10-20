@@ -25,6 +25,7 @@ import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedSta
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.annotations.specifier.FlagYielding;
 
 /**
  * Configures blocks automatically broken by carts
@@ -80,13 +81,14 @@ public final class BreakBlocksProperty extends FieldBackedStandardCartProperty<S
         sender.sendMessage(ChatColor.YELLOW + "Train block break types have been cleared!");
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("breakblocks")
     @CommandMethod("cart breakblocks|break <block_types>")
     @CommandDescription("Sets the list of blocks broken by the cart")
     private void setProperty(
             final CommandSender sender,
             final CartProperties properties,
-            final @Argument("block_types") String[] args
+            final @FlagYielding @Argument("block_types") String[] args
     ) {
         boolean anyblock = Permission.PROPERTY_BREAKBLOCKS_ADMIN.has(sender);
         boolean asBreak = true;
@@ -125,13 +127,14 @@ public final class BreakBlocksProperty extends FieldBackedStandardCartProperty<S
         }
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("breakblocks")
     @CommandMethod("train breakblocks|break <block_types>")
     @CommandDescription("Sets the list of blocks broken by the train")
     private void setProperty(
             final CommandSender sender,
             final TrainProperties properties,
-            final @Argument("block_types") String[] args
+            final @FlagYielding @Argument("block_types") String[] args
     ) {
         boolean anyblock = Permission.PROPERTY_BREAKBLOCKS_ADMIN.has(sender);
         boolean asBreak = true;

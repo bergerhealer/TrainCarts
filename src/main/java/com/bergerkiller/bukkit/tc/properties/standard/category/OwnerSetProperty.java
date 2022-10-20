@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -26,6 +27,7 @@ import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedSta
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.annotations.specifier.FlagYielding;
 
 /**
  * Set of usernames of owners of a cart who have permission to edit it
@@ -80,13 +82,14 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
         sender.sendMessage(ChatColor.GREEN + "You are now the only owner of this cart!");
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("owners")
     @CommandMethod("cart owners add <player_names>")
     @CommandDescription("Adds players as owners of a cart")
     private void setPropertyAdd(
             final CommandSender sender,
             final CartProperties properties,
-            final @Argument("player_names") String[] playerNames
+            final @FlagYielding @Argument("player_names") String[] playerNames
     ) {
         if (playerNames != null && playerNames.length > 0) {
             sender.sendMessage(ChatColor.GREEN + "Adding owners to cart: "
@@ -98,13 +101,14 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
         getProperty(sender, properties);
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("owners")
     @CommandMethod("cart owners remove <player_names>")
     @CommandDescription("Removes players as owners of a cart")
     private void setPropertyRemove(
             final CommandSender sender,
             final CartProperties properties,
-            final @Argument("player_names") String[] playerNames
+            final @FlagYielding @Argument("player_names") String[] playerNames
     ) {
         if (playerNames != null && playerNames.length > 0) {
             sender.sendMessage(ChatColor.GREEN + "Removing owners from cart: "
@@ -116,13 +120,14 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
         getProperty(sender, properties);
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("owners")
     @CommandMethod("cart owners set <player_names>")
     @CommandDescription("Discards previous owners and sets players as owners of a cart")
     private void setProperty(
             final CommandSender sender,
             final CartProperties properties,
-            final @Argument("player_names") String[] playerNames
+            final @FlagYielding @Argument("player_names") String[] playerNames
     ) {
         if (playerNames != null && playerNames.length > 0) {
             properties.clearOwners();
@@ -173,13 +178,14 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
         sender.sendMessage(ChatColor.GREEN + "You are now the only owner of this train!");
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("owners")
     @CommandMethod("train owners add <player_names>")
     @CommandDescription("Adds players as owners of all carts of a train")
     private void setPropertyAdd(
             final CommandSender sender,
             final TrainProperties properties,
-            final @Argument("player_names") String[] playerNames
+            final @FlagYielding @Argument("player_names") String[] playerNames
     ) {
         if (playerNames != null && playerNames.length > 0) {
             sender.sendMessage(ChatColor.GREEN + "Adding owners to train: "
@@ -191,13 +197,14 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
         getProperty(sender, properties);
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("owners")
     @CommandMethod("train owners remove <player_names>")
     @CommandDescription("Removes players as owners of all carts of a train")
     private void setPropertyRemove(
             final CommandSender sender,
             final TrainProperties properties,
-            final @Argument("player_names") String[] playerNames
+            final @FlagYielding @Argument("player_names") String[] playerNames
     ) {
         if (playerNames != null && playerNames.length > 0) {
             sender.sendMessage(ChatColor.GREEN + "Removing owners from train: "
@@ -209,13 +216,14 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
         getProperty(sender, properties);
     }
 
+    @CommandTargetTrain
     @PropertyCheckPermission("owners")
     @CommandMethod("train owners set <player_names>")
     @CommandDescription("Discards previous owners and sets players as owners of all carts of a train")
     private void setProperty(
             final CommandSender sender,
             final TrainProperties properties,
-            final @Argument("player_names") String[] playerNames
+            final @FlagYielding @Argument("player_names") String[] playerNames
     ) {
         if (playerNames != null && playerNames.length > 0) {
             properties.clearOwners();

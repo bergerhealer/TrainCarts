@@ -32,6 +32,7 @@ import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.annotations.specifier.FlagYielding;
 import cloud.commandframework.annotations.specifier.Greedy;
 import cloud.commandframework.annotations.suggestions.Suggestions;
 import cloud.commandframework.context.CommandContext;
@@ -127,7 +128,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
     private void setPropertyAdd(
             final CommandSender sender,
             final CartProperties properties,
-            final @Argument(value="destinations", suggestions="destinations") String[] destinations
+            final @FlagYielding @Argument(value="destinations", suggestions="destinations") String[] destinations
     ) {
         setPropertyAddGeneric(sender, properties, destinations);
     }
@@ -139,7 +140,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
     private void setPropertySet(
             final CommandSender sender,
             final CartProperties properties,
-            final @Argument(value="destinations", suggestions="destinations") String[] destinations
+            final @FlagYielding @Argument(value="destinations", suggestions="destinations") String[] destinations
     ) {
         setPropertySetGeneric(sender, properties, destinations);
     }
@@ -151,7 +152,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
     private void setPropertyRemove(
             final CommandSender sender,
             final CartProperties properties,
-            final @Argument(value="destinations", suggestions="destinations") String[] destinations
+            final @FlagYielding @Argument(value="destinations", suggestions="destinations") String[] destinations
     ) {
         setPropertyRemoveGeneric(sender, properties, destinations);
     }
@@ -210,7 +211,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
     private void setPropertyAdd(
             final CommandSender sender,
             final TrainProperties properties,
-            final @Argument(value="destinations", suggestions="destinations") String[] destinations
+            final @FlagYielding @Argument(value="destinations", suggestions="destinations") String[] destinations
     ) {
         setPropertyAddGeneric(sender, properties, destinations);
     }
@@ -222,7 +223,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
     private void setPropertySet(
             final CommandSender sender,
             final TrainProperties properties,
-            final @Argument(value="destinations", suggestions="destinations") String[] destinations
+            final @FlagYielding @Argument(value="destinations", suggestions="destinations") String[] destinations
     ) {
         setPropertySetGeneric(sender, properties, destinations);
     }
@@ -234,7 +235,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
     private void setPropertyRemove(
             final CommandSender sender,
             final TrainProperties properties,
-            final @Argument(value="destinations", suggestions="destinations") String[] destinations
+            final @FlagYielding @Argument(value="destinations", suggestions="destinations") String[] destinations
     ) {
         setPropertyRemoveGeneric(sender, properties, destinations);
     }
