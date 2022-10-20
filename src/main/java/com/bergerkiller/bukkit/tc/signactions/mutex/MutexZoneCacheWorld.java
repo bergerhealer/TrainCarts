@@ -217,19 +217,35 @@ public class MutexZoneCacheWorld {
                 zones = Arrays.asList(findZonesInChunk(cx1, cz1));
             } else {
                 zones = Collections.emptyList();
-                int dx = cx1 > cx2 ? -1 : 1;
-                int dz = cz1 > cz2 ? -1 : 1;
-                for (int cx = cx1; cx <= cx2; cx += dx) {
-                    for (int cz = cz1; cz <= cz2; cz += dz) {
-                        for (MutexZone zone : findZonesInChunk(cx, cz)) {
-                            if (zones.isEmpty()) {
-                                zones = new ArrayList<>(4);
-                                zones.add(zone);
-                            } else if (!zones.contains(zone)) {
-                                zones.add(zone);
+
+                final int cx_step = (cx1 > cx2) ? -1 : 1;
+                final int cz_step = (cz1 > cz2) ? -1 : 1;
+                int cz = cz1;
+                while (true) {
+                    int cx = cx1;
+                    while (true) {
+                        // Loops from cx1/cz1 -> cx2/cz2
+                        {
+                            for (MutexZone zone : findZonesInChunk(cx, cz)) {
+                                if (zones.isEmpty()) {
+                                    zones = new ArrayList<>(4);
+                                    zones.add(zone);
+                                } else if (!zones.contains(zone)) {
+                                    zones.add(zone);
+                                }
                             }
                         }
+
+                        if (cx == cx2)
+                            break;
+                        else
+                            cx += cx_step;
                     }
+
+                    if (cz == cz2)
+                        break;
+                    else
+                        cz += cz_step;
                 }
             }
 
