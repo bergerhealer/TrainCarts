@@ -673,19 +673,6 @@ public class TrainCarts extends PluginBase {
         //Load arrival times
         ArrivalSigns.init(getDataFolder() + File.separator + "arrivaltimes.txt");
 
-        //Restore carts where possible
-        log(Level.INFO, "Restoring trains and loading nearby chunks...");
-        {
-            // Check chunks that are already loaded first
-            OfflineGroupManager.refresh(this);
-
-            // Get all chunks to be kept loaded and load them right now
-            preloadChunks(OfflineGroupManager.getForceLoadedChunks());
-        }
-
-        //Activate all detector regions with trains that are on it
-        DetectorRegion.detectAllMinecarts();
-
         // Cleans up unused cached rail types over time to avoid memory leaks
         cacheCleanupTask = new CacheCleanupTask(this).start(1, 1);
 
@@ -710,6 +697,19 @@ public class TrainCarts extends PluginBase {
         this.register(listener = new TCListener(this));
         this.register(new TCSeatChangeListener());
         this.register(new TrainChestListener(this));
+
+        //Restore carts where possible
+        log(Level.INFO, "Restoring trains and loading nearby chunks...");
+        {
+            // Check chunks that are already loaded first
+            OfflineGroupManager.refresh(this);
+
+            // Get all chunks to be kept loaded and load them right now
+            preloadChunks(OfflineGroupManager.getForceLoadedChunks());
+        }
+
+        //Activate all detector regions with trains that are on it
+        DetectorRegion.detectAllMinecarts();
 
         // Paper player view distance logic handling
         if (Util.hasPaperViewDistanceSupport()) {
