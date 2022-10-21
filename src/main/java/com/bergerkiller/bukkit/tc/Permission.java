@@ -11,8 +11,8 @@ import org.bukkit.permissions.PermissionDefault;
  */
 public enum Permission implements IPermissionEnum {
     COMMAND_GLOBALPROPERTIES("train.command.globalproperties", PermissionDefault.OP, "The player can edit the properties of all carts"),
-    COMMAND_PROPERTIES("train.command.properties", PermissionDefault.TRUE, "The player can edit the properties of carts he owns"),
-    COMMAND_TARGET_NEAR("train.command.targetnear", PermissionDefault.TRUE, "The player can use the --near selector to target carts he owns"),
+    COMMAND_PROPERTIES("train.command.properties", PermissionDefault.TRUE, "The player can edit the properties of owned carts"),
+    COMMAND_TARGET_NEAR("train.command.targetnear", PermissionDefault.TRUE, "The player can use the --near selector to target owned carts"),
 
     // Powerful permission to apply all properties from defaults
     PROPERTY_APPLYDEFAULTS("train.property.applydefaults", PermissionDefault.OP, "The player can apply defaults from DefaultTrainProperties.yml to trains"),
@@ -64,7 +64,7 @@ public enum Permission implements IPermissionEnum {
     COMMAND_CHANGEBLOCK("train.command.changeblock", PermissionDefault.OP, "Whether the player can alter the type of block displayed in a minecart"),
     COMMAND_CHANGETICK("train.command.changetick", PermissionDefault.OP, "Whether the player can alter the global update tick rate of TrainCarts (debug!)"),
     COMMAND_ISSUE("train.command.issue", PermissionDefault.TRUE, "Whether the player can report problems with TrainCarts"),
-    COMMAND_GIVE_EDITOR("train.command.editor", PermissionDefault.OP, "Whether the player can use commands to give himself editors for trains (models) and signs"),
+    COMMAND_GIVE_EDITOR("train.command.editor", PermissionDefault.OP, "Whether the player can use in-game editors for trains (models) and signs"),
     COMMAND_STORAGE_CHEST_USE("train.command.chest.use", PermissionDefault.OP, "Whether the player can use a chest item to suck up trains or spawn the train stored within"),
     COMMAND_STORAGE_CHEST_CREATE("train.command.chest.create", PermissionDefault.OP, "Whether the player can create and modify a chest item that can store and spawn trains"),
     COMMAND_SAVE_TRAIN("train.command.save", PermissionDefault.OP, "Whether the player can use a command to save a train under a name"),
@@ -111,7 +111,7 @@ public enum Permission implements IPermissionEnum {
     BUILD_BLOCKER("train.build.blocker", PermissionDefault.OP, "The player can build train blockers"),
     BUILD_WAIT("train.build.wait", PermissionDefault.OP, "The player can build train wait signs"),
     BUILD_CRAFTER("train.build.crafter", PermissionDefault.OP, "The player can build item crafter signs"),
-    BUILD_TICKET("train.build.ticket", PermissionDefault.OP, "The player can build a sign that will charge money or ejects a player if he can't pay"),
+    BUILD_TICKET("train.build.ticket", PermissionDefault.OP, "The player can build a sign that will charge money or ejects players that can't pay"),
     BUILD_ANNOUNCER("train.build.announcer", PermissionDefault.OP, "The player can build a sign that sends a message to all the players in a train"),
     BUILD_EFFECT("train.build.effect", PermissionDefault.OP, "The player can build a sign that can play an effect"),
     BUILD_SOUND("train.build.sound", PermissionDefault.OP, "The player can build a sign that can play a sound"),
