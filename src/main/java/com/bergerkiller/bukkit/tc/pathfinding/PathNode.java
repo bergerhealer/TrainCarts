@@ -100,14 +100,14 @@ public class PathNode {
         }
         // Initial distance check before continuing
         if (node.lastDistance < currentDistance || currentDistance > maxDistance) {
-            return Integer.MAX_VALUE;
+            return Double.MAX_VALUE;
         }
         node.lastDistance = currentDistance;
         // Check all neighbors and obtain the lowest distance recursively
         double distance;
         for (PathConnection connection : node.neighbors) {
             distance = getDistanceTo(conn, connection, currentDistance, maxDistance, destination);
-            if (maxDistance > distance) {
+            if (distance < maxDistance) {
                 maxDistance = distance;
                 node.lastTaken = connection;
             }
@@ -143,15 +143,15 @@ public class PathNode {
      */
     public PathConnection findConnection(PathNode destination) {
         for (PathNode node : world.getNodes()) {
-            node.lastDistance = Integer.MAX_VALUE;
+            node.lastDistance = Double.MAX_VALUE;
             node.lastTaken = null;
         }
-        double minDistance = Integer.MAX_VALUE;
+        double minDistance = Double.MAX_VALUE;
         double distance;
         final PathConnection from = new PathConnection(this, 0, "");
         for (PathConnection connection : this.neighbors) {
             distance = getDistanceTo(from, connection, 0.0, minDistance, destination);
-            if (minDistance > distance) {
+            if (distance < minDistance) {
                 minDistance = distance;
                 this.lastTaken = connection;
             }
@@ -177,7 +177,9 @@ public class PathNode {
         PathConnection conn = this.lastTaken;
         while (conn != null) {
             route.add(conn);
-            conn = conn.destination.lastTaken;
+            PathNode connDest = conn.destination;
+            conn = connDest.lastTaken;
+            connDest.lastTaken = null; // Avoid infinite loops
         }
         return route.toArray(new PathConnection[0]);
     }
