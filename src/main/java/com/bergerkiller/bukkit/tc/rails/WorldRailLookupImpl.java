@@ -958,6 +958,7 @@ final class WorldRailLookupImpl implements WorldRailLookup {
         @Override
         public void forceCacheVerification() {
             this.rail_life = RailLookup.LIFE_TIMER_START;
+            this.signs = RailLookup.MISSING_RAILS_NO_SIGNS;
         }
     }
 
