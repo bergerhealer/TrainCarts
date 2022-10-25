@@ -137,13 +137,12 @@ public abstract class SignTracker {
     }
 
     /**
-     * Checks whether the Minecart Member or Group is traveling on top of a given rails block<br>
-     * <br>
-     * <b>Deprecated:</b> use {@link MinecartMember#getRailTracker()} or
-     * {@link MinecartGroup#getRailTracker()} for this instead.
+     * Checks whether the Minecart Member or Group is traveling on top of a given rails block
      *
      * @param railsBlock to check
      * @return True if part of the rails, False if not
+     * @deprecated Use {@link MinecartMember#getRailTracker()} or
+     *             {@link MinecartGroup#getRailTracker()} for this instead.
      */
     @Deprecated
     public abstract boolean isOnRails(Block railsBlock);

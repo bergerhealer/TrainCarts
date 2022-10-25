@@ -703,10 +703,10 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     /**
      * Gets whether the entity yaw is inverted 180 degrees with the actual
-     * direction.<br>
-     * <b>Deprecated: use {@link #isOrientationInverted()} instead</b>
-     * 
+     * direction.
+     *
      * @return True if inverted, False if not
+     * @deprecated Use {@link #isOrientationInverted()} instead
      */
     @Deprecated
     public boolean isYawInverted() {

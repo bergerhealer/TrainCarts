@@ -225,10 +225,11 @@ public abstract class RailType {
     }
 
     /**
-     * <b>Deprecated: use {@link #findRailPiece(Location)} instead</b>
-     * 
+     * Looks up a rail piece used at a block position
+     *
      * @param blockPosition block position where the Minecart is at
      * @return rail piece at this block, null if no rails are found
+     * @deprecated Use {@link #findRailPiece(Location)} instead
      */
     @Deprecated
     public static RailPiece findRailPiece(Block blockPosition) {
@@ -383,10 +384,11 @@ public abstract class RailType {
     }
 
     /**
-     * <b>Deprecated: use {@link #findRails(Block)} instead.</b>
+     * Finds the rail block at a block position
      *
      * @param pos Block a Minecart is 'at'
      * @return the rail of this type, or null if not found
+     * @deprecated Use {@link #findRails(Block)} instead.
      */
     @Deprecated
     public Block findRail(Block pos) {
@@ -407,20 +409,21 @@ public abstract class RailType {
     }
 
     /**
-     * <b>Deprecated: this is no longer being used</b>
+     * Finds the minecart pos of a given rail block
      *
      * @param trackBlock where this Rail Type is at
      * @return Minecart position
+     * @deprecated This is no longer being used
      */
     @Deprecated
     public abstract Block findMinecartPos(Block trackBlock);
 
     /**
-     * Gets an array containing all possible directions a Minecart can move on the trackBlock.<br>
-     * <b>Deprecated: implement {@link #getJunctions()} instead (if needed)</b>
+     * Gets an array containing all possible directions a Minecart can move on the trackBlock.
      *
      * @param trackBlock to use
      * @return all possible directions the Minecart can move
+     * @deprecated Call / implement {@link #getJunctions()} instead (if needed)
      */
     @Deprecated
     public abstract BlockFace[] getPossibleDirections(Block trackBlock);
@@ -487,12 +490,11 @@ public abstract class RailType {
 
     /**
      * Obtains the direction of this type of Rails.
-     * This is the direction along minecarts move.<br>
-     * <br>
-     * <b>Deprecated: BlockFace offers too little information, use RailState for computing this instead</b>
+     * This is the direction along minecarts move.
      *
      * @param railsBlock to get it for
      * @return rails Direction
+     * @deprecated BlockFace offers too little information, use RailState for computing this instead
      */
     @Deprecated
     public BlockFace getDirection(Block railsBlock) {

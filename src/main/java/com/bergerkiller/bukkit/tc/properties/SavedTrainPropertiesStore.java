@@ -311,18 +311,16 @@ public class SavedTrainPropertiesStore implements TrainCarts.Provider {
     }
 
     /**
-     * Saves the train information under a name.<br>
-     * <br>
-     * <b>Deprecated: saving has been split into two methods, use those instead:
-     * <ul>
-     * <li>{@link #saveGroup(name, group)}
-     * <li>{@link #setModuleNameOfTrain(name, module)}
-     * </ul>
-     * </b>
-     * 
+     * Saves the train information under a name.
+     *
      * @param group to save
      * @param name to save as
      * @param module to save in. null for the default store.
+     * @deprecated Saving has been split into two methods, use those instead:
+     *             <ul>
+     *             <li>{@link #saveGroup(name, group)}
+     *             <li>{@link #setModuleNameOfTrain(name, module)}
+     *             </ul>
      */
     @Deprecated
     public void save(MinecartGroup group, String name, String module) throws IllegalNameException {

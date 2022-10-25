@@ -160,11 +160,11 @@ public class Station {
     }
 
     /**
-     * Gets the minecart that has to be centered above the sign<br>
-     * <b>Deprecated: unused because it fails with different size carts</b>
+     * Gets the minecart that has to be centered above the sign
      *
      * @param offset forwards into the train
      * @return center minecart
+     * @deprecated Should not be used because it fails with different size carts
      */
     @Deprecated
     public MinecartMember<?> getCenterCart(int offset) {
@@ -204,10 +204,10 @@ public class Station {
     }
 
     /**
-     * Gets the minecart that has to be centered above the sign<br>
-     * <b>Deprecated: unused because it fails with different size carts</b>
+     * Gets the minecart that has to be centered above the sign
      *
      * @return center minecart
+     * @deprecated Should not be used because it fails with different size carts
      */
     @Deprecated
     public MinecartMember<?> getCenterCart() {

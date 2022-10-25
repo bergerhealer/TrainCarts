@@ -137,15 +137,14 @@ public class RailLogicHorizontal extends RailLogic {
     }
 
     /**
-     * <b>Deprecated: was used before the introduction of Rail Paths. This is here
-     * for backwards compatibility with plugins like TC Hangrail</b><br><br>
-     * 
      * Gets the position of the Minecart when snapped to the rails. The input
      * position vector is adjusted, with the result written into the same vector.
      * This is only used once when creating the path for this rail logic.
-     * 
+     *
      * @param position input and result output
      * @param railPos of the rails using this logic
+     * @deprecated Was used before the introduction of Rail Paths. This is here
+     *             for backwards compatibility with plugins like TC Hangrail
      */
     @Deprecated
     public void getFixedPosition(Vector position, IntVector3 railPos) {

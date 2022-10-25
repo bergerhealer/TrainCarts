@@ -257,15 +257,14 @@ public class SignActionSpawn extends SignAction {
      * The first location is always the startLoc Location.
      * With atCenter is true, the first cart spawned will be positioned at the start location,
      * even if that width clips through other blocks. When false, it will be spawned at an offset away
-     * to make sure the cart edge does not clip past startLoc.<br>
-     * <br>
-     * <b>Deprecated: there are now methods for this in {@link SpawnableGroup}</b>
-     * 
+     * to make sure the cart edge does not clip past startLoc.
+     *
      * @param startLoc position to start spawning from
      * @param atCenter whether the first spawn position is the startLoc (true), or an offset away (false)
      * @param directionFace of spawning
      * @param types of spawnable members to spawn
      * @return spawn locations list. Number of locations may be less than the number of types.
+     * @deprecated There are now methods for this in {@link SpawnableGroup}
      */
     @Deprecated
     public static List<Location> getSpawnPositions(Location startLoc, boolean atCenter, BlockFace directionFace, List<SpawnableMember> types) {

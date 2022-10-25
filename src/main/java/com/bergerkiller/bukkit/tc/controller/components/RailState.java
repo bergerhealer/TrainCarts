@@ -237,10 +237,10 @@ public class RailState {
     }
 
     /**
-     * Sets the rails block.<br>
-     * <b>Deprecated: use {@link #setRailPiece(RailPiece)} instead</b>
-     * 
+     * Sets the rails block.
+     *
      * @param railsBlock
+     * @deprecated Use {@link #setRailPiece(RailPiece)} instead
      */
     @Deprecated
     public void setRailBlock(Block railsBlock) {
@@ -248,10 +248,10 @@ public class RailState {
     }
 
     /**
-     * Sets the rail type.<br>
-     * <b>Deprecated: use {@link #setRailPiece(RailPiece)} instead</b>
-     * 
+     * Sets the rail type.
+     *
      * @param type
+     * @deprecated Use {@link #setRailPiece(RailPiece)} instead
      */
     @Deprecated
     public void setRailType(RailType type) {
@@ -438,12 +438,12 @@ public class RailState {
     }
 
     /**
-     * Gets the Rail State when spawned on a rails block<br>
-     * <b>Deprecated: {@link #getSpawnState(RailPiece)} is more efficient</b>
-     * 
+     * Gets the Rail State when spawned on a rails block
+     *
      * @param railType
      * @param railBlock
      * @return spawn state
+     * @deprecated {@link #getSpawnState(RailPiece)} is more efficient
      */
     @Deprecated
     public static RailState getSpawnState(RailType railType, Block railBlock) {

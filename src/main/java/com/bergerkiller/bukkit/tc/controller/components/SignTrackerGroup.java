@@ -50,12 +50,11 @@ public class SignTrackerGroup extends SignTracker {
 
     /**
      * Gets the Minecart Member part of this Group that is traveling on the
-     * rails block specified.<br>
-     * <br>
-     * <b>Deprecated:</b> use the {@link MinecartGroup#getRailTracker()} for this instead.
+     * rails block specified.
      *
      * @param railsBlock to get the Minecart Member for
      * @return the Minecart Member, or null if not found
+     * @deprecated Use the {@link MinecartGroup#getRailTracker()} for this instead.
      */
     @Deprecated
     public MinecartMember<?> getMemberFromRails(Block railsBlock) {
@@ -64,12 +63,11 @@ public class SignTrackerGroup extends SignTracker {
 
     /**
      * Gets the Minecart Member part of this Group that is traveling on the
-     * rails block specified.<br>
-     * <br>
-     * <b>Deprecated:</b> use the {@link MinecartGroup#getRailTracker()} for this instead.
+     * rails block specified.
      *
      * @param railsBlockPosition to get the Minecart Member for
      * @return the Minecart Member, or null if not found
+     * @deprecated Use the {@link MinecartGroup#getRailTracker()} for this instead.
      */
     @Deprecated
     public MinecartMember<?> getMemberFromRails(IntVector3 railsBlockPosition) {

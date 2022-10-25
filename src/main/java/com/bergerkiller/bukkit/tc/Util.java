@@ -172,7 +172,7 @@ public class Util {
     }
 
     /**
-     * <b>Deprecated: use {@link RailPiece#signs()} instead</b>
+     * @deprecated use {@link RailPiece#signs()} instead
      */
     @Deprecated
     public static List<Block> getSignsFromRails(Block railsblock) {
@@ -180,7 +180,7 @@ public class Util {
     }
 
     /**
-     * <b>Deprecated: use {@link RailPiece#signs()} instead</b>
+     * @deprecated use {@link RailPiece#signs()} instead
      */
     @Deprecated
     public static List<Block> getSignsFromRails(List<Block> rval, Block railsblock) {
@@ -190,7 +190,7 @@ public class Util {
     }
 
     /**
-     * <b>Deprecated: use {@link RailPiece#signs()} instead</b>
+     * @deprecated use {@link RailPiece#signs()} instead
      */
     @Deprecated
     public static void addSignsFromRails(List<Block> rval, Block railsBlock) {
@@ -222,10 +222,11 @@ public class Util {
     }
 
     /**
-     * <b>Deprecated: use RailSignCache.getRailsFromSign(signblock) instead</b>
+     * Looks up the rails block from a sign block
      * 
      * @param signblock
      * @return rail block
+     * @deprecated use {@link RailLookup#discoverRailPieceFromSign(Block)} instead
      */
     @Deprecated
     public static Block getRailsFromSign(Block signblock) {

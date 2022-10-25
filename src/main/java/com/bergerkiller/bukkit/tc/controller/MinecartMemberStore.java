@@ -348,12 +348,11 @@ public abstract class MinecartMemberStore {
     }
 
     /**
-     * Gets the Member that drives on the rails block specified.<br>
-     * <br>
-     * <b>Deprecated: more than one cart can exist at a rail block. Use {@link RailPiece#members()} instead.</b>
+     * Gets the Member that drives on the rails block specified.
      * 
      * @param block of the rails
      * @return Minecart Member that drives on this Rail Block, null if not found
+     * @deprecated More than one cart can exist at a rail block. Use {@link RailPiece#members()} instead.
      */
     @Deprecated
     public static MinecartMember<?> getAt(Block block) {
@@ -362,13 +361,12 @@ public abstract class MinecartMemberStore {
     }
 
     /**
-     * Gets the Member that drives on the rails block specified.<br>
-     * <br>
-     * <b>Deprecated: more than one cart can exist at a rail block. Use {@link RailPiece#members()} instead.</b>
-     * 
+     * Gets the Member that drives on the rails block specified.
+     *
      * @param world to look in
      * @param coord of the rails block
      * @return Minecart Member that drives on this Rail Block, null if not found
+     * @deprecated More than one cart can exist at a rail block. Use {@link RailPiece#members()} instead.
      */
     @Deprecated
     public static MinecartMember<?> getAt(org.bukkit.World world, IntVector3 coord) {
@@ -401,12 +399,11 @@ public abstract class MinecartMemberStore {
     }
 
     /**
-     * Gets the Member that drives on the rails block specified for the rails at the position specified.<br>
-     * <br>
-     * <b>Deprecated: more than one cart can exist at a rail block. Use {@link RailPiece#members()} instead.</b>
+     * Gets the Member that drives on the rails block specified for the rails at the position specified.
      *
      * @param at Location the Member is expected to be at
      * @return Minecart Member that drives on this Rail Block, null if not found
+     * @deprecated More than one cart can exist at a rail block. Use {@link RailPiece#members()} instead.
      */
     public static MinecartMember<?> getAt(Location at) {
         RailPiece piece = RailType.findRailPiece(at);

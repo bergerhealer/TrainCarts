@@ -279,11 +279,10 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
     }
 
     /**
-     * Gets the direction a minecart has above the rails of this Sign.<br>
-     * <br>
-     * <b>Deprecated: use {@link #getCartEnterFace} instead</b>
+     * Gets the direction a minecart has above the rails of this Sign.
      *
      * @return cart direction
+     * @deprecated Use {@link #getCartEnterFace} instead
      */
     @Deprecated
     public BlockFace getCartDirection() {
@@ -294,12 +293,11 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
 
     /**
      * Sets the rails above this sign to connect with the from and to directions<br>
-     * If the cart has to be reversed, that is done<br>
-     * <br>
-     * <b>Deprecated: no longer limited to BlockFace directions, use junctions instead</b>
+     * If the cart has to be reversed, that is done
      *
      * @param from direction
      * @param to   direction
+     * @deprecated No longer limited to BlockFace directions, use junctions instead
      */
     @Deprecated
     public void setRailsFromTo(BlockFace from, BlockFace to) {
@@ -307,11 +305,10 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
     }
 
     /**
-     * Sets the rails above this sign to lead from the minecart direction to the direction specified<br>
-     * <br>
-     * <b>Deprecated: no longer limited to BlockFace directions, use junctions instead</b>
+     * Sets the rails above this sign to lead from the minecart direction to the direction specified
      *
      * @param to direction
+     * @deprecated No longer limited to BlockFace directions, use junctions instead
      */
     @Deprecated
     public void setRailsTo(BlockFace to) {
@@ -320,11 +317,10 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
 
     /**
      * Sets the rails above this sign to lead from the minecart direction into a direction specified<br>
-     * Relative directions, like left and right, are relative to the sign direction<br>
-     * <br>
-     * <b>Deprecated: no longer limited to BlockFace directions, use junctions instead</b>
+     * Relative directions, like left and right, are relative to the sign direction
      *
      * @param direction to set the rails to
+     * @deprecated No longer limited to BlockFace directions, use junctions instead
      */
     @Deprecated
     public void setRailsTo(Direction direction) {
@@ -653,12 +649,11 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
     }
 
     /**
-     * Checks if this sign is powered, ignoring settings on the sign.<br>
-     * <br>
-     * <b>Deprecated:</b> Use {@link PowerState#isSignPowered(signBlock, inverted)} instead
+     * Checks if this sign is powered, ignoring settings on the sign.
      *
      * @param invert True to invert the power as a result, False to get the normal result
      * @return True if powered when not inverted, or not powered and inverted
+     * @deprecated Use {@link PowerState#isSignPowered(signBlock, inverted)} instead
      */
     @Deprecated
     public boolean isPoweredRaw(boolean invert) {
@@ -720,9 +715,10 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
     }
 
     /**
-     * <b>Deprecated: BlockFace offers too little resolution</b>
-     * 
+     * Gets a 'rail direction', which only makes sense for vanilla rails.
+     *
      * @return direction of the rails (BlockFace), for example, 'north-east' or 'up'
+     * @deprecated BlockFace offers too little resolution
      */
     @Deprecated
     public BlockFace getRailDirection() {

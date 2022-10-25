@@ -376,10 +376,10 @@ public class PathProvider extends Task implements TrainCarts.Provider {
     }
 
     /**
-     * Tells this Path Provider to start calculating all neighboring paths from the node specified<br>
-     * <b>Deprecated: use {@link #scheduleNode(PathNode)} instead on PathProvider instance in TrainCarts plugin</b>
+     * Tells this Path Provider to start calculating all neighboring paths from the node specified
      *
      * @param startNode to schedule
+     * @deprecated Use {@link #scheduleNode(PathNode)} instead on PathProvider instance in TrainCarts plugin
      */
     @Deprecated
     public static void schedule(PathNode startNode) {
@@ -411,10 +411,10 @@ public class PathProvider extends Task implements TrainCarts.Provider {
     /**
      * Tells this Path Provider to schedule new destination and switcher sign discovery, starting at a particular
      * rails block. This rail location must have signs that switch or declare a destination, otherwise
-     * nothing will happen.<br>
-     * <b>Deprecated: use {@link #discoverFromRail(BlockLocation)} instead</b>
-     * 
+     * nothing will happen.
+     *
      * @param railLocation to discover destinations and switchers at
+     * @deprecated Use {@link #discoverFromRail(BlockLocation)} instead
      */
     @Deprecated
     public static void discover(BlockLocation railLocation) {

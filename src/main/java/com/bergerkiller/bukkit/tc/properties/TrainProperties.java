@@ -373,10 +373,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Gets whether the Train slows down over time.<br>
-     * <b>Deprecated: This returns True if any slowdown mode is true.</b>
+     * Gets whether the Train slows down over time.
      *
      * @return True if it slows down, False if not
+     * @deprecated This returns True if any slowdown mode is true.
      */
     @Deprecated
     public boolean isSlowingDown() {
@@ -1021,12 +1021,11 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * Renames this train, this should be called to rename the train safely<br>
-     * <br>
-     * <b>Deprecated: use {@link #setTrainName(String)} instead</b>
+     * Renames this train, this should be called to rename the train safely
      *
      * @param newtrainname to set to
      * @return this
+     * @deprecated Use {@link #setTrainName(String)} instead
      */
     @Deprecated
     public TrainProperties setName(String newtrainname) {
@@ -1211,7 +1210,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     /**
-     * <b>Deprecated: use {@link #apply(ConfigurationNode)} instead</b>
+     * @deprecated Use {@link #apply(ConfigurationNode)} instead
      */
     @Deprecated
     public void setDefault(ConfigurationNode node) {

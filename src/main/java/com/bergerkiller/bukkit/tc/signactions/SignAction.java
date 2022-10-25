@@ -195,7 +195,7 @@ public abstract class SignAction {
     }
 
     /**
-     * <b>Deprecated: please use {@link SignBuildOptions} for this instead
+     * @deprecated please use {@link SignBuildOptions} for this instead
      */
     @Deprecated
     public static boolean handleBuild(SignChangeActionEvent event, PermissionEnum permission, String signname) {
@@ -203,7 +203,7 @@ public abstract class SignAction {
     }
 
     /**
-     * <b>Deprecated: please use {@link SignBuildOptions} for this instead
+     * @deprecated please use {@link SignBuildOptions} for this instead
      */
     @Deprecated
     public static boolean handleBuild(SignChangeActionEvent event, PermissionEnum permission, String signname, String signdescription) {
