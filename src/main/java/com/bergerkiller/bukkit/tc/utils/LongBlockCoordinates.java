@@ -143,7 +143,8 @@ public class LongBlockCoordinates {
      * @param key Center block coordinate key
      * @param consumer Consumer to notify of all 6 sides
      */
-    public static void forAllBlockSides(long key, BlockSideConsumer consumer) {
+    public static void forAllBlockSidesAndSelf(long key, BlockSideConsumer consumer) {
+        consumer.accept(BlockFace.SELF, key);
         consumer.accept(BlockFace.NORTH, shiftNorth(key));
         consumer.accept(BlockFace.EAST, shiftEast(key));
         consumer.accept(BlockFace.SOUTH, shiftSouth(key));

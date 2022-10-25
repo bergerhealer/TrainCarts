@@ -369,7 +369,7 @@ public class SignControllerWorld {
     public void detectNewSigns(Block around) {
         long blockKey = LongBlockCoordinates.map(around);
         Entry[] nearby = findNearby(blockKey);
-        LongBlockCoordinates.forAllBlockSides(blockKey, (face, key) -> {
+        LongBlockCoordinates.forAllBlockSidesAndSelf(blockKey, (face, key) -> {
             // Check not already in the nearby mapping
             for (Entry e : nearby) {
                 if (e.blockKey == key) {
