@@ -158,7 +158,17 @@ public abstract class SignAction {
         // that sign action should use getRail() or get a NPE.
         TrackedSign trackedSign = TrackedSign.forRealSign(sign, RailPiece.NONE);
         trackedSign.rail = null; // Forces discovery of rail later
+        handleLoadChange(trackedSign, loaded);
+    }
 
+    /**
+     * Handles a change in the loaded change of a sign.
+     * Sign Actions bound to this sign will have their {@link #loadedChanged(SignActionEvent, boolean)} called.
+     *
+     * @param trackedSign TrackedSign that was loaded/unloaded
+     * @param loaded state change
+     */
+    public static void handleLoadChange(TrackedSign trackedSign, boolean loaded) {
         final SignActionEvent info = new SignActionEvent(trackedSign);
         for (SignAction action : actionsWithLoadedChangedHandler) {
             if (action.match(info) && action.verify(info)) {

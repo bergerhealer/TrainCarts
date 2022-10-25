@@ -44,7 +44,6 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.Sign;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
@@ -705,88 +704,6 @@ public class TCListener implements Listener {
             SignAction.handleDestroy(new SignActionEvent(event.getBlock()));
             // Also remove from the loaded sign controller
             plugin.getSignController().notifySignRemoved(event.getBlock());
-        }
-    }
-
-    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
-    public void onBlockPlaceSignCheck(BlockPlaceEvent event) {
-        Sign sign;
-        if (
-            !event.canBuild() ||
-            TrainCarts.isWorldDisabled(event) ||
-            !MaterialUtil.ISSIGN.get(event.getBlockPlaced()) ||
-            (sign = BlockUtil.getSign(event.getBlockPlaced())) == null
-        ) {
-            return;
-        }
-
-        // Mock a sign change event to handle building it
-        SignChangeEvent change_event = new SignChangeEvent(
-                event.getBlockPlaced(),
-                event.getPlayer(),
-                sign.getLines());
-        handleSignChange(change_event);
-
-        // If cancelled, cancel block placement too
-        if (change_event.isCancelled()) {
-            event.setBuild(false);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onSignChange(SignChangeEvent event) {
-        if (!TrainCarts.isWorldDisabled(event)) {
-            handleSignChange(event);
-        }
-    }
-
-    private void handleSignChange(SignChangeEvent event) {
-        // Reset cache to make sure all signs are recomputed later, after the sign was made
-        // Doing it here, in the most generic case, so that custom addon signs are also refreshed
-        // TODO: Maybe only recalculate the rails impacted, or nearby the sign? This could be costly.
-        RailLookup.forceRecalculation();
-
-        SignAction.handleBuild(event);
-        if (event.isCancelled()) {
-            // Properly give the sign back to the player that placed it
-            // We do not want to place down an empty sign, that is annoying
-            // If this is impossible for whatever reason, just drop it
-            Material signBlockType = event.getBlock().getType();
-            if (!Util.canInstantlyBuild(event.getPlayer()) && MaterialUtil.ISSIGN.get(signBlockType)) {
-                // Find the type of item matching the sign type
-                Material signItemType;
-                if (signBlockType == MaterialUtil.getMaterial("LEGACY_SIGN_POST")
-                        || signBlockType == MaterialUtil.getMaterial("LEGACY_WALL_SIGN")
-                ) {
-                    // Legacy (pre-1.13 support)
-                    signItemType = MaterialUtil.getFirst("OAK_SIGN", "LEGACY_SIGN");
-                } else if (signBlockType.name().contains("_WALL_")) {
-                    // BIRCH_WALL_SIGN -> BIRCH_SIGN
-                    signItemType = MaterialUtil.getMaterial(signBlockType.name().replace("_WALL_", "_"));
-                    if (signItemType == null) {
-                        // Fallback to at least return 'a' sign
-                        signItemType = MaterialUtil.getFirst("OAK_SIGN", "LEGACY_SIGN");
-                    }
-                } else {
-                    // Same as the sign block type
-                    signItemType = signBlockType;
-                }
-
-                ItemStack item = HumanHand.getItemInMainHand(event.getPlayer());
-                if (LogicUtil.nullOrEmpty(item)) {
-                    HumanHand.setItemInMainHand(event.getPlayer(), new ItemStack(signItemType, 1));
-                } else if (MaterialUtil.isType(item, signItemType) && item.getAmount() < ItemUtil.getMaxSize(item)) {
-                    ItemUtil.addAmount(item, 1);
-                    HumanHand.setItemInMainHand(event.getPlayer(), item);
-                } else {
-                    // Drop the item
-                    Location loc = event.getBlock().getLocation().add(0.5, 0.5, 0.5);
-                    loc.getWorld().dropItemNaturally(loc, new ItemStack(signItemType, 1));
-                }
-            }
-
-            // Break the block
-            event.getBlock().setType(Material.AIR);
         }
     }
 

@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -14,12 +15,14 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPhysicsEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldInitEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.bergerkiller.bukkit.common.Task;
@@ -30,9 +33,12 @@ import com.bergerkiller.bukkit.common.component.LibraryComponent;
 import com.bergerkiller.bukkit.common.events.MultiBlockChangeEvent;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.PowerState;
 import com.bergerkiller.bukkit.tc.SignActionHeader;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -205,16 +211,6 @@ public class SignController implements LibraryComponent, Listener {
     }
 
     /**
-     * Informs this controller that a particular sign was placed by a player.
-     * Does not fire any events, does initialize redstone state.
-     *
-     * @param signBlock
-     */
-    public void notifySignAdded(Block signBlock) {
-        forWorld(signBlock.getWorld()).addSign(signBlock);
-    }
-
-    /**
      * Deletes old SignController instances from memory that are for Worlds that have unloaded.
      * Avoids potential memory leaks.
      */
@@ -260,10 +256,100 @@ public class SignController implements LibraryComponent, Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onBlockPlaceSignCheck(BlockPlaceEvent event) {
+        Sign sign;
+        if (
+            !event.canBuild() ||
+            TrainCarts.isWorldDisabled(event) ||
+            !MaterialUtil.ISSIGN.get(event.getBlockPlaced()) ||
+            (sign = BlockUtil.getSign(event.getBlockPlaced())) == null
+        ) {
+            return;
+        }
+
+        // Mock a sign change event to handle building it
+        SignChangeEvent change_event = new SignChangeEvent(
+                event.getBlockPlaced(),
+                event.getPlayer(),
+                sign.getLines());
+        handleSignChange(change_event);
+
+        // If cancelled, cancel block placement too
+        if (change_event.isCancelled()) {
+            event.setBuild(false);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onSignChange(SignChangeEvent event) {
-        Block signBlock = event.getBlock();
-        forWorld(signBlock.getWorld()).addSign(signBlock);
+        if (TrainCarts.isWorldDisabled(event)) {
+            return;
+        }
+
+        handleSignChange(event);
+
+        if (event.isCancelled()) {
+            // Properly give the sign back to the player that placed it
+            // We do not want to place down an empty sign, that is annoying
+            // If this is impossible for whatever reason, just drop it
+            Material signBlockType = event.getBlock().getType();
+            if (!Util.canInstantlyBuild(event.getPlayer()) && MaterialUtil.ISSIGN.get(signBlockType)) {
+                // Find the type of item matching the sign type
+                Material signItemType;
+                if (signBlockType == MaterialUtil.getMaterial("LEGACY_SIGN_POST")
+                        || signBlockType == MaterialUtil.getMaterial("LEGACY_WALL_SIGN")
+                ) {
+                    // Legacy (pre-1.13 support)
+                    signItemType = MaterialUtil.getFirst("OAK_SIGN", "LEGACY_SIGN");
+                } else if (signBlockType.name().contains("_WALL_")) {
+                    // BIRCH_WALL_SIGN -> BIRCH_SIGN
+                    signItemType = MaterialUtil.getMaterial(signBlockType.name().replace("_WALL_", "_"));
+                    if (signItemType == null) {
+                        // Fallback to at least return 'a' sign
+                        signItemType = MaterialUtil.getFirst("OAK_SIGN", "LEGACY_SIGN");
+                    }
+                } else {
+                    // Same as the sign block type
+                    signItemType = signBlockType;
+                }
+
+                ItemStack item = HumanHand.getItemInMainHand(event.getPlayer());
+                if (LogicUtil.nullOrEmpty(item)) {
+                    HumanHand.setItemInMainHand(event.getPlayer(), new ItemStack(signItemType, 1));
+                } else if (MaterialUtil.isType(item, signItemType) && item.getAmount() < ItemUtil.getMaxSize(item)) {
+                    ItemUtil.addAmount(item, 1);
+                    HumanHand.setItemInMainHand(event.getPlayer(), item);
+                } else {
+                    // Drop the item
+                    Location loc = event.getBlock().getLocation().add(0.5, 0.5, 0.5);
+                    loc.getWorld().dropItemNaturally(loc, new ItemStack(signItemType, 1));
+                }
+            }
+
+            // Break the block
+            event.getBlock().setType(Material.AIR);
+        }
+    }
+
+    private void handleSignChange(SignChangeEvent event) {
+        // Reset cache to make sure all signs are recomputed later, after the sign was made
+        // Doing it here, in the most generic case, so that custom addon signs are also refreshed
+        // TODO: Maybe only recalculate the rails impacted, or nearby the sign? This could be costly.
+        //
+        // NOW DISABLED. Handled by sign-adding logic in the sign controller now.
+        //RailLookup.forceRecalculation();
+
+        // Before handling placement, create an already-activated entry for this sign
+        // This makes sure that, if during the build handling the rail is requested or some
+        // complex logic occurs involving it, the sign can be found.
+        //
+        // No loadedChanged() event is fired, as handleBuild() already handles that there.
+        SignControllerWorld controller = this.forWorld(event.getBlock().getWorld());
+        controller.addSign(event.getBlock(), false);
+
+        // Handle building the sign. Might cancel it (permissions)
+        SignAction.handleBuild(event);
     }
 
     // This is also needed to support block placement / piston / WR / etc.
@@ -330,6 +416,18 @@ public class SignController implements LibraryComponent, Listener {
     }
 
     void activateEntry(Entry entry) {
+        activateEntry(entry, false, true);
+    }
+
+    void activateEntry(Entry entry, boolean refreshRailSigns, boolean handleLoadChange) {
+        // Refresh signs mapped to rails at all times, if specified
+        // The tracked rail is made available later on to handle the load change, if set
+        TrackedSign trackedSign = null;
+        if (refreshRailSigns) {
+            trackedSign = TrackedSign.forRealSign(entry.sign.getSign(), null);
+            trackedSign.getRail().forceCacheVerification();
+        }
+
         if (entry.activated) {
             return;
         }
@@ -338,7 +436,14 @@ public class SignController implements LibraryComponent, Listener {
         try {
             entry.activated = true;
             entry.initRedstonePower();
-            SignAction.handleLoadChange(entry.sign.getSign(), true);
+
+            if (handleLoadChange) {
+                if (refreshRailSigns) {
+                    SignAction.handleLoadChange(trackedSign, true);
+                } else {
+                    SignAction.handleLoadChange(entry.sign.getSign(), true);
+                }
+            }
         } catch (Throwable t) {
             plugin.getLogger().log(Level.SEVERE, "Error while initializing sign in world " +
                     b.getWorld().getName() + " at " + b.getX() + " / " + b.getY() + " / " + b.getZ(), t);

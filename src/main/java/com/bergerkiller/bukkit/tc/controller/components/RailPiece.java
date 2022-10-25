@@ -227,7 +227,11 @@ public class RailPiece {
     /**
      * Forces the information of this RailPiece to be refreshed the very next time it is used
      * anywhere. If the rail type is likely to change, this method should be called for that
-     * to be detected sooner.
+     * to be detected sooner.<br>
+     * <br>
+     * Signs mapped to belong to this rail piece are completely re-discovered. As such, if a sign
+     * was added or removed from this rail, calling this method will help trains detect these
+     * changes.
      */
     public void forceCacheVerification() {
         RailLookup.CachedRailPiece cached = this.cached;

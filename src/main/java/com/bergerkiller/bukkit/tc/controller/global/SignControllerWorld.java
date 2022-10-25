@@ -395,7 +395,7 @@ public class SignControllerWorld {
                 @Override
                 public void run() {
                     if (MaterialUtil.ISSIGN.get(potentialSign)) {
-                        addSign(potentialSign);
+                        addSign(potentialSign, true);
                     }
                 }
             }.start();
@@ -407,14 +407,16 @@ public class SignControllerWorld {
      * If the sign was already tracked, returns the existing entry instead. If the sign could not
      * be found at this block, returns null.
      *
-     * @param signBlock
+     * @param signBlock Block of the sign that was placed
+     * @param handleLoadChange Whether to hande the loaded-change event of the sign that is added.
+     *                         Should be false if this logic already occurs elsewhere.
      * @return entry for the sign, null if not a sign
      */
-    public SignController.Entry addSign(Block signBlock) {
+    public SignController.Entry addSign(Block signBlock, boolean handleLoadChange) {
         // Find/activate an existing sign
         SignController.Entry existing = this.findForSign(signBlock);
         if (existing != null) {
-            controller.activateEntry(existing);
+            controller.activateEntry(existing, true, handleLoadChange);
             return existing;
         }
 
@@ -423,11 +425,20 @@ public class SignControllerWorld {
         if (sign == null) {
             return null;
         } else {
-            return createSign(sign);
+            return createNewSign(sign, handleLoadChange);
         }
     }
 
-    private SignController.Entry createSign(Sign sign) {
+    /**
+     * Initializes a new sign that was just placed in the world. Not called when signs are
+     * loaded in as new chunks/worlds load in.
+     *
+     * @param sign Sign
+     * @param handleLoadChange Whether to hande the loaded-change event of the sign that is added.
+     *                         Should be false if this logic already occurs elsewhere.
+     * @return Entry created for this new sign
+     */
+    private SignController.Entry createNewSign(Sign sign, boolean handleLoadChange) {
         // Create entry. Add it to by-chunk and by-block mapping.
         Block signBlock = sign.getBlock();
         SignController.Entry entry = this.controller.createEntry(sign,
@@ -446,7 +457,7 @@ public class SignControllerWorld {
 
         entry.blocks.forAllBlocks(entry, this::addChunkByBlockEntry);
 
-        this.controller.activateEntry(entry);
+        this.controller.activateEntry(entry, true, handleLoadChange);
 
         return entry;
     }
@@ -492,7 +503,7 @@ public class SignControllerWorld {
                     continue;
                 }
 
-                this.createSign((Sign) blockState);
+                this.createNewSign((Sign) blockState, true);
                 numAdded++;
             }
         }
@@ -765,7 +776,7 @@ public class SignControllerWorld {
         }
 
         @Override
-        public SignController.Entry addSign(Block signBlock) {
+        public SignController.Entry addSign(Block signBlock, boolean handleLoadChange) {
             return null;
         }
 
