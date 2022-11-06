@@ -416,8 +416,13 @@ public class SignControllerWorld {
         // Find/activate an existing sign
         SignController.Entry existing = this.findForSign(signBlock);
         if (existing != null) {
-            controller.activateEntry(existing, true, handleLoadChange);
-            return existing;
+            if (verifyEntry(existing)) {
+                controller.activateEntry(existing, true, handleLoadChange);
+                return existing;
+            } else {
+                removeInvalidEntry(existing);
+                existing = null;
+            }
         }
 
         // Add a new one. Lines of text might be wiped initially.
