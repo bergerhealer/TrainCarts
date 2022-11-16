@@ -248,7 +248,7 @@ public class SignController implements LibraryComponent, Listener {
         forWorld(event.getWorld()).loadChunk(event.getChunk());
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     private void onChunkUnload(ChunkUnloadEvent event) {
         SignControllerWorld controller = tryGetForWorld(event.getWorld());
         if (controller != null) {
