@@ -37,6 +37,9 @@ public class ForwardChunkArea {
         this.beginTickTracker.setRunnable(() -> {
             // Wipe previous entries whose state mismatches, which indicates it hasn't been add()-ed
             boolean expectedState = state;
+            if (lastEntry != null && lastEntry.state != expectedState) {
+                lastEntry = null; // Make sure this is invalidated, we remove this later
+            }
             for (Iterator<Entry> iter = entriesList.iterator(); iter.hasNext();) {
                 Entry e = iter.next();
                 if (e.state != expectedState) {
@@ -74,6 +77,7 @@ public class ForwardChunkArea {
             }
             entries.clear();
             entriesList.clear();
+            lastEntry = null;
         }
     }
 
@@ -91,12 +95,15 @@ public class ForwardChunkArea {
         // Track new chunk
         long key = MathUtil.longHashToLong(cx, cz);
         Entry e = lastEntry;
-        if (e != null && e.key == key) {
-            e.state = state;
-        } else {
-            e = new Entry(FORCE_LOADED_FUNC.forceLoaded(world, cx, cz), key, state);
+        if (e == null || e.key != key) {
+            e = entries.computeIfAbsent(key, k -> {
+                Entry newEntry = new Entry(FORCE_LOADED_FUNC.forceLoaded(world, cx, cz), k, false);
+                entriesList.add(newEntry);
+                return newEntry;
+            });
             lastEntry = e;
         }
+        e.state = state;
     }
 
     private static final class Entry {
