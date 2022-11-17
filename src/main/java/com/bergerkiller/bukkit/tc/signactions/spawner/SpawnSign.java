@@ -50,7 +50,7 @@ public class SpawnSign {
             for (int dz = -2; dz <= 2; dz++) {
                 int cx = center_cx + dx;
                 int cz = center_cz + dz;
-                this.chunks.put(cx, cz, new SignSpawnChunk(this.location.getWorldUUID(), cx, cz));
+                this.chunks.put(cx, cz, createSpawnChunk(cx, cz));
             }
         }
     }
@@ -300,7 +300,7 @@ public class SpawnSign {
                             if (!new_chunks.contains(key)) {
                                 SignSpawnChunk chunk = this.chunks.remove(key);
                                 if (chunk == null) {
-                                    chunk = new SignSpawnChunk(this.location.getWorldUUID(), cx, cz);
+                                    chunk = createSpawnChunk(cx, cz);
                                     chunk.loadSync();
                                 }
                                 new_chunks.put(key, chunk);
@@ -318,6 +318,14 @@ public class SpawnSign {
                 this.chunks = new_chunks;
                 this.num_chunks_loaded = this.chunks.size();
             }
+        }
+    }
+
+    private SignSpawnChunk createSpawnChunk(int cx, int cz) {
+        if (this.store == null) {
+            return new SignSpawnChunkSync(this.location.getWorldUUID(), cx, cz);
+        } else {
+            return new SignSpawnChunk(this.location.getWorldUUID(), cx, cz);
         }
     }
 
@@ -428,14 +436,39 @@ public class SpawnSign {
         }
 
         public void loadAsync() {
-            World world = Bukkit.getWorld(this.worldUUID);
-            if (world != null) {
-                this.chunk.move(ChunkUtil.forceChunkLoaded(world, x, z));
+            if (this.chunk != null) {
+                World world = Bukkit.getWorld(this.worldUUID);
+                if (world != null) {
+                    this.chunk.move(ChunkUtil.forceChunkLoaded(world, x, z));
+                }
             }
         }
 
         public void close() {
             this.chunk.close();
+        }
+    }
+
+    /**
+     * Spawn chunk that only loads sync, and doesn't keep the area loaded
+     * afterwards. Used for single-activation redstone-triggered signs.
+     */
+    private static class SignSpawnChunkSync extends SignSpawnChunk {
+
+        public SignSpawnChunkSync(UUID worldUUID, int x, int z) {
+            super(worldUUID, x, z);
+        }
+
+        @Override
+        public void loadSync() {
+            World world = Bukkit.getWorld(this.worldUUID);
+            if (world != null) {
+                world.getChunkAt(this.x, this.z);
+            }
+        }
+
+        @Override
+        public void loadAsync() {
         }
     }
 }
