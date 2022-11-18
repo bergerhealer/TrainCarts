@@ -421,5 +421,10 @@ public class RailPiece {
         protected RailLookup.CachedRailPiece accessCacheExists() {
             throw new IllegalStateException("This rail piece is a NONE and has no metadata");
         }
+
+        @Override
+        public void forceCacheVerification() {
+            // No-op
+        }
     }
 }
