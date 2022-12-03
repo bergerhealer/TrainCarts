@@ -195,11 +195,12 @@ public enum FakePlayerSpawner {
             return player.getUniqueId();
         }
 
+        final UUID uuid = state.getUUID(this);
+
         // Avoid broken state
-        state.runAndClearCleanupTasksFor(viewer);
+        state.runAndClearCleanupTasksFor(viewer, uuid);
 
         // Send a tab list entry for this new (fake) player to be spawned
-        final UUID uuid = state.getUUID(this);
         {
             final GameProfileHandle newFakeGameProfile;
             final ChatText playerListName;
@@ -357,10 +358,10 @@ public enum FakePlayerSpawner {
          *
          * @param viewer
          */
-        public void runAndClearCleanupTasksFor(AttachmentViewer viewer) {
+        public void runAndClearCleanupTasksFor(AttachmentViewer viewer, UUID uuid) {
             for (Iterator<CleanupPlayerListEntryTask> iter = pendingCleanup.iterator(); iter.hasNext();) {
                 CleanupPlayerListEntryTask task = iter.next();
-                if (task.viewer.equals(viewer)) {
+                if (task.viewer.equals(viewer) && uuid.equals(task.playerUUID)) {
                     iter.remove();
                     task.finish();
                 }
