@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
+import java.util.Collection;
 import java.util.function.Function;
 
 import org.bukkit.entity.Entity;
@@ -12,6 +13,7 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
@@ -19,6 +21,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity.DisplayMode;
 import com.bergerkiller.bukkit.tc.utils.tab.TabNameTagHider;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutUpdateAttributesHandle;
@@ -413,6 +416,18 @@ public abstract class SeatedEntity {
     public abstract Vector getFirstPersonCameraOffset();
 
     /**
+     * Gets whether this seated entity must be viewed with a fake third-person camera to
+     * have the correct height offset.
+     *
+     * @return True if a fake camera mount should be used when viewed in first-person
+     */
+    public boolean isFirstPersonCameraFake() {
+        // Only do it when the seat (butt) to camera (eye) offset is exactly vanilla
+        // If not, we must use a fake mount to position it properly
+        return this.getFirstPersonCameraOffset().getY() != VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT;
+    }
+
+    /**
      * Spawns this seated entity for a viewer. Mounts any real entity
      * into its seat.
      *
@@ -525,6 +540,7 @@ public abstract class SeatedEntity {
     public static enum DisplayMode {
         DEFAULT(SeatedEntityNormal::new), /* Player is displayed either upright or upside-down in a cart */
         ELYTRA_SIT(SeatedEntityElytra::new), /* Player is in sitting pose while flying in an elytra */
+        STANDING(SeatedEntityStanding::new), /* Player is flying in a standing pose */
         HEAD(SeatedEntityHead::new), /* Players are replaced with player skulls with their face */
         NO_NAMETAG(SeatedEntityNormal::new), /* Same as DEFAULT, but no nametags are shown */
         INVISIBLE(SeatedEntityInvisible::new); /* Shows nothing, makes original passenger invisible */

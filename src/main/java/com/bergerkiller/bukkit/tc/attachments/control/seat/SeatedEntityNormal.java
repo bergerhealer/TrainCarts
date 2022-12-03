@@ -26,9 +26,9 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
  * upright or upside-down. This is the classic behavior seats have in Traincarts.
  */
 class SeatedEntityNormal extends SeatedEntity {
-    private boolean _upsideDown = false;
-    private int _fakeEntityId = -1;
-    private boolean _fake = false;
+    protected boolean _upsideDown = false;
+    protected int _fakeEntityId = -1;
+    protected boolean _fake = false;
 
     // Is initialized when the player needs to be displayed upside-down
     private VirtualEntity _upsideDownVehicle = null;
@@ -124,7 +124,7 @@ class SeatedEntityNormal extends SeatedEntity {
         }
     }
 
-    private void applyFakePlayerMetadata(DataWatcher metadata) {
+    protected void applyFakePlayerMetadata(DataWatcher metadata) {
         metadata.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_FLYING, false);
         metadata.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING,
                 this.isDummyPlayer() && seat.isFocused());

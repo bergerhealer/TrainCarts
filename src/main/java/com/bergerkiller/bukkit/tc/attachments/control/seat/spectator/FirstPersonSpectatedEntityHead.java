@@ -21,7 +21,7 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
  * seated entity logic. To properly handle EYE positioning, and avoid glitches
  * when rotating beyond 180 degrees, it spawns its own armorstand.
  * 
- * @deprecated No longer used in favor of {@link FirstPersonSpectatedEntityPlayer} and just
+ * @deprecated No longer used in favor of {@link FirstPersonSpectatedEntityPlayerSitting} and just
  *             using a skull item there.
  */
 @Deprecated

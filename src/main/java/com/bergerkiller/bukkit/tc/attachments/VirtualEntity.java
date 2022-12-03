@@ -50,6 +50,10 @@ public class VirtualEntity {
      */
     public static final double PLAYER_SIT_BUTT_EYE_HEIGHT = 1.0;
     /**
+     * The offset from the player/villager's feet to where the eyes/camera are located while standing
+     */
+    public static final double PLAYER_STANDING_EYE_HEIGHT = 1.62;
+    /**
      * The height offset a player sits on top of a chicken
      */
     public static final double PLAYER_SIT_CHICKEN_BUTT_OFFSET = -0.62;

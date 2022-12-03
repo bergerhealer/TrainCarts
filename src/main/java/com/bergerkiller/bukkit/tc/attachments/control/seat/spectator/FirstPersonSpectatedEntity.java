@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity;
 
 /**
  * A type of entity that can be spectated, that has a particular appearance
@@ -62,7 +63,12 @@ public abstract class FirstPersonSpectatedEntity {
         //    return new FirstPersonSpectatedEntityHead(seat, view, vmc);
         //}
 
+        // Spectates a standing player
+        if (seat.seated.getDisplayMode() == SeatedEntity.DisplayMode.STANDING) {
+            return new FirstPersonSpectatedEntityPlayerStanding(seat, view, player);
+        }
+
         // Default mode of showing the player itself
-        return new FirstPersonSpectatedEntityPlayer(seat, view, player);
+        return new FirstPersonSpectatedEntityPlayerSitting(seat, view, player);
     }
 }
