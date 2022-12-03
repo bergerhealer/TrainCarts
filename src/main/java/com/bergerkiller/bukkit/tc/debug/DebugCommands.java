@@ -5,14 +5,18 @@ import java.util.Collection;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.vehicle.VehicleExitEvent;
+import org.bukkit.util.Vector;
 
+import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -27,6 +31,7 @@ import com.bergerkiller.bukkit.tc.debug.types.DebugToolTypeTrackDistance;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.EventListenerHook;
+import com.bergerkiller.bukkit.tc.utils.PlayerVelocityController;
 
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
@@ -274,4 +279,138 @@ public class DebugCommands {
         }
     }
     */
+
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
+    @CommandMethod("train debug pvc fly")
+    private void commandTestFlight(final Player player, final TrainCarts plugin) {
+        final Vector center = new Vector(-175.5, 4.1 + 10.0, 354.5);
+
+        new Task(plugin) {
+            Quaternion rotation = new Quaternion();
+            PlayerVelocityController controller = new PlayerVelocityController(player);
+            Location loc = player.getLocation();
+            int ctr = 0;
+            final int duration = 200000;
+            double rotX = 0.0;
+            double rotY = 0.0;
+            double radius = 1.0;
+            double speed = 0.0;
+            final double incr = 0.5;
+            Vector lastMotion = new Vector();
+
+            @Override
+            public void run() {
+                ++ctr;
+                if (ctr > (5+duration)) {
+                    controller.stop();
+                    stop();
+                }
+                if (ctr > (2+duration)) {
+                    return;
+                }
+
+                if (player.isSneaking()) {
+                    player.teleport(center.toLocation(player.getWorld()));
+                    controller.stop();
+                    stop();
+                    return;
+                }
+                if (!player.isOnline()) {
+                    stop();
+                    controller.stop();
+                    return;
+                }
+
+                if (ctr <= 1) {
+                    player.setFlying(true);
+                    player.teleport(loc);
+                    player.setFlying(true);
+                }
+
+                controller.setPosition(loc.toVector());
+                
+                speed *= 0.9;
+                if (controller.horizontalInput() != PlayerVelocityController.HorizontalPlayerInput.NONE ||
+                    controller.verticalInput() != PlayerVelocityController.VerticalPlayerInput.NONE) {
+                    
+                    lastMotion = new Vector();
+                    speed += 0.2;
+                } else if (speed < 0.01) {
+                    speed = 0.0;
+                }
+                
+                Quaternion q = Quaternion.fromLookDirection(player.getEyeLocation().getDirection(), new Vector(0, 1, 0));
+                if (controller.verticalInput() == PlayerVelocityController.VerticalPlayerInput.JUMP) {
+                    lastMotion.add(q.upVector());
+                }
+                if (controller.horizontalInput().forwards()) {
+                    lastMotion.add(q.forwardVector());
+                } else if (controller.horizontalInput().backwards()) {
+                    lastMotion.add(q.forwardVector().multiply(-1.0));
+                }
+                if (controller.horizontalInput().left()) {
+                    lastMotion.add(q.rightVector());
+                } else if (controller.horizontalInput().right()) {
+                    lastMotion.add(q.rightVector().multiply(-1.0));
+                }
+                
+                loc.add(lastMotion.clone().multiply(speed));
+            }
+        }.start(5, 1);
+        player.sendMessage("Started");
+    }
+
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
+    @CommandMethod("train debug pvc swing")
+    private void commandTestSwing(final Player player, final TrainCarts plugin) {
+        final double radius = 10.0;
+        final Vector center = new Vector(-175.5, 4.1 + radius, 354.5);
+
+        new Task(plugin) {
+            Quaternion rotation = new Quaternion();
+            PlayerVelocityController controller = new PlayerVelocityController(player);
+            int ctr = 0;
+            final int duration = 200000;
+            
+            @Override
+            public void run() {
+                ++ctr;
+                if (ctr > (5+duration)) {
+                    controller.stop();
+                    stop();
+                }
+                if (ctr > (2+duration)) {
+                    return;
+                }
+
+                if (player.isSneaking()) {
+                    player.teleport(center.toLocation(player.getWorld()));
+                    controller.stop();
+                    stop();
+                    return;
+                }
+                if (!player.isOnline()) {
+                    stop();
+                    controller.stop();
+                    return;
+                }
+                
+                Vector pos = center.clone().add(rotation.forwardVector().multiply(radius));
+                if (ctr <= 1) {
+                    Location loc = player.getLocation();
+                    loc.setX(pos.getX());
+                    loc.setY(pos.getY());
+                    loc.setZ(pos.getZ());
+                    player.setFlying(true);
+                    player.teleport(loc);
+                    player.setFlying(true);
+                }
+                controller.setPosition(pos);
+                if (ctr > 0) {
+                    rotation.rotateX(4.0);
+                }
+            }
+        }.start(5, 1);
+        player.sendMessage("Started");
+    }
 }
