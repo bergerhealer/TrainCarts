@@ -29,6 +29,12 @@ public enum FirstPersonViewMode {
      */
     HEAD(false, true),
     /**
+     * Standing mode makes the player stand upright, without being seated
+     * in a mount. The player is moved around with velocity packets, or if
+     * using spectator mode, by moving the spectated player.
+     */
+    STANDING(false, false),
+    /**
      * The player can see himself sit in third-person, the camera hovering
      * slightly above where the head is located. Similar to floating,
      * but the player is visible as a separate entity.

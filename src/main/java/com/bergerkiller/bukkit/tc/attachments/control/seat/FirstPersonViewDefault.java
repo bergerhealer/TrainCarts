@@ -11,8 +11,6 @@ import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity.DisplayMode;
-import com.bergerkiller.bukkit.tc.utils.PlayerVelocityController;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutUpdateAttributesHandle;
 
@@ -27,8 +25,6 @@ public class FirstPersonViewDefault extends FirstPersonView {
     // This remainder is here because Minecraft has only limited yaw/pitch granularity
     private double _playerYawRemainder = 0.0;
     private double _playerPitchRemainder = 0.0;
-    // Used for first-person player position control
-    private PlayerVelocityController _velocityControl = null;
 
     public FirstPersonViewDefault(CartAttachmentSeat seat, AttachmentViewer player) {
         super(seat, player);
@@ -123,9 +119,7 @@ public class FirstPersonViewDefault extends FirstPersonView {
         if (!useFakeCamera) {
             // If no fake camera mount is used, make sure to mount the player in the vehicle mount
             // In Standing mode, no vehicle mount is used, instead the player is teleported with velocity packets
-            if (seat.seated.getDisplayMode() == DisplayMode.STANDING) {
-                
-            } else {
+            if (this.getLiveMode() != FirstPersonViewMode.STANDING) {
                 vmc.mount(seat.seated.spawnVehicleMount(viewer), viewer.getEntityId());
             }
         } else if (this.getLiveMode() == FirstPersonViewMode.THIRD_P) {
@@ -137,12 +131,6 @@ public class FirstPersonViewDefault extends FirstPersonView {
     @Override
     public void makeHidden(AttachmentViewer viewer, boolean isReload) {
         VehicleMountController vmc = viewer.getVehicleMountController();
-
-        // Stop this
-        if (_velocityControl != null) {
-            _velocityControl.stop();
-            _velocityControl = null;
-        }
 
         // Reset everything smooth coasters has changed when the player exits the seat
         if (!isReload && seat.useSmoothCoasters()) {
@@ -177,18 +165,6 @@ public class FirstPersonViewDefault extends FirstPersonView {
 
     @Override
     public void onTick() {
-        // Use velocity packets to move a standing player around
-        if (this.seat.seated.getDisplayMode() == DisplayMode.STANDING && !this.isFakeCameraUsed()) {
-            if (_velocityControl == null) {
-                _velocityControl = new PlayerVelocityController(player.getPlayer());
-                _velocityControl.translateVehicleSteer(true);
-            }
-            _velocityControl.setPosition(seat.getTransform().toVector());
-        } else if (_velocityControl != null) {
-            _velocityControl.stop();
-            _velocityControl = null;
-        }
-
         // Move player view relatively
         if (this.getLockMode() == FirstPersonViewLockMode.MOVE && this.seat.seated.isPlayer() && !this.seat.useSmoothCoasters()) {
             // Every now and then, rotate the player view by the amount the seat itself rotated

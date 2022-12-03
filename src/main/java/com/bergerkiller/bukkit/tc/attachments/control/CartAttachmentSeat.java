@@ -40,6 +40,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonView;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewDefault;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonEyePositionDialog;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
+import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewStanding;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatDebugUI;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatDisplayedItemDialog;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatExitPositionMenu;
@@ -455,6 +456,8 @@ public class CartAttachmentSeat extends CartAttachment {
                 FirstPersonViewMode liveMode = this.firstPerson.getLiveMode();
                 if (this.fpvViewLockMode.isSpectator() && !this.useSmoothCoasters()) {
                     this.firstPerson = new FirstPersonViewSpectator(this, viewer);
+                } else if (this.fpvViewMode == FirstPersonViewMode.STANDING) {
+                    this.firstPerson = new FirstPersonViewStanding(this, viewer);
                 } else {
                     this.firstPerson = new FirstPersonViewDefault(this, viewer);
                 }

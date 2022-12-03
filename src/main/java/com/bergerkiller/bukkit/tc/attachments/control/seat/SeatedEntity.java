@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
-import java.util.Collection;
 import java.util.function.Function;
 
 import org.bukkit.entity.Entity;
@@ -13,7 +12,6 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
-import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
@@ -21,7 +19,6 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity.DisplayMode;
 import com.bergerkiller.bukkit.tc.utils.tab.TabNameTagHider;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutUpdateAttributesHandle;
