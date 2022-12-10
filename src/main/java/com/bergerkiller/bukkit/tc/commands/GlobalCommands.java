@@ -18,7 +18,6 @@ import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.attachments.ui.SetValueTarget;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
@@ -778,7 +777,7 @@ public class GlobalCommands {
             text.setHoverText(ChatColor.RED + "Not loaded");
         }
 
-        String safeEditName = Util.stripChatStyle(name);
+        String safeEditName = StringUtil.stripChatStyle(name);
         if (safeEditName.indexOf(' ') != -1) {
             text.setClickableRunCommand("/train edit \"" + safeEditName + "\"");
         } else {

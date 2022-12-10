@@ -115,7 +115,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
                 setDescription("Enter a scene start marker name\nPut empty space to remove");
             }
 
-            @SuppressWarnings("unused") // @Override BKCommonLib 1.19.2-v2 or later
+            @Override
             public ChatText getTitle() {
                 return ChatText.fromMessage("Enter marker name");
             }

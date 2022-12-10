@@ -28,10 +28,11 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.com.mojang.authlib.GameProfileHandle;
 import com.bergerkiller.generated.com.mojang.authlib.properties.PropertyHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutNamedEntitySpawnHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPlayerInfoHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutScoreboardTeamHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPlayerInfoHandle.EnumPlayerInfoActionHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPlayerInfoHandle.PlayerInfoDataHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacketHandle.EnumPlayerInfoActionHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacketHandle.PlayerInfoDataHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
 /**
@@ -214,14 +215,15 @@ public enum FakePlayerSpawner {
                 newFakeGameProfile.setAllProperties(GameProfileHandle.getForPlayer(player));
                 playerListName = ChatText.fromMessage(player.getPlayerListName()); //TODO: Use components
             }
-            PacketPlayOutPlayerInfoHandle newInfoPacket = PacketPlayOutPlayerInfoHandle.createNew();
+            ClientboundPlayerInfoUpdatePacketHandle newInfoPacket = ClientboundPlayerInfoUpdatePacketHandle.createNew();
             newInfoPacket.setAction(EnumPlayerInfoActionHandle.ADD_PLAYER);
             PlayerInfoDataHandle playerInfo = PlayerInfoDataHandle.createNew(
                     newInfoPacket,
                     newFakeGameProfile,
                     50,
                     GameMode.CREATIVE,
-                    playerListName
+                    playerListName,
+                    false /* not listed */
             );
             newInfoPacket.getPlayers().add(playerInfo);
             viewer.send(newInfoPacket);
@@ -246,7 +248,7 @@ public enum FakePlayerSpawner {
 
         // A few ticks delayed, instantly remove the tab player list entry again
         // We cannot remove it right after spawning - then the player skin doesn't get loaded
-        state.scheduleCleanupTask(viewer, this._playerName, uuid);
+        state.scheduleCleanupTask(viewer, uuid);
 
         return uuid;
     }
@@ -336,19 +338,19 @@ public enum FakePlayerSpawner {
                     : ((type == NO_NAMETAG_TERTIARY) ? npcUUID3 : ((type == NO_NAMETAG_SECONDARY) ? npcUUID2 : npcUUID));
         }
 
-        public void scheduleCleanupTask(AttachmentViewer viewer, String playerName, UUID playerUUID) {
+        public void scheduleCleanupTask(AttachmentViewer viewer, UUID playerUUID) {
             // Cancel any previous task
             Iterator<CleanupPlayerListEntryTask> iter = this.pendingCleanup.iterator();
             while (iter.hasNext()) {
                 CleanupPlayerListEntryTask task = iter.next();
-                if (task.playerName.equals(playerName) && task.playerUUID.equals(playerUUID)) {
+                if (task.playerUUID.equals(playerUUID)) {
                     task.stop();
                     iter.remove();
                 }
             }
 
             // Schedule a new one
-            CleanupPlayerListEntryTask task = new CleanupPlayerListEntryTask(TrainCarts.plugin, this, viewer, playerName, playerUUID);
+            CleanupPlayerListEntryTask task = new CleanupPlayerListEntryTask(TrainCarts.plugin, this, viewer, playerUUID);
             this.pendingCleanup.add(task);
             task.start(TAB_LIST_CLEANUP_DELAY, 1);
         }
@@ -389,14 +391,12 @@ public enum FakePlayerSpawner {
         private final ProfileState state;
         private final AttachmentViewer viewer;
         private final long runWhen;
-        public final String playerName;
         public final UUID playerUUID;
 
-        public CleanupPlayerListEntryTask(JavaPlugin plugin, ProfileState state, AttachmentViewer viewer, String playerName, UUID playerUUID) {
+        public CleanupPlayerListEntryTask(JavaPlugin plugin, ProfileState state, AttachmentViewer viewer, UUID playerUUID) {
             super(plugin);
             this.state = state;
             this.viewer = viewer;
-            this.playerName = playerName;
             this.playerUUID = playerUUID;
             this.runWhen = System.currentTimeMillis() + TAB_LIST_CLEANUP_DELAY * 50; // game client ticks
         }
@@ -411,18 +411,7 @@ public enum FakePlayerSpawner {
         public void finish() {
             try {
                 if (this.viewer.isOnline()) {
-                    GameProfileHandle oldFakeGameProfile = GameProfileHandle.createNew(this.playerUUID, this.playerName);
-                    PacketPlayOutPlayerInfoHandle oldInfoPacket = PacketPlayOutPlayerInfoHandle.createNew();
-                    oldInfoPacket.setAction(EnumPlayerInfoActionHandle.REMOVE_PLAYER);
-                    PlayerInfoDataHandle oldPlayerInfo = PlayerInfoDataHandle.createNew(
-                            oldInfoPacket,
-                            oldFakeGameProfile,
-                            50,
-                            GameMode.CREATIVE,
-                            ChatText.fromMessage("")
-                    );
-                    oldInfoPacket.getPlayers().add(oldPlayerInfo);
-                    this.viewer.send(oldInfoPacket);
+                    this.viewer.send(ClientboundPlayerInfoRemovePacketHandle.createNew(Collections.singletonList(this.playerUUID)));
                 }
             } finally {
                 // Cleanup ourselves from the list

@@ -1,27 +1,18 @@
 package com.bergerkiller.bukkit.tc.controller.global;
 
-import java.util.function.BiFunction;
-import java.util.logging.Level;
-
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.utils.CircularFIFOQueue;
 import com.bergerkiller.bukkit.tc.utils.CircularFIFOQueue.EmptyQueueException;
 import com.bergerkiller.bukkit.tc.utils.CircularFIFOQueueStampedRW;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutCustomPayloadHandle;
-import com.bergerkiller.mountiplex.reflection.declarations.ClassResolver;
-import com.bergerkiller.mountiplex.reflection.declarations.MethodDeclaration;
-import com.bergerkiller.mountiplex.reflection.declarations.SourceDeclaration;
-import com.bergerkiller.mountiplex.reflection.util.FastMethod;
 
 /**
  * Efficiently queues up packets and sends them on a dedicated thread.
@@ -117,7 +108,7 @@ public class PacketQueue implements AttachmentViewer, me.m56738.smoothcoasters.a
             throw new IllegalArgumentException("Wrong network interface used, interface is of " +
                     this.player.getName() + " but updated " + player.getName());
         }
-        send(createCustomPayloadPacket(channel, message));
+        send(PacketPlayOutCustomPayloadHandle.createNew(channel, message));
     }
     /// --------------------------------------------------------------------
 
@@ -185,51 +176,6 @@ public class PacketQueue implements AttachmentViewer, me.m56738.smoothcoasters.a
 
         public SilentCommonPacket(Object packetHandle, PacketType packetType) {
             super(packetHandle, packetType);
-        }
-    }
-
-    private static CommonPacket createCustomPayloadPacket(String channel, byte[] message) {
-        return new CommonPacket(CustomPayloadPacketBuilder.constructor.apply(channel, message),
-                                PacketType.OUT_CUSTOM_PAYLOAD);
-    }
-
-    // Some fallback implementation for older BKCL which lacked this class
-    private static final class CustomPayloadPacketBuilder {
-        public static final BiFunction<String, byte[], Object> constructor;
-        static {
-            BiFunction<String, byte[], Object> constr;
-            try {
-                // Newer BKCommonLib
-                Class.forName("com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutCustomPayloadHandle");
-                constr = (channel, message) -> PacketPlayOutCustomPayloadHandle.createNew(channel, message).getRaw();
-            } catch (Throwable t) {
-                if (!(t instanceof ClassNotFoundException)) {
-                    TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to create bkcl custom payload packet constructor", t);
-                }
-
-                // Fallback is slow but works I guess.
-                ClassResolver resolver = new ClassResolver();
-                resolver.setDeclaredClassName("net.minecraft.network.protocol.game.PacketPlayOutCustomPayload");
-                resolver.addImport("net.minecraft.network.PacketDataSerializer");
-                resolver.addImport("com.bergerkiller.generated.net.minecraft.resources.MinecraftKeyHandle");
-                resolver.setAllVariables(Common.TEMPLATE_RESOLVER);
-                MethodDeclaration methodDec = new MethodDeclaration(resolver, SourceDeclaration.preprocess(
-                        "public static Object createCustomPayloadPacket(String channel, byte[] message) {\n" +
-                        "    PacketDataSerializer serializer = new PacketDataSerializer(io.netty.buffer.Unpooled.wrappedBuffer(message));\n" +
-                        "\n" +
-                        "#if version >= 1.13\n" +
-                        "    net.minecraft.resources.MinecraftKey key;\n" +
-                        "    key = (net.minecraft.resources.MinecraftKey) MinecraftKeyHandle.createNew(channel).getRaw();\n" +
-                        "    return new PacketPlayOutCustomPayload(key, serializer);\n" +
-                        "#else\r\n" +
-                        "    return new PacketPlayOutCustomPayload(channel, serializer);\n" +
-                        "#endif\n" +
-                        "}", resolver));
-                final FastMethod<Object> method = new FastMethod<>();
-                method.init(methodDec);
-                constr = (channel, message) -> method.invoke(null, channel, message);
-            }
-            constructor = constr;
         }
     }
 }

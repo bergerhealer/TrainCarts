@@ -7,6 +7,7 @@ import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
@@ -108,7 +109,7 @@ public final class TrainNameFormatProperty implements ITrainProperty<TrainNameFo
     @PropertySelectorCondition("name")
     @PropertySelectorCondition("train") // deprecated!
     public String getSelectorMatchedTrainName(TrainProperties properties) {
-        return Util.stripChatStyle(properties.getTrainName());
+        return StringUtil.stripChatStyle(properties.getTrainName());
     }
 
     @Override

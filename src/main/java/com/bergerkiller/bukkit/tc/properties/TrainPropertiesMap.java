@@ -8,7 +8,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
-import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 
 /**
  * Stores the train properties mapped by train name. Also stores a relaxed-name mapping
@@ -82,6 +82,6 @@ class TrainPropertiesMap {
     }
 
     private static String createRelaxedKey(String trainName) {
-        return Util.stripChatStyle(trainName).toLowerCase(Locale.ENGLISH);
+        return StringUtil.stripChatStyle(trainName).toLowerCase(Locale.ENGLISH);
     }
 }
