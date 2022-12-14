@@ -210,6 +210,11 @@ class SeatedEntityNormal extends SeatedEntity {
         despawnVehicleMount(viewer);
     }
 
+    protected boolean detectFake(boolean new_isUpsideDown, FirstPersonViewMode new_firstPersonMode) {
+        boolean noNametag = (this.displayMode == DisplayMode.NO_NAMETAG);
+        return isDummyPlayer() || (this.isPlayer() && (noNametag || new_isUpsideDown || new_firstPersonMode.hasFakePlayer()));
+    }
+
     @Override
     public void updateMode(boolean silent) {
         // Compute new first-person state of whether the player sees himself from third person using a fake camera
@@ -252,8 +257,7 @@ class SeatedEntityNormal extends SeatedEntity {
             }
 
             // Whether a fake entity is used to represent this seated entity
-            boolean noNametag = (this.displayMode == DisplayMode.NO_NAMETAG);
-            new_isFake = isDummyPlayer() || (this.isPlayer() && (noNametag || new_isUpsideDown || new_firstPersonMode.hasFakePlayer()));
+            new_isFake = detectFake(new_isUpsideDown, new_firstPersonMode);
         }
 
         // When we change whether a fake entity is displayed, hide for everyone and make visible again

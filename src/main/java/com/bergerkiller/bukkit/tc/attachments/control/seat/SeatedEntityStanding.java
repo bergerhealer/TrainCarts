@@ -21,6 +21,7 @@ class SeatedEntityStanding extends SeatedEntityNormal {
 
     public SeatedEntityStanding(CartAttachmentSeat seat) {
         super(seat);
+        this._fake = true;
     }
 
     @Override
@@ -36,6 +37,11 @@ class SeatedEntityStanding extends SeatedEntityNormal {
     @Override
     public boolean isFirstPersonCameraFake() {
         return false;
+    }
+
+    @Override
+    protected boolean detectFake(boolean new_isUpsideDown, FirstPersonViewMode new_firstPersonMode) {
+        return true;
     }
 
     private void makeFakePlayerVisible(AttachmentViewer viewer) {
@@ -78,6 +84,9 @@ class SeatedEntityStanding extends SeatedEntityNormal {
         }
 
         if (isPlayer()) {
+            if (this.entity != viewer.getPlayer()) {
+                hideRealPlayer(viewer);
+            }
             makeFakePlayerVisible(viewer);
             return;
         }
@@ -93,6 +102,9 @@ class SeatedEntityStanding extends SeatedEntityNormal {
 
         if (isPlayer()) {
             makeFakePlayerInvisible(viewer);
+            if (this.entity != viewer.getPlayer()) {
+                showRealPlayer(viewer);
+            }
             return;
         }
     }
