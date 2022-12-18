@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.debug;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
+import java.util.WeakHashMap;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
@@ -15,6 +16,7 @@ import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
@@ -27,6 +29,7 @@ import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
  * Manages the different functionalities provided by /train debug [type]
  */
 public class DebugTool {
+    private static final WeakHashMap<Player, DebounceLogic> debounce = new WeakHashMap<>();
 
     /**
      * Shows a box-shaped particle display for all mutex zones for a few seconds
@@ -132,13 +135,17 @@ public class DebugTool {
         }
 
         if (!Permission.DEBUG_COMMAND_DEBUG.has(player)) {
-            player.sendMessage(ChatColor.RED + "No permission to use this item!");
+            if (debounce(player)) {
+                player.sendMessage(ChatColor.RED + "No permission to use this item!");
+            }
             return true;
         }
 
         Optional<DebugToolType> match = DebugToolTypeRegistry.match(debugType);
         if (!match.isPresent()) {
-            player.sendMessage(ChatColor.RED + "Item has an unknown debug mode: " + debugType);
+            if (debounce(player)) {
+                player.sendMessage(ChatColor.RED + "Item has an unknown debug mode: " + debugType);
+            }
             return true;
         }
 
@@ -147,7 +154,43 @@ public class DebugTool {
             return false;
         }
 
-        match.get().onBlockInteract(traincarts, player, clickedBlock, item, isRightClick);
+        // Handle logic
+        if (debounce(player)) {
+            match.get().onBlockInteract(traincarts, player, clickedBlock, item, isRightClick);
+        }
+
         return true;
+    }
+
+    private static boolean debounce(Player player) {
+        return debounce.computeIfAbsent(player, DebounceLogic::new).check();
+    }
+
+    private static final class DebounceLogic {
+        private int lastActivation;
+        private int clickStart;
+
+        public DebounceLogic(Player player) {
+            this.lastActivation = 0;
+            this.clickStart = 0;
+        }
+
+        public boolean check() {
+            int ticks = CommonUtil.getServerTicks();
+            int timeSinceActivation = (ticks - lastActivation);
+            lastActivation = ticks;
+
+            if (timeSinceActivation > 10) {
+                // If it's been a while since last activation, we do the first-time single click activation
+                clickStart = ticks;
+                return true;
+            } else if (timeSinceActivation == 0) {
+                // Same tick, suppress
+                return false;
+            } else {
+                // Requires some delay between initial click and subsequent ones
+                return (ticks - clickStart) > 10;
+            }
+        }
     }
 }
