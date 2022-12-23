@@ -47,6 +47,7 @@ public class RailJunctionSwitcher {
         // what end of the path the train entered, and the distance traveled from
         // that end.
         List<MemberOnRail> members = this.rail.members().stream()
+            .filter(m -> !m.isUnloaded())
             .filter(memberFilter)
             .map(m -> m.getRailTracker().getRail())
             .filter(rail -> rail.state.railPiece().equals(this.rail))
