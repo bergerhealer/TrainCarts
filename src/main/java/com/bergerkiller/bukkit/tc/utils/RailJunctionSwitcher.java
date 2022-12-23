@@ -1,8 +1,10 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
@@ -18,9 +20,15 @@ import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
  */
 public class RailJunctionSwitcher {
     private final RailPiece rail;
+    private final Predicate<MinecartMember<?>> memberFilter;
 
     public RailJunctionSwitcher(RailPiece rail) {
+        this(rail, LogicUtil.alwaysTruePredicate());
+    }
+
+    public RailJunctionSwitcher(RailPiece rail, Predicate<MinecartMember<?>> memberFilter) {
         this.rail = rail;
+        this.memberFilter = memberFilter;
     }
 
     /**
@@ -39,6 +47,7 @@ public class RailJunctionSwitcher {
         // what end of the path the train entered, and the distance traveled from
         // that end.
         List<MemberOnRail> members = this.rail.members().stream()
+            .filter(memberFilter)
             .map(m -> m.getRailTracker().getRail())
             .filter(rail -> rail.state.railPiece().equals(this.rail))
             .map(MemberOnRail::new)

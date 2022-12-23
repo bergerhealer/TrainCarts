@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Predicate;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -481,6 +482,15 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
 
         RailPiece rail = this.sign.getRail();
 
+        Predicate<MinecartMember<?>> membersToTeleport;
+        if (this.isAction(SignActionType.GROUP_ENTER)) {
+            membersToTeleport = m -> m.getGroup() == getGroup();
+        } else if (this.isAction(SignActionType.MEMBER_ENTER)) {
+            membersToTeleport = m -> m == getMember();
+        } else {
+            membersToTeleport = LogicUtil.alwaysTruePredicate();
+        }
+
         // If from and to are the same, the train is launched back towards where it came
         // In this special case, select another junction part of the path as the from
         // and launch the train backwards
@@ -512,7 +522,7 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
             }
 
             // Switch it
-            rail.switchJunction(fromJunction, toJunction);
+            rail.switchJunction(fromJunction, toJunction, membersToTeleport);
 
             // Launch train into the opposite direction, if required
             if (this.hasMember()) {
@@ -532,7 +542,7 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
         }
 
         // All the switching logic under normal conditions happens here
-        rail.switchJunction(fromJunction, toJunction);
+        rail.switchJunction(fromJunction, toJunction, membersToTeleport);
     }
 
     /**
