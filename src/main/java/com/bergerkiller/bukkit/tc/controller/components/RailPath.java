@@ -168,9 +168,9 @@ public class RailPath {
             double tmpDistSquared = tmpSegment.calcDistanceSquared(position, tmpTheta);
             if (tmpDistSquared < info.distanceSquared) {
                 info.distanceSquared = tmpDistSquared;
-                if (tmpTheta < 1e-5 && i == 0) {
+                if (tmpTheta < tmpSegment.end_theta_threshold && i == 0) {
                     info.canMoveForward = tmpSegment.mot.dot(motionVector) >= 0.0;
-                } else if (tmpTheta > (1.0-1e-5) && i == (this.segments.length-1)) {
+                } else if ((1.0 - tmpTheta) < tmpSegment.end_theta_threshold && i == (this.segments.length-1)) {
                     info.canMoveForward = tmpSegment.mot.dot(motionVector) <= 0.0;
                 } else {
                     info.canMoveForward = true;
@@ -601,15 +601,26 @@ public class RailPath {
      * Stores state for proximity comparison
      */
     public static class ProximityInfo implements Comparable<ProximityInfo> {
+        /**
+         * Trains are allowed to jump this size of gap between rail paths, if it
+         * means jumping from the end of a rail section to continue movement forwards.
+         * If sections don't 100% line up, this prevents the train getting stuck.
+         */
+        private static final double DIST_DIFF_SQ_THRESHOLD = (1e-3 * 1e-3);
+
         public double distanceSquared = Double.MAX_VALUE;
         public boolean canMoveForward = false;
 
         @Override
         public int compareTo(ProximityInfo o) {
+            if (o.canMoveForward == this.canMoveForward) {
+                return Double.compare(this.distanceSquared, o.distanceSquared);
+            }
+
             double diffDistSq = this.distanceSquared - o.distanceSquared;
-            if (diffDistSq > 1e-10) {
+            if (diffDistSq > DIST_DIFF_SQ_THRESHOLD) {
                 return 1;
-            } else if (diffDistSq < -1e-10) {
+            } else if (diffDistSq < -DIST_DIFF_SQ_THRESHOLD) {
                 return -1;
             } else {
                 return Boolean.compare(o.canMoveForward, this.canMoveForward);
@@ -1221,6 +1232,8 @@ public class RailPath {
         public final boolean has_changing_up_orientation;
         /** The delta Y position changes significantly during the movement along this segment */
         public final boolean has_vertical_slope;
+        /** Length-based theta threshold value beyond which a position is considered at the end of this segment */
+        private final double end_theta_threshold;
         /** Segment length */
         public final double l;
         /** Segment length squared */
@@ -1251,6 +1264,7 @@ public class RailPath {
                 mot_dt = p_offset.clone().multiply(1.0 / ls);
             }
             has_vertical_slope = mot.getY() < -1e-10 || mot.getY() > 1e-10;
+            end_theta_threshold = Math.min(1e-3, 1e-4 * linv);
 
             // Legacy stuff encoded this as Point which was just...weird
             dt = new Point(p_offset);
