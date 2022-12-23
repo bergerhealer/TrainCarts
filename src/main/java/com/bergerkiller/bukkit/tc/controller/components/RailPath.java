@@ -1289,7 +1289,7 @@ public class RailPath {
         public void postinit() {
             // Orientation of a wheel when at p0
             Quaternion mid_up0 = Quaternion.fromLookDirection(this.mot, this.p0.up());
-            if (this.prev == null) {
+            if (this.prev == null || this.prev.isZeroLength()) {
                 this.p0_orientation.setTo(mid_up0);
             } else {
                 Quaternion prev_up = Quaternion.fromLookDirection(this.prev.mot, this.prev.p1.up());
@@ -1298,7 +1298,7 @@ public class RailPath {
 
             // Orientation of a wheel when at p1
             Quaternion mid_up1 = Quaternion.fromLookDirection(this.mot, this.p1.up());
-            if (this.next == null) {
+            if (this.next == null || this.next.isZeroLength()) {
                 this.p1_orientation.setTo(mid_up1);
             } else {
                 Quaternion next_up = Quaternion.fromLookDirection(this.next.mot, this.next.p0.up());
