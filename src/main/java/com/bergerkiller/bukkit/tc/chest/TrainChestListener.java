@@ -102,13 +102,16 @@ public class TrainChestListener implements Listener {
             if (result == TrainChestItemUtil.SpawnResult.FAIL_NORAIL) {
                 // Try to spawn looking at instead as a fall-back
                 result = TrainChestItemUtil.spawnLookingAt(group, event.getPlayer(), event.getPlayer().getEyeLocation(), speed);
+                if (result == TrainChestItemUtil.SpawnResult.FAIL_NORAIL_LOOK) {
+                    result = TrainChestItemUtil.SpawnResult.FAIL_NORAIL;
+                }
             }
         } else if (event.getAction() == Action.RIGHT_CLICK_AIR) {
             // Follow where the player is looking and spawn there
             result = TrainChestItemUtil.spawnLookingAt(group, event.getPlayer(), event.getPlayer().getEyeLocation(), speed);
         } else {
             // Impossible
-            result = TrainChestItemUtil.SpawnResult.FAIL_NORAIL;
+            result = TrainChestItemUtil.SpawnResult.FAIL_NORAIL_LOOK;
         }
 
         // Swap out for an empty chest item if finite

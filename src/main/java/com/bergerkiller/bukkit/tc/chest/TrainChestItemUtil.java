@@ -335,7 +335,7 @@ public class TrainChestItemUtil {
         }
 
         if (bestState == null) {
-            return SpawnResult.FAIL_NORAIL;
+            return SpawnResult.FAIL_NORAIL_LOOK;
         } else {
             // Reverse direction to align how the player is looking
             if (bestState.position().motDot(step) < 0.0) {
@@ -385,6 +385,7 @@ public class TrainChestItemUtil {
         SUCCESS(Localization.CHEST_SPAWN_SUCCESS),
         FAIL_EMPTY(Localization.CHEST_SPAWN_EMPTY),
         FAIL_NORAIL(Localization.CHEST_SPAWN_NORAIL),
+        FAIL_NORAIL_LOOK(Localization.CHEST_SPAWN_NORAIL_LOOK),
         FAIL_RAILTOOSHORT(Localization.CHEST_SPAWN_RAILTOOSHORT),
         FAIL_BLOCKED(Localization.CHEST_SPAWN_BLOCKED),
         FAIL_NO_PERM(null);
