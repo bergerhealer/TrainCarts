@@ -613,10 +613,6 @@ public class RailPath {
 
         @Override
         public int compareTo(ProximityInfo o) {
-            if (o.canMoveForward == this.canMoveForward) {
-                return Double.compare(this.distanceSquared, o.distanceSquared);
-            }
-
             double diffDistSq = this.distanceSquared - o.distanceSquared;
             if (diffDistSq > DIST_DIFF_SQ_THRESHOLD) {
                 return 1;
