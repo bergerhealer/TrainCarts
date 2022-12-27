@@ -154,7 +154,7 @@ public class SignActionSwitcher extends SignAction {
             {
                 boolean calcHasFromDirections = false;
                 for (DirectionStatement statement : statements) {
-                    if (!statement.isSwitchedFromSelf()) {
+                    if (!statement.isSwitchedFromSelf() && !statement.isDefault()) {
                         calcHasFromDirections = true;
                         break;
                     }
