@@ -59,6 +59,7 @@ public class SignController implements LibraryComponent, Listener {
     private boolean disabled = false;
     private SignControllerWorld byWorldLastGet = NONE;
     private final RedstoneUpdateTask updateTask;
+    private boolean redstonePhysicsSuppressed = false;
 
     public SignController(TrainCarts plugin) {
         this.plugin = plugin;
@@ -83,6 +84,25 @@ public class SignController implements LibraryComponent, Listener {
         byWorldLastGet = NONE;
         updateTask.stop();
         disabled = true;
+    }
+
+    /**
+     * Supresses all redstone-related events being handled while a runnable
+     * does stuff.
+     *
+     * @param runnable
+     */
+    public void suppressRedstonePhysicsDuring(Runnable runnable) {
+        if (redstonePhysicsSuppressed) {
+            runnable.run();
+        } else {
+            try {
+                redstonePhysicsSuppressed = true;
+                runnable.run();
+            } finally {
+                redstonePhysicsSuppressed = false;
+            }
+        }
     }
 
     /**
@@ -355,6 +375,10 @@ public class SignController implements LibraryComponent, Listener {
     // This is also needed to support block placement / piston / WR / etc.
     @EventHandler(priority = EventPriority.MONITOR)
     private void onBlockPhysics(BlockPhysicsEvent event) {
+        if (redstonePhysicsSuppressed) {
+            return;
+        }
+
         Block block = event.getBlock();
         SignControllerWorld controller = forWorld(block.getWorld());
 
@@ -369,7 +393,7 @@ public class SignController implements LibraryComponent, Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onBlockRedstoneChange(BlockRedstoneEvent event) {
-        if (TrainCarts.isWorldDisabled(event)) {
+        if (redstonePhysicsSuppressed || TrainCarts.isWorldDisabled(event)) {
             return;
         }
 

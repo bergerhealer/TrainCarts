@@ -305,7 +305,9 @@ public class RailTypeRegular extends RailTypeHorizontal {
 
     @Override
     public void switchJunction(Block railBlock, RailJunction from, RailJunction to) {
-        BlockUtil.setRails(railBlock, juncToFace(from), juncToFace(to));
+        TrainCarts.plugin.getSignController().suppressRedstonePhysicsDuring(() -> {
+            BlockUtil.setRails(railBlock, juncToFace(from), juncToFace(to));
+        });
     }
 
     private static final BlockFace juncToFace(RailJunction junction) {
