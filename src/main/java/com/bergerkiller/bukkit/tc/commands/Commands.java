@@ -60,7 +60,6 @@ import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.arguments.parser.StandardParameters;
 import cloud.commandframework.meta.CommandMeta;
 import cloud.commandframework.permission.AndPermission;
-import cloud.commandframework.permission.PredicatePermission;
 
 import java.io.IOException;
 import java.util.ArrayList;
