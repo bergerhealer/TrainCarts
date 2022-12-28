@@ -59,6 +59,8 @@ import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.arguments.parser.StandardParameters;
 import cloud.commandframework.meta.CommandMeta;
+import cloud.commandframework.permission.AndPermission;
+import cloud.commandframework.permission.PredicatePermission;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -106,17 +108,19 @@ public class Commands {
 
         // TrainCarts Permissions
         cloud.getParser().registerBuilderModifier(CommandRequiresPermission.class,
-                (perm, builder) -> builder.permission(sender -> perm.value().has(sender)));
+                (perm, builder) -> builder.permission(perm.value().cloudPermission()));
         cloud.getParser().registerBuilderModifier(CommandRequiresMultiplePermissions.class, (multi, builder) -> {
-            final Permission[] perms = Stream.of(multi.value()).map(CommandRequiresPermission::value).toArray(Permission[]::new);
-            return builder.permission(sender -> {
-                for (Permission perm : perms) {
-                    if (!perm.has(sender)) {
-                        return false;
-                    }
-                }
-                return true;
-            });
+            final List<cloud.commandframework.permission.CommandPermission> perms = Stream.of(multi.value())
+                    .map(CommandRequiresPermission::value)
+                    .map(Permission::cloudPermission)
+                    .toList();
+            if (perms.isEmpty()) {
+                return builder;
+            } else if (perms.size() == 1) {
+                return builder.permission(perms.get(0));
+            } else {
+                return builder.permission(AndPermission.of(perms));
+            }
         });
 
         // Target a cart or train using added flags at the end of the command

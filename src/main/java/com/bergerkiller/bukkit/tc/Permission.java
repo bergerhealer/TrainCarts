@@ -3,6 +3,8 @@ package com.bergerkiller.bukkit.tc;
 import com.bergerkiller.bukkit.common.internal.CommonPlugin;
 import com.bergerkiller.bukkit.common.permissions.IPermissionEnum;
 
+import cloud.commandframework.permission.PredicatePermission;
+
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.PermissionDefault;
 
@@ -136,11 +138,13 @@ public enum Permission implements IPermissionEnum {
     private final String _root;
     private final PermissionDefault _default;
     private final String _description;
+    private final PredicatePermission<CommandSender> _cloud;
 
     private Permission(final String node, final PermissionDefault permdefault, final String desc) {
         this._root = node;
         this._default = permdefault;
         this._description = desc;
+        this._cloud = this::has;
     }
 
     @Override
@@ -166,5 +170,14 @@ public enum Permission implements IPermissionEnum {
     @Override
     public String getDescription() {
         return this._description;
+    }
+
+    /**
+     * Cloud representation of this permission
+     *
+     * @return Cloud Command Permission
+     */
+    public cloud.commandframework.permission.CommandPermission cloudPermission() {
+        return _cloud;
     }
 }
