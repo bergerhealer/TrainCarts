@@ -4,7 +4,10 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -25,6 +28,7 @@ import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.block.SignChangeTracker;
@@ -56,6 +60,7 @@ public class SignController implements LibraryComponent, Listener {
     private final IdentityHashMap<World, SignControllerWorld> byWorld = new IdentityHashMap<>();
     private final FastTrackedUpdateSet<Entry> pendingRedstoneUpdates = new FastTrackedUpdateSet<Entry>();
     private final FastTrackedUpdateSet<Entry> ignoreRedstoneUpdates = new FastTrackedUpdateSet<Entry>();
+    private final boolean blockPhysicsFireForSigns;
     private boolean disabled = false;
     private SignControllerWorld byWorldLastGet = NONE;
     private final RedstoneUpdateTask updateTask;
@@ -64,6 +69,7 @@ public class SignController implements LibraryComponent, Listener {
     public SignController(TrainCarts plugin) {
         this.plugin = plugin;
         this.updateTask = new RedstoneUpdateTask(plugin);
+        this.blockPhysicsFireForSigns = doesBlockPhysicsFireForSigns();
     }
 
     public TrainCarts getPlugin() {
@@ -386,8 +392,17 @@ public class SignController implements LibraryComponent, Listener {
             controller.detectNewSigns(block);
         }
 
-        for (Entry e : controller.findNearby(block)) {
-            e.updateRedstoneLater();
+        if (this.blockPhysicsFireForSigns) {
+            // Check block is a sign
+            Entry e = controller.findForSign(block);
+            if (e != null) {
+                e.updateRedstoneLater();
+            }
+        } else {
+            // Check signs are nearby
+            for (Entry e : controller.findNearby(block)) {
+                e.updateRedstoneLater();
+            }
         }
     }
 
@@ -506,6 +521,58 @@ public class SignController implements LibraryComponent, Listener {
 
         // All good. Update redstone power now.
         entry.updateRedstonePower();
+    }
+
+    /**
+     * Checks whether the BlockPhysicsEvent fires for signs on the current server in use.
+     * This stuff broke on Minecraft 1.19
+     *
+     * @return True if block physics fire for signs
+     */
+    private static boolean doesBlockPhysicsFireForSigns() {
+        // No problem on 1.18.2 and before
+        if (Common.evaluateMCVersion("<=", "1.18.2")) {
+            return true;
+        }
+
+        // Only fixed on Paper servers 1.19.3+, or 1.19.2 build 165 onwards
+        if (Common.IS_PAPERSPIGOT_SERVER) {
+            if (Common.evaluateMCVersion(">=", "1.19.3")) {
+                // Fixed here for sure
+                return true;
+            } else if (Common.evaluateMCVersion("==", "1.19.2")) {
+                // Assume most people use a most up to date server
+                // Only when we detect a server older than it do we return false
+
+                // Fixed on: git-Paper-165 (MC: 1.19.2)
+                if (checkBuildNumberLessThan("Paper", 165)) {
+                    return false;
+                }
+
+                // Fixed on: git-Purpur-1788 (MC: 1.19.2)
+                if (checkBuildNumberLessThan("Purpur", 1788)) {
+                    return false;
+                }
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean checkBuildNumberLessThan(String serverName, int buildNumberThreshold) {
+        Matcher m;
+        String version = Bukkit.getVersion();
+        if (version != null && (m = Pattern.compile("^git-" + serverName + "-(\\d+)\\s.*$").matcher(version)).matches()) {
+            try {
+                int build = Integer.parseInt(m.group(1));
+                if (build < buildNumberThreshold) {
+                    return true;
+                }
+            } catch (NumberFormatException ex) {}
+        }
+        return false;
     }
 
     /**
