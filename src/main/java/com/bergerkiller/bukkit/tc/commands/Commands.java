@@ -112,7 +112,7 @@ public class Commands {
             final List<cloud.commandframework.permission.CommandPermission> perms = Stream.of(multi.value())
                     .map(CommandRequiresPermission::value)
                     .map(Permission::cloudPermission)
-                    .toList();
+                    .collect(Collectors.toList());
             if (perms.isEmpty()) {
                 return builder;
             } else if (perms.size() == 1) {
