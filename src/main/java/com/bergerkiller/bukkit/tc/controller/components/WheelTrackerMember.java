@@ -216,6 +216,9 @@ public class WheelTrackerMember {
                 this._bankingRoll = angle;
             } else {
                 this._bankingRoll += (1.0 / props.getBankingSmoothness()) * ( angle - this._bankingRoll);
+                if (Math.abs(this._bankingRoll) < 0.01) {
+                    this._bankingRoll = 0.0;
+                }
             }
         } else {
             this._bankingRoll = 0.0;
