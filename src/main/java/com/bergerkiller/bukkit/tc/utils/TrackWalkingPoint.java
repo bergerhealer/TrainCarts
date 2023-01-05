@@ -96,7 +96,7 @@ public class TrackWalkingPoint {
             this.state.setRailPiece(RailPiece.create(RailType.getType(startRail), startRail));
             this.state.position().setMotion(motionFace);
             this.state.position().setLocation(this.state.railType().getSpawnLocation(startRail, motionFace));
-            this.state.initEnterDirection();
+            this.state.initEnterDirection(); // Not loadRailInformation because we go type -> spawn location
             this.currentRailLogic = this.state.loadRailLogic();
             this.currentRailPath = this.currentRailLogic.getPath();
             if (this.isDerailed()) {

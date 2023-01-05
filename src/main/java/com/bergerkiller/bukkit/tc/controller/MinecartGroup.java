@@ -757,6 +757,16 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
         }
 
+        // Invert location orientations where carts had orientation flipped
+        // Do all this BEFORE teleporting, or these orientation flipped checks will fail
+        // as they use the cart's relative positions to figure this out.
+        locations = locations.clone();
+        for (int i = 0; i < this.size(); i++) {
+            if (this.get(i).isOrientationInverted()) {
+                locations[i] = Util.invertRotation(locations[i].clone());
+            }
+        }
+
         if (reversed) {
             for (int i = 0; i < locations.length; i++) {
                 teleportMember(this.get(i), locations[locations.length - i - 1]);
@@ -780,11 +790,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     private void teleportMember(MinecartMember<?> member, Location location) {
-        if (member.isOrientationInverted()) {
-            location = Util.invertRotation(location.clone());
-        }
         member.getWheels().startTeleport();
         member.getEntity().teleport(location);
+        member.getOrientation();
     }
 
     /**
