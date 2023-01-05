@@ -715,6 +715,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     public void teleport(Block start, BlockFace direction) {
         Location[] locations = new Location[this.size()];
         TrackWalkingPoint walker = new TrackWalkingPoint(start, direction);
+        walker.skipFirst();
         for (int i = 0; i < locations.length; i++) {
             boolean canMove;
             if (i == 0) {
@@ -763,7 +764,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         locations = locations.clone();
         for (int i = 0; i < this.size(); i++) {
             if (this.get(i).isOrientationInverted()) {
-                locations[i] = Util.invertRotation(locations[i].clone());
+                int locIndx = reversed ? (locations.length - i - 1) : i;
+                locations[locIndx] = Util.invertRotation(locations[locIndx].clone());
             }
         }
 
