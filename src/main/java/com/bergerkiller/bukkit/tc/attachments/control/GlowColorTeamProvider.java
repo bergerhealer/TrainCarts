@@ -102,7 +102,9 @@ public class GlowColorTeamProvider {
 
     private void schedule(ViewerState.Team team) {
         if (this.pendingTeamUpdates.isEmpty()) {
-            this.updateTask.start();
+            if (this.updateTask.getPlugin().isEnabled()) {
+                this.updateTask.start();
+            }
         }
         this.pendingTeamUpdates.add(team);
     }
