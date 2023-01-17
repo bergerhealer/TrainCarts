@@ -145,6 +145,10 @@ TrainCarts exposes an API that allows third-parties to extend the plugin. Primar
 * **[TCTicketShop](https://www.spigotmc.org/resources/tcticketshop.64627/)**: Use sign interaction to buy train tickets _(by DefinitlyEvil)_
 * **[LightAPI](https://www.spigotmc.org/resources/lightapi.4510/)**: Powers the built-in Light attachment. (Use this [fork](https://www.spigotmc.org/resources/lightapi-fork.48247/) for MC 1.17.1 and below)
 * **[TCJukebox](https://www.spigotmc.org/resources/tcjukebox.75674/)**: Plays music for players inside the train using [MCJukebox](https://www.spigotmc.org/resources/mcjukebox.16024/) _(by melerpe)_
+<!-- rewrite once spigot "https://modrinth.com/plugin/tc-portals" "https://www.spigotmc.org/resources/tc-portals.107442/" -->
+* **[TC-Portals](https://modrinth.com/plugin/tc-portals)**: Teleport trains between servers in a realistic way _(by J0schlZ)_
+<!-- rewrite once spigot "https://modrinth.com/plugin/tc-destinations" "https://www.spigotmc.org/resources/tc-destinations.107441/" -->
+* **[TC-Destinations](https://modrinth.com/plugin/tc-destinations)**: Cross-server train destination pagination and helpful clickable commands _(by J0schlZ)_
 * **[TrainCartsDestinationSelector](https://www.spigotmc.org/resources/traincartsdestinationselector.73170/)**: Adds clickable signs so players can select train destinations
 * **[Traincarts AdvancedSigns](https://www.spigotmc.org/resources/traincarts-advancedsigns.99881/)**: Adds additional sign types, particularly useful for rollercoaster rides
 * **[TCAnimatronics](https://www.spigotmc.org/resources/tcanimatronics.101995/)**: Play [Animatronics](https://www.spigotmc.org/resources/animatronics-animate-armorstands-1-8-1-18-2.36518/) animations with a Traincarts sign
