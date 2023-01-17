@@ -247,6 +247,10 @@ public final class DetectorRegion {
         return this.members;
     }
 
+    public boolean hasMembers() {
+        return !this.members.isEmpty();
+    }
+
     public Set<MinecartGroup> getGroups() {
         Set<MinecartGroup> rval = new HashSet<>();
         this.cleanUnloadedMembers();
@@ -255,6 +259,10 @@ public final class DetectorRegion {
             rval.add(mm.getGroup());
         }
         return rval;
+    }
+
+    public boolean hasGroups() {
+        return !this.members.isEmpty();
     }
 
     public UUID getUniqueId() {

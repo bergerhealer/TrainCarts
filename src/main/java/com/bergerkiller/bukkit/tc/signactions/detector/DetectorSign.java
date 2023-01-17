@@ -92,7 +92,7 @@ public class DetectorSign implements DetectorListener {
     public void onLeave(MinecartGroup group) {
         if (this.metadata.isLeverDown) {
             SignActionEvent event = initSignEvent();
-            if (event != null && event.isTrainSign() && isDown(event, null, group)) {
+            if (event != null && event.isTrainSign() && isLeverUpCheckNeeded(event, group)) {
                 updateGroups(event);
             }
         }
@@ -114,7 +114,7 @@ public class DetectorSign implements DetectorListener {
     public void onLeave(MinecartMember<?> member) {
         if (this.metadata.isLeverDown) {
             SignActionEvent event = initSignEvent();
-            if (event != null && event.isCartSign() && isDown(event, member, null)) {
+            if (event != null && event.isCartSign() && isLeverUpCheckNeeded(event, member)) {
                 updateMembers(event);
             }
         }
@@ -184,7 +184,22 @@ public class DetectorSign implements DetectorListener {
         if (event != null) this.updateGroups(event);
     }
 
+    public boolean isLeverUpCheckNeeded(SignActionEvent event, MinecartMember<?> member) {
+        return !this.metadata.region.hasMembers() || isDown(event, member, null);
+    }
+
+    public boolean isLeverUpCheckNeeded(SignActionEvent event, MinecartGroup group) {
+        return !this.metadata.region.hasGroups() || isDown(event, null, group);
+    }
+
     public boolean isDown(SignActionEvent event, MinecartMember<?> member, MinecartGroup group) {
+        if (member != null) {
+            event.setMember(member);
+        } else if (group != null) {
+            event.setGroup(group);
+        } else {
+            event.setGroup(null);
+        }
         boolean firstEmpty = false;
         if (event.getLine(2).isEmpty()) {
             firstEmpty = true;
