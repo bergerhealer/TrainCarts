@@ -41,10 +41,13 @@ public class StatementDirection extends Statement {
 
     @Override
     public boolean handleArray(MinecartMember<?> member, String[] directionNames, SignActionEvent event) {
-        // Don't even bother with this crap
+        // Make use of the event to decide this if we can
         RailState enterState;
         if (event.getMember() != member || (enterState = event.getCartEnterState()) == null) {
-            return false;
+            // Fallback: calculate rail state of the member and use that blindly
+            if ((enterState = member.getRailTracker().getState()) == null || enterState.railPiece().isNone()) {
+                return false;
+            }
         }
 
         // Parse input text into valid directions
