@@ -358,14 +358,20 @@ public class TrackWalkingPoint {
         }
 
         // No next rail available. This is it.
-        if (isDerailed()) {
+        if (this.state.railType() == RailType.NONE) {
             this.failReason = FailReason.NO_RAIL;
             return false;
         }
 
         // Refresh rail logic for the new position and state
+        // Rail logic could return an empty path if stuff is outdated
         this.currentRailLogic = this.state.loadRailLogic();
         this.currentRailPath = this.currentRailLogic.getPath();
+        if (this.currentRailPath.isEmpty()) {
+            this.failReason = FailReason.NO_RAIL;
+            return false;
+        }
+
         this.isAtEnd = true;
 
         // Update predictor so the speed limit / switched position is updated
