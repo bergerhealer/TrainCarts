@@ -224,10 +224,8 @@ public class TCListener implements Listener {
             // This can happen when entities are unloaded and reloaded rapidly in the same tick
             // The entity Bukkit instance is removed, but the actual entity itself simply re-spawned
             UUID entityUUID = event.getEntity().getUniqueId();
-            for (Entity otherEntity : WorldUtil.getEntities(event.getEntity().getWorld())) {
-                if (otherEntity.getUniqueId().equals(entityUUID)) {
-                    return;
-                }
+            if (EntityUtil.getEntity(event.getEntity().getWorld(), entityUUID) != null) {
+                return;
             }
 
             if (EntityHandle.fromBukkit(event.getEntity()).isDestroyed()) {
