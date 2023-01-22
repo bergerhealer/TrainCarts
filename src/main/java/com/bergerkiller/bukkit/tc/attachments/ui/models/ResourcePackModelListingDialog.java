@@ -32,6 +32,8 @@ import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 
+import net.md_5.bungee.api.ChatColor;
+
 /**
  * Displays the contents of {@link ResourcePackModelListing} in an inventory menu dialog
  * for a single player.
@@ -233,10 +235,22 @@ class ResourcePackModelListingDialog implements Listener {
             this.inventory.setItem(i, currentItems.get(i + offset).item().clone());
         }
         for (int i = limit; i < DISPLAYED_ITEM_COUNT; i++) {
-            this.inventory.setItem(i, null);
+            this.inventory.setItem(i, options.bgItem);
         }
         for (UIButton button : buttons) {
             this.inventory.setItem(button.slot, button.item());
+        }
+        for (int i = DISPLAYED_ITEM_COUNT; i < (9*6); i++) {
+            boolean isButtonSlot = false;
+            for (UIButton button : buttons) {
+                if (button.slot == i) {
+                    isButtonSlot = true;
+                    break;
+                }
+            }
+            if (!isButtonSlot) {
+                this.inventory.setItem(i, options.bgItem);
+            }
         }
     }
 
@@ -456,10 +470,10 @@ class ResourcePackModelListingDialog implements Listener {
 
     private class PrevPageButton extends UIButton {
         private final ItemStack enabledIconItem = createItem(item -> {
-            
+            ItemUtil.setDisplayName(item, ChatColor.GREEN + "Previous Page");
         }, "DIAMOND_BLOCK", "LEGACY_DIAMOND_BLOCK");
         private final ItemStack disabledIconItem = createItem(item -> {
-            
+            ItemUtil.setDisplayName(item, ChatColor.GRAY.toString() + ChatColor.STRIKETHROUGH + "Previous Page");
         }, "CLAY", "LEGACY_CLAY");
 
         public PrevPageButton() {
@@ -479,10 +493,10 @@ class ResourcePackModelListingDialog implements Listener {
 
     private class NextPageButton extends UIButton {
         private final ItemStack enabledIconItem = createItem(item -> {
-            
+            ItemUtil.setDisplayName(item, ChatColor.GREEN + "Next Page");
         }, "DIAMOND_BLOCK", "LEGACY_DIAMOND_BLOCK");
         private final ItemStack disabledIconItem = createItem(item -> {
-            
+            ItemUtil.setDisplayName(item, ChatColor.GRAY.toString() + ChatColor.STRIKETHROUGH + "Next Page");
         }, "CLAY", "LEGACY_CLAY");
 
         public NextPageButton() {
@@ -502,7 +516,7 @@ class ResourcePackModelListingDialog implements Listener {
 
     private class SearchButton extends UIButton {
         private final ItemStack searchIconItem = createItem(item -> {
-            
+            ItemUtil.setDisplayName(item, ChatColor.YELLOW + "Enter search query");
         }, "COMPASS", "LEGACY_COMPASS");
 
         public SearchButton() {

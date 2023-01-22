@@ -14,6 +14,7 @@ import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 import org.bukkit.ChatColor;
+import org.bukkit.DyeColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
@@ -21,6 +22,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
+import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.map.MapResourcePack;
 import com.bergerkiller.bukkit.common.map.MapResourcePack.ResourceType;
 import com.bergerkiller.bukkit.common.map.util.Model.ModelOverride;
@@ -262,16 +264,39 @@ public class ResourcePackModelListing {
         return entry;
     }
 
+    @SuppressWarnings("deprecation")
+    private static ItemStack createDefaultBGItem() {
+        try {
+            ItemStack item;
+            if (CommonCapabilities.MATERIAL_ENUM_CHANGES) {
+                item = ItemUtil.createItem(
+                        MaterialUtil.getMaterial("GRAY_STAINED_GLASS_PANE"),
+                        1);
+            } else {
+                item = ItemUtil.createItem(
+                        MaterialUtil.getMaterial("LEGACY_STAINED_GLASS_PANE"),
+                        DyeColor.GRAY.getWoolData(), 1);
+            }
+            ItemUtil.setDisplayName(item, ChatColor.RESET.toString());
+            return item;
+        } catch (Throwable t) {
+            return null; // Meh. Not important enough to fail everything!
+        }
+    }
+
     /**
      * Configures the behavior of a model listing dialog
      */
     public static final class DialogBuilder implements Cloneable {
+        private static final ItemStack DEFAULT_BG_ITEM = createDefaultBGItem();
+
         private final Plugin plugin;
         private final Player player;
         private final ResourcePackModelListing listing;
         boolean creativeMenu = false;
         String title = "Resource Pack Models";
         String query = "";
+        ItemStack bgItem = DEFAULT_BG_ITEM;
         final List<Consumer<ListedItemModel>> selectHandlers = new ArrayList<>();
         final List<Runnable> cancelHandlers = new ArrayList<>();
 
@@ -330,6 +355,18 @@ public class ResourcePackModelListing {
          */
         public DialogBuilder title(String title) {
             this.title = title;
+            return this;
+        }
+
+        /**
+         * Sets the item displayed for item slots in the window which are not filled
+         * with an item or UI component.
+         *
+         * @param item Item to display as background. Null to leave the slots empty.
+         * @return this
+         */
+        public DialogBuilder backgroundItem(ItemStack item) {
+            this.bgItem = item;
             return this;
         }
 
@@ -396,6 +433,7 @@ public class ResourcePackModelListing {
             clone.creativeMenu = this.creativeMenu;
             clone.title = this.title;
             clone.query = this.query;
+            clone.bgItem = this.bgItem;
             clone.selectHandlers.addAll(this.selectHandlers);
             clone.cancelHandlers.addAll(this.cancelHandlers);
             return clone;
