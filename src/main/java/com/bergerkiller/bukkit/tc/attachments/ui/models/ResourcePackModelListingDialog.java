@@ -338,9 +338,10 @@ class ResourcePackModelListingDialog implements Listener {
 
         // Disallow moving items into the menu
         // If this is a creative menu, delete the items moved from the inventory
+        Inventory clickedInventory = ItemUtil.getClickedInventory(event);
         if (event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY &&
             event.getInventory() == this.inventory &&
-            event.getClickedInventory() != this.inventory
+            clickedInventory != this.inventory
         ) {
             if (options.creativeMenu) {
                 event.setResult(Result.DENY);
@@ -356,7 +357,7 @@ class ResourcePackModelListingDialog implements Listener {
         if ((event.getClick() == ClickType.RIGHT || event.getClick() == ClickType.SHIFT_RIGHT) &&
             options.creativeMenu &&
             !ItemUtil.isEmpty(event.getCursor()) &&
-            event.getClickedInventory() == this.inventory &&
+            clickedInventory == this.inventory &&
             event.getSlot() >= 0 && event.getSlot() < (9*6)
         ) {
             if (event.getCursor().getAmount() > 1) {
@@ -377,7 +378,7 @@ class ResourcePackModelListingDialog implements Listener {
         // and refresh them again next tick. This avoids those slots being considered
         // in the collect-all calculations.
         if (event.getAction() == InventoryAction.COLLECT_TO_CURSOR &&
-            event.getClickedInventory() != this.inventory &&
+            clickedInventory != this.inventory &&
             !ItemUtil.isEmpty(event.getCursor())
         ) {
             // Check any of the items match with the one taken
@@ -396,7 +397,7 @@ class ResourcePackModelListingDialog implements Listener {
         }
 
         // Allow stuff that happens in the player's own inventory
-        if (event.getClickedInventory() != this.inventory) {
+        if (clickedInventory != this.inventory) {
             return;
         }
 
