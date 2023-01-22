@@ -15,7 +15,7 @@ Trains in Minecraft! Automated metro networks, rollercoasters, gondolas, ski-lif
 Discover how to use this plugin over at [https://wiki.traincarts.net/p/TrainCarts](https://wiki.traincarts.net/p/TrainCarts)
 
 ## Custom Trains
-With the [Attachment Editor](https://wiki.traincarts.net/p/TrainCarts/Attachments) you can customize the appearance of your trains. Create custom cart models in Blockbench and ride inside them in-game. Large models are possible by adding multiple sections of a model as separate (Armorstand) item models. Traincarts will do the animating for you and move the parts as a whole.
+With the [Attachment Editor](https://wiki.traincarts.net/p/TrainCarts/Attachments) you can customize the appearance of your trains. Create custom cart models in Blockbench and ride inside them in-game. Large models are possible by adding multiple sections of a model as separate (Armorstand) item models. TrainCarts will do the animating for you and move the parts as a whole.
 
 Recommended reading before going into this: [Custom Item Models in 1.9 and Up](https://www.spigotmc.org/wiki/custom-item-models-in-1-9-and-up/)
 
@@ -25,14 +25,14 @@ Recommended reading before going into this: [Custom Item Models in 1.9 and Up](h
 <img src="https://wiki.traincarts.net/images/thumb/f/f9/Attachment_editor_wooden_car.png/800px-Attachment_editor_wooden_car.png" width="50%"/>
 
 #### Animations
-For custom ride enthusiasts, trains can be fully animated. This means you can have doors that open and close, carts that spin around, or even create theme park rides like ferris wheels, spinners and merry-go-rounds!
+For custom ride enthusiasts, trains can be fully animated. This means you can have doors that open and close, carts that spin around, or even create theme park rides like Ferris wheels, spinners and merry-go-rounds!
 
 [<img width="560" height="315" src="https://raw.githubusercontent.com/bergerhealer/TrainCarts/master/misc/vid_thumb/animations.jpg">](https://www.youtube.com/watch?v=8Tlc5PO7VzE "Click to view video on YouTube")
 
 #### Demo Resource Pack
 <img src="https://raw.githubusercontent.com/bergerhealer/TrainCarts/master/misc/train_banner.png"/>
 
-Traincarts has a demo resource pack that you can download that includes a couple train and rollercoaster cart models. You can already play around with these without having to delve into Blockbench yourself
+TrainCarts has a demo resource pack that you can download that includes a couple of train and rollercoaster cart models. You can already play around with these without having to delve into Blockbench yourself
 
 The locomotive and carriages were made by Nullblox. Maxi made the different color rollercoaster carts.
 
@@ -57,7 +57,7 @@ You can follow [this tutorial](https://minecraft.fandom.com/wiki/Tutorials/Loadi
 [Download a zip file with the configuration from Dropbox here](https://www.dropbox.com/s/l9uglizl6gbunxe/TrainCarts_Demo_ST_v1.zip?dl=0)
 
 #### 4. Extract the zip file
-Extract the zip file, you should now have a fairly large _tcdemo.yml_ file. This file is going to be installed in the server.
+Extract the zip file, you should now have a fairly large _tcdemo.yml_ file. This file is going to be installed on the server.
 
 #### 5. Install the tcdemo.yml
 Install this file at <code>plugins/Train_Carts/savedTrainModules/tcdemo.yml</code>
@@ -79,8 +79,8 @@ The new models are bound to durability values of the golden pickaxe. After insta
 * loco - Spawns locomotive without animations
 * carr / carg / carb - Spawns red/green/blue carriages without animations
 * loco_anim - Spawns locomotive with animation 'wheel' to bring it to life
-* carr_anim / carg_anim / carb_anim - Spawns red/green/blue carriages with animation 'wheel' to bring it to life
-* ferris - Animated ferris wheel, use animation 'spin' to control it (WARNING: VERY LAGGY)
+* carr_anim / carg_anim / carb_anim - Spawns red/green/blue carriages with animation 'wheel' to bring them to life
+* ferris - Animated Ferris wheel, use animation 'spin' to control it (WARNING: VERY LAGGY)
 * spinner - Animated spinning ride with 3 controllable animations ('spin', 'turn' and 'arm')
 * rolr / rolg / rolb - Rollercoaster carts with 4 seats
 ***
@@ -128,20 +128,20 @@ Everything that can be done with sign actions, and more, can also be done using 
 [➦Wiki](https://wiki.traincarts.net/p/TrainCarts/Commands)
 
 #### Selector Support
-Use the **@ptrain** selector to use the player passengers of a train as an argument in other (non-Traincarts) commands. Or use **@train** to perform actions on multiple trains at once. Trains can be selected by cuboid, distance, set properties and many more.<br>[➦Wiki](https://wiki.traincarts.net/p/TrainCarts/Commands/Selectors)
+Use the **@ptrain** selector to use the player passengers of a train as an argument in other (non-TrainCarts) commands. Or use **@train** to perform actions on multiple trains at once. Trains can be selected by cuboid, distance, set properties and many more.<br>[➦Wiki](https://wiki.traincarts.net/p/TrainCarts/Commands/Selectors)
 
 #### Featured
 <img src="https://raw.githubusercontent.com/bergerhealer/BKCommonLib/master/misc/cloud_banner.png"/>
 
 This plugin uses the [Cloud Command Framework](https://github.com/incendo/cloud) for handling commands
 
-If you're impressed by the quality of Traincarts' command auto-completions, suggestions and help menu and want this in your plugin, check out Cloud by Incendo!
+If you're impressed by the quality of TrainCarts' command auto-completions, suggestions and help menu and want this in your plugin, check out Cloud by Incendo!
 
 ## Addons
-TrainCarts exposes an API that allows third-parties to extend the plugin. Primarily it adds support for new rail types, new attachment types and custom action signs.
+TrainCarts exposes an API that allows third parties to extend the plugin. Primarily it adds support for new rail types, new attachment types and custom action signs.
 * **[TC-Hangrail](https://www.spigotmc.org/resources/tc-hangrail.39627/)**: Trains floating below iron fences and also below/above other kinds of blocks _(by TeamBergerhealer)_
 * **[TC-Coasters](https://www.spigotmc.org/resources/tc-coasters.59583/)**: Rails in the air without requiring actual rails blocks _(by TeamBergerhealer)_
-* **[SmoothCoasters](https://www.curseforge.com/minecraft/mc-mods/smoothcoasters)**: Minecraft Client Fabric mod that, if installed, smoothens armorstand animations and improves the first-person camera view
+* **[SmoothCoasters](https://www.curseforge.com/minecraft/mc-mods/smoothcoasters)**: Minecraft Client Fabric mod that, if installed, smoothens armor stand animations and improves the first-person camera view
 * **[TCTicketShop](https://www.spigotmc.org/resources/tcticketshop.64627/)**: Use sign interaction to buy train tickets _(by DefinitlyEvil)_
 * **[LightAPI](https://www.spigotmc.org/resources/lightapi.4510/)**: Powers the built-in Light attachment. (Use this [fork](https://www.spigotmc.org/resources/lightapi-fork.48247/) for MC 1.17.1 and below)
 * **[TCJukebox](https://www.spigotmc.org/resources/tcjukebox.75674/)**: Plays music for players inside the train using [MCJukebox](https://www.spigotmc.org/resources/mcjukebox.16024/) _(by melerpe)_
@@ -151,12 +151,12 @@ TrainCarts exposes an API that allows third-parties to extend the plugin. Primar
 * **[TC-Destinations](https://modrinth.com/plugin/tc-destinations)**: Cross-server train destination pagination and helpful clickable commands _(by J0schlZ)_
 * **[TrainCartsDestinationSelector](https://www.spigotmc.org/resources/traincartsdestinationselector.73170/)**: Adds clickable signs so players can select train destinations
 * **[Traincarts AdvancedSigns](https://www.spigotmc.org/resources/traincarts-advancedsigns.99881/)**: Adds additional sign types, particularly useful for rollercoaster rides
-* **[TCAnimatronics](https://www.spigotmc.org/resources/tcanimatronics.101995/)**: Play [Animatronics](https://www.spigotmc.org/resources/animatronics-animate-armorstands-1-8-1-18-2.36518/) animations with a Traincarts sign
+* **[TCAnimatronics](https://www.spigotmc.org/resources/tcanimatronics.101995/)**: Play [Animatronics](https://www.spigotmc.org/resources/animatronics-animate-armorstands-1-8-1-18-2.36518/) animations with a TrainCarts sign
 
 ## Promotional
 [<img src="https://raw.githubusercontent.com/bergerhealer/TrainCarts/master/misc/powerplugins_banner.png"/>](https://powerplugins.net/)
 
-You can join the Minecraft server hosted over at **[powerplugins.net](https://powerplugins.net/)** to see this plugin in action, as well check out other awesome plugins by the community!
+You can join the Minecraft server hosted over at **[powerplugins.net](https://powerplugins.net/)** to see this plugin in action, as well as to check out other awesome plugins by the community!
 
 ## FAQ
 <details>
@@ -171,9 +171,9 @@ checks:
 ```
 </details>
 <details>
-<summary>Im on Minecraft 1.16 and players can get out of my playerexit=false train by pressing shift</summary>
+<summary>I'm on Minecraft 1.16 and players can get out of my playerexit=false train by pressing shift</summary>
 
-Sadly, Minecraft client had a bug in it where the server could not cancel players exiting from vehicles. Updating to Minecraft 1.17+ will fix this again. See also: [SPIGOT-5891](https://hub.spigotmc.org/jira/browse/SPIGOT-5891)
+Sadly, the Minecraft client had a bug in it where the server could not cancel players exiting from vehicles. Updating to Minecraft 1.17+ will fix this again. See also: [SPIGOT-5891](https://hub.spigotmc.org/jira/browse/SPIGOT-5891)
 </details>
 <details>
 <summary>When players are near, trains reach their destinations. With no one near, they don't.</summary>
