@@ -297,6 +297,7 @@ public class ResourcePackModelListing {
         String title = "Resource Pack Models";
         String query = "";
         ItemStack bgItem = DEFAULT_BG_ITEM;
+        boolean cancelOnRootRightClick = false;
         final List<Consumer<ListedItemModel>> selectHandlers = new ArrayList<>();
         final List<Runnable> cancelHandlers = new ArrayList<>();
 
@@ -367,6 +368,28 @@ public class ResourcePackModelListing {
          */
         public DialogBuilder backgroundItem(ItemStack item) {
             this.bgItem = item;
+            return this;
+        }
+
+        /**
+         * Sets it to cancel the dialog when it is right-clicked and the dialog
+         * can't move back any further.
+         *
+         * @return this
+         */
+        public DialogBuilder cancelOnRootRightClick() {
+            return cancelOnRootRightClick(true);
+        }
+
+        /**
+         * Sets whether to cancel the dialog when it is right-clicked and the dialog
+         * can't move back any further.
+         *
+         * @param cancel True to cancel the dialog when right-clicking at root
+         * @return this
+         */
+        public DialogBuilder cancelOnRootRightClick(boolean cancel) {
+            this.cancelOnRootRightClick = cancel;
             return this;
         }
 

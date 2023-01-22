@@ -138,8 +138,7 @@ class ResourcePackModelListingDialog implements Listener {
 
         // Accept this item and close the dialog
         future.complete(Optional.of(item));
-        close();
-        return ClickAction.HANDLED;
+        return ClickAction.CLOSE_DIALOG;
     }
 
     private ClickAction handleClick(int clickedSlot, boolean isRightClick, ItemStack cursorItem) {
@@ -179,6 +178,8 @@ class ResourcePackModelListingDialog implements Listener {
             }
             if (e != this.current) {
                 this.setListedEntry(e);
+            } else if (options.cancelOnRootRightClick) {
+                return ClickAction.CLOSE_DIALOG;
             }
             return ClickAction.HANDLED;
         }
@@ -449,6 +450,10 @@ class ResourcePackModelListingDialog implements Listener {
             event.setCursor(incrItem);
             event.setResult(Result.DENY);
             break;
+        case CLOSE_DIALOG:
+            event.setResult(Result.DENY);
+            close();
+            break;
         case HANDLED:
             event.setResult(Result.DENY);
             break;
@@ -460,6 +465,8 @@ class ResourcePackModelListingDialog implements Listener {
     private static enum ClickAction {
         /** Action was handled by the dialog, and event should be cancelled */
         HANDLED,
+        /** Dialog should be closed now */
+        CLOSE_DIALOG,
         /** Action was on an item model and the creative click pick-up item behavior should happen */
         CREATIVE_CLICK_PICKUP,
         /** Action was on the menu, and it consumes (deletes) the item like in creative */
