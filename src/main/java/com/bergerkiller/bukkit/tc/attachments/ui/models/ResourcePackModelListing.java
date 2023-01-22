@@ -13,21 +13,25 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 import com.bergerkiller.bukkit.common.map.MapResourcePack;
 import com.bergerkiller.bukkit.common.map.MapResourcePack.ResourceType;
 import com.bergerkiller.bukkit.common.map.util.Model.ModelOverride;
 import com.bergerkiller.bukkit.common.map.util.ModelInfoLookup;
+import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 
 /**
- * Provides a listing of all the models available in a resource pack. The information is used
- * to display the {@link ResourcePackModelListingDialog}.
+ * Provides a listing of all the models available in a resource pack. The information can be
+ * used to show a dialog to a Player which can be browsed.
  */
 public class ResourcePackModelListing {
     private final Plugin plugin;
@@ -217,15 +221,19 @@ public class ResourcePackModelListing {
         ListedNamespace namespace;
         ListedEntry containingEntry;
         String name;
+        String pathWithoutNamespace;
+        String fullPath;
         {
             int namespaceStart = path.indexOf(':');
-            String namespaceName, pathWithoutNamespace;
+            String namespaceName;
             if (namespaceStart == -1) {
                 namespaceName = "minecraft";
                 pathWithoutNamespace = path;
+                fullPath = "minecraft:" + path;
             } else {
                 namespaceName = path.substring(0, namespaceStart);
                 pathWithoutNamespace = path.substring(namespaceStart + 1);
+                fullPath = path;
             }
             namespace = findOrCreateNamespace(namespaceName);
 
@@ -241,7 +249,7 @@ public class ResourcePackModelListing {
         }
 
         // Create listed item model, then register it in here
-        ListedItemModel entry = new ListedItemModel(path, name, item);
+        ListedItemModel entry = new ListedItemModel(fullPath, pathWithoutNamespace, name, item);
         entry.setParent(containingEntry);
         allListedItems.add(entry);
     }
@@ -399,20 +407,76 @@ public class ResourcePackModelListing {
      */
     public static final class ListedItemModel extends ListedEntry {
         private final String fullPath;
+        private final String path;
         private final String name;
         private final ItemStack item;
 
-        public ListedItemModel(String fullPath, String name, ItemStack item) {
+        // Figure out the default HideFlags to put in the NBT
+        private static final int DEFAULT_HIDE_FLAGS;
+        static {
+            ItemStack item = ItemUtil.createItem(MaterialUtil.getFirst("GLASS", "LEGACY_GLASS"), 1);
+            ItemMeta meta = item.getItemMeta();
+            for (ItemFlag flag : ItemFlag.values()) {
+                if (flag.name().startsWith("HIDE_")) { // Probably is all of them
+                    meta.addItemFlags(flag);
+                }
+            }
+            item.setItemMeta(meta);
+            CommonTagCompound nbt = ItemUtil.getMetaTag(item, true);
+            DEFAULT_HIDE_FLAGS = (nbt == null) ? 0 : nbt.getValue("HideFlags", 0);
+        }
+
+        public ListedItemModel(String fullPath, String path, String name, ItemStack item) {
             this.nestedItemCount = 1;
             this.fullPath = fullPath;
+            this.path = path;
             this.name = name;
             this.item = ItemUtil.createItem(item);
         }
 
         @Override
+        @SuppressWarnings("deprecation")
         protected void postInitialize() {
-            ItemUtil.setDisplayName(this.item, name);
-            ItemUtil.addLoreName(this.item, fullPath);
+            CommonTagCompound nbt = ItemUtil.getMetaTag(this.item);
+
+            // Hides everything except the lores we add
+            nbt.putValue("HideFlags", DEFAULT_HIDE_FLAGS);
+
+            String itemName = ItemUtil.getDisplayName(this.item);
+            ItemUtil.setDisplayName(this.item, ChatColor.AQUA + name);
+            ItemUtil.addLoreName(this.item, ChatColor.WHITE.toString() + ChatColor.ITALIC + fullPath);
+
+            addLoreSpacer(this.item);
+
+            {
+                addLoreProperty(this.item, "Item", itemName);
+            }
+
+            {
+                int cmd = nbt.containsKey("CustomModelData") ? nbt.getValue("CustomModelData", 0) : 0;
+                if (cmd != 0) {
+                    addLoreProperty(this.item, "Custom model data", cmd);
+                }
+            }
+
+            {
+                short damage = this.item.getDurability();
+                if (damage != 0) {
+                    addLoreProperty(this.item, "Damage", damage);
+                }
+            }
+
+            if (nbt.containsKey("Unbreakable") && nbt.getValue("Unbreakable", false)) {
+                addLoreProperty(this.item, "Unbreakable", true);
+            }
+        }
+
+        private static void addLoreSpacer(ItemStack item) {
+            ItemUtil.addLoreName(item, "");
+        }
+
+        private static void addLoreProperty(ItemStack item, String name, Object value) {
+            ItemUtil.addLoreName(item, ChatColor.DARK_GRAY + name + ": " + ChatColor.GRAY + value);
         }
 
         @Override
@@ -420,13 +484,23 @@ public class ResourcePackModelListing {
             return name;
         }
 
+        /**
+         * Gets the path of this item model, excluding the namespace prefix
+         *
+         * @return path
+         */
+        public String path() {
+            return path;
+        }
+
+        @Override
+        public String fullPath() {
+            return fullPath;
+        }
+
         @Override
         public int sortPriority() {
             return 3;
-        }
-
-        public String fullPath() {
-            return fullPath;
         }
 
         @Override
@@ -469,17 +543,30 @@ public class ResourcePackModelListing {
 
         @Override
         protected void postInitialize() {
-            ItemUtil.setDisplayName(this.item, this.path);
-            ItemUtil.addLoreName(this.item, "<" + this.nestedItemCount + " Item Models>");
-        }
-
-        public String path() {
-            return path;
+            ItemUtil.setDisplayName(this.item, ChatColor.YELLOW + this.path);
+            ItemUtil.addLoreName(this.item, ChatColor.WHITE.toString() + ChatColor.ITALIC + this.fullPath());
+            ItemUtil.addLoreName(this.item, "");
+            ItemUtil.addLoreName(this.item, ChatColor.DARK_GRAY +
+                    "< " + ChatColor.GRAY + this.nestedItemCount + ChatColor.DARK_GRAY + " Item models >");
         }
 
         @Override
         public String name() {
             return path;
+        }
+
+        /**
+         * Gets the path of this directory, excluding the namespace prefix
+         *
+         * @return path
+         */
+        public String path() {
+            return path;
+        }
+
+        @Override
+        public String fullPath() {
+            return namespace.fullPath() + path;
         }
 
         @Override
@@ -519,8 +606,10 @@ public class ResourcePackModelListing {
 
         @Override
         protected void postInitialize() {
-            ItemUtil.setDisplayName(this.item, this.name);
-            ItemUtil.addLoreName(this.item, "<" + this.nestedItemCount + " Item Models>");
+            ItemUtil.setDisplayName(this.item, ChatColor.YELLOW + this.name + ":");
+            ItemUtil.addLoreName(this.item, "");
+            ItemUtil.addLoreName(this.item, ChatColor.DARK_GRAY +
+                    "< " + ChatColor.GRAY + this.nestedItemCount + ChatColor.DARK_GRAY + " Item models >");
         }
 
         protected ListedDirectory findOrCreateDirectory(String path) {
@@ -568,6 +657,11 @@ public class ResourcePackModelListing {
         }
 
         @Override
+        public String fullPath() {
+            return name + ":";
+        }
+
+        @Override
         public int sortPriority() {
             return 1;
         }
@@ -599,6 +693,11 @@ public class ResourcePackModelListing {
 
         @Override
         public String name() {
+            return "";
+        }
+
+        @Override
+        public String fullPath() {
             return "";
         }
 
@@ -660,6 +759,14 @@ public class ResourcePackModelListing {
          * @return name
          */
         public abstract String name();
+
+        /**
+         * Gets the full path of this entry. This includes the namespace and any
+         * parent directories.
+         *
+         * @return full path
+         */
+        public abstract String fullPath();
 
         /**
          * Overrides sort priority. Lower priority entries are displayed before
