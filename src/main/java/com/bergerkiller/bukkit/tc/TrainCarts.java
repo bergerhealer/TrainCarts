@@ -21,6 +21,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentLight;
 import com.bergerkiller.bukkit.tc.attachments.control.GlowColorTeamProvider;
 import com.bergerkiller.bukkit.tc.attachments.control.SeatAttachmentMap;
+import com.bergerkiller.bukkit.tc.attachments.ui.models.ResourcePackModelListing;
 import com.bergerkiller.bukkit.tc.chest.TrainChestListener;
 import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.commands.selector.SelectorHandlerRegistry;
@@ -105,6 +106,7 @@ public class TrainCarts extends PluginBase {
     private final OfflineSignStore offlineSignStore = new OfflineSignStore(this);
     private final SignController signController = new SignController(this);
     private final PacketQueueMap packetQueueMap = new PacketQueueMap();
+    private ResourcePackModelListing modelListing = new ResourcePackModelListing(); // Uninitialized
     private Economy econ = null;
     private boolean isTabPluginEnabled = false;
     private SmoothCoastersAPI smoothCoastersAPI;
@@ -274,6 +276,22 @@ public class TrainCarts extends PluginBase {
             getLogger().log(Level.SEVERE, "Failed to interface with TAB plugin to hide nametag", t);
             return null; // Error???
         }
+    }
+
+    /**
+     * Gets the resource pack model list. This provides information about the current resource
+     * pack loaded by TrainCarts, and has methods to display this to a Player.
+     *
+     * @return resource pack model listing
+     */
+    public ResourcePackModelListing getModelListing() {
+        ResourcePackModelListing listing = this.modelListing;
+        if (listing.loadedResourcePack() != TCConfig.resourcePack) {
+            listing = new ResourcePackModelListing(this);
+            listing.load(TCConfig.resourcePack);
+            this.modelListing = listing;
+        }
+        return listing;
     }
 
     /**
@@ -473,6 +491,10 @@ public class TrainCarts extends PluginBase {
 
         // Refresh
         this.autosaveTask.stop().start(TCConfig.autoSaveInterval, TCConfig.autoSaveInterval);
+
+        // Load this one right away
+        this.modelListing = new ResourcePackModelListing(this);
+        this.modelListing.load(TCConfig.resourcePack);
     }
 
     public void loadSavedTrains() {
@@ -753,6 +775,9 @@ public class TrainCarts extends PluginBase {
                 getLogger().log(Level.SEVERE, "Failed to disable paper player view distance property", t);
             }
         }
+
+        // Close any open dialogs
+        ResourcePackModelListing.closeAllDialogs();
 
         //Unregister listeners
         this.unregister(packetListener);

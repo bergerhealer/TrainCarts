@@ -91,6 +91,7 @@ public class Commands {
     private final TrainLocatorCommands commands_train_locator = new TrainLocatorCommands();
     private final TicketCommands commands_train_ticket = new TicketCommands();
     private final SavedTrainCommands commands_savedtrain = new SavedTrainCommands();
+    private final ModelStoreCommands commands_modelstore = new ModelStoreCommands();
 
     public CloudSimpleHandler getHandler() {
         return cloud;
@@ -255,6 +256,7 @@ public class Commands {
         cloud.annotations(commands_train_locator);
         cloud.annotations(commands_train_ticket);
         cloud.annotations(commands_savedtrain);
+        cloud.annotations(commands_modelstore);
 
         cloud.annotations(this);
 
