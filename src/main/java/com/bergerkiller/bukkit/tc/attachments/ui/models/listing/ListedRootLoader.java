@@ -1,10 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.models.listing;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 
@@ -16,13 +13,14 @@ public class ListedRootLoader {
 
     protected void loadFromListing(ListedRoot listedRoot, String query) {
         // Figure out whether a namespace: or absolute directory structure is specified
-        int firstPartEnd = StringUtil.firstIndexOf(query, '/', '\\', ':');
+        // If this doesn't match anything, it's a name search
+        boolean isNameSearch = (StringUtil.firstIndexOf(query, '/', '\\', ':') == -1);
 
         // A single name without / and \ and not ending in : was specified
         // Try to match (=contains) all entries recursively
         // If a directory name matches, it and all sub-entries are included in the result
         // Don't match the namespace, that's dumb.
-        if (!query.isEmpty() && firstPartEnd == -1) {
+        if (!query.isEmpty() && isNameSearch) {
             for (ListedNamespace namespace : listedRoot.namespaces()) {
                 for (ListedEntry e : namespace.matchChildrenNameContains(query)) {
                     e.assignToRoot(root);
@@ -34,15 +32,7 @@ public class ListedRootLoader {
         // Loading of a directory hierarchy all at once. For paths, namespace is optional.
         // A single directory can be specified by querying name/ or /name
 
-        // For proper parsing to work it's important that the first : has a / appended after it
-        if (query.charAt(firstPartEnd) == ':' && query.length() >= firstPartEnd) {
-            query = query.substring(0, firstPartEnd+1) + "/" + query.substring(firstPartEnd+1);
-        }
-
-        // Tokenize by / and \ characters
-        List<String> parts = Arrays.stream(query.split("/|\\\\"))
-                .filter(s -> !s.isEmpty())
-                .collect(Collectors.toCollection(ArrayList::new));
+        List<String> parts = ListedEntry.tokenizePath(query);
 
         // Decide on the namespce to include. If no namespace was prefixed, do all of them.
         List<ListedNamespace> namespacesToCheck;

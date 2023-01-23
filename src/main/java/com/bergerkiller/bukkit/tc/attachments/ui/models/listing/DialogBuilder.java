@@ -25,6 +25,8 @@ public final class DialogBuilder implements Cloneable {
     private boolean creativeMenu = false;
     private String title = "Resource Pack Models";
     private String query = "";
+    private String browsedLocation = "";
+    private int browsedPage = 0;
     private boolean cancelOnRootRightClick = false;
     private ItemStack bgItem = DEFAULT_BG_ITEM;
 
@@ -60,6 +62,45 @@ public final class DialogBuilder implements Cloneable {
      */
     public ResourcePackModelListing listing() {
         return listing;
+    }
+
+    /**
+     * Sets the initial browsed location in the dialog when the dialog is first opened.
+     * This can be used to restore a previous path and/or page that the player had open.
+     * If the entered path and/or page is invalid, the dialog resets back to the root
+     * location.
+     *
+     * @param path Initial path to the namespace or directory opened in the dialog.
+     *             The Player can move back up to the parent directories.
+     * @param page Initial opened page. 0 is the first page.
+     * @return this
+     */
+    public DialogBuilder navigate(String path, int page) {
+        browsedLocation = path;
+        browsedPage = page;
+        return this;
+    }
+
+    /**
+     * Gets the initial/current path browsed in the dialog. If part of the dialog result,
+     * this will be the path browsed by the Player when the dialog was closed or an item
+     * was selected.
+     *
+     * @return Initial or current browsed path
+     */
+    public String getBrowsedPath() {
+        return browsedLocation;
+    }
+
+    /**
+     * Gets the initial/current page opened in the dialog. If part of the dialog result,
+     * this will be the page that was selected by the Player when the dialog was closed or
+     * an item was selected.
+     *
+     * @return Initial or current browsed page
+     */
+    public int getBrowsedPage() {
+        return browsedPage;
     }
 
     /**
@@ -196,6 +237,8 @@ public final class DialogBuilder implements Cloneable {
     @Override
     public DialogBuilder clone() {
         DialogBuilder clone = new DialogBuilder(this.plugin, this.player, this.listing);
+        clone.browsedLocation = this.browsedLocation;
+        clone.browsedPage = this.browsedPage;
         clone.creativeMenu = this.creativeMenu;
         clone.title = this.title;
         clone.query = this.query;

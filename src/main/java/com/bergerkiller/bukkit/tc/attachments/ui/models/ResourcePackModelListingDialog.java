@@ -51,7 +51,6 @@ class ResourcePackModelListingDialog implements Listener {
     private ResourcePackModelListing currentListing;
     private ListedEntry current;
     private List<? extends ListedEntry> currentItems;
-    private int page = 0;
 
     public static CompletableFuture<DialogResult> show(
             DialogBuilder dialogOptions
@@ -111,7 +110,14 @@ class ResourcePackModelListingDialog implements Listener {
         Bukkit.getPluginManager().registerEvents(this, options.plugin());
 
         inventory = Bukkit.createInventory(player(), 54, options.getTitle());
-        setListedEntry(currentListing.root().compact());
+
+        // Find the entry using the options browsed path
+        // If not found, reset back to root
+        ListedEntry initialEntry = currentListing.root().findAtPath(ListedEntry.tokenizePath(options.getBrowsedPath()))
+                .orElse(currentListing.root())
+                .compact();
+        navigate(initialEntry, options.getBrowsedPage());
+
         player().openInventory(inventory);
     }
 
@@ -172,7 +178,7 @@ class ResourcePackModelListingDialog implements Listener {
                 }
             }
             if (e != this.current) {
-                this.setListedEntry(e);
+                this.navigate(e, 0);
             } else if (options.isCancelOnRootRightClick()) {
                 future.complete(new DialogResult(options, true));
                 return ClickAction.CLOSE_DIALOG;
@@ -180,40 +186,40 @@ class ResourcePackModelListingDialog implements Listener {
             return ClickAction.HANDLED;
         }
 
-        int offset = this.page * DISPLAYED_ITEM_COUNT;
+        int offset = options.getBrowsedPage() * DISPLAYED_ITEM_COUNT;
         int limit = Math.min(DISPLAYED_ITEM_COUNT, currentItems.size() - offset);
         if (clickedSlot < limit) {
             ListedEntry e = this.currentItems.get(clickedSlot + offset);
             if (e instanceof ListedItemModel) {
                 return onItemClicked((ListedItemModel) e);
             } else {
-                this.setListedEntry(e);
+                this.navigate(e, 0);
             }
         }
 
         return ClickAction.HANDLED;
     }
 
-    private void setListedEntry(ListedEntry current) {
+    private void navigate(ListedEntry current, int page) {
         this.current = current;
         this.currentItems = current.displayedItems(DISPLAYED_ITEM_COUNT);
-        this.page = 0;
+        this.options.navigate(current.fullPath(), clampPage(page)); // Update for dialog result
         this.updateItems();
     }
 
     private void incrementPage(int incr) {
-        int newPage = page + incr;
-        if (newPage < 0) {
-            newPage = 0;
-        } else {
-            int maxPage = this.currentItems.size() / DISPLAYED_ITEM_COUNT;
-            if (newPage > maxPage) {
-                newPage = maxPage;
-            }
-        }
-        if (newPage != page) {
-            this.page = newPage;
+        int newPage = clampPage(options.getBrowsedPage() + incr);
+        if (newPage != options.getBrowsedPage()) {
+            this.options.navigate(current.fullPath(), newPage);
             this.updateItems();
+        }
+    }
+
+    private int clampPage(int newPage) {
+        if (newPage < 0) {
+            return 0;
+        } else {
+            return Math.min(newPage, this.currentItems.size() / DISPLAYED_ITEM_COUNT);
         }
     }
 
@@ -222,6 +228,7 @@ class ResourcePackModelListingDialog implements Listener {
     }
 
     private void updateItems() {
+        int page = options.getBrowsedPage();
         int offset = page * DISPLAYED_ITEM_COUNT;
         int limit = Math.min(DISPLAYED_ITEM_COUNT, currentItems.size() - offset);
 

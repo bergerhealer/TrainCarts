@@ -1,13 +1,17 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.models.listing;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.bukkit.inventory.ItemStack;
+
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 
 /**
  * A type of listed entry. Can be an item model, a directory, or
@@ -125,6 +129,25 @@ public abstract class ListedEntry implements Comparable<ListedEntry> {
      * @return List of matching entries, can be empty
      */
     public final List<ListedEntry> matchWithPathPrefix(Iterable<String> pathParts) {
+        return matchAgainstPath(pathParts, false);
+    }
+
+    /**
+     * Attempts to navigate the children of this entry recursively to find the entry
+     * at the path specified.
+     *
+     * @param pathParts Parts to match exactly
+     * @return ListedEntry at this path, or Empty if not found. If there is an ambiguous
+     *         situation where a name denotes both a directory and an item model, then
+     *         the directory is picked instead of the item model.
+     */
+    public final Optional<ListedEntry> findAtPath(Iterable<String> pathParts) {
+        // Note: will only ever return a single entry in exact matching mode.
+        List<ListedEntry> result = matchAgainstPath(pathParts, true);
+        return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
+    }
+
+    private final List<ListedEntry> matchAgainstPath(Iterable<String> pathParts, boolean exact) {
         Iterator<String> iter = pathParts.iterator();
         if (!iter.hasNext()) {
             return Collections.singletonList(this); // Empty path
@@ -132,33 +155,57 @@ public abstract class ListedEntry implements Comparable<ListedEntry> {
 
         ListedEntry curr = this;
         while (true) {
-            String tokenLower = iter.next().toLowerCase(Locale.ENGLISH);
-            boolean isLastToken = !iter.hasNext();
-            if (isLastToken) {
-                // Match with starts with and return result
-                List<ListedEntry> result = new ArrayList<>(3);
-                for (ListedEntry e : curr.children()) {
-                    if (e.nameLowerCase().startsWith(tokenLower)) {
-                        result.add(e);
-                    }
-                }
-                return result;
-            } else {
-                // Match exactly (ignore case)
-                ListedEntry next = null;
-                for (ListedEntry e : curr.children()) {
-                    if (e.nameLowerCase().equals(tokenLower)) {
-                        next = e;
-                        break;
-                    }
-                }
-                if (next != null) {
-                    curr = next;
+            String token = iter.next();
+
+            // Middle of path. Match exactly.
+            if (iter.hasNext()) {
+                Optional<ListedEntry> r = curr.findChildByName(token);
+                if (r.isPresent()) {
+                    curr = r.get();
+                    continue;
                 } else {
                     return Collections.emptyList(); // Not found
                 }
             }
+
+            // Last token
+            if (exact) {
+                Optional<ListedEntry> r = curr.findChildByName(token);
+                return r.map(Collections::singletonList).orElse(Collections.emptyList());
+            } else {
+                // Match with starts with and return result
+                String tokenLowerCase = token.toLowerCase(Locale.ENGLISH);
+                List<ListedEntry> result = new ArrayList<>(3);
+                for (ListedEntry e : curr.children()) {
+                    if (e.nameLowerCase().startsWith(tokenLowerCase)) {
+                        result.add(e);
+                    }
+                }
+                return result;
+            }
         }
+    }
+
+    /**
+     * Tries to find a child entry by the name specified. If two children exist with the same name,
+     * then the directory or namespace is preferred over item models.
+     *
+     * @param name Child name. Case insensitive.
+     * @return Found ListedEntry, or Empty if not found.
+     */
+    public final Optional<ListedEntry> findChildByName(String name) {
+        String nameLowerCase = name.toLowerCase(Locale.ENGLISH);
+
+        Optional<ListedEntry> result = Optional.empty();
+        for (ListedEntry e : children()) {
+            if (e.nameLowerCase().equals(nameLowerCase)) {
+                result = Optional.of(e);
+                if (!(e instanceof ListedItemModel)) {
+                    break;
+                }
+            }
+        }
+        return result;
     }
 
     /**
@@ -369,5 +416,32 @@ public abstract class ListedEntry implements Comparable<ListedEntry> {
                 e.postInitializeAll();
             }
         }
+    }
+
+    /**
+     * Converts a path into tokens separated by / or \ and the initial namespace:
+     *
+     * @param path Path to tokenize
+     * @return List of tokenized parts of the path. Empty parts omitted.
+     *         The returned List is modifiable.
+     */
+    public static List<String> tokenizePath(String path) {
+        // Not needed, but nice.
+        if (path.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // Figure out whether a namespace: or absolute directory structure is specified
+        int firstPartEnd = StringUtil.firstIndexOf(path, '/', '\\', ':');
+
+        // For proper parsing to work it's important that the first : has a / appended after it
+        if (path.charAt(firstPartEnd) == ':' && path.length() >= firstPartEnd) {
+            path = path.substring(0, firstPartEnd+1) + "/" + path.substring(firstPartEnd+1);
+        }
+
+        // Tokenize and convert to (writable) List
+        return Arrays.stream(path.split("/|\\\\"))
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 }
