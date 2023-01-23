@@ -5,11 +5,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
@@ -31,8 +31,7 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
-
-import net.md_5.bungee.api.ChatColor;
+import com.bergerkiller.bukkit.tc.attachments.ui.models.ResourcePackModelListing.DialogResult;
 
 /**
  * Displays the contents of {@link ResourcePackModelListing} in an inventory menu dialog
@@ -42,7 +41,7 @@ class ResourcePackModelListingDialog implements Listener {
     private static final int DISPLAYED_ITEM_COUNT = 4 * 9; // Top 4 rows
     private static Map<Player, ResourcePackModelListingDialog> shownTo = new HashMap<>();
     private final ResourcePackModelListing.DialogBuilder options;
-    private final CompletableFuture<Optional<ResourcePackModelListing.ListedItemModel>> future;
+    private final CompletableFuture<DialogResult> future;
     private final UIButton btnPrevPage = new PrevPageButton();
     private final UIButton btnNextPage = new NextPageButton();
     private final UIButton btnSearch = new SearchButton();
@@ -52,7 +51,7 @@ class ResourcePackModelListingDialog implements Listener {
     private List<? extends ResourcePackModelListing.ListedEntry> currentItems;
     private int page = 0;
 
-    public static CompletableFuture<Optional<ResourcePackModelListing.ListedItemModel>> show(
+    public static CompletableFuture<DialogResult> show(
             ResourcePackModelListing.DialogBuilder dialogOptions
     ) {
         ResourcePackModelListingDialog dialog = new ResourcePackModelListingDialog(dialogOptions.clone());
@@ -90,23 +89,11 @@ class ResourcePackModelListingDialog implements Listener {
 
     private ResourcePackModelListingDialog(ResourcePackModelListing.DialogBuilder options) {
         this(options, new CompletableFuture<>());
-        if (!options.selectHandlers.isEmpty() || !options.cancelHandlers.isEmpty()) {
-            this.future.thenAccept(opt_action -> {
-                if (opt_action.isPresent()) {
-                    ResourcePackModelListing.ListedItemModel result = opt_action.get();
-                    for (Consumer<ResourcePackModelListing.ListedItemModel> acceptor : options.selectHandlers) {
-                        acceptor.accept(result);
-                    }
-                } else {
-                    options.cancelHandlers.forEach(Runnable::run);
-                }
-            });
-        }
     }
 
     private ResourcePackModelListingDialog(
             ResourcePackModelListing.DialogBuilder options,
-            CompletableFuture<Optional<ResourcePackModelListing.ListedItemModel>> future
+            CompletableFuture<DialogResult> future
     ) {
         this.options = options;
         this.future = future;
@@ -137,7 +124,7 @@ class ResourcePackModelListingDialog implements Listener {
         }
 
         // Accept this item and close the dialog
-        future.complete(Optional.of(item));
+        future.complete(new DialogResult(options, item));
         return ClickAction.CLOSE_DIALOG;
     }
 
@@ -179,6 +166,7 @@ class ResourcePackModelListingDialog implements Listener {
             if (e != this.current) {
                 this.setListedEntry(e);
             } else if (options.cancelOnRootRightClick) {
+                future.complete(new DialogResult(options, true));
                 return ClickAction.CLOSE_DIALOG;
             }
             return ClickAction.HANDLED;
@@ -267,7 +255,7 @@ class ResourcePackModelListingDialog implements Listener {
         }
 
         // Mark as closed
-        future.complete(Optional.empty());
+        future.complete(new DialogResult(options, false));
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

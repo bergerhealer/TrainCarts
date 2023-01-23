@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -298,8 +297,6 @@ public class ResourcePackModelListing {
         String query = "";
         ItemStack bgItem = DEFAULT_BG_ITEM;
         boolean cancelOnRootRightClick = false;
-        final List<Consumer<ListedItemModel>> selectHandlers = new ArrayList<>();
-        final List<Runnable> cancelHandlers = new ArrayList<>();
 
         protected DialogBuilder(Plugin plugin, Player player, ResourcePackModelListing listing) {
             this.plugin = plugin;
@@ -407,43 +404,12 @@ public class ResourcePackModelListing {
         }
 
         /**
-         * If the player selects an item in the dialog, the consumer specified will be notified
-         * of this selected item. If the player closes the dialog without selecting, then the
-         * consumer will not be notified.<br>
-         * <br>
-         * This is an alternative to using the CompletableFuture returned by {@link #show()}.
-         * Both API can work at the same time.
-         *
-         * @param acceptor Consumer to notify of the selection
-         * @return this
-         */
-        public DialogBuilder whenSelected(Consumer<ListedItemModel> acceptor) {
-            selectHandlers.add(acceptor);
-            return this;
-        }
-
-        /**
-         * If the player closes out of the dialog before making a selection, the runnable specified
-         * will be notified of the closure.<br>
-         * <br>
-         * This is an alternative to using the CompletableFuture returned by {@link #show()}.
-         * Both API can work at the same time.
-         *
-         * @param action Runnable to notify of when the dialog is closed without selection
-         * @return this
-         */
-        public DialogBuilder whenCancelled(Runnable action) {
-            cancelHandlers.add(action);
-            return this;
-        }
-
-        /**
          * Shows the item model listing dialog the Player. Any previous open dialogs are closed.
          *
          * @return a future completed when an item is selected or the dialog is closed. An empty
          *         optional is returned if no selection was made.
          */
-        public CompletableFuture<Optional<ListedItemModel>> show() {
+        public CompletableFuture<DialogResult> show() {
             return ResourcePackModelListingDialog.show(this);
         }
 
@@ -457,9 +423,91 @@ public class ResourcePackModelListing {
             clone.title = this.title;
             clone.query = this.query;
             clone.bgItem = this.bgItem;
-            clone.selectHandlers.addAll(this.selectHandlers);
-            clone.cancelHandlers.addAll(this.cancelHandlers);
             return clone;
+        }
+    }
+
+    /**
+     * The result of displaying a dialog to a Player
+     */
+    public static final class DialogResult {
+        private final ListedItemModel result;
+        private final DialogBuilder dialog;
+        private final boolean closedWithRootRightClick;
+
+        public DialogResult(DialogBuilder dialog, boolean closedWithRootRightClick) {
+            this.result = null;
+            this.dialog = dialog;
+            this.closedWithRootRightClick = closedWithRootRightClick;
+        }
+
+        public DialogResult(DialogBuilder dialog, ListedItemModel result) {
+            this.result = result;
+            this.dialog = dialog;
+            this.closedWithRootRightClick = false;
+        }
+
+        /**
+         * Gets the state of the dialog options at the time the item model selection
+         * dialog was closed. If the user had inputed a new query, the new query is
+         * made available here.
+         *
+         * @return Dialog at the time of closing
+         */
+        public DialogBuilder dialog() {
+            return dialog;
+        }
+
+        /**
+         * Gets whether an item was selected and the dialog selection was successful.
+         * Returns false if the dialog was closed, or if root-right-click cancelling
+         * was enabled, closed that way.
+         *
+         * @return True if an item was selected
+         */
+        public boolean success() {
+            return result != null;
+        }
+
+        /**
+         * Gets whether the dialog selection was cancelled. Opposite of {@link #success()}
+         *
+         * @return True if cancelled
+         */
+        public boolean cancelled() {
+            return result == null;
+        }
+
+        /**
+         * Gets whether item model selection was cancelled by right-clicking the dialog
+         * at the root level, rather than closing the dialog.
+         *
+         * @return True if the dialog was closed by clicking at the root directory level
+         *         on the dialog, and {@link DialogBuilder#cancelOnRootRightClick()}
+         *         was set.
+         */
+        public boolean cancelledWithRootRightClick() {
+            return closedWithRootRightClick;
+        }
+
+        /**
+         * Gets the item model that was selected. Returns null if {@link #success()}
+         * returns false.
+         *
+         * @return Selected item model, null if none was selected
+         */
+        public ListedItemModel selected() {
+            return result;
+        }
+
+        /**
+         * Gets the ItemStack of the item model that was selected. returns null if
+         * {@link #success()} returns false.
+         *
+         * @return Selected item, null if none was selected
+         */
+        public ItemStack selectedItem() {
+            return result == null ? null : result.item();
         }
     }
 
