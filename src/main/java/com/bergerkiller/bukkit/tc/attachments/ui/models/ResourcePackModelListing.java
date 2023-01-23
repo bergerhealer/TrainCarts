@@ -334,9 +334,8 @@ public class ResourcePackModelListing {
 
         /**
          * Makes the dialog into a creative menu. No item can be selected, but items can be taken
-         * from the inventory as if it is a creative menu. This will disable the use of
-         * {@link #whenSelected(Consumer)}, and {@link #show()} will always only return an empty
-         * optional.
+         * from the inventory as if it is a creative menu. If used, {@link #show()} will always only return
+         * a cancelled result.
          *
          * @return this
          */
@@ -406,8 +405,8 @@ public class ResourcePackModelListing {
         /**
          * Shows the item model listing dialog the Player. Any previous open dialogs are closed.
          *
-         * @return a future completed when an item is selected or the dialog is closed. An empty
-         *         optional is returned if no selection was made.
+         * @return a future completed when an item is selected or the dialog is closed. The result
+         *         can contain a selected item (model) if successful.
          */
         public CompletableFuture<DialogResult> show() {
             return ResourcePackModelListingDialog.show(this);
