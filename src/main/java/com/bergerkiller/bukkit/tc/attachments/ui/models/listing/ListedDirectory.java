@@ -3,27 +3,22 @@ package com.bergerkiller.bukkit.tc.attachments.ui.models.listing;
 import java.util.Locale;
 
 import org.bukkit.ChatColor;
-import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 
 /**
  * A single directory containing item models or other directories
  */
 public final class ListedDirectory extends ListedEntry {
-    private static final Material ITEM_TAG_TYPE = MaterialUtil.getFirst("LEGACY_NAME_TAG", "NAME_TAG");
     private final ListedNamespace namespace;
     private final String path;
     private final String name;
     private final String nameLowerCase;
-    private final ItemStack item;
 
     public ListedDirectory(ListedNamespace namespace, String path) {
         this.namespace = namespace;
         this.path = path;
-        this.item = ItemUtil.createItem(ITEM_TAG_TYPE, 1);
 
         int lastIdx = path.lastIndexOf('/');
         if (lastIdx == -1) {
@@ -39,17 +34,6 @@ public final class ListedDirectory extends ListedEntry {
         this.path = directory.path;
         this.name = directory.name;
         this.nameLowerCase = directory.nameLowerCase;
-        this.item = directory.item;
-    }
-
-    @Override
-    protected void postInitialize() {
-        ItemUtil.setDisplayName(this.item, ChatColor.YELLOW + this.name);
-        ItemUtil.addLoreName(this.item, ChatColor.WHITE.toString() + ChatColor.ITALIC + this.fullPath());
-        ItemUtil.addLoreName(this.item, "");
-        ItemUtil.addLoreName(this.item, ChatColor.DARK_GRAY + "Directory");
-        ItemUtil.addLoreName(this.item, ChatColor.DARK_GRAY +
-                "< " + ChatColor.GRAY + this.nestedItemCount + ChatColor.DARK_GRAY + " Item models >");
     }
 
     @Override
@@ -87,7 +71,14 @@ public final class ListedDirectory extends ListedEntry {
     }
 
     @Override
-    public ItemStack item() {
+    public ItemStack createIconItem(DialogBuilder options) {
+        ItemStack item = options.getDirectoryIconItem().clone();
+        ItemUtil.setDisplayName(item, ChatColor.YELLOW + this.name);
+        ItemUtil.addLoreName(item, ChatColor.WHITE.toString() + ChatColor.ITALIC + this.fullPath());
+        ItemUtil.addLoreName(item, "");
+        ItemUtil.addLoreName(item, ChatColor.DARK_GRAY + "Directory");
+        ItemUtil.addLoreName(item, ChatColor.DARK_GRAY +
+                "< " + ChatColor.GRAY + this.nestedItemCount + ChatColor.DARK_GRAY + " Item models >");
         return item;
     }
 

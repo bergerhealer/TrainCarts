@@ -5,43 +5,28 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.ChatColor;
-import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 
 /**
  * A root namespace, such as 'minecraft'
  */
 public final class ListedNamespace extends ListedEntry {
-    private static final Material ITEM_TYPE = MaterialUtil.getFirst("LEGACY_NAME_TAG", "NAME_TAG");
     private final String name;
     private final String nameLowerCase;
-    private final ItemStack item;
     final Map<String, ListedDirectory> directories;
 
     public ListedNamespace(String namespace) {
         this.name = namespace; // Note: namespace should always end with :
         this.nameLowerCase = namespace.toLowerCase(Locale.ENGLISH);
-        this.item = ItemUtil.createItem(ITEM_TYPE, 1);
         this.directories = new HashMap<>();
     }
 
     private ListedNamespace(ListedNamespace namespace) {
         this.name = namespace.name;
         this.nameLowerCase = namespace.nameLowerCase;
-        this.item = namespace.item;
         this.directories = new HashMap<>(namespace.directories.size());
-    }
-
-    @Override
-    protected void postInitialize() {
-        ItemUtil.setDisplayName(this.item, ChatColor.YELLOW + this.name);
-        ItemUtil.addLoreName(this.item, "");
-        ItemUtil.addLoreName(this.item, ChatColor.DARK_GRAY + "Namespace");
-        ItemUtil.addLoreName(this.item, ChatColor.DARK_GRAY +
-                "< " + ChatColor.GRAY + this.nestedItemCount + ChatColor.DARK_GRAY + " Item models >");
     }
 
     protected ListedDirectory findOrCreateDirectory(String path) {
@@ -109,7 +94,13 @@ public final class ListedNamespace extends ListedEntry {
     }
 
     @Override
-    public ItemStack item() {
+    public ItemStack createIconItem(DialogBuilder options) {
+        ItemStack item = options.getNamespaceIconItem().clone();
+        ItemUtil.setDisplayName(item, ChatColor.YELLOW + this.name);
+        ItemUtil.addLoreName(item, "");
+        ItemUtil.addLoreName(item, ChatColor.DARK_GRAY + "Namespace");
+        ItemUtil.addLoreName(item, ChatColor.DARK_GRAY +
+                "< " + ChatColor.GRAY + this.nestedItemCount + ChatColor.DARK_GRAY + " Item models >");
         return item;
     }
 

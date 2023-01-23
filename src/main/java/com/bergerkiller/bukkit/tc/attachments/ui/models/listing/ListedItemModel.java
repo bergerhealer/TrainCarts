@@ -5,13 +5,10 @@ import java.util.List;
 import java.util.Locale;
 
 import org.bukkit.ChatColor;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 
 /**
  * An item model from the resource pack that should be listed
@@ -21,22 +18,8 @@ public final class ListedItemModel extends ListedEntry {
     private final String path;
     private final String name;
     private final String nameLowerCase;
+    private final ItemStack bareItem;
     private final ItemStack item;
-
-    // Figure out the default HideFlags to put in the NBT
-    private static final int DEFAULT_HIDE_FLAGS;
-    static {
-        ItemStack item = ItemUtil.createItem(MaterialUtil.getFirst("GLASS", "LEGACY_GLASS"), 1);
-        ItemMeta meta = item.getItemMeta();
-        for (ItemFlag flag : ItemFlag.values()) {
-            if (flag.name().startsWith("HIDE_")) { // Probably is all of them
-                meta.addItemFlags(flag);
-            }
-        }
-        item.setItemMeta(meta);
-        CommonTagCompound nbt = ItemUtil.getMetaTag(item, true);
-        DEFAULT_HIDE_FLAGS = (nbt == null) ? 0 : nbt.getValue("HideFlags", 0);
-    }
 
     public ListedItemModel(String fullPath, String path, String name, ItemStack item) {
         this.nestedItemCount = 1;
@@ -44,7 +27,9 @@ public final class ListedItemModel extends ListedEntry {
         this.path = path;
         this.name = name;
         this.nameLowerCase = name.toLowerCase(Locale.ENGLISH);
+        this.bareItem = item;
         this.item = ItemUtil.createItem(item);
+        this.initializeItem();
     }
 
     private ListedItemModel(ListedItemModel itemModel) {
@@ -52,16 +37,15 @@ public final class ListedItemModel extends ListedEntry {
         this.path = itemModel.path;
         this.name = itemModel.name;
         this.nameLowerCase = itemModel.nameLowerCase;
+        this.bareItem = itemModel.bareItem;
         this.item = itemModel.item;
     }
 
-    @Override
     @SuppressWarnings("deprecation")
-    protected void postInitialize() {
-        CommonTagCompound nbt = ItemUtil.getMetaTag(this.item);
+    private void initializeItem() {
+        ListedRootLoader.hideItemAttributes(this.item);
 
-        // Hides everything except the lores we add
-        nbt.putValue("HideFlags", DEFAULT_HIDE_FLAGS);
+        CommonTagCompound nbt = ItemUtil.getMetaTag(this.item);
 
         String itemName = ItemUtil.getDisplayName(this.item);
         ItemUtil.setDisplayName(this.item, ChatColor.AQUA + name);
@@ -134,9 +118,30 @@ public final class ListedItemModel extends ListedEntry {
         return parent().namespace();
     }
 
-    @Override
+    /**
+     * Gets the ItemStack that represents this item model. If put in an inventory or armorstand slot,
+     * the model will be displayed.
+     *
+     * @return item
+     */
     public ItemStack item() {
         return item;
+    }
+
+    /**
+     * Gets a bare item, without any decorative display name or lore information.
+     * If it is not important to be able to identify the item, this can be used to
+     * reduce wasted space in memory / configuration / disk.
+     *
+     * @return bare item
+     */
+    public ItemStack bareItem() {
+        return bareItem;
+    }
+
+    @Override
+    public ItemStack createIconItem(DialogBuilder options) {
+        return item.clone();
     }
 
     @Override
@@ -169,7 +174,6 @@ public final class ListedItemModel extends ListedEntry {
         ListedEntry newParent = this.parent().findOrCreateInRoot(root);
         // Copy self and assign it to this parent
         ListedItemModel entry = new ListedItemModel(this);
-        entry.isPostInitialized = true;
         entry.setParent(newParent);
         root.allListedItems.add(entry);
         return entry;

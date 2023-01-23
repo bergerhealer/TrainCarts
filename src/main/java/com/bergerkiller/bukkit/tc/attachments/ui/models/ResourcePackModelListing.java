@@ -173,7 +173,6 @@ public class ResourcePackModelListing extends ListedRootLoader {
         ResourcePackModelListing filteredListing = new ResourcePackModelListing(this.plugin);
         filteredListing.resourcePack = this.resourcePack;
         filteredListing.loadFromListing(this.root, query);
-        filteredListing.root.postInitializeAll();
         return filteredListing;
     }
 
@@ -213,9 +212,6 @@ public class ResourcePackModelListing extends ListedRootLoader {
                 }
             }
         }
-
-        // Required for displayedItems() to work, and to set up display names/lores of items
-        root.postInitializeAll();
 
         logLoading("Resource pack item model lists loaded");
     }

@@ -236,7 +236,7 @@ class ResourcePackModelListingDialog implements Listener {
         this.btnNextPage.enabled = (currentItems.size() - offset) > DISPLAYED_ITEM_COUNT;
 
         for (int i = 0; i < limit; i++) {
-            this.inventory.setItem(i, currentItems.get(i + offset).item().clone());
+            this.inventory.setItem(i, currentItems.get(i + offset).createIconItem(options));
         }
         for (int i = limit; i < DISPLAYED_ITEM_COUNT; i++) {
             this.inventory.setItem(i, options.getBackgroundItem());

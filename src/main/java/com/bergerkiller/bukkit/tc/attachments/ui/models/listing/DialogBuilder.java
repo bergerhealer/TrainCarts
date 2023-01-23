@@ -18,6 +18,8 @@ import com.bergerkiller.bukkit.tc.attachments.ui.models.ResourcePackModelListing
  */
 public final class DialogBuilder implements Cloneable {
     private static final ItemStack DEFAULT_BG_ITEM = createDefaultBGItem();
+    private static final ItemStack DEFAULT_NAMESPACE_ITEM = createDefaultNamespaceItem();
+    private static final ItemStack DEFAULT_DIRECTORY_ITEM = createDefaultDirectoryItem();
 
     private final Plugin plugin;
     private final Player player;
@@ -29,6 +31,8 @@ public final class DialogBuilder implements Cloneable {
     private int browsedPage = 0;
     private boolean cancelOnRootRightClick = false;
     private ItemStack bgItem = DEFAULT_BG_ITEM;
+    private ItemStack namespaceItem = DEFAULT_NAMESPACE_ITEM;
+    private ItemStack directoryItem = DEFAULT_DIRECTORY_ITEM;
 
     public DialogBuilder(Plugin plugin, Player player, ResourcePackModelListing listing) {
         this.plugin = plugin;
@@ -168,6 +172,54 @@ public final class DialogBuilder implements Cloneable {
     }
 
     /**
+     * Sets the item displayed in place of item model namespaces. Item may not be
+     * null. Display name and lore descriptions are added automatically.
+     *
+     * @param item Item to use as a namespace icon
+     * @return this
+     */
+    public DialogBuilder namespaceIconItem(ItemStack item) {
+        if (item == null) {
+            throw new IllegalArgumentException("Item may not be null");
+        }
+        this.namespaceItem = item;
+        return this;
+    }
+
+    /**
+     * Gets the item displayed in place of item model directories
+     *
+     * @return namespace icon Item
+     */
+    public ItemStack getNamespaceIconItem() {
+        return namespaceItem;
+    }
+
+    /**
+     * Sets the item displayed in place of item model directories. Item may not be
+     * null. Display name and lore descriptions are added automatically.
+     *
+     * @param item Item to use as a directory icon
+     * @return this
+     */
+    public DialogBuilder directoryIconItem(ItemStack item) {
+        if (item == null) {
+            throw new IllegalArgumentException("Item may not be null");
+        }
+        this.directoryItem = item;
+        return this;
+    }
+
+    /**
+     * Gets the item displayed in place of item model directories
+     *
+     * @return directory icon Item
+     */
+    public ItemStack getDirectoryIconItem() {
+        return directoryItem;
+    }
+
+    /**
      * Sets it to cancel the dialog when it is right-clicked and the dialog
      * can't move back any further.
      *
@@ -244,6 +296,8 @@ public final class DialogBuilder implements Cloneable {
         clone.query = this.query;
         clone.cancelOnRootRightClick = this.cancelOnRootRightClick;
         clone.bgItem = this.bgItem;
+        clone.namespaceItem = this.namespaceItem;
+        clone.directoryItem = this.directoryItem;
         return clone;
     }
 
@@ -265,5 +319,17 @@ public final class DialogBuilder implements Cloneable {
         } catch (Throwable t) {
             return null; // Meh. Not important enough to fail everything!
         }
+    }
+
+    private static ItemStack createDefaultNamespaceItem() {
+        ItemStack item = ItemUtil.createItem(MaterialUtil.getFirst("NAME_TAG", "LEGACY_NAME_TAG"), 1);
+        ListedRootLoader.hideItemAttributes(item);
+        return item;
+    }
+
+    private static ItemStack createDefaultDirectoryItem() {
+        ItemStack item = ItemUtil.createItem(MaterialUtil.getFirst("CHEST", "LEGACY_CHEST"), 1);
+        ListedRootLoader.hideItemAttributes(item);
+        return item;
     }
 }

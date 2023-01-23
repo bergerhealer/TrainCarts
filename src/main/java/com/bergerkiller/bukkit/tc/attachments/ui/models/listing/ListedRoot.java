@@ -25,10 +25,6 @@ public final class ListedRoot extends ListedEntry {
     }
 
     @Override
-    protected void postInitialize() {
-    }
-
-    @Override
     public String name() {
         return "";
     }
@@ -49,7 +45,7 @@ public final class ListedRoot extends ListedEntry {
     }
 
     @Override
-    public ItemStack item() {
+    public ItemStack createIconItem(DialogBuilder options) {
         return null; // Unused
     }
 
@@ -149,10 +145,5 @@ public final class ListedRoot extends ListedEntry {
             entry.setParent(this);
         }
         return entry;
-    }
-
-    @Override
-    public void postInitializeAll() {
-        super.postInitializeAll();
     }
 }

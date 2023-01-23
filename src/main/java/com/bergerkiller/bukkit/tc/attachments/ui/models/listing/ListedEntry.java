@@ -24,15 +24,19 @@ public abstract class ListedEntry implements Comparable<ListedEntry> {
      * contained within, which is important for calculating the displayed items list.
      */
     private List<ListedEntry> children = Collections.emptyList();
+    /**
+     * Whether the children list was changed and needs re-sorting
+     */
+    protected boolean childrenNeedSorting = true;
     protected int nestedItemCount = 0;
-    protected boolean isPostInitialized = false;
 
     /**
-     * Returns the item that should be displayed for this entry
+     * Gets or creates the icon to display in place of this entry in the menu dialog
      *
-     * @return item
+     * @param options Dialog Options
+     * @return Icon to display
      */
-    public abstract ItemStack item();
+    public abstract ItemStack createIconItem(DialogBuilder options);
 
     /**
      * Gets the name of this entry. The entry is sorted alphabetically based
@@ -93,11 +97,18 @@ public abstract class ListedEntry implements Comparable<ListedEntry> {
     }
 
     /**
-     * Gets a list of children that are contained by this entry
+     * Gets a list of children that are contained by this entry. The children are
+     * sorted by the number of item models they display.
      *
      * @return list of children
      */
     public final List<ListedEntry> children() {
+        if (childrenNeedSorting) {
+            childrenNeedSorting = false;
+            if (!children.isEmpty()) {
+                children.sort((a, b) -> Integer.compare(a.nestedItemCount, b.nestedItemCount));
+            }
+        }
         return children;
     }
 
@@ -323,6 +334,7 @@ public abstract class ListedEntry implements Comparable<ListedEntry> {
                 parent.children = new ArrayList<>();
             }
             parent.children.add(this);
+            parent.childrenNeedSorting = true;
             parent.updateNestedItemCount(this.nestedItemCount);
         }
     }
@@ -349,15 +361,17 @@ public abstract class ListedEntry implements Comparable<ListedEntry> {
 
     private final ListedEntry unsafeClone(ListedEntry newParent) {
         ListedEntry clone = this.cloneSelf(newParent == null ? null : newParent.namespace());
-        clone.isPostInitialized = true; // No need to setup the Item again
         clone.parent = newParent;
         clone.nestedItemCount = this.nestedItemCount;
-        if (!this.children.isEmpty()) {
-            clone.children = new ArrayList<>(this.children.size());
-            for (ListedEntry child : this.children) {
+
+        List<ListedEntry> selfChildren = children();
+        if (!selfChildren.isEmpty()) {
+            clone.children = new ArrayList<>(selfChildren.size());
+            for (ListedEntry child : selfChildren) {
                 //TODO: Recursion could go bad...
                 clone.children.add(child.unsafeClone(clone));
             }
+            clone.childrenNeedSorting = false; // Already sorted
         }
         return clone;
     }
@@ -392,31 +406,6 @@ public abstract class ListedEntry implements Comparable<ListedEntry> {
      *                  is known yet (root or namespace entry).
      */
     protected abstract ListedEntry cloneSelf(ListedNamespace namespace);
-
-    /**
-     * Can be overrides by listed entries to perform post-initialization that requires
-     * knowledge of the parent and child entries.
-     */
-    protected abstract void postInitialize();
-
-    /**
-     * Initializes this entry and all child entries, recursively.
-     * <ul>
-     * <li>Sets up the item displayed in the menu
-     * <li>Sorts the children so that the children with the most nested item models are
-     *     sorted to the end of the list. Does not use compareTo!
-     * </ul>
-     */
-    protected void postInitializeAll() {
-        if (!isPostInitialized) {
-            isPostInitialized = true;
-            postInitialize();
-            this.children.sort((a, b) -> Integer.compare(a.nestedItemCount, b.nestedItemCount));
-            for (ListedEntry e : this.children) {
-                e.postInitializeAll();
-            }
-        }
-    }
 
     /**
      * Converts a path into tokens separated by / or \ and the initial namespace:
