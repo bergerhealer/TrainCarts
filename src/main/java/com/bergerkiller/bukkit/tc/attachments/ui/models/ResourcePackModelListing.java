@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -356,6 +355,15 @@ public class ResourcePackModelListing {
         }
 
         /**
+         * Gets the title of the dialog window
+         *
+         * @return dialog window title
+         */
+        public String getTitle() {
+            return title;
+        }
+
+        /**
          * Sets the item displayed for item slots in the window which are not filled
          * with an item or UI component.
          *
@@ -390,6 +398,16 @@ public class ResourcePackModelListing {
         }
 
         /**
+         * Gets whether right-clicking the menu while at the root directory layer closes
+         * the dialog.
+         *
+         * @return True if cancel on right clicking at root is enabled
+         */
+        public boolean isCancelOnRootRightClick() {
+            return cancelOnRootRightClick;
+        }
+
+        /**
          * Sets an initial search query for when the dialog window is opened.
          * If set to non-empty, will only show item models that match the contents
          * of the query.
@@ -400,6 +418,15 @@ public class ResourcePackModelListing {
         public DialogBuilder query(String query) {
             this.query = query;
             return this;
+        }
+
+        /**
+         * Gets the search query that filters the item models displayed in the dialog
+         *
+         * @return search query
+         */
+        public String getQuery() {
+            return query;
         }
 
         /**
