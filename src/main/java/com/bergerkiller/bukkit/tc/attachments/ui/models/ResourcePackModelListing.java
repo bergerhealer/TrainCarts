@@ -448,6 +448,7 @@ public class ResourcePackModelListing {
             clone.creativeMenu = this.creativeMenu;
             clone.title = this.title;
             clone.query = this.query;
+            clone.cancelOnRootRightClick = this.cancelOnRootRightClick;
             clone.bgItem = this.bgItem;
             return clone;
         }
