@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.ui.models.listing;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -44,7 +45,17 @@ public class ListedRootLoader {
         // Decide on the namespce to include. If no namespace was prefixed, do all of them.
         List<ListedNamespace> namespacesToCheck;
         if (!parts.isEmpty() && parts.get(0).endsWith(":")) {
-            ListedNamespace match = listedRoot.namespacesByName.get(parts.remove(0));
+            String namespace = parts.remove(0);
+            ListedNamespace match = listedRoot.namespacesByName.get(namespace);
+            if (match == null) {
+                String namespaceLower = namespace.toLowerCase(Locale.ENGLISH);
+                for (ListedNamespace n : listedRoot.namespaces()) {
+                    if (n.nameLowerCase().equals(namespaceLower)) {
+                        match = n;
+                        break;
+                    }
+                }
+            }
             if (match == null) {
                 return;
             } else {

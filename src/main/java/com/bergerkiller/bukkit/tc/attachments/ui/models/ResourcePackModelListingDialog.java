@@ -27,6 +27,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
+import com.bergerkiller.bukkit.common.block.InputDialogSubmitText;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
@@ -52,6 +53,7 @@ class ResourcePackModelListingDialog implements Listener {
     private ResourcePackModelListing currentListing;
     private ListedEntry current;
     private List<? extends ListedEntry> currentItems;
+    private boolean futureDisabled = false;
 
     public static CompletableFuture<DialogResult> show(
             DialogBuilder dialogOptions
@@ -129,8 +131,40 @@ class ResourcePackModelListingDialog implements Listener {
         }
     }
 
+    public void closeAndShowSearchDialog(String initialQuery) {
+        // Disable future so when the window is closed, it doesn't get completed
+        // This dialog instance becomes invalid once the anvil dialog is shown
+        futureDisabled = true;
+        close();
+
+        final DialogBuilder newOptions = options.clone();
+        final CompletableFuture<DialogResult> future = this.future;
+        new InputDialogSubmitText(options.plugin(), options.player()) {
+            @Override
+            public void onAccept(String text) {
+                newOptions.query(text);
+                newOptions.navigate("", 0);
+                newOptions.show().thenAccept(future::complete);
+            }
+
+            @Override
+            public void onCancel() {
+                newOptions.show().thenAccept(future::complete);
+            }
+        }.setDescription("Enter search query")
+         .setInitialText(newOptions.getQuery())
+         .setAcceptEmptyText(true)
+         .open();
+    }
+
     private Player player() {
         return options.player();
+    }
+
+    private void complete(DialogResult result) {
+        if (!futureDisabled) {
+            future.complete(result);
+        }
     }
 
     private ClickAction onItemClicked(ListedItemModel item) {
@@ -139,7 +173,7 @@ class ResourcePackModelListingDialog implements Listener {
         }
 
         // Accept this item and close the dialog
-        future.complete(new DialogResult(options, item));
+        complete(new DialogResult(options, item));
         return ClickAction.CLOSE_DIALOG;
     }
 
@@ -193,7 +227,7 @@ class ResourcePackModelListingDialog implements Listener {
         // Right click moves back up
         if (isRightClick) {
             if (!tryNavigateBack(false) && options.isCancelOnRootRightClick()) {
-                future.complete(new DialogResult(options, true));
+                complete(new DialogResult(options, true));
                 return ClickAction.CLOSE_DIALOG;
             }
             return ClickAction.HANDLED;
@@ -283,7 +317,7 @@ class ResourcePackModelListingDialog implements Listener {
         }
 
         // Mark as closed
-        future.complete(new DialogResult(options, false));
+        complete(new DialogResult(options, false));
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -572,11 +606,23 @@ class ResourcePackModelListingDialog implements Listener {
 
         @Override
         public ItemStack item() {
-            return searchIconItem;
+            ItemStack item = searchIconItem.clone();
+            if (!options.getQuery().isEmpty()) {
+                ItemUtil.addLoreName(item, ChatColor.WHITE.toString() + ChatColor.ITALIC +
+                        "\"" + options.getQuery() + "\"");
+            }
+            return item;
         }
 
         @Override
         public void click(boolean isRightClick) {
+            if (isRightClick) {
+                // If a query was set, reset it and reshow from root
+                options.query("");
+                navigate(options.listing().root().compact(), 0);
+            } else {
+                closeAndShowSearchDialog(options.getQuery());
+            }
         }
     }
 
