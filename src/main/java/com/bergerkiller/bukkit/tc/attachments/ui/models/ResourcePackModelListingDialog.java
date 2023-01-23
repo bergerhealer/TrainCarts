@@ -31,7 +31,8 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
-import com.bergerkiller.bukkit.tc.attachments.ui.models.ResourcePackModelListing.DialogResult;
+
+import com.bergerkiller.bukkit.tc.attachments.ui.models.listing.*;
 
 /**
  * Displays the contents of {@link ResourcePackModelListing} in an inventory menu dialog
@@ -40,7 +41,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.models.ResourcePackModelListing
 class ResourcePackModelListingDialog implements Listener {
     private static final int DISPLAYED_ITEM_COUNT = 4 * 9; // Top 4 rows
     private static Map<Player, ResourcePackModelListingDialog> shownTo = new HashMap<>();
-    private final ResourcePackModelListing.DialogBuilder options;
+    private final DialogBuilder options;
     private final CompletableFuture<DialogResult> future;
     private final UIButton btnPrevPage = new PrevPageButton();
     private final UIButton btnNextPage = new NextPageButton();
@@ -48,12 +49,12 @@ class ResourcePackModelListingDialog implements Listener {
     private final List<UIButton> buttons = Arrays.asList(btnPrevPage, btnNextPage, btnSearch);
     private Inventory inventory;
     private ResourcePackModelListing currentListing;
-    private ResourcePackModelListing.ListedEntry current;
-    private List<? extends ResourcePackModelListing.ListedEntry> currentItems;
+    private ListedEntry current;
+    private List<? extends ListedEntry> currentItems;
     private int page = 0;
 
     public static CompletableFuture<DialogResult> show(
-            ResourcePackModelListing.DialogBuilder dialogOptions
+            DialogBuilder dialogOptions
     ) {
         ResourcePackModelListingDialog dialog = new ResourcePackModelListingDialog(dialogOptions.clone());
 
@@ -88,13 +89,13 @@ class ResourcePackModelListingDialog implements Listener {
         }
     }
 
-    private ResourcePackModelListingDialog(ResourcePackModelListing.DialogBuilder options) {
+    private ResourcePackModelListingDialog(DialogBuilder options) {
         this(options, new CompletableFuture<>());
     }
 
     private ResourcePackModelListingDialog(
-            ResourcePackModelListing.DialogBuilder options,
-            CompletableFuture<DialogResult> future
+            final DialogBuilder options,
+            final CompletableFuture<DialogResult> future
     ) {
         this.options = options;
         this.future = future;
@@ -125,7 +126,7 @@ class ResourcePackModelListingDialog implements Listener {
         return options.player();
     }
 
-    private ClickAction onItemClicked(ResourcePackModelListing.ListedItemModel item) {
+    private ClickAction onItemClicked(ListedItemModel item) {
         if (options.isCreativeMenu()) {
             return ClickAction.CREATIVE_CLICK_PICKUP;
         }
@@ -163,7 +164,7 @@ class ResourcePackModelListingDialog implements Listener {
 
         // Right click moves back up
         if (isRightClick) {
-            ResourcePackModelListing.ListedEntry e = this.current;
+            ListedEntry e = this.current;
             while (e.parent() != null) {
                 e = e.parent();
                 if (e.compact() == e) {
@@ -182,9 +183,9 @@ class ResourcePackModelListingDialog implements Listener {
         int offset = this.page * DISPLAYED_ITEM_COUNT;
         int limit = Math.min(DISPLAYED_ITEM_COUNT, currentItems.size() - offset);
         if (clickedSlot < limit) {
-            ResourcePackModelListing.ListedEntry e = this.currentItems.get(clickedSlot + offset);
-            if (e instanceof ResourcePackModelListing.ListedItemModel) {
-                return onItemClicked((ResourcePackModelListing.ListedItemModel) e);
+            ListedEntry e = this.currentItems.get(clickedSlot + offset);
+            if (e instanceof ListedItemModel) {
+                return onItemClicked((ListedItemModel) e);
             } else {
                 this.setListedEntry(e);
             }
@@ -193,7 +194,7 @@ class ResourcePackModelListingDialog implements Listener {
         return ClickAction.HANDLED;
     }
 
-    private void setListedEntry(ResourcePackModelListing.ListedEntry current) {
+    private void setListedEntry(ListedEntry current) {
         this.current = current;
         this.currentItems = current.displayedItems(DISPLAYED_ITEM_COUNT);
         this.page = 0;
@@ -231,7 +232,7 @@ class ResourcePackModelListingDialog implements Listener {
             this.inventory.setItem(i, currentItems.get(i + offset).item().clone());
         }
         for (int i = limit; i < DISPLAYED_ITEM_COUNT; i++) {
-            this.inventory.setItem(i, options.bgItem);
+            this.inventory.setItem(i, options.getBackgroundItem());
         }
         for (UIButton button : buttons) {
             this.inventory.setItem(button.slot, button.item());
@@ -245,7 +246,7 @@ class ResourcePackModelListingDialog implements Listener {
                 }
             }
             if (!isButtonSlot) {
-                this.inventory.setItem(i, options.bgItem);
+                this.inventory.setItem(i, options.getBackgroundItem());
             }
         }
     }
