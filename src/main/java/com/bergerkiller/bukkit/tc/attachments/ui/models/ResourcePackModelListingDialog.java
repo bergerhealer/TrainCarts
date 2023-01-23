@@ -45,8 +45,9 @@ class ResourcePackModelListingDialog implements Listener {
     private final CompletableFuture<DialogResult> future;
     private final UIButton btnPrevPage = new PrevPageButton();
     private final UIButton btnNextPage = new NextPageButton();
+    private final UIButton btnBack = new BackButton();
     private final UIButton btnSearch = new SearchButton();
-    private final List<UIButton> buttons = Arrays.asList(btnPrevPage, btnNextPage, btnSearch);
+    private final List<UIButton> buttons = Arrays.asList(btnPrevPage, btnNextPage, btnBack, btnSearch);
     private Inventory inventory;
     private ResourcePackModelListing currentListing;
     private ListedEntry current;
@@ -142,6 +143,27 @@ class ResourcePackModelListingDialog implements Listener {
         return ClickAction.CLOSE_DIALOG;
     }
 
+    private boolean tryNavigateBack(boolean toRoot) {
+        ListedEntry e;
+        if (toRoot) {
+            e = this.options.listing().root().compact();
+        } else {
+            e = this.current;
+            while (e.parent() != null) {
+                e = e.parent();
+                if (e.compact() == e) {
+                    break;
+                }
+            }
+        }
+        if (e != this.current) {
+            this.navigate(e, 0);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     private ClickAction handleClick(int clickedSlot, boolean isRightClick, ItemStack cursorItem) {
         // If this is a creative menu and a cursor item is held, allow dropping (deleting) the item
         // like a traditional creative menu would do.
@@ -163,23 +185,14 @@ class ResourcePackModelListingDialog implements Listener {
         // Clicking of next/previous page buttons
         for (UIButton button : buttons) {
             if (button.slot == clickedSlot) {
-                button.click();
+                button.click(isRightClick);
                 return ClickAction.HANDLED;
             }
         }
 
         // Right click moves back up
         if (isRightClick) {
-            ListedEntry e = this.current;
-            while (e.parent() != null) {
-                e = e.parent();
-                if (e.compact() == e) {
-                    break;
-                }
-            }
-            if (e != this.current) {
-                this.navigate(e, 0);
-            } else if (options.isCancelOnRootRightClick()) {
+            if (!tryNavigateBack(false) && options.isCancelOnRootRightClick()) {
                 future.complete(new DialogResult(options, true));
                 return ClickAction.CLOSE_DIALOG;
             }
@@ -487,7 +500,7 @@ class ResourcePackModelListingDialog implements Listener {
         }, "CLAY", "LEGACY_CLAY");
 
         public PrevPageButton() {
-            super(5 * 9);
+            super(3);
         }
 
         @Override
@@ -496,7 +509,7 @@ class ResourcePackModelListingDialog implements Listener {
         }
 
         @Override
-        public void click() {
+        public void click(boolean isRightClick) {
             incrementPage(-1);
         }
     }
@@ -510,7 +523,7 @@ class ResourcePackModelListingDialog implements Listener {
         }, "CLAY", "LEGACY_CLAY");
 
         public NextPageButton() {
-            super(5 * 9 + 8);
+            super(5);
         }
 
         @Override
@@ -519,8 +532,32 @@ class ResourcePackModelListingDialog implements Listener {
         }
 
         @Override
-        public void click() {
+        public void click(boolean isRightClick) {
             incrementPage(1);
+        }
+    }
+
+    private class BackButton extends UIButton {
+        private final ItemStack backIconItem = createItem(item -> {
+            ItemUtil.setDisplayName(item, ChatColor.YELLOW + "Back");
+        }, "BOOK", "LEGACY_BOOK");
+
+        public BackButton() {
+            super(1);
+        }
+
+        @Override
+        public ItemStack item() {
+            return backIconItem;
+        }
+
+        @Override
+        public void click(boolean isRightClick) {
+            if (isRightClick) {
+                navigate(options.listing().root().compact(), 0);
+            } else {
+                tryNavigateBack(isRightClick);
+            }
         }
     }
 
@@ -530,7 +567,7 @@ class ResourcePackModelListingDialog implements Listener {
         }, "COMPASS", "LEGACY_COMPASS");
 
         public SearchButton() {
-            super(5 * 9 + 4);
+            super(7);
         }
 
         @Override
@@ -539,7 +576,7 @@ class ResourcePackModelListingDialog implements Listener {
         }
 
         @Override
-        public void click() {
+        public void click(boolean isRightClick) {
         }
     }
 
@@ -554,10 +591,10 @@ class ResourcePackModelListingDialog implements Listener {
         public boolean enabled = true;
 
         public UIButton(int slot) {
-            this.slot = slot;
+            this.slot = (5 * 9) + slot;
         }
 
         public abstract ItemStack item();
-        public abstract void click();
+        public abstract void click(boolean isRightClick);
     }
 }
