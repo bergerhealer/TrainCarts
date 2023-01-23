@@ -1,10 +1,13 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.models;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -28,6 +31,7 @@ import com.bergerkiller.bukkit.common.map.util.ModelInfoLookup;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 
 /**
  * Provides a listing of all the models available in a resource pack. The information can be
@@ -35,8 +39,6 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
  */
 public class ResourcePackModelListing {
     private final Plugin plugin;
-    private final List<ListedItemModel> allListedItems = new ArrayList<>();
-    private final Map<String, ListedNamespace> namespacesByName = new HashMap<>();
     private ListedRoot root = new ListedRoot();
     private MapResourcePack resourcePack;
 
@@ -134,15 +136,13 @@ public class ResourcePackModelListing {
      * @return True if empty
      */
     public boolean isEmpty() {
-        return allListedItems.isEmpty();
+        return root.allListedItems.isEmpty();
     }
 
     /**
      * Clears all listed items
      */
     public void clear() {
-        allListedItems.clear();
-        namespacesByName.clear();
         root = new ListedRoot();
     }
 
@@ -163,6 +163,23 @@ public class ResourcePackModelListing {
      */
     public MapResourcePack loadedResourcePack() {
         return resourcePack;
+    }
+
+    /**
+     * Filters the contents of this resource pack model listing based on a search query.
+     * If the query matches the pattern of a namespace and/or directory path, then only
+     * that directory tree is displayed. Otherwise, all item models and directories whose name
+     * includes the query (case-insensitive) is included.
+     *
+     * @param query Search query
+     * @return filtered result
+     */
+    public ResourcePackModelListing filter(String query) {
+        ResourcePackModelListing filteredListing = new ResourcePackModelListing(this.plugin);
+        filteredListing.resourcePack = this.resourcePack;
+        filteredListing.loadFromListing(this, query);
+        filteredListing.root.postInitializeAll();
+        return filteredListing;
     }
 
     /**
@@ -196,7 +213,7 @@ public class ResourcePackModelListing {
                 String path = "item/" + ModelInfoLookup.lookupItemRenderOptions(item).lookupModelName();
                 if (allOverridedModels.contains(path)) {
                     for (ModelOverride override : resourcePack.getModel(path).getOverrides()) {
-                        addListedItem(override.model, override.applyToItem(item));
+                        root.addListedItem(override.model, override.applyToItem(item));
                     }
                 }
             }
@@ -216,50 +233,56 @@ public class ResourcePackModelListing {
         }
     }
 
-    private void addListedItem(String path, ItemStack item) {
-        // Decode the path namespace and directory structure
-        ListedNamespace namespace;
-        ListedEntry containingEntry;
-        String name;
-        String pathWithoutNamespace;
-        String fullPath;
-        {
-            int namespaceStart = path.indexOf(':');
-            String namespaceName;
-            if (namespaceStart == -1) {
-                namespaceName = "minecraft";
-                pathWithoutNamespace = path;
-                fullPath = "minecraft:" + path;
-            } else {
-                namespaceName = path.substring(0, namespaceStart);
-                pathWithoutNamespace = path.substring(namespaceStart + 1);
-                fullPath = path;
-            }
-            namespace = findOrCreateNamespace(namespaceName);
+    private void loadFromListing(ResourcePackModelListing listing, String query) {
+        // Figure out whether a namespace: or absolute directory structure is specified
+        int firstPartEnd = StringUtil.firstIndexOf(query, '/', '\\', ':');
 
-            int directoryPathEnd = pathWithoutNamespace.lastIndexOf('/');
-            if (directoryPathEnd == -1) {
-                containingEntry = namespace;
-                name = pathWithoutNamespace;
-            } else {
-                String directoryPath = pathWithoutNamespace.substring(0, directoryPathEnd);
-                containingEntry = namespace.findOrCreateDirectory(directoryPath);
-                name = pathWithoutNamespace.substring(directoryPathEnd + 1);
+        // A single name without / and \ and not ending in : was specified
+        // Try to match (=contains) all entries recursively
+        // If a directory name matches, it and all sub-entries are included in the result
+        // Don't match the namespace, that's dumb.
+        if (!query.isEmpty() && firstPartEnd == -1) {
+            for (ListedNamespace namespace : listing.root.namespaces()) {
+                for (ListedEntry e : namespace.matchChildrenNameContains(query)) {
+                    e.assignToRoot(root);
+                }
             }
+            return;
         }
 
-        // Create listed item model, then register it in here
-        ListedItemModel entry = new ListedItemModel(fullPath, pathWithoutNamespace, name, item);
-        entry.setParent(containingEntry);
-        allListedItems.add(entry);
-    }
+        // Loading of a directory hierarchy all at once. For paths, namespace is optional.
+        // A single directory can be specified by querying name/ or /name
 
-    private ListedNamespace findOrCreateNamespace(String namespace) {
-        ListedNamespace entry = namespacesByName.computeIfAbsent(namespace, ListedNamespace::new);
-        if (entry.parent() == null) {
-            entry.setParent(root);
+        // For proper parsing to work it's important that the first : has a / appended after it
+        if (query.charAt(firstPartEnd) == ':' && query.length() >= firstPartEnd) {
+            query = query.substring(0, firstPartEnd+1) + "/" + query.substring(firstPartEnd+1);
         }
-        return entry;
+
+        // Tokenize by / and \ characters
+        List<String> parts = Arrays.stream(query.split("/|\\\\"))
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        // Decide on the namespce to include. If no namespace was prefixed, do all of them.
+        List<ListedNamespace> namespacesToCheck;
+        if (!parts.isEmpty() && parts.get(0).endsWith(":")) {
+            ListedNamespace match = listing.root.namespacesByName.get(parts.remove(0));
+            if (match == null) {
+                return;
+            } else {
+                namespacesToCheck = Collections.singletonList(match);
+            }
+        } else {
+            namespacesToCheck = listing.root.namespaces();
+        }
+
+        // Go by all matched namespaces and search the path query
+        // Copy all matched elements into this listing's own root
+        for (ListedNamespace namespace : namespacesToCheck) {
+            for (ListedEntry e : namespace.matchWithPathPrefix(parts)) {
+                e.assignToRoot(root);
+            }
+        }
     }
 
     @SuppressWarnings("deprecation")
@@ -291,11 +314,11 @@ public class ResourcePackModelListing {
         private final Plugin plugin;
         private final Player player;
         private final ResourcePackModelListing listing;
-        boolean creativeMenu = false;
-        String title = "Resource Pack Models";
-        String query = "";
+        private boolean creativeMenu = false;
+        private String title = "Resource Pack Models";
+        private String query = "";
+        private boolean cancelOnRootRightClick = false;
         ItemStack bgItem = DEFAULT_BG_ITEM;
-        boolean cancelOnRootRightClick = false;
 
         protected DialogBuilder(Plugin plugin, Player player, ResourcePackModelListing listing) {
             this.plugin = plugin;
@@ -341,6 +364,16 @@ public class ResourcePackModelListing {
         public DialogBuilder asCreativeMenu() {
             creativeMenu = true;
             return this;
+        }
+
+        /**
+         * Gets whether the dialog is displayed as a creative menu where the Player can take items
+         * from it.
+         *
+         * @return True if the dialog is displayed as a creative menu
+         */
+        public boolean isCreativeMenu() {
+            return creativeMenu;
         }
 
         /**
@@ -545,6 +578,7 @@ public class ResourcePackModelListing {
         private final String fullPath;
         private final String path;
         private final String name;
+        private final String nameLowerCase;
         private final ItemStack item;
 
         // Figure out the default HideFlags to put in the NBT
@@ -567,7 +601,16 @@ public class ResourcePackModelListing {
             this.fullPath = fullPath;
             this.path = path;
             this.name = name;
+            this.nameLowerCase = name.toLowerCase(Locale.ENGLISH);
             this.item = ItemUtil.createItem(item);
+        }
+
+        private ListedItemModel(ListedItemModel itemModel) {
+            this.fullPath = itemModel.fullPath;
+            this.path = itemModel.path;
+            this.name = itemModel.name;
+            this.nameLowerCase = itemModel.nameLowerCase;
+            this.item = itemModel.item;
         }
 
         @Override
@@ -620,6 +663,11 @@ public class ResourcePackModelListing {
             return name;
         }
 
+        @Override
+        public String nameLowerCase() {
+            return nameLowerCase;
+        }
+
         /**
          * Gets the path of this item model, excluding the namespace prefix
          *
@@ -663,32 +711,77 @@ public class ResourcePackModelListing {
         public String toString() {
             return "Item name=" + name + " path=" + fullPath + " item=" + item;
         }
+
+        @Override
+        protected ListedEntry cloneSelf(ListedNamespace namespace) {
+            if (namespace == null) {
+                throw new IllegalArgumentException("Namespace is required");
+            }
+
+            return new ListedItemModel(this);
+        }
+
+        @Override
+        protected ListedItemModel findOrCreateInRoot(ListedRoot root) {
+            // Find the directory or namespace in which this item model resides
+            ListedEntry newParent = this.parent().findOrCreateInRoot(root);
+            // Copy self and assign it to this parent
+            ListedItemModel entry = new ListedItemModel(this);
+            entry.isPostInitialized = true;
+            entry.setParent(newParent);
+            root.allListedItems.add(entry);
+            return entry;
+        }
     }
 
     public static final class ListedDirectory extends ListedEntry {
         private static final Material ITEM_TAG_TYPE = MaterialUtil.getFirst("LEGACY_NAME_TAG", "NAME_TAG");
         private final ListedNamespace namespace;
         private final String path;
+        private final String name;
+        private final String nameLowerCase;
         private final ItemStack item;
 
         public ListedDirectory(ListedNamespace namespace, String path) {
             this.namespace = namespace;
             this.path = path;
             this.item = ItemUtil.createItem(ITEM_TAG_TYPE, 1);
+
+            int lastIdx = path.lastIndexOf('/');
+            if (lastIdx == -1) {
+                this.name = path;
+            } else {
+                this.name = path.substring(lastIdx + 1);
+            }
+            this.nameLowerCase = this.name.toLowerCase(Locale.ENGLISH);
+        }
+
+        private ListedDirectory(ListedNamespace namespace, ListedDirectory directory) {
+            this.namespace = namespace;
+            this.path = directory.path;
+            this.name = directory.name;
+            this.nameLowerCase = directory.nameLowerCase;
+            this.item = directory.item;
         }
 
         @Override
         protected void postInitialize() {
-            ItemUtil.setDisplayName(this.item, ChatColor.YELLOW + this.path);
+            ItemUtil.setDisplayName(this.item, ChatColor.YELLOW + this.name);
             ItemUtil.addLoreName(this.item, ChatColor.WHITE.toString() + ChatColor.ITALIC + this.fullPath());
             ItemUtil.addLoreName(this.item, "");
+            ItemUtil.addLoreName(this.item, ChatColor.DARK_GRAY + "Directory");
             ItemUtil.addLoreName(this.item, ChatColor.DARK_GRAY +
                     "< " + ChatColor.GRAY + this.nestedItemCount + ChatColor.DARK_GRAY + " Item models >");
         }
 
         @Override
         public String name() {
-            return path;
+            return name;
+        }
+
+        @Override
+        public String nameLowerCase() {
+            return nameLowerCase;
         }
 
         /**
@@ -724,6 +817,26 @@ public class ResourcePackModelListing {
         public String toString() {
             return "Directory: " + path;
         }
+
+        @Override
+        protected ListedDirectory cloneSelf(ListedNamespace namespace) {
+            if (namespace == null) {
+                throw new IllegalArgumentException("Namespace is required");
+            }
+
+            ListedDirectory clone = new ListedDirectory(namespace, this);
+            clone.namespace.directories.put(clone.path, clone);
+            return clone;
+        }
+
+        @Override
+        protected ListedDirectory findOrCreateInRoot(ListedRoot root) {
+            // Handle parent entry first - we need namespace information
+            ListedEntry newParent = this.parent().findOrCreateInRoot(root);
+            // Check to see if this directory already exists for the parent
+            // If it does, return that one. Otherwise, create a new one
+            return newParent.namespace().findOrCreateDirectory(this.path);
+        }
     }
 
     /**
@@ -732,18 +845,29 @@ public class ResourcePackModelListing {
     public static final class ListedNamespace extends ListedEntry {
         private static final Material ITEM_TYPE = MaterialUtil.getFirst("LEGACY_NAME_TAG", "NAME_TAG");
         private final String name;
+        private final String nameLowerCase;
         private final ItemStack item;
-        private final Map<String, ListedDirectory> directories = new HashMap<>();
+        private final Map<String, ListedDirectory> directories;
 
         public ListedNamespace(String namespace) {
-            this.name = namespace;
+            this.name = namespace; // Note: namespace should always end with :
+            this.nameLowerCase = namespace.toLowerCase(Locale.ENGLISH);
             this.item = ItemUtil.createItem(ITEM_TYPE, 1);
+            this.directories = new HashMap<>();
+        }
+
+        private ListedNamespace(ListedNamespace namespace) {
+            this.name = namespace.name;
+            this.nameLowerCase = namespace.nameLowerCase;
+            this.item = namespace.item;
+            this.directories = new HashMap<>(namespace.directories.size());
         }
 
         @Override
         protected void postInitialize() {
-            ItemUtil.setDisplayName(this.item, ChatColor.YELLOW + this.name + ":");
+            ItemUtil.setDisplayName(this.item, ChatColor.YELLOW + this.name);
             ItemUtil.addLoreName(this.item, "");
+            ItemUtil.addLoreName(this.item, ChatColor.DARK_GRAY + "Namespace");
             ItemUtil.addLoreName(this.item, ChatColor.DARK_GRAY +
                     "< " + ChatColor.GRAY + this.nestedItemCount + ChatColor.DARK_GRAY + " Item models >");
         }
@@ -793,8 +917,13 @@ public class ResourcePackModelListing {
         }
 
         @Override
+        public String nameLowerCase() {
+            return nameLowerCase;
+        }
+
+        @Override
         public String fullPath() {
-            return name + ":";
+            return name;
         }
 
         @Override
@@ -816,12 +945,38 @@ public class ResourcePackModelListing {
         public String toString() {
             return "Namespace: " + name;
         }
+
+        @Override
+        protected ListedNamespace cloneSelf(ListedNamespace namespace) {
+            if (namespace != null) {
+                throw new IllegalArgumentException("Namespace entries cannot be in a namespace");
+            }
+
+            return new ListedNamespace(this);
+        }
+
+        @Override
+        protected ListedEntry findOrCreateInRoot(ListedRoot root) {
+            return root.findOrCreateNamespace(this.name);
+        }
     }
 
     /**
      * Root entry. Should not be displayed.
      */
     public static final class ListedRoot extends ListedEntry {
+        private final Map<String, ListedNamespace> namespacesByName;
+        private final List<ListedItemModel> allListedItems;
+
+        public ListedRoot() {
+            this.namespacesByName = new HashMap<>();
+            this.allListedItems = new ArrayList<>();
+        }
+
+        private ListedRoot(ListedRoot root) {
+            this.namespacesByName = new HashMap<>(root.namespacesByName.size());
+            this.allListedItems = new ArrayList<>(root.allListedItems.size());
+        }
 
         @Override
         protected void postInitialize() {
@@ -829,6 +984,11 @@ public class ResourcePackModelListing {
 
         @Override
         public String name() {
+            return "";
+        }
+
+        @Override
+        public String nameLowerCase() {
             return "";
         }
 
@@ -866,6 +1026,75 @@ public class ResourcePackModelListing {
         public String toString() {
             return "<ROOT>";
         }
+
+        /**
+         * Adds a new item at the path specified to this listed root. Any namespaces
+         * and sub-directories are automatically created.
+         *
+         * @param path Path to the item model
+         * @param item Item that will display the item model
+         * @return Created Listed item model
+         */
+        protected ListedItemModel addListedItem(String path, ItemStack item) {
+            // Decode the path namespace and directory structure
+            ListedNamespace namespace;
+            ListedEntry containingEntry;
+            String name;
+            String pathWithoutNamespace;
+            String fullPath;
+            {
+                int namespaceStart = path.indexOf(':');
+                String namespaceName;
+                if (namespaceStart == -1) {
+                    namespaceName = "minecraft:";
+                    pathWithoutNamespace = path;
+                    fullPath = namespaceName + path;
+                } else {
+                    namespaceName = path.substring(0, namespaceStart + 1); // Includes :
+                    pathWithoutNamespace = path.substring(namespaceStart + 1);
+                    fullPath = path;
+                }
+                namespace = findOrCreateNamespace(namespaceName);
+
+                int directoryPathEnd = pathWithoutNamespace.lastIndexOf('/');
+                if (directoryPathEnd == -1) {
+                    containingEntry = namespace;
+                    name = pathWithoutNamespace;
+                } else {
+                    String directoryPath = pathWithoutNamespace.substring(0, directoryPathEnd);
+                    containingEntry = namespace.findOrCreateDirectory(directoryPath);
+                    name = pathWithoutNamespace.substring(directoryPathEnd + 1);
+                }
+            }
+
+            // Create listed item model, then register it in here
+            ListedItemModel entry = new ListedItemModel(fullPath, pathWithoutNamespace, name, item);
+            entry.setParent(containingEntry);
+            allListedItems.add(entry);
+            return entry;
+        }
+
+        @Override
+        protected ListedRoot cloneSelf(ListedNamespace namespace) {
+            if (namespace != null) {
+                throw new IllegalArgumentException("Root entries cannot be in a namespace");
+            }
+
+            return new ListedRoot(this);
+        }
+
+        @Override
+        protected ListedEntry findOrCreateInRoot(ListedRoot root) {
+            return root; // Probably bad
+        }
+
+        protected ListedNamespace findOrCreateNamespace(String namespace) {
+            ListedNamespace entry = namespacesByName.computeIfAbsent(namespace, ListedNamespace::new);
+            if (entry.parent() == null) {
+                entry.setParent(this);
+            }
+            return entry;
+        }
     }
 
     /**
@@ -880,6 +1109,7 @@ public class ResourcePackModelListing {
          */
         private List<ListedEntry> children = Collections.emptyList();
         protected int nestedItemCount = 0;
+        protected boolean isPostInitialized = false;
 
         /**
          * Returns the item that should be displayed for this entry
@@ -895,6 +1125,13 @@ public class ResourcePackModelListing {
          * @return name
          */
         public abstract String name();
+
+        /**
+         * Lower-cased version of {@link #name()}. Useful for searches.
+         *
+         * @return name, all lower-case
+         */
+        public abstract String nameLowerCase();
 
         /**
          * Gets the full path of this entry. This includes the namespace and any
@@ -964,6 +1201,77 @@ public class ResourcePackModelListing {
         protected void fillItems(List<ListedItemModel> items) {
             for (ListedEntry child : children()) {
                 child.fillItems(items);
+            }
+        }
+
+        /**
+         * Attempts to navigate the children of this entry recursively to find the entry
+         * at the path specified. May return more than one element if the last path part
+         * matches multiple entries that start with that token.
+         *
+         * @param pathParts Parts to match
+         * @return List of matching entries, can be empty
+         */
+        public final List<ListedEntry> matchWithPathPrefix(Iterable<String> pathParts) {
+            Iterator<String> iter = pathParts.iterator();
+            if (!iter.hasNext()) {
+                return Collections.singletonList(this); // Empty path
+            }
+
+            ListedEntry curr = this;
+            while (true) {
+                String tokenLower = iter.next().toLowerCase(Locale.ENGLISH);
+                boolean isLastToken = !iter.hasNext();
+                if (isLastToken) {
+                    // Match with starts with and return result
+                    List<ListedEntry> result = new ArrayList<>(3);
+                    for (ListedEntry e : curr.children()) {
+                        if (e.nameLowerCase().startsWith(tokenLower)) {
+                            result.add(e);
+                        }
+                    }
+                    return result;
+                } else {
+                    // Match exactly (ignore case)
+                    ListedEntry next = null;
+                    for (ListedEntry e : curr.children()) {
+                        if (e.nameLowerCase().equals(tokenLower)) {
+                            next = e;
+                            break;
+                        }
+                    }
+                    if (next != null) {
+                        curr = next;
+                    } else {
+                        return Collections.emptyList(); // Not found
+                    }
+                }
+            }
+        }
+
+        /**
+         * Matches all child entries of this entry whose name includes the token specified.
+         * This is done recursively.
+         *
+         * @param token
+         * @return List of matching listed entries
+         */
+        public final List<ListedEntry> matchChildrenNameContains(String token) {
+            String tokenLower = token.toLowerCase(Locale.ENGLISH);
+            ArrayList<ListedEntry> result = new ArrayList<>(10);
+            for (ListedEntry child : children()) {
+                child.fillMatchingContains(tokenLower, result);
+            }
+            return result;
+        }
+
+        private void fillMatchingContains(String tokenLower, List<ListedEntry> result) {
+            if (nameLowerCase().contains(tokenLower)) {
+                result.add(this);
+            } else {
+                for (ListedEntry child : children()) {
+                    child.fillMatchingContains(tokenLower, result);
+                }
             }
         }
 
@@ -1067,6 +1375,66 @@ public class ResourcePackModelListing {
         }
 
         /**
+         * Clones this entry. The cloned entry will be parented to the new parent
+         * specified. Does not run the usual setParent code and copies the nested item
+         * count as-is.
+         *
+         * @param newParent The new parent entry
+         */
+        protected final ListedEntry assignCloneTo(ListedEntry newParent) {
+            ListedEntry clone = unsafeClone(newParent);
+            clone.parent = null; // do setParent handling
+            clone.setParent(newParent);
+            return clone;
+        }
+
+        private final ListedEntry unsafeClone(ListedEntry newParent) {
+            ListedEntry clone = this.cloneSelf(newParent == null ? null : newParent.namespace());
+            clone.isPostInitialized = true; // No need to setup the Item again
+            clone.parent = newParent;
+            clone.nestedItemCount = this.nestedItemCount;
+            if (!this.children.isEmpty()) {
+                clone.children = new ArrayList<>(this.children.size());
+                for (ListedEntry child : this.children) {
+                    //TODO: Recursion could go bad...
+                    clone.children.add(child.unsafeClone(clone));
+                }
+            }
+            return clone;
+        }
+
+        /**
+         * Attempts to find or re-create this entry in a new listing root. Nested item count
+         * and children will be updated, with the items initialized after
+         * {@link #postInitializeAll()} is called.
+         *
+         * @param root New root to assign to
+         * @return cloned entry, now assigned to root. Is null if this is a root entry.
+         */
+        protected abstract ListedEntry findOrCreateInRoot(ListedRoot root);
+
+        /**
+         * Clones this entry and assigns it to a new listing root. Any required parent
+         * directories and namespaces are created in the root first.
+         *
+         * @param root
+         * @return
+         */
+        protected final ListedEntry assignToRoot(ListedRoot root) {
+            ListedEntry parent = this.parent().findOrCreateInRoot(root);
+            return this.assignCloneTo(parent);
+        }
+
+        /**
+         * Clones this entry itself. Parent and children don't have to be updated here, as that's
+         * done by {@link #clone(ListedEntry)} itself.
+         *
+         * @param namespace The namespace in which the new entry should reside. Is null if no namespace
+         *                  is known yet (root or namespace entry).
+         */
+        protected abstract ListedEntry cloneSelf(ListedNamespace namespace);
+
+        /**
          * Can be overrides by listed entries to perform post-initialization that requires
          * knowledge of the parent and child entries.
          */
@@ -1081,10 +1449,13 @@ public class ResourcePackModelListing {
          * </ul>
          */
         protected final void postInitializeAll() {
-            this.postInitialize();
-            this.children.sort((a, b) -> Integer.compare(a.nestedItemCount, b.nestedItemCount));
-            for (ListedEntry e : this.children) {
-                e.postInitializeAll();
+            if (!isPostInitialized) {
+                isPostInitialized = true;
+                postInitialize();
+                this.children.sort((a, b) -> Integer.compare(a.nestedItemCount, b.nestedItemCount));
+                for (ListedEntry e : this.children) {
+                    e.postInitializeAll();
+                }
             }
         }
     }

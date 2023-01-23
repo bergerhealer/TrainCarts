@@ -47,6 +47,7 @@ class ResourcePackModelListingDialog implements Listener {
     private final UIButton btnSearch = new SearchButton();
     private final List<UIButton> buttons = Arrays.asList(btnPrevPage, btnNextPage, btnSearch);
     private Inventory inventory;
+    private ResourcePackModelListing currentListing;
     private ResourcePackModelListing.ListedEntry current;
     private List<? extends ResourcePackModelListing.ListedEntry> currentItems;
     private int page = 0;
@@ -100,10 +101,16 @@ class ResourcePackModelListingDialog implements Listener {
     }
 
     public void open() {
+        if (options.getQuery().isEmpty()) {
+            currentListing = options.listing();
+        } else {
+            currentListing = options.listing().filter(options.getQuery());
+        }
+
         Bukkit.getPluginManager().registerEvents(this, options.plugin());
 
-        inventory = Bukkit.createInventory(player(), 54, options.title);
-        setListedEntry(options.listing().root().compact());
+        inventory = Bukkit.createInventory(player(), 54, options.getTitle());
+        setListedEntry(currentListing.root().compact());
         player().openInventory(inventory);
     }
 
@@ -119,7 +126,7 @@ class ResourcePackModelListingDialog implements Listener {
     }
 
     private ClickAction onItemClicked(ResourcePackModelListing.ListedItemModel item) {
-        if (options.creativeMenu) {
+        if (options.isCreativeMenu()) {
             return ClickAction.CREATIVE_CLICK_PICKUP;
         }
 
@@ -133,7 +140,7 @@ class ResourcePackModelListingDialog implements Listener {
         // like a traditional creative menu would do.
         // If the cursor item matches with the item held in this slot in this inventory (except count),
         // allow increasing the count by one until the stack size is reached.
-        if (options.creativeMenu && !ItemUtil.isEmpty(cursorItem) && clickedSlot >= 0 && clickedSlot < (6*9)) {
+        if (options.isCreativeMenu() && !ItemUtil.isEmpty(cursorItem) && clickedSlot >= 0 && clickedSlot < (6*9)) {
             ItemStack itemInSlot = this.inventory.getItem(clickedSlot);
             if (!isRightClick && itemInSlot != null && ItemUtil.equalsIgnoreAmount(itemInSlot, cursorItem)) {
                 if (cursorItem.getAmount() < cursorItem.getMaxStackSize()) {
@@ -165,7 +172,7 @@ class ResourcePackModelListingDialog implements Listener {
             }
             if (e != this.current) {
                 this.setListedEntry(e);
-            } else if (options.cancelOnRootRightClick) {
+            } else if (options.isCancelOnRootRightClick()) {
                 future.complete(new DialogResult(options, true));
                 return ClickAction.CLOSE_DIALOG;
             }
@@ -294,7 +301,7 @@ class ResourcePackModelListingDialog implements Listener {
                 .mapToInt(Integer::intValue)
                 .filter(i -> i >= 0 && i < (6*9))
                 .count();
-        if (options.creativeMenu && numDraggedInDialog == event.getRawSlots().size()) {
+        if (options.isCreativeMenu() && numDraggedInDialog == event.getRawSlots().size()) {
             // Consume all the items. Note: setCursor(null) doesn't work with result DENY.
             // For that reason, update the cursor a tick delayed to what it would be
             // had the drag been completed.
@@ -346,7 +353,7 @@ class ResourcePackModelListingDialog implements Listener {
             event.getInventory() == this.inventory &&
             clickedInventory != this.inventory
         ) {
-            if (options.creativeMenu) {
+            if (options.isCreativeMenu()) {
                 event.setResult(Result.DENY);
                 event.setCurrentItem(null);
             } else {
@@ -358,7 +365,7 @@ class ResourcePackModelListingDialog implements Listener {
         // If right clicking into the dialog while holding an item, and this is a creative menu,
         // reduce the count by one of the cursor. Until it is fully consumed.
         if ((event.getClick() == ClickType.RIGHT || event.getClick() == ClickType.SHIFT_RIGHT) &&
-            options.creativeMenu &&
+            options.isCreativeMenu() &&
             !ItemUtil.isEmpty(event.getCursor()) &&
             clickedInventory == this.inventory &&
             event.getSlot() >= 0 && event.getSlot() < (9*6)
