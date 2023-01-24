@@ -10,6 +10,7 @@ import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.DyeColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
@@ -28,6 +29,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import com.bergerkiller.bukkit.common.block.InputDialogSubmitText;
+import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
@@ -41,6 +43,9 @@ import com.bergerkiller.bukkit.tc.attachments.ui.models.listing.*;
  */
 class ResourcePackModelListingDialog implements Listener {
     private static final int DISPLAYED_ITEM_COUNT = 4 * 9; // Top 4 rows
+    private static final ItemStack BG_ITEM1 = null; // createGlassPaneItem(DyeColor.GRAY);
+    private static final ItemStack BG_ITEM2 = createGlassPaneItem(DyeColor.BROWN);
+    private static final ItemStack BG_ITEM3 = createGlassPaneItem(DyeColor.GRAY);
     private static Map<Player, ResourcePackModelListingDialog> shownTo = new HashMap<>();
     private final DialogBuilder options;
     private final CompletableFuture<DialogResult> future;
@@ -286,12 +291,19 @@ class ResourcePackModelListingDialog implements Listener {
             this.inventory.setItem(i, currentItems.get(i + offset).createIconItem(options));
         }
         for (int i = limit; i < DISPLAYED_ITEM_COUNT; i++) {
-            this.inventory.setItem(i, options.getBackgroundItem());
+            this.inventory.setItem(i, BG_ITEM1);
         }
+
+        // Dividing line
+        for (int i = DISPLAYED_ITEM_COUNT; i < (9*5); i++) {
+            this.inventory.setItem(i, BG_ITEM2);
+        }
+
+        // UI Buttons
         for (UIButton button : buttons) {
             this.inventory.setItem(button.slot, button.item());
         }
-        for (int i = DISPLAYED_ITEM_COUNT; i < (9*6); i++) {
+        for (int i = (9*5); i < (9*6); i++) {
             boolean isButtonSlot = false;
             for (UIButton button : buttons) {
                 if (button.slot == i) {
@@ -300,7 +312,7 @@ class ResourcePackModelListingDialog implements Listener {
                 }
             }
             if (!isButtonSlot) {
-                this.inventory.setItem(i, options.getBackgroundItem());
+                this.inventory.setItem(i, BG_ITEM3);
             }
         }
     }
@@ -631,6 +643,30 @@ class ResourcePackModelListingDialog implements Listener {
         ItemStack item = ItemUtil.createItem(MaterialUtil.getFirst(materialNames), 1);
         setup.accept(item);
         return item;
+    }
+
+    @SuppressWarnings("deprecation")
+    private static ItemStack createGlassPaneItem(DyeColor color) {
+        try {
+            ItemStack item;
+            if (CommonCapabilities.MATERIAL_ENUM_CHANGES) {
+                item = ItemUtil.createItem(
+                        MaterialUtil.getMaterial(color.name() + "_STAINED_GLASS_PANE"),
+                        1);
+            } else {
+                item = ItemUtil.createItem(
+                        MaterialUtil.getMaterial("LEGACY_STAINED_GLASS_PANE"),
+                        color.getWoolData(), 1);
+            }
+            if (CommonCapabilities.EMPTY_ITEM_NAME) {
+                ItemUtil.setDisplayName(item, ChatColor.RESET.toString());
+            } else {
+                ItemUtil.setDisplayName(item, ChatColor.RESET + "\0");
+            }
+            return item;
+        } catch (Throwable t) {
+            return null; // Meh. Not important enough to fail everything!
+        }
     }
 
     private static abstract class UIButton {

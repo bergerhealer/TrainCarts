@@ -2,13 +2,10 @@ package com.bergerkiller.bukkit.tc.attachments.ui.models.listing;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.bukkit.ChatColor;
-import org.bukkit.DyeColor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
-import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.attachments.ui.models.ResourcePackModelListing;
@@ -17,7 +14,6 @@ import com.bergerkiller.bukkit.tc.attachments.ui.models.ResourcePackModelListing
  * Configures the behavior of a model listing dialog
  */
 public final class DialogBuilder implements Cloneable {
-    private static final ItemStack DEFAULT_BG_ITEM = createDefaultBGItem();
     private static final ItemStack DEFAULT_NAMESPACE_ITEM = createDefaultNamespaceItem();
     private static final ItemStack DEFAULT_DIRECTORY_ITEM = createDefaultDirectoryItem();
 
@@ -30,7 +26,6 @@ public final class DialogBuilder implements Cloneable {
     private String browsedLocation = "";
     private int browsedPage = 0;
     private boolean cancelOnRootRightClick = false;
-    private ItemStack bgItem = DEFAULT_BG_ITEM;
     private ItemStack namespaceItem = DEFAULT_NAMESPACE_ITEM;
     private ItemStack directoryItem = DEFAULT_DIRECTORY_ITEM;
 
@@ -147,28 +142,6 @@ public final class DialogBuilder implements Cloneable {
      */
     public String getTitle() {
         return title;
-    }
-
-    /**
-     * Sets the item displayed for item slots in the window which are not filled
-     * with an item or UI component.
-     *
-     * @param item Item to display as background. Null to leave the slots empty.
-     * @return this
-     */
-    public DialogBuilder backgroundItem(ItemStack item) {
-        this.bgItem = item;
-        return this;
-    }
-
-    /**
-     * Gets the item displayed for item slots in the window which are not filled
-     * with an item or UI component. <b>Do not modify this item from the outside</b>
-     *
-     * @return background item
-     */
-    public ItemStack getBackgroundItem() {
-        return bgItem;
     }
 
     /**
@@ -295,30 +268,9 @@ public final class DialogBuilder implements Cloneable {
         clone.title = this.title;
         clone.query = this.query;
         clone.cancelOnRootRightClick = this.cancelOnRootRightClick;
-        clone.bgItem = this.bgItem;
         clone.namespaceItem = this.namespaceItem;
         clone.directoryItem = this.directoryItem;
         return clone;
-    }
-
-    @SuppressWarnings("deprecation")
-    private static ItemStack createDefaultBGItem() {
-        try {
-            ItemStack item;
-            if (CommonCapabilities.MATERIAL_ENUM_CHANGES) {
-                item = ItemUtil.createItem(
-                        MaterialUtil.getMaterial("GRAY_STAINED_GLASS_PANE"),
-                        1);
-            } else {
-                item = ItemUtil.createItem(
-                        MaterialUtil.getMaterial("LEGACY_STAINED_GLASS_PANE"),
-                        DyeColor.GRAY.getWoolData(), 1);
-            }
-            ItemUtil.setDisplayName(item, ChatColor.RESET.toString());
-            return item;
-        } catch (Throwable t) {
-            return null; // Meh. Not important enough to fail everything!
-        }
     }
 
     private static ItemStack createDefaultNamespaceItem() {
