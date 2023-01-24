@@ -50,10 +50,11 @@ class ResourcePackModelListingDialog implements Listener {
     private final DialogBuilder options;
     private final CompletableFuture<DialogResult> future;
     private final UIButton btnPrevPage = new PrevPageButton();
+    private final UIButton btnBetweenpages = new BetweenPageButton();
     private final UIButton btnNextPage = new NextPageButton();
     private final UIButton btnBack = new BackButton();
     private final UIButton btnSearch = new SearchButton();
-    private final List<UIButton> buttons = Arrays.asList(btnPrevPage, btnNextPage, btnBack, btnSearch);
+    private final List<UIButton> buttons = Arrays.asList(btnPrevPage, btnBetweenpages, btnNextPage, btnBack, btnSearch);
     private Inventory inventory;
     private ResourcePackModelListing currentListing;
     private ListedEntry current;
@@ -183,11 +184,13 @@ class ResourcePackModelListingDialog implements Listener {
     }
 
     private boolean tryNavigateBack(boolean toRoot) {
-        ListedEntry e;
+        ListedEntry e = this.current;
         if (toRoot) {
-            e = this.options.listing().root().compact();
+            while (e.parent() != null) {
+                e = e.parent();
+            }
+            e = e.compact();
         } else {
-            e = this.current;
             while (e.parent() != null) {
                 e = e.parent();
                 if (e.compact() == e) {
@@ -551,7 +554,7 @@ class ResourcePackModelListingDialog implements Listener {
 
         @Override
         public ItemStack item() {
-            return enabled ? enabledIconItem : disabledIconItem;
+            return applyPageInfo(enabled ? enabledIconItem : disabledIconItem, false);
         }
 
         @Override
@@ -574,7 +577,7 @@ class ResourcePackModelListingDialog implements Listener {
 
         @Override
         public ItemStack item() {
-            return enabled ? enabledIconItem : disabledIconItem;
+            return applyPageInfo(enabled ? enabledIconItem : disabledIconItem, false);
         }
 
         @Override
@@ -583,9 +586,30 @@ class ResourcePackModelListingDialog implements Listener {
         }
     }
 
+    private class BetweenPageButton extends UIButton {
+
+        public BetweenPageButton() {
+            super(4);
+        }
+
+        @Override
+        public ItemStack item() {
+            return applyPageInfo(BG_ITEM3, true);
+        }
+
+        @Override
+        public void click(boolean isRightClick) {
+        }
+    }
+
     private class BackButton extends UIButton {
         private final ItemStack backIconItem = createItem(item -> {
             ItemUtil.setDisplayName(item, ChatColor.YELLOW + "Back");
+            ItemUtil.addLoreName(item, "");
+            ItemUtil.addLoreName(item, ChatColor.BLUE.toString() + ChatColor.ITALIC +
+                    "Right-click to go");
+            ItemUtil.addLoreName(item, ChatColor.BLUE.toString() + ChatColor.ITALIC +
+                    "all the way back");
         }, "BOOK", "LEGACY_BOOK");
 
         public BackButton() {
@@ -621,8 +645,11 @@ class ResourcePackModelListingDialog implements Listener {
         public ItemStack item() {
             ItemStack item = searchIconItem.clone();
             if (!options.getQuery().isEmpty()) {
-                ItemUtil.addLoreName(item, ChatColor.WHITE.toString() + ChatColor.ITALIC +
-                        "\"" + options.getQuery() + "\"");
+                ItemUtil.addLoreName(item, "");
+                ItemUtil.addLoreName(item, ChatColor.DARK_GRAY + "Current: " +
+                        ChatColor.GRAY + ChatColor.ITALIC + "\"" + options.getQuery() + "\"");
+                ItemUtil.addLoreName(item, ChatColor.BLUE.toString() + ChatColor.ITALIC +
+                        "Right-click to clear");
             }
             return item;
         }
@@ -637,6 +664,35 @@ class ResourcePackModelListingDialog implements Listener {
                 closeAndShowSearchDialog(options.getQuery());
             }
         }
+    }
+
+    private ItemStack applyPageInfo(ItemStack item, boolean isMiddleCountItem) {
+        // Null check
+        if (item == null) {
+            return null;
+        }
+
+        // If only one page exists, omit the count
+        int pageCount = 1 + (currentItems.size() / DISPLAYED_ITEM_COUNT);
+        if (pageCount == 1) {
+            return item;
+        }
+
+        item = item.clone();
+        int currPage = (options.getBrowsedPage() + 1);
+        if (isMiddleCountItem) {
+            ItemUtil.setDisplayName(item, ChatColor.DARK_GRAY + "Currently on");
+            if (currPage <= 64) {
+                item.setAmount(currPage);
+            }
+        } else {
+            ItemUtil.addLoreName(item, "");
+            ItemUtil.addLoreName(item, ChatColor.DARK_GRAY + "Currently on");
+        }
+        ItemUtil.addLoreName(item, ChatColor.DARK_GRAY + "page " +
+                ChatColor.GRAY + currPage + ChatColor.DARK_GRAY +
+                " of " + ChatColor.GRAY + pageCount);
+        return item;
     }
 
     private static ItemStack createItem(Consumer<ItemStack> setup, String... materialNames) {
