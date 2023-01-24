@@ -577,7 +577,7 @@ class ResourcePackModelListingDialog implements Listener {
         }, "BOOK", "LEGACY_BOOK");
 
         public BackButton() {
-            super(1);
+            super(0);
         }
 
         @Override
@@ -587,10 +587,11 @@ class ResourcePackModelListingDialog implements Listener {
 
         @Override
         public void click(boolean isRightClick) {
-            if (isRightClick) {
-                navigate(options.listing().root().compact(), 0);
-            } else {
-                tryNavigateBack(isRightClick);
+            // Right-clicking navigates to root without ever closing the dialog
+            // Left-clicking past root and if the option for it is enabled, closes the dialog
+            if (!tryNavigateBack(isRightClick) && !isRightClick && options.isCancelOnRootRightClick()) {
+                complete(new DialogResult(options, true));
+                close();
             }
         }
     }
@@ -601,7 +602,7 @@ class ResourcePackModelListingDialog implements Listener {
         }, "COMPASS", "LEGACY_COMPASS");
 
         public SearchButton() {
-            super(7);
+            super(8);
         }
 
         @Override
