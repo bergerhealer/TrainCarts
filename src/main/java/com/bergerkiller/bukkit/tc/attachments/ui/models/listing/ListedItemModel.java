@@ -18,15 +18,17 @@ public final class ListedItemModel extends ListedEntry {
     private final String path;
     private final String name;
     private final String nameLowerCase;
+    private final String credit;
     private final ItemStack bareItem;
     private final ItemStack item;
 
-    public ListedItemModel(String fullPath, String path, String name, ItemStack item) {
+    public ListedItemModel(String fullPath, String path, String name, String credit, ItemStack item) {
         this.nestedItemCount = 1;
         this.fullPath = fullPath;
         this.path = path;
         this.name = name;
         this.nameLowerCase = name.toLowerCase(Locale.ENGLISH);
+        this.credit = credit;
         this.bareItem = item;
         this.item = ItemUtil.createItem(item);
         this.initializeItem();
@@ -37,6 +39,7 @@ public final class ListedItemModel extends ListedEntry {
         this.path = itemModel.path;
         this.name = itemModel.name;
         this.nameLowerCase = itemModel.nameLowerCase;
+        this.credit = itemModel.credit;
         this.bareItem = itemModel.bareItem;
         this.item = itemModel.item;
     }
@@ -74,6 +77,11 @@ public final class ListedItemModel extends ListedEntry {
         if (nbt.containsKey("Unbreakable") && nbt.getValue("Unbreakable", false)) {
             addLoreProperty(this.item, "Unbreakable", true);
         }
+
+        if (!credit.isEmpty()) {
+            ItemUtil.addLoreName(item, "");
+            ItemUtil.addLoreName(item, ChatColor.DARK_BLUE + credit);
+        }
     }
 
     private static void addLoreSpacer(ItemStack item) {
@@ -106,6 +114,16 @@ public final class ListedItemModel extends ListedEntry {
     @Override
     public String fullPath() {
         return fullPath;
+    }
+
+    /**
+     * Gets Model credit information. This is a short sentence describing who
+     * made the model.
+     *
+     * @return Model credit details. Empty String if not available.
+     */
+    public String credit() {
+        return credit;
     }
 
     @Override

@@ -206,8 +206,13 @@ public class ResourcePackModelListing extends ListedRootLoader {
             for (ItemStack item : ItemUtil.getItemVariants(material)) {
                 String path = "item/" + ModelInfoLookup.lookupItemRenderOptions(item).lookupModelName();
                 if (allOverridedModels.contains(path)) {
-                    for (ModelOverride override : resourcePack.getModel(path).getOverrides()) {
-                        root.addListedItem(override.model, override.applyToItem(item));
+                    for (ModelOverride override : resourcePack.getModelInfo(path).getOverrides()) {
+                        // Figure out what the 'credit' are for this model by reading the actual model
+                        // No big deal if this fails.
+                        String credit = resourcePack.getModelInfo(override.model).getCredit();
+
+                        ItemStack modelItem = override.applyToItem(item);
+                        root.addListedItem(override.model, modelItem, credit);
                     }
                 }
             }

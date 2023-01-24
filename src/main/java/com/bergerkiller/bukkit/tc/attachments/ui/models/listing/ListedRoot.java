@@ -84,9 +84,10 @@ public final class ListedRoot extends ListedEntry {
      *
      * @param path Path to the item model
      * @param item Item that will display the item model
+     * @param credit Credit (who made this?)
      * @return Created Listed item model
      */
-    public ListedItemModel addListedItem(String path, ItemStack item) {
+    public ListedItemModel addListedItem(String path, ItemStack item, String credit) {
         // Decode the path namespace and directory structure
         ListedNamespace namespace;
         ListedEntry containingEntry;
@@ -119,7 +120,7 @@ public final class ListedRoot extends ListedEntry {
         }
 
         // Create listed item model, then register it in here
-        ListedItemModel entry = new ListedItemModel(fullPath, pathWithoutNamespace, name, item);
+        ListedItemModel entry = new ListedItemModel(fullPath, pathWithoutNamespace, name, credit, item);
         entry.setParent(containingEntry);
         allListedItems.add(entry);
         return entry;
