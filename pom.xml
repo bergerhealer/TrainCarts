@@ -50,8 +50,8 @@
 
         <!-- Repo for access to Spigot-API and related libraries -->
         <repository>
-          <id>spigot-repo</id>
-          <url>https://hub.spigotmc.org/nexus/content/groups/public/</url>
+            <id>spigot-repo</id>
+            <url>https://hub.spigotmc.org/nexus/content/groups/public/</url>
         </repository>
 
         <!-- Repo for access to various libraries, including LightAPI(-fork) -->
@@ -221,10 +221,10 @@
 
             <!-- Includes textures -->
             <resource>
-              <directory>src/main/java</directory>
-              <includes>
-                <include>**/*.png</include>
-              </includes>
+                <directory>src/main/java</directory>
+                <includes>
+                    <include>**/*.png</include>
+                </includes>
             </resource>
         </resources>
 
