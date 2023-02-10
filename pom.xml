@@ -206,7 +206,6 @@
 
     <!-- Build -->
     <build>
-        <!-- Export artifact with name that includes the build number -->
         <defaultGoal>clean install</defaultGoal>
 
         <!-- Resources (the filtering allows us to use project properties in plugin.yml) -->

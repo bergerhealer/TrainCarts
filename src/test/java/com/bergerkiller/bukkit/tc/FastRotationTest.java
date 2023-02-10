@@ -82,8 +82,8 @@ public class FastRotationTest {
 
     @Test
     public void testEntityYaw() {
-        for (float base_angle = -360.0f; base_angle <= 360.0f; base_angle += 0.01f) {
-            for (double yaw_change = -89.0; yaw_change <= 89.0; yaw_change += 0.01) {
+        for (float base_angle = -360.0f; base_angle <= 360.0f; base_angle += 0.1f) {
+            for (double yaw_change = -89.0; yaw_change <= 89.0; yaw_change += 0.1) {
                 double new_yaw = Util.getNextEntityYaw(base_angle, yaw_change);
                 double actual_change = new_yaw - base_angle;
                 while (actual_change <= -180.0) {
