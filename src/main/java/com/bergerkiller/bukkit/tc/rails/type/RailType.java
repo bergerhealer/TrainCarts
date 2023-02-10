@@ -413,17 +413,19 @@ public abstract class RailType {
      *
      * @param trackBlock where this Rail Type is at
      * @return Minecart position
-     * @deprecated This is no longer being used
+     * @deprecated This is no longer being used except for the also-deprecated TrackIterator
      */
     @Deprecated
-    public abstract Block findMinecartPos(Block trackBlock);
+    public Block findMinecartPos(Block trackBlock) {
+        return trackBlock;
+    }
 
     /**
      * Gets an array containing all possible directions a Minecart can move on the trackBlock.
      *
      * @param trackBlock to use
      * @return all possible directions the Minecart can move
-     * @deprecated Call / implement {@link #getJunctions()} instead (if needed)
+     * @deprecated Call / implement {@link #getJunctions(Block)} instead (if needed)
      */
     @Deprecated
     public abstract BlockFace[] getPossibleDirections(Block trackBlock);

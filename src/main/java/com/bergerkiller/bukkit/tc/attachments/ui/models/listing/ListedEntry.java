@@ -377,9 +377,7 @@ public abstract class ListedEntry implements Comparable<ListedEntry> {
     }
 
     /**
-     * Attempts to find or re-create this entry in a new listing root. Nested item count
-     * and children will be updated, with the items initialized after
-     * {@link #postInitializeAll()} is called.
+     * Attempts to find or re-create this entry in a new listing root.
      *
      * @param root New root to assign to
      * @return cloned entry, now assigned to root. Is null if this is a root entry.
@@ -400,7 +398,7 @@ public abstract class ListedEntry implements Comparable<ListedEntry> {
 
     /**
      * Clones this entry itself. Parent and children don't have to be updated here, as that's
-     * done by {@link #clone(ListedEntry)} itself.
+     * done by {@link #assignCloneTo(ListedEntry)}.
      *
      * @param namespace The namespace in which the new entry should reside. Is null if no namespace
      *                  is known yet (root or namespace entry).

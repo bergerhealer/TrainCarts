@@ -116,7 +116,7 @@ public abstract class SeatedEntity {
     /**
      * Sets a player to act as a dummy entity displayed sitting in the seat
      *
-     * @param dummyPlayer
+     * @param show Whether to show the dummy player
      */
     public final void setShowDummyPlayer(boolean show) {
         if (this.showDummy != show) {
@@ -345,7 +345,7 @@ public abstract class SeatedEntity {
     }
 
     /**
-     * If a fake mount was created by {@link #spawnVehicleMount(Player)}, despawns
+     * If a fake mount was created by {@link #spawnVehicleMount(AttachmentViewer)}, despawns
      * that fake mount. Otherwise does nothing.
      *
      * @param viewer
@@ -445,8 +445,7 @@ public abstract class SeatedEntity {
      * Silent is set to true when the entity has just been set, because right after calling this
      * the seat is made visible to everyone again. No spawning should occur when silent
      * is true!
-     * 
-     * @param seat
+     *
      * @param silent Whether to send new spawn/make-visible packets to players or not
      */
     public void updateMode(boolean silent) {

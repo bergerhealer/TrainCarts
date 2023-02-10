@@ -366,7 +366,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * Sets the gravity factor applied to the train, where 1.0 is the default
      * and 0 disables friction entirely.
      *
-     * @param gravity
+     * @param friction
      */
     public void setFriction(double friction) {
         set(StandardProperties.FRICTION, friction);
@@ -1013,7 +1013,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     /**
      * Renames this train, this should be called to rename the train safely.
      *
-     * @param newtrainname to set to
+     * @param newTrainName New train name to set to
      * @throws IllegalArgumentException if another train by this name already {@link #exists(String)}
      */
     public void setTrainName(String newTrainName) {
@@ -1105,7 +1105,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * server lags behind, and slows it down when the server catches up. This attempts
      * to make the movement speed of the train constant despite server tick rate jitter.
      *
-     * @return param realtime Whether realtime physics is enabled
+     * @param realtime Whether realtime physics is enabled
      */
     public void setRealtimePhysics(boolean realtime) {
         set(StandardProperties.REALTIME_PHYSICS, realtime);

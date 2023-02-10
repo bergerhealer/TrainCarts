@@ -106,9 +106,9 @@ public final class DetectorRegion {
 
     /**
      * Gets all the regions occuping a particular rails block
-     * 
-     * @param railsBlock
-     * @return list of detector regions, empty list if no regions exist
+     *
+     * @param at Rails block to which detector regions are registered
+     * @return List of detector regions, empty list if no regions exist
      */
     public static List<DetectorRegion> getRegions(Block at) {
         DetectorRegion[] regionsAtBlock = regions.get(at);

@@ -56,7 +56,7 @@ public class ForwardChunkArea {
 
     /**
      * Must be called at the beginning of each new track iteration call, ideally
-     * at the start of the tick. Afterwards, {@link #add(int, int)} can be
+     * at the start of the tick. Afterwards, {@link #add(World, int, int)} can be
      * called to keep all the chunks that need to stay loaded.
      */
     public void begin() {

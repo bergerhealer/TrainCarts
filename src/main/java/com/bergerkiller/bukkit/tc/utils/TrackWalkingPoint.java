@@ -112,7 +112,7 @@ public class TrackWalkingPoint {
      * Signs and other routing nodes along the way that can perform track switching will be asked
      * where this member should go, and that path is followed accordingly.
      *
-     * @param follow MinecartMember to track following the predicted path. Null to disable.
+     * @param member MinecartMember to track following the predicted path. Null to disable.
      */
     public void setFollowPredictedPath(MinecartMember<?> member) {
         this.predictor = (member == null) ? null : new Predictor(this.state, member);
@@ -215,9 +215,9 @@ public class TrackWalkingPoint {
 
     /**
      * Moves the full distance past the current rail's path to the next rail.
-     * The {@link #position} and {@link #direction} is updated.
+     * The {@link #state} position and movement direction are updated.
      * Can be used in a loop to iterate by all the rail blocks.
-     * 
+     *
      * @return True if movement was successful, False if not
      */
     public boolean moveFull() {
@@ -250,7 +250,7 @@ public class TrackWalkingPoint {
 
     /**
      * Moves the distance specified over the current rails, moving past multiple rails if needed.
-     * The {@link #position} and {@link #direction} is updated.
+     * The {@link #state} position and movement direction are updated.
      *
      * @param distance to move
      * @return True if movement was successful, False if not

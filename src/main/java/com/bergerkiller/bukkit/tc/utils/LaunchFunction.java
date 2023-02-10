@@ -222,9 +222,9 @@ public abstract class LaunchFunction {
 
     /**
      * Calibrates the algorithm to launch within the given amount of ticks.
-     * {@link #getDistance()} will return the total distance launched when the same
+     * {@link #getDistance(int)} will return the total distance launched when the same
      * tick value is specified.
-     * 
+     *
      * @param ticks
      */
     public final void setTotalTime(int ticks) {

@@ -152,7 +152,7 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
      * Used by @train and @ptrain to select the trains to operate on.
      *
      * @param sender Sender that executed the command, can use console sender
-     * @param arguments Arguments to query
+     * @param conditions Conditions to filter the results by
      * @return all train properties that match the query
      * @throws SelectorException If the selection failed, or an incorrect selector argument
      *                           was specified

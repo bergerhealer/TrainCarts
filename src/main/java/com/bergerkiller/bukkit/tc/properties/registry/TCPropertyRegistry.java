@@ -374,8 +374,8 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
         /**
          * Checks whether this parser element matches the input, and if so, stores the
          * match result in the context and returns true. Returns false if it does not match.
-         * 
-         * @param registryContext Context of the parse operation
+         *
+         * @param parser Context of the parse operation
          * @return true if this parser element matches, false if not
          */
         public boolean match(RegistryPropertyParser<T> parser) {

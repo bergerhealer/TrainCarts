@@ -551,7 +551,8 @@ public abstract class SignAction {
      * by imposing a speed limit, which will gradually slow a train down if a wait
      * deceleration is set.
      *
-     * @param event
+     * @param info Sign Action Event with sign context information
+     * @param prediction The path prediction being performed
      * @see PathPredictEvent
      */
     public void predictPathFinding(SignActionEvent info, PathPredictEvent prediction) {

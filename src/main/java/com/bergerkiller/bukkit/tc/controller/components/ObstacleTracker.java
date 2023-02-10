@@ -80,7 +80,6 @@ public class ObstacleTracker implements TrainStatusProvider {
      * times per tick at high speeds.
      * 
      * @param trainSpeed Current true speed of the train (update speed factor accounted for)
-     * @return speed the train should limit itself to.
      */
     public void update(double trainSpeed) {
         TrainProperties properties = group.getProperties();
@@ -291,7 +290,7 @@ public class ObstacleTracker implements TrainStatusProvider {
 
     /**
      * Finds the minimum speed limit in a Collection of obstacles. If the collection
-     * is empty, returns {@link #NONE}
+     * is empty, returns {@link ObstacleSpeedLimit#NONE}
      *
      * @param obstacles Obstacles
      * @param deceleration Maximum rate of deceleration
@@ -310,7 +309,7 @@ public class ObstacleTracker implements TrainStatusProvider {
 
     /**
      * Finds the minimum speed limit in a Collection of speed limits. If the collection
-     * is empty, returns {@link #NONE}
+     * is empty, returns {@link ObstacleSpeedLimit#NONE}
      *
      * @param limits Limits
      * @return Minimum

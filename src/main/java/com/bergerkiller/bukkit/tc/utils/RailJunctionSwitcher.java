@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
+import org.bukkit.block.Block;
 
 /**
  * Handles the logic of switching rails from one junction position
@@ -33,11 +34,10 @@ public class RailJunctionSwitcher {
 
     /**
      * Switches the rails from one junction to another. Junctions are used from
-     * {@link com.bergerkiller.bukkit.tc.rails.type.RailType#getJunctions(railBlock)}.
+     * {@link com.bergerkiller.bukkit.tc.rails.type.RailType#getJunctions(Block) RailType.getJunctions(rail)}.
      * In addition to switching track, also moves carts currently on this rail block
      * along to the new junction, if possible.
-     * 
-     * @param railBlock where this Rail Type is at
+     *
      * @param from junction
      * @param to junction
      */

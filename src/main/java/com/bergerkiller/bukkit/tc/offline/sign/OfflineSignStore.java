@@ -145,8 +145,8 @@ public class OfflineSignStore {
 
     /**
      * Registers a new sign metadata handler. After registering, the handler
-     * {@link OfflineSignMetadataHandler#onAdded(OfflineSign, Object)} is
-     * called for every offline sign that is currently known to this store.
+     * {@link OfflineSignMetadataHandler#onAdded(OfflineSignStore, OfflineSign, Object)}
+     * is called for every offline sign that is currently known to this store.
      *
      * @param <T> Metadata type
      * @param <H> Handler type
@@ -256,7 +256,7 @@ public class OfflineSignStore {
      * is not yet fully initialized (lines not known).
      *
      * @param <T> Type of metadata
-     * @param signBlock Sign block, must be of a sign
+     * @param sign Sign state
      * @param metadataType Class type of metadata to check for
      * @param factory Factory method called to create new metadata if none exists yet
      * @return Computed metadata, null if the factory method returns null

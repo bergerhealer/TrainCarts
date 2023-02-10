@@ -158,8 +158,7 @@ public class RailPiece {
      * Switches the rails from one junction to another. Junctions are used from
      * {@link #getJunctions()}. In addition to switching track, also moves carts
      * currently on this rail block along to the new junction, if possible.
-     * 
-     * @param railBlock where this Rail Type is at
+     *
      * @param from junction
      * @param to junction
      */
@@ -171,8 +170,7 @@ public class RailPiece {
      * Switches the rails from one junction to another. Junctions are used from
      * {@link #getJunctions()}. In addition to switching track, also moves carts
      * currently on this rail block along to the new junction, if possible.
-     * 
-     * @param railBlock where this Rail Type is at
+     *
      * @param from junction
      * @param to junction
      * @param memberFilter Predicate that filters what members on the rails are teleported
@@ -360,7 +358,7 @@ public class RailPiece {
      *
      * @param type Rail type
      * @param block Rail block
-     * @param world Offline World
+     * @param railLookup Rail Lookup of the world in which this rail piece exists
      * @return RailPiece
      */
     public static RailPiece create(RailType type, Block block, WorldRailLookup railLookup) {

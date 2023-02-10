@@ -99,14 +99,14 @@ public abstract class Statement {
      * If both member and group are null, then only statements that require no train
      * will function. Statements that do will return false.<br>
      * <br>
-     * Empty statements are ignored. Statements preceeding with & use AND-logic
+     * Empty statements are ignored. Statements preceeding with &amp; use AND-logic
      * with all the statements prior, and statements preceeding with | use OR-logic.
      * Others default to AND.
      *
-     * @param member to use, or null to use group
-     * @param group  to use, or null to use member
-     * @param text   to evaluate
-     * @param event  to parse
+     * @param member MinecartMember to use for context, or null to use group
+     * @param group MinecartGroup to use for context, or null to use member
+     * @param statementTexts Statement rules to evaluate
+     * @param event Event defining the sign involved in this check
      * @return True if successful, False if not
      */
     public static boolean hasMultiple(MinecartMember<?> member, MinecartGroup group, Iterable<String> statementTexts, SignActionEvent event) {

@@ -143,8 +143,6 @@ public interface IPropertyRegistry {
      * @param properties The properties the value is parsed for
      * @param name Name of the property to parse, matches with {@link PropertyParser}
      * @param inputContext Input value with context to parse using the property parser, if found
-     * @param beforeSet Consumer of the parse result before the property is updated.
-     *                  Can throw exceptions to cancel the operation.
      * @return result of parsing the property by this name using the value
      * @see #parse(IProperties, String, String)
      */

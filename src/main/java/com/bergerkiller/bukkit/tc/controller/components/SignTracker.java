@@ -376,7 +376,7 @@ public abstract class SignTracker {
          *
          * @param action Action to execute
          * @param member Member involved in the event
-         * @see #createEvent(SignActionType)
+         * @see TrackedSign#createEvent(SignActionType)
          */
         public void executeEventForMember(SignActionType action, MinecartMember<?> member) {
             sign.executeEventForMember(action, member, enterState);
@@ -388,7 +388,7 @@ public abstract class SignTracker {
          *
          * @param action Action to execute
          * @param group Group involved in the event
-         * @see #createEvent(SignActionType)
+         * @see TrackedSign#createEvent(SignActionType)
          */
         public void executeEventForGroup(SignActionType action, MinecartGroup group) {
             sign.executeEventForGroup(action, group, enterState);

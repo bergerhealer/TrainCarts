@@ -16,7 +16,7 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 
 /**
  * An animation consisting of key frame nodes with time-domain transformations.
- * Class can be inherited overriding {@link #update(dt)} returning a custom position for animations
+ * Class can be inherited overriding {@link #update(double, Matrix4x4)} returning a custom position for animations
  * controlled by external input.
  */
 public class Animation implements Cloneable {
@@ -97,7 +97,7 @@ public class Animation implements Cloneable {
 
     /**
      * Gets all the options for this animation, which include the animation name.
-     * The options are writable, although using {@link #apply(options)} is preferred.
+     * The options are writable, although using {@link #applyOptions(AnimationOptions)} is preferred.
      * 
      * @return animation options
      */

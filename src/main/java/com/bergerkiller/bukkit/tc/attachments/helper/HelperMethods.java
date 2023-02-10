@@ -39,8 +39,8 @@ public class HelperMethods {
      * Updates the positions of an attachment and all child attachments synchronously
      * on the calling thread.
      * 
-     * @param attachment to update
-     * @param transform of the attachment relative to which it should be updated
+     * @param startAttachment Root of the attachment tree from which to start updating
+     * @param transform Transform of the attachment relative to which it should be updated
      * @deprecated Position updates are now done asynchronously, and this method only
      *             operates on a single thread.
      */
@@ -51,8 +51,8 @@ public class HelperMethods {
 
     /**
      * Hides an attachment and all child attachments recursively.
-     * This helper function calls {@link #makeHidden(Player)}.
-     * 
+     * This helper function calls {@link Attachment#makeHidden(Player)}.
+     *
      * @param root attachment to hide, only root attachment is permitted
      * @param active whether the attachment and parent attachments are active
      * @param viewer Attachment Viewer to hide it from
@@ -69,7 +69,7 @@ public class HelperMethods {
 
     /**
      * Makes an attachment and all child attachments visible recursively.
-     * This helper function calls {@link #makeVisible(Player)}.
+     * This helper function calls {@link Attachment#makeVisible(Player)}.
      * 
      * @param root attachment to make visible, only root attachment is permitted
      * @param active whether the attachment and parent attachments are active

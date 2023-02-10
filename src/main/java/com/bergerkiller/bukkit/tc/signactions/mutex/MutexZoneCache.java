@@ -130,7 +130,7 @@ public class MutexZoneCache {
     }
 
     /**
-     * Adds all mutex zones nearby a position. See {@link #isMutexZoneNearby(UUID, IntVector3, int)}
+     * Adds all mutex zones nearby a position. See {@link #isMutexZoneNearby(OfflineWorld, IntVector3, int)}
      * 
      * @param world
      * @param block

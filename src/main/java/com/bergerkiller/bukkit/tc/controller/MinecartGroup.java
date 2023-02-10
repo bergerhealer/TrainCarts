@@ -1222,10 +1222,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     /**
-     * Gets the average speed/force of this train. Airbound Minecarts are exempt
-     * from the average. See also:
-     * {@link com.bergerkiller.bukkit.tc.rails.logic.RailLogic#hasForwardVelocity(member) RailLogic.hasForwardVelocity(member)}
-     * 
+     * Gets the average forward motion of all Members of this train. This takes into
+     * account the forward orientation of the members, so this method could return
+     * a negative number when the train reverses.
+     *
      * @return average (forward) force
      */
     public double getAverageForce() {

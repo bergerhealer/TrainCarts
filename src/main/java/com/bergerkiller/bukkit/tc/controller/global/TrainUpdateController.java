@@ -58,8 +58,8 @@ public class TrainUpdateController {
     /**
      * Gets a factor multiplier to use when performing movement physics,
      * that accounts for current tick server lag. If the server is running
-     * more slowly, a value > 1 is returned to account for this. If it is
-     * running faster, a value < 1 is returned. On a stable server, the value
+     * more slowly, a value &gt; 1 is returned to account for this. If it is
+     * running faster, a value &lt; 1 is returned. On a stable server, the value
      * should stay around 1.0.
      *
      * @return realtime physics movement factor

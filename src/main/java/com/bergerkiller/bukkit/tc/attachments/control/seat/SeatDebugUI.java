@@ -36,7 +36,6 @@ public class SeatDebugUI {
      *
      * @param player Player to make preview
      * @param numTicks Number of ticks to preview
-     * @return True if the preview was started
      */
     public void previewEye(Player player, int numTicks) {
         // Don't allow for this, that's messy

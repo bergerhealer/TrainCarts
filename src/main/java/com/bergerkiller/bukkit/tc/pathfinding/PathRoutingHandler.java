@@ -49,8 +49,8 @@ public interface PathRoutingHandler {
     default void predict(PathPredictEvent event) {}
 
     /**
-     * Event passed to {@link PathRoutingHandler#process(event)}
-     * to process path finding. The methods {@link #setNode(node)}
+     * Event passed to {@link PathRoutingHandler#process(PathRouteEvent)}
+     * to process path finding. The methods {@link #createNode()}
      * and {@link #setBlocked()} can be used to provide feedback
      * about what to do with the current rail.
      */
@@ -144,9 +144,9 @@ public interface PathRoutingHandler {
         }
 
         /**
-         * Gets the last node set using {@link #setNode(PathNode)}
+         * Gets the last node set using {@link #createNode()}
          *
-         * @return last set node
+         * @return last created node
          */
         public PathNode getLastSetNode() {
             return this.nodeAtRail;

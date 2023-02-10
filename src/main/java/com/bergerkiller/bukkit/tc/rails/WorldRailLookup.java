@@ -41,8 +41,8 @@ import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCacheWorld;
  * Bukkit thread.<br>
  * <br>
  * It is very important to check {@link #isValid()} regularly, at least every tick, to make
- * sure the lookup is still valid. If it is not valid, it should be refreshed using
- * {@link #refresh()}.
+ * sure the lookup is still valid. If not, a more up-to-date lookup should be queried
+ * from {@link RailLookup#forWorld(World)}.
  */
 public interface WorldRailLookup {
     /**
@@ -203,8 +203,7 @@ public interface WorldRailLookup {
      * Unlike {@link RailPiece#signs()} this method does not look
      * the information up from a cache
      * 
-     * @param railType of the rail
-     * @param railBlock of the rail
+     * @param rail Rail block and type
      * @return signs belonging to this rail
      * @throws RailLookup.RailTypeNotRegisteredException If the specified rail's RailType is unloaded
      */

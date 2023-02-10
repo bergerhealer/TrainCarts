@@ -432,8 +432,6 @@ public class AnimationMenu extends MapWidgetMenu {
 
     /**
      * Duplicates the node at the index and inserts a clone at index+1.
-     * 
-     * @param index
      */
     public void duplicateAnimationNodes() {
         insertNewAnimationNodes(this.animView.getSelectedNodes());

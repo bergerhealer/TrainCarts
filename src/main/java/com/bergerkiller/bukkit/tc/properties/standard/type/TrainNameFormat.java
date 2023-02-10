@@ -116,7 +116,6 @@ public final class TrainNameFormat {
      * Verifies that this name format is valid and doesn't result in an illegal train name
      * being generated.
      *
-     * @param trainName
      * @return VerifyResult OK if ok, an error value if not ok
      */
     public VerifyResult verify() {

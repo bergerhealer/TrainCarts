@@ -27,7 +27,8 @@ public class ResourcePackModelListing extends ListedRootLoader {
     private MapResourcePack resourcePack;
 
     /**
-     * Initializes a new model listing. {@link #showDialog(Player)} cannot be used.
+     * Initializes a new model listing. {@link #buildDialog(Player)} cannot be used
+     * and a plugin must be specified there.
      */
     public ResourcePackModelListing() {
         this(null);

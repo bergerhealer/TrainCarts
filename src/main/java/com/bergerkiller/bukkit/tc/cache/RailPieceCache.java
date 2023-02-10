@@ -26,8 +26,8 @@ public class RailPieceCache {
 
     /**
      * Gets all the cached rail pieces available at a particular block position
-     * 
-     * @param posBlock
+     *
+     * @param block
      * @return list of valid rails at a block position
      */
     public static RailPiece[] find(OfflineBlock block) {

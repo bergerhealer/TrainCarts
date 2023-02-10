@@ -139,13 +139,11 @@ public class PropertyParseResult<T> {
      * Creates a new property parse result for when an error occurs
      * while parsing
      *
-     * @param inputContext Input that was parsed but failed to be parsed due to some error
      * @param <T> Type of property value
-     * @param inputContext Input that was parsed but failed to be parsed
+     * @param inputContext Input that was parsed but failed to be parsed due to some error
      * @param property The property that was parsed
      * @param name Name of the property
-     * @param input The input text that was parsed that caused the error
-     * @return new property parse result
+     * @return New property parse result
      */
     public static <T> PropertyParseResult<T> failError(PropertyInputContext inputContext, IProperty<T> property, String name) {
         return new PropertyParseResult<T>(inputContext, property, name, null, Reason.ERROR,

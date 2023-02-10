@@ -78,8 +78,7 @@ public interface Attachment {
     /**
      * Called when the controller is detached from the real world.
      * After this call all stored information in the controller is invalid,
-     * until onAttached() is called again. {@link #onSave(config)} is called
-     * before this method is called, if saving is required.
+     * until onAttached() is called again.
      */
     void onDetached();
 

@@ -28,7 +28,6 @@ import com.bergerkiller.bukkit.tc.attachments.ui.menus.GeneralMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PhysicalMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.mountiplex.MountiplexUtil;
 
 /**
  * A single attachment node in the attachment node tree, containing
@@ -39,7 +38,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     private static MapTexture expanded_icon = null;
     private static MapTexture collapsed_icon = null;
     private ConfigurationNode config;
-    private List<MapWidgetAttachmentNode> attachments = new ArrayList<MapWidgetAttachmentNode>();
+    private final List<MapWidgetAttachmentNode> attachments = new ArrayList<>();
     private MapWidgetAttachmentNode parentAttachment = null;
     private int col, row;
     private MapTexture icon = null;
@@ -78,7 +77,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
      * Loads model node configurations for the first time. This also initializes
      * all the nodes for the child attachments.
      * 
-     * @param config
+     * @param config Attachment configuration
      */
     public void loadConfig(ConfigurationNode config) {
         // Load the properties
@@ -147,7 +146,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     public ConfigurationNode getFullConfig() {
         // Clone our configuration and include the configuration of the children
         ConfigurationNode result = this.config.clone();
-        List<ConfigurationNode> children = new ArrayList<ConfigurationNode>(this.attachments.size());
+        List<ConfigurationNode> children = new ArrayList<>(this.attachments.size());
         for (MapWidgetAttachmentNode attachment : this.attachments) {
             children.add(attachment.getFullConfig());
         }
@@ -175,9 +174,10 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
      * is the default value, the option is removed. If the editor block has
      * no more options, it is removed also.
      * 
-     * @param name
-     * @param defaultValue
-     * @param value
+     * @param name Name of the option
+     * @param defaultValue Default value. If current value is default, the
+     *                     option is removed
+     * @param value Value of the option
      */
     public <T> void setEditorOption(String name, T defaultValue, T value) {
         T oldValue = this.getEditorOption(name, defaultValue);
@@ -201,7 +201,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     }
 
     /**
-     * Applies updated configurations to the models system, refreshing trains that use this model
+     * Applies updated configurations to the model system, refreshing trains that use this model
      */
     public void update() {
         this.getTree().updateModel(true);
@@ -253,8 +253,8 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
      * Sets the column and row this node is displayed at.
      * This controls the indent level when drawing.
      * 
-     * @param col
-     * @param row
+     * @param col Cell column
+     * @param row Cell row
      */
     public void setCell(int col, int row) {
         this.col = col;
@@ -345,7 +345,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     public void onActivate() {
         super.onActivate();
 
-        // Sometimes activates withot being attached? Weird.
+        // Sometimes activates without being attached? Weird.
         if (this.display == null) {
             return;
         }
@@ -587,7 +587,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
         }
     }
 
-    public static enum MenuItem {
+    public enum MenuItem {
         APPEARANCE(AppearanceMenu::new),
         POSITION(PositionMenu::new),
         ANIMATION(AnimationMenu::new),
@@ -596,7 +596,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
 
         private final Supplier<? extends MapWidgetMenu> _menuConstructor;
 
-        private MenuItem(Supplier<? extends MapWidgetMenu> menuConstructor) {
+        MenuItem(Supplier<? extends MapWidgetMenu> menuConstructor) {
             this._menuConstructor = menuConstructor;
         }
 

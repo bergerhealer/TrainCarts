@@ -51,11 +51,10 @@ public class RailSignCache {
 
     /**
      * Discovers the signs belonging to a particular rail.
-     * Unlike {@link #getSigns(rail)} this method does not look
+     * Unlike {@link #getSigns(RailPiece)} this method does not look
      * the information up from a cache
      * 
-     * @param railType of the rail
-     * @param railBlock of the rail
+     * @param rail Rail block and type
      * @return signs belonging to this rail
      */
     public static TrackedSign[] discoverSigns(RailPiece rail) {

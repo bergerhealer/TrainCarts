@@ -86,7 +86,7 @@ public class DebugToolTypeListDestinations extends DebugToolTrackWalkerType {
      * @param trainCarts TrainCarts main plugin instance
      * @param player Player that is performing the search
      * @param walker Walking point from which to start searching for nodes
-     * @param ItemStack Item interacted with
+     * @param item Item interacted with
      * @param isRightClick Whether this is a right-click interaction
      */
     @Override

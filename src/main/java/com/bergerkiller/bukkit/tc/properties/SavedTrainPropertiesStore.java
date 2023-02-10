@@ -233,8 +233,8 @@ public class SavedTrainPropertiesStore implements TrainCarts.Provider {
      * Checks whether a player has permission to make changes to a saved train.
      * Returns true if no train by this name exists yet.
      * 
-     * @param player
-     * @param name
+     * @param sender Player or Command Sender to check
+     * @param name Permission name
      * @return True if the player has permission
      */
     public boolean hasPermission(CommandSender sender, String name) {
@@ -256,7 +256,7 @@ public class SavedTrainPropertiesStore implements TrainCarts.Provider {
     }
 
     /**
-     * Calls {@link #setClaims(String, List)} with a single claim of a player.
+     * Calls {@link #setClaims(String, Set)} with a single claim of a player.
      * 
      * @param name
      * @param player to add to the claim list

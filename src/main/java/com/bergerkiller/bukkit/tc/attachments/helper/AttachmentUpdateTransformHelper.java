@@ -50,7 +50,7 @@ public abstract class AttachmentUpdateTransformHelper {
     }
 
     /**
-     * Same as {@link #start(Attachment, Supplier)} but calls {@link #finish()} right after
+     * Same as {@link #start(Attachment, Matrix4x4)} but calls {@link #finish()} right after
      *
      * @param attachment
      * @param initialTransform
@@ -74,7 +74,7 @@ public abstract class AttachmentUpdateTransformHelper {
 
     /**
      * Finishes processing all the tasks previously started using
-     * {@link #start(Attachment, Supplier)}.
+     * {@link #start(Attachment, Matrix4x4)}.
      */
     public abstract void finish();
 

@@ -175,8 +175,8 @@ public class ChunkArea {
     }
 
     /**
-     * Gets all chunks that were removed during the last {@link #refresh(Set)}
-     * 
+     * Gets all chunks that were removed during the last {@link #refresh(World, LongHashSet)}
+     *
      * @return removed chunks
      */
     public final List<OwnedChunk> getRemoved() {
@@ -184,8 +184,8 @@ public class ChunkArea {
     }
 
     /**
-     * Gets all chunks that were added during the last {@link #refresh(Set)}
-     * 
+     * Gets all chunks that were added during the last {@link #refresh(World, LongHashSet)}
+     *
      * @return added chunks
      */
     public final List<OwnedChunk> getAdded() {

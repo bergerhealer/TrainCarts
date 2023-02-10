@@ -249,8 +249,7 @@ public final class RailLookup {
      * Unlike {@link RailPiece#signs()} this method does not look
      * the information up from a cache
      * 
-     * @param railType of the rail
-     * @param railBlock of the rail
+     * @param rail Rail block and type information
      * @return signs belonging to this rail
      */
     public static TrackedSign[] discoverSignsAtRailPiece(RailPiece rail) {
@@ -638,7 +637,6 @@ public final class RailLookup {
          *
          * @param action Action to execute
          * @param group Group involved in the event
-         * @param enterState State of the train's first member when first activating the sign
          * @see #createEvent(SignActionType)
          */
         public void executeEventForGroup(SignActionType action, MinecartGroup group) {

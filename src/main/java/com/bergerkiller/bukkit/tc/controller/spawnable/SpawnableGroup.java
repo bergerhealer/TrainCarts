@@ -226,7 +226,7 @@ public class SpawnableGroup {
      * Returns null if spawning isn't possible, because there isn't enough space,
      * or because the start rail block isn't valid rails.
      * 
-     * @param railBlock Rail block to spawn the train on
+     * @param startRailBlock Rail block to spawn the train on
      * @param forwardDirection Direction in which to spawn the train
      * @param mode {@link SpawnMode} that defines how the train is spawned
      * @return spawn location list, or null if spawning the train is not possible

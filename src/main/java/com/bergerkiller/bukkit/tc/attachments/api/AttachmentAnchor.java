@@ -243,7 +243,7 @@ public abstract class AttachmentAnchor {
      * 
      * @param managerType The Class type of the AttachmentManager used to host the attachment and anchor
      * @param attachmentType The type of attachment for which this anchor is used
-     * @param Name name of the anchor type
+     * @param name name of the anchor type
      * @return Attachment Anchor, returns a default No-Operation one if none match
      */
     public static AttachmentAnchor find(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType, String name) {

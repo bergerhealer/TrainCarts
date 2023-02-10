@@ -18,8 +18,7 @@ public interface IParsable {
     /**
      * Parses the property by name and attempts to parse the property. If successful,
      * applies the parsed value to these properties.
-     * 
-     * @param <T> Type of value the property has
+     *
      * @param name Name of the property to parse
      * @param input Input value to parse
      * @return Result of parsing, if not successful, the property will not have been set.

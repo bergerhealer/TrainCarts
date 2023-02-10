@@ -84,8 +84,8 @@ public interface AttachmentType {
      * Fills the appearance tab menu in the attachment editor with information relevant for this
      * attachment type. By default adds nothing.
      * 
-     * @param tab
-     * @param config
+     * @param tab The tab the appearance menu is created inside of
+     * @param attachment The attachment node element, which includes attachment configuration
      */
     default void createAppearanceTab(MapWidgetTabView.Tab tab, MapWidgetAttachmentNode attachment) {
     }

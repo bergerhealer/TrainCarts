@@ -58,8 +58,7 @@ public interface IPropertyParser<T> {
      * To check whether parsing succeeded, use {@link PropertyParseResult#isSuccessful()}.
      * If parsing failed, the reason for failing can be found using
      * {@link PropertyParseResult#getReason()}.
-     * 
-     * @param <T> Type of property value
+     *
      * @param properties The properties the value is parsed for, can be train or cart
      *        properties. The previous (current) value is read from these properties
      *        before parsing. This is used in case a parser makes use of the current
@@ -77,8 +76,7 @@ public interface IPropertyParser<T> {
      * To check whether parsing succeeded, use {@link PropertyParseResult#isSuccessful()}.
      * If parsing failed, the reason for failing can be found using
      * {@link PropertyParseResult#getReason()}.
-     * 
-     * @param <T> Type of property value
+     *
      * @param properties The properties the value is parsed for, can be train or cart
      *        properties. The previous (current) value is read from these properties
      *        before parsing. This is used in case a parser makes use of the current

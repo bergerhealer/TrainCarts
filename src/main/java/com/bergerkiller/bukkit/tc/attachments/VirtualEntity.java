@@ -231,7 +231,6 @@ public class VirtualEntity {
      * Updates the position of the displayed part
      * 
      * @param transform relative to which the part should be positioned
-     * @param yawPitchRoll rotation
      */
     public void updatePosition(Matrix4x4 transform) {
         Quaternion rotation = transform.getRotation();

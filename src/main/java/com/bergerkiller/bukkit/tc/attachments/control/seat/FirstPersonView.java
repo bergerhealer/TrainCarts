@@ -275,7 +275,7 @@ public abstract class FirstPersonView {
          * A guarantee is made that the player will look in the same direction as
          * the forward vector, while handling an appropriate vertical flip.
          *
-         * @param eyeTransform
+         * @param eyeOrientation
          * @return head rotation
          */
         public static HeadRotation compute(Quaternion eyeOrientation) {

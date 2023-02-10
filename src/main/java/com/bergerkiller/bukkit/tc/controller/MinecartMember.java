@@ -2413,9 +2413,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     /**
      * Sets the rotation of the Minecart, taking care of wrap-around of the angles
      * 
-     * @param newyaw      to set to
-     * @param newpitch    to set to
-     * @param orientPitch
+     * @param newyaw      New yaw to set
+     * @param newpitch    New pitch to set
      */
     public void setRotationWrap(float newyaw, float newpitch) {
         final float oldyaw = entity.loc.getYaw();

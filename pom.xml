@@ -38,46 +38,26 @@
     </profiles>
 
     <repositories>
-        <!-- Repo for access to CraftBukkit -->
+        <!-- Repo for TeamBergerhealer plugins and several of it's (soft) dependencies. Also used for:
+             - Neznamy TAB plugin
+             - Milkbowl Vault
+             - Multiverse Core and Portals
+        -->
+        <repository>
+            <id>mg-dev-repo</id>
+            <url>https://ci.mg-dev.eu/plugin/repository/everything</url>
+        </repository>
+
+        <!-- Repo for access to Spigot-API and related libraries -->
         <repository>
           <id>spigot-repo</id>
           <url>https://hub.spigotmc.org/nexus/content/groups/public/</url>
         </repository>
 
-        <!-- Repo for access to BKCommonLib, MyWorlds, SignLink -->
-        <repository>
-            <id>MG-Dev Jenkins CI Maven Repository</id>
-            <url>https://ci.mg-dev.eu/plugin/repository/everything</url>
-        </repository>
-
-        <!-- Repo for access to Objenesis -->
-        <repository>
-            <id>mvnrepository</id>
-            <url>https://mvnrepository.com/artifact/</url>
-        </repository>
-
-        <!-- Repo for access to Vault -->
-        <repository>
-            <id>jitpack.io</id>
-            <url>https://jitpack.io</url>
-        </repository>
-
-        <!-- Repo for access to LightAPI -->
+        <!-- Repo for access to various libraries, including LightAPI(-fork) -->
         <repository>
             <id>sonatype</id>
             <url>https://oss.sonatype.org/content/groups/public/</url>
-        </repository>
-
-        <!-- Repo for access to Multiverse API -->
-        <repository>
-            <id>onarandombox</id>
-            <url>https://repo.onarandombox.com/content/repositories/multiverse/</url>
-        </repository>
-
-        <!-- Repo for access to TAB plugin API -->
-        <repository>
-            <id>krypton</id>
-            <url>https://repo.kryptonmc.org/releases</url>
         </repository>
     </repositories>
 
@@ -217,13 +197,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.googlecode.openpojo</groupId>
-            <artifactId>openpojo</artifactId>
-            <version>0.5.2</version>
-            <scope>test</scope>
-            <type>jar</type>
-        </dependency>
-        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
@@ -234,7 +207,7 @@
     <!-- Build -->
     <build>
         <!-- Export artifact with name that includes the build number -->
-        <finalName>${project.name}-${project.version}-${project.build.number}</finalName>
+        <defaultGoal>clean install</defaultGoal>
 
         <!-- Resources (the filtering allows us to use project properties in plugin.yml) -->
         <resources>
@@ -254,9 +227,7 @@
               </includes>
             </resource>
         </resources>
-        <defaultGoal>clean install</defaultGoal>
 
-        <!-- Plugins -->
         <plugins>
             <!-- Relocates references to the Cloud command framework to where they are in BKCommonLib -->
             <!-- Shades dependencies into a final jar -->
@@ -266,6 +237,9 @@
                 <version>3.2.3</version>
                 <configuration>
                     <createDependencyReducedPom>false</createDependencyReducedPom>
+                    <shadedArtifactAttached>true</shadedArtifactAttached>
+                    <shadedClassifierName>all</shadedClassifierName>
+                    <finalName>${project.name}-${project.version}-${project.build.number}</finalName>
                     <relocations>
                         <relocation>
                             <pattern>me.m56738</pattern>
@@ -302,18 +276,22 @@
                             <include>com.bergerkiller.bukkit.preloader</include>
                         </includes>
                     </artifactSet>
+                    <filters>
+                        <filter>
+                            <artifact>*:*</artifact>
+                            <excludes><exclude>META-INF/*.MF</exclude></excludes>
+                        </filter>
+                    </filters>
                 </configuration>
                 <executions>
                     <execution>
                         <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
+                        <goals><goal>shade</goal></goals>
                     </execution>
                 </executions>
             </plugin>
 
-            <!-- Clean up original artifacts (this is to make testing easier) -->
+            <!-- Clean up original-prefixed leftovers (this is to make testing easier) -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-clean-plugin</artifactId>
@@ -322,17 +300,13 @@
                     <execution>
                         <id>auto-clean</id>
                         <phase>package</phase>
-                        <goals>
-                            <goal>clean</goal>
-                        </goals>
+                        <goals><goal>clean</goal></goals>
                         <configuration>
                             <excludeDefaultDirectories>true</excludeDefaultDirectories>
                             <filesets>
                                 <fileset>
                                     <directory>${project.build.directory}</directory>
-                                    <includes>
-                                        <include>original-*.jar</include>
-                                    </includes>
+                                    <includes><include>original-*.jar</include></includes>
                                     <followSymlinks>false</followSymlinks>
                                 </fileset>
                             </filesets>
@@ -341,52 +315,21 @@
                 </executions>
             </plugin>
 
-            <!-- Copy the produced target to the static directory with just a base name -->
+            <!-- Generate a jar that does not yet contain the shaded-in resources -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <version>1.8</version>
-                <executions>
-                    <!-- Prepare the version-less output jar -->
-                    <execution>
-                        <id>version-less-jar</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <target>
-                                <copy file="target/${project.name}-${project.version}-${project.build.number}.jar" tofile="target/static/${project.name}.jar"/>
-                            </target>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <!-- Generate a jar containing the source javadoc -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.0.1</version>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.1.0</version>
                 <configuration>
-                    <failOnError>false</failOnError>
-                    <doclint>none</doclint>
-                    <quiet>true</quiet>
+                    <finalName>${project.name}-${project.version}-noshade</finalName>
                 </configuration>
-            </plugin>
-
-            <!-- Generate a jar containing the java sources -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.0.1</version>
             </plugin>
 
             <!-- Compiler plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.6.1</version>
+                <version>3.10.1</version>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
@@ -394,6 +337,47 @@
                     <showDeprecation>true</showDeprecation>
                 </configuration>
             </plugin>
+
+            <!-- Generate a jar containing the source javadoc -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.4.1</version>
+                <configuration>
+                    <failOnError>false</failOnError>
+                    <doclint>none</doclint>
+                    <quiet>true</quiet>
+                    <source>8</source>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals><goal>jar</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Generate a jar containing the java sources -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals><goal>jar-no-fork</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
+
+    <!-- For deploying on https://ci.mg-dev.eu/plugin/repository/ -->
+    <distributionManagement>
+        <repository>
+            <id>mg-dev-repo</id>
+            <name>ci.mg-dev.eu repository</name>
+            <url>https://ci.mg-dev.eu/plugin/repository/everything</url>
+        </repository>
+    </distributionManagement>
 </project>

@@ -20,7 +20,9 @@ import java.util.List;
  * Network controller that is used by Traincarts to override the way trains are synchronized
  * to players.
  *
- * @deprecated This class is on the way out. Please use {@link AttachmentControllerMember} instead.
+ * @deprecated This class is on the way out. Please use
+ * {@link com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember AttachmentControllerMember}
+ * instead.
  */
 @Deprecated
 public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecart<?>> {

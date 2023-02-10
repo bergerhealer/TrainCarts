@@ -105,8 +105,6 @@ public class MutexZoneSlot {
     /**
      * Called every tick to refresh mutex zones that have a group inside.
      * If a group leaves a zone, this eventually releases that group again.
-     * 
-     * @param trainWaiting Whether this is called while a train is waiting for the mutex
      */
     public void onTick() {
         if (!entered.isEmpty()) {
@@ -145,9 +143,9 @@ public class MutexZoneSlot {
     }
 
     /**
-     * Starts tracking the group for this zone. Must call {@link EnteredGroup#enterRail(boolean, IntVector3)}
-     * or {@link EnteredGroup#enterZone(boolean)} afterwards, which might result in the group
-     * being untracked again when rejected.
+     * Starts tracking the group for this zone. Must call
+     * {@link EnteredGroup#enter(MutexZoneSlotType, IntVector3, boolean)}
+     * afterwards, which might result in the group being untracked again when rejected.
      *
      * @param group MinecartGroup to track
      * @param distanceToMutex Distance from the front of the group to this mutex zone

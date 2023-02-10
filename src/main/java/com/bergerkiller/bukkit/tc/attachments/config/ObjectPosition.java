@@ -72,8 +72,10 @@ public class ObjectPosition {
 
     /**
      * Loads the position from the configuration specified
-     * 
-     * @param attachment The attachment this object position is for (for anchor support checks)
+     *
+     * @param managerType Type of attachment manager that this object position will be used on.
+     *                    Can be used to test for required capabilities.
+     * @param attachmentType The attachment type this object position is for (for anchor support checks)
      * @param config Configuration
      */
     public void load(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType, ConfigurationNode config) {

@@ -22,7 +22,7 @@ import com.bergerkiller.bukkit.tc.attachments.helper.ActiveChangeHandler;
  * All state information for an attachment that is available at all times,
  * no matter the implementation. Implementations of {@link Attachment}
  * should return the same unique mutable instance of AttachmentState
- * inside {@link Attachment#getState()}.<br>
+ * inside {@link Attachment#getInternalState()}.<br>
  * <br>
  * The fields inside this class are for internal use only and should not
  * be used by implementations of the controller. Please use the appropriate
@@ -273,7 +273,7 @@ public class AttachmentInternalState {
 
     /**
      * Retrieves a {@link ForkJoinTask} which can be scheduled onto a
-     * {@link ForkJoinPool} to recursively update the positions of this
+     * <i>ForkJoinPool<i/> to recursively update the positions of this
      * attachment, and all child attachments.<br>
      * <br>
      * The returned task is cached, so changing the <i>initialTransformSupplier</i>

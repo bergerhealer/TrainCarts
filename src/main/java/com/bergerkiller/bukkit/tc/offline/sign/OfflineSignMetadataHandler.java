@@ -151,9 +151,11 @@ public interface OfflineSignMetadataHandler<T> {
     /**
      * Gets whether metadata stored for worlds that are not loaded
      * is remembered, but not decoded and loaded in. Once the world is later
-     * loaded, all metadata is loaded in anyway and {@link #onAdded(OfflineSign, Object)}
+     * loaded, all metadata is loaded in anyway and
+     * {@link #onAdded(OfflineSignStore, OfflineSign, Object)}
      * is called for each. If an existing loaded world is unloaded,
-     * {@link #onRemoved(OfflineSign, Object)} is called for all offline signs on that world.<br>
+     * {@link #onRemoved(OfflineSignStore, OfflineSign, Object)} is called for all
+     * offline signs on that world.<br>
      * <br>
      * This is by default true, but can be overrided to return false so that this
      * registry knows of all signs, including those on worlds that aren't currently loaded.

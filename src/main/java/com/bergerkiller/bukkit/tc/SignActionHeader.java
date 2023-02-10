@@ -294,7 +294,7 @@ public class SignActionHeader {
      *
      * @param rail Rail to resolve junction names
      * @param forwardDirection Forward direction relative to which left/right/etc. directions are resolved
-     * @return RailEnterDirection array, or null if {@link #hasEnterDirections()"} returns false
+     * @return RailEnterDirection array, or null if {@link #hasEnterDirections()} returns false
      */
     public RailEnterDirection[] getEnterDirections(RailPiece rail, BlockFace forwardDirection) {
         if (directions_str == null) {

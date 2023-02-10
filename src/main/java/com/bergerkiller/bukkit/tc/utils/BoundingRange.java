@@ -168,6 +168,16 @@ public class BoundingRange {
         private Axis() {
         }
 
+        /**
+         * Gets whether this axis is empty, and represents nothing. This is the case
+         * when no axis is available, such as for console command senders.
+         *
+         * @return True if this axis is empty and shouldn't be used
+         */
+        public boolean isEmpty() {
+            return world == null;
+        }
+
         public boolean isInside(Vector position) {
             return x.isInside(position.getX()) &&
                    y.isInside(position.getY()) &&
@@ -197,7 +207,7 @@ public class BoundingRange {
          * This is used when a sender-relative command is executed.<br>
          * <br>
          * If the sender has no location, such as the terminal command sender,
-         * an {@link #empty()} axis is returned. Use {@link #isValid()} to check.
+         * an {@link #empty()} axis is returned. Use {@link #isEmpty()} to check.
          *
          * @param sender Command Sender
          * @return location of the sender, or null if it could not be found
