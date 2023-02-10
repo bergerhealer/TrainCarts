@@ -13,8 +13,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.number>NO-CI</project.build.number>
-        <project.mcversion>1.18.1</project.mcversion>
-        <project.cbversion>${project.mcversion}-R0.1-SNAPSHOT</project.cbversion>
+        <project.serverVersion>1.19.3-R0.1-SNAPSHOT</project.serverVersion>
         <project.bkcversion>1.19.3-v2-SNAPSHOT</project.bkcversion>
         <project.slversion>1.11.2-v2-SNAPSHOT</project.slversion>
         <project.mwversion>1.11.2-v2-SNAPSHOT</project.mwversion>
@@ -62,20 +61,17 @@
     </repositories>
 
     <dependencies>
-        <!-- Spigot API includes the Bukkit API and is what plugins generally use -->
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
-            <version>${project.cbversion}</version>
+            <version>${project.serverVersion}</version>
             <scope>provided</scope>
         </dependency>
-
-        <!-- The full server jar is only used during test; it should not be exposed as a dependency -->
         <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot</artifactId>
-            <version>${project.cbversion}</version>
-            <scope>test</scope>
+            <groupId>com.bergerkiller.bukkit</groupId>
+            <artifactId>BKCommonLib</artifactId>
+            <version>${project.bkcversion}</version>
+            <scope>compile</scope>
         </dependency>
 
         <!-- LightAPI-fork (optional) for light attachment -->
@@ -101,35 +97,15 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- Vault (optional) for Economy integration -->
         <dependency>
             <groupId>com.github.MilkBowl</groupId>
             <artifactId>VaultAPI</artifactId>
             <version>1.7</version>
             <scope>provided</scope>
+            <optional>true</optional>
         </dependency>
-
-        <!-- Cloud command framework - provided by BKCommonLib -->
-        <dependency>
-            <groupId>org.bergerhealer.cloud.commandframework</groupId>
-            <artifactId>cloud-paper</artifactId>
-            <version>${project.cloud.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.bergerhealer.cloud.commandframework</groupId>
-            <artifactId>cloud-annotations</artifactId>
-            <version>${project.cloud.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.bergerhealer.cloud.commandframework</groupId>
-            <artifactId>cloud-minecraft-extras</artifactId>
-            <version>${project.cloud.version}</version>
-            <scope>provided</scope>
-        </dependency>
-
+        <!-- SignLink is optional for use with arrival signs / trigger sign -->
         <dependency>
             <groupId>com.bergerkiller.bukkit</groupId>
             <artifactId>SignLink</artifactId>
@@ -137,17 +113,29 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
+        <!-- MyWorlds is optional for use with the teleport sign -->
         <dependency>
             <groupId>com.bergerkiller.bukkit</groupId>
             <artifactId>MyWorlds</artifactId>
             <version>${project.mwversion}</version>
             <scope>provided</scope>
+            <optional>true</optional>
         </dependency>
+        <!-- TAB (for hiding nametags) -->
+        <dependency>
+            <groupId>me.neznamy</groupId>
+            <artifactId>tab-api</artifactId>
+            <version>3.1.4</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+        <!-- Multiverse is optional for use with the teleport sign -->
         <dependency>
             <groupId>com.onarandombox.multiverseportals</groupId>
             <artifactId>Multiverse-Portals</artifactId>
             <version>4.2.0</version>
             <scope>provided</scope>
+            <optional>true</optional>
             <exclusions>
                 <exclusion>
                     <groupId>org.bukkit</groupId>
@@ -160,6 +148,7 @@
             <artifactId>Multiverse-Core</artifactId>
             <version>4.2.0</version>
             <scope>provided</scope>
+            <optional>true</optional>
             <exclusions>
                 <exclusion>
                     <groupId>org.bukkit</groupId>
@@ -167,11 +156,28 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
+        <!-- Cloud command framework - provided by BKCommonLib -->
         <dependency>
-            <groupId>com.bergerkiller.bukkit</groupId>
-            <artifactId>BKCommonLib</artifactId>
-            <version>${project.bkcversion}</version>
-            <scope>compile</scope>
+            <groupId>org.bergerhealer.cloud.commandframework</groupId>
+            <artifactId>cloud-paper</artifactId>
+            <version>${project.cloud.version}</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.bergerhealer.cloud.commandframework</groupId>
+            <artifactId>cloud-annotations</artifactId>
+            <version>${project.cloud.version}</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.bergerhealer.cloud.commandframework</groupId>
+            <artifactId>cloud-minecraft-extras</artifactId>
+            <version>${project.cloud.version}</version>
+            <scope>provided</scope>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>com.bergerkiller.bukkit.preloader</groupId>
@@ -188,14 +194,13 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- TAB (for hiding nametags) -->
+        <!-- The full server jar is only used during test; it should not be exposed as a dependency -->
         <dependency>
-            <groupId>me.neznamy</groupId>
-            <artifactId>tab-api</artifactId>
-            <version>3.1.4</version>
-            <scope>provided</scope>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot</artifactId>
+            <version>${project.serverVersion}</version>
+            <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
