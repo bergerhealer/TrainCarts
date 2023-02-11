@@ -550,7 +550,6 @@ public class TCListener implements Listener {
     /**
      * @param player       that placed the Minecart
      * @param clickedBlock to spawn a Minecart on
-     * @param railType     that was clicked
      * @return True to allow default logic to continue, False to suppress it
      */
     private boolean handleMinecartPlacement(Player player, Block clickedBlock) {
@@ -633,11 +632,7 @@ public class TCListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
-        if (MaterialUtil.ISSIGN.get(event.getBlock())) {
-            SignAction.handleDestroy(new SignActionEvent(event.getBlock()));
-            // Also remove from the loaded sign controller
-            plugin.getSignController().notifySignRemoved(event.getBlock());
-        } else if (MaterialUtil.ISRAILS.get(event.getBlock())) {
+        if (MaterialUtil.ISRAILS.get(event.getBlock())) {
             onRailsBreak(event.getBlock());
         }
     }
@@ -694,14 +689,6 @@ public class TCListener implements Listener {
                     }
                 }
             }
-        }
-
-        // Handle signs being broken because their supporting block got destroyed
-        if (MaterialUtil.ISSIGN.get(blockData) && !Util.isSignSupported(block, blockData)) {
-            // Sign is no longer supported - clear all sign actions
-            SignAction.handleDestroy(new SignActionEvent(event.getBlock()));
-            // Also remove from the loaded sign controller
-            plugin.getSignController().notifySignRemoved(event.getBlock());
         }
     }
 

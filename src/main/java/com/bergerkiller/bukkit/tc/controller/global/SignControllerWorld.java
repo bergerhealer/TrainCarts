@@ -13,6 +13,10 @@ import java.util.function.LongUnaryOperator;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
+import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -710,17 +714,57 @@ public class SignControllerWorld {
         }
     }
 
-    static boolean verifyEntry(SignController.Entry entry) {
-        entry.sign.update();
-        if (entry.sign.isRemoved()) {
-            return false;
-        }
+    private static void updateEntryAttachedFace(SignController.Entry entry) {
         if (entry.sign.getAttachedFace() != entry.blocks.getAttachedFace()) {
             entry.blocks.forAllBlocks(entry, entry.world::removeChunkByBlockEntry);
             entry.blocks = SignBlocksAround.of(entry.sign.getAttachedFace());
             entry.blocks.forAllBlocks(entry, entry.world::addChunkByBlockEntry);
         }
-        return true;
+    }
+
+    static boolean verifyEntry(SignController.Entry entry) {
+        entry.sign.update();
+        if (!entry.sign.isRemoved()) {
+            updateEntryAttachedFace(entry);
+            return true;
+        }
+
+        return false;
+    }
+
+    static boolean verifyEntryHandleDestroy(SignController controller, SignController.Entry entry) {
+        // If there is no sign information, there's nothing to do here
+        if (entry.sign.isRemoved()) {
+            return verifyEntry(entry);
+        }
+
+        // Save information about the sign before updating.
+        // This can then be used in the SignActionEvent to pass
+        // to the sign actions involved.
+        SignChangeTracker beforeDestroyCopy;
+        if (entry.sign instanceof Cloneable) {
+            // Newer bkcl api
+            beforeDestroyCopy = entry.sign.clone();
+        } else {
+            beforeDestroyCopy = SignChangeTracker.track(entry.sign.getSign());
+        }
+
+        if (verifyEntry(entry)) {
+            return true;
+        }
+
+        // Before firing the event, verify the chunk the sign was in is loaded, too
+        // We don't want to handle sign destroying when the chunk merely unloaded
+        if (WorldUtil.isLoaded(beforeDestroyCopy.getBlock())) {
+            // Fire destroy event to tell sign actions the sign was broken
+            RailLookup.TrackedSign sign = RailLookup.TrackedSign.forRealSign(beforeDestroyCopy, RailPiece.NONE);
+            SignAction.handleDestroy(new SignActionEvent(sign));
+
+            // Remove from the offline signs cache as well
+            controller.getPlugin().getOfflineSigns().removeAll(beforeDestroyCopy.getBlock());
+        }
+
+        return false;
     }
 
     void removeInvalidEntry(SignController.Entry entry) {

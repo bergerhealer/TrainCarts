@@ -17,6 +17,7 @@ import org.bukkit.block.Sign;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
@@ -372,10 +373,33 @@ public class SignController implements LibraryComponent, Listener {
         //
         // No loadedChanged() event is fired, as handleBuild() already handles that there.
         SignControllerWorld controller = this.forWorld(event.getBlock().getWorld());
-        controller.addSign(event.getBlock(), false);
+        Entry newSignEntry = controller.addSign(event.getBlock(), false);
 
         // Handle building the sign. Might cancel it (permissions)
         SignAction.handleBuild(event);
+
+        // If not cancelled, update later so the true text is known
+        if (newSignEntry != null && !event.isCancelled()) {
+            newSignEntry.updateRedstoneLater();
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onBlockBreak(BlockBreakEvent event) {
+        Block block = event.getBlock();
+        SignControllerWorld controller = forWorld(block.getWorld());
+        Entry e = controller.findForSign(block);
+        if (e != null) {
+            // Make sure before true handling is done, we update the sign itself
+            // That way we know what the text was after the sign is destroyed
+            if (!SignControllerWorld.verifyEntryHandleDestroy(this, e)) {
+                return;
+            }
+
+            // This will check it's still there later on
+            // If not, a sign destroy is handled automatically
+            e.updateRedstoneLater();
+        }
     }
 
     // This is also needed to support block placement / piston / WR / etc.
@@ -515,7 +539,7 @@ public class SignController implements LibraryComponent, Listener {
         }
 
         // Update sign text/information and check it still actually exists
-        if (!SignControllerWorld.verifyEntry(entry)) {
+        if (!SignControllerWorld.verifyEntryHandleDestroy(this, entry)) {
             return;
         }
 
