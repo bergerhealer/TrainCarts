@@ -122,7 +122,7 @@ public class TCSeatChangeListener implements Listener {
     public void onMemberSeatExitHandleEjectOffset(MemberSeatExitEvent event) {
         if (!event.isSeatChange() && !exemptFromEjectOffset.contains(event.getEntity())) {
             final Entity e = event.getEntity();
-            final Location old_entity_location = e.getLocation();
+            final Location old_entity_location = event.getMember().getEntity().getLocation();
             final Location old_seat_location = event.getSeatPosition();
             final Location loc = event.getExitPosition();
 
