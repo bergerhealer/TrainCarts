@@ -63,11 +63,6 @@ public class SignActionBlocker extends SignAction {
 
     @Override
     public void predictPathFinding(SignActionEvent info, PathPredictEvent prediction) {
-        // If train is performing a launch, don't do prediction here - it messes with it
-        if (info.getGroup().getActions().isMovementControlled()) {
-            return;
-        }
-
         if (info.isEnterActivated() && info.isPowered()) {
             prediction.addSpeedLimit(0.0);
         }
