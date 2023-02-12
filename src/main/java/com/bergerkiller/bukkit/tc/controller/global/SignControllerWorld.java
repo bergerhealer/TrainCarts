@@ -13,10 +13,7 @@ import java.util.function.LongUnaryOperator;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 
-import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
-import com.bergerkiller.bukkit.tc.events.SignActionEvent;
-import com.bergerkiller.bukkit.tc.rails.RailLookup;
-import com.bergerkiller.bukkit.tc.signactions.SignAction;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -77,6 +74,14 @@ public class SignControllerWorld {
 
     public World getWorld() {
         return this.world;
+    }
+
+    public SignController getGlobalController() {
+        return controller;
+    }
+
+    public TrainCarts getPlugin() {
+        return controller.getPlugin();
     }
 
     public boolean isValid() {
@@ -153,7 +158,7 @@ public class SignControllerWorld {
      */
     public void forEachNearbyVerify(Block block, Consumer<SignController.Entry> handler) {
         for (SignController.Entry entry : this.findNearby(block)) {
-            if (verifyEntry(entry)) {
+            if (entry.verify()) {
                 handler.accept(entry);
             } else {
                 removeInvalidEntry(entry);
@@ -340,7 +345,7 @@ public class SignControllerWorld {
         }
 
         // Check sign still exists
-        if (!verifyEntry(entry)) {
+        if (!entry.verify()) {
             removeInvalidEntry(entry);
             return false;
         }
@@ -420,7 +425,7 @@ public class SignControllerWorld {
         // Find/activate an existing sign
         SignController.Entry existing = this.findForSign(signBlock);
         if (existing != null) {
-            if (verifyEntry(existing)) {
+            if (existing.verify()) {
                 controller.activateEntry(existing, true, handleLoadChange);
                 return existing;
             } else {
@@ -488,7 +493,7 @@ public class SignControllerWorld {
             if (atChunk != null && !atChunk.isEmpty()) {
                 for (Iterator<SignController.Entry> iter = atChunk.iterator(); iter.hasNext();) {
                     SignController.Entry entry = iter.next();
-                    if (!verifyEntry(entry)) {
+                    if (!entry.verify()) {
                         // Remove loaded sign information
                         iter.remove();
                         entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
@@ -539,7 +544,7 @@ public class SignControllerWorld {
      */
     private void activateSignsInChunk(Chunk chunk) {
         // Use verifyEntry which updates the sign state, important when activating
-        changeActiveForEntriesInChunk(chunk, true, SignControllerWorld::verifyEntry, this.controller::activateEntry);
+        changeActiveForEntriesInChunk(chunk, true, SignController.Entry::verify, this.controller::activateEntry);
     }
 
     /**
@@ -680,7 +685,7 @@ public class SignControllerWorld {
         }
     }
 
-    private void addChunkByBlockEntry(final SignController.Entry entry, long key) {
+    void addChunkByBlockEntry(final SignController.Entry entry, long key) {
         this.signsByNeighbouringBlock.merge(key, entry.singletonArray, (a, b) -> {
             int len = a.length;
             SignController.Entry[] result = Arrays.copyOf(a, len + 1);
@@ -714,59 +719,6 @@ public class SignControllerWorld {
         }
     }
 
-    private static void updateEntryAttachedFace(SignController.Entry entry) {
-        if (entry.sign.getAttachedFace() != entry.blocks.getAttachedFace()) {
-            entry.blocks.forAllBlocks(entry, entry.world::removeChunkByBlockEntry);
-            entry.blocks = SignBlocksAround.of(entry.sign.getAttachedFace());
-            entry.blocks.forAllBlocks(entry, entry.world::addChunkByBlockEntry);
-        }
-    }
-
-    static boolean verifyEntry(SignController.Entry entry) {
-        entry.sign.update();
-        if (!entry.sign.isRemoved()) {
-            updateEntryAttachedFace(entry);
-            return true;
-        }
-
-        return false;
-    }
-
-    static boolean verifyEntryHandleDestroy(SignController controller, SignController.Entry entry) {
-        // If there is no sign information, there's nothing to do here
-        if (entry.sign.isRemoved()) {
-            return verifyEntry(entry);
-        }
-
-        // Save information about the sign before updating.
-        // This can then be used in the SignActionEvent to pass
-        // to the sign actions involved.
-        SignChangeTracker beforeDestroyCopy;
-        if (entry.sign instanceof Cloneable) {
-            // Newer bkcl api
-            beforeDestroyCopy = entry.sign.clone();
-        } else {
-            beforeDestroyCopy = SignChangeTracker.track(entry.sign.getSign());
-        }
-
-        if (verifyEntry(entry)) {
-            return true;
-        }
-
-        // Before firing the event, verify the chunk the sign was in is loaded, too
-        // We don't want to handle sign destroying when the chunk merely unloaded
-        if (WorldUtil.isLoaded(beforeDestroyCopy.getBlock())) {
-            // Fire destroy event to tell sign actions the sign was broken
-            RailLookup.TrackedSign sign = RailLookup.TrackedSign.forRealSign(beforeDestroyCopy, RailPiece.NONE);
-            SignAction.handleDestroy(new SignActionEvent(sign));
-
-            // Remove from the offline signs cache as well
-            controller.getPlugin().getOfflineSigns().removeAll(beforeDestroyCopy.getBlock());
-        }
-
-        return false;
-    }
-
     void removeInvalidEntry(SignController.Entry entry) {
         // Remove entry from by-chunk mapping
         List<SignController.Entry> atChunk = this.signsByChunk.get(entry.chunkKey);
@@ -778,7 +730,7 @@ public class SignControllerWorld {
         entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
     }
 
-    private void removeChunkByBlockEntry(SignController.Entry entry, long key) {
+    void removeChunkByBlockEntry(SignController.Entry entry, long key) {
         removeChunkByBlockEntry(entry, key, false);
     }
 

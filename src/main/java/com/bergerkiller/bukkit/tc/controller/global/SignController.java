@@ -7,6 +7,7 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -220,21 +221,23 @@ public class SignController implements LibraryComponent, Listener {
     }
 
     /**
-     * Informs this controller that a particular sign is (about) to be removed.
-     * Does not fire any events.
+     * Notifies that a sign changed. This can mean the sign was removed from the server, or that
+     * the text contents have changed. Will perform an internal update, as well inform the
+     * offline sign metadata store about the changes.
      *
-     * @param signBlock
+     * @param tracker The sign change tracker that noticed a change
      */
-    public void notifySignRemoved(Block signBlock) {
-        // Remove loaded sign information
-        SignControllerWorld worldController = forWorld(signBlock.getWorld());
-        Entry entry = worldController.findForSign(signBlock);
+    public void notifySignChanged(SignChangeTracker tracker) {
+        SignControllerWorld worldController = forWorld(tracker.getWorld());
+        Entry entry = worldController.findForSign(tracker.getBlock());
         if (entry != null) {
-            worldController.removeInvalidEntry(entry);
+            if (entry.sign != tracker) {
+                entry.sign.update();
+            }
+            if (!entry.verifyAfterUpdate(true)) {
+                worldController.removeInvalidEntry(entry);
+            }
         }
-
-        // Remove from the offline signs cache as well
-        plugin.getOfflineSigns().removeAll(signBlock);
     }
 
     /**
@@ -392,7 +395,7 @@ public class SignController implements LibraryComponent, Listener {
         if (e != null) {
             // Make sure before true handling is done, we update the sign itself
             // That way we know what the text was after the sign is destroyed
-            if (!SignControllerWorld.verifyEntryHandleDestroy(this, e)) {
+            if (!e.verify()) {
                 return;
             }
 
@@ -539,7 +542,7 @@ public class SignController implements LibraryComponent, Listener {
         }
 
         // Update sign text/information and check it still actually exists
-        if (!SignControllerWorld.verifyEntryHandleDestroy(this, entry)) {
+        if (!entry.verify()) {
             return;
         }
 
@@ -605,6 +608,7 @@ public class SignController implements LibraryComponent, Listener {
     public static final class Entry {
         public static final Entry[] NO_ENTRIES = new Entry[0];
         public final SignChangeTracker sign;
+        private SignChangeTracker signLastState;
         public final SignControllerWorld world;
         public boolean powered;
         public boolean activated;
@@ -630,6 +634,21 @@ public class SignController implements LibraryComponent, Listener {
             this.chunkKey = chunkKey;
             this.blocks = SignBlocksAround.of(this.sign.getAttachedFace());
             this.singletonArray = new Entry[] { this };
+            this.updateLastSignState();
+        }
+
+        /**
+         * Updates the last-known state of the sign. This makes this information available
+         * for when signs change text or are removed entirely to fire the appropriate
+         * events.
+         */
+        private void updateLastSignState() {
+            if (sign instanceof Cloneable) {
+                // Newer bkcl api
+                signLastState = sign.clone();
+            } else {
+                signLastState = SignChangeTracker.track(sign.getSign());
+            }
         }
 
         public Block getBlock() {
@@ -652,6 +671,66 @@ public class SignController implements LibraryComponent, Listener {
         void remove() {
             this.redstoneUpdateTracker.untrack();
             this.ignoreRedstoneUpdateTracker.untrack();
+        }
+
+        /**
+         * Verifies that this sign is still there, and updates the text and facing information.
+         * Fires the appropriate events if sign text changes.
+         *
+         * @return True if the sign still exists, False if it was removed
+         */
+        boolean verify() {
+            return verifyAfterUpdate(sign.update());
+        }
+
+        /**
+         * Verifies that this sign is still there, and updates the text and facing information.
+         * Fires the appropriate events if sign text changes.<br>
+         * <br>
+         * This assumes a sign update has already occurred earlier.
+         *
+         * @param changed Whether the sign changed/was removed
+         * @return True if the sign still exists, False if it was removed
+         */
+        boolean verifyAfterUpdate(boolean changed) {
+            // If removed, and it wasn't before, and the chunk is loaded, fire destroy events
+            if (sign.isRemoved() && !signLastState.isRemoved() && WorldUtil.isLoaded(sign.getBlock())) {
+                // Fire destroy event to tell sign actions the sign was broken
+                RailLookup.TrackedSign sign = RailLookup.TrackedSign.forRealSign(signLastState, RailPiece.NONE);
+                SignAction.handleDestroy(new SignActionEvent(sign));
+
+                // Remove from the offline signs cache as well
+                world.getPlugin().getOfflineSigns().removeAll(signLastState.getBlock());
+
+                // Just to make sure stuff gets updated
+                changed = true;
+            }
+
+            //TODO: Change event for changed text?
+
+            // Refresh last-known state
+            if (changed) {
+                this.updateLastSignState();
+            }
+
+            // If removed/unloaded, there is nothing more to do
+            if (sign.isRemoved()) {
+                return false;
+            }
+
+            // If loaded and changed, also tell the offline sign metadata store to verify what it knows there
+            if (changed) {
+                world.getPlugin().getOfflineSigns().verifySign(sign.getSign(), null /* all */);
+            }
+
+            // Update facing
+            if (sign.getAttachedFace() != blocks.getAttachedFace()) {
+                blocks.forAllBlocks(this, world::removeChunkByBlockEntry);
+                blocks = SignBlocksAround.of(sign.getAttachedFace());
+                blocks.forAllBlocks(this, world::addChunkByBlockEntry);
+            }
+
+            return true;
         }
 
         /**

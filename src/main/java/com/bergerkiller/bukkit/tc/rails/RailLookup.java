@@ -713,7 +713,8 @@ public final class RailLookup {
             if (rail == null) {
                 rail = RailLookup.discoverRailPieceFromSign(signTracker.getBlock());
             }
-            return new TrackedRealSign(signTracker, rail);
+            //TODO: Don't abuse static
+            return new TrackedRealSign(TrainCarts.plugin, signTracker, rail);
         }
 
         /**
@@ -833,21 +834,27 @@ public final class RailLookup {
     }
 
     private static class TrackedRealSign extends TrackedSign {
+        private final TrainCarts plugin;
         private final SignChangeTracker tracker;
         private final BlockFace facing;
 
-        private TrackedRealSign(SignChangeTracker tracker, RailPiece rail) {
+        private TrackedRealSign(TrainCarts plugin, SignChangeTracker tracker, RailPiece rail) {
             super(tracker.getSign(), tracker.getBlock(), rail);
+            this.plugin = plugin;
             this.facing = tracker.getFacing();
             this.tracker = tracker;
         }
 
         @Override
         public boolean verify() {
-            this.tracker.update();
-            return !this.tracker.isRemoved() &&
-                   this.tracker.getFacing() == this.facing &&
-                   this.tracker.getSign() == this.sign;
+            // If a change is detected, also inform the sign controller
+            if (tracker.update()) {
+                plugin.getSignController().notifySignChanged(tracker);
+            }
+
+            return !tracker.isRemoved() &&
+                   tracker.getFacing() == facing &&
+                   tracker.getSign() == sign;
         }
 
         @Override
