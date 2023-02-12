@@ -376,7 +376,7 @@ public class SignController implements LibraryComponent, Listener {
         //
         // No loadedChanged() event is fired, as handleBuild() already handles that there.
         SignControllerWorld controller = this.forWorld(event.getBlock().getWorld());
-        Entry newSignEntry = controller.addSign(event.getBlock(), false);
+        Entry newSignEntry = controller.addSign(event.getBlock(), true);
 
         // Handle building the sign. Might cancel it (permissions)
         SignAction.handleBuild(event);
@@ -608,7 +608,7 @@ public class SignController implements LibraryComponent, Listener {
     public static final class Entry {
         public static final Entry[] NO_ENTRIES = new Entry[0];
         public final SignChangeTracker sign;
-        private SignChangeTracker signLastState;
+        private SignChangeTracker signLastState; // Can be null if removed!
         public final SignControllerWorld world;
         public boolean powered;
         public boolean activated;
@@ -642,12 +642,24 @@ public class SignController implements LibraryComponent, Listener {
          * for when signs change text or are removed entirely to fire the appropriate
          * events.
          */
-        private void updateLastSignState() {
+        void updateLastSignState() {
             if (sign instanceof Cloneable) {
                 // Newer bkcl api
                 signLastState = sign.clone();
             } else {
                 signLastState = SignChangeTracker.track(sign.getSign());
+            }
+        }
+
+        /**
+         * Updates the facing orientation of the sign. Re-registers the sign at the right
+         * blocks when facing changes.
+         */
+        void updateSignFacing() {
+            if (sign.getAttachedFace() != blocks.getAttachedFace()) {
+                blocks.forAllBlocks(this, world::removeChunkByBlockEntry);
+                blocks = SignBlocksAround.of(sign.getAttachedFace());
+                blocks.forAllBlocks(this, world::addChunkByBlockEntry);
             }
         }
 
@@ -694,22 +706,15 @@ public class SignController implements LibraryComponent, Listener {
          */
         boolean verifyAfterUpdate(boolean changed) {
             // If removed, and it wasn't before, and the chunk is loaded, fire destroy events
-            if (sign.isRemoved() && !signLastState.isRemoved() && WorldUtil.isLoaded(sign.getBlock())) {
-                // Fire destroy event to tell sign actions the sign was broken
-                RailLookup.TrackedSign sign = RailLookup.TrackedSign.forRealSign(signLastState, RailPiece.NONE);
-                SignAction.handleDestroy(new SignActionEvent(sign));
-
-                // Remove from the offline signs cache as well
-                world.getPlugin().getOfflineSigns().removeAll(signLastState.getBlock());
-
-                // Just to make sure stuff gets updated
-                changed = true;
+            if (sign.isRemoved() && signLastState != null && !signLastState.isRemoved() && WorldUtil.isLoaded(sign.getBlock())) {
+                handleDestroy();
+                return false;
             }
 
             //TODO: Change event for changed text?
 
             // Refresh last-known state
-            if (changed) {
+            if (changed || (signLastState == null && !sign.isRemoved())) {
                 this.updateLastSignState();
             }
 
@@ -723,14 +728,51 @@ public class SignController implements LibraryComponent, Listener {
                 world.getPlugin().getOfflineSigns().verifySign(sign.getSign(), null /* all */);
             }
 
-            // Update facing
-            if (sign.getAttachedFace() != blocks.getAttachedFace()) {
-                blocks.forAllBlocks(this, world::removeChunkByBlockEntry);
-                blocks = SignBlocksAround.of(sign.getAttachedFace());
-                blocks.forAllBlocks(this, world::addChunkByBlockEntry);
-            }
+            updateSignFacing();
 
             return true;
+        }
+
+        /**
+         * Called when a new sign is placed by a Player at the same position as an existing sign.
+         * Verifies the sign is still there, and fires a removal event if so.
+         *
+         * @return True if the sign still exists, False if it was removed
+         */
+        boolean verifyBeforeSignChange() {
+            sign.update();
+            if (sign.isRemoved()) {
+                // Handle removal of the sign in the normal way
+                verifyAfterUpdate(true);
+                return false;
+            } else {
+                // Fire destroy events for the previous sign details, if any
+                // Then, update the sign state for later
+                handleDestroy();
+                updateSignFacing();
+                updateLastSignState();
+                return true;
+            }
+        }
+
+        /**
+         * Handles destruction of this sign. This informs sign actions and the offline sign metadata
+         * store that the sign has been removed.
+         */
+        private void handleDestroy() {
+            if (signLastState == null || signLastState.isRemoved()) {
+                return;
+            }
+
+            // Fire destroy event to tell sign actions the sign was broken
+            RailLookup.TrackedSign sign = RailLookup.TrackedSign.forRealSign(signLastState, RailPiece.NONE);
+            SignAction.handleDestroy(new SignActionEvent(sign));
+
+            // Remove from the offline signs cache as well
+            world.getPlugin().getOfflineSigns().removeAll(signLastState.getBlock());
+
+            // Make sure it does not fire again until a sign is detected
+            signLastState = null;
         }
 
         /**
