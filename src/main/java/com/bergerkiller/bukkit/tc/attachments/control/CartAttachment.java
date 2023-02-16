@@ -118,6 +118,7 @@ public abstract class CartAttachment implements Attachment {
         AttachmentTypeRegistry.instance().register(CartAttachmentModel.TYPE);
         AttachmentTypeRegistry.instance().register(CartAttachmentSeat.TYPE);
         AttachmentTypeRegistry.instance().register(CartAttachmentText.TYPE);
+        AttachmentTypeRegistry.instance().register(CartAttachmentHitBox.TYPE);
 
         if (EntityShulkerHandle.T.isAvailable()) {
             AttachmentTypeRegistry.instance().register(CartAttachmentPlatformOriginal.TYPE);

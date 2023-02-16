@@ -48,6 +48,15 @@ public interface AttachmentType {
     }
 
     /**
+     * Gets a priority which is used to sort this attachment type in the list of
+     * selectable attachment types in the editor. By default returns 0. Types
+     * with equal sort priority are then sorted alphabetically by name.
+     *
+     * @return Sort priority, higher priority types end in the back of the list
+     */
+    default double getSortPriority() { return 0.0; }
+
+    /**
      * Gets the icon to show in the attachment editor for this attachment type.
      * The configuration can be used to customize the icon.<br>
      * <br>
@@ -62,7 +71,7 @@ public interface AttachmentType {
 
     /**
      * Called before configuration is loaded in by attachments, and before
-     * {@link #createAppearanceTab(tab, attachment)}
+     * {@link #createAppearanceTab(MapWidgetTabView.Tab, MapWidgetAttachmentNode)}
      * is called, to perform any needed configuration migrations. If your attachment
      * includes older configurations that have since changed, migrate those to the
      * new configuration format here. By default this method is a no-op.

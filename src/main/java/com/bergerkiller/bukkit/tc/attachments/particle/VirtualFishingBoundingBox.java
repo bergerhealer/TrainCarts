@@ -1,86 +1,84 @@
 package com.bergerkiller.bukkit.tc.attachments.particle;
 
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Function;
+
 /**
  * Uses 12 {@link VirtualFishingLine} instances to display a bounding box
  */
 public class VirtualFishingBoundingBox {
     // Bottom 4 lines
-    private final VirtualFishingLine line_btm_nx = new VirtualFishingLine();
-    private final VirtualFishingLine line_btm_px = new VirtualFishingLine();
-    private final VirtualFishingLine line_btm_nz = new VirtualFishingLine();
-    private final VirtualFishingLine line_btm_pz = new VirtualFishingLine();
+    private final BBOXLine line_btm_nx = new BBOXLine(c -> c.btm_nx_nz, c -> c.btm_nx_pz);
+    private final BBOXLine line_btm_px = new BBOXLine(c -> c.btm_px_nz, c -> c.btm_nx_nz);
+    private final BBOXLine line_btm_nz = new BBOXLine(c -> c.btm_px_pz, c -> c.btm_px_nz);
+    private final BBOXLine line_btm_pz = new BBOXLine(c -> c.btm_nx_pz, c -> c.btm_px_pz);
 
     // Top 4 lines
-    private final VirtualFishingLine line_top_nx = new VirtualFishingLine();
-    private final VirtualFishingLine line_top_px = new VirtualFishingLine();
-    private final VirtualFishingLine line_top_nz = new VirtualFishingLine();
-    private final VirtualFishingLine line_top_pz = new VirtualFishingLine();
+    private final BBOXLine line_top_nx = new BBOXLine(c -> c.top_nx_nz, c -> c.top_nx_pz);
+    private final BBOXLine line_top_px = new BBOXLine(c -> c.top_px_nz, c -> c.top_nx_nz);
+    private final BBOXLine line_top_nz = new BBOXLine(c -> c.top_px_pz, c -> c.top_px_nz);
+    private final BBOXLine line_top_pz = new BBOXLine(c -> c.top_nx_pz, c -> c.top_px_pz);
 
     // Vertical 4 lines
-    private final VirtualFishingLine line_vrt_nxnz = new VirtualFishingLine();
-    private final VirtualFishingLine line_vrt_pxnz = new VirtualFishingLine();
-    private final VirtualFishingLine line_vrt_pxpz = new VirtualFishingLine();
-    private final VirtualFishingLine line_vrt_nxpz = new VirtualFishingLine();
+    private final BBOXLine line_vrt_nxnz = new BBOXLine(c -> c.top_nx_nz, c -> c.btm_nx_nz);
+    private final BBOXLine line_vrt_pxnz = new BBOXLine(c -> c.top_px_nz, c -> c.btm_px_nz);
+    private final BBOXLine line_vrt_pxpz = new BBOXLine(c -> c.top_px_pz, c -> c.btm_px_pz);
+    private final BBOXLine line_vrt_nxpz = new BBOXLine(c -> c.top_nx_pz, c -> c.btm_nx_pz);
+
+    private final List<BBOXLine> lines = Arrays.asList(
+            line_btm_nx, line_btm_nz, line_btm_px, line_btm_pz,
+            line_top_nx, line_top_nz, line_top_px, line_top_pz,
+            line_vrt_nxnz, line_vrt_pxnz, line_vrt_pxpz, line_vrt_nxpz
+    );
 
     public void spawn(Player viewer, OrientedBoundingBox boundingBox) {
         ComputedCorners corners = new ComputedCorners(boundingBox);
+        lines.forEach(bboxline -> bboxline.spawn(viewer, corners));
+    }
 
-        line_btm_nx.spawn(viewer, corners.btm_nx_nz, corners.btm_nx_pz);
-        line_btm_nz.spawn(viewer, corners.btm_px_nz, corners.btm_nx_nz);
-        line_btm_px.spawn(viewer, corners.btm_px_pz, corners.btm_px_nz);
-        line_btm_pz.spawn(viewer, corners.btm_nx_pz, corners.btm_px_pz);
+    public void spawn(AttachmentViewer viewer, OrientedBoundingBox boundingBox) {
+        ComputedCorners corners = new ComputedCorners(boundingBox);
+        lines.forEach(bboxline -> bboxline.spawn(viewer, corners));
+    }
 
-        line_top_nx.spawn(viewer, corners.top_nx_nz, corners.top_nx_pz);
-        line_top_nz.spawn(viewer, corners.top_px_nz, corners.top_nx_nz);
-        line_top_px.spawn(viewer, corners.top_px_pz, corners.top_px_nz);
-        line_top_pz.spawn(viewer, corners.top_nx_pz, corners.top_px_pz);
-
-        line_vrt_nxnz.spawn(viewer, corners.top_nx_nz, corners.btm_nx_nz);
-        line_vrt_pxnz.spawn(viewer, corners.top_px_nz, corners.btm_px_nz);
-        line_vrt_pxpz.spawn(viewer, corners.top_px_pz, corners.btm_px_pz);
-        line_vrt_nxpz.spawn(viewer, corners.top_nx_pz, corners.btm_nx_pz);
+    public void spawnWithoutLines(AttachmentViewer viewer, OrientedBoundingBox boundingBox) {
+        ComputedCorners corners = new ComputedCorners(boundingBox);
+        lines.forEach(bboxline -> bboxline.spawnWithoutLine(viewer, corners));
     }
 
     public void update(Iterable<Player> viewers, OrientedBoundingBox boundingBox) {
         ComputedCorners corners = new ComputedCorners(boundingBox);
+        lines.forEach(bboxline -> bboxline.update(viewers, corners));
+    }
 
-        line_btm_nx.update(viewers, corners.btm_nx_nz, corners.btm_nx_pz);
-        line_btm_nz.update(viewers, corners.btm_px_nz, corners.btm_nx_nz);
-        line_btm_px.update(viewers, corners.btm_px_pz, corners.btm_px_nz);
-        line_btm_pz.update(viewers, corners.btm_nx_pz, corners.btm_px_pz);
-
-        line_top_nx.update(viewers, corners.top_nx_nz, corners.top_nx_pz);
-        line_top_nz.update(viewers, corners.top_px_nz, corners.top_nx_nz);
-        line_top_px.update(viewers, corners.top_px_pz, corners.top_px_nz);
-        line_top_pz.update(viewers, corners.top_nx_pz, corners.top_px_pz);
-
-        line_vrt_nxnz.update(viewers, corners.top_nx_nz, corners.btm_nx_nz);
-        line_vrt_pxnz.update(viewers, corners.top_px_nz, corners.btm_px_nz);
-        line_vrt_pxpz.update(viewers, corners.top_px_pz, corners.btm_px_pz);
-        line_vrt_nxpz.update(viewers, corners.top_nx_pz, corners.btm_nx_pz);
+    public void updateViewers(Iterable<AttachmentViewer> viewers, OrientedBoundingBox boundingBox) {
+        ComputedCorners corners = new ComputedCorners(boundingBox);
+        lines.forEach(bboxline -> bboxline.updateViewers(viewers, corners));
     }
 
     public void destroy(Player viewer) {
-        line_btm_nx.destroy(viewer);
-        line_btm_nz.destroy(viewer);
-        line_btm_px.destroy(viewer);
-        line_btm_pz.destroy(viewer);
+        lines.forEach(line -> line.destroy(viewer));
+    }
 
-        line_top_nx.destroy(viewer);
-        line_top_nz.destroy(viewer);
-        line_top_px.destroy(viewer);
-        line_top_pz.destroy(viewer);
+    public void destroy(AttachmentViewer viewer) {
+        lines.forEach(line -> line.destroy(viewer));
+    }
 
-        line_vrt_nxnz.destroy(viewer);
-        line_vrt_pxnz.destroy(viewer);
-        line_vrt_pxpz.destroy(viewer);
-        line_vrt_nxpz.destroy(viewer);
+    public void spawnLines(AttachmentViewer viewer, OrientedBoundingBox boundingBox) {
+        ComputedCorners corners = new ComputedCorners(boundingBox);
+        lines.forEach(line -> line.spawnLine(viewer, corners));
+    }
+
+    public void destroyLines(AttachmentViewer viewer) {
+        lines.forEach(line -> line.destroyLine(viewer));
     }
 
     private static class ComputedCorners {
@@ -128,6 +126,42 @@ public class VirtualFishingBoundingBox {
             this.top_px_nz.add(offset);
             this.top_px_pz.add(offset);
             this.top_nx_pz.add(offset);
+        }
+    }
+
+    private static class BBOXLine extends VirtualFishingLine {
+        private final Function<ComputedCorners, Vector> pos1func;
+        private final Function<ComputedCorners, Vector> pos2func;
+
+        public BBOXLine(Function<ComputedCorners, Vector> pos1func,
+                        Function<ComputedCorners, Vector> pos2func)
+        {
+            this.pos1func = pos1func;
+            this.pos2func = pos2func;
+        }
+
+        public void spawn(Player viewer, ComputedCorners corners) {
+            this.spawn(viewer, pos1func.apply(corners), pos2func.apply(corners));
+        }
+
+        public void spawn(AttachmentViewer viewer, ComputedCorners corners) {
+            this.spawn(viewer, pos1func.apply(corners), pos2func.apply(corners));
+        }
+
+        public void spawnWithoutLine(AttachmentViewer viewer, ComputedCorners corners) {
+            this.spawnWithoutLine(viewer, pos1func.apply(corners), pos2func.apply(corners));
+        }
+
+        public void spawnLine(AttachmentViewer viewer, ComputedCorners corners) {
+            this.spawnLine(viewer, pos1func.apply(corners), pos2func.apply(corners));
+        }
+
+        public void update(Iterable<Player> viewers, ComputedCorners corners) {
+            this.update(viewers, pos1func.apply(corners), pos2func.apply(corners));
+        }
+
+        public void updateViewers(Iterable<AttachmentViewer> viewers, ComputedCorners corners) {
+            this.updateViewers(viewers, pos1func.apply(corners), pos2func.apply(corners));
         }
     }
 }

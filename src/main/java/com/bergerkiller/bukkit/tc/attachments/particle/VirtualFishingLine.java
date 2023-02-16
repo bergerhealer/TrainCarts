@@ -1,22 +1,22 @@
 package com.bergerkiller.bukkit.tc.attachments.particle;
 
+import java.util.Iterator;
 import java.util.OptionalInt;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityTeleportHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutMountHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutNamedEntitySpawnHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityLivingHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
@@ -53,10 +53,35 @@ public class VirtualFishingLine {
      * @param positionB End position of the line, a dobber is displayed here
      */
     public void spawn(Player viewer, Vector positionA, Vector positionB) {
+        spawn(AttachmentViewer.fallback(viewer), positionA, positionB);
+    }
+
+    /**
+     * Spawns the fishing line
+     *
+     * @param viewer Viewing player to spawn the fishing line for
+     * @param positionA Start position of the line
+     * @param positionB End position of the line, a dobber is displayed here
+     */
+    public void spawn(AttachmentViewer viewer, Vector positionA, Vector positionB) {
+        // Spawn entities that wield the fishing rod
+        spawnWithoutLine(viewer, positionA, positionB);
+        // Spawn the fishing hook connecting the two
+        spawnLine(viewer, positionA, positionB);
+    }
+
+    /**
+     * Spawns the fishing line
+     *
+     * @param viewer Viewing player to spawn the fishing line for
+     * @param positionA Start position of the line
+     * @param positionB End position of the line, a dobber is displayed here
+     */
+    public void spawnWithoutLine(AttachmentViewer viewer, Vector positionA, Vector positionB) {
         // Spawn the invisible entity that holds the other end of the fishing hook
         // Seems that this must be a player entity, so just spawn clones of the viewer
         if (this.holderPlayerEntityId != -1) {
-            FakePlayerSpawner.NO_NAMETAG_RANDOM.spawnPlayerSimple(viewer, viewer, this.holderPlayerEntityId, spawnPacket -> {
+            FakePlayerSpawner.NO_NAMETAG_RANDOM.spawnPlayerSimple(viewer, viewer.getPlayer(), this.holderPlayerEntityId, spawnPacket -> {
                 spawnPacket.setPosX(positionA.getX() + OFFSET_PLAYER.getX());
                 spawnPacket.setPosY(positionA.getY() + OFFSET_PLAYER.getY());
                 spawnPacket.setPosZ(positionA.getZ() + OFFSET_PLAYER.getZ());
@@ -80,9 +105,9 @@ public class VirtualFishingLine {
             DataWatcher meta = new DataWatcher();
             meta.set(EntityHandle.DATA_NO_GRAVITY, true);
             meta.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, true);
-            PacketUtil.sendEntityLivingSpawnPacket(viewer, spawnPacket, meta);
+            viewer.sendEntityLivingSpawnPacket(spawnPacket, meta);
 
-            PacketUtil.sendPacket(viewer, PacketPlayOutMountHandle.createNew(
+            viewer.send(PacketPlayOutMountHandle.createNew(
                     this.holderEntityId, new int[] { this.holderPlayerEntityId }));
         }
 
@@ -99,28 +124,7 @@ public class VirtualFishingLine {
             DataWatcher meta = new DataWatcher();
             meta.set(EntityHandle.DATA_NO_GRAVITY, true);
             meta.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, true);
-            PacketUtil.sendEntityLivingSpawnPacket(viewer, spawnPacket, meta);
-        }
-
-        // Spawn the fishing hook connecting the two
-        {
-            // Spawn packet
-            PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.createNew();
-            spawnPacket.setEntityId(this.hookEntityId);
-            spawnPacket.setEntityUUID(UUID.randomUUID());
-            spawnPacket.setEntityType(EntityType.FISHING_HOOK);
-            spawnPacket.setPosX(positionB.getX());
-            spawnPacket.setPosY(positionB.getY());
-            spawnPacket.setPosZ(positionB.getZ());
-            spawnPacket.setExtraData((this.holderPlayerEntityId == -1) ? viewer.getEntityId() : this.holderPlayerEntityId);
-            PacketUtil.sendPacket(viewer, spawnPacket);
-
-            // Metadata packet
-            DataWatcher meta = new DataWatcher();
-            meta.set(EntityFishingHookHandle.DATA_HOOKED_ENTITY_ID, OptionalInt.of(this.hookedEntityId));
-            meta.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, true);
-            PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.hookEntityId, meta, true);
-            PacketUtil.sendPacket(viewer, metaPacket);
+            viewer.sendEntityLivingSpawnPacket(spawnPacket, meta);
         }
     }
 
@@ -132,6 +136,34 @@ public class VirtualFishingLine {
      * @param positionB End position of the line, a dobber is displayed here
      */
     public void update(Iterable<Player> viewers, Vector positionA, Vector positionB) {
+        updateViewers(new Iterable<AttachmentViewer>() {
+            @Override
+            public Iterator<AttachmentViewer> iterator() {
+                return new Iterator<AttachmentViewer>() {
+                    private final Iterator<Player> baseIter = viewers.iterator();
+
+                    @Override
+                    public boolean hasNext() {
+                        return baseIter.hasNext();
+                    }
+
+                    @Override
+                    public AttachmentViewer next() {
+                        return AttachmentViewer.fallback(baseIter.next());
+                    }
+                };
+            }
+        }, positionA, positionB);
+    }
+
+    /**
+     * Refreshes the positions of the start and end point of the virtual line
+     *
+     * @param viewers Viewing players to update the fishing line for
+     * @param positionA Start position of the line
+     * @param positionB End position of the line, a dobber is displayed here
+     */
+    public void updateViewers(Iterable<AttachmentViewer> viewers, Vector positionA, Vector positionB) {
         // Teleport holder entity
         if (this.holderEntityId != -1) {
             final PacketPlayOutEntityTeleportHandle packet = PacketPlayOutEntityTeleportHandle.createNew(
@@ -140,7 +172,7 @@ public class VirtualFishingLine {
                     positionA.getY() + OFFSET_HOLDER.getY(),
                     positionA.getZ() + OFFSET_HOLDER.getZ(),
                     0.0f, 0.0f, false);
-            viewers.forEach(p -> PacketUtil.sendPacket(p, packet));
+            viewers.forEach(v -> v.send(packet));
         }
 
         // Teleport hooked entity
@@ -151,7 +183,7 @@ public class VirtualFishingLine {
                     positionB.getY() + OFFSET_HOOKED.getY(),
                     positionB.getZ() + OFFSET_HOOKED.getZ(),
                     0.0f, 0.0f, false);
-            viewers.forEach(p -> PacketUtil.sendPacket(p, packet));
+            viewers.forEach(v -> v.send(packet));
         }
     }
 
@@ -161,16 +193,55 @@ public class VirtualFishingLine {
      * @param viewer
      */
     public void destroy(Player viewer) {
+        destroy(AttachmentViewer.fallback(viewer));
+    }
+
+    /**
+     * Destroys the fishing line, if spawned
+     *
+     * @param viewer
+     */
+    public void destroy(AttachmentViewer viewer) {
         int[] entityIds = IntStream.of(this.hookedEntityId, this.holderEntityId,
                                        this.holderPlayerEntityId, this.hookEntityId)
                 .filter(id -> id != -1)
                 .toArray();
         if (PacketPlayOutEntityDestroyHandle.canDestroyMultiple()) {
-            PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNewMultiple(entityIds));
+            viewer.send(PacketPlayOutEntityDestroyHandle.createNewMultiple(entityIds));
         } else {
             for (int entityId : entityIds) {
-                PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNewSingle(entityId));
+                viewer.send(PacketPlayOutEntityDestroyHandle.createNewSingle(entityId));
             }
         }
+    }
+
+    public void spawnLine(AttachmentViewer viewer, Vector positionA, Vector positionB) {
+        // Spawn packet
+        PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.createNew();
+        spawnPacket.setEntityId(this.hookEntityId);
+        spawnPacket.setEntityUUID(UUID.randomUUID());
+        spawnPacket.setEntityType(EntityType.FISHING_HOOK);
+        spawnPacket.setPosX(positionB.getX());
+        spawnPacket.setPosY(positionB.getY() - 0.25);
+        spawnPacket.setPosZ(positionB.getZ());
+        spawnPacket.setExtraData((this.holderPlayerEntityId == -1) ? viewer.getEntityId() : this.holderPlayerEntityId);
+        viewer.send(spawnPacket);
+
+        // Metadata packet
+        DataWatcher meta = new DataWatcher();
+        meta.set(EntityFishingHookHandle.DATA_HOOKED_ENTITY_ID, OptionalInt.of(this.hookedEntityId));
+        meta.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, true);
+        PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.hookEntityId, meta, true);
+        viewer.send(metaPacket);
+    }
+
+    /**
+     * Temporarily hides this fishing line to the player. The entities that hold the line
+     * stay spawned
+     *
+     * @param viewer
+     */
+    public void destroyLine(AttachmentViewer viewer) {
+        viewer.send(PacketPlayOutEntityDestroyHandle.createNewSingle(this.hookEntityId));
     }
 }

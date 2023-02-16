@@ -36,6 +36,10 @@ public class AttachmentTypeRegistry {
     public synchronized List<AttachmentType> all() {
         ArrayList<AttachmentType> result = new ArrayList<AttachmentType>(_types.values());
         Collections.sort(result, (t1, t2) -> {
+            int comp = Double.compare(t1.getSortPriority(), t2.getSortPriority());
+            if (comp != 0) {
+                return comp;
+            }
             return t1.getName().compareTo(t2.getName());
         });
         return result;
@@ -84,7 +88,7 @@ public class AttachmentTypeRegistry {
     }
 
     /**
-     * Registers an attachment type, so that a future {@link #find(id)} can find it.
+     * Registers an attachment type, so that a future {@link #find(String)} can find it.
      * 
      * @param type The attachment type to register
      */
