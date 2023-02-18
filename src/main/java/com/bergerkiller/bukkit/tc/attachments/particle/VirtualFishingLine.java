@@ -17,7 +17,6 @@ import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityTeleportHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutMountHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityLivingHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
@@ -117,8 +116,7 @@ public class VirtualFishingLine {
             meta.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, true);
             viewer.sendEntityLivingSpawnPacket(spawnPacket, meta);
 
-            viewer.send(PacketPlayOutMountHandle.createNew(
-                    this.holderEntityId, new int[] { this.holderPlayerEntityId }));
+            viewer.getVehicleMountController().mount(this.holderEntityId, this.holderPlayerEntityId);
         }
 
         // Spawn the invisible entity that is hooked by a fishing hook
