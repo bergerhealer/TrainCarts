@@ -108,6 +108,8 @@ public class MapWidgetSelectionBox extends MapWidget {
         super.onAttached();
         nav_left.setVisible(false);
         nav_right.setVisible(false);
+        nav_left.setClipParent(this.isClipParent());
+        nav_right.setClipParent(this.isClipParent());
         this.addWidget(nav_left);
         this.addWidget(nav_right);
     }

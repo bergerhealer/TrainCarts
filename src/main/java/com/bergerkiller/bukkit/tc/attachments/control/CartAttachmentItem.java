@@ -2,6 +2,8 @@ package com.bergerkiller.bukkit.tc.attachments.control;
 
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -63,6 +65,27 @@ public class CartAttachmentItem extends CartAttachment {
                     attachment.resetIcon();
                 }
             });
+        }
+
+        @Override
+        public void createPositionMenu(PositionMenu.Builder builder) {
+            builder.addRow(1, menu -> new MapWidgetSelectionBox() {
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+
+                    for (ItemTransformType type : ItemTransformType.values()) {
+                        this.addItem(type.toString());
+                    }
+                    this.setSelectedItem(menu.getPositionConfigValue("transform", ItemTransformType.HEAD).toString());
+                }
+
+                @Override
+                public void onSelectedItemChanged() {
+                    menu.updatePositionConfigValue("transform", ItemTransformType.get(getSelectedItem()).name());
+                }
+            }.setBounds(25, 0, menu.getSliderWidth(), 11))
+                    .addLabel(0, 3, "Mode");
         }
     };
 

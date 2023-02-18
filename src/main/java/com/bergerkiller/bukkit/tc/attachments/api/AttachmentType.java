@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 
 /**
  * Methods to implement for an attachment type.
@@ -97,6 +98,16 @@ public interface AttachmentType {
      * @param attachment The attachment node element, which includes attachment configuration
      */
     default void createAppearanceTab(MapWidgetTabView.Tab tab, MapWidgetAttachmentNode attachment) {
+    }
+
+    /**
+     * Called when the position menu is shown for this type of attachment. Additional
+     * rows can be added/inserted into the position menu relevant for this
+     * attachment type.
+     *
+     * @param builder Builder for the position menu
+     */
+    default void createPositionMenu(PositionMenu.Builder builder) {
     }
 
     /**

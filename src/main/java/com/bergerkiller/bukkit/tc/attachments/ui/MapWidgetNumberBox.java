@@ -102,6 +102,8 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
         super.onAttached();
         nav_decr.setVisible(false);
         nav_incr.setVisible(false);
+        nav_decr.setClipParent(this.isClipParent());
+        nav_incr.setClipParent(this.isClipParent());
         this.addWidget(nav_decr);
         this.addWidget(nav_incr);
     }
