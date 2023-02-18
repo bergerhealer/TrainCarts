@@ -136,6 +136,14 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
         }
     }
 
+    /**
+     * Called when the player holds down spacebar to reset the value.
+     * Can be overrided to set a different value than 0.0.
+     */
+    public void onResetValue() {
+        setValue(0.0);
+    }
+
     // 1 -> 2 -> 5 -> 10 -> 20 -> 50 -> 100 etc.
     private static double getExp(int repeat) {
         int a = (repeat / 3);
@@ -294,7 +302,7 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
 
     @Override
     public void onActivate() {
-        this.setValue(0.0);
+        this.onResetValue();
         this.onValueChangeEnd();
     }
 

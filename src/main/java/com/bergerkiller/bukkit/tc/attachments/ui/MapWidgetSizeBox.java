@@ -194,9 +194,8 @@ public abstract class MapWidgetSizeBox extends MapWidget {
         }
 
         @Override
-        public void onActivate() {
-            this.setValue(1.0);
-            this.onValueChangeEnd();
+        public void onResetValue() {
+            setValue(1.0);
         }
 
         @Override
