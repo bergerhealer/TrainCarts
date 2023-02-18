@@ -145,7 +145,7 @@ public interface AttachmentViewer {
 
         PacketPlayOutScoreboardTeamHandle teamPacket = PacketPlayOutScoreboardTeamHandle.createNew();
         teamPacket.setMethod(PacketPlayOutScoreboardTeamHandle.METHOD_ADD);
-        teamPacket.setName("ZZZDisableTCEntityCollision");
+        teamPacket.setName("ZZZTCDisableColl");
         teamPacket.setDisplayName(ChatText.fromMessage("ZZZDisableTCEntityCollision"));
         teamPacket.setPrefix(ChatText.fromMessage(""));
         teamPacket.setSuffix(ChatText.fromMessage(""));
