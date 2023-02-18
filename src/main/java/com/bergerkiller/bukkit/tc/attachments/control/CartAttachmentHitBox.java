@@ -10,6 +10,8 @@ import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.particle.VirtualFishingBoundingBox;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSizeBox;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 import org.bukkit.entity.Player;
 
 /**
@@ -37,9 +39,43 @@ public class CartAttachmentHitBox extends CartAttachment {
         public Attachment createController(ConfigurationNode config) {
             return new CartAttachmentHitBox();
         }
+
+        @Override
+        public void createPositionMenu(PositionMenu.Builder builder) {
+            builder.addRow(menu -> new MapWidgetSizeBox() {
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+
+                    ConfigurationNode size = menu.getAttachment().getConfig().getNode("size");
+                    setSize(size.get("x", 1.0), size.get("y", 1.0), size.get("z", 1.0));
+                }
+
+                @Override
+                public void onSizeChanged() {
+                    menu.updateConfig(config -> {
+                        ConfigurationNode size = config.getNode("size");
+                        size.set("x", x.getValue());
+                        size.set("y", y.getValue());
+                        size.set("z", z.getValue());
+                    });
+                }
+            }.setBounds(25, 0, menu.getSliderWidth(), 35))
+                    .addLabel(0, 3, "Size X")
+                    .addLabel(0, 15, "Size Y")
+                    .addLabel(0, 27, "Size Z")
+                    .setSpacingAbove(3);
+        }
     };
 
+    private final OrientedBoundingBox bbox = new OrientedBoundingBox();
     private Box box = null; // Null if not spawned
+
+    @Override
+    public void onLoad(ConfigurationNode config) {
+        ConfigurationNode size = config.getNode("size");
+        bbox.setSize(size.get("x", 1.0), size.get("y", 1.0), size.get("z", 1.0));
+    }
 
     @Override
     public void makeVisible(Player viewer) {
@@ -72,8 +108,7 @@ public class CartAttachmentHitBox extends CartAttachment {
     @Override
     public void onFocus() {
         if (box == null) {
-            box = new Box();
-            box.updateTransform(this.getTransform());
+            box = new Box(bbox);
             for (AttachmentViewer viewer : this.getAttachmentViewers()) {
                 box.makeVisible(viewer);
             }
@@ -104,9 +139,8 @@ public class CartAttachmentHitBox extends CartAttachment {
 
     @Override
     public void onTransformChanged(Matrix4x4 transform) {
-        if (box != null) {
-            box.updateTransform(transform);
-        }
+        bbox.setPosition(transform.toVector());
+        bbox.setOrientation(transform.getRotation());
     }
 
     @Override
@@ -118,13 +152,11 @@ public class CartAttachmentHitBox extends CartAttachment {
 
     private static class Box {
         public final VirtualFishingBoundingBox entity = new VirtualFishingBoundingBox();
-        public final OrientedBoundingBox bbox = new OrientedBoundingBox();
+        public final OrientedBoundingBox bbox;
         private int tickLastHidden = 0;
 
-        public void updateTransform(Matrix4x4 transform) {
-            bbox.setPosition(transform.toVector());
-            bbox.setOrientation(transform.getRotation());
-            bbox.setSize(2.0, 2.0, 2.0);
+        public Box(OrientedBoundingBox bbox) {
+            this.bbox = bbox;
         }
 
         public void move(Iterable<Player> players) {
