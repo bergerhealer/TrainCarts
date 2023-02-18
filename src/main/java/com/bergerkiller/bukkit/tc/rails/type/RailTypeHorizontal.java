@@ -271,6 +271,9 @@ public abstract class RailTypeHorizontal extends RailType {
 
     @Override
     public BlockFace[] getSignTriggerDirections(Block railBlock, Block signBlock, BlockFace signFacing) {
+        // If sign facing is non-90 non-45 degrees, 'fix' the alignment
+        signFacing = Util.snapFace(signFacing);
+
         RailPiece rail = RailPiece.create(this, railBlock);
         HashSet<BlockFace> watchedFaces = new HashSet<>(4);
         if (FaceUtil.isSubCardinal(signFacing)) {
