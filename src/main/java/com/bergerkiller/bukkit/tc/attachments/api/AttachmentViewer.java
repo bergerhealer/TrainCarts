@@ -1,5 +1,8 @@
 package com.bergerkiller.bukkit.tc.attachments.api;
 
+import com.bergerkiller.bukkit.common.wrappers.ChatText;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutScoreboardTeamHandle;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
@@ -13,6 +16,13 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlay
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityLivingHandle;
 
 import me.m56738.smoothcoasters.api.NetworkInterface;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 /**
  * Represents a Player that views train attachments. Can be used as a
@@ -113,6 +123,49 @@ public interface AttachmentViewer {
     }
 
     /**
+     * Sends a Team packet to this player that disables collision caused by an Entity
+     *
+     * @param entityUUID UUID of the Entity
+     */
+    default void sendDisableCollision(UUID entityUUID) {
+        sendDisableCollision(Collections.singleton(entityUUID));
+    }
+
+    /**
+     * Sends a Team packet to this player that disables collision caused by
+     * a number of entities.
+     *
+     * @param entityUUIDs UUID of the Entities to disable collision for
+     */
+    default void sendDisableCollision(Iterable<UUID> entityUUIDs) {
+        Iterator<UUID> iter = entityUUIDs.iterator();
+        if (!iter.hasNext()) {
+            return;
+        }
+
+        PacketPlayOutScoreboardTeamHandle teamPacket = PacketPlayOutScoreboardTeamHandle.createNew();
+        teamPacket.setMethod(PacketPlayOutScoreboardTeamHandle.METHOD_ADD);
+        teamPacket.setName("ZZZDisableTCEntityCollision");
+        teamPacket.setDisplayName(ChatText.fromMessage("ZZZDisableTCEntityCollision"));
+        teamPacket.setPrefix(ChatText.fromMessage(""));
+        teamPacket.setSuffix(ChatText.fromMessage(""));
+        teamPacket.setVisibility("never");
+        teamPacket.setCollisionRule("never");
+        teamPacket.setTeamOptionFlags(0x3);
+        teamPacket.setColor(ChatColor.RESET);
+
+        int capacity = (entityUUIDs instanceof Collection)
+                ? ((Collection<?>) entityUUIDs).size() : 1;
+        ArrayList<String> names = new ArrayList<>(capacity);
+        do {
+            names.add(iter.next().toString());
+        } while (iter.hasNext());
+        teamPacket.setPlayers(names);
+
+        send(teamPacket);
+    }
+
+    /**
      * Gets whether this viewer is online
      *
      * @return True if online
@@ -200,6 +253,38 @@ public interface AttachmentViewer {
                 } else {
                     return false;
                 }
+            }
+        };
+    }
+
+    /**
+     * Adapts a Player Iterable and calls {@link #fallback(Player)} on every element.
+     *
+     * @param players Player Iterable
+     * @return Iterable of Attachment Viewers
+     */
+    public static Iterable<AttachmentViewer> fallbackIterable(Iterable<Player> players) {
+        return () -> new Iterator<AttachmentViewer>() {
+            private final Iterator<Player> baseIter = players.iterator();
+
+            @Override
+            public boolean hasNext() {
+                return baseIter.hasNext();
+            }
+
+            @Override
+            public AttachmentViewer next() {
+                return fallback(baseIter.next());
+            }
+
+            @Override
+            public void remove() {
+                baseIter.remove();
+            }
+
+            @Override
+            public void forEachRemaining(Consumer<? super AttachmentViewer> action) {
+                baseIter.forEachRemaining(p -> action.accept(fallback(p)));
             }
         };
     }

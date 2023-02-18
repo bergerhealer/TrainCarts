@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.particle;
 
-import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.OptionalInt;
 import java.util.UUID;
 import java.util.stream.IntStream;
@@ -78,6 +79,12 @@ public class VirtualFishingLine {
      * @param positionB End position of the line, a dobber is displayed here
      */
     public void spawnWithoutLine(AttachmentViewer viewer, Vector positionA, Vector positionB) {
+        ArrayList<UUID> uuids = new ArrayList<>(3);
+        spawnWithoutLineCollectUUIDs(viewer, positionA, positionB, uuids);
+        viewer.sendDisableCollision(uuids);
+    }
+
+    void spawnWithoutLineCollectUUIDs(AttachmentViewer viewer, Vector positionA, Vector positionB, List<UUID> uuids) {
         // Spawn the invisible entity that holds the other end of the fishing hook
         // Seems that this must be a player entity, so just spawn clones of the viewer
         if (this.holderPlayerEntityId != -1) {
@@ -94,9 +101,12 @@ public class VirtualFishingLine {
         // This is a vehicle the fake player entity sits in. We must put the player in
         // a vehicle, otherwise the player ends up rotating when moved.
         if (this.holderEntityId != -1) {
+            UUID uuid = UUID.randomUUID();
+            uuids.add(uuid);
+
             PacketPlayOutSpawnEntityLivingHandle spawnPacket = PacketPlayOutSpawnEntityLivingHandle.createNew();
             spawnPacket.setEntityId(this.holderEntityId);
-            spawnPacket.setEntityUUID(UUID.randomUUID());
+            spawnPacket.setEntityUUID(uuid);
             spawnPacket.setEntityType(EntityType.SILVERFISH);
             spawnPacket.setPosX(positionA.getX() + OFFSET_HOLDER.getX());
             spawnPacket.setPosY(positionA.getY() + OFFSET_HOLDER.getY());
@@ -113,9 +123,12 @@ public class VirtualFishingLine {
 
         // Spawn the invisible entity that is hooked by a fishing hook
         {
+            UUID uuid = UUID.randomUUID();
+            uuids.add(uuid);
+
             PacketPlayOutSpawnEntityLivingHandle spawnPacket = PacketPlayOutSpawnEntityLivingHandle.createNew();
             spawnPacket.setEntityId(this.hookedEntityId);
-            spawnPacket.setEntityUUID(UUID.randomUUID());
+            spawnPacket.setEntityUUID(uuid);
             spawnPacket.setEntityType(EntityType.SILVERFISH);
             spawnPacket.setPosX(positionB.getX() + OFFSET_HOOKED.getX());
             spawnPacket.setPosY(positionB.getY() + OFFSET_HOOKED.getY());
@@ -136,24 +149,7 @@ public class VirtualFishingLine {
      * @param positionB End position of the line, a dobber is displayed here
      */
     public void update(Iterable<Player> viewers, Vector positionA, Vector positionB) {
-        updateViewers(new Iterable<AttachmentViewer>() {
-            @Override
-            public Iterator<AttachmentViewer> iterator() {
-                return new Iterator<AttachmentViewer>() {
-                    private final Iterator<Player> baseIter = viewers.iterator();
-
-                    @Override
-                    public boolean hasNext() {
-                        return baseIter.hasNext();
-                    }
-
-                    @Override
-                    public AttachmentViewer next() {
-                        return AttachmentViewer.fallback(baseIter.next());
-                    }
-                };
-            }
-        }, positionA, positionB);
+        updateViewers(AttachmentViewer.fallbackIterable(viewers), positionA, positionB);
     }
 
     /**

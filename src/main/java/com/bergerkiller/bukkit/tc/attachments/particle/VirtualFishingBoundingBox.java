@@ -7,8 +7,10 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Function;
 
 /**
@@ -40,23 +42,25 @@ public class VirtualFishingBoundingBox {
     );
 
     public void spawn(Player viewer, OrientedBoundingBox boundingBox) {
-        ComputedCorners corners = new ComputedCorners(boundingBox);
-        lines.forEach(bboxline -> bboxline.spawn(viewer, corners));
+        spawn(AttachmentViewer.fallback(viewer), boundingBox);
     }
 
     public void spawn(AttachmentViewer viewer, OrientedBoundingBox boundingBox) {
         ComputedCorners corners = new ComputedCorners(boundingBox);
-        lines.forEach(bboxline -> bboxline.spawn(viewer, corners));
+        ArrayList<UUID> uuids = new ArrayList<>(12);
+        lines.forEach(bboxline -> bboxline.spawn(viewer, corners, uuids));
+        viewer.sendDisableCollision(uuids);
     }
 
     public void spawnWithoutLines(AttachmentViewer viewer, OrientedBoundingBox boundingBox) {
         ComputedCorners corners = new ComputedCorners(boundingBox);
-        lines.forEach(bboxline -> bboxline.spawnWithoutLine(viewer, corners));
+        ArrayList<UUID> uuids = new ArrayList<>(12);
+        lines.forEach(bboxline -> bboxline.spawnWithoutLine(viewer, corners, uuids));
+        viewer.sendDisableCollision(uuids);
     }
 
     public void update(Iterable<Player> viewers, OrientedBoundingBox boundingBox) {
-        ComputedCorners corners = new ComputedCorners(boundingBox);
-        lines.forEach(bboxline -> bboxline.update(viewers, corners));
+        this.updateViewers(AttachmentViewer.fallbackIterable(viewers), boundingBox);
     }
 
     public void updateViewers(Iterable<AttachmentViewer> viewers, OrientedBoundingBox boundingBox) {
@@ -140,24 +144,19 @@ public class VirtualFishingBoundingBox {
             this.pos2func = pos2func;
         }
 
-        public void spawn(Player viewer, ComputedCorners corners) {
-            this.spawn(viewer, pos1func.apply(corners), pos2func.apply(corners));
+        public void spawn(AttachmentViewer viewer, ComputedCorners corners, List<UUID> uuids) {
+            Vector p1 = pos1func.apply(corners);
+            Vector p2 = pos2func.apply(corners);
+            this.spawnWithoutLineCollectUUIDs(viewer, p1, p2, uuids);
+            this.spawnLine(viewer, p1, p2);
         }
 
-        public void spawn(AttachmentViewer viewer, ComputedCorners corners) {
-            this.spawn(viewer, pos1func.apply(corners), pos2func.apply(corners));
-        }
-
-        public void spawnWithoutLine(AttachmentViewer viewer, ComputedCorners corners) {
-            this.spawnWithoutLine(viewer, pos1func.apply(corners), pos2func.apply(corners));
+        public void spawnWithoutLine(AttachmentViewer viewer, ComputedCorners corners, List<UUID> uuids) {
+            this.spawnWithoutLineCollectUUIDs(viewer, pos1func.apply(corners), pos2func.apply(corners), uuids);
         }
 
         public void spawnLine(AttachmentViewer viewer, ComputedCorners corners) {
             this.spawnLine(viewer, pos1func.apply(corners), pos2func.apply(corners));
-        }
-
-        public void update(Iterable<Player> viewers, ComputedCorners corners) {
-            this.update(viewers, pos1func.apply(corners), pos2func.apply(corners));
         }
 
         public void updateViewers(Iterable<AttachmentViewer> viewers, ComputedCorners corners) {
