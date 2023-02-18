@@ -23,6 +23,8 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
     private int _changeRepeat = 0;
     private boolean _vertical = false;
     private boolean _alwaysFocused = false;
+    private int _holdEnterProgress = 0;
+    private int _holdEnterMaximum = 15;
     private String _textOverride = null;
     private final MapWidgetArrow nav_decr = new MapWidgetArrow(BlockFace.WEST);
     private final MapWidgetArrow nav_incr = new MapWidgetArrow(BlockFace.EAST);
@@ -144,6 +146,20 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
         setValue(0.0);
     }
 
+    /**
+     * Called when the player holds down spacebar and then presses
+     * one of the arrow keys. Can be used to perform a special transformation.
+     * By default inverts the number (if possible according to range)
+     *
+     * @param key Key pressed while holding spacebar
+     */
+    public void onResetSpecial(MapPlayerInput.Key key) {
+        double newValue = -this.getValue();
+        if (newValue >= this._min && newValue <= this._max) {
+            this.setValue(newValue);
+        }
+    }
+
     // 1 -> 2 -> 5 -> 10 -> 20 -> 50 -> 100 etc.
     private static double getExp(int repeat) {
         int a = (repeat / 3);
@@ -196,9 +212,39 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
     }
 
     @Override
+    public void onKey(MapKeyEvent event) {
+        if (event.getKey() == MapPlayerInput.Key.ENTER) {
+            // Track amount of ticks ENTER was held
+            if (this._holdEnterProgress <= this._holdEnterMaximum) {
+                if (++this._holdEnterProgress == this._holdEnterMaximum) {
+                    this.activate();
+                }
+                this.invalidate();
+            }
+        } else {
+            super.onKey(event);
+        }
+    }
+
+    @Override
     public void onKeyPressed(MapKeyEvent event) {
         this._changeRepeat = event.getRepeat();
-        if (this._vertical) {
+        if (event.getKey() == MapPlayerInput.Key.ENTER) {
+            // Already handled in onKey
+        } else if (this._holdEnterProgress > 0 && this._holdEnterProgress < this._holdEnterMaximum) {
+            switch (event.getKey()) {
+                case UP:
+                case DOWN:
+                case LEFT:
+                case RIGHT:
+                    this.onResetSpecial(event.getKey());
+                    this._holdEnterProgress = this._holdEnterMaximum + 1;
+                    break;
+                default:
+                    super.onKeyPressed(event);
+                    break;
+            }
+        } else if (this._vertical) {
             // Up / Down
             if (event.getKey() == MapPlayerInput.Key.DOWN) {
                 updateArrowFocus(true, false);
@@ -226,7 +272,10 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
     @Override
     public void onKeyReleased(MapKeyEvent event) {
         super.onKeyReleased(event);
-        if (this._vertical) {
+        if (event.getKey() == MapPlayerInput.Key.ENTER) {
+            this._holdEnterProgress = 0;
+            this.invalidate();
+        } else if (this._vertical) {
             // Up / Down
             if (event.getKey() == MapPlayerInput.Key.DOWN) {
                 stopArrowFocus(false);
@@ -281,23 +330,41 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
             text = getValueText();
         }
 
+        int holdEnterProgress = this._holdEnterProgress;
+        if (holdEnterProgress > this._holdEnterMaximum) {
+            holdEnterProgress = 0; // Completed
+        }
+
+        int offset;
         if (this._vertical) {
-            int offset = nav_decr.getHeight() + 1;
+            offset = nav_decr.getHeight() + 1;
 
             MapWidgetButton.fillBackground(this.view.getView(1, offset + 1, getWidth() - 2, getHeight() - 2 * offset - 2), this.isEnabled(), focused);
             this.view.drawRectangle(0, offset, getWidth(), getHeight() - 2 * offset, focused ? MapColorPalette.COLOR_RED : MapColorPalette.COLOR_BLACK);
 
-            this.view.setAlignment(Alignment.MIDDLE);
-            this.view.draw(MapFont.MINECRAFT, getWidth() / 2, (getHeight()-7) / 2, MapColorPalette.COLOR_WHITE, text);
+            // Animate two bars moving from outside to the middle to reset the number
+            if (holdEnterProgress > 0) {
+                int barHeight = (((getHeight() - 2 * offset - 4) * holdEnterProgress) / 2) / this._holdEnterMaximum;
+                this.view.fillRectangle(2, 2 + offset, getWidth() - 4, barHeight, MapColorPalette.COLOR_RED);
+                this.view.fillRectangle(2, getHeight() - offset - barHeight - 2, getWidth() - 4, barHeight, MapColorPalette.COLOR_RED);
+            }
         } else {
-            int offset = nav_decr.getWidth() + 1;
+            offset = nav_decr.getWidth() + 1;
 
             MapWidgetButton.fillBackground(this.view.getView(offset + 1, 1, getWidth() - 2 * offset - 2, getHeight() - 2), this.isEnabled(), focused);
             this.view.drawRectangle(offset, 0, getWidth() - 2 * offset, getHeight(), focused ? MapColorPalette.COLOR_RED : MapColorPalette.COLOR_BLACK);
 
-            this.view.setAlignment(Alignment.MIDDLE);
-            this.view.draw(MapFont.MINECRAFT, getWidth() / 2, (getHeight()-7) / 2, MapColorPalette.COLOR_WHITE, text);
+            // Animate two bars moving from outside to the middle to reset the number
+            if (holdEnterProgress > 0) {
+                int barWidth = (((getWidth() - 2 * offset - 4) * holdEnterProgress) / 2) / this._holdEnterMaximum;
+                this.view.fillRectangle(2 + offset, 2, barWidth, getHeight() - 4, MapColorPalette.COLOR_RED);
+                this.view.fillRectangle(getWidth() - offset - barWidth - 2, 2, barWidth, getHeight() - 4, MapColorPalette.COLOR_RED);
+            }
         }
+
+        // Number information or text
+        this.view.setAlignment(Alignment.MIDDLE);
+        this.view.draw(MapFont.MINECRAFT, getWidth() / 2, (getHeight()-7) / 2, MapColorPalette.COLOR_WHITE, text);
     }
 
     @Override
