@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.ui;
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.utils.DebugUtil;
 
 /**
  * A widget that can contain child widgets, and can be scrolled up/down/left/right.
@@ -18,6 +19,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 public class MapWidgetScroller extends MapWidget {
     private final MapWidget container = new MapWidget();
     private static final boolean isBoundsChangeViewBugged = !Common.hasCapability("Common:MapDisplay:BoundsChangeViewFix");
+    private double scrollSpeed = 0.35;
 
     public MapWidgetScroller() {
         this.container.setClipParent(true);
@@ -25,6 +27,18 @@ public class MapWidgetScroller extends MapWidget {
 
         // Keep container added, but container might lose its children
         this.setRetainChildWidgets(true);
+    }
+
+    /**
+     * Sets the scroll speed. This is the ratio of the amount of pixels scrolled
+     * compared to the requested scroll position
+     *
+     * @param speed Speed ratio. 1 is instant.
+     * @return this scroller widget
+     */
+    public MapWidgetScroller setScrollSpeed(double speed) {
+        this.scrollSpeed = speed;
+        return this;
     }
 
     /**
@@ -123,6 +137,10 @@ public class MapWidgetScroller extends MapWidget {
         }
 
         if (dx != 0 || dy != 0) {
+            // Make scrolling smoother instead of instant
+            dx = smoothenScrollDelta(dx);
+            dy = smoothenScrollDelta(dy);
+
             // Required for older BKCL, where drawn contents get all streaked because the
             // view buffer isn't cleared before being moved.
             if (isBoundsChangeViewBugged) {
@@ -132,6 +150,24 @@ public class MapWidgetScroller extends MapWidget {
             container.setPosition(container.getX() + dx, container.getY() + dy);
             onScrolled();
         }
+    }
+
+    private int smoothenScrollDelta(int delta) {
+        if (delta == 0) {
+            return 0;
+        }
+        boolean negative = (delta < 0);
+        delta = Math.abs(delta);
+        delta = Math.max((int) (delta * scrollSpeed), 1);
+        if (negative) {
+            delta = -delta;
+        }
+        return delta;
+    }
+
+    @Override
+    public void onTick() {
+        scrollIntoView();
     }
 
     /**
