@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.attachments.ui;
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
-import com.bergerkiller.bukkit.common.utils.DebugUtil;
 
 /**
  * A widget that can contain child widgets, and can be scrolled up/down/left/right.
@@ -20,6 +19,7 @@ public class MapWidgetScroller extends MapWidget {
     private final MapWidget container = new MapWidget();
     private static final boolean isBoundsChangeViewBugged = !Common.hasCapability("Common:MapDisplay:BoundsChangeViewFix");
     private double scrollSpeed = 0.35;
+    private int scrollPadding = 0;
 
     public MapWidgetScroller() {
         this.container.setClipParent(true);
@@ -38,6 +38,18 @@ public class MapWidgetScroller extends MapWidget {
      */
     public MapWidgetScroller setScrollSpeed(double speed) {
         this.scrollSpeed = speed;
+        return this;
+    }
+
+    /**
+     * Sets the amount of extra pixels around the focused widget which should be
+     * made visible by scrolling.
+     *
+     * @param padding Pixel padding
+     * @return this scroller widget
+     */
+    public MapWidgetScroller setScrollPadding(int padding) {
+        this.scrollPadding = padding;
         return this;
     }
 
@@ -117,23 +129,64 @@ public class MapWidgetScroller extends MapWidget {
             return;
         }
 
-        int minX = focused.getAbsoluteX() - this.getAbsoluteX();
-        int minY = focused.getAbsoluteY() - this.getAbsoluteY();
-        int maxX = (minX + focused.getWidth()) - this.getWidth();
-        int maxY = (minY + focused.getHeight()) - this.getHeight();
+        // Container dimensions
+        int cMinX = container.getAbsoluteX();
+        int cMinY = container.getAbsoluteY();
+        int cMaxX = cMinX + container.getWidth();
+        int cMaxY = cMinY + container.getHeight();
 
+        // Compute the rectangle that should stay within the window
+        // Include padding, but ignore padding beyond the bounds of the
+        // scroll container.
+        int fMinX = focused.getAbsoluteX();
+        int fMinY = focused.getAbsoluteY();
+        int fMaxX = fMinX + focused.getWidth();
+        int fMaxY = fMinY + focused.getHeight();
+        if (container.getWidth() > this.getWidth()) {
+            fMinX -= scrollPadding;
+            fMaxX += scrollPadding;
+        }
+        if (container.getHeight() > this.getHeight()) {
+            fMinY -= scrollPadding;
+            fMaxY += scrollPadding;
+        }
+        fMinX = Math.max(fMinX, cMinX);
+        fMinY = Math.max(fMinY, cMinY);
+        fMaxX = Math.min(fMaxX, cMaxX);
+        fMaxY = Math.min(fMaxY, cMaxY);
+
+        // Compute the four edges of the focused widget relative to this widget viewport
+        int selfAbsX = this.getAbsoluteX();
+        int selfAbsY = this.getAbsoluteY();
+        int minEdgeX = selfAbsX - fMinX;
+        int minEdgeY = selfAbsY - fMinY;
+        int maxEdgeX = (this.getWidth() - (fMaxX - selfAbsX));
+        int maxEdgeY = (this.getHeight() - (fMaxY - selfAbsY));
+
+        // Compute how much the widget should be moved horizontally
         int dx = 0;
-        if (minX <= 0) {
-            dx = -minX;
-        } else if (maxX > 0) {
-            dx = -maxX;
+        if (minEdgeX > 0 && maxEdgeX < 0) {
+            dx = minEdgeX + maxEdgeX;
+            if (dx == 1 || dx == -1) {
+                dx = 0;
+            }
+        } else if (minEdgeX >= 0) {
+            dx = minEdgeX;
+        } else if (maxEdgeX < 0) {
+            dx = maxEdgeX;
         }
 
+        // Compute how much the widget should be moved vertically
         int dy = 0;
-        if (minY <= 0) {
-            dy = -minY;
-        } else if (maxY > 0) {
-            dy = -maxY;
+        if (minEdgeY > 0 && maxEdgeY < 0) {
+            dy = minEdgeY + maxEdgeY;
+            if (dy == 1 || dy == -1) {
+                dy = 0;
+            }
+        } else if (minEdgeY >= 0) {
+            dy = minEdgeY;
+        } else if (maxEdgeY < 0) {
+            dy = maxEdgeY;
         }
 
         if (dx != 0 || dy != 0) {

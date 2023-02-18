@@ -29,6 +29,7 @@ public class PositionMenu extends MapWidgetMenu {
         this.setBounds(5, 15, 118, 108);
         this.setBackgroundColor(MapColorPalette.COLOR_GREEN);
         this.scroller.setBounds(5, 5, getWidth() - 7, getHeight() - 10);
+        this.scroller.setScrollPadding(20);
         this.addWidget(this.scroller);
     }
 
