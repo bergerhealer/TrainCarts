@@ -1,5 +1,8 @@
 package com.bergerkiller.bukkit.tc.controller.global;
 
+import com.bergerkiller.bukkit.common.Common;
+import com.bergerkiller.bukkit.common.protocol.PlayerGameInfo;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
@@ -14,6 +17,8 @@ import com.bergerkiller.bukkit.tc.utils.CircularFIFOQueueStampedRW;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutCustomPayloadHandle;
 
+import java.util.logging.Level;
+
 /**
  * Efficiently queues up packets and sends them on a dedicated thread.
  * Includes a sync method to wait until sending has completed.
@@ -25,6 +30,7 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlay
 public class PacketQueue implements AttachmentViewer, me.m56738.smoothcoasters.api.NetworkInterface {
     private final Player player;
     private final VehicleMountController vmc; // cached
+    private final GameVersionChecker gameVersionChecker;
     private final CircularFIFOQueue<CommonPacket> queue;
     private volatile Thread thread;
 
@@ -54,6 +60,7 @@ public class PacketQueue implements AttachmentViewer, me.m56738.smoothcoasters.a
     private PacketQueue(Player player) {
         this.player = player;
         this.vmc = PlayerUtil.getVehicleMountController(player);
+        this.gameVersionChecker = createGameVersionChecker(player);
         this.queue = CircularFIFOQueue.forward(this::processPacket);
         this.thread = null;
     }
@@ -61,6 +68,7 @@ public class PacketQueue implements AttachmentViewer, me.m56738.smoothcoasters.a
     private PacketQueue(Player player, CircularFIFOQueue<CommonPacket> queue) {
         this.player = player;
         this.vmc = PlayerUtil.getVehicleMountController(player);
+        this.gameVersionChecker = createGameVersionChecker(player);
         this.queue = queue;
         this.queue.setWakeCallback(this::startProcessingPackets);
         this.thread = null;
@@ -69,6 +77,11 @@ public class PacketQueue implements AttachmentViewer, me.m56738.smoothcoasters.a
     @Override
     public Player getPlayer() {
         return player;
+    }
+
+    @Override
+    public boolean evaluateGameVersion(String operand, String rightSide) {
+        return gameVersionChecker.evaluateVersion(operand, rightSide);
     }
 
     @Override
@@ -177,5 +190,28 @@ public class PacketQueue implements AttachmentViewer, me.m56738.smoothcoasters.a
         public SilentCommonPacket(Object packetHandle, PacketType packetType) {
             super(packetHandle, packetType);
         }
+    }
+
+    @FunctionalInterface
+    private static interface GameVersionChecker {
+        boolean evaluateVersion(String operand, String rightSide);
+    }
+
+    private static boolean HAS_PLAYER_GAME_INFO = Common.hasCapability("Common:PlayerGameInfo");
+
+    private static GameVersionChecker createGameVersionChecker(Player player) {
+        if (HAS_PLAYER_GAME_INFO) {
+            try {
+                return createVersionCheckerBKCLAPI(player);
+            } catch (Throwable t) {
+                TrainCarts.plugin.getLogger().log(Level.SEVERE, "Broken Player Game Info API", t);
+            }
+        }
+
+        return (operand, rightSide) -> PlayerUtil.evaluateGameVersion(player, operand, rightSide);
+    }
+
+    private static GameVersionChecker createVersionCheckerBKCLAPI(Player player) {
+        return PlayerGameInfo.of(player)::evaluateVersion;
     }
 }
