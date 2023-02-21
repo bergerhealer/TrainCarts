@@ -28,6 +28,7 @@ import java.util.logging.Level;
  * Two queues for the same player will be considered equal.
  */
 public class PacketQueue implements AttachmentViewer, me.m56738.smoothcoasters.api.NetworkInterface {
+    private final TrainCarts plugin;
     private final Player player;
     private final VehicleMountController vmc; // cached
     private final GameVersionChecker gameVersionChecker;
@@ -37,11 +38,12 @@ public class PacketQueue implements AttachmentViewer, me.m56738.smoothcoasters.a
     /**
      * Creates a new functional packet queue for a player
      *
-     * @param player
+     * @param plugin Main TrainCarts plugin instance
+     * @param player The Player
      * @return Packet queue
      */
-    public static PacketQueue create(Player player) {
-        return new PacketQueue(player, new CircularFIFOQueueStampedRW<>());
+    public static PacketQueue create(TrainCarts plugin, Player player) {
+        return new PacketQueue(plugin, player, new CircularFIFOQueueStampedRW<>());
     }
 
     /**
@@ -49,15 +51,17 @@ public class PacketQueue implements AttachmentViewer, me.m56738.smoothcoasters.a
      * have gone offline. Simply calls the sendPacket methods directly when
      * send is called.
      *
-     * @param player
+     * @param plugin Main TrainCarts plugin instance
+     * @param player The Player
      * @return No-Op packet queue
      */
-    public static PacketQueue createNoOp(Player player) {
-        return new PacketQueue(player);
+    public static PacketQueue createNoOp(TrainCarts plugin, Player player) {
+        return new PacketQueue(plugin, player);
     }
 
     // No-Op
-    private PacketQueue(Player player) {
+    private PacketQueue(TrainCarts plugin, Player player) {
+        this.plugin = plugin;
         this.player = player;
         this.vmc = PlayerUtil.getVehicleMountController(player);
         this.gameVersionChecker = createGameVersionChecker(player);
@@ -65,13 +69,19 @@ public class PacketQueue implements AttachmentViewer, me.m56738.smoothcoasters.a
         this.thread = null;
     }
 
-    private PacketQueue(Player player, CircularFIFOQueue<CommonPacket> queue) {
+    private PacketQueue(TrainCarts plugin, Player player, CircularFIFOQueue<CommonPacket> queue) {
+        this.plugin = plugin;
         this.player = player;
         this.vmc = PlayerUtil.getVehicleMountController(player);
         this.gameVersionChecker = createGameVersionChecker(player);
         this.queue = queue;
         this.queue.setWakeCallback(this::startProcessingPackets);
         this.thread = null;
+    }
+
+    @Override
+    public TrainCarts getTrainCarts() {
+        return plugin;
     }
 
     @Override

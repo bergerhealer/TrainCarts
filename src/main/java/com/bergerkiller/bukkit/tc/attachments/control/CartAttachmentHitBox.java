@@ -90,6 +90,7 @@ public class CartAttachmentHitBox extends CartAttachment {
     private final OrientedBoundingBox bbox = new OrientedBoundingBox();
     private final Set<Player> nearbyViewers = new HashSet<>();
     private int hitboxEntityId = EntityUtil.getUniqueEntityId();
+    private final UUID hitboxEntityUUID = UUID.randomUUID();
     private Box box = null; // Null if not spawned
     private SizeMode sizeMode = SizeMode.SMALLEST;
 
@@ -272,9 +273,8 @@ public class CartAttachmentHitBox extends CartAttachment {
             // spawn an invisible entity whose hitbox the player can hit
             // The entity is positioned in such a way the player hits it from that POV
             PacketPlayOutSpawnEntityLivingHandle packet = PacketPlayOutSpawnEntityLivingHandle.createNew();
-            UUID uuid = UUID.randomUUID();
             packet.setEntityId(hitboxEntityId);
-            packet.setEntityUUID(uuid);
+            packet.setEntityUUID(hitboxEntityUUID);
             packet.setEntityType(sizeMode.type);
             packet.setPosX(pos.getX());
             packet.setPosY(pos.getY());
@@ -287,7 +287,7 @@ public class CartAttachmentHitBox extends CartAttachment {
 
             viewer.sendEntityLivingSpawnPacket(packet, meta);
 
-            viewer.sendDisableCollision(uuid);
+            viewer.sendDisableCollision(hitboxEntityUUID);
         } else {
             // Update
             PacketPlayOutEntityTeleportHandle packet = PacketPlayOutEntityTeleportHandle.createNew(

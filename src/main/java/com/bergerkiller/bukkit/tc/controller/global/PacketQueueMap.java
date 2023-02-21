@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.controller.global;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.collections.FastIdentityHashMap;
@@ -12,8 +13,13 @@ import com.bergerkiller.bukkit.common.collections.FastIdentityHashMap;
  * Automatically purges the queues when players log off.
  */
 public class PacketQueueMap {
+    private final TrainCarts plugin;
     private final FastIdentityHashMap<Player, PacketQueue> queues = new FastIdentityHashMap<>();
     private final List<PacketQueue> queuesList = new ArrayList<>();
+
+    public PacketQueueMap(TrainCarts plugin) {
+        this.plugin = plugin;
+    }
 
     /**
      * Gets the PacketQueue to be used for sending packets to a Player
@@ -25,11 +31,11 @@ public class PacketQueueMap {
         PacketQueue queue = queues.get(player);
         if (queue == null) {
             if (player.isOnline()) {
-                queue = PacketQueue.create(player);
+                queue = PacketQueue.create(plugin, player);
                 queues.put(player, queue);
                 queuesList.add(queue);
             } else {
-                queue = PacketQueue.createNoOp(player);
+                queue = PacketQueue.createNoOp(plugin, player);
             }
         }
         return queue;

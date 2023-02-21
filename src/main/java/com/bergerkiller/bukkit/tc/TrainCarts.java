@@ -21,6 +21,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentLight;
 import com.bergerkiller.bukkit.tc.attachments.control.GlowColorTeamProvider;
 import com.bergerkiller.bukkit.tc.attachments.control.SeatAttachmentMap;
+import com.bergerkiller.bukkit.tc.attachments.control.TeamProvider;
 import com.bergerkiller.bukkit.tc.attachments.ui.models.ResourcePackModelListing;
 import com.bergerkiller.bukkit.tc.chest.TrainChestListener;
 import com.bergerkiller.bukkit.tc.commands.Commands;
@@ -97,7 +98,7 @@ public class TrainCarts extends PluginBase {
     private final SpawnSignManager spawnSignManager = new SpawnSignManager(this);
     private SavedTrainPropertiesStore savedTrainsStore;
     private SeatAttachmentMap seatAttachmentMap;
-    private GlowColorTeamProvider glowColorTeamProvider;
+    private TeamProvider teamProvider;
     private PathProvider pathProvider;
     private RouteManager routeManager;
     private TrainLocator trainLocator;
@@ -105,7 +106,7 @@ public class TrainCarts extends PluginBase {
     private final TCSelectorHandlerRegistry selectorHandlerRegistry = new TCSelectorHandlerRegistry(this);
     private final OfflineSignStore offlineSignStore = new OfflineSignStore(this);
     private final SignController signController = new SignController(this);
-    private final PacketQueueMap packetQueueMap = new PacketQueueMap();
+    private final PacketQueueMap packetQueueMap = new PacketQueueMap(this);
     private ResourcePackModelListing modelListing = new ResourcePackModelListing(); // Uninitialized
     private Economy econ = null;
     private boolean isTabPluginEnabled = false;
@@ -129,7 +130,17 @@ public class TrainCarts extends PluginBase {
      * @return glow color team provider
      */
     public GlowColorTeamProvider getGlowColorTeamProvider() {
-        return this.glowColorTeamProvider;
+        return this.teamProvider.glowColors();
+    }
+
+    /**
+     * Gets a helper class for assigning (fake) entities to teams to change their glowing effect
+     * color or their collision behavior.
+     *
+     * @return team provider
+     */
+    public TeamProvider getTeamProvider() {
+        return this.teamProvider;
     }
 
     /**
@@ -642,8 +653,8 @@ public class TrainCarts extends PluginBase {
         this.offlineSignStore.enable();
 
         //Initialize entity glow color provider
-        this.glowColorTeamProvider = new GlowColorTeamProvider(this);
-        this.glowColorTeamProvider.enable();
+        this.teamProvider = new TeamProvider(this);
+        this.teamProvider.enable();
 
         //Initialize train locator manager
         this.trainLocator = new TrainLocator();
@@ -902,8 +913,8 @@ public class TrainCarts extends PluginBase {
         // Now plugin is mostly shut down, de-register all MinecartMember controllers from the server
         undoAllTCControllers();
 
-        this.glowColorTeamProvider.disable();
-        this.glowColorTeamProvider = null;
+        this.teamProvider.disable();
+        this.teamProvider = null;
 
         this.trainLocator.disable();
         this.trainLocator = null;

@@ -47,14 +47,14 @@ public class VirtualFishingBoundingBox {
 
     public void spawn(AttachmentViewer viewer, OrientedBoundingBox boundingBox) {
         ComputedCorners corners = new ComputedCorners(boundingBox);
-        ArrayList<UUID> uuids = new ArrayList<>(12);
+        ArrayList<UUID> uuids = new ArrayList<>(24);
         lines.forEach(bboxline -> bboxline.spawn(viewer, corners, uuids));
         viewer.sendDisableCollision(uuids);
     }
 
     public void spawnWithoutLines(AttachmentViewer viewer, OrientedBoundingBox boundingBox) {
         ComputedCorners corners = new ComputedCorners(boundingBox);
-        ArrayList<UUID> uuids = new ArrayList<>(12);
+        ArrayList<UUID> uuids = new ArrayList<>(24);
         lines.forEach(bboxline -> bboxline.spawnWithoutLine(viewer, corners, uuids));
         viewer.sendDisableCollision(uuids);
     }

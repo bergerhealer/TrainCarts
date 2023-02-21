@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.api;
 
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutScoreboardTeamHandle;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -39,6 +40,13 @@ public interface AttachmentViewer {
      * @return player
      */
     Player getPlayer();
+
+    /**
+     * Gets access to the TrainCarts main plugin instance
+     *
+     * @return TrainCarts plugin instance
+     */
+    TrainCarts getTrainCarts();
 
     /**
      * Gets the Vehicle Mount Controller of this viewer. This is used to
@@ -128,7 +136,7 @@ public interface AttachmentViewer {
      * @param entityUUID UUID of the Entity
      */
     default void sendDisableCollision(UUID entityUUID) {
-        sendDisableCollision(Collections.singleton(entityUUID));
+        getTrainCarts().getTeamProvider().noCollisionTeam().join(this, entityUUID);
     }
 
     /**
@@ -138,31 +146,7 @@ public interface AttachmentViewer {
      * @param entityUUIDs UUID of the Entities to disable collision for
      */
     default void sendDisableCollision(Iterable<UUID> entityUUIDs) {
-        Iterator<UUID> iter = entityUUIDs.iterator();
-        if (!iter.hasNext()) {
-            return;
-        }
-
-        PacketPlayOutScoreboardTeamHandle teamPacket = PacketPlayOutScoreboardTeamHandle.createNew();
-        teamPacket.setMethod(PacketPlayOutScoreboardTeamHandle.METHOD_ADD);
-        teamPacket.setName("ZZZTCDisableColl");
-        teamPacket.setDisplayName(ChatText.fromMessage("ZZZDisableTCEntityCollision"));
-        teamPacket.setPrefix(ChatText.fromMessage(""));
-        teamPacket.setSuffix(ChatText.fromMessage(""));
-        teamPacket.setVisibility("never");
-        teamPacket.setCollisionRule("never");
-        teamPacket.setTeamOptionFlags(0x3);
-        teamPacket.setColor(ChatColor.RESET);
-
-        int capacity = (entityUUIDs instanceof Collection)
-                ? ((Collection<?>) entityUUIDs).size() : 1;
-        ArrayList<String> names = new ArrayList<>(capacity);
-        do {
-            names.add(iter.next().toString());
-        } while (iter.hasNext());
-        teamPacket.setPlayers(names);
-
-        send(teamPacket);
+        getTrainCarts().getTeamProvider().noCollisionTeam().join(this, entityUUIDs);
     }
 
     /**
@@ -204,6 +188,11 @@ public interface AttachmentViewer {
      */
     public static AttachmentViewer fallback(final Player player) {
         return new AttachmentViewer() {
+            @Override
+            public TrainCarts getTrainCarts() {
+                return TrainCarts.plugin;
+            }
+
             @Override
             public Player getPlayer() {
                 return player;
