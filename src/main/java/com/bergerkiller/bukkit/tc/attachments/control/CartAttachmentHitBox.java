@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
@@ -92,6 +93,7 @@ public class CartAttachmentHitBox extends CartAttachment {
     private int hitboxEntityId = EntityUtil.getUniqueEntityId();
     private final UUID hitboxEntityUUID = UUID.randomUUID();
     private Box box = null; // Null if not spawned
+    private double heightOffset = 0.0;
     private SizeMode sizeMode = SizeMode.SMALLEST;
 
     @Override
@@ -101,6 +103,7 @@ public class CartAttachmentHitBox extends CartAttachment {
                                  sizeCfg.get("y", 1.0),
                                  sizeCfg.get("z", 1.0));
         bbox.setSize(size);
+        heightOffset = 0.5 * size.getY();
 
         // Compute the new size mode based on this size
         SizeMode newSizeMode = SizeMode.fromSize(Math.min(Math.min(size.getX(), size.getY()), size.getZ()));
@@ -247,8 +250,9 @@ public class CartAttachmentHitBox extends CartAttachment {
 
     @Override
     public void onTransformChanged(Matrix4x4 transform) {
-        bbox.setPosition(transform.toVector());
-        bbox.setOrientation(transform.getRotation());
+        Quaternion orientation = transform.getRotation();
+        bbox.setPosition(transform.toVector().add(orientation.upVector().multiply(heightOffset)));
+        bbox.setOrientation(orientation);
     }
 
     @Override
