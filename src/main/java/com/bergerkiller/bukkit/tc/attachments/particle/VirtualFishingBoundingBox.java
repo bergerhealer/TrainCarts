@@ -120,7 +120,7 @@ public class VirtualFishingBoundingBox {
             orientation.transformPoint(this.top_px_pz);
             orientation.transformPoint(this.top_nx_pz);
 
-            // Add postion offset to all
+            // Add position offset to all
             Vector offset = boundingBox.getPosition();
             this.btm_nx_nz.add(offset);
             this.btm_px_nz.add(offset);
