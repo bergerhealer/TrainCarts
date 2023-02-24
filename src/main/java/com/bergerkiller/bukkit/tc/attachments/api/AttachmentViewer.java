@@ -32,7 +32,7 @@ import java.util.function.Consumer;
  * <br>
  * Includes optimized methods of sending (many) packets to the viewer.
  */
-public interface AttachmentViewer {
+public interface AttachmentViewer extends TrainCarts.Provider {
 
     /**
      * Gets the Player this viewer is
@@ -41,11 +41,7 @@ public interface AttachmentViewer {
      */
     Player getPlayer();
 
-    /**
-     * Gets access to the TrainCarts main plugin instance
-     *
-     * @return TrainCarts plugin instance
-     */
+    @Override
     TrainCarts getTrainCarts();
 
     /**

@@ -17,6 +17,10 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 
+/**
+ * The configuration and properties of a single Cart attachment model.
+ * Everything configurable in the attachment editor is described here.
+ */
 public class AttachmentModel {
     private final AttachmentTypeRegistry registry;
     private final ConfigurationNode config;
@@ -50,7 +54,7 @@ public class AttachmentModel {
 
     /**
      * Gets the configuration for a single node in the model.
-     * If node node is found at this path, null is returned.
+     * If no node is found at this path, null is returned.
      * 
      * @param targetPath of the node
      * @return node configuration
