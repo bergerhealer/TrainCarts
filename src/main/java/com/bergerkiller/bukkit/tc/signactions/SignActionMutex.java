@@ -7,8 +7,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexSignMetadata;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
-
-import net.md_5.bungee.api.ChatColor;
+import org.bukkit.ChatColor;
 
 /**
  * Defines zones where only one train is allowed at one time.
