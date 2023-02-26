@@ -195,7 +195,7 @@ public class TrainCommands {
             final @Flag(value="force", description="Force saving when the train is claimed by someone else") boolean force,
             final @Flag(value="lockorientation",
                         description="Locks the current forward direction of the train so future saves use it") boolean lockOrientation,
-            final @Flag(value="module", description="Module to move the saved train to") String module
+            final @Flag(value="module", description="Module to move the saved train to", suggestions="savedtrainmodules") String module
     ) {
         if (!Commands.checkSavePermissions(plugin, sender, name, force)) {
             return;

@@ -309,7 +309,7 @@ public class GlobalCommands {
             TrainProperties.loadDefaults(traincarts);
         }
         if (savedTrainproperties) {
-            traincarts.loadSavedTrains();
+            traincarts.getSavedTrains().reload();
         }
         sender.sendMessage(ChatColor.YELLOW + "Configuration has been reloaded!");
     }

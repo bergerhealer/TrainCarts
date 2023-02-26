@@ -508,12 +508,6 @@ public class TrainCarts extends PluginBase {
         this.modelListing.load(TCConfig.resourcePack);
     }
 
-    public void loadSavedTrains() {
-        this.savedTrainsStore = SavedTrainPropertiesStore.create(this,
-                getDataFolder() + File.separator + "SavedTrainProperties.yml",
-                getDataFolder() + File.separator + "savedTrainModules");
-    }
-
     @Override
     public void updateDependency(Plugin plugin, String pluginName, boolean enabled) {
         TCPortalManager.updateProviders(pluginName, plugin, enabled);
@@ -696,7 +690,9 @@ public class TrainCarts extends PluginBase {
         TicketStore.load(this);
 
         //Load saved trains
-        loadSavedTrains();
+        this.savedTrainsStore = SavedTrainPropertiesStore.create(this,
+                "SavedTrainProperties.yml",
+                "savedTrainModules");
 
         //Load groups
         OfflineGroupManager.init(this, getDataFolder() + File.separator + "trains.groupdata");

@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import com.bergerkiller.bukkit.tc.utils.modularconfiguration.ModularConfigurationEntry;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -24,18 +25,18 @@ import com.bergerkiller.bukkit.tc.properties.standard.type.CartLockOrientation;
  * Wraps a saved train configuration
  */
 public class SavedTrainProperties {
-    private final SavedTrainPropertiesStore module;
-    private final String name;
-    private final ConfigurationNode config;
+    private final ModularConfigurationEntry<SavedTrainProperties> entry;
 
-    private SavedTrainProperties(SavedTrainPropertiesStore module, String name, ConfigurationNode config) {
-        this.module = module;
-        this.name = name;
-        this.config = config;
+    SavedTrainProperties(ModularConfigurationEntry<SavedTrainProperties> entry) {
+        this.entry = entry;
     }
 
     public SavedTrainPropertiesStore getModule() {
-        return this.module;
+        if (entry.isRemoved()) {
+            return null;
+        } else {
+            return SavedTrainPropertiesStore.createModule(entry.getModule());
+        }
     }
 
     /**
@@ -46,15 +47,15 @@ public class SavedTrainProperties {
      * @return True if these properties do not yet exist
      */
     public boolean isNone() {
-        return this.module == null && this.config == null;
+        return entry.isRemoved();
     }
 
     public String getName() {
-        return this.name;
+        return entry.getName();
     }
 
     public ConfigurationNode getConfig() {
-        return this.config;
+        return entry.getConfig();
     }
 
     /**
@@ -65,7 +66,7 @@ public class SavedTrainProperties {
      * @return True if empty
      */
     public boolean isEmpty() {
-        return this.config == null || !this.config.contains("carts");
+        return entry.isRemoved() || !entry.getConfig().contains("carts");
     }
 
     /**
@@ -73,15 +74,14 @@ public class SavedTrainProperties {
      * for each cart.
      */
     public void reverse() {
-        if (config == null || !config.contains("carts")) {
+        if (isEmpty()) {
             return;
         }
 
-        List<ConfigurationNode> carts = config.getNodeList("carts");
+        List<ConfigurationNode> carts = entry.getConfig().getNodeList("carts");
         carts.forEach(StandardProperties::reverseSavedCart);
         Collections.reverse(carts);
-        config.setNodeList("carts", carts);
-        module.changed = true;
+        entry.getConfig().setNodeList("carts", carts);
     }
 
     /**
@@ -91,11 +91,11 @@ public class SavedTrainProperties {
      * @param locked
      */
     public void setOrientationLocked(boolean locked) {
-        if (config == null || !config.contains("carts")) {
+        if (isEmpty()) {
             return;
         }
 
-        List<ConfigurationNode> carts = config.getNodeList("carts");
+        List<ConfigurationNode> carts = entry.getConfig().getNodeList("carts");
         for (ConfigurationNode cart : carts) {
             if (locked) {
                 StandardProperties.LOCK_ORIENTATION_FLIPPED.writeToConfig(cart,
@@ -104,8 +104,7 @@ public class SavedTrainProperties {
                 StandardProperties.LOCK_ORIENTATION_FLIPPED.writeToConfig(cart, Optional.empty());
             }
         }
-        config.setNodeList("carts", carts);
-        module.changed = true;
+        entry.getConfig().setNodeList("carts", carts);
     }
 
     /**
@@ -115,8 +114,8 @@ public class SavedTrainProperties {
      * @return set of claims, unmodifiable
      */
     public Set<SavedTrainPropertiesStore.Claim> getClaims() {
-        if (config != null && config.contains("claims")) {
-            List<String> claim_strings = config.getList("claims", String.class);
+        if (!entry.isRemoved() && entry.getConfig().contains("claims")) {
+            List<String> claim_strings = entry.getConfig().getList("claims", String.class);
             if (claim_strings != null && !claim_strings.isEmpty()) {
                 Set<SavedTrainPropertiesStore.Claim> claims = new HashSet<>(claim_strings.size());
                 for (String claim_str : claim_strings) {
@@ -138,23 +137,20 @@ public class SavedTrainProperties {
      * @param claims New claims to set, value is not stored
      */
     public void setClaims(Collection<SavedTrainPropertiesStore.Claim> claims) {
-        if (config == null) {
+        if (entry.isRemoved()) {
             return;
         }
 
         // Update configuration
         if (claims.isEmpty()) {
-            config.remove("claims");
+            entry.getConfig().remove("claims");
         } else {
             List<String> claim_strings = new ArrayList<String>(claims.size());
             for (Claim claim : claims) {
                 claim_strings.add(claim.toString());
             }
-            config.set("claims", claim_strings);
+            entry.getConfig().set("claims", claim_strings);
         }
-
-        // Mark changed
-        module.changed = true;
     }
 
     /**
@@ -186,8 +182,8 @@ public class SavedTrainProperties {
     }
 
     public List<ConfigurationNode> getCarts() {
-        if (config.isNode("carts")) {
-            return config.getNodeList("carts");
+        if (entry.getConfig().isNode("carts")) {
+            return entry.getConfig().getNodeList("carts");
         }
         return Collections.emptyList();
     }
@@ -231,28 +227,5 @@ public class SavedTrainProperties {
             }
         }
         return count;
-    }
-
-    /**
-     * Creates the SavedTrainProperties viewing the configuration specified
-     * 
-     * @param module The store in which these properties are stored
-     * @param name Saved train name
-     * @param config Saved train configuration
-     * @return saved train properties
-     */
-    public static SavedTrainProperties of(SavedTrainPropertiesStore module, String name, ConfigurationNode config) {
-        return new SavedTrainProperties(module, name, config);
-    }
-
-    /**
-     * Creates new SavedTrainProperties that refers to missing properties.
-     * This is used when referencing a saved train by name before one is created.
-     *
-     * @param name Saved train name
-     * @return saved train properties
-     */
-    public static SavedTrainProperties none(String name) {
-        return new SavedTrainProperties(null, name, null);
     }
 }

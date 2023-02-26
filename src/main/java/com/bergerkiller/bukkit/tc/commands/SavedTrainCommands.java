@@ -693,12 +693,8 @@ public class SavedTrainCommands {
             }
 
             inputQueue.remove();
-            SavedTrainProperties properties = plugin.getSavedTrains().getProperties(input);
-            if (properties != null) {
-                return ArgumentParseResult.success(properties);
-            } else {
-                return ArgumentParseResult.success(SavedTrainProperties.none(input));
-            }
+
+            return ArgumentParseResult.success(plugin.getSavedTrains().getPropertiesOrNone(input));
         }
 
         @Override
