@@ -260,26 +260,6 @@ public class DebugCommands {
         });
     }
 
-    // There's no possibly way people still need this in 2022
-    /*
-    @Hidden
-    @CommandRequiresPermission(Permission.COMMAND_UPGRADESAVED)
-    @CommandMethod("train debug upgradesavedtrains")
-    @CommandDescription("Upgrades all saved train properties to correct for position changes during v1.12.2")
-    private void commandUpgradeSavedTrains(
-            final CommandSender sender,
-            final TrainCarts plugin,
-            final @Flag("undo") boolean undo
-    ) {
-        plugin.getSavedTrains().upgradeSavedTrains(undo);
-        if (undo) {
-            sender.sendMessage(ChatColor.YELLOW + "All saved trains have been restored to use the old position calibration of Traincarts v1.12.2-v2 (UNDO)");
-        } else {
-            sender.sendMessage(ChatColor.YELLOW + "All saved trains have been upgraded to use the new position calibration of Traincarts v1.12.2-v3");
-        }
-    }
-    */
-
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
     @CommandMethod("train debug pvc fly")
     private void commandTestFlight(final Player player, final TrainCarts plugin) {
