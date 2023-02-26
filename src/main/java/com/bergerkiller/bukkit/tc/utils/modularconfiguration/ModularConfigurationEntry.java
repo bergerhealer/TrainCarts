@@ -185,7 +185,7 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
                 setModule(module);
             }
 
-            config.setTo(config);
+            this.config.setTo(config);
             this.main.postProcessEntryConfiguration(this);
         }
     }
@@ -338,7 +338,7 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
         }
 
         try (ChangeTracker t = makeChanges()) {
-            targetEntry.config.setTo(this.getConfig());
+            targetEntry.config.setTo(this.config);
             this.main.postProcessEntryConfiguration(targetEntry);
         }
     }
