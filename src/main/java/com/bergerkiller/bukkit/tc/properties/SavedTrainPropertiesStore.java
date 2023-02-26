@@ -55,12 +55,12 @@ public class SavedTrainPropertiesStore implements TrainCarts.Provider {
         this.traincarts = traincarts;
         this.savedTrainsConfig = new FileConfiguration(filename);
         this.savedTrainsConfig.load();
+        renameTrainsBeginningWithDigits(this.savedTrainsConfig);
+        storeSavedNameInConfig(this.savedTrainsConfig);
+
         this.name = name;
         this.names.addAll(this.savedTrainsConfig.getKeys());
         this.allowModules = allowModules;
-
-        renameTrainsBeginningWithDigits();
-        storeSavedNameInConfig();
     }
 
     @Override
@@ -539,44 +539,33 @@ public class SavedTrainPropertiesStore implements TrainCarts.Provider {
         return result;
     }
 
-    private void renameTrainsBeginningWithDigits() {
+    private void renameTrainsBeginningWithDigits(ConfigurationNode savedTrainsConfig) {
         // Rename trains starting with a number, as this breaks things
-        ListIterator<String> iter = this.names.listIterator();
-        while (iter.hasNext()) {
-            String name = iter.next();
-            if (!this.savedTrainsConfig.isNode(name)) {
-                iter.remove();
-                continue;
-            }
+        for (ConfigurationNode config : new ArrayList<>(savedTrainsConfig.getNodes())) {
+            String name = config.getName();
             if (!name.isEmpty() && !Character.isDigit(name.charAt(0))) {
                 continue;
             }
 
             String new_name = "t" + name;
-            for (int i = 1; names.contains(new_name); i++) {
+            for (int i = 1; savedTrainsConfig.contains(new_name); i++) {
                 new_name = "t" + name + i;
             }
 
             traincarts.log(Level.WARNING, "Train name '"  + name + "' starts with a digit, renamed to " + new_name);
-            iter.set(new_name);
-
-            {
-                ConfigurationNode newConfig = this.savedTrainsConfig.getNode(name).clone();
-                newConfig.set(KEY_SAVED_NAME, new_name);
-                this.savedTrainsConfig.set(new_name, newConfig);
-            }
-
-            this.savedTrainsConfig.remove(name);
+            config.set(KEY_SAVED_NAME, new_name);
+            config.remove();
+            savedTrainsConfig.set(new_name, config);
             this.changed = true;
         }
     }
 
-    private void storeSavedNameInConfig() {
+    private void storeSavedNameInConfig(ConfigurationNode savedTrainsConfig) {
         // Stores the key of each saved train node in the configuration itself
         // This is done automatically, so this is a migration method to update old config
         // If people change this field, revert that and log a warning
         boolean logSavedNameFieldWarning = false;
-        for (ConfigurationNode config : this.savedTrainsConfig.getNodes()) {
+        for (ConfigurationNode config : savedTrainsConfig.getNodes()) {
             if (!config.contains(KEY_SAVED_NAME)) {
                 config.set(KEY_SAVED_NAME, config.getName());
                 continue;
