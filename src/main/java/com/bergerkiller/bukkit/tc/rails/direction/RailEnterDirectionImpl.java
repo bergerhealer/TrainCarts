@@ -68,6 +68,15 @@ class RailEnterDirectionImpl {
         DIRECTION_BY_NAME.put("", a -> NONE);
     }
 
+    /**
+     * Parses all directions using a text description and the (sign) forward-facing information.
+     *
+     * @param rail Rail piece information
+     * @param forwardDirection Forward direction of the sign relative to which "left" and such are solved.
+     *                         Supports all cardinal directions including sub-cardinal ones like north-west.
+     * @param text Input text to parse
+     * @return Parsed rail enter directions
+     */
     public static RailEnterDirection[] parseAll(RailPiece rail, BlockFace forwardDirection, String text) {
         // Important to replace north-north-west and such with the closest 45-degree angle
         forwardDirection = Util.snapFace(forwardDirection);
@@ -180,14 +189,15 @@ class RailEnterDirectionImpl {
                 for (int ch_idx = 0; ch_idx < len; ch_idx++) {
                     Direction ch_dir = DIRECTION_BY_CHAR.get(token.text.charAt(ch_idx));
                     if (ch_dir != null) {
-                        RailEnterDirection enterDir = RailEnterDirectionToFace.fromFace(ch_dir.getDirection(forwardDirection));
-                        if (first) {
-                            first = false;
-                            token.direction = enterDir;
-                        } else {
-                            // Add one element after
-                            // Note: next() will skip this newly inserted element
-                            iter.add(new DirectionToken(enterDir));
+                        for (RailEnterDirection enterDir : RailEnterDirectionToFace.arrayFromFace(ch_dir.getDirection(forwardDirection))) {
+                            if (first) {
+                                first = false;
+                                token.direction = enterDir;
+                            } else {
+                                // Add one element after
+                                // Note: next() will skip this newly inserted element
+                                iter.add(new DirectionToken(enterDir));
+                            }
                         }
                     }
                 }

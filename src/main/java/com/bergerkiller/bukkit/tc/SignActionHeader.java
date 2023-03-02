@@ -293,7 +293,8 @@ public class SignActionHeader {
      * Gets the rail-enter directions that activate the sign
      *
      * @param rail Rail to resolve junction names
-     * @param forwardDirection Forward direction relative to which left/right/etc. directions are resolved
+     * @param forwardDirection Forward direction relative to which left/right/etc. directions are resolved.
+     *                         Supports all cardinal directions including sub-cardinal ones like north-west.
      * @return RailEnterDirection array, or null if {@link #hasEnterDirections()} returns false
      */
     public RailEnterDirection[] getEnterDirections(RailPiece rail, BlockFace forwardDirection) {

@@ -54,7 +54,8 @@ public interface RailEnterDirection {
      * block face. This is the opposite face of the block face first hit/entered
      * by the train. Or more generally, the face towards which the train is moving.
      *
-     * @param face Face towards which is moved / opposite face entered
+     * @param face Face towards which is moved / opposite face entered. Must be one of
+     *             NORTH/EAST/SOUTH?WEST/UP/DOWN.
      * @return RailEnterDirection for moving towards this face
      */
     public static RailEnterDirection toFace(BlockFace face) {
@@ -93,7 +94,8 @@ public interface RailEnterDirection {
      * Parses the input text into an array of rail enter directions it represents
      *
      * @param rail Rail Piece to decode Junctions of
-     * @param forwardDirection Absolute sign forward-direction. Left/right/etc. are relative to this.
+     * @param forwardDirection Forward direction of the sign relative to which "left" and such are solved.
+     *                         Supports all cardinal directions including sub-cardinal ones like north-west.
      * @param text Text to parse
      * @return Array of rail enter directions represented in the order they are declared
      */

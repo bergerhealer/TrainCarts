@@ -1,8 +1,10 @@
 package com.bergerkiller.bukkit.tc.rails.direction;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.Locale;
 
+import com.bergerkiller.bukkit.tc.Util;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
@@ -25,6 +27,17 @@ public final class RailEnterDirectionToFace implements RailEnterDirection {
             RailEnterDirectionToFace re = new RailEnterDirectionToFace(face);
             byFace.put(face, re);
             arrByFace.put(face, new RailEnterDirection[] { re });
+        }
+
+        // Add sub-cardinal faces to arrByFace
+        for (BlockFace face : BlockFace.values()) {
+            if (face.getModX() != 0 && face.getModZ() != 0) {
+                ArrayList<RailEnterDirection> values = new ArrayList<>(2);
+                for (BlockFace blockFace : FaceUtil.getFaces(Util.snapFace(face))) {
+                    values.add(fromFace(blockFace));
+                }
+                arrByFace.put(face, values.toArray(new RailEnterDirection[values.size()]));
+            }
         }
     }
 

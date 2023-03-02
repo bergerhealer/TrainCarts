@@ -956,9 +956,10 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
             if (this.sign.getHeader().hasEnterDirections()) {
                 // From first line header ([train:left] -> blockface[] for left)
                 this.enterDirections = this.sign.getHeader().getEnterDirections(
-                        this.getRailPiece(), Util.snapFace(this.getFacing().getOppositeFace()));
+                        this.getRailPiece(), this.getFacing().getOppositeFace());
             } else if (TCConfig.trainsCheckSignFacing) {
                 // Ask rails, the RailType NONE also handled this function, so no NPE here
+                // Each face must be one of NORTH/EAST/SOUTH?WEST/UP/DOWN.
                 BlockFace[] faces = this.getRailPiece().type().getSignTriggerDirections(
                         this.getRailPiece().block(), this.getBlock(), this.getFacing());
                 this.enterDirections = new RailEnterDirection[faces.length];
@@ -1022,7 +1023,7 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
     /**
      * Checks if a given BlockFace direction is watched by this sign
      *
-     * @param direction to check
+     * @param direction to check. Must be one of NORTH/EAST/SOUTH?WEST/UP/DOWN.
      * @return True if watched, False otherwise
      */
     public boolean isWatchedDirection(BlockFace direction) {
