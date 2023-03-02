@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.rails.direction;
 
 import com.bergerkiller.bukkit.tc.Direction;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 
@@ -68,6 +69,9 @@ class RailEnterDirectionImpl {
     }
 
     public static RailEnterDirection[] parseAll(RailPiece rail, BlockFace forwardDirection, String text) {
+        // Important to replace north-north-west and such with the closest 45-degree angle
+        forwardDirection = Util.snapFace(forwardDirection);
+
         // Try to use the map first without doing any toLowerCase stuff
         // People really should just never be using mixed uppercase characters...
         {

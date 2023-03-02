@@ -956,7 +956,7 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
             if (this.sign.getHeader().hasEnterDirections()) {
                 // From first line header ([train:left] -> blockface[] for left)
                 this.enterDirections = this.sign.getHeader().getEnterDirections(
-                        this.getRailPiece(), this.getFacing().getOppositeFace());
+                        this.getRailPiece(), Util.snapFace(this.getFacing().getOppositeFace()));
             } else if (TCConfig.trainsCheckSignFacing) {
                 // Ask rails, the RailType NONE also handled this function, so no NPE here
                 BlockFace[] faces = this.getRailPiece().type().getSignTriggerDirections(
