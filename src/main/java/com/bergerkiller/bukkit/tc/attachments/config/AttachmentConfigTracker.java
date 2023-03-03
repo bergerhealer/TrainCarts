@@ -71,7 +71,7 @@ public abstract class AttachmentConfigTracker implements YamlChangeListener {
     @Override
     public void onNodeChanged(YamlPath yamlPath) {
         // Legacy back-support
-        if (logic.areChangesRelative()) {
+        if (!logic.areChangesRelative()) {
             yamlPath = getRelativePath(yamlPath);
         }
 
