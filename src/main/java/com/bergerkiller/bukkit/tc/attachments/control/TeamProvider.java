@@ -27,8 +27,8 @@ import java.util.UUID;
 public class TeamProvider {
     private final TrainCarts plugin;
     private final UniqueHash teamIdHash = new UniqueHash();
-    private Map<Player, ViewerState> viewerStates = new HashMap<>();
-    private Set<ViewerState.ViewedTeam> pendingTeamUpdates = new HashSet<>();
+    private final Map<Player, ViewerState> viewerStates = new HashMap<>();
+    private final Set<ViewerState.ViewedTeam> pendingTeamUpdates = new HashSet<>();
     private final Task updateTask;
     private final Team disabledTeam = new Team() {
         @Override
@@ -65,16 +65,18 @@ public class TeamProvider {
         this.updateTask = new Task(plugin) {
             @Override
             public void run() {
-                // Process all the teams with entities to remove from the team (or teams to remove)
-                for (Iterator<ViewerState.ViewedTeam> iter = pendingTeamUpdates.iterator(); iter.hasNext();) {
-                    if (!iter.next().update()) {
-                        iter.remove();
+                synchronized (TeamProvider.this) {
+                    // Process all the teams with entities to remove from the team (or teams to remove)
+                    for (Iterator<ViewerState.ViewedTeam> iter = pendingTeamUpdates.iterator(); iter.hasNext();) {
+                        if (!iter.next().update()) {
+                            iter.remove();
+                        }
                     }
-                }
 
-                // Process all the teams with entities to add to the team (or teams to create)
-                pendingTeamUpdates.forEach(ViewerState.ViewedTeam::assignEntities);
-                pendingTeamUpdates.clear();
+                    // Process all the teams with entities to add to the team (or teams to create)
+                    pendingTeamUpdates.forEach(ViewerState.ViewedTeam::assignEntities);
+                    pendingTeamUpdates.clear();
+                }
             }
         };
         this.glowColors = new GlowColorTeamProvider(this);
@@ -116,13 +118,13 @@ public class TeamProvider {
     /**
      * Enables the provider, initializing background services
      */
-    public void enable() {
+    public synchronized void enable() {
     }
 
     /**
      * Disables the provider, resetting state immediately
      */
-    public void disable() {
+    public synchronized void disable() {
         if (!this.pendingTeamUpdates.isEmpty()) {
             this.pendingTeamUpdates.clear();
             this.updateTask.stop();
@@ -178,7 +180,7 @@ public class TeamProvider {
      * @param viewer
      * @param entityUUIDs
      */
-    public void reset(Player viewer, Iterable<UUID> entityUUIDs) {
+    public synchronized void reset(Player viewer, Iterable<UUID> entityUUIDs) {
         ViewerState state = this.viewerStates.get(viewer);
         if (state != null) {
             for (ViewerState.ViewedTeam team : state.teams.values()) {
@@ -209,7 +211,7 @@ public class TeamProvider {
      * @param viewer
      * @param entityUUID
      */
-    public void reset(Player viewer, UUID entityUUID) {
+    public synchronized void reset(Player viewer, UUID entityUUID) {
         ViewerState state = this.viewerStates.get(viewer);
         if (state != null) {
             for (ViewerState.ViewedTeam team : state.teams.values()) {
@@ -225,7 +227,7 @@ public class TeamProvider {
      *
      * @param viewer
      */
-    public void reset(Player viewer) {
+    public synchronized void reset(Player viewer) {
         ViewerState state = this.viewerStates.remove(viewer);
         if (state != null) {
             for (ViewerState.ViewedTeam team : state.teams.values()) {
@@ -335,8 +337,10 @@ public class TeamProvider {
          * @param entityUUIDs Iterable/List of entity UUIDs to assign
          */
         public void join(Player viewer, Iterable<UUID> entityUUIDs) {
-            ViewerState state = viewerStates.computeIfAbsent(viewer.getPlayer(), ViewerState::new);
-            state.assignTeamEntities(this, entityUUIDs);
+            synchronized (TeamProvider.this) {
+                ViewerState state = viewerStates.computeIfAbsent(viewer.getPlayer(), ViewerState::new);
+                state.assignTeamEntities(this, entityUUIDs);
+            }
         }
 
         /**
@@ -347,8 +351,10 @@ public class TeamProvider {
          * @param entityUUIDs Iterable/List of entity UUIDs to assign
          */
         public void join(AttachmentViewer viewer, Iterable<UUID> entityUUIDs) {
-            ViewerState state = viewerStates.computeIfAbsent(viewer.getPlayer(), p -> new ViewerState(viewer));
-            state.assignTeamEntities(this, entityUUIDs);
+            synchronized (TeamProvider.this) {
+                ViewerState state = viewerStates.computeIfAbsent(viewer.getPlayer(), p -> new ViewerState(viewer));
+                state.assignTeamEntities(this, entityUUIDs);
+            }
         }
 
         /**
@@ -359,8 +365,10 @@ public class TeamProvider {
          * @param entityUUID UUID of the Entity to join
          */
         public void join(Player viewer, UUID entityUUID) {
-            ViewerState state = viewerStates.computeIfAbsent(viewer.getPlayer(), ViewerState::new);
-            state.assignTeamEntity(this, entityUUID);
+            synchronized (TeamProvider.this) {
+                ViewerState state = viewerStates.computeIfAbsent(viewer.getPlayer(), ViewerState::new);
+                state.assignTeamEntity(this, entityUUID);
+            }
         }
 
         /**
@@ -371,8 +379,10 @@ public class TeamProvider {
          * @param entityUUID UUID of the Entity to join
          */
         public void join(AttachmentViewer viewer, UUID entityUUID) {
-            ViewerState state = viewerStates.computeIfAbsent(viewer.getPlayer(), p -> new ViewerState(viewer));
-            state.assignTeamEntity(this, entityUUID);
+            synchronized (TeamProvider.this) {
+                ViewerState state = viewerStates.computeIfAbsent(viewer.getPlayer(), p -> new ViewerState(viewer));
+                state.assignTeamEntity(this, entityUUID);
+            }
         }
 
         private PacketPlayOutScoreboardTeamHandle createPacket(int method) {
