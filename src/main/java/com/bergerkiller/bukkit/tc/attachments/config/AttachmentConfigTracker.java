@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.config;
 
 import com.bergerkiller.bukkit.common.RunOnceTask;
+import com.bergerkiller.bukkit.common.collections.ImplicitlySharedList;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.yaml.YamlChangeListener;
 import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
@@ -23,7 +24,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
     private final Logger logger;
     private final Map<ConfigurationNode, TrackedAttachmentConfig> byConfig;
     private final List<AttachmentConfig.Change> pendingChanges;
-    private final List<AttachmentConfigListener> listeners;
+    private final ImplicitlySharedList<RemovableListener> listeners;
     private TrackedAttachmentConfig root;
 
     /**
@@ -51,7 +52,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
         this.logger = (plugin == null) ? Logger.getGlobal() : plugin.getLogger();
         this.byConfig = new IdentityHashMap<>();
         this.pendingChanges = new ArrayList<>();
-        this.listeners = new ArrayList<>();
+        this.listeners = new ImplicitlySharedList<>();
         this.root = null; // Not tracked until a listener is added
     }
 
@@ -73,19 +74,22 @@ public class AttachmentConfigTracker implements YamlChangeListener {
      * @throws IllegalStateException If the listener was already added before
      */
     public AttachmentConfig startTracking(AttachmentConfigListener listener) {
+        // Wrap it
+        RemovableListener removableListener = new RemovableListener(listener);
+
         // Start tracking if this is the first listener
         if (listeners.isEmpty()) {
             root = new TrackedAttachmentConfig(null, config, 0);
             root.addToTracker();
             config.addChangeListener(this);
-            listeners.add(listener);
+            listeners.add(removableListener);
             pendingChanges.clear();
             return root;
-        } else if (listeners.contains(listener)) {
+        } else if (listeners.contains(removableListener)) {
             throw new IllegalStateException("Listener already added");
         } else {
             sync();
-            listeners.add(listener);
+            listeners.add(removableListener);
             return root;
         }
     }
@@ -99,12 +103,24 @@ public class AttachmentConfigTracker implements YamlChangeListener {
      * @param listener Listener to stop notifying of changes
      */
     public void stopTracking(AttachmentConfigListener listener) {
-        if (listeners.remove(listener) && listeners.isEmpty()) {
-            config.removeChangeListener(this);
-            pendingChanges.clear();
-            root = null;
-            if (syncTask != null) {
-                syncTask.cancel();
+        for (Iterator<RemovableListener> iter = listeners.iterator(); iter.hasNext();) {
+            RemovableListener rl = iter.next();
+            if (rl.listener.equals(listener)) {
+                // Mark for removal and remove from the list
+                rl.removed = true;
+                iter.remove();
+
+                // If now empty, also stop tracking
+                if (listeners.isEmpty()) {
+                    config.removeChangeListener(this);
+                    pendingChanges.clear();
+                    root = null;
+                    if (syncTask != null) {
+                        syncTask.cancel();
+                    }
+                }
+
+                break;
             }
         }
     }
@@ -153,12 +169,23 @@ public class AttachmentConfigTracker implements YamlChangeListener {
 
             // Notify all the changes we've gathered to all registered listeners
             if (!pendingChanges.isEmpty()) {
-                for (AttachmentConfig.Change change : pendingChanges) {
-                    for (AttachmentConfigListener listener : listeners) {
-                        try {
-                            listener.onChange(change);
-                        } catch (Throwable t) {
-                            logger.log(Level.SEVERE, "Failed to call " + change.changeType() + " on listener", t);
+                // Make a snapshot copy of all listeners that exist right now. Listener callbacks
+                // could be adding/removing listeners (in an indirect way), and those must be
+                // caught. Removed listeners are no longer called afterwards.
+                try (ImplicitlySharedList<RemovableListener> listeners = this.listeners.clone()) {
+                    for (RemovableListener removableListener : listeners) {
+                        for (AttachmentConfig.Change change : pendingChanges) {
+                            // If listener was removed, don't call it anymore
+                            if (removableListener.removed) {
+                                break;
+                            }
+
+                            // Notify
+                            try {
+                                removableListener.listener.onChange(change);
+                            } catch (Throwable t) {
+                                logger.log(Level.SEVERE, "Failed to notify " + change.changeType(), t);
+                            }
                         }
                     }
                 }
@@ -295,19 +322,6 @@ public class AttachmentConfigTracker implements YamlChangeListener {
         @Override
         public int childIndex() {
             return childIndex;
-        }
-
-        @Override
-        public int[] childPath() {
-            ArrayList<TrackedAttachmentConfig> parents = new ArrayList<>(10);
-            for (TrackedAttachmentConfig a = this; a.parent != null; a = a.parent) {
-                parents.add(a);
-            }
-            int[] path = new int[parents.size()];
-            for (int i = 0, j = path.length - 1; j >= 0; --j, ++i) {
-                path[i] = parents.get(j).childIndex;
-            }
-            return path;
         }
 
         @Override
@@ -498,6 +512,21 @@ public class AttachmentConfigTracker implements YamlChangeListener {
         @Override
         public void run() {
             handleSync();
+        }
+    }
+
+    private static class RemovableListener {
+        public final AttachmentConfigListener listener;
+        public boolean removed;
+
+        public RemovableListener(AttachmentConfigListener listener) {
+            this.listener = listener;
+            this.removed = false;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this.listener.equals(((RemovableListener) o).listener);
         }
     }
 

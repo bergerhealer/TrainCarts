@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.config;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 
@@ -48,7 +49,17 @@ public interface AttachmentConfig {
      *
      * @return child path
      */
-    int[] childPath();
+    default int[] childPath() {
+        ArrayList<AttachmentConfig> parents = new ArrayList<>(10);
+        for (AttachmentConfig a = this; a.parent() != null; a = a.parent()) {
+            parents.add(a);
+        }
+        int[] path = new int[parents.size()];
+        for (int i = 0, j = path.length - 1; j >= 0; --j, ++i) {
+            path[i] = parents.get(j).childIndex();
+        }
+        return path;
+    }
 
     /**
      * Gets a root-relative path to this attachment. To get an absolute path,
@@ -135,7 +146,11 @@ public interface AttachmentConfig {
         ADDED(AttachmentConfigListener::onAttachmentAdded),
         /** The attachment and all its children were removed */
         REMOVED(AttachmentConfigListener::onAttachmentRemoved),
-        /** The attachment configuration changed and needs to be re-loaded */
+        /**
+         * The attachment configuration changed and needs to be re-loaded.
+         * The {@link AttachmentConfig} instance will not have changed
+         * since previous events.
+         */
         CHANGED(AttachmentConfigListener::onAttachmentChanged);
 
         private final BiConsumer<AttachmentConfigListener, AttachmentConfig> callback;
