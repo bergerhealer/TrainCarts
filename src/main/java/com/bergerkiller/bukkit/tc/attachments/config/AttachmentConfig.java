@@ -1,0 +1,135 @@
+package com.bergerkiller.bukkit.tc.attachments.config;
+
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
+
+import java.util.List;
+import java.util.function.BiConsumer;
+
+/**
+ * The configuration of a single attachment. Stores the configuration of the attachment
+ * itself, as well as information about its position in the attachment hierarchy. Child
+ * attachments are also made available, but should only be used when handling
+ * {@link ChangeType#ADDED}
+ */
+public interface AttachmentConfig {
+    /**
+     * Gets the parent attachment of this attachment
+     *
+     * @return parent attachment, null if this is the root attachment
+     */
+    AttachmentConfig parent();
+
+    /**
+     * Gets the child attachment configurations parented to this
+     * attachment. This should only be used on the returned configuration of
+     * {@link AttachmentConfigTracker#startTracking(AttachmentConfigListener)
+     * AttachmentConfigTracker.startTracking()}
+     * or when handling {@link ChangeType#ADDED ChangeType.ADDED} events.
+     *
+     * @return List of child attachment configurations
+     */
+    List<AttachmentConfig> children();
+
+    /**
+     * Gets the child index of this attachment relative to {@link #parent()}.
+     * When an attachment is removed, this is the index relative to the parent
+     * that should be removed. When an attachment is added, this is the index
+     * where a new attachment should be inserted.
+     *
+     * @return parent-relative child index
+     */
+    int childIndex();
+
+    /**
+     * Gets a full sequence of parent-child indices that lead from the root
+     * attachment to this current attachment. Changes to the root attachment
+     * will return an empty array.
+     *
+     * @return child path
+     */
+    int[] childPath();
+
+    /**
+     * Gets a root-relative path to this attachment. To get an absolute path,
+     * use {@link ConfigurationNode#getYamlPath()} instead.
+     *
+     * @return root-relative path to this attachment's Yaml configuration
+     */
+    YamlPath path();
+
+    /**
+     * Gets the current configuration node of this attachment.
+     * Should not be used when handling attachment removal, as this
+     * configuration might be out of date or contain information about
+     * an entirely different attachment.
+     *
+     * @return attachment configuration
+     */
+    ConfigurationNode config();
+
+    /**
+     * A single attachment Change notification
+     */
+    final class Change {
+        private final AttachmentConfig attachment;
+        private final ChangeType changeType;
+
+        public Change(AttachmentConfig attachment, ChangeType changeType) {
+            this.attachment = attachment;
+            this.changeType = changeType;
+        }
+
+        /**
+         * Gets the attachment that was removed, created or changed.
+         * Use {@link AttachmentConfig#childIndex()} to figure out in your own
+         * representation what or where to remove/create/find the attachment.
+         *
+         * @return attachment
+         */
+        public AttachmentConfig attachment() {
+            return attachment;
+        }
+
+        /**
+         * Gets the type of change that occurred
+         *
+         * @return change type
+         */
+        public ChangeType changeType() {
+            return changeType;
+        }
+
+        /**
+         * Calls the appropriate callback in the {@link AttachmentConfigListener}
+         *
+         * @param listener Listener to call the right callback on
+         */
+        void callListener(AttachmentConfigListener listener) {
+            changeType.callback.accept(listener, attachment);
+        }
+
+        @Override
+        public String toString() {
+            return "{" + changeType.name() + " " + attachment.path() + "}";
+        }
+    }
+
+    /**
+     * A type of change that occurred to an attachment
+     */
+    enum ChangeType {
+        /** The attachment and all its children were added */
+        ADDED(AttachmentConfigListener::onAttachmentAdded),
+        /** The attachment and all its children were removed */
+        REMOVED(AttachmentConfigListener::onAttachmentRemoved),
+        /** The attachment configuration changed and needs to be re-loaded */
+        CHANGED(AttachmentConfigListener::onAttachmentChanged);
+
+        private final BiConsumer<AttachmentConfigListener, AttachmentConfig> callback;
+
+        ChangeType(BiConsumer<AttachmentConfigListener, AttachmentConfig> callback) {
+            this.callback = callback;
+        }
+    }
+}

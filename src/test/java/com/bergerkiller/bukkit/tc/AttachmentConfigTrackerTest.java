@@ -1,6 +1,9 @@
 package com.bergerkiller.bukkit.tc;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig.ChangeType;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigListener;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigTracker;
 
 import static org.junit.Assert.*;
@@ -30,11 +33,13 @@ public class AttachmentConfigTrackerTest {
             // Create a new tracker and start/stop listening
             // The isListening should reflect whether or not its still listening
             ConfigurationNode root = createAttachment("ITEM");
-            TestTracker tracker = TestTracker.track(root);
+            AttachmentConfigTracker tracker = new AttachmentConfigTracker(root);
+            AttachmentConfigListener tmpListener = new AttachmentConfigListener() {};
+            tracker.startTracking(tmpListener);
             assertTrue((Boolean) isListening.invoke(logic, root, tracker));
-            tracker.stop();
+            tracker.stopTracking(tmpListener);
             assertFalse((Boolean) isListening.invoke(logic, root, tracker));
-            tracker.start();
+            tracker.startTracking(tmpListener);
             assertTrue((Boolean) isListening.invoke(logic, root, tracker));
         } catch (Throwable t) {
             throw new IllegalStateException("Failed", t);
@@ -248,21 +253,25 @@ public class AttachmentConfigTrackerTest {
     /**
      * Implements the tracker so the reported changes can be asserted against
      */
-    private static class TestTracker extends AttachmentConfigTracker {
+    private static class TestTracker implements AttachmentConfigListener {
+        private final AttachmentConfigTracker tracker;
         private final List<ChangeResult> changes = new ArrayList<>();
 
         public TestTracker(ConfigurationNode config) {
-            super(config);
+            tracker = new AttachmentConfigTracker(config);
+            tracker.startTracking(this);
         }
 
         public static TestTracker track(ConfigurationNode config) {
-            TestTracker t = new TestTracker(config);
-            t.start();
-            return t;
+            return new TestTracker(config);
+        }
+
+        public void sync() {
+            tracker.sync();
         }
 
         @Override
-        public void onChange(AttachmentConfigTracker.Change change) {
+        public void onChange(AttachmentConfig.Change change) {
             changes.add(new ChangeResult(change.changeType(), change.attachment().childPath()));
         }
 

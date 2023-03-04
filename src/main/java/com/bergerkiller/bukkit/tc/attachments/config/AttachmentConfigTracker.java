@@ -1,61 +1,112 @@
 package com.bergerkiller.bukkit.tc.attachments.config;
 
+import com.bergerkiller.bukkit.common.RunOnceTask;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.yaml.YamlChangeListener;
 import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import org.bukkit.plugin.Plugin;
 
 import java.util.*;
-import java.util.function.BiConsumer;
 import java.util.function.Predicate;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Tracks configuration changes and translates those into attachment
- * load, remove or creation operations. Does de-bouncing so many
+ * load, remove or creation listener callbacks. Does de-bouncing so many
  * changes translate into a single bulk change.
  */
-public abstract class AttachmentConfigTracker implements YamlChangeListener {
+public class AttachmentConfigTracker implements YamlChangeListener {
     private final YamlLogic logic; //TODO: Remove when no longer needed
+    private final ConfigurationNode config;
+    private final SyncTask syncTask;
+    private final Logger logger;
     private final Map<ConfigurationNode, TrackedAttachmentConfig> byConfig;
-    private final List<Change> pendingChanges;
+    private final List<AttachmentConfig.Change> pendingChanges;
+    private final List<AttachmentConfigListener> listeners;
     private TrackedAttachmentConfig root;
 
+    /**
+     * Initializes a new tracker that relies on an external trigger calling
+     * {@link #sync()}. Primarily used for under test.
+     *
+     * @param config Configuration to track
+     */
     public AttachmentConfigTracker(ConfigurationNode config) {
-        logic = YamlLogic.create();
-        byConfig = new IdentityHashMap<>();
-        pendingChanges = new ArrayList<>();
-        root = new TrackedAttachmentConfig(config.getYamlPath(), null, config, 0);
-        root.addToTracker();
+        this(config, null);
     }
 
-    public void start() {
-        root.config.addChangeListener(this);
+    /**
+     * Initializes a new tracker that can automatically execute {@link #sync()}
+     * every tick when changes to the configuration occur.
+     *
+     * @param config Configuration to track
+     * @param plugin Plugin to use to schedule an update task automatically
+     *               calling the sync function. If null, doesn't do that.
+     */
+    public AttachmentConfigTracker(ConfigurationNode config, Plugin plugin) {
+        this.logic = YamlLogic.create();
+        this.config = config;
+        this.syncTask = (plugin == null) ? null : new SyncTask(plugin);
+        this.logger = (plugin == null) ? Logger.getGlobal() : plugin.getLogger();
+        this.byConfig = new IdentityHashMap<>();
+        this.pendingChanges = new ArrayList<>();
+        this.listeners = new ArrayList<>();
+        this.root = null; // Not tracked until a listener is added
     }
 
-    public void stop() {
-        root.config.removeChangeListener(this);
-    }
-
-    public void sync() {
-        // Old BKCommonLib had a bug in it of randomly dropping change listeners
-        // with methods like setTo. This ensures we stay updated on changes when
-        // this is detected. We notify a full remove and re-adding to ensure any
-        // changes that occurred meanwhile get synchronized.
-        if (!logic.isListening(root.config, this)) {
+    /**
+     * Starts tracking changes to the configuration and notifies those changes
+     * to the listener specified. Returns the current up-to-date attachment
+     * configuration, calling {@link #sync()} up-front if needed. This method
+     * can be called more than once for adding multiple listeners.<br>
+     * <br>
+     * The return attachment configuration can be used to set up the initial
+     * state on the recipient end. The listener will not be called during
+     * this method call. This attachment configuration should not be stored
+     * for multiple ticks because it can internally go inconsistent with
+     * the configuration until {@link #sync()} is called.
+     *
+     * @param listener Listener to notify of changes
+     * @return Latest up-to-date attachment configuration. It and its children
+     *         can be used to populate the initial tracked state.
+     * @throws IllegalStateException If the listener was already added before
+     */
+    public AttachmentConfig startTracking(AttachmentConfigListener listener) {
+        // Start tracking if this is the first listener
+        if (listeners.isEmpty()) {
+            root = new TrackedAttachmentConfig(null, config, 0);
+            root.addToTracker();
+            config.addChangeListener(this);
+            listeners.add(listener);
             pendingChanges.clear();
-            root.swap(new TrackedAttachmentConfig(root.config.getYamlPath(), null, root.config, 0));
-            root.config.addChangeListener(this);
+            return root;
+        } else if (listeners.contains(listener)) {
+            throw new IllegalStateException("Listener already added");
         } else {
-            // Normal sync
-            root.sync();
+            sync();
+            listeners.add(listener);
+            return root;
         }
+    }
 
-        // Notify all the changes we've gathered. Make sure all further changes are purged
-        // as well if an error occurs. Caller should reset everything when that happens.
-        try {
-            pendingChanges.forEach(this::onChange);
-        } finally {
+    /**
+     * Stops tracking changes that happen to this configuration, removing the
+     * listener as a recipient. If no more listeners exist, this tracker
+     * will disable itself until {@link #startTracking(AttachmentConfigListener)} is
+     * called again. If the listener was already un-tracked, does nothing.
+     *
+     * @param listener Listener to stop notifying of changes
+     */
+    public void stopTracking(AttachmentConfigListener listener) {
+        if (listeners.remove(listener) && listeners.isEmpty()) {
+            config.removeChangeListener(this);
             pendingChanges.clear();
+            root = null;
+            if (syncTask != null) {
+                syncTask.cancel();
+            }
         }
     }
 
@@ -65,7 +116,57 @@ public abstract class AttachmentConfigTracker implements YamlChangeListener {
      * @return configuration
      */
     public ConfigurationNode getConfig() {
-        return root.config;
+        return config;
+    }
+
+    /**
+     * Collects all configuration changes that have occurred thus far and fires callbacks
+     * on all previously registered listeners. If this tracker has no listeners, does
+     * nothing. This is called automatically every tick when a plugin was specified in the
+     * tracker's constructor.
+     */
+    public void sync() {
+        if (syncTask != null) {
+            syncTask.cancel();
+        }
+        handleSync();
+    }
+
+    private void handleSync() {
+        // Don't do anything when there's no listeners, or when we're already handling sync()
+        if (listeners.isEmpty() || !pendingChanges.isEmpty()) {
+            return;
+        }
+
+        try {
+            // Old BKCommonLib had a bug in it of randomly dropping change listeners
+            // with methods like setTo. This ensures we stay updated on changes when
+            // this is detected. We notify a full remove and re-adding to ensure any
+            // changes that occurred meanwhile get synchronized.
+            if (!logic.isListening(config, this)) {
+                pendingChanges.clear();
+                root.swap(new TrackedAttachmentConfig(null, config, 0));
+                config.addChangeListener(this);
+            } else {
+                // Normal sync
+                root.sync();
+            }
+
+            // Notify all the changes we've gathered to all registered listeners
+            if (!pendingChanges.isEmpty()) {
+                for (AttachmentConfig.Change change : pendingChanges) {
+                    for (AttachmentConfigListener listener : listeners) {
+                        try {
+                            listener.onChange(change);
+                        } catch (Throwable t) {
+                            logger.log(Level.SEVERE, "Failed to call " + change.changeType() + " on listener", t);
+                        }
+                    }
+                }
+            }
+        } finally {
+            pendingChanges.clear();
+        }
     }
 
     @Override
@@ -93,54 +194,21 @@ public abstract class AttachmentConfigTracker implements YamlChangeListener {
                 attachment.markChanged();
             }
         }
+
+        // Schedule the task to start handling sync(). Only schedules once!
+        // Make sure this doesn't happen while the plugin is disabled, which
+        // might happen if configuration leaks beyond disabling.
+        if (syncTask != null && syncTask.getPlugin().isEnabled()) {
+            syncTask.start();
+        }
     }
 
-    /**
-     * Called when a change to an attachment was detected. Changes are notified
-     * in a logical sequence. Can be overrided to handle multiple different
-     * {@link ChangeType Change Types} at once.
-     *
-     * @param change Change that occurred
-     */
-    public void onChange(Change change) {
-        change.changeType().callback.accept(this, change.attachment());
-    }
-
-    /**
-     * Called when an attachment, and all its child attachments, need to be
-     * added/created. The attachment child index can be used to as the location
-     * in the list it should be added.
-     *
-     * @param attachment Attachment that was removed
-     */
-    public void onAttachmentAdded(AttachmentConfig attachment) {
-    }
-
-    /**
-     * Called when an attachment, and all its child attachments, need to be
-     * removed/destroyed.
-     *
-     * @param attachment Attachment that was removed
-     */
-    public void onAttachmentRemoved(AttachmentConfig attachment) {
-    }
-
-    /**
-     * Called when an attachment configuration changed. The attachment should
-     * have its configuration reloaded. Is not called if the attachment
-     * type changed, in which case a remove-and-add is done.
-     *
-     * @param attachment Attachment whose configuration changed
-     */
-    public void onAttachmentChanged(AttachmentConfig attachment) {
-    }
-
-    private void addChange(TrackedAttachmentConfig attachment, ChangeType changeType) {
-        pendingChanges.add(new Change(attachment, changeType));
+    private void addChange(TrackedAttachmentConfig attachment, AttachmentConfig.ChangeType changeType) {
+        pendingChanges.add(new AttachmentConfig.Change(attachment, changeType));
     }
 
     private YamlPath getRelativePath(YamlPath path) {
-        return logic.getRelativePath(root.config.getYamlPath(), path);
+        return logic.getRelativePath(config.getYamlPath(), path);
     }
 
     /**
@@ -156,12 +224,8 @@ public abstract class AttachmentConfigTracker implements YamlChangeListener {
         // Note: removal of nodes is never notified with a path of the node itself
         // Rather, it is notified by a change of the parent node (children changed)
         // So if it does not exist, that's fine.
-        ConfigurationNode nodeAtPath = logic.getNodeAtPathIfExists(root.config, path);
-        if (nodeAtPath == null) {
-            return null;
-        }
-
-        return this.byConfig.get(nodeAtPath);
+        ConfigurationNode nodeAtPath = logic.getNodeAtPathIfExists(config, path);
+        return (nodeAtPath == null) ? null : this.byConfig.get(nodeAtPath);
     }
 
     /**
@@ -175,66 +239,13 @@ public abstract class AttachmentConfigTracker implements YamlChangeListener {
         while (!path.isRoot()) {
             YamlPath parent = path.parent();
             if (parent.name().equals("attachments")) {
-                // Works for both 'attachments[1]' as well as 'attachments.1'
+                // Works for both 'attachments[1]' and 'attachments.1'
                 break;
             } else {
                 path = parent;
             }
         }
         return path;
-    }
-
-    /**
-     * A single attachment configuration managed by this tracker. Attachments are
-     * passed as part of change events, and should not be stored by the recipient
-     * of these callbacks. Contains information about the attachment configuration
-     * and its position in the attachment hierarchy, but nothing more.
-     */
-    public interface AttachmentConfig {
-
-        /**
-         * Gets the parent attachment of this attachment
-         *
-         * @return parent attachment, null if this is the root attachment
-         */
-        AttachmentConfig parent();
-
-        /**
-         * Gets the child index of this attachment relative to {@link #parent()}.
-         * When an attachment is removed, this is the index relative to the parent
-         * that should be removed. When an attachment is added, this is the index
-         * where a new attachment should be inserted.
-         *
-         * @return parent-relative child index
-         */
-        int childIndex();
-
-        /**
-         * Gets a full sequence of parent-child indices that lead from the root
-         * attachment to this current attachment. Changes to the root attachment
-         * will return an empty array.
-         *
-         * @return child path
-         */
-        int[] childPath();
-
-        /**
-         * Gets a root-relative path to this attachment. To get an absolute path,
-         * use {@link ConfigurationNode#getYamlPath()} instead.
-         *
-         * @return root-relative path to this attachment's Yaml configuration
-         */
-        YamlPath path();
-
-        /**
-         * Gets the current configuration node of this attachment.
-         * Should not be used when handling attachment removal, as this
-         * configuration might be out of date or contain information about
-         * an entirely different attachment.
-         *
-         * @return attachment configuration
-         */
-        ConfigurationNode config();
     }
 
     private class TrackedAttachmentConfig implements AttachmentConfig {
@@ -249,10 +260,10 @@ public abstract class AttachmentConfigTracker implements YamlChangeListener {
         private boolean childrenRefreshNeeded;
         private boolean isAddedToTracker;
 
-        private TrackedAttachmentConfig(YamlPath rootPath, TrackedAttachmentConfig parent, ConfigurationNode config, int childIndex) {
+        private TrackedAttachmentConfig(TrackedAttachmentConfig parent, ConfigurationNode config, int childIndex) {
             this.parent = parent;
             this.children = new ArrayList<>();
-            this.path = logic.getRelativePath(rootPath, config.getYamlPath());
+            this.path = getRelativePath(config.getYamlPath());
             this.config = config;
             this.typeIdObj = config.get("type");
             this.childIndex = childIndex;
@@ -263,13 +274,18 @@ public abstract class AttachmentConfigTracker implements YamlChangeListener {
 
             int index = -1;
             for (ConfigurationNode childNode : config.getNodeList("attachments")) {
-                this.children.add(new TrackedAttachmentConfig(rootPath, this, childNode, ++index));
+                this.children.add(new TrackedAttachmentConfig(this, childNode, ++index));
             }
         }
 
         @Override
         public AttachmentConfig parent() {
             return parent;
+        }
+
+        @Override
+        public List<AttachmentConfig> children() {
+            return Collections.unmodifiableList(children);
         }
 
         @Override
@@ -403,7 +419,7 @@ public abstract class AttachmentConfigTracker implements YamlChangeListener {
                     }
 
                     // Add a new Attachment at this current child index
-                    TrackedAttachmentConfig attachment = new TrackedAttachmentConfig(root.config.getYamlPath(), this, childConfig, childIndex);
+                    TrackedAttachmentConfig attachment = new TrackedAttachmentConfig(this, childConfig, childIndex);
                     children.add(childIndex, attachment);
                     attachment.addToTracker();
                     addChange(attachment, ChangeType.ADDED);
@@ -430,7 +446,7 @@ public abstract class AttachmentConfigTracker implements YamlChangeListener {
         private void handleLoad() {
             // Recreate this attachment and all children when the attachment type changes
             if (!LogicUtil.bothNullOrEqual(this.typeIdObj, config.get("type"))) {
-                this.swap(new TrackedAttachmentConfig(root.config.getYamlPath(), this.parent, this.config, this.childIndex));
+                this.swap(new TrackedAttachmentConfig(this.parent, this.config, this.childIndex));
                 return;
             }
 
@@ -464,59 +480,15 @@ public abstract class AttachmentConfigTracker implements YamlChangeListener {
         }
     }
 
-    /**
-     * A single attachment Change notification
-     */
-    public static final class Change {
-        private final AttachmentConfig attachment;
-        private final ChangeType changeType;
+    private class SyncTask extends RunOnceTask {
 
-        public Change(AttachmentConfig attachment, ChangeType changeType) {
-            this.attachment = attachment;
-            this.changeType = changeType;
-        }
-
-        /**
-         * Gets the attachment that was removed, created or changed.
-         * Use {@link AttachmentConfig#childIndex()} to figure out in your own
-         * representation what or where to remove/create/find the attachment.
-         *
-         * @return attachment
-         */
-        public AttachmentConfig attachment() {
-            return attachment;
-        }
-
-        /**
-         * Gets the type of change that occurred
-         *
-         * @return change type
-         */
-        public ChangeType changeType() {
-            return changeType;
+        public SyncTask(Plugin plugin) {
+            super(plugin);
         }
 
         @Override
-        public String toString() {
-            return "{" + changeType.name() + " " + attachment.path() + "}";
-        }
-    }
-
-    /**
-     * A type of change that occurred to an attachment
-     */
-    public enum ChangeType {
-        /** The attachment and all its children were added */
-        ADDED(AttachmentConfigTracker::onAttachmentAdded),
-        /** The attachment and all its children were removed */
-        REMOVED(AttachmentConfigTracker::onAttachmentRemoved),
-        /** The attachment configuration changed and needs to be re-loaded */
-        CHANGED(AttachmentConfigTracker::onAttachmentChanged);
-
-        private final BiConsumer<AttachmentConfigTracker, AttachmentConfig> callback;
-
-        ChangeType(BiConsumer<AttachmentConfigTracker, AttachmentConfig> callback) {
-            this.callback = callback;
+        public void run() {
+            handleSync();
         }
     }
 
