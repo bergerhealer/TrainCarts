@@ -59,10 +59,22 @@ public interface AttachmentConfig {
     YamlPath path();
 
     /**
+     * Gets the attachment type identifier. This might be out of sync with
+     * {@link #config()} when handling {@link ChangeType#REMOVED}. In that
+     * case, this will return the attachment type id that was removed, not
+     * the type that might replace it.
+     *
+     * @return Attachment type identifier
+     */
+    String typeId();
+
+    /**
      * Gets the current configuration node of this attachment.
      * Should not be used when handling attachment removal, as this
      * configuration might be out of date or contain information about
-     * an entirely different attachment.
+     * an entirely different attachment. This configuration is only
+     * suitable for loading the configuration of this attachment,
+     * not for inspecting parent or child attachments.
      *
      * @return attachment configuration
      */

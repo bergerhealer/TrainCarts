@@ -4,7 +4,6 @@ import com.bergerkiller.bukkit.common.RunOnceTask;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.yaml.YamlChangeListener;
 import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import org.bukkit.plugin.Plugin;
 
 import java.util.*;
@@ -248,12 +247,17 @@ public class AttachmentConfigTracker implements YamlChangeListener {
         return path;
     }
 
+    private static String readAttachmentTypeId(ConfigurationNode config) {
+        Object typeIdObj = config.get("type");
+        return (typeIdObj == null) ? "EMPTY" : typeIdObj.toString();
+    }
+
     private class TrackedAttachmentConfig implements AttachmentConfig {
         private final TrackedAttachmentConfig parent;
         private final List<TrackedAttachmentConfig> children;
         private YamlPath path;
         private final ConfigurationNode config;
-        private final Object typeIdObj;
+        private final String typeId;
         private int childIndex;
         private boolean changed;
         private boolean loadNeeded;
@@ -265,7 +269,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
             this.children = new ArrayList<>();
             this.path = getRelativePath(config.getYamlPath());
             this.config = config;
-            this.typeIdObj = config.get("type");
+            this.typeId = readAttachmentTypeId(config);
             this.childIndex = childIndex;
             this.changed = false;
             this.loadNeeded = false;
@@ -309,6 +313,11 @@ public class AttachmentConfigTracker implements YamlChangeListener {
         @Override
         public YamlPath path() {
             return path;
+        }
+
+        @Override
+        public String typeId() {
+            return typeId;
         }
 
         @Override
@@ -445,7 +454,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
 
         private void handleLoad() {
             // Recreate this attachment and all children when the attachment type changes
-            if (!LogicUtil.bothNullOrEqual(this.typeIdObj, config.get("type"))) {
+            if (!this.typeId.equals(readAttachmentTypeId(config))) {
                 this.swap(new TrackedAttachmentConfig(this.parent, this.config, this.childIndex));
                 return;
             }
