@@ -18,7 +18,6 @@ import java.util.logging.Logger;
  * changes translate into a single bulk change.
  */
 public class AttachmentConfigTracker implements YamlChangeListener {
-    private final YamlLogic logic; //TODO: Remove when no longer needed
     private final ConfigurationNode config;
     private final SyncTask syncTask;
     private final Logger logger;
@@ -46,7 +45,6 @@ public class AttachmentConfigTracker implements YamlChangeListener {
      *               calling the sync function. If null, doesn't do that.
      */
     public AttachmentConfigTracker(ConfigurationNode config, Plugin plugin) {
-        this.logic = YamlLogic.create();
         this.config = config;
         this.syncTask = (plugin == null) ? null : new SyncTask(plugin);
         this.logger = (plugin == null) ? Logger.getGlobal() : plugin.getLogger();
@@ -158,7 +156,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
             // with methods like setTo. This ensures we stay updated on changes when
             // this is detected. We notify a full remove and re-adding to ensure any
             // changes that occurred meanwhile get synchronized.
-            if (!logic.isListening(config, this)) {
+            if (!YamlLogic.INSTANCE.isListening(config, this)) {
                 pendingChanges.clear();
                 root.swap(new TrackedAttachmentConfig(null, config, 0));
                 config.addChangeListener(this);
@@ -198,7 +196,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
     @Override
     public void onNodeChanged(YamlPath yamlPath) {
         // Legacy back-support
-        if (!logic.areChangesRelative()) {
+        if (!YamlLogic.INSTANCE.areChangesRelative()) {
             yamlPath = getRelativePath(yamlPath);
         }
 
@@ -234,7 +232,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
     }
 
     private YamlPath getRelativePath(YamlPath path) {
-        return logic.getRelativePath(config.getYamlPath(), path);
+        return YamlLogic.INSTANCE.getRelativePath(config.getYamlPath(), path);
     }
 
     /**
@@ -250,7 +248,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
         // Note: removal of nodes is never notified with a path of the node itself
         // Rather, it is notified by a change of the parent node (children changed)
         // So if it does not exist, that's fine.
-        ConfigurationNode nodeAtPath = logic.getNodeAtPathIfExists(config, path);
+        ConfigurationNode nodeAtPath = YamlLogic.INSTANCE.getNodeAtPathIfExists(config, path);
         return (nodeAtPath == null) ? null : this.byConfig.get(nodeAtPath);
     }
 

@@ -16,6 +16,8 @@ import java.util.logging.Logger;
  * Once BKCommonLib 1.19.3-v3 or later is a hard-dep this stuff can be removed.
  */
 interface YamlLogic {
+    YamlLogic INSTANCE = create();
+
     /**
      * Checks whether this tracker is still actually listening for changes to the
      * configuration. If not, returns false.
@@ -44,6 +46,15 @@ interface YamlLogic {
      * @return relative path
      */
     YamlPath getRelativePath(YamlPath rootPath, YamlPath path);
+
+    /**
+     * Joins two paths together
+     *
+     * @param firstPath
+     * @param secondPath
+     * @return joined path
+     */
+    YamlPath join(YamlPath firstPath, YamlPath secondPath);
 
     /**
      * Gets whether change notifications with this version of BKCOmmonLib
@@ -194,6 +205,34 @@ interface YamlLogic {
         public boolean areChangesRelative() {
             return false;
         }
+
+        @Override
+        public YamlPath join(YamlPath firstPath, YamlPath secondPath) {
+            if (firstPath.isRoot()) {
+                return secondPath;
+            } else if (secondPath.isRoot()) {
+                return firstPath;
+            }
+
+            // Convert second path into path parts
+            // This avoids having to do nasty slow recursion to reverse-iterate
+            int depth = secondPath.depth();
+            YamlPath[] parts = new YamlPath[depth];
+            {
+                YamlPath p = secondPath;
+                while (--depth >= 0) {
+                    parts[depth] = p;
+                    p = p.parent();
+                }
+            }
+
+            // Make a new path
+            YamlPath result = firstPath;
+            for (YamlPath p : parts) {
+                result = result.childWithName(p);
+            }
+            return result;
+        }
     }
 
     class YamlLogicLatest implements YamlLogic {
@@ -224,6 +263,11 @@ interface YamlLogic {
         @Override
         public boolean areChangesRelative() {
             return true;
+        }
+
+        @Override
+        public YamlPath join(YamlPath firstPath, YamlPath secondPath) {
+            return YamlPath.join(firstPath, secondPath);
         }
     }
 }
