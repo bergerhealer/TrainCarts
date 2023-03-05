@@ -141,14 +141,14 @@ public class AttachmentConfigModelTrackerTest {
         // should be added.
         tracker.assertRemoved("MODEL", 0);
         tracker.assertAdded("MODEL", 0)
-                .assertChild("MODELROOT", a2 -> {
-                    a2.assertChild("MODELSUB1")
-                      .assertChild("MODELSUB2")
-                      .assertNoMoreChildren();
-                })
                 .assertChild("EMPTY", a2 -> {
                     a2.assertChild("SEAT")
                       .assertChild("ITEM")
+                      .assertNoMoreChildren();
+                })
+                .assertChild("MODELROOT", a2 -> {
+                    a2.assertChild("MODELSUB1")
+                      .assertChild("MODELSUB2")
                       .assertNoMoreChildren();
                 })
                 .assertNoMoreChildren();
