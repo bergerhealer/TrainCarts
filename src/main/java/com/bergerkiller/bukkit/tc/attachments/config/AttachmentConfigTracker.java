@@ -217,7 +217,9 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         // Create a TrackedModelAttachmentConfig for MODEL attachments with a valid non-empty model name set
         if (typeId.equals(AttachmentType.MODEL_TYPE_ID)) {
             String modelName = readModelName(config);
-            if (!modelName.isEmpty()) {
+            if (modelName.isEmpty()) {
+                return new TrackedEmptyModelAttachmentConfig(parent, config, typeId, childIndex);
+            } else {
                 return new TrackedModelAttachmentConfig(parent, config, typeId, modelName, childIndex);
             }
         }
@@ -430,7 +432,6 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
             if (!this.typeId.equals(readAttachmentTypeId(config))) {
                 return false;
             }
-
             return true;
         }
 
@@ -492,6 +493,30 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         @Override
         public String modelName() {
             return modelName;
+        }
+    }
+
+    /**
+     * Fallback for MODEL attachments with no or an empty model name specified
+     */
+    private class TrackedEmptyModelAttachmentConfig extends TrackedAttachmentConfig {
+
+        public TrackedEmptyModelAttachmentConfig(TrackedAttachmentConfig parent, ConfigurationNode config, String typeId, int childIndex) {
+            super(parent, config, typeId, childIndex);
+        }
+
+        @Override
+        protected boolean handleLoad() {
+            if (!super.handleLoad()) {
+                return false;
+            }
+
+            // Check that a model name is now set and not empty
+            if (!readModelName(config()).isEmpty()) {
+                return false;
+            }
+
+            return true;
         }
     }
 
