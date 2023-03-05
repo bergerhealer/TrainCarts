@@ -15,6 +15,12 @@ import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
  * and how to create the final controller object.
  */
 public interface AttachmentType {
+    /**
+     * The attachment type ID for a Model attachment. This is a special type of
+     * attachment that transparently loads in another model as a child of the
+     * attachment itself.
+     */
+    String MODEL_TYPE_ID = "MODEL";
 
     /**
      * Gets the unique identifier of this attachment type. This is what is saved

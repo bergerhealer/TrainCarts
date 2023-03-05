@@ -92,6 +92,23 @@ public interface AttachmentConfig {
     ConfigurationNode config();
 
     /**
+     * Attachment Configuration for a Model Attachment that has a valid model name
+     * defined. Model name will not change and will always be non-empty. If changes
+     * happen a new Model configuration is created, and if empty, a normal
+     * AttachmentConfig is created instead.
+     */
+    interface Model extends AttachmentConfig {
+
+        /**
+         * Gets the name of the model this model attachment uses. Invisibly, the
+         * attachments of this model configuration are mixed in.
+         *
+         * @return model name. Is never empty.
+         */
+        String modelName();
+    }
+
+    /**
      * A single attachment Change notification
      */
     final class Change {

@@ -10,7 +10,7 @@ public class CartAttachmentModel extends CartAttachment {
     public static final AttachmentType TYPE = new AttachmentType() {
         @Override
         public String getID() {
-            return "MODEL";
+            return MODEL_TYPE_ID;
         }
 
         @Override

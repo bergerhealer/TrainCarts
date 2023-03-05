@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.collections.ImplicitlySharedList;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.yaml.YamlChangeListener;
 import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import org.bukkit.plugin.Plugin;
 
 import java.util.*;
@@ -18,7 +19,7 @@ import java.util.logging.Logger;
  * changes translate into a single bulk change.
  */
 public class AttachmentConfigTracker implements YamlChangeListener {
-    private final ConfigurationNode config;
+    private final ConfigurationNode completeConfig;
     private final SyncTask syncTask;
     private final Logger logger;
     private final Map<ConfigurationNode, TrackedAttachmentConfig> byConfig;
@@ -30,22 +31,22 @@ public class AttachmentConfigTracker implements YamlChangeListener {
      * Initializes a new tracker that relies on an external trigger calling
      * {@link #sync()}. Primarily used for under test.
      *
-     * @param config Configuration to track
+     * @param completeConfig Complete Attachment configuration to track
      */
-    public AttachmentConfigTracker(ConfigurationNode config) {
-        this(config, null);
+    public AttachmentConfigTracker(ConfigurationNode completeConfig) {
+        this(completeConfig, null);
     }
 
     /**
      * Initializes a new tracker that can automatically execute {@link #sync()}
      * every tick when changes to the configuration occur.
      *
-     * @param config Configuration to track
+     * @param completeConfig Complete Attachment configuration to track
      * @param plugin Plugin to use to schedule an update task automatically
      *               calling the sync function. If null, doesn't do that.
      */
-    public AttachmentConfigTracker(ConfigurationNode config, Plugin plugin) {
-        this.config = config;
+    public AttachmentConfigTracker(ConfigurationNode completeConfig, Plugin plugin) {
+        this.completeConfig = completeConfig;
         this.syncTask = (plugin == null) ? null : new SyncTask(plugin);
         this.logger = (plugin == null) ? Logger.getGlobal() : plugin.getLogger();
         this.byConfig = new IdentityHashMap<>();
@@ -77,9 +78,9 @@ public class AttachmentConfigTracker implements YamlChangeListener {
 
         // Start tracking if this is the first listener
         if (listeners.isEmpty()) {
-            root = new TrackedAttachmentConfig(null, config, 0);
+            root = createNewConfig(null, completeConfig, 0);
             root.addToTracker();
-            config.addChangeListener(this);
+            completeConfig.addChangeListener(this);
             listeners.add(removableListener);
             pendingChanges.clear();
             return root;
@@ -110,7 +111,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
 
                 // If now empty, also stop tracking
                 if (listeners.isEmpty()) {
-                    config.removeChangeListener(this);
+                    completeConfig.removeChangeListener(this);
                     pendingChanges.clear();
                     root = null;
                     if (syncTask != null) {
@@ -129,7 +130,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
      * @return configuration
      */
     public ConfigurationNode getConfig() {
-        return config;
+        return completeConfig;
     }
 
     /**
@@ -156,10 +157,10 @@ public class AttachmentConfigTracker implements YamlChangeListener {
             // with methods like setTo. This ensures we stay updated on changes when
             // this is detected. We notify a full remove and re-adding to ensure any
             // changes that occurred meanwhile get synchronized.
-            if (!YamlLogic.INSTANCE.isListening(config, this)) {
+            if (!YamlLogic.INSTANCE.isListening(completeConfig, this)) {
                 pendingChanges.clear();
-                root.swap(new TrackedAttachmentConfig(null, config, 0));
-                config.addChangeListener(this);
+                root.swap(createNewConfig(null, completeConfig, 0));
+                completeConfig.addChangeListener(this);
             } else {
                 // Normal sync
                 root.sync();
@@ -232,7 +233,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
     }
 
     private YamlPath getRelativePath(YamlPath path) {
-        return YamlLogic.INSTANCE.getRelativePath(config.getYamlPath(), path);
+        return YamlLogic.INSTANCE.getRelativePath(completeConfig.getYamlPath(), path);
     }
 
     /**
@@ -248,7 +249,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
         // Note: removal of nodes is never notified with a path of the node itself
         // Rather, it is notified by a change of the parent node (children changed)
         // So if it does not exist, that's fine.
-        ConfigurationNode nodeAtPath = YamlLogic.INSTANCE.getNodeAtPathIfExists(config, path);
+        ConfigurationNode nodeAtPath = YamlLogic.INSTANCE.getNodeAtPathIfExists(completeConfig, path);
         return (nodeAtPath == null) ? null : this.byConfig.get(nodeAtPath);
     }
 
@@ -277,6 +278,26 @@ public class AttachmentConfigTracker implements YamlChangeListener {
         return (typeIdObj == null) ? "EMPTY" : typeIdObj.toString();
     }
 
+    private static String readModelName(ConfigurationNode config) {
+        Object modelNameObj = config.get("modelName");
+        return modelNameObj == null ? "" : modelNameObj.toString();
+    }
+
+    private TrackedAttachmentConfig createNewConfig(TrackedAttachmentConfig parent, ConfigurationNode config, int childIndex) {
+        String typeId = readAttachmentTypeId(config);
+
+        // Create a TrackedModelAttachmentConfig for MODEL attachments with a valid non-empty model name set
+        if (typeId.equals(AttachmentType.MODEL_TYPE_ID)) {
+            String modelName = readModelName(config);
+            if (!modelName.isEmpty()) {
+                return new TrackedModelAttachmentConfig(parent, config, typeId, modelName, childIndex);
+            }
+        }
+
+        // Create a default TrackedAttachmentConfig otherwise
+        return new TrackedAttachmentConfig(parent, config, typeId, childIndex);
+    }
+
     private class TrackedAttachmentConfig implements AttachmentConfig {
         private final TrackedAttachmentConfig parent;
         private final List<TrackedAttachmentConfig> children;
@@ -289,12 +310,12 @@ public class AttachmentConfigTracker implements YamlChangeListener {
         private boolean childrenRefreshNeeded;
         private boolean isAddedToTracker;
 
-        private TrackedAttachmentConfig(TrackedAttachmentConfig parent, ConfigurationNode config, int childIndex) {
+        private TrackedAttachmentConfig(TrackedAttachmentConfig parent, ConfigurationNode config, String typeId, int childIndex) {
             this.parent = parent;
             this.children = new ArrayList<>();
             this.path = getRelativePath(config.getYamlPath());
             this.config = config;
-            this.typeId = readAttachmentTypeId(config);
+            this.typeId = typeId;
             this.childIndex = childIndex;
             this.changed = false;
             this.loadNeeded = false;
@@ -303,7 +324,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
 
             int index = -1;
             for (ConfigurationNode childNode : config.getNodeList("attachments")) {
-                this.children.add(new TrackedAttachmentConfig(this, childNode, ++index));
+                this.children.add(createNewConfig(this, childNode, ++index));
             }
         }
 
@@ -377,7 +398,11 @@ public class AttachmentConfigTracker implements YamlChangeListener {
                 changed = false;
                 if (loadNeeded) {
                     loadNeeded = false;
-                    handleLoad();
+                    if (handleLoad()) {
+                        addChange(this, ChangeType.CHANGED);
+                    } else {
+                        this.swap(createNewConfig(this.parent, this.config, this.childIndex));
+                    }
                 }
                 if (childrenRefreshNeeded) {
                     childrenRefreshNeeded = false;
@@ -392,7 +417,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
         }
 
         private void updateChildren() {
-            List<ConfigurationNode> currChildNodes = config.getNodeList("attachments");
+            List<ConfigurationNode> currChildNodes = this.config.getNodeList("attachments");
 
             // Remove all children that are no longer parented to this attachment (=removed)
             // EfficientListContainsChecker is optimized for same-order lists
@@ -440,7 +465,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
                     }
 
                     // Add a new Attachment at this current child index
-                    TrackedAttachmentConfig attachment = new TrackedAttachmentConfig(this, childConfig, childIndex);
+                    TrackedAttachmentConfig attachment = createNewConfig(this, childConfig, childIndex);
                     children.add(childIndex, attachment);
                     attachment.addToTracker();
                     addChange(attachment, ChangeType.ADDED);
@@ -464,19 +489,25 @@ public class AttachmentConfigTracker implements YamlChangeListener {
             }
         }
 
-        private void handleLoad() {
+        /**
+         * Handles when the attachment configuration was changed in some way.
+         * Can decide to swap out this attachment for something else, in which
+         * case false should be returned. If true is returned, then a
+         * CHANGED notification is done keeping this attachment instance.
+         *
+         * @return True when to notify a CHANGED notification
+         */
+        protected boolean handleLoad() {
             // Recreate this attachment and all children when the attachment type changes
             if (!this.typeId.equals(readAttachmentTypeId(config))) {
-                this.swap(new TrackedAttachmentConfig(this.parent, this.config, this.childIndex));
-                return;
+                return false;
             }
 
-            // Calls onLoad on the attachment
-            addChange(this, ChangeType.CHANGED);
+            return true;
         }
 
         private void addToTracker() {
-            byConfig.put(config, this);
+            byConfig.put(this.config, this);
             isAddedToTracker = true;
             for (TrackedAttachmentConfig child : children) {
                 child.addToTracker();
@@ -486,7 +517,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
         private void removeFromTracker() {
             isAddedToTracker = false;
             childrenRefreshNeeded = false;
-            byConfig.remove(config, this);
+            byConfig.remove(this.config, this);
             for (TrackedAttachmentConfig child : children) {
                 child.removeFromTracker();
             }
@@ -498,6 +529,41 @@ public class AttachmentConfigTracker implements YamlChangeListener {
                 att.changed = true;
                 att = att.parent;
             }
+        }
+    }
+
+    /**
+     * TrackedAttachmentConfig for models, which tracks the model name stored in the
+     * configuration. When the model name is changed, it re-creates the entire configuration.
+     * If the model name is empty, creates a normal TrackedAttachmentConfig instead.
+     * This feature is used by {@link AttachmentConfigModelTracker} to automatically
+     * unpack models by name.
+     */
+    private class TrackedModelAttachmentConfig extends TrackedAttachmentConfig implements AttachmentConfig.Model {
+        private final String modelName;
+
+        private TrackedModelAttachmentConfig(TrackedAttachmentConfig parent, ConfigurationNode config, String typeId, String modelName, int childIndex) {
+            super(parent, config, typeId, childIndex);
+            this.modelName = modelName;
+        }
+
+        @Override
+        protected boolean handleLoad() {
+            if (!super.handleLoad()) {
+                return false;
+            }
+
+            // If model name changes, recreate this attachment and its (extra) children
+            if (!this.modelName.equals(readModelName(config()))) {
+                return false;
+            }
+
+            return true;
+        }
+
+        @Override
+        public String modelName() {
+            return modelName;
         }
     }
 
