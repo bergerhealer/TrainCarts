@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig.ChangeType;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigListener;
@@ -8,11 +9,13 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigTracker;
 
 import static org.junit.Assert.*;
 
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigTrackerBase;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Verifies the various ways in which an attachment tree configuration can
@@ -54,13 +57,13 @@ public class AttachmentConfigTrackerTest {
         ConfigurationNode item = addAttachment(mid, "ITEM");
         ConfigurationNode text = addAttachment(root, "TEXT");
 
-        TestTracker tracker = TestTracker.track(root);
+        TestTracker tracker = track(root);
 
         item.set("position.y", 200.0);
         mid.remove();
 
         tracker.sync();
-        tracker.assertRemoved(0);
+        tracker.assertRemoved("EMPTY", 0);
         tracker.assertNone();
     }
 
@@ -72,13 +75,37 @@ public class AttachmentConfigTrackerTest {
         ConfigurationNode item = addAttachment(mid, "ITEM");
         ConfigurationNode text = addAttachment(root, "TEXT");
 
-        TestTracker tracker = TestTracker.track(root);
+        TestTracker tracker = track(root);
 
         root.getNodeList("attachments").clear();
 
         tracker.sync();
-        tracker.assertRemoved(0);
-        tracker.assertRemoved(0); // TEXT moved from [1] to [0]
+        tracker.assertRemoved("EMPTY", 0);
+        tracker.assertRemoved("TEXT", 0); // TEXT moved from [1] to [0]
+        tracker.assertNone();
+    }
+
+    @Test
+    public void testCloneAddAttachmentTree() {
+        ConfigurationNode root = createAttachment("ENTITY");
+        ConfigurationNode text = addAttachment(root, "TEXT");
+        ConfigurationNode woo = addAttachment(root, "WOO");
+
+        ConfigurationNode mid = createAttachment("EMPTY");
+        ConfigurationNode seat = addAttachment(mid, "SEAT");
+        ConfigurationNode item = addAttachment(mid, "ITEM");
+
+        TestTracker tracker = track(root);
+
+        woo.getNodeList("attachments").add(mid);
+
+        tracker.sync();
+        tracker.assertChanged("WOO", 1); // Changed because we added the "attachments" field
+                                                      // TODO: Do we try to fix this or nah?
+        tracker.assertAdded("EMPTY", 1, 0)
+                        .assertChild("SEAT")
+                        .assertChild("ITEM")
+                        .assertNoMoreChildren();
         tracker.assertNone();
     }
 
@@ -90,12 +117,12 @@ public class AttachmentConfigTrackerTest {
         ConfigurationNode item = addAttachment(mid, "ITEM");
         ConfigurationNode text = addAttachment(root, "TEXT");
 
-        TestTracker tracker = TestTracker.track(root);
+        TestTracker tracker = track(root);
 
         mid.getNodeList("attachments").add(item.clone());
 
         tracker.sync();
-        tracker.assertAdded(0, 2);
+        tracker.assertAdded("ITEM", 0, 2);
         tracker.assertNone();
     }
 
@@ -107,14 +134,14 @@ public class AttachmentConfigTrackerTest {
         ConfigurationNode item = addAttachment(mid, "ITEM");
         ConfigurationNode text = addAttachment(root, "TEXT");
 
-        TestTracker tracker = TestTracker.track(root);
+        TestTracker tracker = track(root);
 
         item.remove();
         mid.getNodeList("attachments").add(0, item);
 
         tracker.sync();
-        tracker.assertRemoved(0, 1);
-        tracker.assertAdded(0, 0);
+        tracker.assertRemoved("ITEM", 0, 1);
+        tracker.assertAdded("ITEM", 0, 0);
         tracker.assertNone();
     }
 
@@ -126,14 +153,14 @@ public class AttachmentConfigTrackerTest {
         ConfigurationNode item = addAttachment(mid, "ITEM");
         ConfigurationNode text = addAttachment(root, "TEXT");
 
-        TestTracker tracker = TestTracker.track(root);
+        TestTracker tracker = track(root);
 
         item.remove();
         mid.getNodeList("attachments").add(0, createAttachment("NEAT"));
 
         tracker.sync();
-        tracker.assertRemoved(0, 1);
-        tracker.assertAdded(0, 0);
+        tracker.assertRemoved("ITEM", 0, 1);
+        tracker.assertAdded("NEAT", 0, 0);
         tracker.assertNone();
     }
 
@@ -145,14 +172,14 @@ public class AttachmentConfigTrackerTest {
         ConfigurationNode item = addAttachment(mid, "ITEM");
         ConfigurationNode text = addAttachment(root, "TEXT");
 
-        TestTracker tracker = TestTracker.track(root);
+        TestTracker tracker = track(root);
 
         item.remove();
         addAttachment(mid, "NEAT");
 
         tracker.sync();
-        tracker.assertRemoved(0, 1);
-        tracker.assertAdded(0, 1);
+        tracker.assertRemoved("ITEM", 0, 1);
+        tracker.assertAdded("NEAT", 0, 1);
         tracker.assertNone();
     }
 
@@ -164,7 +191,7 @@ public class AttachmentConfigTrackerTest {
         ConfigurationNode item = addAttachment(mid, "ITEM");
         ConfigurationNode text = addAttachment(root, "TEXT");
 
-        TestTracker tracker = TestTracker.track(root);
+        TestTracker tracker = track(root);
 
         root.set("position.x", 1.0);
         root.set("position.y", 2.0);
@@ -175,8 +202,14 @@ public class AttachmentConfigTrackerTest {
         item.set("position.z", 3.0);
 
         tracker.sync();
-        tracker.assertChanged();
-        tracker.assertChanged(0, 1);
+        tracker.assertChanged("ENTITY")
+                .assertChild("EMPTY", e -> {
+                    e.assertChild("SEAT")
+                     .assertChild("ITEM");
+                })
+                .assertChild("TEXT")
+                .assertNoMoreChildren();
+        tracker.assertChanged("ITEM", 0, 1);
         tracker.assertNone();
     }
 
@@ -188,13 +221,13 @@ public class AttachmentConfigTrackerTest {
         ConfigurationNode item = addAttachment(mid, "ITEM");
         ConfigurationNode text = addAttachment(root, "TEXT");
 
-        TestTracker tracker = TestTracker.track(root);
+        TestTracker tracker = track(root);
 
         item.set("type", "NOT_AN_ITEM");
 
         tracker.sync();
-        tracker.assertRemoved(0, 1);
-        tracker.assertAdded(0, 1);
+        tracker.assertRemoved("ITEM", 0, 1);
+        tracker.assertAdded("NOT_AN_ITEM", 0, 1);
         tracker.assertNone();
     }
 
@@ -206,12 +239,12 @@ public class AttachmentConfigTrackerTest {
         ConfigurationNode item = addAttachment(mid, "ITEM");
         ConfigurationNode text = addAttachment(root, "TEXT");
 
-        TestTracker tracker = TestTracker.track(root);
+        TestTracker tracker = track(root);
 
         item.set("newfield", "value");
 
         tracker.sync();
-        tracker.assertChanged(0, 1);
+        tracker.assertChanged("ITEM", 0, 1);
         tracker.assertNone();
     }
 
@@ -223,14 +256,14 @@ public class AttachmentConfigTrackerTest {
         ConfigurationNode item = addAttachment(mid, "ITEM");
         ConfigurationNode text = addAttachment(root, "TEXT");
 
-        TestTracker tracker = TestTracker.track(root);
+        TestTracker tracker = track(root);
 
         item.set("position.x", 1.0);
         item.set("position.y", 2.0);
         item.set("position.z", 3.0);
 
         tracker.sync();
-        tracker.assertChanged(0, 1);
+        tracker.assertChanged("ITEM", 0, 1);
         tracker.assertNone();
     }
 
@@ -250,20 +283,97 @@ public class AttachmentConfigTrackerTest {
         return node;
     }
 
+    public static TestTracker track(ConfigurationNode config) {
+        TestTracker t = new TestTracker(new AttachmentConfigTracker(config));
+        t.start();
+        return t;
+    }
+
+    private static String pathStr(int[] path) {
+        if (path.length == 0) {
+            return "ROOT";
+        }
+        StringBuilder str = new StringBuilder();
+        for (int p : path) {
+            str.append('[').append(p).append(']');
+        }
+        return str.toString();
+    }
+
+    private static YamlPath makeYamlPath(int... path) {
+        YamlPath yamlPath = YamlPath.ROOT;
+        for (int childIndex : path) {
+            yamlPath = yamlPath.child("attachments").child(Integer.toString(childIndex));
+        }
+        return yamlPath;
+    }
+
+    public static class AttachmentAssertion {
+        private final AttachmentConfig attachment;
+        private int childIndex = 0;
+
+        public AttachmentAssertion(AttachmentConfig attachment) {
+            this.attachment = attachment;
+        }
+
+        public AttachmentAssertion assertChild(String typeId) {
+            return assertChild(typeId, unused -> {});
+        }
+
+        public AttachmentAssertion assertChild(String typeId, Consumer<AttachmentAssertion> childAssertions) {
+            if (childIndex >= attachment.children().size()) {
+                fail("Expected a child, but no more children");
+            }
+
+            // Check child has a valid path, too
+            int[] expectedChildPath = attachment.childPath();
+            expectedChildPath = Arrays.copyOf(expectedChildPath, expectedChildPath.length + 1);
+            expectedChildPath[expectedChildPath.length - 1] = childIndex;
+
+            // Check
+            AttachmentAssertion child = new AttachmentAssertion(attachment.children().get(childIndex++));
+            child.assertPath(expectedChildPath);
+            childAssertions.accept(child);
+            return this;
+        }
+
+        public AttachmentAssertion assertNoMoreChildren() {
+            if (childIndex < attachment.children().size()) {
+                fail("Expected no more children, but there's more");
+            }
+            return this;
+        }
+
+        public AttachmentAssertion assertTypeId(String typeId) {
+            assertEquals(typeId, attachment.typeId());
+            return this;
+        }
+
+        public AttachmentAssertion assertPath(int... path) {
+            if (!Arrays.equals(attachment.childPath(), path)) {
+                System.err.println("Expected: " + pathStr(path));
+                System.err.println("But got: " + pathStr(attachment.childPath()));
+                fail("Expected child path " + pathStr(path) + ", but got " +
+                        pathStr(attachment.childPath()));
+            }
+            assertEquals(makeYamlPath(path), attachment.path());
+            return this;
+        }
+    }
+
     /**
      * Implements the tracker so the reported changes can be asserted against
      */
-    private static class TestTracker implements AttachmentConfigListener {
-        private final AttachmentConfigTracker tracker;
+    public static class TestTracker implements AttachmentConfigListener {
+        private final AttachmentConfigTrackerBase tracker;
         private final List<ChangeResult> changes = new ArrayList<>();
 
-        public TestTracker(ConfigurationNode config) {
-            tracker = new AttachmentConfigTracker(config);
-            tracker.startTracking(this);
+        public TestTracker(AttachmentConfigTrackerBase tracker) {
+            this.tracker = tracker;
         }
 
-        public static TestTracker track(ConfigurationNode config) {
-            return new TestTracker(config);
+        public AttachmentAssertion start() {
+            return new AttachmentAssertion(this.tracker.startTracking(this));
         }
 
         public void sync() {
@@ -272,24 +382,25 @@ public class AttachmentConfigTrackerTest {
 
         @Override
         public void onChange(AttachmentConfig.Change change) {
-            changes.add(new ChangeResult(change.changeType(), change.attachment().childPath()));
+            changes.add(new ChangeResult(change.changeType(), change.attachment()));
         }
 
-        public void assertAdded(int... path) {
-            assertOne(ChangeType.ADDED, path);
+        public AttachmentAssertion assertAdded(String typeId, int... path) {
+            return assertOne(ChangeType.ADDED, typeId, path);
         }
 
-        public void assertRemoved(int... path) {
-            assertOne(ChangeType.REMOVED, path);
+        public AttachmentAssertion assertRemoved(String typeId, int... path) {
+            return assertOne(ChangeType.REMOVED, typeId, path);
         }
 
-        public void assertChanged(int... path) {
-            assertOne(ChangeType.CHANGED, path);
+        public AttachmentAssertion assertChanged(String typeId, int... path) {
+            return assertOne(ChangeType.CHANGED, typeId, path);
         }
 
-        public void assertOne(ChangeType change, int... path) {
+        public AttachmentAssertion assertOne(ChangeType change, String typeId, int... path) {
             if (changes.isEmpty()) {
                 fail("Expected " + change + " "  + pathStr(path) + " but no changes happened");
+                return null; // not reached
             }
             ChangeResult c = changes.remove(0);
             if (c.change != change || !Arrays.equals(c.path, path)) {
@@ -297,7 +408,20 @@ public class AttachmentConfigTrackerTest {
                 System.err.println("But got: " + c.change + " " + pathStr(c.path));
                 fail("Expected " + change + " "  + pathStr(path) + ", but got " +
                         c.change + " " + pathStr(c.path));
+                return null; // not reached
             }
+
+            assertEquals(typeId, c.attachment.typeId());
+
+            // No use checking the path when handling REMOVED. Configuration already shouldn't
+            // be used while handling it.
+            if (change != ChangeType.REMOVED) {
+                // Attachment yaml path should match what the child is
+                // We assume only format 'attachments.1.attachments.5' is used
+                assertEquals(makeYamlPath(path), c.attachment.path());
+            }
+
+            return new AttachmentAssertion(c.attachment);
         }
 
         public void assertNone() {
@@ -317,23 +441,14 @@ public class AttachmentConfigTrackerTest {
 
         private static class ChangeResult {
             private final ChangeType change;
+            private final AttachmentConfig attachment;
             private final int[] path;
 
-            public ChangeResult(ChangeType change, int[] path) {
+            public ChangeResult(ChangeType change, AttachmentConfig attachment) {
                 this.change = change;
-                this.path = path;
+                this.attachment = attachment;
+                this.path = attachment.childPath();
             }
-        }
-
-        private static String pathStr(int[] path) {
-            if (path.length == 0) {
-                return "ROOT";
-            }
-            StringBuilder str = new StringBuilder();
-            for (int p : path) {
-                str.append('[').append(p).append(']');
-            }
-            return str.toString();
         }
     }
 }
