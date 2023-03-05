@@ -1,16 +1,19 @@
 package com.bergerkiller.bukkit.tc.attachments.config;
 
 import com.bergerkiller.bukkit.common.RunOnceTask;
-import com.bergerkiller.bukkit.common.collections.ImplicitlySharedList;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.yaml.YamlChangeListener;
 import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import org.bukkit.plugin.Plugin;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -18,13 +21,11 @@ import java.util.logging.Logger;
  * load, remove or creation listener callbacks. Does de-bouncing so many
  * changes translate into a single bulk change.
  */
-public class AttachmentConfigTracker implements YamlChangeListener {
+public class AttachmentConfigTracker extends AttachmentConfigTrackerBase implements YamlChangeListener {
     private final ConfigurationNode completeConfig;
     private final SyncTask syncTask;
-    private final Logger logger;
     private final Map<ConfigurationNode, TrackedAttachmentConfig> byConfig;
     private final List<AttachmentConfig.Change> pendingChanges;
-    private final ImplicitlySharedList<RemovableListener> listeners;
     private TrackedAttachmentConfig root;
 
     /**
@@ -46,82 +47,35 @@ public class AttachmentConfigTracker implements YamlChangeListener {
      *               calling the sync function. If null, doesn't do that.
      */
     public AttachmentConfigTracker(ConfigurationNode completeConfig, Plugin plugin) {
+        super((plugin == null) ? Logger.getGlobal() : plugin.getLogger());
         this.completeConfig = completeConfig;
         this.syncTask = (plugin == null) ? null : new SyncTask(plugin);
-        this.logger = (plugin == null) ? Logger.getGlobal() : plugin.getLogger();
         this.byConfig = new IdentityHashMap<>();
         this.pendingChanges = new ArrayList<>();
-        this.listeners = new ImplicitlySharedList<>();
         this.root = null; // Not tracked until a listener is added
     }
 
-    /**
-     * Starts tracking changes to the configuration and notifies those changes
-     * to the listener specified. Returns the current up-to-date attachment
-     * configuration, calling {@link #sync()} up-front if needed. This method
-     * can be called more than once for adding multiple listeners.<br>
-     * <br>
-     * The return attachment configuration can be used to set up the initial
-     * state on the recipient end. The listener will not be called during
-     * this method call. This attachment configuration should not be stored
-     * for multiple ticks because it can internally go inconsistent with
-     * the configuration until {@link #sync()} is called.
-     *
-     * @param listener Listener to notify of changes
-     * @return Latest up-to-date attachment configuration. It and its children
-     *         can be used to populate the initial tracked state.
-     * @throws IllegalStateException If the listener was already added before
-     */
-    public AttachmentConfig startTracking(AttachmentConfigListener listener) {
-        // Wrap it
-        RemovableListener removableListener = new RemovableListener(listener);
+    @Override
+    protected void startTracking() {
+        root = createNewConfig(null, completeConfig, 0);
+        root.addToTracker();
+        completeConfig.addChangeListener(this);
+        pendingChanges.clear();
+    }
 
-        // Start tracking if this is the first listener
-        if (listeners.isEmpty()) {
-            root = createNewConfig(null, completeConfig, 0);
-            root.addToTracker();
-            completeConfig.addChangeListener(this);
-            listeners.add(removableListener);
-            pendingChanges.clear();
-            return root;
-        } else if (listeners.contains(removableListener)) {
-            throw new IllegalStateException("Listener already added");
-        } else {
-            sync();
-            listeners.add(removableListener);
-            return root;
+    @Override
+    protected void stopTracking() {
+        completeConfig.removeChangeListener(this);
+        pendingChanges.clear();
+        root = null;
+        if (syncTask != null) {
+            syncTask.cancel();
         }
     }
 
-    /**
-     * Stops tracking changes that happen to this configuration, removing the
-     * listener as a recipient. If no more listeners exist, this tracker
-     * will disable itself until {@link #startTracking(AttachmentConfigListener)} is
-     * called again. If the listener was already un-tracked, does nothing.
-     *
-     * @param listener Listener to stop notifying of changes
-     */
-    public void stopTracking(AttachmentConfigListener listener) {
-        for (Iterator<RemovableListener> iter = listeners.iterator(); iter.hasNext();) {
-            RemovableListener rl = iter.next();
-            if (rl.listener.equals(listener)) {
-                // Mark for removal and remove from the list
-                rl.removed = true;
-                iter.remove();
-
-                // If now empty, also stop tracking
-                if (listeners.isEmpty()) {
-                    completeConfig.removeChangeListener(this);
-                    pendingChanges.clear();
-                    root = null;
-                    if (syncTask != null) {
-                        syncTask.cancel();
-                    }
-                }
-
-                break;
-            }
-        }
+    @Override
+    protected AttachmentConfig getRoot() {
+        return root;
     }
 
     /**
@@ -133,12 +87,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
         return completeConfig;
     }
 
-    /**
-     * Collects all configuration changes that have occurred thus far and fires callbacks
-     * on all previously registered listeners. If this tracker has no listeners, does
-     * nothing. This is called automatically every tick when a plugin was specified in the
-     * tracker's constructor.
-     */
+    @Override
     public void sync() {
         if (syncTask != null) {
             syncTask.cancel();
@@ -148,7 +97,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
 
     private void handleSync() {
         // Don't do anything when there's no listeners, or when we're already handling sync()
-        if (listeners.isEmpty() || !pendingChanges.isEmpty()) {
+        if (!isTracking() || !pendingChanges.isEmpty()) {
             return;
         }
 
@@ -167,28 +116,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
             }
 
             // Notify all the changes we've gathered to all registered listeners
-            if (!pendingChanges.isEmpty()) {
-                // Make a snapshot copy of all listeners that exist right now. Listener callbacks
-                // could be adding/removing listeners (in an indirect way), and those must be
-                // caught. Removed listeners are no longer called afterwards.
-                try (ImplicitlySharedList<RemovableListener> listeners = this.listeners.clone()) {
-                    for (RemovableListener removableListener : listeners) {
-                        for (AttachmentConfig.Change change : pendingChanges) {
-                            // If listener was removed, don't call it anymore
-                            if (removableListener.removed) {
-                                break;
-                            }
-
-                            // Notify
-                            try {
-                                removableListener.listener.onChange(change);
-                            } catch (Throwable t) {
-                                logger.log(Level.SEVERE, "Failed to notify " + change.changeType(), t);
-                            }
-                        }
-                    }
-                }
-            }
+            notifyChanges(pendingChanges);
         } finally {
             pendingChanges.clear();
         }
@@ -228,8 +156,8 @@ public class AttachmentConfigTracker implements YamlChangeListener {
         }
     }
 
-    private void addChange(TrackedAttachmentConfig attachment, AttachmentConfig.ChangeType changeType) {
-        pendingChanges.add(new AttachmentConfig.Change(attachment, changeType));
+    private void addChange(AttachmentConfig.ChangeType changeType, TrackedAttachmentConfig attachment) {
+        pendingChanges.add(new AttachmentConfig.Change(changeType, attachment));
     }
 
     private YamlPath getRelativePath(YamlPath path) {
@@ -365,7 +293,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
          * @param replacement Attachment that will replace this one.
          */
         private void swap(TrackedAttachmentConfig replacement) {
-            addChange(this, ChangeType.REMOVED);
+            addChange(ChangeType.REMOVED, this);
             if (parent == null) {
                 byConfig.clear();
                 this.markRemovedRecurse();
@@ -377,7 +305,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
                 parent.children.set(this.childIndex, replacement);
             }
             replacement.addToTracker();
-            addChange(replacement, ChangeType.ADDED);
+            addChange(ChangeType.ADDED, replacement);
         }
 
         private void markRemovedRecurse() {
@@ -399,7 +327,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
                 if (loadNeeded) {
                     loadNeeded = false;
                     if (handleLoad()) {
-                        addChange(this, ChangeType.CHANGED);
+                        addChange(ChangeType.CHANGED, this);
                     } else {
                         this.swap(createNewConfig(this.parent, this.config, this.childIndex));
                     }
@@ -432,7 +360,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
                     } else {
                         iter.remove();
                         child.removeFromTracker();
-                        addChange(child, ChangeType.REMOVED);
+                        addChange(ChangeType.REMOVED, child);
                     }
                 }
             }
@@ -458,7 +386,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
                                 attachment.childIndex = i;
                                 children.remove(i);
                                 attachment.removeFromTracker();
-                                addChange(attachment, ChangeType.REMOVED);
+                                addChange(ChangeType.REMOVED, attachment);
                                 break;
                             }
                         }
@@ -468,7 +396,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
                     TrackedAttachmentConfig attachment = createNewConfig(this, childConfig, childIndex);
                     children.add(childIndex, attachment);
                     attachment.addToTracker();
-                    addChange(attachment, ChangeType.ADDED);
+                    addChange(ChangeType.ADDED, attachment);
                     childIndex++;
                 }
 
@@ -477,7 +405,7 @@ public class AttachmentConfigTracker implements YamlChangeListener {
                     TrackedAttachmentConfig attachment = children.remove(childIndex);
                     attachment.childIndex = childIndex;
                     attachment.removeFromTracker();
-                    addChange(attachment, ChangeType.REMOVED);
+                    addChange(ChangeType.REMOVED, attachment);
                 }
             }
         }
@@ -576,21 +504,6 @@ public class AttachmentConfigTracker implements YamlChangeListener {
         @Override
         public void run() {
             handleSync();
-        }
-    }
-
-    private static class RemovableListener {
-        public final AttachmentConfigListener listener;
-        public boolean removed;
-
-        public RemovableListener(AttachmentConfigListener listener) {
-            this.listener = listener;
-            this.removed = false;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return this.listener.equals(((RemovableListener) o).listener);
         }
     }
 

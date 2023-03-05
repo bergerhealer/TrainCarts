@@ -112,12 +112,12 @@ public interface AttachmentConfig {
      * A single attachment Change notification
      */
     final class Change {
-        private final AttachmentConfig attachment;
         private final ChangeType changeType;
+        private final AttachmentConfig attachment;
 
-        public Change(AttachmentConfig attachment, ChangeType changeType) {
-            this.attachment = attachment;
+        public Change(ChangeType changeType, AttachmentConfig attachment) {
             this.changeType = changeType;
+            this.attachment = attachment;
         }
 
         /**
