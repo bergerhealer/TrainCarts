@@ -362,6 +362,7 @@ public class AttachmentConfigTrackerTest {
 
             // Check
             AttachmentAssertion child = new AttachmentAssertion(attachment.children().get(childIndex++));
+            child.assertTypeId(typeId);
             child.assertPath(expectedChildPath);
             childAssertions.accept(child);
             return this;
@@ -369,6 +370,7 @@ public class AttachmentConfigTrackerTest {
 
         public AttachmentAssertion assertNoMoreChildren() {
             if (childIndex < attachment.children().size()) {
+                System.err.println("Unexpected child with Type Id " + attachment.children().get(childIndex).typeId());
                 fail("Expected no more children, but there's more");
             }
             return this;
