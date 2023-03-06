@@ -2,11 +2,13 @@ package com.bergerkiller.bukkit.tc.attachments.config;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 /**
@@ -127,6 +129,51 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
         }
 
         @Override
+        public DeepAttachmentConfig child(int childIndex) {
+            List<DeepAttachmentConfig> children = this.children; // Avoid unmodifiable list being made
+            if (childIndex < 0 || childIndex >= children.size()) {
+                return null;
+            } else {
+                return children.get(childIndex);
+            }
+        }
+
+        /**
+         * Gets a child of this attachment configuration that is not a hidden model child.
+         * Avoids notifications from model changes bubbling up where they shouldn't.
+         *
+         * @param childIndex Child index
+         * @return DeepAttachmentConfig at this index, or null if not found
+         */
+        public DeepAttachmentConfig nonModelChild(int childIndex) {
+            return child(childIndex);
+        }
+
+        /**
+         * Same as {@link #child(int[])} but with the rule as decribed by
+         * {@link #nonModelChild(int)}
+         *
+         * @param childPath Parent-to-child indices
+         * @return DeepAttachmentConfig at this path, or null if not found
+         */
+        public final DeepAttachmentConfig nonModelChild(int[] childPath) {
+            DeepAttachmentConfig p = this;
+            int len = childPath.length;
+            if (len > 0) {
+                int i = 0;
+                do {
+                    p = p.nonModelChild(childPath[i]);
+                } while (++i < len && p != null);
+            }
+            return p;
+        }
+
+        @Override
+        public boolean isRemoved() {
+            return position.isRemoved();
+        }
+
+        @Override
         public int childIndex() {
             return position.childIndex(base);
         }
@@ -144,6 +191,15 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
         @Override
         public ConfigurationNode config() {
             return base.config();
+        }
+
+        @Override
+        public void runAction(Consumer<Attachment> action) {
+            if (position.isRemoved()) {
+                throw new IllegalStateException("Attachment configuration was removed");
+            } else {
+                runAttachmentAction(this, action);
+            }
         }
 
         /**
@@ -188,10 +244,10 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
         /**
          * Navigates to the child at the path specified and removes it
          *
-         * @param path
+         * @param childPath Child path
          */
-        public void removeChildAtPath(int[] path) {
-            runActionForChild(path, DeepAttachmentConfig::removeChild);
+        public void removeChildAtPath(int[] childPath) {
+            runActionForChild(childPath, DeepAttachmentConfig::removeChild);
         }
 
         protected void removeChild(int childIndex) {
@@ -199,14 +255,6 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
             deepConfig.onRemoved();
             children.remove(childIndex);
             notifyChange(ChangeType.REMOVED, deepConfig);
-        }
-
-        public void childChangedAtPath(int[] path) {
-            runActionForChild(path, DeepAttachmentConfig::childChanged);
-        }
-
-        protected void childChanged(int childIndex) {
-            notifyChange(ChangeType.CHANGED, children.get(childIndex));
         }
 
         private void runActionForChild(int[] path, ChildActionConsumer action) {
@@ -356,12 +404,12 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
         }
 
         @Override
-        protected void childChanged(int childIndex) {
-            // Index is not allowed to be past the model config
-            if (modelChild != null && childIndex == (children.size()-1)) {
-                throw new IndexOutOfBoundsException("Child index out of bounds: " + childIndex);
+        public DeepAttachmentConfig nonModelChild(int childIndex) {
+            List<DeepAttachmentConfig> children = this.children; // Avoid unmodifiable list being made
+            if (childIndex < 0 || childIndex >= ((modelChild == null) ? children.size() : (children.size() - 1))) {
+                return null;
             } else {
-                super.childChanged(childIndex);
+                return children.get(childIndex);
             }
         }
 
@@ -369,8 +417,6 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
         public String modelName() {
             return baseModel.modelName();
         }
-
-
     }
 
     /**
@@ -391,7 +437,7 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
          * Changes the root attachment. Specifies the base attachment configuration,
          * implementer should convert it into a DeepAttachmentConfig and assign it.
          *
-         * @param baseRoot
+         * @param baseRoot New root
          */
         public abstract void setRoot(AttachmentConfig baseRoot);
 
@@ -440,9 +486,9 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
         @Override
         public void onAttachmentRemoved(AttachmentConfig attachment) {
             int[] path = attachment.childPath();
+            DeepAttachmentConfig root = getRoot();
             if (path.length == 0) {
                 // Sanity
-                DeepAttachmentConfig root = getRoot();
                 if (root == null) {
                     throw new IllegalStateException("Root being removed, but root was already removed");
                 }
@@ -453,7 +499,6 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
                 notifyChange(AttachmentConfig.ChangeType.REMOVED, root);
             } else {
                 // Sanity
-                DeepAttachmentConfig root = getRoot();
                 if (root == null) {
                     throw new IllegalStateException("Root child being removed, but root was already removed");
                 }
@@ -470,12 +515,27 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
                 throw new IllegalStateException("Root changed, but root was already removed");
             }
 
-            int[] path = attachment.childPath();
-            if (path.length == 0) {
-                notifyChange(AttachmentConfig.ChangeType.CHANGED, root);
-            } else {
-                root.childChangedAtPath(path);
+            DeepAttachmentConfig child = root.nonModelChild(attachment.childPath());
+            if (child == null) {
+                throw new IllegalStateException("An attachment changed that did not exist in this tracker");
             }
+
+            notifyChange(AttachmentConfig.ChangeType.CHANGED, child);
+        }
+
+        @Override
+        public void onAttachmentAction(AttachmentConfig attachment, Consumer<Attachment> action) {
+            DeepAttachmentConfig root = getRoot();
+            if (root == null) {
+                throw new IllegalStateException("Action on an attachment of root, but root was already removed");
+            }
+
+            DeepAttachmentConfig child = root.nonModelChild(attachment.childPath());
+            if (child == null) {
+                throw new IllegalStateException("Action on an attachment that did not exist in this tracker");
+            }
+
+            runAttachmentAction(child, action);
         }
     }
 
@@ -531,6 +591,15 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
         PositionAccess forChildren();
 
         /**
+         * Gets whether this information was removed using {@link #removed(AttachmentConfig)}
+         *
+         * @return True if removed
+         */
+        default boolean isRemoved() {
+            return false;
+        }
+
+        /**
          * Makes the position access fixed, so it is no longer dynamically
          * generated. This is for removed attachments to use.
          *
@@ -564,6 +633,11 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
         @Override
         public PositionAccess forChildren() {
             throw new UnsupportedOperationException("Can't add children to removed attachments");
+        }
+
+        @Override
+        public boolean isRemoved() {
+            return true;
         }
 
         @Override

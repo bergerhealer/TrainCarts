@@ -1,5 +1,9 @@
 package com.bergerkiller.bukkit.tc.attachments.config;
 
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+
+import java.util.function.Consumer;
+
 /**
  * Listens for changes that happen in an attachment configuration. Listeners
  * can be added to the {@link AttachmentConfigTracker}, after which its
@@ -44,5 +48,24 @@ public interface AttachmentConfigListener {
      * @param attachment Attachment whose configuration changed
      */
     default void onAttachmentChanged(AttachmentConfig attachment) {
+    }
+
+    /**
+     * Called when some sort of action must be performed on all live {@link Attachment}
+     * objects tied with a particular attachment configuration. Implementers should
+     * pass the Attachment that belongs to this configuration to the action specified.
+     * No error handling has to be performed.<br>
+     * <br>
+     * Not implementing this method will mean no actions can be performed on live
+     * attachments. If this listener is merely listening for changes, then that is
+     * fine. The caller might store the attachment supplied to perform other actions
+     * later.<br>
+     * <br>
+     * Can only be called from the main thread.
+     *
+     * @param attachment Attachment configuration for which an action must be performed
+     * @param action Action to perform on the live {@link Attachment}
+     */
+    default void onAttachmentAction(AttachmentConfig attachment, Consumer<Attachment> action) {
     }
 }

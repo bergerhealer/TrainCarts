@@ -2,10 +2,12 @@ package com.bergerkiller.bukkit.tc.attachments.config;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * The configuration of a single attachment. Stores the configuration of the attachment
@@ -31,6 +33,107 @@ public interface AttachmentConfig {
      * @return List of child attachment configurations
      */
     List<AttachmentConfig> children();
+
+    /**
+     * Tries to find an attachment configuration which is a child of this one.
+     * If no such child exists at this index, returns <i>null</i>.
+     *
+     * @param childIndex Child index, starting at 0
+     * @return Child at this index, or <i>null</i> if one doesn't exist
+     */
+    default AttachmentConfig child(int childIndex) {
+        List<AttachmentConfig> children = this.children();
+        if (childIndex < 0 || childIndex >= children.size()) {
+            return null;
+        } else {
+            return children.get(childIndex);
+        }
+    }
+
+    /**
+     * Tries to find an attachment configuration which is a recursive child
+     * of this one. If no such child exists at this index, returns <i>null</i>.
+     * The input child index path is traversed in order. An empty array will
+     * return this attachment configuration, while [1] will return the second
+     * child.
+     *
+     * @param childPath Parent-to-child series of child indices
+     * @return Child at this child index path, or <i>null</i> if one doesn't exist
+     * @see #child(int)
+     */
+    default AttachmentConfig child(int[] childPath) {
+        AttachmentConfig p = this;
+        int len = childPath.length;
+        if (len > 0) {
+            int i = 0;
+            do {
+                p = p.child(childPath[i]);
+            } while (++i < len && p != null);
+        }
+        return p;
+    }
+
+    /**
+     * Tries to find an attachment configuration which is a recursive child
+     * of this one. If no such child exists at this index, returns <i>null</i>.
+     * The input <b>relative</b> {@link YamlPath} is traversed to find the
+     * attachment using this configuration. Specifying a key or property of
+     * the attachment configuration will also return that attachment.
+     *
+     * @param path Relative YamlPath leading from this attachment configuration
+     *             to the child or a property of the child to find
+     * @return child at this path, or <i>null</i> if not found
+     */
+    default AttachmentConfig child(YamlPath path) {
+        if (path.isRoot()) {
+            return this;
+        }
+
+        // Navigate the children recursively until we find no more child relative
+        // to which the path is found.
+        YamlLogic logic = YamlLogic.INSTANCE;
+        AttachmentConfig currentAttachment = this;
+        YamlPath resultPath = path;
+        final YamlPath searchPath = logic.join(this.path(), path); // Make absolute
+        boolean found;
+        do {
+            found = false;
+            for (AttachmentConfig child : currentAttachment.children()) {
+                YamlPath childRelativePath = logic.getRelativePath(child.path(), searchPath);
+                if (childRelativePath != null) {
+                    currentAttachment = child;
+                    resultPath = childRelativePath;
+                    found = true;
+                    break;
+                }
+            }
+        } while (found);
+
+        // Reached the end. The relative result path that now remains must either be
+        // empty (point to the attachment directly) or refer to a property of the attachment.
+        // If its first path element is "attachments" then it refers to a child attachment
+        // that was not found.
+        if (!resultPath.isRoot()) {
+            while (!resultPath.parent().isRoot()) {
+                resultPath = resultPath.parent();
+            }
+            if (resultPath.name().equals("attachments")) {
+                return null;
+            }
+        }
+        return currentAttachment;
+    }
+
+    /**
+     * Gets whether this attachment configuration was removed, and is no longer
+     * linked or updated. If removed, {@link #config()} should no longer be used
+     * as it will be stale. {@link #children()} will remain functional, but those
+     * will also have been removed. {@link #path()}, like config(), might no longer
+     * be valid.
+     *
+     * @return True if this attachment configuration was removed
+     */
+    boolean isRemoved();
 
     /**
      * Gets the child index of this attachment relative to {@link #parent()}.
@@ -90,6 +193,37 @@ public interface AttachmentConfig {
      * @return attachment configuration
      */
     ConfigurationNode config();
+
+    /**
+     * Figures out all live {@link Attachment} instances that use this attachment configuration,
+     * and runs an action on them. This runs sync and can only be used from the main thread.<br>
+     * <br>
+     * It is permitted to collect all live attachments and do something with them later.
+     * Polling this information will then be required to stay up-to-date.<br>
+     * <br>
+     * If this attachment is a model configuration, then all live trains that use this model
+     * in their configuration will run the action as well. As such, this might run for
+     * more than one live attachment in that case.<br>
+     * <br>
+     * Errors that occur inside the callback are logged, but will not pass back to the caller.
+     * Ideally the callback uses proper error handling.
+     *
+     * @param action Action to run for all live attachments using this configuration
+     * @throws IllegalStateException If this attachment configuration was previously removed
+     */
+    void runAction(Consumer<Attachment> action);
+
+    /**
+     * Finds all live {@link Attachment} instances that use this attachment configuration
+     *
+     * @return List of live Attachments
+     * @see #runAction(Consumer)
+     */
+    default List<Attachment> liveAttachments() {
+        final ArrayList<Attachment> result = new ArrayList<>();
+        runAction(result::add);
+        return result;
+    }
 
     /**
      * Attachment Configuration for a Model Attachment that has a valid model name

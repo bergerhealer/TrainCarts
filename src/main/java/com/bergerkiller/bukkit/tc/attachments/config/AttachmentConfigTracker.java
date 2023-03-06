@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.RunOnceTask;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.yaml.YamlChangeListener;
 import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import org.bukkit.plugin.Plugin;
 
@@ -13,6 +14,7 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.logging.Logger;
 
@@ -238,7 +240,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         private boolean changed;
         private boolean loadNeeded;
         private boolean childrenRefreshNeeded;
-        private boolean isAddedToTracker;
+        private boolean removed;
 
         private TrackedAttachmentConfig(TrackedAttachmentConfig parent, ConfigurationNode config, String typeId, int childIndex) {
             this.parent = parent;
@@ -250,7 +252,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
             this.changed = false;
             this.loadNeeded = false;
             this.childrenRefreshNeeded = false;
-            this.isAddedToTracker = false;
+            this.removed = true;
 
             int index = -1;
             for (ConfigurationNode childNode : config.getNodeList("attachments")) {
@@ -266,6 +268,11 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         @Override
         public List<AttachmentConfig> children() {
             return Collections.unmodifiableList(children);
+        }
+
+        @Override
+        public boolean isRemoved() {
+            return removed;
         }
 
         @Override
@@ -286,6 +293,15 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         @Override
         public ConfigurationNode config() {
             return config;
+        }
+
+        @Override
+        public void runAction(Consumer<Attachment> action) {
+            if (removed) {
+                throw new IllegalStateException("Attachment configuration was removed");
+            } else {
+                runAttachmentAction(this, action);
+            }
         }
 
         /**
@@ -312,7 +328,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
 
         private void markRemovedRecurse() {
             childrenRefreshNeeded = false;
-            isAddedToTracker = false;
+            removed = true;
             for (TrackedAttachmentConfig child : children) {
                 child.markRemovedRecurse();
             }
@@ -338,7 +354,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
                     childrenRefreshNeeded = false;
                     updateChildren();
                 }
-                if (isAddedToTracker) {
+                if (!removed) {
                     for (TrackedAttachmentConfig child : children) {
                         child.sync();
                     }
@@ -429,22 +445,19 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
          */
         protected boolean handleLoad() {
             // Recreate this attachment and all children when the attachment type changes
-            if (!this.typeId.equals(readAttachmentTypeId(config))) {
-                return false;
-            }
-            return true;
+            return this.typeId.equals(readAttachmentTypeId(config));
         }
 
         private void addToTracker() {
             byConfig.put(this.config, this);
-            isAddedToTracker = true;
+            removed = false;
             for (TrackedAttachmentConfig child : children) {
                 child.addToTracker();
             }
         }
 
         private void removeFromTracker() {
-            isAddedToTracker = false;
+            removed = true;
             childrenRefreshNeeded = false;
             byConfig.remove(this.config, this);
             for (TrackedAttachmentConfig child : children) {
@@ -478,16 +491,8 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
 
         @Override
         protected boolean handleLoad() {
-            if (!super.handleLoad()) {
-                return false;
-            }
-
             // If model name changes, recreate this attachment and its (extra) children
-            if (!this.modelName.equals(readModelName(config()))) {
-                return false;
-            }
-
-            return true;
+            return super.handleLoad() && this.modelName.equals(readModelName(config()));
         }
 
         @Override
@@ -507,16 +512,8 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
 
         @Override
         protected boolean handleLoad() {
-            if (!super.handleLoad()) {
-                return false;
-            }
-
             // Check that a model name is now set and not empty
-            if (!readModelName(config()).isEmpty()) {
-                return false;
-            }
-
-            return true;
+            return super.handleLoad() && readModelName(config()).isEmpty();
         }
     }
 

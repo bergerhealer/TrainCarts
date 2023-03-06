@@ -1,10 +1,12 @@
 package com.bergerkiller.bukkit.tc.attachments.config;
 
 import com.bergerkiller.bukkit.common.collections.ImplicitlySharedList;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -163,6 +165,35 @@ public abstract class AttachmentConfigTrackerBase {
      */
     protected void notifyChange(AttachmentConfig.ChangeType changeType, AttachmentConfig attachment) {
         notifyChanges(Collections.singleton(new AttachmentConfig.Change(changeType, attachment)));
+    }
+
+    /**
+     * Asks all registered listeners to perform an action on their live managed Attachments, if any.
+     * Listeners that don't manage attachments should do nothing.
+     *
+     * @param attachment Attachment configuration for which attachments should run an action
+     * @param action Action to run
+     */
+    protected void runAttachmentAction(AttachmentConfig attachment, Consumer<Attachment> action) {
+        if (listeners.isEmpty()) {
+            return;
+        }
+
+        try (ImplicitlySharedList<RemovableListener> listeners = this.listeners.clone()) {
+            for (RemovableListener removableListener : listeners) {
+                // If listener was removed, don't call it anymore
+                if (removableListener.removed) {
+                    continue;
+                }
+
+                // Forward the call to this listener
+                try {
+                    removableListener.listener.onAttachmentAction(attachment, action);
+                } catch (Throwable t) {
+                    logger.log(Level.SEVERE, "Failed to run attachment action", t);
+                }
+            }
+        }
     }
 
     private static class RemovableListener {
