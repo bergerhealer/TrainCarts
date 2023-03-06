@@ -32,16 +32,16 @@ public class AttachmentConfigModelTrackerTest {
 
         tracker.start().assertPath().assertTypeId("EMPTY")
                 .assertChild(AttachmentType.MODEL_TYPE_ID, a -> {
-                     a.assertModelName("model1")
-                      .assertChild(AttachmentType.MODEL_TYPE_ID, a2 -> {
-                          a2.assertModelName("model2")
-                            .assertChild(AttachmentType.MODEL_TYPE_ID, a3 -> {
-                                a3.assertModelName("model1")
-                                  .assertNoMoreChildren(); // Recursion is aborted here
+                    a.assertModelName("model1")
+                            .assertChild(AttachmentType.MODEL_TYPE_ID, a2 -> {
+                                a2.assertModelName("model2")
+                                        .assertChild(AttachmentType.MODEL_TYPE_ID, a3 -> {
+                                            a3.assertModelName("model1")
+                                                    .assertNoMoreChildren(); // Recursion is aborted here
+                                        })
+                                        .assertNoMoreChildren();
                             })
                             .assertNoMoreChildren();
-                      })
-                      .assertNoMoreChildren();
                 })
                 .assertNoMoreChildren();
     }
@@ -62,7 +62,7 @@ public class AttachmentConfigModelTrackerTest {
         tracker.start().assertPath().assertTypeId("EMPTY")
                 .assertChild(AttachmentType.MODEL_TYPE_ID, a -> {
                     a.assertNotAModel()
-                     .assertNoMoreChildren();
+                            .assertNoMoreChildren();
                 })
                 .assertNoMoreChildren();
 
@@ -74,7 +74,7 @@ public class AttachmentConfigModelTrackerTest {
                 .assertModelName("model1")
                 .assertChild(AttachmentType.MODEL_TYPE_ID, a2 -> {
                     a2.assertModelName("model2")
-                      .assertChild("ITEM");
+                            .assertChild("ITEM");
                 })
                 .assertNoMoreChildren();
     }
@@ -95,11 +95,11 @@ public class AttachmentConfigModelTrackerTest {
         tracker.start().assertPath().assertTypeId("EMPTY")
                 .assertChild(AttachmentType.MODEL_TYPE_ID, a -> {
                     a.assertModelName("model1")
-                     .assertChild(AttachmentType.MODEL_TYPE_ID, a2 -> {
-                         a2.assertModelName("model2")
-                           .assertChild("ITEM");
-                     })
-                     .assertNoMoreChildren();
+                            .assertChild(AttachmentType.MODEL_TYPE_ID, a2 -> {
+                                a2.assertModelName("model2")
+                                        .assertChild("ITEM");
+                            })
+                            .assertNoMoreChildren();
                 })
                 .assertNoMoreChildren();
     }
@@ -124,11 +124,11 @@ public class AttachmentConfigModelTrackerTest {
         tracker.start().assertTypeId("ENTITY").assertPath()
                 .assertChild("MODEL", a -> {
                     a.assertChild("EMPTY", a2 -> {
-                        a2.assertChild("SEAT")
-                          .assertChild("ITEM")
-                          .assertNoMoreChildren();
-                    })
-                    .assertNoMoreChildren();
+                                a2.assertChild("SEAT")
+                                        .assertChild("ITEM")
+                                        .assertNoMoreChildren();
+                            })
+                            .assertNoMoreChildren();
                 })
                 .assertChild("TEXT")
                 .assertNoMoreChildren();
@@ -143,13 +143,13 @@ public class AttachmentConfigModelTrackerTest {
         tracker.assertAdded("MODEL", 0)
                 .assertChild("EMPTY", a2 -> {
                     a2.assertChild("SEAT")
-                      .assertChild("ITEM")
-                      .assertNoMoreChildren();
+                            .assertChild("ITEM")
+                            .assertNoMoreChildren();
                 })
                 .assertChild("MODELROOT", a2 -> {
                     a2.assertChild("MODELSUB1")
-                      .assertChild("MODELSUB2")
-                      .assertNoMoreChildren();
+                            .assertChild("MODELSUB2")
+                            .assertNoMoreChildren();
                 })
                 .assertNoMoreChildren();
     }
@@ -174,19 +174,93 @@ public class AttachmentConfigModelTrackerTest {
         tracker.start().assertTypeId("ENTITY").assertPath()
                 .assertChild("MODEL", a -> {
                     a.assertChild("EMPTY", a2 -> {
-                        a2.assertChild("SEAT")
-                          .assertChild("ITEM")
-                          .assertNoMoreChildren();
-                     })
-                     .assertChild("MODELROOT", a2 -> {
-                         a2.assertChild("MODELSUB1")
-                           .assertChild("MODELSUB2")
-                           .assertNoMoreChildren();
-                     })
-                     .assertNoMoreChildren();
+                                a2.assertChild("SEAT")
+                                        .assertChild("ITEM")
+                                        .assertNoMoreChildren();
+                            })
+                            .assertChild("MODELROOT", a2 -> {
+                                a2.assertChild("MODELSUB1")
+                                        .assertChild("MODELSUB2")
+                                        .assertNoMoreChildren();
+                            })
+                            .assertNoMoreChildren();
                 })
                 .assertChild("TEXT")
                 .assertNoMoreChildren();
+    }
+
+    @Test
+    public void testBasicModelProxy() {
+        // Verifies that the behavior of the AttachmentConfigTracker properly proxies
+        // the changes that happen in a linked MODEL that changes. This repeats some of the common
+        // tests already tested for the base AttachmentConfigTracker.
+
+        ConfigurationNode real_root = createAttachment("MODEL");
+        real_root.set("modelName", "testmodel");
+        TestTracker tracker = track(real_root);
+
+        ConfigurationNode root = tracker.addModel("testmodel", "ENTITY");
+        ConfigurationNode mid = addAttachment(root, "EMPTY");
+        ConfigurationNode seat = addAttachment(mid, "SEAT");
+        ConfigurationNode item = addAttachment(mid, "ITEM");
+        ConfigurationNode text = addAttachment(root, "TEXT");
+
+        tracker.start()
+                .assertPath()
+                .assertTypeId("MODEL")
+                .assertModelName("testmodel")
+                .assertChild("ENTITY", a1 -> {
+                    a1.assertChild("EMPTY", a2 -> {
+                                a2.assertChild("SEAT")
+                                        .assertChild("ITEM")
+                                        .assertNoMoreChildren();
+                            })
+                            .assertChild("TEXT")
+                            .assertNoMoreChildren();
+                })
+                .assertNoMoreChildren();
+
+        // Change an attachment
+        {
+            mid.set("position.x", 1.0);
+            mid.set("position.y", 2.0);
+            mid.set("position.z", 3.0);
+
+            tracker.sync();
+            tracker.assertChanged("EMPTY", 0, 0)
+                    .assertChild("SEAT")
+                    .assertChild("ITEM")
+                    .assertNoMoreChildren();
+            tracker.assertNone();
+        }
+
+        // Add two new attachments in the middle
+        {
+            ConfigurationNode newAttachment = createAttachment("MAINADD");
+            addAttachment(newAttachment, "SUBADDONE");
+            addAttachment(newAttachment, "SUBADDTWO");
+            item.getNodeList("attachments").add(newAttachment);
+
+            tracker.sync();
+            tracker.assertChanged("ITEM", 0, 0, 1); // Because of creating the 'attachments' field
+            tracker.assertAdded("MAINADD", 0, 0, 1, 0)
+                    .assertChild("SUBADDONE")
+                    .assertChild("SUBADDTWO")
+                    .assertNoMoreChildren();
+            tracker.assertNone();
+        }
+
+        // Remove two attachments in the middle again
+        {
+            item.getNodeList("attachments").clear();
+
+            tracker.sync();
+            tracker.assertRemoved("MAINADD", 0, 0, 1, 0)
+                    .assertChild("SUBADDONE")
+                    .assertChild("SUBADDTWO")
+                    .assertNoMoreChildren();
+            tracker.assertNone();
+        }
     }
 
     @Test
@@ -206,8 +280,8 @@ public class AttachmentConfigModelTrackerTest {
                 .assertPath().assertTypeId("ENTITY")
                 .assertChild("EMPTY", a -> {
                     a.assertChild("SEAT")
-                     .assertChild("ITEM")
-                     .assertNoMoreChildren();
+                            .assertChild("ITEM")
+                            .assertNoMoreChildren();
                 })
                 .assertChild("TEXT")
                 .assertNoMoreChildren();

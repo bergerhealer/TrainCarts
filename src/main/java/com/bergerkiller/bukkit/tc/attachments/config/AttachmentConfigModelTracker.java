@@ -221,7 +221,7 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
         }
 
         protected void onRemoved() {
-            position = position.removed(this);
+            position = position.removed(base);
             for (DeepAttachmentConfig child : children) {
                 child.onRemoved();
             }
@@ -249,7 +249,7 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
             this.baseModel = base;
 
             // Check this name isn't already used. If it is, abort adding the base model
-            if (parent.isModelUsed(base.modelName())) {
+            if (parent != null && parent.isModelUsed(base.modelName())) {
                 this.modelChild = null;
                 this.proxy = null;
                 return;
@@ -534,11 +534,11 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
          * Makes the position access fixed, so it is no longer dynamically
          * generated. This is for removed attachments to use.
          *
-         * @param attachment Attachment owner of this position access
+         * @param base Base Attachment position is translated for
          * @return fixed
          */
-        default PositionAccess removed(DeepAttachmentConfig attachment) {
-            return new PositionAccessRemoved(childIndex(attachment), path(attachment));
+        default PositionAccess removed(AttachmentConfig base) {
+            return new PositionAccessRemoved(childIndex(base), path(base));
         }
     }
 
@@ -567,7 +567,7 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
         }
 
         @Override
-        public PositionAccess removed(DeepAttachmentConfig attachment) {
+        public PositionAccess removed(AttachmentConfig base) {
             return this;
         }
     }

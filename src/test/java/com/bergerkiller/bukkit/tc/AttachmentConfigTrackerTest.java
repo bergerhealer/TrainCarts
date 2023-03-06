@@ -25,6 +25,24 @@ import java.util.function.Consumer;
 public class AttachmentConfigTrackerTest {
 
     @Test
+    public void testDeepBlockRemove() {
+        ConfigurationNode root = createAttachment("ENTITY");
+        ConfigurationNode mid = addAttachment(root, "EMPTY");
+        ConfigurationNode seat = addAttachment(mid, "SEAT");
+        ConfigurationNode item = addAttachment(mid, "ITEM");
+        ConfigurationNode text = addAttachment(root, "TEXT");
+
+        TestTracker tracker = track(root);
+
+        mid.remove();
+        tracker.sync();
+        tracker.assertRemoved("EMPTY", 0)
+                .assertChild("SEAT")
+                .assertChild("ITEM")
+                .assertNoMoreChildren();
+    }
+
+    @Test
     public void testModelRename() {
         // Checks that renaming a MODEL attachment causes a REMOVE-ADD, rather than
         // a CHANGED notification.
@@ -107,9 +125,9 @@ public class AttachmentConfigTrackerTest {
         tracker.assertChanged("WOO", 1); // Changed because we added the "attachments" field
                                                       // TODO: Do we try to fix this or nah?
         tracker.assertAdded("EMPTY", 1, 0)
-                        .assertChild("SEAT")
-                        .assertChild("ITEM")
-                        .assertNoMoreChildren();
+               .assertChild("SEAT")
+               .assertChild("ITEM")
+               .assertNoMoreChildren();
         tracker.assertNone();
     }
 
