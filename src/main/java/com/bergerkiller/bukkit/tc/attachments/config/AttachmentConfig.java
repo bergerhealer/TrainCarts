@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.config;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.utils.ListCallbackCollector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -216,13 +217,13 @@ public interface AttachmentConfig {
     /**
      * Finds all live {@link Attachment} instances that use this attachment configuration
      *
-     * @return List of live Attachments
+     * @return Unmodifiable List of live Attachments
      * @see #runAction(Consumer)
      */
     default List<Attachment> liveAttachments() {
-        final ArrayList<Attachment> result = new ArrayList<>();
-        runAction(result::add);
-        return result;
+        ListCallbackCollector<Attachment> collector = new ListCallbackCollector<>();
+        runAction(collector);
+        return collector.result();
     }
 
     /**

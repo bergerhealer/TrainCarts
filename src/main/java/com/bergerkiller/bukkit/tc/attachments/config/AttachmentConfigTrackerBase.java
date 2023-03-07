@@ -1,11 +1,14 @@
 package com.bergerkiller.bukkit.tc.attachments.config;
 
 import com.bergerkiller.bukkit.common.collections.ImplicitlySharedList;
+import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.utils.ListCallbackCollector;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -150,7 +153,7 @@ public abstract class AttachmentConfigTrackerBase {
                     try {
                         removableListener.listener.onChange(change);
                     } catch (Throwable t) {
-                        logger.log(Level.SEVERE, "Failed to notify " + change.changeType(), t);
+                        logger.log(Level.SEVERE, "Failed to notify an attachment was " + change.changeType(), t);
                     }
                 }
             }
@@ -194,6 +197,83 @@ public abstract class AttachmentConfigTrackerBase {
                 }
             }
         }
+    }
+
+    /**
+     * Figures out all live {@link Attachment} instances that use an attachment configuration,
+     * and runs an action on them. This runs sync and can only be used from the main thread.<br>
+     * <br>
+     * A series of parent-to-child indices can be specified that refer to the attachment
+     * configuration to retrieve and run actions on. If this tracker has no listeners,
+     * runs nothing.
+     *
+     * @param childPath Parent-to-child indices
+     * @param action Action to run for all live attachments using the configuration
+     * @see AttachmentConfig#runAction(Consumer)
+     */
+    public void runAction(int[] childPath, Consumer<Attachment> action) {
+        if (!listeners.isEmpty()) {
+            sync();
+            if (!listeners.isEmpty()) {
+                // Grab root attachment, find the attachment at this path, and run the action
+                AttachmentConfig config = getRoot().child(childPath);
+                if (config != null) {
+                    config.runAction(action);
+                }
+            }
+        }
+    }
+
+    /**
+     * Figures out all live {@link Attachment} instances that use an attachment configuration,
+     * and runs an action on them. This runs sync and can only be used from the main thread.<br>
+     * <br>
+     * A YAML path relative to the tracked configuration root is used to select the attachment
+     * to run the action on.
+     *
+     * @param relativePath Relative YAML path of the configuration node whose attachments
+     *                     to run an action on
+     * @param action Action to run for all live attachments using the configuration
+     * @see AttachmentConfig#runAction(Consumer)
+     */
+    public void runAction(YamlPath relativePath, Consumer<Attachment> action) {
+        if (!listeners.isEmpty()) {
+            sync();
+            if (!listeners.isEmpty()) {
+                // Grab root attachment, find the attachment at this path, and run the action
+                AttachmentConfig config = getRoot().child(relativePath);
+                if (config != null) {
+                    config.runAction(action);
+                }
+            }
+        }
+    }
+
+    /**
+     * Finds all live {@link Attachment} instances that use the attachment configuration
+     *
+     * @param childPath Parent-to-child indices
+     * @return Unmodifiable List of live Attachments
+     * @see #runAction(int[], Consumer)
+     */
+    public List<Attachment> liveAttachments(int[] childPath) {
+        ListCallbackCollector<Attachment> collector = new ListCallbackCollector<>();
+        runAction(childPath, collector);
+        return collector.result();
+    }
+
+    /**
+     * Finds all live {@link Attachment} instances that use the attachment configuration
+     *
+     * @param relativePath Relative YAML path of the configuration node whose attachments
+     *                     to return
+     * @return Unmodifiable List of live Attachments
+     * @see #runAction(YamlPath, Consumer)
+     */
+    public List<Attachment> liveAttachments(YamlPath relativePath) {
+        ListCallbackCollector<Attachment> collector = new ListCallbackCollector<>();
+        runAction(relativePath, collector);
+        return collector.result();
     }
 
     private static class RemovableListener {
