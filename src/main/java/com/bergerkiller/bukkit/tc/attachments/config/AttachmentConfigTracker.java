@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.RunOnceTask;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.yaml.YamlChangeListener;
 import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import org.bukkit.plugin.Plugin;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 /**
@@ -24,7 +26,8 @@ import java.util.logging.Logger;
  * changes translate into a single bulk change.
  */
 public class AttachmentConfigTracker extends AttachmentConfigTrackerBase implements YamlChangeListener {
-    private final ConfigurationNode completeConfig;
+    private final Supplier<ConfigurationNode> completeConfigSupplier;
+    private ConfigurationNode completeConfig;
     private final SyncTask syncTask;
     private final Map<ConfigurationNode, TrackedAttachmentConfig> byConfig;
     private final List<AttachmentConfig.Change> pendingChanges;
@@ -49,8 +52,31 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
      *               calling the sync function. If null, doesn't do that.
      */
     public AttachmentConfigTracker(ConfigurationNode completeConfig, Plugin plugin) {
+        this(LogicUtil.constantSupplier(completeConfig), plugin);
+    }
+
+    /**
+     * Initializes a new tracker that relies on an external trigger calling
+     * {@link #sync()}. Primarily used for under test.
+     *
+     * @param completeConfigSupplier Supplies the complete Attachment configuration to track
+     */
+    public AttachmentConfigTracker(Supplier<ConfigurationNode> completeConfigSupplier) {
+        this(completeConfigSupplier, null);
+    }
+
+    /**
+     * Initializes a new tracker that can automatically execute {@link #sync()}
+     * every tick when changes to the configuration occur.
+     *
+     * @param completeConfigSupplier Supplies the complete Attachment configuration to track
+     * @param plugin Plugin to use to schedule an update task automatically
+     *               calling the sync function. If null, doesn't do that.
+     */
+    public AttachmentConfigTracker(Supplier<ConfigurationNode> completeConfigSupplier, Plugin plugin) {
         super((plugin == null) ? Logger.getGlobal() : plugin.getLogger());
-        this.completeConfig = completeConfig;
+        this.completeConfigSupplier = completeConfigSupplier;
+        this.completeConfig = null;
         this.syncTask = (plugin == null) ? null : new SyncTask(plugin);
         this.byConfig = new IdentityHashMap<>();
         this.pendingChanges = new ArrayList<>();
@@ -59,6 +85,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
 
     @Override
     protected void startTracking() {
+        completeConfig = completeConfigSupplier.get();
         root = createNewConfig(null, completeConfig, 0);
         root.addToTracker();
         completeConfig.addChangeListener(this);
@@ -68,6 +95,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
     @Override
     protected void stopTracking() {
         completeConfig.removeChangeListener(this);
+        completeConfig = null;
         pendingChanges.clear();
         root = null;
         if (syncTask != null) {
@@ -86,7 +114,8 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
      * @return configuration
      */
     public ConfigurationNode getConfig() {
-        return completeConfig;
+        ConfigurationNode config = completeConfig;
+        return (config != null) ? config : completeConfigSupplier.get();
     }
 
     @Override
@@ -105,18 +134,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         }
 
         try {
-            // Old BKCommonLib had a bug in it of randomly dropping change listeners
-            // with methods like setTo. This ensures we stay updated on changes when
-            // this is detected. We notify a full remove and re-adding to ensure any
-            // changes that occurred meanwhile get synchronized.
-            if (!YamlLogic.INSTANCE.isListening(completeConfig, this)) {
-                pendingChanges.clear();
-                root.swap(createNewConfig(null, completeConfig, 0));
-                completeConfig.addChangeListener(this);
-            } else {
-                // Normal sync
-                root.sync();
-            }
+            processYamlChanges();
 
             // Notify all the changes we've gathered to all registered listeners
             if (!pendingChanges.isEmpty()) {
@@ -128,6 +146,36 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         } finally {
             pendingChanges.clear();
         }
+    }
+
+    private void processYamlChanges() {
+        // Check whether the ConfigurationNode changes. If so, stop listening the
+        // old configuration and listen the new one instead, and do a full re-sync.
+        {
+            ConfigurationNode config = completeConfigSupplier.get();
+            if (config != completeConfig) {
+                pendingChanges.clear();
+                completeConfig.removeChangeListener(this);
+                completeConfig = config;
+                root.swap(createNewConfig(null, completeConfig, 0));
+                completeConfig.addChangeListener(this);
+                return;
+            }
+        }
+
+        // Old BKCommonLib had a bug in it of randomly dropping change listeners
+        // with methods like setTo. This ensures we stay updated on changes when
+        // this is detected. We notify a full remove and re-adding to ensure any
+        // changes that occurred meanwhile get synchronized.
+        if (!YamlLogic.INSTANCE.isListening(completeConfig, this)) {
+            pendingChanges.clear();
+            root.swap(createNewConfig(null, completeConfig, 0));
+            completeConfig.addChangeListener(this);
+            return;
+        }
+
+        // Normal sync
+        root.sync();
     }
 
     @Override
