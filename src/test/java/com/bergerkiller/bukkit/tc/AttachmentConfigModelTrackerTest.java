@@ -77,6 +77,8 @@ public class AttachmentConfigModelTrackerTest {
                             .assertChild("ITEM");
                 })
                 .assertNoMoreChildren();
+        tracker.assertSynchronized("EMPTY");
+        tracker.assertNone();
     }
 
     @Test
@@ -152,6 +154,8 @@ public class AttachmentConfigModelTrackerTest {
                             .assertNoMoreChildren();
                 })
                 .assertNoMoreChildren();
+        tracker.assertSynchronized("ENTITY");
+        tracker.assertNone();
     }
 
     @Test
@@ -231,6 +235,7 @@ public class AttachmentConfigModelTrackerTest {
                     .assertChild("SEAT")
                     .assertChild("ITEM")
                     .assertNoMoreChildren();
+            tracker.assertSynchronized("MODEL");
             tracker.assertNone();
         }
 
@@ -247,6 +252,7 @@ public class AttachmentConfigModelTrackerTest {
                     .assertChild("SUBADDONE")
                     .assertChild("SUBADDTWO")
                     .assertNoMoreChildren();
+            tracker.assertSynchronized("MODEL");
             tracker.assertNone();
         }
 
@@ -259,6 +265,7 @@ public class AttachmentConfigModelTrackerTest {
                     .assertChild("SUBADDONE")
                     .assertChild("SUBADDTWO")
                     .assertNoMoreChildren();
+            tracker.assertSynchronized("MODEL");
             tracker.assertNone();
         }
     }
@@ -297,6 +304,7 @@ public class AttachmentConfigModelTrackerTest {
                     .assertChild("SEAT")
                     .assertChild("ITEM")
                     .assertNoMoreChildren();
+            tracker.assertSynchronized("ENTITY");
             tracker.assertNone();
         }
 
@@ -313,6 +321,7 @@ public class AttachmentConfigModelTrackerTest {
                     .assertChild("SUBADDONE")
                     .assertChild("SUBADDTWO")
                     .assertNoMoreChildren();
+            tracker.assertSynchronized("ENTITY");
             tracker.assertNone();
         }
 
@@ -325,6 +334,7 @@ public class AttachmentConfigModelTrackerTest {
                     .assertChild("SUBADDONE")
                     .assertChild("SUBADDTWO")
                     .assertNoMoreChildren();
+            tracker.assertSynchronized("ENTITY");
             tracker.assertNone();
         }
     }

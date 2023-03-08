@@ -134,10 +134,6 @@ public abstract class AttachmentConfigTrackerBase {
      * @param changes Changes to notify
      */
     protected void notifyChanges(Collection<AttachmentConfig.Change> changes) {
-        if (changes.isEmpty()) {
-            return;
-        }
-
         // Make a snapshot copy of all listeners that exist right now. Listener callbacks
         // could be adding/removing listeners (in an indirect way), and those must be
         // caught. Removed listeners are no longer called afterwards.

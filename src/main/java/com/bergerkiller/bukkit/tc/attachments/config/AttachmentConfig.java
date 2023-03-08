@@ -275,15 +275,6 @@ public interface AttachmentConfig {
             return changeType;
         }
 
-        /**
-         * Calls the appropriate callback in the {@link AttachmentConfigListener}
-         *
-         * @param listener Listener to call the right callback on
-         */
-        void callListener(AttachmentConfigListener listener) {
-            changeType.callback.accept(listener, attachment);
-        }
-
         @Override
         public String toString() {
             return "{" + changeType.name() + " " + attachment.path() + "}";
@@ -303,12 +294,22 @@ public interface AttachmentConfig {
          * The {@link AttachmentConfig} instance will not have changed
          * since previous events.
          */
-        CHANGED(AttachmentConfigListener::onAttachmentChanged);
+        CHANGED(AttachmentConfigListener::onAttachmentChanged),
+        /**
+         * All attachments have been synchronized, and the specified root
+         * attachment stores an up-to-date representation of the current
+         * attachment configuration.
+         */
+        SYNCHRONIZED(AttachmentConfigListener::onSynchronized);
 
         private final BiConsumer<AttachmentConfigListener, AttachmentConfig> callback;
 
         ChangeType(BiConsumer<AttachmentConfigListener, AttachmentConfig> callback) {
             this.callback = callback;
+        }
+
+        public BiConsumer<AttachmentConfigListener, AttachmentConfig> callback() {
+            return callback;
         }
     }
 }

@@ -28,6 +28,7 @@ import java.util.logging.Logger;
 public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrackerBase {
     private DeepAttachmentConfig root;
     private final DeepAttachmentTrackerProxy proxy;
+    private int numProxiesSynchronizing = 0;
 
     public AttachmentConfigModelTracker(AttachmentConfigTracker tracker) {
         this(tracker, null);
@@ -425,6 +426,7 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
      */
     private abstract class DeepAttachmentTrackerProxy implements AttachmentConfigListener {
         private final AttachmentConfigTracker tracker;
+        private boolean isSynchronizing = false;
 
         /**
          * Gets the current root attachment relative to which changes are proxied
@@ -457,6 +459,42 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
          */
         public final void stop() {
             tracker.stopTracking(this);
+            notifyDoneSynchronizing(); // Impossible to receive more notifications once stopped
+        }
+
+        private void notifyStartSynchronizing() {
+            if (!isSynchronizing) {
+                isSynchronizing = true;
+                numProxiesSynchronizing++;
+            }
+        }
+
+        private void notifyDoneSynchronizing() {
+            if (isSynchronizing) {
+                isSynchronizing = false;
+                int numNowSynchronizing = --numProxiesSynchronizing;
+                if (numNowSynchronizing < 0) {
+                    numProxiesSynchronizing = 0; // Try to correct I guess? ew.
+                    throw new IllegalStateException("Number of trackers synchronizing went negative");
+                } else if (numNowSynchronizing == 0 && root != null) {
+                    // Send one extra SYNCHRONIZED for the entire ROOT attachment, as it's now done
+                    notifyChange(AttachmentConfig.ChangeType.SYNCHRONIZED, root);
+                }
+            }
+        }
+
+        @Override
+        public void onChange(AttachmentConfig.Change change) {
+            // Track how many proxies are still being synchronized. Do not send our own SYNCHRONIZED until
+            // all trackers have been synchronized.
+            if (change.changeType() == AttachmentConfig.ChangeType.SYNCHRONIZED) {
+                notifyDoneSynchronizing();
+            } else {
+                notifyStartSynchronizing();
+            }
+
+            // Forward to the callbacks below
+            change.changeType().callback().accept(this, change.attachment());
         }
 
         @Override

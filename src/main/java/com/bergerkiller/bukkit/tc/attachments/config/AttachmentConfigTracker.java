@@ -99,6 +99,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
 
     private void handleSync() {
         // Don't do anything when there's no listeners, or when we're already handling sync()
+        List<AttachmentConfig.Change> pendingChanges = this.pendingChanges;
         if (!isTracking() || !pendingChanges.isEmpty()) {
             return;
         }
@@ -118,7 +119,12 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
             }
 
             // Notify all the changes we've gathered to all registered listeners
-            notifyChanges(pendingChanges);
+            if (!pendingChanges.isEmpty()) {
+                // Add a SYNCHRONIZED change at the end
+                pendingChanges.add(new AttachmentConfig.Change(AttachmentConfig.ChangeType.SYNCHRONIZED, root));
+                // Notify them all
+                notifyChanges(pendingChanges);
+            }
         } finally {
             pendingChanges.clear();
         }

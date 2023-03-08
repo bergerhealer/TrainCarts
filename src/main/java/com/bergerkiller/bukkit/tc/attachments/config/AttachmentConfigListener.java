@@ -7,18 +7,24 @@ import java.util.function.Consumer;
 /**
  * Listens for changes that happen in an attachment configuration. Listeners
  * can be added to the {@link AttachmentConfigTracker}, after which its
- * callbacks will be called when attachments are added/removed/changed.
+ * callbacks will be called when attachments are added/removed/changed.<br>
+ * <br>
+ * After a series of these events have been handled and the listener is
+ * up-to-date with the current configuration,
+ * {@link #onSynchronized(AttachmentConfig)} is called with the root attachment
+ * configuration.
  */
 public interface AttachmentConfigListener {
     /**
      * Called when a change to an attachment was detected. Changes are notified
      * in a logical sequence. Can be overridden to handle multiple different
-     * {@link AttachmentConfig.ChangeType Change Types} at once.
+     * {@link AttachmentConfig.ChangeType Change Types} at once. All series
+     * of changes end in {@link AttachmentConfig.ChangeType#SYNCHRONIZED}.
      *
      * @param change Change that occurred
      */
     default void onChange(AttachmentConfig.Change change) {
-        change.callListener(this);
+        change.changeType().callback().accept(this, change.attachment());
     }
 
     /**
@@ -48,6 +54,16 @@ public interface AttachmentConfigListener {
      * @param attachment Attachment whose configuration changed
      */
     default void onAttachmentChanged(AttachmentConfig attachment) {
+    }
+
+    /**
+     * Called after all attachment removals, additions and changes have completed and
+     * this listener is up-to-date with the current state of the configuration. Callers
+     * can use the input root attachment to synchronize their state.
+     *
+     * @param rootAttachment Root Attachment after all changes have been applied
+     */
+    default void onSynchronized(AttachmentConfig rootAttachment) {
     }
 
     /**

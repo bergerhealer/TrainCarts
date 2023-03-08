@@ -40,6 +40,8 @@ public class AttachmentConfigTrackerTest {
                 .assertChild("SEAT")
                 .assertChild("ITEM")
                 .assertNoMoreChildren();
+        tracker.assertSynchronized("ENTITY");
+        tracker.assertNone();
     }
 
     @Test
@@ -57,18 +59,24 @@ public class AttachmentConfigTrackerTest {
         tracker.assertRemoved(AttachmentType.MODEL_TYPE_ID, 0);
         tracker.assertAdded(AttachmentType.MODEL_TYPE_ID, 0)
                 .assertModelName("testmodel");
+        tracker.assertSynchronized("ENTITY");
+        tracker.assertNone();
 
         model.set("modelName", "othermodel");
         tracker.sync();
         tracker.assertRemoved(AttachmentType.MODEL_TYPE_ID, 0);
         tracker.assertAdded(AttachmentType.MODEL_TYPE_ID, 0)
                 .assertModelName("othermodel");
+        tracker.assertSynchronized("ENTITY");
+        tracker.assertNone();
 
         model.set("modelName", "");
         tracker.sync();
         tracker.assertRemoved(AttachmentType.MODEL_TYPE_ID, 0);
         tracker.assertAdded(AttachmentType.MODEL_TYPE_ID, 0)
                 .assertNotAModel();
+        tracker.assertSynchronized("ENTITY");
+        tracker.assertNone();
     }
 
     @Test
@@ -86,6 +94,7 @@ public class AttachmentConfigTrackerTest {
 
         tracker.sync();
         tracker.assertRemoved("EMPTY", 0);
+        tracker.assertSynchronized("ENTITY");
         tracker.assertNone();
     }
 
@@ -104,6 +113,7 @@ public class AttachmentConfigTrackerTest {
         tracker.sync();
         tracker.assertRemoved("EMPTY", 0);
         tracker.assertRemoved("TEXT", 0); // TEXT moved from [1] to [0]
+        tracker.assertSynchronized("ENTITY");
         tracker.assertNone();
     }
 
@@ -128,6 +138,7 @@ public class AttachmentConfigTrackerTest {
                .assertChild("SEAT")
                .assertChild("ITEM")
                .assertNoMoreChildren();
+        tracker.assertSynchronized("ENTITY");
         tracker.assertNone();
     }
 
@@ -145,6 +156,7 @@ public class AttachmentConfigTrackerTest {
 
         tracker.sync();
         tracker.assertAdded("ITEM", 0, 2);
+        tracker.assertSynchronized("ENTITY");
         tracker.assertNone();
     }
 
@@ -164,6 +176,7 @@ public class AttachmentConfigTrackerTest {
         tracker.sync();
         tracker.assertRemoved("ITEM", 0, 1);
         tracker.assertAdded("ITEM", 0, 0);
+        tracker.assertSynchronized("ENTITY");
         tracker.assertNone();
     }
 
@@ -183,6 +196,7 @@ public class AttachmentConfigTrackerTest {
         tracker.sync();
         tracker.assertRemoved("ITEM", 0, 1);
         tracker.assertAdded("NEAT", 0, 0);
+        tracker.assertSynchronized("ENTITY");
         tracker.assertNone();
     }
 
@@ -202,6 +216,7 @@ public class AttachmentConfigTrackerTest {
         tracker.sync();
         tracker.assertRemoved("ITEM", 0, 1);
         tracker.assertAdded("NEAT", 0, 1);
+        tracker.assertSynchronized("ENTITY");
         tracker.assertNone();
     }
 
@@ -232,6 +247,7 @@ public class AttachmentConfigTrackerTest {
                 .assertChild("TEXT")
                 .assertNoMoreChildren();
         tracker.assertChanged("ITEM", 0, 1);
+        tracker.assertSynchronized("ENTITY");
         tracker.assertNone();
     }
 
@@ -250,6 +266,7 @@ public class AttachmentConfigTrackerTest {
         tracker.sync();
         tracker.assertRemoved("ITEM", 0, 1);
         tracker.assertAdded("NOT_AN_ITEM", 0, 1);
+        tracker.assertSynchronized("ENTITY");
         tracker.assertNone();
     }
 
@@ -267,6 +284,7 @@ public class AttachmentConfigTrackerTest {
 
         tracker.sync();
         tracker.assertChanged("ITEM", 0, 1);
+        tracker.assertSynchronized("ENTITY");
         tracker.assertNone();
     }
 
@@ -286,6 +304,7 @@ public class AttachmentConfigTrackerTest {
 
         tracker.sync();
         tracker.assertChanged("ITEM", 0, 1);
+        tracker.assertSynchronized("ENTITY");
         tracker.assertNone();
     }
 
@@ -460,6 +479,10 @@ public class AttachmentConfigTrackerTest {
 
         public AttachmentAssertion assertChanged(String typeId, int... path) {
             return assertOne(ChangeType.CHANGED, typeId, path);
+        }
+
+        public AttachmentAssertion assertSynchronized(String typeId) {
+            return assertOne(ChangeType.SYNCHRONIZED, typeId);
         }
 
         public AttachmentAssertion assertOne(ChangeType change, String typeId, int... path) {
