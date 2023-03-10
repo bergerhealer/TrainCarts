@@ -9,10 +9,10 @@ import com.bergerkiller.mountiplex.reflection.util.UniqueHash;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -130,9 +130,7 @@ public class TeamProvider {
             this.updateTask.stop();
         }
         for (ViewerState state : this.viewerStates.values()) {
-            for (ViewerState.ViewedTeam team : state.teams.values()) {
-                team.reset();
-            }
+            state.teams.forEach(ViewerState.ViewedTeam::reset);
         }
         this.viewerStates.clear();
     }
@@ -183,7 +181,7 @@ public class TeamProvider {
     public synchronized void reset(Player viewer, Iterable<UUID> entityUUIDs) {
         ViewerState state = this.viewerStates.get(viewer);
         if (state != null) {
-            for (ViewerState.ViewedTeam team : state.teams.values()) {
+            for (ViewerState.ViewedTeam team : state.teams) {
                 for (UUID entityUUID : entityUUIDs) {
                     team.removeEntity(entityUUID);
                 }
@@ -214,7 +212,7 @@ public class TeamProvider {
     public synchronized void reset(Player viewer, UUID entityUUID) {
         ViewerState state = this.viewerStates.get(viewer);
         if (state != null) {
-            for (ViewerState.ViewedTeam team : state.teams.values()) {
+            for (ViewerState.ViewedTeam team : state.teams) {
                 if (team.removeEntity(entityUUID)) {
                     break;
                 }
@@ -230,9 +228,7 @@ public class TeamProvider {
     public synchronized void reset(Player viewer) {
         ViewerState state = this.viewerStates.remove(viewer);
         if (state != null) {
-            for (ViewerState.ViewedTeam team : state.teams.values()) {
-                team.reset();
-            }
+            state.teams.forEach(ViewerState.ViewedTeam::reset);
         }
     }
 
@@ -404,7 +400,7 @@ public class TeamProvider {
 
     private final class ViewerState {
         private final AttachmentViewer viewer;
-        private final IdentityHashMap<Team, ViewedTeam> teams;
+        private final ArrayList<ViewedTeam> teams;
 
         public ViewerState(Player viewer) {
             this(plugin.getPacketQueueMap().getQueue(viewer));
@@ -412,19 +408,24 @@ public class TeamProvider {
 
         public ViewerState(AttachmentViewer viewer) {
             this.viewer = viewer;
-            this.teams = new IdentityHashMap<>();
+            this.teams = new ArrayList<>();
         }
 
         public void assignTeamEntities(Team team, Iterable<UUID> entityUUIDs) {
             ViewedTeam foundViewedTeam = null;
-            for (ViewedTeam viewedTeam : teams.values()) {
+            for (ViewedTeam viewedTeam : teams) {
                 if (viewedTeam.team == team) {
                     // Check whether all entity UUIDs are already contained for this team
                     Iterator<UUID> iter = entityUUIDs.iterator();
                     if (!iter.hasNext()) {
                         return;
                     }
-                    while (viewedTeam.entities.contains(iter.next())) {
+                    UUID eid;
+                    boolean hasPendingRemove = !viewedTeam.pendingRemove.isEmpty();
+                    while (viewedTeam.entities.contains((eid = iter.next()))) {
+                        if (hasPendingRemove) {
+                            viewedTeam.pendingRemove.remove(eid.toString());
+                        }
                         if (!iter.hasNext()) {
                             return;
                         }
@@ -433,6 +434,7 @@ public class TeamProvider {
                     // Keep for later
                     foundViewedTeam = viewedTeam;
                 } else {
+                    // Remove from previous team
                     for (UUID uuid : entityUUIDs) {
                         viewedTeam.removeEntity(uuid);
                     }
@@ -447,7 +449,7 @@ public class TeamProvider {
             // Create a new team if needed
             if (foundViewedTeam == null) {
                 foundViewedTeam = new ViewedTeam(team);
-                this.teams.put(team, foundViewedTeam);
+                this.teams.add(foundViewedTeam);
             }
 
             // Assign the entity UUIDs
@@ -458,24 +460,27 @@ public class TeamProvider {
 
         public void assignTeamEntity(Team team, UUID entityUUID) {
             ViewedTeam foundViewedTeam = null;
-            for (ViewedTeam viewedTeam : teams.values()) {
+            for (ViewedTeam viewedTeam : teams) {
                 if (viewedTeam.team == team) {
                     // If already stored for the desired team, do nothing
                     if (viewedTeam.entities.contains(entityUUID)) {
+                        if (!viewedTeam.pendingRemove.isEmpty()) {
+                            viewedTeam.pendingRemove.remove(entityUUID.toString());
+                        }
                         return;
                     } else {
                         foundViewedTeam = viewedTeam; // Keep for later
                     }
-                } else if (viewedTeam.removeEntity(entityUUID)) {
-                    // Removed from previous team
-                    break;
+                } else {
+                    // Remove from previous team
+                    viewedTeam.removeEntity(entityUUID);
                 }
             }
 
             // Create a new team if needed
             if (foundViewedTeam == null) {
                 foundViewedTeam = new ViewedTeam(team);
-                this.teams.put(team, foundViewedTeam);
+                this.teams.add(foundViewedTeam);
             }
 
             // Add the entity UUID
