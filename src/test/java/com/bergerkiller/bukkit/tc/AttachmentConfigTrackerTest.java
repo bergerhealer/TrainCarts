@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.config.yaml.YamlChangeListener;
 import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
@@ -16,6 +17,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 /**
@@ -23,6 +25,62 @@ import java.util.function.Consumer;
  * be modified (by the editor) and that all of them fire the correct events.
  */
 public class AttachmentConfigTrackerTest {
+
+    @Test
+    public void testRootReferenceInvalidationConfigSwap() {
+        final AtomicReference<ConfigurationNode> rootRef = new AtomicReference<>(createAttachment("ENTITY"));
+
+        AttachmentConfigTracker tracker = new AttachmentConfigTracker(rootRef::get);
+
+        // Create a root reference and verify its representation is correct
+        AttachmentConfig.RootReference refRoot = tracker.getRoot();
+        assertTrue(refRoot.valid());
+        assertConfig(refRoot.get()).assertPath().assertTypeId("ENTITY")
+                .assertNoMoreChildren();
+
+        // Change the reference value
+        rootRef.set(createAttachment("ITEM"));
+
+        // Even without calling sync(), this should have invalidated the root
+        assertFalse(refRoot.valid());
+        try {
+            refRoot.get();
+            fail("No exception was thrown");
+        } catch (IllegalStateException ex) { /* ok */ }
+    }
+
+    @Test
+    public void testRootReferenceInvalidation() {
+        ConfigurationNode root = createAttachment("ENTITY");
+        ConfigurationNode mid = addAttachment(root, "EMPTY");
+        ConfigurationNode seat = addAttachment(mid, "SEAT");
+        ConfigurationNode item = addAttachment(mid, "ITEM");
+        ConfigurationNode text = addAttachment(root, "TEXT");
+
+        AttachmentConfigTracker tracker = new AttachmentConfigTracker(root);
+
+        // Create a root reference and verify its representation is correct
+        AttachmentConfig.RootReference refRoot = tracker.getRoot();
+        assertTrue(refRoot.valid());
+        assertConfig(refRoot.get()).assertPath().assertTypeId("ENTITY")
+                .assertChild("EMPTY", a1 -> {
+                    a1.assertChild("SEAT")
+                      .assertChild("ITEM")
+                      .assertNoMoreChildren();
+                })
+                .assertChild("TEXT")
+                .assertNoMoreChildren();
+
+        // Modify the configuration
+        seat.set("position.y", 50.0);
+
+        // Even without calling sync(), this should have invalidated the root
+        assertFalse(refRoot.valid());
+        try {
+            refRoot.get();
+            fail("No exception was thrown");
+        } catch (IllegalStateException ex) { /* ok */ }
+    }
 
     @Test
     public void testDeepBlockRemove() {
@@ -316,7 +374,7 @@ public class AttachmentConfigTrackerTest {
             Object logic = Class.forName("com.bergerkiller.bukkit.tc.attachments.config.YamlLogic$YamlLogicLegacy")
                     .getConstructor().newInstance();
             java.lang.reflect.Method isListening = logic.getClass().getMethod("isListening",
-                    ConfigurationNode.class, AttachmentConfigTracker.class);
+                    ConfigurationNode.class, YamlChangeListener.class);
 
             // Create a new tracker and start/stop listening
             // The isListening should reflect whether or not its still listening
@@ -354,6 +412,10 @@ public class AttachmentConfigTrackerTest {
         TestTracker t = new TestTracker(new AttachmentConfigTracker(config));
         t.start();
         return t;
+    }
+
+    public static AttachmentAssertion assertConfig(AttachmentConfig config) {
+        return new AttachmentAssertion(config);
     }
 
     private static String pathStr(int[] path) {

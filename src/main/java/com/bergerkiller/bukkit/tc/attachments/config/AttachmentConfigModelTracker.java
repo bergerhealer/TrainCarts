@@ -29,6 +29,7 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
     private DeepAttachmentConfig root;
     private final DeepAttachmentTrackerProxy proxy;
     private int numProxiesSynchronizing = 0;
+    private int modificationCount = 0;
 
     public AttachmentConfigModelTracker(AttachmentConfigTracker tracker) {
         this(tracker, null);
@@ -45,7 +46,7 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
 
             @Override
             public void setRoot(AttachmentConfig baseRoot) {
-                root = createAttachmentConfig(PositionAccess.DEFAULT, null, baseRoot);
+                root = createNewRoot(baseRoot, null);
             }
         };
     }
@@ -64,6 +65,7 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
     @Override
     protected void startTracking() {
         proxy.start();
+        modificationCount++;
     }
 
     @Override
@@ -71,11 +73,38 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
         root.onRemoved();
         proxy.stop();
         root = null;
+        modificationCount++;
     }
 
     @Override
-    protected AttachmentConfig getRoot() {
-        return root;
+    protected AttachmentConfig.RootReference createRootReference() {
+        // Return current root. Becomes invalid once modificationCount starts differing
+        if (isTracking()) {
+            final int currModCount = modificationCount;
+            return new AttachmentConfig.RootReference(root, () -> modificationCount == currModCount);
+        }
+
+        // Create a root snapshot. Collect all model attachment roots that are also used,
+        // so the valid checker can those for validity too
+        AttachmentConfig.RootReference mainBaseRootRef = proxy.tracker.createRootReference();
+        final List<AttachmentConfig.RootReference> allRootsUsed = new ArrayList<>();
+        allRootsUsed.add(mainBaseRootRef);
+        DeepAttachmentConfig tempRoot = createNewRoot(mainBaseRootRef.get(), allRootsUsed);
+
+        if (allRootsUsed.size() == 1) {
+            // No models are used, simplified code where no iteration/lambda stuff is needed
+            return new AttachmentConfig.RootReference(tempRoot, mainBaseRootRef.getValidChecker());
+        } else {
+            // If any of the roots used become invalid, invalidate everything
+            return new AttachmentConfig.RootReference(tempRoot, () -> {
+                for (AttachmentConfig.RootReference ref : allRootsUsed) {
+                    if (!ref.valid()) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+        }
     }
 
     /**
@@ -87,11 +116,15 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
         // Unused
     }
 
-    private DeepAttachmentConfig createAttachmentConfig(PositionAccess position, DeepAttachmentConfig parent, AttachmentConfig base) {
+    private DeepAttachmentConfig createNewRoot(AttachmentConfig base, List<AttachmentConfig.RootReference> modelRoots) {
+        return createAttachmentConfig(PositionAccess.DEFAULT, null, base, modelRoots);
+    }
+
+    private DeepAttachmentConfig createAttachmentConfig(PositionAccess position, DeepAttachmentConfig parent, AttachmentConfig base, List<AttachmentConfig.RootReference> modelRoots) {
         if (base instanceof AttachmentConfig.Model) {
-            return new DeepModelAttachmentConfig(position, parent, (AttachmentConfig.Model) base);
+            return new DeepModelAttachmentConfig(position, parent, (AttachmentConfig.Model) base, modelRoots);
         } else {
-            return new DeepAttachmentConfig(position, parent, base);
+            return new DeepAttachmentConfig(position, parent, base, modelRoots);
         }
     }
 
@@ -107,7 +140,22 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
         private final AttachmentConfig base;
         protected final ArrayList<DeepAttachmentConfig> children;
 
-        public DeepAttachmentConfig(PositionAccess position, DeepAttachmentConfig parent, AttachmentConfig base) {
+        /**
+         * Initializes a new deep attachment config
+         *
+         * @param position Parent-to-child and yaml path position information
+         * @param parent Parent attachment, null for root
+         * @param base Base attachment that this deep attachment proxies
+         * @param modelRoots List of model attachment root references. Is null when
+         *                   tracked using change listeners, is a list to add roots to
+         *                   when creating an untracked configuration snapshot.
+         */
+        public DeepAttachmentConfig(
+                PositionAccess position,
+                DeepAttachmentConfig parent,
+                AttachmentConfig base,
+                List<AttachmentConfig.RootReference> modelRoots)
+        {
             this.position = position;
             this.parent = parent;
             this.base = base;
@@ -115,7 +163,7 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
             List<AttachmentConfig> baseChildren = base.children();
             this.children = new ArrayList<>(baseChildren.size() + 1);
             for (AttachmentConfig baseChild : baseChildren) {
-                this.children.add(createAttachmentConfig(position.forChildren(), this, baseChild));
+                this.children.add(createAttachmentConfig(position.forChildren(), this, baseChild, modelRoots));
             }
         }
 
@@ -237,7 +285,7 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
                 throw new IndexOutOfBoundsException("Child index out of bounds: " + childIndex);
             }
 
-            DeepAttachmentConfig deepConfig = createAttachmentConfig(position.forChildren(), this, baseConfig);
+            DeepAttachmentConfig deepConfig = createAttachmentConfig(position.forChildren(), this, baseConfig, null);
             children.add(childIndex, deepConfig);
             notifyChange(ChangeType.ADDED, deepConfig);
         }
@@ -293,8 +341,8 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
         private final DeepAttachmentTrackerProxy proxy;
         private DeepAttachmentConfig modelChild;
 
-        public DeepModelAttachmentConfig(PositionAccess position, DeepAttachmentConfig parent, AttachmentConfig.Model base) {
-            super(position, parent, base);
+        public DeepModelAttachmentConfig(PositionAccess position, DeepAttachmentConfig parent, AttachmentConfig.Model base, List<AttachmentConfig.RootReference> modelRoots) {
+            super(position, parent, base, modelRoots);
             this.baseModel = base;
 
             // Check this name isn't already used. If it is, abort adding the base model
@@ -306,6 +354,19 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
 
             // Find the configuration tracker to use for this model name
             AttachmentConfigTracker modelTracker = findModelConfig(base.modelName());
+
+            // If modelRoots is not null, then this configuration is a snapshot, and all we got to
+            // do is retrieve the current root snapshot and create its configuration elements.
+            // The proxy field will remain null / unset
+            if (modelRoots != null) {
+                AttachmentConfig.RootReference modelRoot = modelTracker.getRoot();
+                modelRoots.add(modelRoot);
+                this.modelChild = createAttachmentConfig(new PositionAccessModelChild(DeepModelAttachmentConfig.this),
+                        DeepModelAttachmentConfig.this, modelRoot.get(), modelRoots);
+                this.children.add(this.modelChild);
+                this.proxy = null;
+                return;
+            }
 
             // This proxy will automatically update the hidden model attachment child
             this.proxy = new DeepAttachmentTrackerProxy(modelTracker) {
@@ -323,14 +384,14 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
                         modelChild = null;
                     } else {
                         modelChild = createAttachmentConfig(new PositionAccessModelChild(DeepModelAttachmentConfig.this),
-                                DeepModelAttachmentConfig.this, baseRoot);
+                                DeepModelAttachmentConfig.this, baseRoot, null);
                         children.add(modelChild);
                     }
                 }
             };
 
             // Initialize the model child and start tracking changes that happen
-            proxy.start();
+            this.proxy.start();
         }
 
         @Override
@@ -485,6 +546,9 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
 
         @Override
         public void onChange(AttachmentConfig.Change change) {
+            // Any root references are now invalid
+            modificationCount++;
+
             // Track how many proxies are still being synchronized. Do not send our own SYNCHRONIZED until
             // all trackers have been synchronized.
             if (change.changeType() == AttachmentConfig.ChangeType.SYNCHRONIZED) {

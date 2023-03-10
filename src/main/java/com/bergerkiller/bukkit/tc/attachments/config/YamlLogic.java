@@ -23,10 +23,10 @@ interface YamlLogic {
      * configuration. If not, returns false.
      *
      * @param config ConfigurationNode to check listeners of
-     * @param tracker Tracker that is expected to be listening
+     * @param listener Yaml Change Listener that is expected to be listening
      * @return true if still listening (or presumed to be)
      */
-    boolean isListening(ConfigurationNode config, AttachmentConfigTracker tracker);
+    boolean isListening(ConfigurationNode config, YamlChangeListener listener);
 
     /**
      * Obtains the configuration node at a relative path in another configuration node,
@@ -108,15 +108,15 @@ interface YamlLogic {
                 relativeListenerField = relField;
             }
 
-            public boolean isListening(ConfigurationNode config, AttachmentConfigTracker tracker) {
+            public boolean isListening(ConfigurationNode config, YamlChangeListener listener) {
                 try {
                     Object entry = entryField.get(config);
                     YamlChangeListener[] listeners = (YamlChangeListener[]) listenersField.get(entry);
-                    for (YamlChangeListener listener : listeners) {
-                        if (relativeListenerType == listener.getClass()) {
-                            listener = (YamlChangeListener) relativeListenerField.get(listener);
+                    for (YamlChangeListener registeredListener : listeners) {
+                        if (relativeListenerType == registeredListener.getClass()) {
+                            registeredListener = (YamlChangeListener) relativeListenerField.get(registeredListener);
                         }
-                        if (listener == tracker) {
+                        if (registeredListener == listener) {
                             return true;
                         }
                     }
@@ -147,9 +147,9 @@ interface YamlLogic {
         }
 
         @Override
-        public boolean isListening(ConfigurationNode config, AttachmentConfigTracker tracker) {
+        public boolean isListening(ConfigurationNode config, YamlChangeListener listener) {
             IsListeningLogic logic = IsListeningLogic.INSTANCE;
-            return logic == null || logic.isListening(config, tracker);
+            return logic == null || logic.isListening(config, listener);
         }
 
         @Override
@@ -237,7 +237,7 @@ interface YamlLogic {
 
     class YamlLogicLatest implements YamlLogic {
         @Override
-        public boolean isListening(ConfigurationNode config, AttachmentConfigTracker tracker) {
+        public boolean isListening(ConfigurationNode config, YamlChangeListener listener) {
             // No-op. No bugs here, it'll always be listening
             return true;
         }

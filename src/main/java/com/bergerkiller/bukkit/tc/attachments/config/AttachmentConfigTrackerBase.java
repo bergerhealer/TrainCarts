@@ -2,9 +2,11 @@ package com.bergerkiller.bukkit.tc.attachments.config;
 
 import com.bergerkiller.bukkit.common.collections.ImplicitlySharedList;
 import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.utils.ListCallbackCollector;
 
+import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -20,11 +22,13 @@ import java.util.logging.Logger;
  */
 public abstract class AttachmentConfigTrackerBase {
     private final ImplicitlySharedList<RemovableListener> listeners;
+    private WeakRootReference cachedRoot;
     protected final Logger logger;
 
     public AttachmentConfigTrackerBase(Logger logger) {
         this.logger = logger;
         this.listeners = new ImplicitlySharedList<>();
+        this.cachedRoot = new WeakRootReference();
     }
 
     /**
@@ -39,12 +43,12 @@ public abstract class AttachmentConfigTrackerBase {
     protected abstract void stopTracking();
 
     /**
-     * Returns the root attachment. Can only be called when a listener has been
-     * registered.
+     * Creates a new {@link AttachmentConfig.RootReference}. The reference should become
+     * invalid once the underlying configuration changes. The value is cached automatically.
      *
-     * @return root attachment config
+     * @return New root reference
      */
-    protected abstract AttachmentConfig getRoot();
+    protected abstract AttachmentConfig.RootReference createRootReference();
 
     /**
      * Collects all configuration changes that have occurred thus far and fires callbacks
@@ -53,6 +57,24 @@ public abstract class AttachmentConfigTrackerBase {
      * tracker's constructor.
      */
     public abstract void sync();
+
+    /**
+     * Gets a reference to a snapshot of the current root {@link AttachmentConfig}. This
+     * reference becomes invalid automatically when the attachment configuration changes.
+     * The entire attachment tree hierarchy can be navigated using this root attachment,
+     * but it should no longer be used once invalid.
+     *
+     * @return Reference to the root {@link AttachmentConfig}
+     */
+    public final AttachmentConfig.RootReference getRoot() {
+        AttachmentConfig.RootReference root = cachedRoot.getIfValid();
+        if (root == null) {
+            sync();
+            root = createRootReference();
+            cachedRoot = new WeakRootReference(root);
+        }
+        return root;
+    }
 
     /**
      * Starts tracking changes to the configuration and notifies those changes
@@ -79,13 +101,16 @@ public abstract class AttachmentConfigTrackerBase {
         if (listeners.isEmpty()) {
             startTracking();
             listeners.add(removableListener);
-            return getRoot();
+            AttachmentConfig.RootReference ref = createRootReference();
+            cachedRoot.close();
+            cachedRoot = new WeakRootReference(ref);
+            return ref.get();
         } else if (listeners.contains(removableListener)) {
             throw new IllegalStateException("Listener already added");
         } else {
             sync();
             listeners.add(removableListener);
-            return getRoot();
+            return getRoot().get();
         }
     }
 
@@ -112,6 +137,10 @@ public abstract class AttachmentConfigTrackerBase {
                 if (listeners.isEmpty()) {
                     stopTracking();
                 }
+
+                // Better to invalidate this one right away
+                cachedRoot.close();
+                cachedRoot = new WeakRootReference();
 
                 break;
             }
@@ -212,7 +241,7 @@ public abstract class AttachmentConfigTrackerBase {
             sync();
             if (!listeners.isEmpty()) {
                 // Grab root attachment, find the attachment at this path, and run the action
-                AttachmentConfig config = getRoot().child(childPath);
+                AttachmentConfig config = getRoot().get().child(childPath);
                 if (config != null) {
                     config.runAction(action);
                 }
@@ -237,7 +266,7 @@ public abstract class AttachmentConfigTrackerBase {
             sync();
             if (!listeners.isEmpty()) {
                 // Grab root attachment, find the attachment at this path, and run the action
-                AttachmentConfig config = getRoot().child(relativePath);
+                AttachmentConfig config = getRoot().get().child(relativePath);
                 if (config != null) {
                     config.runAction(action);
                 }
@@ -284,6 +313,44 @@ public abstract class AttachmentConfigTrackerBase {
         @Override
         public boolean equals(Object o) {
             return this.listener.equals(((RemovableListener) o).listener);
+        }
+    }
+
+    /**
+     * Stores a weak RootReference, but manages its valid checker separately so that it
+     * properly cleans up these checkers when swapping out the references.
+     */
+    private static class WeakRootReference {
+        private final WeakReference<AttachmentConfig.RootReference> reference;
+        private final AttachmentConfig.RootReference.ValidChecker checker;
+
+        public WeakRootReference() {
+            this.reference = LogicUtil.nullWeakReference();
+            this.checker = () -> false;
+        }
+
+        public WeakRootReference(AttachmentConfig.RootReference ref) {
+            this.reference = new WeakReference<>(ref);
+            this.checker = ref.getValidChecker();
+        }
+
+        public AttachmentConfig.RootReference getIfValid() {
+            AttachmentConfig.RootReference ref = reference.get();
+            if (ref == null) {
+                this.checker.close();
+                return null;
+            } else {
+                return ref.valid() ? ref : null;
+            }
+        }
+
+        public void close() {
+            AttachmentConfig.RootReference ref = reference.get();
+            if (ref != null) {
+                ref.invalidate(); // also closes checker
+            } else {
+                this.checker.close();
+            }
         }
     }
 }

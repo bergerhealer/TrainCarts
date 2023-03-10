@@ -32,6 +32,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
     private final Map<ConfigurationNode, TrackedAttachmentConfig> byConfig;
     private final List<AttachmentConfig.Change> pendingChanges;
     private TrackedAttachmentConfig root;
+    private int modificationCount = 0;
 
     /**
      * Initializes a new tracker that relies on an external trigger calling
@@ -86,14 +87,16 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
     @Override
     protected void startTracking() {
         completeConfig = completeConfigSupplier.get();
-        root = createNewConfig(null, completeConfig, 0);
+        root = createNewRoot(completeConfig);
         root.addToTracker();
         completeConfig.addChangeListener(this);
         pendingChanges.clear();
+        modificationCount++;
     }
 
     @Override
     protected void stopTracking() {
+        modificationCount++;
         completeConfig.removeChangeListener(this);
         completeConfig = null;
         pendingChanges.clear();
@@ -104,8 +107,69 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
     }
 
     @Override
-    protected AttachmentConfig getRoot() {
-        return root;
+    protected AttachmentConfig.RootReference createRootReference() {
+        // Return current root. Becomes invalid once modificationCount starts differing
+        if (isTracking()) {
+            final int currModCount = modificationCount;
+            return new AttachmentConfig.RootReference(root, () -> modificationCount == currModCount);
+        }
+
+        // We're not currently tracking. Register a temporary listener on the configuration to
+        // automatically invalidate stuff. The listener automatically removes itself when the
+        // root reference becomes invalid. It also becomes invalid when the configuration instance
+        // changes, or it's no longer listening all of a sudden.
+        ConfigurationNode configSnapshot = completeConfigSupplier.get();
+        AttachmentConfig tempRoot = createNewRoot(configSnapshot);
+        return new AttachmentConfig.RootReference(tempRoot, new ConfigInvalidChecker(configSnapshot));
+    }
+
+    /**
+     * Registers itself as a change listener for the configuration so that it knows when
+     * a RootReference becomes invalid.
+     */
+    private class ConfigInvalidChecker implements AttachmentConfig.RootReference.ValidChecker, YamlChangeListener {
+        private final ConfigurationNode configSnapshot;
+        private boolean valid;
+
+        public ConfigInvalidChecker(ConfigurationNode configSnapshot) {
+            this.configSnapshot = configSnapshot;
+            this.configSnapshot.addChangeListener(this);
+            this.valid = true;
+        }
+
+        @Override
+        public boolean valid() {
+            if (!valid) {
+                return false;
+            }
+
+            // If now tracking, then the root definitely changed completely
+            // If the configuration instance differs, or the listener was removed (old bkcl),
+            // then it is also invalid. Everything else is handled by the onNodeChanged
+            // callback.
+            if (isTracking() ||
+                configSnapshot != completeConfigSupplier.get() ||
+                !YamlLogic.INSTANCE.isListening(configSnapshot, this)
+            ) {
+                close();
+                return false;
+            }
+
+            return true;
+        }
+
+        @Override
+        public void close() {
+            if (valid) {
+                valid = false;
+                configSnapshot.removeChangeListener(this);
+            }
+        }
+
+        @Override
+        public void onNodeChanged(YamlPath yamlPath) {
+            close();
+        }
     }
 
     /**
@@ -157,7 +221,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
                 pendingChanges.clear();
                 completeConfig.removeChangeListener(this);
                 completeConfig = config;
-                root.swap(createNewConfig(null, completeConfig, 0));
+                root.swap(createNewRoot(config));
                 completeConfig.addChangeListener(this);
                 return;
             }
@@ -169,20 +233,23 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         // changes that occurred meanwhile get synchronized.
         if (!YamlLogic.INSTANCE.isListening(completeConfig, this)) {
             pendingChanges.clear();
-            root.swap(createNewConfig(null, completeConfig, 0));
+            root.swap(createNewRoot(completeConfig));
             completeConfig.addChangeListener(this);
             return;
         }
 
         // Normal sync
-        root.sync();
+        root.sync(completeConfig.getYamlPath());
     }
 
     @Override
     public void onNodeChanged(YamlPath yamlPath) {
+        // Any cached root references now become invalid
+        modificationCount++;
+
         // Legacy back-support
         if (!YamlLogic.INSTANCE.areChangesRelative()) {
-            yamlPath = getRelativePath(yamlPath);
+            yamlPath = YamlLogic.INSTANCE.getRelativePath(completeConfig.getYamlPath(), yamlPath);
         }
 
         if (yamlPath.name().equals("attachments")) {
@@ -214,10 +281,6 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
 
     private void addChange(AttachmentConfig.ChangeType changeType, TrackedAttachmentConfig attachment) {
         pendingChanges.add(new AttachmentConfig.Change(changeType, attachment));
-    }
-
-    private YamlPath getRelativePath(YamlPath path) {
-        return YamlLogic.INSTANCE.getRelativePath(completeConfig.getYamlPath(), path);
     }
 
     /**
@@ -267,21 +330,25 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         return modelNameObj == null ? "" : modelNameObj.toString();
     }
 
-    private TrackedAttachmentConfig createNewConfig(TrackedAttachmentConfig parent, ConfigurationNode config, int childIndex) {
+    private TrackedAttachmentConfig createNewRoot(ConfigurationNode config) {
+        return createNewConfig(null, config.getYamlPath(), config, 0);
+    }
+
+    private TrackedAttachmentConfig createNewConfig(TrackedAttachmentConfig parent, YamlPath rootPath, ConfigurationNode config, int childIndex) {
         String typeId = readAttachmentTypeId(config);
 
         // Create a TrackedModelAttachmentConfig for MODEL attachments with a valid non-empty model name set
         if (typeId.equals(AttachmentType.MODEL_TYPE_ID)) {
             String modelName = readModelName(config);
             if (modelName.isEmpty()) {
-                return new TrackedEmptyModelAttachmentConfig(parent, config, typeId, childIndex);
+                return new TrackedEmptyModelAttachmentConfig(parent, rootPath, config, typeId, childIndex);
             } else {
-                return new TrackedModelAttachmentConfig(parent, config, typeId, modelName, childIndex);
+                return new TrackedModelAttachmentConfig(parent, rootPath, config, typeId, modelName, childIndex);
             }
         }
 
         // Create a default TrackedAttachmentConfig otherwise
-        return new TrackedAttachmentConfig(parent, config, typeId, childIndex);
+        return new TrackedAttachmentConfig(parent, rootPath, config, typeId, childIndex);
     }
 
     private class TrackedAttachmentConfig implements AttachmentConfig {
@@ -296,10 +363,10 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         private boolean childrenRefreshNeeded;
         private boolean removed;
 
-        private TrackedAttachmentConfig(TrackedAttachmentConfig parent, ConfigurationNode config, String typeId, int childIndex) {
+        private TrackedAttachmentConfig(TrackedAttachmentConfig parent, YamlPath rootPath, ConfigurationNode config, String typeId, int childIndex) {
             this.parent = parent;
             this.children = new ArrayList<>();
-            this.path = getRelativePath(config.getYamlPath());
+            this.path = YamlLogic.INSTANCE.getRelativePath(rootPath, config.getYamlPath());
             this.config = config;
             this.typeId = typeId;
             this.childIndex = childIndex;
@@ -310,7 +377,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
 
             int index = -1;
             for (ConfigurationNode childNode : config.getNodeList("attachments")) {
-                this.children.add(createNewConfig(this, childNode, ++index));
+                this.children.add(createNewConfig(this, rootPath, childNode, ++index));
             }
         }
 
@@ -388,11 +455,11 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
             }
         }
 
-        private void sync() {
+        private void sync(YamlPath rootPath) {
             // Run this at all times, because a change in path trickles down
             // into the path used for children, and so it must all be correct
             // from the bottom up.
-            this.updatePath();
+            this.updatePath(rootPath);
 
             if (changed) {
                 changed = false;
@@ -401,22 +468,22 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
                     if (handleLoad()) {
                         addChange(ChangeType.CHANGED, this);
                     } else {
-                        this.swap(createNewConfig(this.parent, this.config, this.childIndex));
+                        this.swap(createNewConfig(this.parent, rootPath, this.config, this.childIndex));
                     }
                 }
                 if (childrenRefreshNeeded) {
                     childrenRefreshNeeded = false;
-                    updateChildren();
+                    updateChildren(rootPath);
                 }
                 if (!removed) {
                     for (TrackedAttachmentConfig child : children) {
-                        child.sync();
+                        child.sync(rootPath);
                     }
                 }
             }
         }
 
-        private void updateChildren() {
+        private void updateChildren(YamlPath rootPath) {
             List<ConfigurationNode> currChildNodes = this.config.getNodeList("attachments");
 
             // Remove all children that are no longer parented to this attachment (=removed)
@@ -465,7 +532,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
                     }
 
                     // Add a new Attachment at this current child index
-                    TrackedAttachmentConfig attachment = createNewConfig(this, childConfig, childIndex);
+                    TrackedAttachmentConfig attachment = createNewConfig(this, rootPath, childConfig, childIndex);
                     children.add(childIndex, attachment);
                     attachment.addToTracker();
                     addChange(ChangeType.ADDED, attachment);
@@ -482,10 +549,10 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
             }
         }
 
-        private void updatePath() {
+        private void updatePath(YamlPath rootPath) {
             // Ignore ROOT, it's always ROOT
             if (parent != null) {
-                this.path = getRelativePath(this.config.getYamlPath());
+                this.path = YamlLogic.INSTANCE.getRelativePath(rootPath, this.config.getYamlPath());
             }
         }
 
@@ -538,8 +605,8 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
     private class TrackedModelAttachmentConfig extends TrackedAttachmentConfig implements AttachmentConfig.Model {
         private final String modelName;
 
-        private TrackedModelAttachmentConfig(TrackedAttachmentConfig parent, ConfigurationNode config, String typeId, String modelName, int childIndex) {
-            super(parent, config, typeId, childIndex);
+        private TrackedModelAttachmentConfig(TrackedAttachmentConfig parent, YamlPath rootPath, ConfigurationNode config, String typeId, String modelName, int childIndex) {
+            super(parent, rootPath, config, typeId, childIndex);
             this.modelName = modelName;
         }
 
@@ -560,8 +627,8 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
      */
     private class TrackedEmptyModelAttachmentConfig extends TrackedAttachmentConfig {
 
-        public TrackedEmptyModelAttachmentConfig(TrackedAttachmentConfig parent, ConfigurationNode config, String typeId, int childIndex) {
-            super(parent, config, typeId, childIndex);
+        public TrackedEmptyModelAttachmentConfig(TrackedAttachmentConfig parent, YamlPath rootPath, ConfigurationNode config, String typeId, int childIndex) {
+            super(parent, rootPath, config, typeId, childIndex);
         }
 
         @Override

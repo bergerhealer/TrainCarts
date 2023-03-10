@@ -312,4 +312,87 @@ public interface AttachmentConfig {
             return callback;
         }
     }
+
+    /**
+     * Reference to an {@link AttachmentConfig} root that was obtained at one
+     * point in time. Stores the actual configuration, as well as information
+     * about whether this configuration is still valid. Once stale, {@link #get()} will
+     * throw. Use {@link #valid()} to check whether this root reference can
+     * still be used. If not, a new root reference should be obtained using
+     * {@link AttachmentConfigTrackerBase#getRoot()}.
+     */
+    final class RootReference {
+        private AttachmentConfig root;
+        private ValidChecker validChecker;
+
+        public RootReference(AttachmentConfig root, ValidChecker validChecker) {
+            this.root = root;
+            this.validChecker = validChecker;
+        }
+
+        /**
+         * Gets the root attachment configuration. Must use {@link #valid()}
+         * before calling this method to check whether this root reference
+         * is still valid. If invalid, a new root reference should be obtained.
+         *
+         * @return root AttachmentConfig
+         * @throws IllegalStateException If invalid
+         */
+        public AttachmentConfig get() {
+            if (valid()) {
+                return root;
+            } else {
+                throw new IllegalStateException("This root reference is no longer valid");
+            }
+        }
+
+        /**
+         * Gets whether this root AttachmentConfig reference is still valid. If not
+         * valid, then any information calculated using it should be re-calculated,
+         * and {@link #get()} can no longer be used. A new reference should be obtained.
+         *
+         * @return True if this root AttachmentConfig is still valid
+         */
+        public boolean valid() {
+            ValidChecker checker = validChecker;
+            if (checker != null) {
+                if (checker.valid()) {
+                    return true;
+                } else {
+                    invalidate();
+                }
+            }
+            return false;
+        }
+
+        /**
+         * Makes this RootReference invalid. {@link #valid()} will from now on return
+         * false and {@link #get()} will fail.
+         */
+        public void invalidate() {
+            ValidChecker checker = validChecker;
+            root = null;
+            validChecker = null;
+            if (checker != null) {
+                checker.close();
+            }
+        }
+
+        // Internal use only!
+        ValidChecker getValidChecker() {
+            ValidChecker checker = validChecker;
+            return (checker != null) ? checker : () -> false;
+        }
+
+        /**
+         * Checks whether something is still valid. Also has a method to tell it should
+         * no longer bother checking.
+         */
+        @FunctionalInterface
+        interface ValidChecker {
+            boolean valid();
+
+            default void close() {}
+        }
+    }
 }
