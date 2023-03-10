@@ -500,6 +500,7 @@ public class CartAttachmentSeat extends CartAttachment {
         transform = transform.clone();
         transform.multiply(this._displayedItemPosition.transform);
         this._displayedItemEntity.updatePosition(transform);
+        this._displayedItemEntity.syncPosition(false);
     }
 
     public void makeHiddenImpl(AttachmentViewer viewer, boolean isReload) {
@@ -608,11 +609,6 @@ public class CartAttachmentSeat extends CartAttachment {
 
         // If not parented to a parent attachment, move the fake mount to move the seat
         seated.syncPosition(absolute);
-
-        // Move the displayed item entity, if any
-        if (_displayedItemEntity != null) {
-            _displayedItemEntity.syncPosition(absolute);
-        }
     }
 
     /**
