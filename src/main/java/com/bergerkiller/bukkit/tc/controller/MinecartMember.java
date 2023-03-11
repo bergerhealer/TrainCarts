@@ -64,7 +64,6 @@ import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
-import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
 import com.bergerkiller.bukkit.tc.controller.components.AnimationController;
@@ -105,7 +104,7 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityLivingHandle;
 import com.bergerkiller.generated.net.minecraft.world.phys.AxisAlignedBBHandle;
 
 public abstract class MinecartMember<T extends CommonMinecart<?>> extends EntityController<T>
-        implements IPropertiesHolder, AttachmentModelOwner, AnimationController, TrainCarts.Provider {
+        implements IPropertiesHolder, AnimationController, TrainCarts.Provider {
     public static final double GRAVITY_MULTIPLIER_RAILED = 0.015625;
     public static final double GRAVITY_MULTIPLIER = 0.04;
     public static final int MAXIMUM_DAMAGE_SUSTAINED = 40;
@@ -196,7 +195,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public CartProperties getProperties() {
         if (this.properties == null) {
             this.properties = CartPropertiesStore.createForMember(this);
-            this.properties.getModel().addOwner(this);
         }
         return this.properties;
     }
@@ -1811,11 +1809,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
     }
 
-    @Override
-    public void onModelChanged(AttachmentModel model) {
+    public boolean onModelChanged(AttachmentModel model) {
         if (entity == null) {
-            model.removeOwner(this);
-            return;
+            return false;
         }
         entity.setSize(model.getCartLength(), 0.7f);
         this.wheelTracker.back().setDistance(0.5 * model.getWheelDistance() - model.getWheelCenter());
@@ -1833,11 +1829,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         } else if (this.wheelTracker.front().getDistance() > halfLength) {
             this.wheelTracker.front().setDistance(halfLength);
         }
-    }
-
-    @Override
-    public void onModelNodeChanged(AttachmentModel model, int[] targetPath, ConfigurationNode config) {
-        this.onModelChanged(model);
+        return true;
     }
 
     /**

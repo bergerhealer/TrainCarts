@@ -118,12 +118,12 @@ public class AttachmentEditor extends MapDisplay {
         if (this.tree.getDisplay() == null) {
             return; // Detached, do nothing
         }
-        if (event.isName("changed") || event.isName("changed_silent")) {
+        if (event.isName("changed")) {
             MapWidgetAttachmentNode node = event.getArgument(MapWidgetAttachmentNode.class);
             if (node != null) {
-                this.tree.updateModelNode(node, !event.isName("changed_silent"));
+                this.tree.updateModelNode(node);
             } else {
-                this.tree.updateModel(!event.isName("changed_silent"));
+                this.tree.updateModel();
             }
 
             // Resend focus
@@ -131,7 +131,7 @@ public class AttachmentEditor extends MapDisplay {
         } else if (event.isName("reset")) {
             // Completely re-initialize the model
             this.tree.updateView();
-            this.tree.updateModel(true);
+            this.tree.updateModel();
 
             // Do not blink for a little while, with focused=false
             this.pauseBlinking(FocusMode.NONE, 30);

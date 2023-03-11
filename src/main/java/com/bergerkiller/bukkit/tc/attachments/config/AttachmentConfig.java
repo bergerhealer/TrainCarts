@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.utils.ListCallbackCollector;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -23,6 +24,17 @@ public interface AttachmentConfig {
      * @return parent attachment, null if this is the root attachment
      */
     AttachmentConfig parent();
+
+    /**
+     * Gets whether this attachment is the root attachment of the model configuration.
+     * This is the case when {@link #parent()} is null and {@link #path()} return
+     * {@link YamlPath#ROOT}. {@link #childPath()}} will return an empty array.
+     *
+     * @return True if this is the root attachment
+     */
+    default boolean isRoot() {
+        return parent() == null;
+    }
 
     /**
      * Gets the child attachment configurations parented to this
@@ -250,6 +262,16 @@ public interface AttachmentConfig {
     ConfigurationNode config();
 
     /**
+     * Copies the specified configuration into this {@link #config() attachment configuration}.
+     * Child Attachments in the configuration are not copied.
+     *
+     * @param config ConfiguationNode with the configuration to apply
+     */
+    default void setConfig(ConfigurationNode config) {
+        config().setToExcept(config, Collections.singletonList("attachments"));
+    }
+
+    /**
      * Figures out all live {@link Attachment} instances that use this attachment configuration,
      * and runs an action on them. This runs sync and can only be used from the main thread.<br>
      * <br>
@@ -376,10 +398,11 @@ public interface AttachmentConfig {
      * {@link AttachmentConfigTrackerBase#getRoot()}.
      */
     final class RootReference {
+        public static final RootReference NONE = new RootReference(null, () -> false);
         private AttachmentConfig root;
         private ValidChecker validChecker;
 
-        public RootReference(AttachmentConfig root, ValidChecker validChecker) {
+        RootReference(AttachmentConfig root, ValidChecker validChecker) {
             this.root = root;
             this.validChecker = validChecker;
         }

@@ -10,8 +10,13 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigListener;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigTracker;
+import com.bergerkiller.bukkit.tc.properties.standard.type.AttachmentModelBoundToCart;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -31,7 +36,6 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
-import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelOwner;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.helper.AttachmentUpdateTransformHelper;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
@@ -53,13 +57,16 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
  * into attachment controllers. It automatically updates the
  * controllers when this configuration changes.
  */
-public class AttachmentControllerMember implements AttachmentModelOwner, AttachmentManager {
+public class AttachmentControllerMember implements AttachmentConfigListener, AttachmentManager {
     private final MinecartMember<?> member;
+    private AttachmentModel model; // Never changes!
     private Attachment rootAttachment;
     private List<CartAttachmentSeat> seatAttachments = Collections.emptyList();
     private List<Attachment> flattenedAttachments = Collections.emptyList();
     private Map<Entity, SeatHint> seatHints = new HashMap<Entity, SeatHint>();
     private final Map<Player, AttachmentViewer> viewers = new IdentityHashMap<>();
+    private final Map<Entity, Vector> previousSeatPositions = new IdentityHashMap<>();
+    private boolean changeListenerNewSeatsAdded = false;
     protected final ToggledState networkInvalid = new ToggledState();
     private boolean attached = false;
     private boolean hidden = false;
@@ -86,16 +93,17 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
         this.animationCurrentTime = System.currentTimeMillis();
         this.animationDeltaTime = 0.0;
         this.attached = true;
-        this.member.getProperties().getModel().addOwner(this);
+        this.createRootAttachmentAndStartTracking();
     }
 
     // Called by NetworkController
     public synchronized void onDetached() {
-        this.attached = false;
-        if (this.rootAttachment != null) {
-            detachRootAttachment();
+        attached = false;
+        try {
+            destroyRootAttachmentAndStopTracking();
+        } finally {
+            viewers.clear();
         }
-        this.member.getProperties().getModel().removeOwner(this);
     }
 
     public boolean isHidden() {
@@ -109,29 +117,9 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
 
         this.hidden = hidden;
         if (hidden) {
-            // Despawn everything
-            if (this.rootAttachment != null) {
-                makeHiddenForAll();
-                detachRootAttachment();
-            }
+            destroyRootAttachmentAndStopTracking();
         } else {
-            // Spawn in for the first time. Done by retrieving the model
-            if (this.rootAttachment == null) {
-                onModelChanged(this.member.getProperties().getModel());
-            }
-        }
-    }
-
-    private void detachRootAttachment() {
-        try {
-            ListIterator<Attachment> iter = this.flattenedAttachments.listIterator(this.flattenedAttachments.size());
-            while (iter.hasPrevious()) {
-                HelperMethods.perform_onDetached_single(iter.previous());
-            }
-        } finally {
-            this.rootAttachment = null;
-            this.flattenedAttachments = Collections.emptyList();
-            this.seatAttachments = Collections.emptyList();
+            createRootAttachmentAndStartTracking();
         }
     }
 
@@ -161,7 +149,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
      * Gets the root attachment, representing the (attachments) based model.
      * Throws an {@link IllegalStateException} if not currently loaded, use
      * {@link #isAttached()} to check for this.
-     * 
+     *
      * @return root attachment
      */
     public Attachment getRootAttachment() {
@@ -174,7 +162,8 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
         }
         // Set attachment to a fallback if for whatever reason it is null
         if (this.rootAttachment == null) {
-            this.onModelChanged(AttachmentModel.getDefaultModel(this.member.getEntity().getType()));
+            AttachmentModel model = AttachmentModel.getDefaultModel(this.member.getEntity().getType());
+            this.onAttachmentAdded(model.getRoot().get());
         }
         // Return
         return this.rootAttachment;
@@ -192,7 +181,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
 
     /**
      * Gets the delta time in seconds of the current animation frame for the current tick
-     * 
+     *
      * @return animation delta time in seconds
      */
     public double getAnimationDeltaTime() {
@@ -530,14 +519,6 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
         }
     }
 
-    public synchronized void makeHiddenForAll() {
-        for (Iterator<AttachmentViewer> iter = this.viewers.values().iterator(); iter.hasNext();) {
-            AttachmentViewer attachmentViewer = iter.next();
-            iter.remove();
-            HelperMethods.makeHiddenRecursive(this.rootAttachment, true, attachmentViewer);
-        }
-    }
-
     /**
      * Gets the Player viewers viewing this cart's attachments
      *
@@ -575,7 +556,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
 
     /**
      * Gets whether an Entity Id specified is used by an attachment
-     * 
+     *
      * @param entityId
      * @return True if an attachment uses this Entity Id
      */
@@ -591,7 +572,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
     /**
      * Checks what seat a player is looking at, and stores that seat for later entering operations.
      * The information is stored for at most 2 ticks before it is invalidated.
-     * 
+     *
      * @param player
      */
     public void storeSeatHint(Player player) {
@@ -637,6 +618,18 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
         this.member.getTrainCarts().getTrainUpdateController().syncPositions(this.member);
         for (Player viewer : oldViewers) {
             this.makeVisible(viewer);
+        }
+    }
+
+    /**
+     * Makes this member's attachments invisible to all players, and removes all
+     * previously added players as a viewer.
+     */
+    public synchronized void makeHiddenForAll() {
+        for (Iterator<AttachmentViewer> iter = this.viewers.values().iterator(); iter.hasNext();) {
+            AttachmentViewer attachmentViewer = iter.next();
+            iter.remove();
+            HelperMethods.makeHiddenRecursive(this.rootAttachment, true, attachmentViewer);
         }
     }
 
@@ -735,7 +728,7 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
 
     /**
      * Gets the number of available seat attachments a passenger can enter
-     * 
+     *
      * @param passenger
      * @return available seat count
      */
@@ -754,121 +747,255 @@ public class AttachmentControllerMember implements AttachmentModelOwner, Attachm
         return this.member.getWorld();
     }
 
-    @Override
-    public synchronized void onModelChanged(AttachmentModel model) {
-        // If not attached or hidden don't do anything to prevent bad things from happening
-        if (!this.attached || this.hidden) {
+    private void createRootAttachmentAndStartTracking() {
+        if (!attached || hidden) {
             return;
         }
+        model = member.getProperties().getModel();
+        AttachmentConfig rootConfig = model.getConfigTracker().startTracking(this);
+        destroyRootAttachment();
+        onAttachmentAdded(rootConfig);
+        onSynchronized(rootConfig);
+    }
 
-        // Store the positions of the players in the previous seats
-        // This is used later to re-assign the passengers to seats when the model is changed
-        Map<Entity, Vector> oldSeatPositions = new HashMap<Entity, Vector>();
-        for (CartAttachmentSeat seat : this.seatAttachments) {
-            Entity oldEntity = seat.getEntity();
-            if (oldEntity != null) {
-                oldSeatPositions.put(oldEntity, seat.getTransform().toVector());
+    private void destroyRootAttachmentAndStopTracking() {
+        try {
+            destroyRootAttachment();
+        } finally {
+            if (model != null) {
+                this.model.getConfigTracker().stopTracking(this);
             }
         }
+    }
 
-        //TODO: Detect when only a single element is changed, and only update that element
-        // This allows for a cleaner update when repositioning/etc.
-
-        // Use a temporary set for the players, so that we can clear them after hiding it for viewers
-        // This makes sure getViewers() stays in sync with what makeVisible/makeHidden does
-        ArrayList<AttachmentViewer> originalViewers = new ArrayList<>(this.viewers.values());
-
-        // Detach old attachments - after this viewers see nothing anymore
-        if (this.rootAttachment != null) {
-            makeHiddenForAll();
-            detachRootAttachment();
-        } else {
-            this.viewers.clear(); // Silent
+    private void destroyRootAttachment() {
+        if (rootAttachment == null) {
+            return;
         }
+        try {
+            // Remember the positions seated entities had
+            for (CartAttachmentSeat seat : this.seatAttachments) {
+                Entity oldEntity = seat.getEntity();
+                if (oldEntity != null) {
+                    previousSeatPositions.put(oldEntity, seat.getTransform().toVector());
+                }
+            }
 
-        // Attach new attachments - after this viewers see everything but passengers are not 'in'
-        this.rootAttachment = this.createAttachment(model.getConfig());
+            // Despawn to all viewers. Keep the viewers!
+            for (AttachmentViewer viewer : viewers.values()) {
+                HelperMethods.makeHiddenRecursive(this.rootAttachment, true, viewer);
+            }
+
+            detachAttachments(this.flattenedAttachments);
+        } finally {
+            this.rootAttachment = null;
+            this.changeListenerNewSeatsAdded = false;
+            this.flattenedAttachments = Collections.emptyList();
+            this.seatAttachments = Collections.emptyList();
+        }
+    }
+
+    private static void detachAttachments(List<Attachment> flattenedAttachments) {
+        ListIterator<Attachment> iter = flattenedAttachments.listIterator(flattenedAttachments.size());
+        while (iter.hasPrevious()) {
+            HelperMethods.perform_onDetached_single(iter.previous());
+        }
+    }
+
+    private void updateFlattenedLists() {
         this.flattenedAttachments = HelperMethods.listAllAttachments(this.rootAttachment);
-        this.flattenedAttachments.forEach(HelperMethods::perform_onAttached_single);
         this.seatAttachments = this.flattenedAttachments.stream()
                 .filter(attachment -> attachment instanceof CartAttachmentSeat)
                 .map(attachment -> (CartAttachmentSeat) attachment)
                 .collect(StreamUtil.toUnmodifiableList());
-        this.member.getTrainCarts().getTrainUpdateController().computeAttachmentTransform(
-                this.rootAttachment, this.getLiveTransform());
-
-        // Re-show the attachments and repopulate the viewers set
-        for (AttachmentViewer viewer : originalViewers) {
-            HelperMethods.makeVisibleRecursive(this.rootAttachment, true, viewer);
-            this.viewers.put(viewer.getPlayer(), viewer);
-        }
-
-        // Let all passengers re-enter us
-        // For this, we must find suitable Seat attachments in the tree
-        List<Entity> remainingPassengers = new ArrayList<Entity>(this.member.getEntity().getPassengers());
-        while (!remainingPassengers.isEmpty()) {
-            Entity entity = remainingPassengers.get(0);
-            Vector position = oldSeatPositions.get(entity);
-            if (position == null) {
-                position = entity.getLocation().toVector();
-            }
-            boolean foundSeat = false;
-            List<CartAttachmentSeat> seats = this.getSeatsClosestToPosition(position);
-            for (CartAttachmentSeat seat : seats) {
-                if (seat.getEntity() == null) {
-                    seat.setEntity(entity);
-                    remainingPassengers.remove(0);
-                    foundSeat = true;
-                    break;
-                }
-            }
-            if (!foundSeat) {
-                break;
-            }
-        }
-
-        // It can happen passengers have no seat now. Eject them.
-        //TODO!
-        
-        //model.log();
     }
 
     @Override
-    public synchronized void onModelNodeChanged(AttachmentModel model, int[] targetPath, ConfigurationNode config) {
-        // If not attached don't do anything to prevent bad things from happening
-        if (!this.attached) {
+    public synchronized void onAttachmentRemoved(AttachmentConfig attachmentConfig) {
+        if (attachmentConfig.isRoot()) {
+            // Despawn and destroy all attachments
+            destroyRootAttachment();
+        } else if (rootAttachment != null) {
+            // Find the attachment that exists at this child path
+            Attachment curr = rootAttachment;
+            for (int p : attachmentConfig.childPath()) {
+                curr = curr.getChildren().get(p);
+            }
+
+            // Gather all information we need about this attachment to remove it
+            Attachment curr_parent = curr.getParent();
+            List<Attachment> removedAttachments = HelperMethods.listAllAttachments(curr);
+
+            // For all seat attachments being removed, remember the position of passengers
+            // This is important for during onSynchronize() later
+            for (Attachment removedAttachment : removedAttachments) {
+                if (removedAttachment instanceof CartAttachmentSeat) {
+                    CartAttachmentSeat seat = (CartAttachmentSeat) removedAttachment;
+                    Entity oldEntity = seat.getEntity();
+                    if (oldEntity != null) {
+                        previousSeatPositions.put(oldEntity, seat.getTransform().toVector());
+                    }
+                }
+            }
+
+            // Make the attachment hidden to all viewers. For this we need to know if it
+            // can be active.
+            {
+                boolean active = !HelperMethods.hasInactiveParent(curr);
+                for (AttachmentViewer viewer : viewers.values()) {
+                    HelperMethods.makeHiddenRecursive(curr, active, viewer);
+                }
+            }
+
+            // Detach all attachments
+            detachAttachments(removedAttachments);
+            curr_parent.removeChild(curr);
+
+            // Update flattened lists / seats
+            // TODO: Optimize?
+            this.updateFlattenedLists();
+        }
+    }
+
+    @Override
+    public synchronized void onAttachmentAdded(AttachmentConfig attachmentConfig) {
+        if (attachmentConfig.isRoot()) {
+            // Just in case...
+            destroyRootAttachment();
+
+            // Create a completely new attachment root using the configuration and set it up
+            this.rootAttachment = this.createAttachment(attachmentConfig);
+            this.updateFlattenedLists();
+            this.changeListenerNewSeatsAdded = !seatAttachments.isEmpty();
+            this.flattenedAttachments.forEach(HelperMethods::perform_onAttached_single);
+            this.member.getTrainCarts().getTrainUpdateController().computeAttachmentTransform(
+                    this.rootAttachment, this.getLiveTransform());
+
+            // Re-show the attachments. Seats are filled with entities later
+            for (AttachmentViewer viewer : viewers.values()) {
+                HelperMethods.makeVisibleRecursive(this.rootAttachment, true, viewer);
+            }
+        } else {
+            // Find the attachment the child should be added to
+            Attachment curr_parent = rootAttachment;
+            {
+                int[] path = attachmentConfig.childPath();
+                int limit = path.length - 1;
+                for (int i = 0; i < limit; i++) {
+                    curr_parent = curr_parent.getChildren().get(path[i]);
+                }
+            }
+
+            // Create a new attachment (tree)
+            Attachment curr = this.createAttachment(attachmentConfig);
+            curr_parent.addChild(attachmentConfig.childIndex(), curr);
+            List<Attachment> addedAttachments = HelperMethods.listAllAttachments(curr);
+
+            // Handle onAttached
+            //TODO: Optimize away updateFlattenedLists()?
+            int prevSeatCount = this.seatAttachments.size();
+            this.updateFlattenedLists();
+            if (this.seatAttachments.size() > prevSeatCount) {
+                this.changeListenerNewSeatsAdded = true;
+            }
+            addedAttachments.forEach(HelperMethods::perform_onAttached_single);
+
+            // TODO: Maybe only update from the changed attachment onwards?
+            this.member.getTrainCarts().getTrainUpdateController().computeAttachmentTransform(
+                    this.rootAttachment, this.getLiveTransform());
+
+            // Make the attachment visible to all viewers
+            // Parent active is important for deciding whether this new attachment is active
+            boolean active = !HelperMethods.hasInactiveParent(curr);
+            for (AttachmentViewer viewer : viewers.values()) {
+                HelperMethods.makeVisibleRecursive(curr, active, viewer);
+            }
+        }
+    }
+
+    @Override
+    public synchronized void onAttachmentChanged(AttachmentConfig attachmentConfig) {
+        // Find the live attachment
+        Attachment curr = rootAttachment;
+        if (curr != null) {
+            curr = curr.findChild(attachmentConfig.childPath());
+
+            // Reload the configuration of just this one attachment
+            AttachmentType type = getTypeRegistry().findOrEmpty(attachmentConfig.typeId());
+            ConfigurationNode config = attachmentConfig.config();
+            try {
+                type.migrateConfiguration(config);
+            } catch (Throwable t) {
+                this.member.getTrainCarts().getLogger().log(Level.SEVERE,
+                        "Failed to migrate attachment configuration of " + type.getName(), t);
+            }
+            curr.getInternalState().onLoad(this.getClass(), type, config);
+            curr.onLoad(config);
+
+            // TODO: Maybe only update from the changed attachment onwards?
+            this.member.getTrainCarts().getTrainUpdateController().computeAttachmentTransform(
+                    this.rootAttachment, this.getLiveTransform());
+        }
+    }
+
+    @Override
+    public void onAttachmentAction(AttachmentConfig attachmentConfig, Consumer<Attachment> action) {
+        // Find the live attachment
+        Attachment curr = rootAttachment;
+        if (curr != null) {
+            curr = curr.findChild(attachmentConfig.childPath());
+
+            // Run the action
+            action.accept(curr);
+        }
+    }
+
+    @Override
+    public void onSynchronized(AttachmentConfig rootAttachmentConfig) {
+        // The MinecartMember owner must refresh its properties
+        // If this returns false then the minecart no longer exists, and we missed a detaching action (?)
+        if (!member.onModelChanged(model)) {
+            model.getConfigTracker().stopTracking(this);
             return;
         }
 
-        // Find the child. If not found, just refresh the entire model.
-        Attachment attachment = this.getRootAttachment().findChild(targetPath);
-        if (attachment == null) {
-            this.onModelChanged(model);
-            return;
-        }
+        // All changes have been applied. Now put players that had been removed from seats
+        // back into the closest seat they can be put in.
+        putPassengersIntoSeats();
+    }
 
-        // Figure out the attachment type from configuration
-        // If it is not the same as what it already is, refresh the entire model
-        AttachmentType oldAttachmentType = this.getTypeRegistry().fromConfig(attachment.getConfig());
-        AttachmentType newAttachmentType = this.getTypeRegistry().fromConfig(config);
-        if (newAttachmentType == null || oldAttachmentType != newAttachmentType) {
-            this.onModelChanged(model);
-            return;
-        }
+    private void putPassengersIntoSeats() {
+        if (this.changeListenerNewSeatsAdded) {
+            this.changeListenerNewSeatsAdded = false;
 
-        // Reload the configuration of just this one attachment
-        try {
-            newAttachmentType.migrateConfiguration(config);
-        } catch (Throwable t) {
-            this.member.getTrainCarts().getLogger().log(Level.SEVERE,
-                    "Failed to migrate attachment configuration of " + newAttachmentType.getName(), t);
-        }
-        attachment.getInternalState().onLoad(this.getClass(), newAttachmentType, config);
-        attachment.onLoad(config);
+            // Let all passengers re-enter us
+            // For this, we must find suitable Seat attachments in the tree
+            List<Entity> remainingPassengers = new ArrayList<Entity>(this.member.getEntity().getPassengers());
+            while (!remainingPassengers.isEmpty()) {
+                Entity entity = remainingPassengers.get(0);
+                Vector position = previousSeatPositions.get(entity);
+                if (position == null) {
+                    position = entity.getLocation().toVector();
+                }
+                boolean foundSeat = false;
+                List<CartAttachmentSeat> seats = this.getSeatsClosestToPosition(position);
+                for (CartAttachmentSeat seat : seats) {
+                    if (seat.getEntity() == null) {
+                        seat.setEntity(entity);
+                        remainingPassengers.remove(0);
+                        foundSeat = true;
+                        break;
+                    }
+                }
+                if (!foundSeat) {
+                    break;
+                }
+            }
 
-        // TODO: Maybe only update from the changed attachment onwards?
-        this.member.getTrainCarts().getTrainUpdateController().computeAttachmentTransform(
-                this.rootAttachment, this.getLiveTransform());
+            // It can happen passengers have no seat now. Eject them.
+            //TODO!
+        }
+        this.previousSeatPositions.clear();
     }
 
     // Information stored when a player interacts with a seat trying to enter it

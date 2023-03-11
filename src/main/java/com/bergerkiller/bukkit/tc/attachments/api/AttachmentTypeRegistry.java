@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.bergerkiller.bukkit.common.collections.StringMapCaseInsensitive;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentEmpty;
 
 /**
  * Globally registers different available attachment types.
@@ -85,6 +86,17 @@ public class AttachmentTypeRegistry {
      */
     public synchronized AttachmentType find(String id) {
         return _types.get(id);
+    }
+
+    /**
+     * Finds an attachment type by its type ID. If the type of attachment does not
+     * exist, returns an EMPTY attachment type instead as a fallback.
+     *
+     * @param id The ID of the attachment
+     * @return attachment type, EMPTY if not available
+     */
+    public synchronized AttachmentType findOrEmpty(String id) {
+        return _types.getOrDefault(id, CartAttachmentEmpty.TYPE);
     }
 
     /**

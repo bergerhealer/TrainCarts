@@ -32,18 +32,18 @@ public interface AttachmentConfigListener {
      * added/created. The attachment child index can be used to as the location
      * in the list it should be added.
      *
-     * @param attachment Attachment that was removed
+     * @param attachmentConfig Attachment that was removed
      */
-    default void onAttachmentAdded(AttachmentConfig attachment) {
+    default void onAttachmentAdded(AttachmentConfig attachmentConfig) {
     }
 
     /**
      * Called when an attachment, and all its child attachments, need to be
      * removed/destroyed.
      *
-     * @param attachment Attachment that was removed
+     * @param attachmentConfig Attachment that was removed
      */
-    default void onAttachmentRemoved(AttachmentConfig attachment) {
+    default void onAttachmentRemoved(AttachmentConfig attachmentConfig) {
     }
 
     /**
@@ -51,9 +51,9 @@ public interface AttachmentConfigListener {
      * have its configuration reloaded. Is not called if the attachment
      * type changed, in which case a remove-and-add is done.
      *
-     * @param attachment Attachment whose configuration changed
+     * @param attachmentConfig Attachment whose configuration changed
      */
-    default void onAttachmentChanged(AttachmentConfig attachment) {
+    default void onAttachmentChanged(AttachmentConfig attachmentConfig) {
     }
 
     /**
@@ -61,9 +61,9 @@ public interface AttachmentConfigListener {
      * this listener is up-to-date with the current state of the configuration. Callers
      * can use the input root attachment to synchronize their state.
      *
-     * @param rootAttachment Root Attachment after all changes have been applied
+     * @param rootAttachmentConfig Root Attachment after all changes have been applied
      */
-    default void onSynchronized(AttachmentConfig rootAttachment) {
+    default void onSynchronized(AttachmentConfig rootAttachmentConfig) {
     }
 
     /**
@@ -79,9 +79,9 @@ public interface AttachmentConfigListener {
      * <br>
      * Can only be called from the main thread.
      *
-     * @param attachment Attachment configuration for which an action must be performed
+     * @param attachmentConfig Attachment configuration for which an action must be performed
      * @param action Action to perform on the live {@link Attachment}
      */
-    default void onAttachmentAction(AttachmentConfig attachment, Consumer<Attachment> action) {
+    default void onAttachmentAction(AttachmentConfig attachmentConfig, Consumer<Attachment> action) {
     }
 }

@@ -1,6 +1,8 @@
 package com.bergerkiller.bukkit.tc.attachments.api;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentEmpty;
 import org.bukkit.entity.Player;
 
 import java.util.Collection;
@@ -63,25 +65,20 @@ public interface AttachmentManager {
      * Creates a new attachment by loading it from configuration.
      * No further operations, such as attaching it, are performed yet.
      * 
-     * @param config
-     * @return created attachment, null if no attachment could be detected in the config
+     * @param attachmentConfig Attachment Configuration
+     * @return created attachment
      */
-    default Attachment createAttachment(ConfigurationNode config) {
-        AttachmentType attachmentType = getTypeRegistry().fromConfig(config);
-        if (attachmentType == null) {
-            return null; // invalid!
-        }
+    default Attachment createAttachment(AttachmentConfig attachmentConfig) {
+        AttachmentType attachmentType = getTypeRegistry().findOrEmpty(attachmentConfig.typeId());
 
+        ConfigurationNode config = attachmentConfig.config();
         Attachment attachment = attachmentType.createController(config);
         AttachmentInternalState state = attachment.getInternalState();
         state.manager = this;
         state.onLoad(this.getClass(), attachmentType, config);
 
-        for (ConfigurationNode childNode : config.getNodeList("attachments")) {
-            Attachment child = createAttachment(childNode);
-            if (child != null) {
-                attachment.addChild(child);
-            }
+        for (AttachmentConfig childAttachmentConfig : attachmentConfig.children()) {
+            attachment.addChild(createAttachment(childAttachmentConfig));
         }
 
         return attachment;

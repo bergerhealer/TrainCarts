@@ -197,14 +197,14 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
         } else {
             this.config.set("editor." + name, value);
         }
-        this.getTree().sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed_silent", this);
+        this.getTree().sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", this);
     }
 
     /**
      * Applies updated configurations to the model system, refreshing trains that use this model
      */
     public void update() {
-        this.getTree().updateModel(true);
+        this.getTree().updateModel();
     }
 
     public MapWidgetAttachmentNode addAttachment(ConfigurationNode config) {
@@ -220,31 +220,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     }
 
     public void remove() {
-        if (this.parentAttachment != null) {
-            this.parentAttachment.attachments.remove(this);
-
-            /*
-            int index = this.parentAttachment.attachments.indexOf(this);
-            if (index != -1) {
-                // If this element was focused, focus the one before
-                MapWidget focusNext = null;
-                if (this.isFocused()) {
-                    int childIdx = this.getParent().getWidgets().indexOf(this);
-                    if (childIdx > 0) {
-                        focusNext = this.getParent().getWidget(childIdx - 1);
-                    } else if (childIdx < (this.getParent().getWidgetCount() - 1)) {
-                        focusNext = this.getParent().getWidget(childIdx + 1);
-                    }
-                }
-
-                this.parentAttachment.attachments.remove(index);
-                this.getParent().removeWidget(this);
-                if (focusNext != null) {
-                    focusNext.focus();
-                }
-            }
-            */
-            
+        if (this.parentAttachment != null && this.parentAttachment.attachments.remove(this)) {
             sendStatusChange(MapEventPropagation.DOWNSTREAM, "reset");
         }
     }

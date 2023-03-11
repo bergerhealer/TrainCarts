@@ -291,6 +291,34 @@ public interface Attachment {
     }
 
     /**
+     * Adds a controller as a child of this one, which will have positions
+     * relative to this one.
+     *
+     * @param index Index in the list of children of where to add the child
+     * @param child controller to add
+     */
+    default void addChild(int index, Attachment child) {
+        this.getInternalState().children.add(index, child);
+        child.getInternalState().parent = this;
+    }
+
+    /**
+     * Removes a controller that was added as a child of this one. The child will
+     * be parented to null (becomes a new root).
+     *
+     * @param child Child to remove
+     * @return True if removed
+     */
+    default boolean removeChild(Attachment child) {
+        if (this.getInternalState().children.remove(child)) {
+            child.getInternalState().parent = null;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
      * Gets a list of children of this controller.
      * The order should stay unique when children are added.
      * 

@@ -41,6 +41,15 @@ public interface AttachmentViewer extends TrainCarts.Provider {
      */
     Player getPlayer();
 
+    /**
+     * Gets the name of this Player viewer
+     *
+     * @return Player name
+     */
+    default String getName() {
+        return getPlayer().getName();
+    }
+
     @Override
     TrainCarts getTrainCarts();
 
