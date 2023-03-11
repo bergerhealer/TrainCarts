@@ -120,18 +120,14 @@ public class AttachmentEditor extends MapDisplay {
         }
         if (event.isName("changed")) {
             MapWidgetAttachmentNode node = event.getArgument(MapWidgetAttachmentNode.class);
-            if (node != null) {
-                this.tree.updateModelNode(node);
-            } else {
-                this.tree.updateModel();
-            }
+            this.tree.sync();
 
             // Resend focus
             sendFocus();
         } else if (event.isName("reset")) {
             // Completely re-initialize the model
             this.tree.updateView();
-            this.tree.updateModel();
+            this.tree.sync();
 
             // Do not blink for a little while, with focused=false
             this.pauseBlinking(FocusMode.NONE, 30);
