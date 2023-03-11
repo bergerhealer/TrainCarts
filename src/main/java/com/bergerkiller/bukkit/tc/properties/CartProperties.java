@@ -646,19 +646,6 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         set(StandardProperties.MODEL, null);
     }
 
-    /**
-     * Sets the attachment model to a named model from the attachment model store.
-     * The model will be stored as a named link when saved/reloaded.
-     * Calling this method will remove any model set for this minecart.
-     * 
-     * @param modelName
-     */
-    public void setModelName(String modelName) {
-        AttachmentModel model = new AttachmentModel();
-        model.resetToName(modelName);
-        set(StandardProperties.MODEL, model);
-    }
-
     @Override
     public boolean parseSet(String key, String arg) {
         // Legacy

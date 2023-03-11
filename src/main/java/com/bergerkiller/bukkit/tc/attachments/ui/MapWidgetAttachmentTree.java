@@ -37,13 +37,18 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         this.updateView(this.root.getEditorOption("scrollOffset", 0));
     }
 
-    public void updateModel(boolean notify) {
-        this.model.update(root.getFullConfig(), notify);
+    public void updateModel() {
+        this.model.update(root.getFullConfig());
         this.getEditor().onSelectedNodeChanged();
     }
 
-    public void updateModelNode(MapWidgetAttachmentNode node, boolean notify) {
-        this.model.updateNode(node.getTargetPath(), node.getConfig(), notify);
+    public void updateModelNode(MapWidgetAttachmentNode node) {
+        this.model.updateNode(node.getTargetPath(), node.getConfig());
+        this.getEditor().onSelectedNodeChanged();
+    }
+
+    public void sync() {
+        this.model.sync();
         this.getEditor().onSelectedNodeChanged();
     }
 
