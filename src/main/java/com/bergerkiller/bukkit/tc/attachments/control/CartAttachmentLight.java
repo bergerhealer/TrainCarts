@@ -137,6 +137,30 @@ public class CartAttachmentLight extends CartAttachment {
     }
 
     @Override
+    public boolean checkCanReload(ConfigurationNode config) {
+        // Can't change block/sky light cleanly
+        boolean isSky = getConfig().get("lightType", "BLOCK").equalsIgnoreCase("SKY");
+        return controller == LightAPIController.get(this.getManager().getWorld(), isSky);
+    }
+
+    @Override
+    public void onLoad(ConfigurationNode config) {
+        super.onLoad(config);
+
+        // Only reload/update the light level, everything else requires a reset
+        int newLightLevel = getConfig().get("lightLevel", 15);
+        if (newLightLevel != lightLevel) {
+            if (lightVisible && prev_block != null) {
+                controller.remove(prev_block, lightLevel);
+                lightLevel = newLightLevel;
+                controller.add(prev_block, lightLevel);
+            } else {
+                lightLevel = newLightLevel;
+            }
+        }
+    }
+
+    @Override
     public void onDetached() {
         if (prev_block != null) {
             controller.remove(prev_block, lightLevel);
