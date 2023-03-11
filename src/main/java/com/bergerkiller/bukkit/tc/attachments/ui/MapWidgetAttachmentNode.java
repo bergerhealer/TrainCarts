@@ -6,6 +6,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -37,7 +38,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     private final MapWidgetAttachmentTree tree;
     private static MapTexture expanded_icon = null;
     private static MapTexture collapsed_icon = null;
-    private ConfigurationNode config;
+    private final AttachmentConfig config;
     private final List<MapWidgetAttachmentNode> attachments = new ArrayList<>();
     private MapWidgetAttachmentNode parentAttachment = null;
     private int col, row;
@@ -46,51 +47,22 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     private boolean expanded = true;
     private MapWidgetMenuButton appearanceMenuButton;
 
-    public MapWidgetAttachmentNode(MapWidgetAttachmentTree tree) {
-        this(tree, new ConfigurationNode());
-    }
-
-    public MapWidgetAttachmentNode(MapWidgetAttachmentTree tree, ConfigurationNode config) {
+    public MapWidgetAttachmentNode(MapWidgetAttachmentTree tree, AttachmentConfig config) {
         this.tree = tree;
-        this.loadConfig(config);
+        this.config = config;
+        this.loadFromConfig();
 
         // Can be focused
         this.setFocusable(true);
     }
 
-    /**
-     * Loads just the properties of the model. Child attachments are ignored.
-     * 
-     * @param config to load
-     */
-    public void loadModelProperties(ConfigurationNode config) {
-        // Load the configuration, exclude the 'attachments' child
-        this.config = new ConfigurationNode();
-        for (Map.Entry<String, Object> entry : config.getValues().entrySet()) {
-            if (!entry.getKey().equals("attachments")) {
-                this.config.set(entry.getKey(), entry.getValue());
-            }
-        }
-    }
-
-    /**
-     * Loads model node configurations for the first time. This also initializes
-     * all the nodes for the child attachments.
-     * 
-     * @param config Attachment configuration
-     */
-    public void loadConfig(ConfigurationNode config) {
-        // Load the properties
-        this.loadModelProperties(config);
-
+    public void loadFromConfig() {
         // Add child attachments
         this.attachments.clear();
-        if (config.contains("attachments")) {
-            for (ConfigurationNode subAttachment : config.getNodeList("attachments")) {
-                MapWidgetAttachmentNode sub = new MapWidgetAttachmentNode(this.tree, subAttachment);
-                sub.parentAttachment = this;
-                this.attachments.add(sub);
-            }
+        for (AttachmentConfig childConfig : config.children()) {
+            MapWidgetAttachmentNode sub = new MapWidgetAttachmentNode(this.tree, childConfig);
+            sub.parentAttachment = this;
+            this.attachments.add(sub);
         }
 
         // Special properties
@@ -114,12 +86,6 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     }
 
     public void openMenu(MenuItem item) {
-        // Refresh configuration of this attachment node
-        ConfigurationNode nodeConfig = getTree().getModel().getNodeConfig(this.getTargetPath());
-        if (nodeConfig != null) {
-            this.loadModelProperties(nodeConfig);
-        }
-
         // Open the menu
         getTree().onMenuOpen(this, item);
     }
@@ -129,29 +95,21 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     }
 
     /**
-     * Gets the configuration of just this node, excluding all child nodes.
-     * Changes to this configuration node will be reflected in {@link #getFullConfig()}.
+     * Gets the configuration of this node.
      * 
      * @return node configuration
      */
     public ConfigurationNode getConfig() {
-        return this.config;
+        return this.config.config();
     }
 
     /**
-     * Gets the full configuration of this node, including all child nodes, recursively
-     * 
-     * @return full node configuration
+     * Gets the {@link AttachmentConfig} of just this node.
+     *
+     * @return attachment config
      */
-    public ConfigurationNode getFullConfig() {
-        // Clone our configuration and include the configuration of the children
-        ConfigurationNode result = this.config.clone();
-        List<ConfigurationNode> children = new ArrayList<>(this.attachments.size());
-        for (MapWidgetAttachmentNode attachment : this.attachments) {
-            children.add(attachment.getFullConfig());
-        }
-        result.setNodeList("attachments", children);
-        return result;
+    public AttachmentConfig getAttachmentConfig() {
+        return this.config;
     }
 
     /**
@@ -162,8 +120,9 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
      * @return option
      */
     public <T> T getEditorOption(String name, T defaultValue) {
-        if (this.config.contains("editor." + name)) {
-            return this.config.get("editor." + name, defaultValue);
+        ConfigurationNode config = this.getConfig();
+        if (config.contains("editor." + name)) {
+            return config.get("editor." + name, defaultValue);
         } else {
             return defaultValue;
         }
@@ -184,18 +143,19 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
         if (LogicUtil.bothNullOrEqual(oldValue, value)) {
             return; // unchanged
         }
+        ConfigurationNode config = this.getConfig();
         if (LogicUtil.bothNullOrEqual(defaultValue, value)) {
-            if (this.config.isNode("editor")) {
-                ConfigurationNode editor = this.config.getNode("editor");
+            if (config.isNode("editor")) {
+                ConfigurationNode editor = config.getNode("editor");
                 if (editor.contains(name)) {
                     editor.remove(name);
                 }
                 if (editor.isEmpty()) {
-                    this.config.remove("editor");
+                    config.remove("editor");
                 }
             }
         } else {
-            this.config.set("editor." + name, value);
+            config.set("editor." + name, value);
         }
         this.getTree().sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", this);
     }
@@ -204,7 +164,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
      * Applies updated configurations to the model system, refreshing trains that use this model
      */
     public void update() {
-        this.getTree().updateModel();
+        this.getTree().sync();
     }
 
     public MapWidgetAttachmentNode addAttachment(ConfigurationNode config) {
@@ -212,7 +172,8 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     }
 
     public MapWidgetAttachmentNode addAttachment(int index, ConfigurationNode config) {
-        MapWidgetAttachmentNode attachment = new MapWidgetAttachmentNode(this.tree, config);
+        MapWidgetAttachmentNode attachment = new MapWidgetAttachmentNode(this.tree,
+                this.config.addChild(index, config));
         attachment.parentAttachment = this;
         this.attachments.add(index, attachment);
         sendStatusChange(MapEventPropagation.DOWNSTREAM, "reset");
@@ -221,6 +182,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
 
     public void remove() {
         if (this.parentAttachment != null && this.parentAttachment.attachments.remove(this)) {
+            this.config.remove();
             sendStatusChange(MapEventPropagation.DOWNSTREAM, "reset");
         }
     }
@@ -256,11 +218,11 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     }
 
     public AttachmentType getType() {
-        return AttachmentTypeRegistry.instance().fromConfig(this.config);
+        return AttachmentTypeRegistry.instance().fromConfig(this.getConfig());
     }
 
     public void setType(AttachmentType type) {
-        AttachmentTypeRegistry.instance().toConfig(this.config, type);
+        AttachmentTypeRegistry.instance().toConfig(this.getConfig(), type);
     }
 
     /**
@@ -396,7 +358,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     public boolean acceptItem(ItemStack item) {
         // If this is an item attachment, set the item
         if (this.getType() == CartAttachmentItem.TYPE) {
-            this.config.set("item", item.clone());
+            this.getConfig().set("item", item.clone());
             sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
 
             // Redraw the appearance icon

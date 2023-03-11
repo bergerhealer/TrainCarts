@@ -63,7 +63,7 @@ public class GeneralMenu extends MapWidgetMenu {
             public void onActivate() {
                 int index = attachment.getParentAttachment().getAttachments().indexOf(attachment);
                 MapWidgetAttachmentNode addedNode;
-                addedNode = attachment.getParentAttachment().addAttachment(index+1, attachment.getFullConfig());
+                addedNode = attachment.getParentAttachment().addAttachment(index+1, attachment.getConfig().clone());
                 attachment.getTree().setSelectedNode(addedNode);
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "reset");
                 GeneralMenu.this.close();

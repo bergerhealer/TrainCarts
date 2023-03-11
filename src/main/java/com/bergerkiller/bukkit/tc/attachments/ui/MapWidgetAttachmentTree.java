@@ -2,12 +2,14 @@ package com.bergerkiller.bukkit.tc.attachments.ui;
 
 import java.util.List;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigTracker;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 
 /**
@@ -17,7 +19,8 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
  */
 public abstract class MapWidgetAttachmentTree extends MapWidget {
     private static final int MAX_VISIBLE_DEPTH = 3;
-    private MapWidgetAttachmentNode root = new MapWidgetAttachmentNode(this);
+    private MapWidgetAttachmentNode root = new MapWidgetAttachmentNode(this,
+            (new AttachmentConfigTracker(new ConfigurationNode())).getRoot().get());
     private int offset = 0;
     private int count = 6;
     private int lastSelIdx = 0;
@@ -31,20 +34,9 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
 
     public void setModel(AttachmentModel model) {
         this.model = model;
-        this.root = new MapWidgetAttachmentNode(this);
-        this.root.loadConfig(model.getConfig());
+        this.root = new MapWidgetAttachmentNode(this, model.getRoot().get());
         this.lastSelIdx = this.root.getEditorOption("selectedIndex", 0);
         this.updateView(this.root.getEditorOption("scrollOffset", 0));
-    }
-
-    public void updateModel() {
-        this.model.update(root.getFullConfig());
-        this.getEditor().onSelectedNodeChanged();
-    }
-
-    public void updateModelNode(MapWidgetAttachmentNode node) {
-        this.model.updateNode(node.getTargetPath(), node.getConfig());
-        this.getEditor().onSelectedNodeChanged();
     }
 
     public void sync() {
