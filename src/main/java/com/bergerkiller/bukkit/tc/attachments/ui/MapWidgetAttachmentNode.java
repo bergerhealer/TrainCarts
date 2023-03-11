@@ -135,29 +135,21 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
      * 
      * @param name Name of the option
      * @param defaultValue Default value. If current value is default, the
-     *                     option is removed
+     *                     option is not written to the configuration
      * @param value Value of the option
      */
     public <T> void setEditorOption(String name, T defaultValue, T value) {
-        T oldValue = this.getEditorOption(name, defaultValue);
-        if (LogicUtil.bothNullOrEqual(oldValue, value)) {
-            return; // unchanged
-        }
         ConfigurationNode config = this.getConfig();
-        if (LogicUtil.bothNullOrEqual(defaultValue, value)) {
-            if (config.isNode("editor")) {
-                ConfigurationNode editor = config.getNode("editor");
-                if (editor.contains(name)) {
-                    editor.remove(name);
-                }
-                if (editor.isEmpty()) {
-                    config.remove("editor");
-                }
+
+        // Don't create an editor block unless absolutely needed
+        if (!config.contains("editor." + name)) {
+            if (LogicUtil.bothNullOrEqual(defaultValue, value)) {
+                return;
             }
-        } else {
-            config.set("editor." + name, value);
         }
-        this.getTree().sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", this);
+
+        // Update it
+        config.set("editor." + name, value);
     }
 
     /**

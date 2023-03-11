@@ -247,9 +247,6 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
 
     @Override
     public void onNodeChanged(YamlPath yamlPath) {
-        // Any cached root references now become invalid
-        modificationCount++;
-
         // Legacy back-support
         if (!YamlLogic.INSTANCE.areChangesRelative()) {
             yamlPath = YamlLogic.INSTANCE.getRelativePath(completeConfig.getYamlPath(), yamlPath);
@@ -265,14 +262,33 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
                 attachment.markChanged();
             }
         } else {
-            // Update the configuration for this attachment itself
+            // Find the attachment path
             YamlPath attachmentPath = getAttachmentPath(yamlPath);
+
+            // Find the field that was modified
+            if (yamlPath != attachmentPath) {
+                YamlPath tmp = yamlPath;
+                int depthDiff = tmp.depth() - attachmentPath.depth();
+                while (--depthDiff > 0) {
+                    tmp = tmp.parent();
+                }
+
+                // Ignore changes to the "editor" block. They're not important.
+                if (tmp.name().equals("editor")) {
+                    return;
+                }
+            }
+
+            // Update the configuration for this attachment itself
             TrackedAttachmentConfig attachment = findAttachment(attachmentPath);
             if (attachment != null && !attachment.loadNeeded) {
                 attachment.loadNeeded = true;
                 attachment.markChanged();
             }
         }
+
+        // Any cached root references now become invalid
+        modificationCount++;
 
         // Schedule the task to start handling sync(). Only schedules once!
         // Make sure this doesn't happen while the plugin is disabled, which
