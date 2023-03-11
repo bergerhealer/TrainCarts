@@ -311,7 +311,8 @@ public class CartAttachmentSeat extends CartAttachment {
     // Also shown to first-person mode viewers, if their mode is THIRD_P
     private VirtualArmorStandItemEntity _displayedItemEntity = null;
     private ObjectPosition _displayedItemPosition = null;
-    private boolean _displayedItemShowFirstPerson = false;
+    private boolean _displayedItemShowFirstPersonEnabled = false;
+    private boolean _displayedItemShownInFirstPerson = false;
 
     // Debug displays used by the attachment editor
     public final SeatDebugUI debug = new SeatDebugUI(this);
@@ -351,7 +352,7 @@ public class CartAttachmentSeat extends CartAttachment {
             // Rest is loaded in during onLoad()
             this._displayedItemPosition = new ObjectPosition();
             this._displayedItemEntity = new VirtualArmorStandItemEntity(this.getManager());
-            this._displayedItemShowFirstPerson = this.getConfig().get("displayItem.showFirstPerson", false);
+            this._displayedItemShowFirstPersonEnabled = this.getConfig().get("displayItem.showFirstPerson", false);
         }
     }
 
@@ -452,7 +453,7 @@ public class CartAttachmentSeat extends CartAttachment {
 
         if (viewer.getPlayer() == this.seated.getEntity()) {
             // Initialize the first-person mode for this viewer
-            if (!isReload) {
+            if (!isReload || !viewer.equals(this.firstPerson.getViewer())) {
                 FirstPersonViewMode liveMode = this.firstPerson.getLiveMode();
                 if (this.fpvViewLockMode.isSpectator() && !this.useSmoothCoasters()) {
                     this.firstPerson = new FirstPersonViewSpectator(this, viewer);
@@ -465,11 +466,13 @@ public class CartAttachmentSeat extends CartAttachment {
                 this.firstPerson.setLiveMode(liveMode);
                 this.firstPerson.setLockMode(this.fpvViewLockMode);
                 this.firstPerson.getEyePosition().load(this.fpvEyePosition);
+                this.seated.updateMode(true);
             }
 
             this.firstPerson.makeVisible(viewer, isReload);
 
-            if (!isReload && this._displayedItemEntity != null && showDisplayedItemInFirstPerson()) {
+            if (this._displayedItemEntity != null && !this._displayedItemShownInFirstPerson && showDisplayedItemInFirstPerson()) {
+                this._displayedItemShownInFirstPerson = true;
                 this.makeDisplayedItemVisible(viewer);
             }
         } else {
@@ -492,7 +495,7 @@ public class CartAttachmentSeat extends CartAttachment {
     }
 
     private boolean showDisplayedItemInFirstPerson() {
-        return this._displayedItemShowFirstPerson ||
+        return this._displayedItemShowFirstPersonEnabled ||
                this.firstPerson.getLiveMode() == FirstPersonViewMode.THIRD_P;
     }
 
@@ -505,7 +508,8 @@ public class CartAttachmentSeat extends CartAttachment {
 
     public void makeHiddenImpl(AttachmentViewer viewer, boolean isReload) {
         if (this.seated.getEntity() == viewer.getPlayer()) {
-            if (!isReload && this._displayedItemEntity != null && showDisplayedItemInFirstPerson()) {
+            if (!isReload && this._displayedItemEntity != null && _displayedItemShownInFirstPerson) {
+                this._displayedItemShownInFirstPerson = false;
                 this._displayedItemEntity.destroy(viewer);
             }
             this.firstPerson.makeHidden(viewer, isReload);
