@@ -345,9 +345,11 @@ public class CartAttachmentSeat extends CartAttachment {
         this._locked = this.getConfig().get("lockRotation", false);
         this.fpvViewMode = this.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC);
         this.fpvViewLockMode = this.getConfig().get("firstPersonViewLockMode", FirstPersonViewLockMode.OFF);
-        this._enterPermission = this.getConfig().get("enterPermission", String.class, null);
 
         // If enabled, initialize a displayed item
+        this._displayedItemPosition = null;
+        this._displayedItemEntity = null;
+        this._displayedItemShowFirstPersonEnabled = false;
         if (this.getConfig().get("displayItem.enabled", false)) {
             // Rest is loaded in during onLoad()
             this._displayedItemPosition = new ObjectPosition();
@@ -356,11 +358,40 @@ public class CartAttachmentSeat extends CartAttachment {
         }
     }
 
+    @Override
+    public boolean checkCanReload(ConfigurationNode config) {
+        // Verify that the new configuration is not incompatible with what we load in onAttached()
+        // Some stuff just can't be live modified.
+        // TODO: Try and make some of these changeable without re-creating the attachment
+        if (config.get("displayItem.enabled", false) != (this._displayedItemEntity != null)) {
+            return false;
+        }
+        if (this._displayedItemEntity != null && config.get("displayItem.showFirstPerson", false) != this._displayedItemShowFirstPersonEnabled) {
+            return false;
+        }
+        if (this.seated.getDisplayMode() != config.get("displayMode", DisplayMode.DEFAULT)) {
+            return false;
+        }
+        if (this._locked != config.get("lockRotation", false)) {
+            return false;
+        }
+        if (this.fpvViewMode != config.get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC)) {
+            return false;
+        }
+        if (this.fpvViewLockMode != config.get("firstPersonViewLockMode", FirstPersonViewLockMode.OFF)) {
+            return false;
+        }
+
+        return true;
+    }
+
     // Note: Only load things here that can be live-modified in the editor, such as positions
     //       Things that require a re-initialization shouldn't be done here.
     @Override
     public void onLoad(ConfigurationNode config) {
         super.onLoad(config);
+
+        this._enterPermission = this.getConfig().get("enterPermission", String.class, null);
 
         // If the position is default, change the anchor to seat_parent so that logic works correctly
         // This is technically legacy behavior, but we're stuck with it now...
@@ -413,7 +444,7 @@ public class CartAttachmentSeat extends CartAttachment {
     public void onDetached() {
         super.onDetached();
         this.debug.stopEyePreviews();
-        this.setEntity(null);
+        this.setEntityImpl(null, true);
         this._displayedItemEntity = null;
         this._displayedItemPosition = null;
     }
@@ -632,6 +663,10 @@ public class CartAttachmentSeat extends CartAttachment {
      * @param entity to set to
      */
     public void setEntity(Entity entity) {
+        setEntityImpl(entity, false);
+    }
+
+    private void setEntityImpl(Entity entity, boolean isDetaching) {
         if (seated.getEntity() == entity) {
             return;
         }
@@ -660,7 +695,7 @@ public class CartAttachmentSeat extends CartAttachment {
         if (!this.seated.isEmpty()) {
             TrainCarts.plugin.getSeatAttachmentMap().set(this.seated.getEntity().getEntityId(), this);
         }
-        if (this.seated.isDisplayed()) {
+        if (!isDetaching && this.seated.isDisplayed()) {
             for (AttachmentViewer viewer : this.getAttachmentViewers()) {
                 this.makeVisibleImpl(viewer, false);
             }

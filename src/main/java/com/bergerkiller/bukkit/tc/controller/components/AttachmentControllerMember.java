@@ -15,8 +15,6 @@ import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigListener;
-import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigTracker;
-import com.bergerkiller.bukkit.tc.properties.standard.type.AttachmentModelBoundToCart;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -929,6 +927,14 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
                 this.member.getTrainCarts().getLogger().log(Level.SEVERE,
                         "Failed to migrate attachment configuration of " + type.getName(), t);
             }
+
+            // If this attachment disallows hot-reloading like this, perform a remove-and-readd instead
+            if (!curr.checkCanReload(config)) {
+                this.onAttachmentRemoved(attachmentConfig);
+                this.onAttachmentAdded(attachmentConfig);
+                return;
+            }
+
             curr.getInternalState().onLoad(this.getClass(), type, config);
             curr.onLoad(config);
 

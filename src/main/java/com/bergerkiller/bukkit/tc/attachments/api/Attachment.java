@@ -83,14 +83,29 @@ public interface Attachment {
     void onDetached();
 
     /**
-     * Called when the attachment need to (re)load the configuration.
+     * Called when the attachment needs to (re)load the configuration.
      * This method is called after {@link #onAttached()} is called for the first time,
      * and when configuration is reloaded while the attachment remains attached.
      * A guarantee is made that the attachment will be attached when this method is called.
-     * 
+     *
      * @param config The configuration of the attachment
      */
     void onLoad(ConfigurationNode config);
+
+    /**
+     * Called before the attachment needs to reload the configuration. If this method
+     * returns <i>true</i> (default) then it will perform a hot reload by calling
+     * {@link #onLoad(ConfigurationNode)} with the new configuration. If it returns
+     * <i>false</i> then no hot reloading will occur. Instead, it will recreate the
+     * attachment and all child attachments with the new configuration.
+     *
+     * @param config The configuration of the attachment
+     * @return <i>True</i> if reloading can proceed, <i>false</i> if the attachment
+     *         and all child attachments should be recreated instead.
+     */
+    default boolean checkCanReload(ConfigurationNode config) {
+        return true;
+    }
 
     /**
      * Called right after the {@link #getTransform()} has been updated.
