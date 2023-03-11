@@ -27,6 +27,66 @@ import java.util.function.Consumer;
 public class AttachmentConfigTrackerTest {
 
     @Test
+    public void testAddAttachmentConfigChild() {
+        ConfigurationNode root = createAttachment("ENTITY");
+        ConfigurationNode mid = addAttachment(root, "EMPTY");
+        ConfigurationNode seat = addAttachment(mid, "SEAT");
+        ConfigurationNode item = addAttachment(mid, "ITEM");
+        ConfigurationNode text = addAttachment(root, "TEXT");
+
+        TestTracker tracker = new TestTracker(new AttachmentConfigTracker(root));
+
+        // Start tracking, then add a new child after SEAT before ITEM
+        ConfigurationNode newChild = createAttachment("NEWCHILD");
+        AttachmentConfig addedChild = tracker.start().attachment.child(0).addChild(1, newChild);
+        assertEquals("NEWCHILD", addedChild.typeId());
+        assertTrue(addedChild.config() == newChild);
+
+        // Sync changes, this new child should be notified added
+        tracker.sync();
+        tracker.assertAdded("NEWCHILD", 0, 1);
+        tracker.assertSynchronized("ENTITY");
+        tracker.assertNone();
+
+        // Modifying the original configuration node we passed in should update the attachment, too
+        newChild.set("position.z", 234);
+        tracker.sync();
+        tracker.assertChanged("NEWCHILD", 0, 1);
+        tracker.assertSynchronized("ENTITY");
+        tracker.assertNone();
+    }
+
+    @Test
+    public void testRemoveAttachmentConfigChild() {
+        ConfigurationNode root = createAttachment("ENTITY");
+        ConfigurationNode mid = addAttachment(root, "EMPTY");
+        ConfigurationNode seat = addAttachment(mid, "SEAT");
+        ConfigurationNode item = addAttachment(mid, "ITEM");
+        ConfigurationNode text = addAttachment(root, "TEXT");
+
+        TestTracker tracker = new TestTracker(new AttachmentConfigTracker(root));
+
+        // Start tracking, then remove the ITEM attachment
+        tracker.start().attachment.child(0).child(1).remove();
+
+        // Sync, we should see a removal notification of the child
+        tracker.sync();
+        tracker.assertRemoved("ITEM", 0, 1);
+        tracker.assertSynchronized("ENTITY");
+        tracker.assertNone();
+
+        // The original configuration should have changed so the item is gone
+        assertFalse(item.hasParent());
+        assertEquals(1, mid.getNodeList("attachments").size());
+        assertEquals(seat, mid.getNodeList("attachments").get(0));
+
+        // The new root attachment config tree should no longer have the item
+        List<AttachmentConfig> midChildren = tracker.tracker.getRoot().get().child(0).children();
+        assertEquals(1, midChildren.size());
+        assertEquals("SEAT", midChildren.get(0).typeId());
+    }
+
+    @Test
     public void testRootReferenceInvalidationConfigSwap() {
         final AtomicReference<ConfigurationNode> rootRef = new AtomicReference<>(createAttachment("ENTITY"));
 

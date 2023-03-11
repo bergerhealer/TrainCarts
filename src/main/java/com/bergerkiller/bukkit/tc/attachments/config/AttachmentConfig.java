@@ -126,6 +126,50 @@ public interface AttachmentConfig {
     }
 
     /**
+     * Removes a child of this attachment configuration at the index specified
+     *
+     * @param childIndex Child index
+     * @return removed child
+     * @throws IndexOutOfBoundsException If the child index is out of bounds
+     * @throws UnsupportedOperationException If removal is not possible because this
+     *                                       is a nested model attachment configuration.
+     * @see #remove()
+     */
+    default AttachmentConfig removeChild(int childIndex) {
+        AttachmentConfig child = child(childIndex);
+        if (child == null) {
+            throw new IndexOutOfBoundsException("Child index out of bounds: " + childIndex);
+        } else {
+            child.remove();
+            return child;
+        }
+    }
+
+    /**
+     * Creates a new attachment configuration and adds it as a child of this attachment.
+     * Adds the child at the end.
+     *
+     * @param config Configuration for the new child
+     * @return Created attachment configuration
+     * @throws UnsupportedOperationException If adding a new attachment is not possible because
+     *                                       this is a nested model attachment configuration.
+     */
+    default AttachmentConfig addChild(ConfigurationNode config) {
+        return addChild(children().size(), config);
+    }
+
+    /**
+     * Creates a new attachment configuration and adds it as a child of this attachment.
+     *
+     * @param childIndex Child index of where to insert the new attachment
+     * @param config Configuration for the new child
+     * @return Created attachment configuration
+     * @throws UnsupportedOperationException If adding a new attachment is not possible because
+     *                                       this is a nested model attachment configuration.
+     */
+    AttachmentConfig addChild(int childIndex, ConfigurationNode config);
+
+    /**
      * Gets whether this attachment configuration was removed, and is no longer
      * linked or updated. If removed, {@link #config()} should no longer be used
      * as it will be stale. {@link #children()} will remain functional, but those
@@ -135,6 +179,16 @@ public interface AttachmentConfig {
      * @return True if this attachment configuration was removed
      */
     boolean isRemoved();
+
+    /**
+     * Removes this attachment configuration from the {@link #parent() parent}.
+     * Does nothing if already {@link #isRemoved() removed}.
+     *
+     * @throws UnsupportedOperationException If this is a root attachment, or this
+     *                                       is a nested model attachment which cannot
+     *                                       be directly modified.
+     */
+    void remove();
 
     /**
      * Gets the child index of this attachment relative to {@link #parent()}.

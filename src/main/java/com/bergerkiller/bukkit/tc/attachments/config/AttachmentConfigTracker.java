@@ -31,6 +31,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
     private final SyncTask syncTask;
     private final Map<ConfigurationNode, TrackedAttachmentConfig> byConfig;
     private final List<AttachmentConfig.Change> pendingChanges;
+    private boolean isSynchronizing = false;
     private TrackedAttachmentConfig root;
     private int modificationCount = 0;
 
@@ -193,10 +194,11 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
     private void handleSync() {
         // Don't do anything when there's no listeners, or when we're already handling sync()
         List<AttachmentConfig.Change> pendingChanges = this.pendingChanges;
-        if (!isTracking() || !pendingChanges.isEmpty()) {
+        if (!isTracking() || isSynchronizing) {
             return;
         }
 
+        isSynchronizing = true;
         try {
             processYamlChanges();
 
@@ -208,6 +210,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
                 notifyChanges(pendingChanges);
             }
         } finally {
+            isSynchronizing = false;
             pendingChanges.clear();
         }
     }
@@ -392,8 +395,69 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         }
 
         @Override
+        public AttachmentConfig addChild(int childIndex, ConfigurationNode config) {
+            // If this attachment has pending child changes, got to process those (and others) first
+            // This does not yet notify the listeners
+            if (!removed && childrenRefreshNeeded) {
+                processYamlChanges();
+            }
+
+            if (removed) {
+                throw new UnsupportedOperationException("Cannot add a child because the parent attachment has already been removed");
+            } else if (childIndex < 0 || childIndex > children.size()) {
+                throw new IndexOutOfBoundsException("Child add index out of bounds: " + childIndex);
+            } else {
+                // First add the child to the parent's node attachments list in the configuration
+                // TODO: Perhaps a config sync should be done prior? Might be risky otherwise.
+                this.config.getNodeList("attachments").add(childIndex, config);
+                AttachmentConfig added = addTrackedChild(completeConfig.getYamlPath(), childIndex, config);
+
+                // Also got to recalculate the child indices of all children beyond childIndex
+                for (int i = childIndex + 1; i < children.size(); i++) {
+                    children.get(i).childIndex = i;
+                }
+
+                return added;
+            }
+        }
+
+        private TrackedAttachmentConfig addTrackedChild(YamlPath rootPath, int childIndex, ConfigurationNode childConfig) {
+            TrackedAttachmentConfig attachment = createNewConfig(this, rootPath, childConfig, childIndex);
+            children.add(childIndex, attachment);
+            attachment.addToTracker();
+            addChange(ChangeType.ADDED, attachment);
+            return attachment;
+        }
+
+        @Override
         public boolean isRemoved() {
             return removed;
+        }
+
+        @Override
+        public void remove() {
+            if (removed) {
+                return;
+            } else if (parent == null) {
+                throw new UnsupportedOperationException("Cannot remove a root attachment");
+            }
+
+            // Remove this attachment from parent children
+            this.config.remove();
+            parent.children.remove(this);
+            this.removeFromTracker();
+
+            // Recalculate child indicates of parent attachments
+            int size = parent.children.size();
+            for (int i = 0; i < size; i++) {
+                parent.children.get(i).childIndex = i;
+            }
+
+            // Add a change notification if there's listeners
+            if (isTracking()) {
+                modificationCount++; // Invalidate attachment root reference
+                addChange(ChangeType.REMOVED, this);
+            }
         }
 
         @Override
@@ -532,10 +596,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
                     }
 
                     // Add a new Attachment at this current child index
-                    TrackedAttachmentConfig attachment = createNewConfig(this, rootPath, childConfig, childIndex);
-                    children.add(childIndex, attachment);
-                    attachment.addToTracker();
-                    addChange(ChangeType.ADDED, attachment);
+                    addTrackedChild(rootPath, childIndex, childConfig);
                     childIndex++;
                 }
 

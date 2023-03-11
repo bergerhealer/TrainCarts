@@ -218,8 +218,18 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
         }
 
         @Override
+        public AttachmentConfig addChild(int childIndex, ConfigurationNode config) {
+            throw new UnsupportedOperationException("Model attachment configurations cannot be added");
+        }
+
+        @Override
         public boolean isRemoved() {
             return position.isRemoved();
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("Model attachment configurations cannot be removed");
         }
 
         @Override
@@ -276,11 +286,11 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
          * @param path Relative child index path
          * @param base Base attachment to add. Is wrapped into a DeepAttachmentConfig
          */
-        public void addChildAtPath(int[] path, final AttachmentConfig base) {
-            runActionForChild(path, (parent, childIndex) -> parent.addChild(childIndex, base));
+        public void addDeepChildAtPath(int[] path, final AttachmentConfig base) {
+            runActionForChild(path, (parent, childIndex) -> parent.addDeepChild(childIndex, base));
         }
 
-        protected void addChild(int childIndex, AttachmentConfig baseConfig) {
+        protected void addDeepChild(int childIndex, AttachmentConfig baseConfig) {
             if (childIndex < 0 || childIndex > children.size()) {
                 throw new IndexOutOfBoundsException("Child index out of bounds: " + childIndex);
             }
@@ -295,11 +305,11 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
          *
          * @param childPath Child path
          */
-        public void removeChildAtPath(int[] childPath) {
-            runActionForChild(childPath, DeepAttachmentConfig::removeChild);
+        public void removeDeepChildAtPath(int[] childPath) {
+            runActionForChild(childPath, DeepAttachmentConfig::removeDeepChild);
         }
 
-        protected void removeChild(int childIndex) {
+        protected void removeDeepChild(int childIndex) {
             DeepAttachmentConfig deepConfig = children.get(childIndex);
             deepConfig.onRemoved();
             children.remove(childIndex);
@@ -446,22 +456,22 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
         }
 
         @Override
-        protected void addChild(int childIndex, AttachmentConfig baseConfig) {
+        protected void addDeepChild(int childIndex, AttachmentConfig baseConfig) {
             // Index is not allowed to be past the model config
             if (modelChild != null && childIndex == children.size()) {
                 throw new IndexOutOfBoundsException("Child index out of bounds: " + childIndex);
             } else {
-                super.addChild(childIndex, baseConfig);
+                super.addDeepChild(childIndex, baseConfig);
             }
         }
 
         @Override
-        protected void removeChild(int childIndex) {
+        protected void removeDeepChild(int childIndex) {
             // Index is not allowed to be past the model config
             if (modelChild != null && childIndex == (children.size()-1)) {
                 throw new IndexOutOfBoundsException("Child index out of bounds: " + childIndex);
             } else {
-                super.removeChild(childIndex);
+                super.removeDeepChild(childIndex);
             }
         }
 
@@ -581,7 +591,7 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
                 }
 
                 // Add the attachment
-                root.addChildAtPath(path, attachment);
+                root.addDeepChildAtPath(path, attachment);
             }
         }
 
@@ -606,7 +616,7 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
                 }
 
                 // Remove the attachment
-                root.removeChildAtPath(path);
+                root.removeDeepChildAtPath(path);
             }
         }
 
