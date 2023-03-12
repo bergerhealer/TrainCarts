@@ -499,9 +499,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
 
         @Override
         public void runAction(Consumer<Attachment> action) {
-            if (removed) {
-                throw new IllegalStateException("Attachment configuration was removed");
-            } else {
+            if (!removed) {
                 runAttachmentAction(this, action);
             }
         }

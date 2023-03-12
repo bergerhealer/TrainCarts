@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.ui;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Supplier;
@@ -150,7 +149,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
         getTree().onMenuOpen(this, item);
     }
 
-    public List<MapWidgetAttachmentNode> getAttachments() {
+    public List<MapWidgetAttachmentNode> getChildAttachmentNodes() {
         return this.attachments;
     }
 
@@ -283,22 +282,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
      * @return target path
      */
     public int[] getTargetPath() {
-        // Count the total number of elements in the path
-        int num_count = 0;
-        MapWidgetAttachmentNode tmp = this;
-        while (tmp.parentAttachment != null) {
-            tmp = tmp.parentAttachment;
-            num_count++;
-        }
-
-        // Generate path
-        tmp = this;
-        int[] targetPath = new int[num_count];
-        for (int i = targetPath.length-1; i >= 0; i--) {
-            targetPath[i] = tmp.parentAttachment.attachments.indexOf(tmp);
-            tmp = tmp.parentAttachment;
-        }
-        return targetPath;
+        return config.childPath();
     }
 
     /**
@@ -306,15 +290,23 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
      * cause live changes.
      * 
      * @return attachment, null if the minecart isn't available or the attachment is missing
+     * @deprecated There technically can be more than one. Use {@link #getAttachments()} instead.
+     * @see #getAttachments()
      */
+    @Deprecated
     public Attachment getAttachment() {
-        AttachmentEditor editor = this.getEditor();
-        MinecartMember<?> member;
-        if (editor == null || editor.editedCart == null || (member = editor.editedCart.getHolder()) == null) {
-            return null; // detached or not loaded
-        } else {
-            return member.findAttachment(this.getTargetPath());
-        }
+        List<Attachment> attachments = this.config.liveAttachments();
+        return attachments.isEmpty() ? null : attachments.get(0);
+    }
+
+    /**
+     * Looks up a List of all the attachment instances that use this attachment configuration.
+     * Changes to these attachments will cause live changes.
+     *
+     * @return List of live attachments using this attachment configuration
+     */
+    public List<Attachment> getAttachments() {
+        return config.liveAttachments();
     }
 
     public AttachmentEditor getEditor() {

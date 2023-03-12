@@ -146,17 +146,20 @@ public class SeatExitPositionMenu extends MapWidgetMenu {
         return this.attachment.getConfig().getNode("ejectPosition");
     }
 
-    // Teleports the player that is editing to where the current exit position is at
-    // If the player is seated, only changes the look-angle
+    /**
+     * Spawns dust particles where the exit position is of all seats using this configuration
+     */
     private void previewEjectPosition() {
-        Attachment attachment = this.attachment.getAttachment();
-        if (!(attachment instanceof CartAttachmentSeat)) {
-            return;
-        }
+        for (Attachment attachment : this.attachment.getAttachments()) {
+            if (attachment instanceof CartAttachmentSeat) {
+                CartAttachmentSeat seat = (CartAttachmentSeat) attachment;
 
-        for (Player viewer : ((AttachmentEditor) this.display).getViewers()) {
-            Location ejectPos = ((CartAttachmentSeat) attachment).getEjectPosition(viewer);
-            PlayerUtil.spawnDustParticles(viewer, ejectPos.toVector(), Color.BLUE);
+                for (Player viewer : ((AttachmentEditor) this.display).getViewers()) {
+                    //TODO: This probably bugs out cross-world!
+                    Location ejectPos = ((CartAttachmentSeat) attachment).getEjectPosition(viewer);
+                    PlayerUtil.spawnDustParticles(viewer, ejectPos.toVector(), Color.BLUE);
+                }
+            }
         }
     }
 

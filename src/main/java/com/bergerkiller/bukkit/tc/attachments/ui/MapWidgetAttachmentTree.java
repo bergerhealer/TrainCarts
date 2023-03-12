@@ -163,7 +163,7 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
             if (action == MapPlayerInput.Key.UP || action == MapPlayerInput.Key.DOWN) {
                 MapWidgetAttachmentNode parent = selected.getParentAttachment();
                 if (parent != null) {
-                    List<MapWidgetAttachmentNode> attachments = parent.getAttachments();
+                    List<MapWidgetAttachmentNode> attachments = parent.getChildAttachmentNodes();
                     int old_index = attachments.indexOf(selected);
                     int new_index = old_index + ((action == MapPlayerInput.Key.UP) ? -1 : 1);
                     if (new_index >= 0 && new_index < attachments.size()) {
@@ -185,12 +185,12 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
             if (action == MapPlayerInput.Key.LEFT) {
                 MapWidgetAttachmentNode parent = selected.getParentAttachment();
                 if (parent != null && parent.getParentAttachment() != null) {
-                    List<MapWidgetAttachmentNode> attachments = parent.getAttachments();
+                    List<MapWidgetAttachmentNode> attachments = parent.getChildAttachmentNodes();
                     int from_index = attachments.indexOf(selected);
                     MapWidgetAttachmentNode removed = attachments.remove(from_index);
                     selected.getAttachmentConfig().remove();
 
-                    List<MapWidgetAttachmentNode> parentAttachments = parent.getParentAttachment().getAttachments();
+                    List<MapWidgetAttachmentNode> parentAttachments = parent.getParentAttachment().getChildAttachmentNodes();
                     selected = parent.getParentAttachment().addAttachment(parentAttachments.indexOf(parent) + 1, selected.getConfig());
                     selected.setChangingOrder(true);
 
@@ -206,7 +206,7 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
             if (action == MapPlayerInput.Key.RIGHT) {
                 MapWidgetAttachmentNode parent = selected.getParentAttachment();
                 if (parent != null) {
-                    List<MapWidgetAttachmentNode> attachments = parent.getAttachments();
+                    List<MapWidgetAttachmentNode> attachments = parent.getChildAttachmentNodes();
                     int from_index = attachments.indexOf(selected);
                     int to_index = from_index - 1;
                     if (to_index >= 0 && to_index < attachments.size()) {
@@ -372,7 +372,7 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         op.row++;
         if (node.isExpanded()) {
             op.col++;
-            for (MapWidgetAttachmentNode childAttachment : node.getAttachments()) {
+            for (MapWidgetAttachmentNode childAttachment : node.getChildAttachmentNodes()) {
                 updateView(childAttachment, op);
             }
             op.col--;
@@ -410,7 +410,7 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
     }
 
     private static MapWidgetAttachmentNode findLastNode(MapWidgetAttachmentNode node) {
-        List<MapWidgetAttachmentNode> children = node.getAttachments();
+        List<MapWidgetAttachmentNode> children = node.getChildAttachmentNodes();
         if (!node.isExpanded() || children.isEmpty()) {
             return node;
         } else {
@@ -431,7 +431,7 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         }
         op.index++;
         if (parent.isExpanded()) {
-            for (MapWidgetAttachmentNode child : parent.getAttachments()) {
+            for (MapWidgetAttachmentNode child : parent.getChildAttachmentNodes()) {
                 if (searchForNode(child, op)) {
                     return true;
                 }

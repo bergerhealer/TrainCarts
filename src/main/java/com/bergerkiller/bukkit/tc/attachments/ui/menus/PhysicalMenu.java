@@ -39,6 +39,12 @@ public class PhysicalMenu extends MapWidgetMenu {
     public void onAttached() {
         super.onAttached();
 
+        // If there is no edited cart, then we can't show a "physical" preview. Abort.
+        if (this.getAttachment().getEditor().getEditedCart() == null) {
+            close();
+            return;
+        }
+
         // Shows a preview in the real world
         preview = new PhysicalMemberPreview(this.getAttachment().getEditor().getEditedCart(), () -> {
                     if (ticksPreviewVisible > 0 && display != null) {

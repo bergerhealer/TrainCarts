@@ -255,9 +255,7 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
 
         @Override
         public void runAction(Consumer<Attachment> action) {
-            if (position.isRemoved()) {
-                throw new IllegalStateException("Attachment configuration was removed");
-            } else {
+            if (!position.isRemoved()) {
                 runAttachmentAction(this, action);
             }
         }

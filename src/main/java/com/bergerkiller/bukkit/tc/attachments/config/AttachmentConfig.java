@@ -286,7 +286,6 @@ public interface AttachmentConfig {
      * Ideally the callback uses proper error handling.
      *
      * @param action Action to run for all live attachments using this configuration
-     * @throws IllegalStateException If this attachment configuration was previously removed
      */
     void runAction(Consumer<Attachment> action);
 

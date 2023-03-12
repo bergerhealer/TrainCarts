@@ -15,6 +15,9 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetTooltip;
+import org.bukkit.util.Vector;
+
+import java.util.List;
 
 /**
  * Menu window dialog where the eye position can be configured
@@ -143,12 +146,32 @@ public class FirstPersonEyePositionDialog extends MapWidgetMenu {
     }
 
     private void previewEye(int numTicks) {
-        Attachment liveAttachment = this.attachment.getAttachment();
-        if (liveAttachment instanceof CartAttachmentSeat) {
-            for (Player player : display.getOwners()) {
-                if (display.isControlling(player)) {
-                    ((CartAttachmentSeat) liveAttachment).debug.previewEye(player, numTicks);
+        // Find seat closest to all viewers of this display
+        List<Attachment> attachments = this.attachment.getAttachments();
+        if (attachments.isEmpty()) {
+            return;
+        }
+        for (Player player : display.getOwners()) {
+            if (!display.isControlling(player)) {
+                continue;
+            }
+            Vector pos = player.getEyeLocation().toVector();
+            CartAttachmentSeat closestSeat = null;
+            for (Attachment liveAttachment : attachments) {
+                if (liveAttachment instanceof CartAttachmentSeat) {
+                    if (closestSeat == null) {
+                        closestSeat = (CartAttachmentSeat) liveAttachment;
+                    } else {
+                        double d1 = closestSeat.getTransform().toVector().distanceSquared(pos);
+                        double d2 = liveAttachment.getTransform().toVector().distanceSquared(pos);
+                        if (d2 < d1) {
+                            closestSeat = (CartAttachmentSeat) liveAttachment;
+                        }
+                    }
                 }
+            }
+            if (closestSeat != null) {
+                closestSeat.debug.previewEye(player, numTicks);
             }
         }
     }
@@ -211,11 +234,12 @@ public class FirstPersonEyePositionDialog extends MapWidgetMenu {
 
     private void showArrowPreview(boolean show) {
         final int numTicks = show ? (5 * 20) : 0; // 5s
-        Attachment liveAttachment = this.attachment.getAttachment();
-        if (liveAttachment instanceof CartAttachmentSeat) {
-            for (Player player : display.getOwners()) {
-                if (display.isControlling(player)) {
-                    ((CartAttachmentSeat) liveAttachment).debug.showEyeArrow(player, numTicks);
+        for (Attachment liveAttachment : this.attachment.getAttachments()) {
+            if (liveAttachment instanceof CartAttachmentSeat) {
+                for (Player player : display.getOwners()) {
+                    if (display.isControlling(player)) {
+                        ((CartAttachmentSeat) liveAttachment).debug.showEyeArrow(player, numTicks);
+                    }
                 }
             }
         }

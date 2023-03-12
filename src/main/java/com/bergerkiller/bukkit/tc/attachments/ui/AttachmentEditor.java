@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.ui;
 
-import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
-import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigListener;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -25,6 +24,9 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode.MenuIte
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class AttachmentEditor extends MapDisplay {
     private static final int SNEAK_DEBOUNCE_TICKS = 5;
     public CartProperties editedCart;
@@ -32,7 +34,7 @@ public class AttachmentEditor extends MapDisplay {
     private boolean _hasPermission;
     private int blinkCounter = 0;
     private int sneakCounter = 0;
-    private Attachment _lastSelectedAttachment = null;
+    private List<Attachment> _lastSelectedAttachments = new ArrayList<>();
 
     private MapWidgetWindow window = new MapWidgetWindow();
     private MapWidgetAttachmentTree tree = new MapWidgetAttachmentTree() {
@@ -72,16 +74,17 @@ public class AttachmentEditor extends MapDisplay {
             this.setRunning(true);
         }
 
+        // Refresh which live attachments are selected & blinking
+        this.syncSelectedLiveAttachments();
+
         // Update blink counter, toggle between showing focused and not
-        if (this._lastSelectedAttachment != null) {
+        if (!this._lastSelectedAttachments.isEmpty()) {
             this.blinkCounter++;
-            for (FocusMode mode : FocusMode.values()) {
-                if (mode.phase == this.blinkCounter) {
-                    updateFocus(mode);
-                    if (mode == FocusMode.NONE) {
-                        this.blinkCounter = 0; // Loop
-                    }
-                    break;
+            FocusMode nextMode = FocusMode.fromPhase(this.blinkCounter);
+            if (nextMode != null) {
+                updateFocus(nextMode);
+                if (nextMode == FocusMode.NONE) {
+                    this.blinkCounter = 0; // Loop
                 }
             }
         }
@@ -123,8 +126,9 @@ public class AttachmentEditor extends MapDisplay {
         if (event.isName("changed") || event.isName("sync")) {
             this.tree.sync();
 
-            // Resend focus
-            sendFocus();
+            // Focus the attachment. This makes sure invisible attachments,
+            // like hitbox, are highlighted while moving.
+            this.pauseBlinking(FocusMode.SELECTED, 5);
         } else if (event.isName("reset")) {
             // Completely re-initialize the model
             this.tree.updateView();
@@ -135,25 +139,31 @@ public class AttachmentEditor extends MapDisplay {
         }
     }
 
-    private void sendFocus() {
-        Attachment attachment = this.tree.getSelectedNode().getAttachment();
-        if (attachment != this._lastSelectedAttachment && this._lastSelectedAttachment != null) {
-            onSelectedNodeChanged();
-        } else {
-            this._lastSelectedAttachment = attachment;
-            this.updateFocus(FocusMode.SELECTED);
-            this.blinkCounter = FocusMode.SELECTED.phase;
-        }
+    private void syncSelectedLiveAttachments() {
+        LogicUtil.synchronizeList(
+                this._lastSelectedAttachments,
+                this.tree.getSelectedNode().getAttachments(),
+                new LogicUtil.ItemSynchronizer<Attachment, Attachment>() {
+                    @Override
+                    public boolean isItem(Attachment o, Attachment o2) {
+                        return o == o2;
+                    }
+
+                    @Override
+                    public Attachment onAdded(Attachment added) {
+                        FocusMode.fromCounter(blinkCounter).applyTo(added);
+                        return added;
+                    }
+
+                    @Override
+                    public void onRemoved(Attachment removed) {
+                        removed.setFocused(false);
+                        setChildrenFocused(removed, false);
+                    }
+                });
     }
 
     public void onSelectedNodeChanged() {
-        Attachment attachment = this.tree.getSelectedNode().getAttachment();
-        if (attachment != this._lastSelectedAttachment && this._lastSelectedAttachment != null) {
-            this._lastSelectedAttachment.setFocused(false);
-            setChildrenFocused(this._lastSelectedAttachment, false);
-        }
-        this._lastSelectedAttachment = attachment;
-
         if (this.getFocusedWidget() instanceof MapWidgetAttachmentNode) {
             this.pauseBlinking(FocusMode.SELECTED, 2);
         } else {
@@ -178,6 +188,7 @@ public class AttachmentEditor extends MapDisplay {
 
         // Make sure previously selected attachments are not focused
         this.updateFocus(FocusMode.NONE);
+        this._lastSelectedAttachments.clear();
     }
 
     /**
@@ -229,7 +240,6 @@ public class AttachmentEditor extends MapDisplay {
                 this.tree.setModel(this.model);
                 this.tree.setBounds(5, 13, 7 * 17, 6 * 17);
                 this.window.addWidget(this.tree);
-                sendFocus();
             } else {
                 this.setReceiveInputWhenHolding(false);
                 this.model = AttachmentModel.getDefaultModel(EntityType.MINECART);
@@ -270,19 +280,7 @@ public class AttachmentEditor extends MapDisplay {
     }
 
     private void updateFocus(FocusMode mode) {
-        if (this._lastSelectedAttachment != null) {
-            switch (mode) {
-            case NONE:
-                HelperMethods.setFocusedRecursive(this._lastSelectedAttachment, false);
-                break;
-            case SELECTED:
-                this._lastSelectedAttachment.setFocused(true);
-                break;
-            case SELECTED_AND_CHILDREN:
-                HelperMethods.setFocusedRecursive(this._lastSelectedAttachment, true);
-                break;
-            }
-        }
+        this._lastSelectedAttachments.forEach(mode::applyTo);
     }
 
     private static enum FocusMode {
@@ -294,6 +292,41 @@ public class AttachmentEditor extends MapDisplay {
 
         private FocusMode(int phase) {
             this.phase = phase;
+        }
+
+        public void applyTo(Attachment attachment) {
+            switch (this) {
+                case NONE:
+                    HelperMethods.setFocusedRecursive(attachment, false);
+                    break;
+                case SELECTED:
+                    attachment.setFocused(true);
+                    break;
+                case SELECTED_AND_CHILDREN:
+                    HelperMethods.setFocusedRecursive(attachment, true);
+                    break;
+            }
+        }
+
+        public static FocusMode fromPhase(int phase) {
+            for (FocusMode mode : values()) {
+                if (mode.phase == phase) {
+                    return mode;
+                }
+            }
+            return null;
+        }
+
+        public static FocusMode fromCounter(int counter) {
+            FocusMode result = SELECTED;
+            for (FocusMode mode : values()) {
+                if (mode.phase > counter) {
+                    break;
+                } else {
+                    result = mode;
+                }
+            }
+            return result;
         }
     }
 }
