@@ -9,6 +9,8 @@ import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigListener;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigTracker;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 
@@ -27,6 +29,26 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
     private int column_offset = 0;
     private boolean resetNeeded;
     private AttachmentModel model = null;
+    private final AttachmentConfigListener externalChangeListener = new AttachmentConfigListener() {
+        private boolean addedOrRemovedAttachments = false;
+
+        @Override
+        public void onChange(AttachmentConfig.Change change) {
+            if (change.changeType() == AttachmentConfig.ChangeType.REMOVED ||
+                    change.changeType() == AttachmentConfig.ChangeType.ADDED
+            ) {
+                addedOrRemovedAttachments = true;
+            } else if (change.changeType() == AttachmentConfig.ChangeType.SYNCHRONIZED &&
+                    addedOrRemovedAttachments
+            ) {
+                addedOrRemovedAttachments = false;
+
+                // Sync this configuration with what is currently displayed
+
+            }
+        }
+
+    };
 
     public AttachmentModel getModel() {
         return this.model;
@@ -136,10 +158,12 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
                     int new_index = old_index + ((action == MapPlayerInput.Key.UP) ? -1 : 1);
                     if (new_index >= 0 && new_index < attachments.size()) {
                         attachments.remove(old_index);
-                        attachments.add(new_index, selected);
+                        selected.getAttachmentConfig().remove();
+                        selected = parent.addAttachment(new_index, selected.getConfig());
+                        selected.setChangingOrder(true);
 
-                        sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
-                        this.resetNeeded = true;
+                        this.updateView(this.offset);
+                        sendStatusChange(MapEventPropagation.DOWNSTREAM, "sync");
                     }
                 }
             }
@@ -153,14 +177,15 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
                 if (parent != null && parent.getParentAttachment() != null) {
                     List<MapWidgetAttachmentNode> attachments = parent.getAttachments();
                     int from_index = attachments.indexOf(selected);
-                    attachments.remove(from_index);
+                    MapWidgetAttachmentNode removed = attachments.remove(from_index);
+                    selected.getAttachmentConfig().remove();
 
                     List<MapWidgetAttachmentNode> parentAttachments = parent.getParentAttachment().getAttachments();
-                    parentAttachments.add(parentAttachments.indexOf(parent) + 1, selected);
-                    selected.setParentAttachment(parent.getParentAttachment());
+                    selected = parent.getParentAttachment().addAttachment(parentAttachments.indexOf(parent) + 1, selected.getConfig());
+                    selected.setChangingOrder(true);
 
-                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
-                    this.resetNeeded = true;
+                    this.updateView(this.offset);
+                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "sync");
                 }
             }
 
@@ -177,12 +202,14 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
                     if (to_index >= 0 && to_index < attachments.size()) {
                         MapWidgetAttachmentNode new_parent = attachments.get(to_index);
                         attachments.remove(from_index);
-                        new_parent.getAttachments().add(selected);
-                        selected.setParentAttachment(new_parent);
+                        selected.getAttachmentConfig().remove();
+
+                        selected = new_parent.addAttachment(selected.getConfig());
+                        selected.setChangingOrder(true);
                         new_parent.setExpanded(true);
 
-                        sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
-                        this.resetNeeded = true;
+                        this.updateView(this.offset);
+                        sendStatusChange(MapEventPropagation.DOWNSTREAM, "sync");
                     }
                 }
             }

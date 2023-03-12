@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.ui;
 
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigListener;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -118,8 +120,7 @@ public class AttachmentEditor extends MapDisplay {
         if (this.tree.getDisplay() == null) {
             return; // Detached, do nothing
         }
-        if (event.isName("changed")) {
-            MapWidgetAttachmentNode node = event.getArgument(MapWidgetAttachmentNode.class);
+        if (event.isName("changed") || event.isName("sync")) {
             this.tree.sync();
 
             // Resend focus

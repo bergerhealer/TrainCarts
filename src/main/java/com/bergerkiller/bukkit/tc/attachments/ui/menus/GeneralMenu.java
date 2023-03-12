@@ -34,6 +34,7 @@ public class GeneralMenu extends MapWidgetMenu {
                 MapWidgetAttachmentNode added = attachment.addAttachment(config);
                 GeneralMenu.this.close();
                 attachment.getTree().setSelectedNode(added);
+                sendStatusChange(MapEventPropagation.DOWNSTREAM, "reset");
             }
         }).setText("Add Attachment").setBounds(10, 10, 98, 18);
 

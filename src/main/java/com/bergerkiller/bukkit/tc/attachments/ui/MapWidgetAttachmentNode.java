@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.attachments.ui;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.function.Supplier;
 
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
@@ -168,7 +167,6 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
                 this.config.addChild(index, config));
         attachment.parentAttachment = this;
         this.attachments.add(index, attachment);
-        sendStatusChange(MapEventPropagation.DOWNSTREAM, "reset");
         return attachment;
     }
 
