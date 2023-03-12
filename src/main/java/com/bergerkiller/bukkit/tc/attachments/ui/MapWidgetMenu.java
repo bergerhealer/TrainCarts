@@ -38,6 +38,14 @@ public class MapWidgetMenu extends MapWidgetWindow {
         super.onKeyPressed(event);
     }
 
+    @Override
+    public void onTick() {
+        super.onTick();
+        if (attachment != null && attachment.getAttachmentConfig().isRemoved()) {
+            close();
+        }
+    }
+
     /**
      * Closes this menu, removing this window
      */

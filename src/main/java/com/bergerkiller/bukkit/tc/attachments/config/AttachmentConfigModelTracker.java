@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
@@ -259,6 +260,11 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
             } else {
                 runAttachmentAction(this, action);
             }
+        }
+
+        @Override
+        public String toString() {
+            return "Attachment{" + typeId() + " at " + Arrays.toString(childPath()) + "}";
         }
 
         /**

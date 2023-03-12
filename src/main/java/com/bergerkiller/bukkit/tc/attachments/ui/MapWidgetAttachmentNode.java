@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.ui;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Supplier;
@@ -37,7 +38,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     private final MapWidgetAttachmentTree tree;
     private static MapTexture expanded_icon = null;
     private static MapTexture collapsed_icon = null;
-    private final AttachmentConfig config;
+    private AttachmentConfig config;
     private final List<MapWidgetAttachmentNode> attachments = new ArrayList<>();
     private MapWidgetAttachmentNode parentAttachment = null;
     private int col, row;
@@ -70,6 +71,66 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
             this.expanded = true;
             this.setEditorOption("expanded", true, true);
         }
+    }
+
+    /**
+     * Synchronizes this tree of nodes with the configuration specified.
+     * If true is returned the view should be refreshed.
+     *
+     * @param config Root configuration
+     * @return True if changes were made, False if perfectly in sync
+     */
+    public boolean sync(AttachmentConfig config) {
+        this.config = config;
+        this.resetIcon(); // Just in case
+        if (this.isActivated() && appearanceMenuButton != null) {
+            appearanceMenuButton.setIcon(getIcon());
+        }
+
+        boolean changed = false;
+        List<AttachmentConfig> childConfigs = config.children();
+        for (int i = 0; i < childConfigs.size(); i++) {
+            AttachmentConfig childConfig = childConfigs.get(i);
+            if (i < attachments.size()) {
+                MapWidgetAttachmentNode node = attachments.get(i);
+                if (node.getConfig() == childConfig.config()) {
+                    changed |= node.sync(childConfig);
+                    continue;
+                }
+
+                // Try to find an attachment child further up, and move it to the new position
+                // If found, view must be re-calculated
+                boolean found = false;
+                for (int j = i + 1; j < attachments.size(); j++) {
+                    node = attachments.get(j);
+                    if (node.getConfig() == childConfig.config()) {
+                        attachments.remove(j);
+                        attachments.add(i, node);
+                        changed = true;
+                        found = true;
+                        node.sync(childConfig);
+                        break;
+                    }
+                }
+                if (found) {
+                    continue;
+                }
+            }
+
+            // Insert a new attachment at this position
+            MapWidgetAttachmentNode node = new MapWidgetAttachmentNode(this.tree, childConfig);
+            node.parentAttachment = this;
+            this.attachments.add(i, node);
+            changed = true;
+        }
+
+        // Remove all excess attachments
+        while (attachments.size() > childConfigs.size()) {
+            attachments.remove(childConfigs.size());
+            changed = true;
+        }
+
+        return changed;
     }
 
     public MapWidgetAttachmentTree getTree() {

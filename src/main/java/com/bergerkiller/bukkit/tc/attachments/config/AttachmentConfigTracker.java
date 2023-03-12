@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -503,6 +504,11 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
             } else {
                 runAttachmentAction(this, action);
             }
+        }
+
+        @Override
+        public String toString() {
+            return "Attachment{" + typeId() + " at " + Arrays.toString(childPath()) + "}";
         }
 
         /**

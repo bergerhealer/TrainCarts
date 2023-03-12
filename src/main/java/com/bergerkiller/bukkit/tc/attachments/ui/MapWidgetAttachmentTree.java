@@ -29,7 +29,7 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
     private int column_offset = 0;
     private boolean resetNeeded;
     private AttachmentModel model = null;
-    private final AttachmentConfigListener externalChangeListener = new AttachmentConfigListener() {
+    private final AttachmentConfigListener changeListener = new AttachmentConfigListener() {
         private boolean addedOrRemovedAttachments = false;
 
         @Override
@@ -44,10 +44,12 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
                 addedOrRemovedAttachments = false;
 
                 // Sync this configuration with what is currently displayed
-
+                if (root.sync(change.attachment())) {
+                    updateView(offset);
+                }
+                getWidgets().forEach(MapWidget::invalidate);
             }
         }
-
     };
 
     public AttachmentModel getModel() {
@@ -55,8 +57,16 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
     }
 
     public void setModel(AttachmentModel model) {
+        if (this.model == model) {
+            return;
+        }
+
+        if (this.model != null) {
+            this.model.getConfigTracker().stopTracking(changeListener);
+        }
         this.model = model;
-        this.root = new MapWidgetAttachmentNode(this, model.getRoot().get());
+        AttachmentConfig rootConfig = model.getConfigTracker().startTracking(changeListener);
+        this.root = new MapWidgetAttachmentNode(this, rootConfig);
         this.lastSelIdx = this.root.getEditorOption("selectedIndex", 0);
         this.updateView(this.root.getEditorOption("scrollOffset", 0));
     }
