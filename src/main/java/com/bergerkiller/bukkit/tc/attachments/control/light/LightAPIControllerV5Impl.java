@@ -49,13 +49,18 @@ class LightAPIControllerV5Impl extends LightAPIController {
     @Override
     public void remove(IntVector3 position, int level) {
         // Must be immediate, otherwise sync operations fail (bug)
-        set(position, 0, EditPolicy.IMMEDIATE);
+        set(position, 0, EditPolicy.DEFERRED);
     }
 
     @Override
     public void move(IntVector3 old_position, IntVector3 new_position, int level) {
         set(new_position, level, EditPolicy.DEFERRED);
         set(old_position, 0, EditPolicy.DEFERRED);
+    }
+
+    @Override
+    public void update(IntVector3 position, int old_level, int new_level) {
+        set(position, new_level, EditPolicy.DEFERRED);
     }
 
     @Override

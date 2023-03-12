@@ -21,6 +21,10 @@ class LightAPIControllerUnavailable extends LightAPIController {
     }
 
     @Override
+    public void update(IntVector3 position, int old_level, int new_level) {
+    }
+
+    @Override
     protected boolean onSync() {
         return false;
     }

@@ -125,6 +125,8 @@ public abstract class LightAPIController {
 
     public abstract void move(IntVector3 old_position, IntVector3 new_position, int level);
 
+    public abstract void update(IntVector3 position, int old_level, int new_level);
+
     protected abstract boolean onSync();
 
     public final boolean sync() {

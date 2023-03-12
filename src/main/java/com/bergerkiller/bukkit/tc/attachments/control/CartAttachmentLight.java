@@ -151,12 +151,9 @@ public class CartAttachmentLight extends CartAttachment {
         int newLightLevel = getConfig().get("lightLevel", 15);
         if (newLightLevel != lightLevel) {
             if (lightVisible && prev_block != null) {
-                controller.remove(prev_block, lightLevel);
-                lightLevel = newLightLevel;
-                controller.add(prev_block, lightLevel);
-            } else {
-                lightLevel = newLightLevel;
+                controller.update(prev_block, lightLevel, newLightLevel);
             }
+            lightLevel = newLightLevel;
         }
     }
 

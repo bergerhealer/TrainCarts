@@ -61,6 +61,15 @@ class LightAPIControllerForkImpl extends LightAPIController {
         add(new_position, level);
     }
 
+    @Override
+    public void update(IntVector3 position, int old_level, int new_level) {
+        LevelList list = levels.get(position);
+        if (list != null && (list.remove(old_level) | list.add(new_level))) {
+            dirty.put(position, list);
+            schedule();
+        }
+    }
+
     public boolean onSync() {
         if (dirty.isEmpty()) {
             return false;
