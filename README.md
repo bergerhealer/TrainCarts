@@ -39,7 +39,7 @@ The locomotive and carriages were made by Nullblox. Maxi made the different colo
 <details>
 <summary>Installation Instructions 1.19.3</summary>
 #### Option A Configure the resource pack in server.properties
-The preferred way is to configure the resource pack on the server end. This way not only will clients automatically load the resource pack, Traincarts can read the resource pack and show the models ingame in the attachment editor. This also makes the models listable under /train model search and automatically loads the saved trains from them.
+The preferred way is to configure the resource pack on the server end. This way not only will clients automatically load the resource pack, Traincarts can read the resource pack and show the models ingame in the attachment editor. This also makes the models listable under <code>/train model search</code> and automatically loads the saved trains from them.
 ```
 resource-pack=http://resourcepack.host/dl/9kZTOP1rAqUd06arWJaJ5xc4Iou78EPB/TrainCarts_Demo_TP_v4.zip
 resource-pack-sha1=185187CD68A4046EEA353F9D9E5A6430B169DEA7
@@ -90,7 +90,7 @@ Either restart the server, or use <code>/train globalconfig reload --savedtrainp
 The new models are bound to durability values of the golden pickaxe. You can spawn these trains using:
 * [Spawn Sign](https://wiki.traincarts.net/p/TrainCarts/Signs/Spawner)
 * [Train Spawn Chest Item](https://wiki.traincarts.net/p/TrainCarts/Train_Spawn_Chest): <code>/train chest [name]</code>
-* Create it in the attachment editor. You can find the items to use with /train model search
+* Create it in the attachment editor. You can find the items to use with <code>/train model search</code>
 
 #### The following train names can be spawned
 * loco - Spawns locomotive without animations
