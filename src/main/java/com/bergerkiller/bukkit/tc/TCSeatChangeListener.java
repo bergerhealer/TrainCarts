@@ -122,6 +122,10 @@ public class TCSeatChangeListener implements Listener {
     public void onMemberSeatExitHandleEjectOffset(MemberSeatExitEvent event) {
         if (!event.isSeatChange() && !exemptFromEjectOffset.contains(event.getEntity())) {
             final Entity e = event.getEntity();
+            if (e.isDead() || e.getVehicle() != null) {
+                return;
+            }
+
             final Location old_entity_location = event.getMember().getEntity().getLocation();
             final Location old_seat_location = event.getSeatPosition();
             final Location loc = event.getExitPosition();
@@ -129,10 +133,6 @@ public class TCSeatChangeListener implements Listener {
             // Teleport to the exit position a tick later
             // Edited: no longer has to be next tick, the seat exit event is guaranteed to occur AFTER
             //   CommonUtil.nextTick(new Runnable() {});
-
-            if (e.isDead() || e.getVehicle() != null) {
-                return;
-            }
 
             // Do not teleport if the player changed position dramatically after exiting
             // This is the case when teleporting (/tp)
