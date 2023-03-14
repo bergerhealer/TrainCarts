@@ -38,6 +38,7 @@ The locomotive and carriages were made by Nullblox. Maxi made the different colo
 
 <details>
 <summary>Installation Instructions 1.19.3</summary>
+
 #### Option A Configure the resource pack in server.properties
 The preferred way is to configure the resource pack on the server end. This way not only will clients automatically load the resource pack, Traincarts can read the resource pack and show the models ingame in the attachment editor. This also makes the models listable under <code>/train model search</code> and automatically loads the saved trains from them.
 ```
