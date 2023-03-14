@@ -37,10 +37,26 @@ TrainCarts has a demo resource pack that you can download that includes a couple
 The locomotive and carriages were made by Nullblox. Maxi made the different color rollercoaster carts.
 
 <details>
-<summary>Installation Instructions</summary>
+<summary>Installation Instructions 1.19.3</summary>
+#### Option A Configure the resource pack in server.properties
+The preferred way is to configure the resource pack on the server end. This way not only will clients automatically load the resource pack, Traincarts can read the resource pack and show the models ingame in the attachment editor. This also makes the models listable under /train model search and automatically loads the saved trains from them.
+```
+resource-pack=http://resourcepack.host/dl/9kZTOP1rAqUd06arWJaJ5xc4Iou78EPB/TrainCarts_Demo_TP_v4.zip
+resource-pack-sha1=185187CD68A4046EEA353F9D9E5A6430B169DEA7
+```
+
+#### Option B Download the resource pack and host it yourself
+[Download it from Dropbox here](https://www.dropbox.com/s/rq1f43g5stb9c9b/TrainCarts_Demo_TP_v4.zip?dl=1)
+
+Host the zip file somewhere on a FTP, your own server, a public resource pack host or some form of cloud storage that allows for a direct download. Then add the URL to your **server.properties**:<br>
+<code>resource-pack=https://your-domain/path/to/TrainCarts_Demo_TP_v4.zip</code>
+</details>
+
+<details>
+<summary>Installation Instructions (Old Minecraft Versions)</summary>
 
 #### 1. Download the resource pack
-[Download it from Dropbox here](https://www.dropbox.com/s/th8ei3crc01bfx2/TrainCarts_Demo_TP_v3.zip?dl=0)
+[Download it from Dropbox here](https://www.dropbox.com/s/th8ei3crc01bfx2/TrainCarts_Demo_TP_v3.zip?dl=1)
 
 #### 2.A: Host it
 Host the zip file somewhere on a FTP, your own server, a public resource pack host or some form of cloud storage that allows for a direct download. Then add the URL to your **server.properties**:<br>
@@ -71,15 +87,16 @@ Either restart the server, or use <code>/train globalconfig reload --savedtrainp
 <summary>Usage Instructions</summary>
 
 #### Spawn the trains
-The new models are bound to durability values of the golden pickaxe. After installing the _tcdemo.yml_ demo train configurations, you can spawn these trains using:
+The new models are bound to durability values of the golden pickaxe. You can spawn these trains using:
 * [Spawn Sign](https://wiki.traincarts.net/p/TrainCarts/Signs/Spawner)
 * [Train Spawn Chest Item](https://wiki.traincarts.net/p/TrainCarts/Train_Spawn_Chest): <code>/train chest [name]</code>
+* Create it in the attachment editor. You can find the items to use with /train model search
 
 #### The following train names can be spawned
 * loco - Spawns locomotive without animations
 * carr / carg / carb - Spawns red/green/blue carriages without animations
-* loco_anim - Spawns locomotive with animation 'wheel' to bring it to life
-* carr_anim / carg_anim / carb_anim - Spawns red/green/blue carriages with animation 'wheel' to bring them to life
+* loco_anim - Spawns locomotive with animated wheels and pistons
+* carr_anim / carg_anim / carb_anim - Spawns red/green/blue carriages with animated wheels
 * ferris - Animated Ferris wheel, use animation 'spin' to control it (WARNING: VERY LAGGY)
 * spinner - Animated spinning ride with 3 controllable animations ('spin', 'turn' and 'arm')
 * rolr / rolg / rolb - Rollercoaster carts with 4 seats
