@@ -1,10 +1,13 @@
 package com.bergerkiller.bukkit.tc.utils.modularconfiguration;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.map.MapResourcePack;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import org.bukkit.plugin.Plugin;
 
 import java.io.File;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * A base implementation of {@link ModularConfiguration} that supports three
@@ -57,8 +60,43 @@ public abstract class BasicModularConfiguration<T> extends ModularConfiguration<
         this.DEFAULT = this.addFileModule("DEFAULT", new File(data, mainFilePath), false);
         // YAML files in the module directory path
         this.MODULES = this.addDirectoryModule(new File(data, moduleDirectoryPath));
-        // Read-only YAML files found in the server resource pack
-        // TODO: Add!
+    }
+
+    /**
+     * Adds all the YAML files contained inside a directory of a resource pack
+     *
+     * @param resourcePack Loaded resource pack
+     * @param namespace Namespace where to find the directory
+     * @param directory Directory in the namespace where the YAML files are stored
+     */
+    public void addResourcePack(MapResourcePack resourcePack, String namespace, String directory) {
+        Set<String> yamlFiles;
+        try {
+            yamlFiles = resourcePack.listResources(MapResourcePack.ResourceType.YAML, namespace, directory);
+        } catch (Throwable t) {
+            return;
+        }
+        for (String resource : yamlFiles) {
+            String name = resource;
+            if (name.startsWith(directory + "/")) {
+                name = name.substring(directory.length() + 1);
+            }
+
+            ConfigurationNode config;
+            try {
+                config = resourcePack.getConfig(namespace + ":" + resource);
+                int trainCount = config.getKeys().size();
+                if (trainCount == 0) {
+                    continue;
+                }
+                logger.info("[Resource Pack] Loaded " + trainCount + " saved train properties from '" + name + "'");
+            } catch (Throwable t) {
+                logger.log(Level.WARNING, "Failed to load resource pack saved train properties '" + name + "'", t);
+                continue;
+            }
+
+            this.addBlock(new ModularConfigurationModule<>(this, "RESOURCEPACK:" + name, config, true), false);
+        }
     }
 
     @Override

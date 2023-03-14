@@ -339,9 +339,14 @@ public class SavedTrainCommands {
             final @Flag("force") boolean force
     ) {
         String name = savedTrain.getName();
-        plugin.getSavedTrains().remove(name);
-        sender.sendMessage(ChatColor.YELLOW + "Saved train '" + ChatColor.WHITE + name +
-                ChatColor.YELLOW + "' has been deleted!");
+        if (plugin.getSavedTrains().remove(name)) {
+            sender.sendMessage(ChatColor.YELLOW + "Saved train '" + ChatColor.WHITE + name +
+                    ChatColor.YELLOW + "' has been deleted!");
+        } else {
+            sender.sendMessage(ChatColor.RED + "Saved train '" + ChatColor.WHITE + name +
+                    ChatColor.RED + "' cannot be removed! (read-only)");
+            sender.sendMessage(ChatColor.RED + "You can only override these properties by saving over time");
+        }
     }
 
     @CommandMethod("savedtrain <savedtrainname> claim")

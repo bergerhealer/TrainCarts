@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.BasicModularConfiguration;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.ModularConfigurationEntry;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.ModularConfigurationFile;
@@ -469,6 +470,7 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
         public ModularConfig(TrainCarts plugin, String mainFilePath, String moduleDirectoryPath) {
             super(plugin, mainFilePath, moduleDirectoryPath);
             this.traincarts = plugin;
+            this.addResourcePack(TCConfig.resourcePack, "traincarts", "saved_train_properties");
         }
 
         @Override
