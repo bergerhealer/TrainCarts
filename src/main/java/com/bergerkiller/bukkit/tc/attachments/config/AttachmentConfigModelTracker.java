@@ -781,7 +781,7 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
                 @Override
                 public YamlPath path(AttachmentConfig base) {
                     YamlPath parentPath = PositionAccessModelChild.this.parent.getModelPath();
-                    return YamlLogic.INSTANCE.join(parentPath, base.path());
+                    return YamlPath.join(parentPath, base.path());
                 }
 
                 @Override

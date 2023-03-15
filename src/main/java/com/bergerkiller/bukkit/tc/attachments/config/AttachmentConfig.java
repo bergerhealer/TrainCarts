@@ -104,15 +104,14 @@ public interface AttachmentConfig {
 
         // Navigate the children recursively until we find no more child relative
         // to which the path is found.
-        YamlLogic logic = YamlLogic.INSTANCE;
         AttachmentConfig currentAttachment = this;
         YamlPath resultPath = path;
-        final YamlPath searchPath = logic.join(this.path(), path); // Make absolute
+        final YamlPath searchPath = YamlPath.join(this.path(), path); // Make absolute
         boolean found;
         do {
             found = false;
             for (AttachmentConfig child : currentAttachment.children()) {
-                YamlPath childRelativePath = logic.getRelativePath(child.path(), searchPath);
+                YamlPath childRelativePath = searchPath.makeRelative(child.path());
                 if (childRelativePath != null) {
                     currentAttachment = child;
                     resultPath = childRelativePath;

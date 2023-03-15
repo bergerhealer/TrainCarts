@@ -1,8 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
@@ -20,7 +18,6 @@ import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityTeleportHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityLivingHandle;
-import com.bergerkiller.generated.net.minecraft.network.syncher.DataWatcherObjectHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityAgeableHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.monster.EntitySlimeHandle;
@@ -32,7 +29,6 @@ import org.bukkit.util.Vector;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Level;
 
 /**
  * Is invisible, unless focused. Represents a box that players can interact with
@@ -385,7 +381,7 @@ public class CartAttachmentHitBox extends CartAttachment {
             if (baby) {
                 datawatcher.set(EntityAgeableHandle.DATA_IS_BABY, true);
             } else if (slimeSize != 0) {
-                SLIME_SIZE_APPLIER.apply(datawatcher, slimeSize);
+                datawatcher.set(EntitySlimeHandle.DATA_SIZE, slimeSize);
             }
         }
 
@@ -397,54 +393,5 @@ public class CartAttachmentHitBox extends CartAttachment {
             }
             return SMALLEST;
         }
-    }
-
-    private static final SlimeSizeApplier SLIME_SIZE_APPLIER;
-    static {
-        if (Common.hasCapability("Common:EntitySlimeHandle")) {
-            SLIME_SIZE_APPLIER = createSlimeSizeApplier();
-        } else {
-            SLIME_SIZE_APPLIER = createLegacySlimeSizeApplier();
-        }
-    }
-
-    private static SlimeSizeApplier createSlimeSizeApplier() {
-        return (datawatcher, size) -> datawatcher.set(EntitySlimeHandle.DATA_SIZE, size);
-    }
-
-    // This stuff is to support older BKCL. Can be removed ideally.
-    private static SlimeSizeApplier createLegacySlimeSizeApplier() {
-        try {
-            if (CommonCapabilities.DATAWATCHER_OBJECTS) {
-                // Find the field meant for this
-                Class<?> entitySlimeClass = CommonUtil.getClass("net.minecraft.world.entity.monster.EntitySlime");
-                if (entitySlimeClass != null) {
-                    for (java.lang.reflect.Field f : entitySlimeClass.getDeclaredFields()) {
-                        if (java.lang.reflect.Modifier.isStatic(f.getModifiers()) &&
-                                DataWatcherObjectHandle.T.isAssignableFrom(f.getType())
-                        ) {
-                            f.setAccessible(true);
-                            final DataWatcher.Key<Integer> key = new DataWatcher.Key<Integer>(
-                                    f.get(null), DataWatcher.Key.Type.INTEGER);
-                            return (datawatcher, size) -> datawatcher.set(key, size);
-                        }
-                    }
-                }
-                throw new UnsupportedOperationException("Size DW field not found");
-            } else {
-                final DataWatcher.Key<Byte> KEY = DataWatcher.Key.Type.BYTE.createKey(null, 16);
-                return (datawatcher, size) -> datawatcher.set(KEY, (byte) size);
-            }
-        } catch (Throwable t) {
-            TrainCarts.plugin.getLogger().log(Level.SEVERE, "Broken slime stuff. Update BKCL.", t);
-        }
-
-        // NOOP
-        return (datawatcher, size) -> {};
-    }
-
-    @FunctionalInterface
-    private static interface SlimeSizeApplier {
-        void apply(DataWatcher datawatcher, int size);
     }
 }

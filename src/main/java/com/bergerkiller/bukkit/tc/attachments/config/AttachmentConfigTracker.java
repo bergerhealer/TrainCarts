@@ -146,13 +146,10 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
             }
 
             // If now tracking, then the root definitely changed completely
-            // If the configuration instance differs, or the listener was removed (old bkcl),
+            // If the configuration instance differs,
             // then it is also invalid. Everything else is handled by the onNodeChanged
             // callback.
-            if (isTracking() ||
-                configSnapshot != completeConfigSupplier.get() ||
-                !YamlLogic.INSTANCE.isListening(configSnapshot, this)
-            ) {
+            if (isTracking() || configSnapshot != completeConfigSupplier.get()) {
                 close();
                 return false;
             }
@@ -231,28 +228,12 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
             }
         }
 
-        // Old BKCommonLib had a bug in it of randomly dropping change listeners
-        // with methods like setTo. This ensures we stay updated on changes when
-        // this is detected. We notify a full remove and re-adding to ensure any
-        // changes that occurred meanwhile get synchronized.
-        if (!YamlLogic.INSTANCE.isListening(completeConfig, this)) {
-            pendingChanges.clear();
-            root.swap(createNewRoot(completeConfig));
-            completeConfig.addChangeListener(this);
-            return;
-        }
-
         // Normal sync
         root.sync(completeConfig.getYamlPath());
     }
 
     @Override
     public void onNodeChanged(YamlPath yamlPath) {
-        // Legacy back-support
-        if (!YamlLogic.INSTANCE.areChangesRelative()) {
-            yamlPath = YamlLogic.INSTANCE.getRelativePath(completeConfig.getYamlPath(), yamlPath);
-        }
-
         if (yamlPath.name().equals("attachments")) {
             // The list of child attachments changed for an attachment
             // This requires a re-scan of all children
@@ -316,8 +297,11 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         // Note: removal of nodes is never notified with a path of the node itself
         // Rather, it is notified by a change of the parent node (children changed)
         // So if it does not exist, that's fine.
-        ConfigurationNode nodeAtPath = YamlLogic.INSTANCE.getNodeAtPathIfExists(completeConfig, path);
-        return (nodeAtPath == null) ? null : this.byConfig.get(nodeAtPath);
+        if (completeConfig.isNode(path)) {
+            return this.byConfig.get(completeConfig.getNode(path));
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -386,7 +370,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         private TrackedAttachmentConfig(TrackedAttachmentConfig parent, YamlPath rootPath, ConfigurationNode config, String typeId, int childIndex) {
             this.parent = parent;
             this.children = new ArrayList<>();
-            this.path = YamlLogic.INSTANCE.getRelativePath(rootPath, config.getYamlPath());
+            this.path = config.getYamlPath().makeRelative(rootPath);
             this.config = config;
             this.typeId = typeId;
             this.childIndex = childIndex;
@@ -633,7 +617,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         private void updatePath(YamlPath rootPath) {
             // Ignore ROOT, it's always ROOT
             if (parent != null) {
-                this.path = YamlLogic.INSTANCE.getRelativePath(rootPath, this.config.getYamlPath());
+                this.path = this.config.getYamlPath().makeRelative(rootPath);
             }
         }
 

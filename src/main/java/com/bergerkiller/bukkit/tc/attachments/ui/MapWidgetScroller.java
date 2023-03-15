@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.attachments.ui;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 
@@ -17,7 +16,6 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
  */
 public class MapWidgetScroller extends MapWidget {
     private final MapWidget container = new MapWidget();
-    private static final boolean isBoundsChangeViewBugged = !Common.hasCapability("Common:MapDisplay:BoundsChangeViewFix");
     private double scrollSpeed = 0.35;
     private int scrollPadding = 0;
 
@@ -193,12 +191,6 @@ public class MapWidgetScroller extends MapWidget {
             // Make scrolling smoother instead of instant
             dx = smoothenScrollDelta(dx);
             dy = smoothenScrollDelta(dy);
-
-            // Required for older BKCL, where drawn contents get all streaked because the
-            // view buffer isn't cleared before being moved.
-            if (isBoundsChangeViewBugged) {
-                clearViewRecursive(container);
-            }
 
             container.setPosition(container.getX() + dx, container.getY() + dy);
             onScrolled();

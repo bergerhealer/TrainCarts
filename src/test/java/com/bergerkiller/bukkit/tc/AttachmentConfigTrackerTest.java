@@ -426,32 +426,6 @@ public class AttachmentConfigTrackerTest {
         tracker.assertNone();
     }
 
-    @Test
-    public void testLegacyYamlLogicIsListening() {
-        // Not visible by default so we got to do some weird shit
-        try {
-            // Prepare the reflection crap
-            Object logic = Class.forName("com.bergerkiller.bukkit.tc.attachments.config.YamlLogic$YamlLogicLegacy")
-                    .getConstructor().newInstance();
-            java.lang.reflect.Method isListening = logic.getClass().getMethod("isListening",
-                    ConfigurationNode.class, YamlChangeListener.class);
-
-            // Create a new tracker and start/stop listening
-            // The isListening should reflect whether or not its still listening
-            ConfigurationNode root = createAttachment("ITEM");
-            AttachmentConfigTracker tracker = new AttachmentConfigTracker(root);
-            AttachmentConfigListener tmpListener = new AttachmentConfigListener() {};
-            tracker.startTracking(tmpListener);
-            assertTrue((Boolean) isListening.invoke(logic, root, tracker));
-            tracker.stopTracking(tmpListener);
-            assertFalse((Boolean) isListening.invoke(logic, root, tracker));
-            tracker.startTracking(tmpListener);
-            assertTrue((Boolean) isListening.invoke(logic, root, tracker));
-        } catch (Throwable t) {
-            throw new IllegalStateException("Failed", t);
-        }
-    }
-
     private static ConfigurationNode addAttachment(ConfigurationNode parent, String type) {
         ConfigurationNode attachment = createAttachment(type);
         parent.getNodeList("attachments").add(attachment);

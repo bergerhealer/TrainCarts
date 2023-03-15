@@ -9,7 +9,6 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
@@ -155,25 +154,13 @@ public class DebugToolTypeRails extends DebugToolTrackWalkerType {
             len--;
         }
 
-        if (Common.hasCapability("Common:ChatText:MultiLineSupport")) {
-            StringBuilder str = new StringBuilder();
-            for (int i = 0; i < len; i++) {
-                if (i > 0) {
-                    str.append('\n');
-                }
-                str.append(lines[i]);
+        StringBuilder str = new StringBuilder();
+        for (int i = 0; i < len; i++) {
+            if (i > 0) {
+                str.append('\n');
             }
-            return ChatText.fromMessage(str.toString());
-        } else if (len == 0) {
-            return ChatText.empty();
-        } else {
-            ChatText newLine = ChatText.fromJson("{\"text\": \"\n\"}");
-            ChatText hover = ChatText.fromMessage(lines[0]);
-            for (int i = 1; i < len; i++) {
-                hover.append(newLine);
-                hover.append(ChatText.fromMessage(lines[i]));
-            }
-            return hover;
+            str.append(lines[i]);
         }
+        return ChatText.fromMessage(str.toString());
     }
 }
