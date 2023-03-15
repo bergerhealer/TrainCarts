@@ -5,7 +5,6 @@ import com.google.common.collect.MapMaker;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -378,59 +377,11 @@ public abstract class ModularConfiguration<T>
             }
 
             // Changes to the configuration
-            if (!entry.isRemoved() && !isSameConfig(entry.getConfig(), config)) {
+            if (!entry.isRemoved() && !entry.getConfig().equals(config)) {
                 return true;
             }
 
             return false;
         }
-    }
-
-    // Should be in BKCL but whatever
-    private static boolean isSameConfig(ConfigurationNode a, ConfigurationNode b) {
-        Map<String, Object> a_entries = a.getValues();
-        Map<String, Object> b_entries = b.getValues();
-        if (a_entries.size() != b_entries.size()) {
-            return false;
-        }
-        Iterator<Map.Entry<String, Object>> a_iter = a_entries.entrySet().iterator();
-        Iterator<Map.Entry<String, Object>> b_iter = b_entries.entrySet().iterator();
-        while (true) {
-            boolean has = a_iter.hasNext();
-            if (has != b_iter.hasNext()) {
-                return false; // Shouldn't happen, really
-            } else if (!has) {
-                break;
-            }
-            Map.Entry<String, Object> a_entry = a_iter.next();
-            Map.Entry<String, Object> b_entry = b_iter.next();
-            if (!a_entry.getKey().equals(b_entry.getKey())) {
-                return false;
-            }
-            Object a_value = a_entry.getValue();
-            Object b_value = b_entry.getValue();
-            if (a_value == null && b_value == null) {
-                continue;
-            }
-            if (a_value != null || b_value != null) {
-                return false;
-            }
-            if (a_value instanceof ConfigurationNode && b_value instanceof ConfigurationNode) {
-                ConfigurationNode a_cfg = (ConfigurationNode) a_value;
-                ConfigurationNode b_cfg = (ConfigurationNode) b_value;
-                if (isSameConfig(a_cfg, b_cfg)) {
-                    continue;
-                } else {
-                    return false;
-                }
-            }
-            if (a_value instanceof ConfigurationNode || b_value instanceof ConfigurationNode) {
-                return false;
-            }
-            if (!a_value.equals(b_value)) {
-                return false;
-            }
-        }
-        return true;
     }
 }

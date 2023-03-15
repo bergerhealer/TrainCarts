@@ -297,11 +297,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         // Note: removal of nodes is never notified with a path of the node itself
         // Rather, it is notified by a change of the parent node (children changed)
         // So if it does not exist, that's fine.
-        if (completeConfig.isNode(path)) {
-            return this.byConfig.get(completeConfig.getNode(path));
-        } else {
-            return null;
-        }
+        return this.byConfig.get(completeConfig.getNodeIfExists(path));
     }
 
     /**
