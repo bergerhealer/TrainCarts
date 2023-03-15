@@ -2,7 +2,10 @@ package com.bergerkiller.bukkit.tc.attachments.control;
 
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
+import com.bergerkiller.bukkit.common.Common;
+import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSizeBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -27,6 +30,7 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
 
 public class CartAttachmentItem extends CartAttachment {
+    private static final double SMALL_ITEM_SCALE = 0.5;
     public static final AttachmentType TYPE = new AttachmentType() {
         @Override
         public String getID() {
@@ -42,6 +46,22 @@ public class CartAttachmentItem extends CartAttachment {
         @Override
         public Attachment createController(ConfigurationNode config) {
             return new CartAttachmentItem();
+        }
+
+        @Override
+        public void migrateConfiguration(ConfigurationNode config) {
+            ConfigurationNode position = config.getNode("position");
+            Object old_transform = position.get("transform");
+            if (old_transform != null) {
+                String s = old_transform.toString();
+                if (s.startsWith("SMALL_")) {
+                    // Migrate to without SMALL_ prefix, apply size instead
+                    position.set("sizeX", SMALL_ITEM_SCALE);
+                    position.set("sizeY", SMALL_ITEM_SCALE);
+                    position.set("sizeZ", SMALL_ITEM_SCALE);
+                    position.set("transform", s.substring(6));
+                }
+            }
         }
 
         @Override
@@ -86,21 +106,88 @@ public class CartAttachmentItem extends CartAttachment {
                 }
             }.setBounds(25, 0, menu.getSliderWidth(), 11))
                     .addLabel(0, 3, "Mode");
+
+            if (Common.evaluateMCVersion(">=", "1.19.4")) {
+                // On 1.19.4+ show the full size x/y/z coordinates.
+                builder.addRow(menu -> new MapWidgetSizeBox() {
+                    @Override
+                    public void onAttached() {
+                        super.onAttached();
+
+                        setSize(menu.getPositionConfigValue("sizeX", 1.0),
+                                menu.getPositionConfigValue("sizeY", 1.0),
+                                menu.getPositionConfigValue("sizeZ", 1.0));
+                    }
+
+                    @Override
+                    public void onSizeChanged() {
+                        menu.updatePositionConfig(config -> {
+                            if (x.getValue() == 1.0 && y.getValue() == 1.0 && z.getValue() == 1.0) {
+                                config.remove("sizeX");
+                                config.remove("sizeY");
+                                config.remove("sizeZ");
+                            } else {
+                                config.set("sizeX", x.getValue());
+                                config.set("sizeY", y.getValue());
+                                config.set("sizeZ", z.getValue());
+                            }
+                        });
+                    }
+                }.setBounds(25, 0, menu.getSliderWidth(), 35))
+                        .addLabel(0, 3, "Size X")
+                        .addLabel(0, 15, "Size Y")
+                        .addLabel(0, 27, "Size Z")
+                        .setSpacingAbove(3);
+            } else {
+                // On older versions, only "BABY" and "NORMAL" modes are available. They're still
+                // saved using the same size field though.
+                builder.addRow(menu -> new MapWidgetSelectionBox() {
+                    @Override
+                    public void onAttached() {
+                        addItem("normal");
+                        addItem("small");
+                        double sizeavg = ( menu.getPositionConfigValue("sizeX", 1.0) +
+                                           menu.getPositionConfigValue("sizeY", 1.0) +
+                                           menu.getPositionConfigValue("sizeZ", 1.0) ) / 3.0;
+                        System.out.println("SIZE: " + sizeavg);
+                        setSelectedIndex(sizeavg >= 0.75 ? 0 : 1);
+                        super.onAttached();
+                    }
+
+                    @Override
+                    public void onSelectedItemChanged() {
+                        if ("small".equals(this.getSelectedItem())) {
+                            menu.updatePositionConfig(config -> {
+                                config.set("sizeX", SMALL_ITEM_SCALE);
+                                config.set("sizeY", SMALL_ITEM_SCALE);
+                                config.set("sizeZ", SMALL_ITEM_SCALE);
+                            });
+                        } else {
+                            menu.updatePositionConfig(config -> {
+                                config.remove("sizeX");
+                                config.remove("sizeY");
+                                config.remove("sizeZ");
+                            });
+                        }
+                    }
+                }.setBounds(25, 0, menu.getSliderWidth(), 11))
+                        .addLabel(0, 3, "Scale");
+            }
         }
     };
 
-    private VirtualArmorStandItemEntity entity;
+    private VirtualArmorStandItemEntity armorStandEntity;
 
     @Override
     public void onAttached() {
         super.onAttached();
-        this.entity = new VirtualArmorStandItemEntity(this.getManager());
+        this.armorStandEntity = new VirtualArmorStandItemEntity(this.getManager());
     }
 
     @Override
     public void onDetached() {
         super.onDetached();
-        this.entity = null;
+        this.armorStandEntity = null;
     }
 
     @Override
@@ -115,12 +202,15 @@ public class CartAttachmentItem extends CartAttachment {
         } else {
             newTransformType = ItemTransformType.HEAD;
         }
-        this.entity.setItem(newTransformType, newItem);
+        Vector3 size = getConfiguredPosition().size;
+        boolean small = ((size.x + size.y + size.z) / 3.0) < 0.75;
+
+        this.armorStandEntity.setItem(newTransformType, small, newItem);
     }
 
     @Override
     public boolean containsEntityId(int entityId) {
-        return this.entity != null && this.entity.getEntityId() == entityId;
+        return this.armorStandEntity != null && this.armorStandEntity.getEntityId() == entityId;
     }
 
     @Override
@@ -143,40 +233,40 @@ public class CartAttachmentItem extends CartAttachment {
     @Override
     public void makeVisible(AttachmentViewer viewer) {
         // Send entity spawn packet
-        entity.spawn(viewer, new Vector(0.0, 0.0, 0.0));
+        armorStandEntity.spawn(viewer, new Vector(0.0, 0.0, 0.0));
 
         // Apply focus color
         if (this.isFocused()) {
-            this.updateGlowColorFor(this.entity.getEntityUUID(), HelperMethods.getFocusGlowColor(this), viewer.getPlayer());
+            this.updateGlowColorFor(this.armorStandEntity.getEntityUUID(), HelperMethods.getFocusGlowColor(this), viewer.getPlayer());
         }
     }
 
     @Override
     public void makeHidden(AttachmentViewer viewer) {
         // Send entity destroy packet
-        this.entity.destroy(viewer);
+        this.armorStandEntity.destroy(viewer);
 
         // Undo focus color
-        this.updateGlowColorFor(this.entity.getEntityUUID(), null, viewer.getPlayer());
+        this.updateGlowColorFor(this.armorStandEntity.getEntityUUID(), null, viewer.getPlayer());
     }
 
     @Override
     public void onFocus() {
-        this.entity.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
+        this.armorStandEntity.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
                 EntityArmorStandHandle.DATA_FLAG_SET_MARKER, true);
 
-        this.entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING | EntityHandle.DATA_FLAG_ON_FIRE, true);
-        this.entity.syncMetadata();
-        this.updateGlowColor(this.entity.getEntityUUID(), HelperMethods.getFocusGlowColor(this));
+        this.armorStandEntity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING | EntityHandle.DATA_FLAG_ON_FIRE, true);
+        this.armorStandEntity.syncMetadata();
+        this.updateGlowColor(this.armorStandEntity.getEntityUUID(), HelperMethods.getFocusGlowColor(this));
     }
 
     @Override
     public void onBlur() {
-        this.entity.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
+        this.armorStandEntity.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
                 EntityArmorStandHandle.DATA_FLAG_SET_MARKER, false);
 
-        this.entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING | EntityHandle.DATA_FLAG_ON_FIRE, false);
-        this.entity.syncMetadata();
+        this.armorStandEntity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING | EntityHandle.DATA_FLAG_ON_FIRE, false);
+        this.armorStandEntity.syncMetadata();
 
         // Leave entity registered under the glow color to prevent flickering of white
         // this.updateGlowColor(this.entity.getEntityUUID(), null);
@@ -184,11 +274,11 @@ public class CartAttachmentItem extends CartAttachment {
 
     @Override
     public void onTransformChanged(Matrix4x4 transform) {
-        this.entity.updatePosition(transform);
+        this.armorStandEntity.updatePosition(transform);
 
         // Sync right now! Not only when moving!
         // This is a slow method due to packet constructor, so send the packet async
-        this.entity.syncMetadata();
+        this.armorStandEntity.syncMetadata();
     }
 
     @Override
@@ -197,7 +287,7 @@ public class CartAttachmentItem extends CartAttachment {
 
     @Override
     public void onMove(boolean absolute) {
-        this.entity.syncPosition(absolute);
+        this.armorStandEntity.syncPosition(absolute);
     }
 
 }

@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.config;
 
+import com.bergerkiller.bukkit.common.wrappers.ItemDisplayMode;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
@@ -11,26 +12,20 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlay
  * For now only includes armor-stand based transforms.
  */
 public enum ItemTransformType {
-    HEAD("head", "HEAD", false),
-    LEFT_HAND("left hand", "OFF_HAND", false),
-    RIGHT_HAND("right hand", "HAND", false),
-    CHEST("chest", "CHEST", false),
-    LEGS("legs", "LEGS", false),
-    FEET("feet", "FEET", false),
-    SMALL_HEAD("S head", "HEAD", true),
-    SMALL_LEFT_HAND("S left hand", "OFF_HAND", true),
-    SMALL_RIGHT_HAND("S right hand", "HAND", true),
-    SMALL_CHEST("S chest", "CHEST", true),
-    SMALL_LEGS("S legs", "LEGS", true),
-    SMALL_FEET("S feet", "FEET", true);
+    HEAD("head", "HEAD", ItemDisplayMode.HEAD),
+    LEFT_HAND("left hand", "OFF_HAND", ItemDisplayMode.THIRD_PERSON_LEFT_HAND),
+    RIGHT_HAND("right hand", "HAND", ItemDisplayMode.THIRD_PERSON_RIGHT_HAND),
+    CHEST("chest", "CHEST", ItemDisplayMode.NONE),
+    LEGS("legs", "LEGS", ItemDisplayMode.NONE),
+    FEET("feet", "FEET", ItemDisplayMode.NONE);
 
     private final String name;
     private final EquipmentSlot slot;
-    private final boolean small;
+    private final ItemDisplayMode displayMode;
 
-    private ItemTransformType(String name, String slotName, boolean small) {
+    private ItemTransformType(String name, String slotName, ItemDisplayMode displayMode) {
         this.name = name;
-        this.small = small;
+        this.displayMode = displayMode;
         EquipmentSlot slot = ParseUtil.parseEnum(EquipmentSlot.class, slotName, null);
         if (slot == null && slotName.equals("OFF_HAND")) {
             slot = ParseUtil.parseEnum(EquipmentSlot.class, "HAND", null);
@@ -51,53 +46,51 @@ public enum ItemTransformType {
         return this.slot;
     }
 
-    public boolean isSmall() {
-        return this.small;
+    /**
+     * Gets the Item Display Mode used when this item transform type is used
+     * to display items using an Item Display entity. Returns {@link ItemDisplayMode#NONE}
+     * if a display entity can't be used.
+     *
+     * @return Item display mode
+     */
+    public ItemDisplayMode getDisplayMode() {
+        return displayMode;
     }
 
     public boolean isHead() {
-        return this == HEAD || this == SMALL_HEAD;
+        return this == HEAD;
     }
 
     public boolean isLeftHand() {
-        return this == LEFT_HAND || this == SMALL_LEFT_HAND;
+        return this == LEFT_HAND;
     }
 
     public boolean isRightHand() {
-        return this == RIGHT_HAND || this == SMALL_RIGHT_HAND;
+        return this == RIGHT_HAND;
     }
 
     public boolean isLeg() {
-        return this == LEGS || this == SMALL_LEGS || this == FEET || this == SMALL_FEET;
+        return this == LEGS || this == FEET;
     }
 
-    public double getHorizontalOffset() {
+    public double getArmorStandHorizontalOffset(boolean small) {
         switch (this) {
         case LEFT_HAND:
-            return 0.3125;
+            return small ? 0.12 : 0.3125;
         case RIGHT_HAND:
-            return -0.3125;
-        case SMALL_LEFT_HAND:
-            return 0.12;
-        case SMALL_RIGHT_HAND:
-            return -0.12;
+            return small ? -0.12 : -0.3125;
         default:
             return 0.0;
         }
     }
 
-    public double getVerticalOffset() {
+    public double getArmorStandVerticalOffset(boolean small) {
         switch (this) {
         case LEFT_HAND:
         case RIGHT_HAND:
-            return 1.38;
-        case SMALL_LEFT_HAND:
-        case SMALL_RIGHT_HAND:
-            return 0.492;
+            return small ? 0.492 : 1.38;
         case HEAD:
-            return 1.44;
-        case SMALL_HEAD:
-            return 0.73;
+            return small ? 0.73 : 1.44;
         default:
             return 1.44;
         }

@@ -21,6 +21,7 @@ import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityAr
  */
 public class VirtualArmorStandItemEntity extends VirtualEntity {
     private ItemTransformType transformType;
+    private boolean small;
     private ItemStack item;
     private Quaternion last_rot;
 
@@ -40,6 +41,7 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
                 EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE, true);
 
         this.transformType = ItemTransformType.HEAD;
+        this.small = false;
         this.item = null;
         this.last_rot = null;
     }
@@ -52,18 +54,25 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
         return transformType;
     }
 
+    public boolean isSmall() { return small; }
+
     public void setItem(ItemTransformType transformType, ItemStack item) {
-        if (!LogicUtil.bothNullOrEqual(item, this.item) || this.transformType != transformType) {
+        setItem(transformType, false, item);
+    }
+
+    public void setItem(ItemTransformType transformType, boolean small, ItemStack item) {
+        if (!LogicUtil.bothNullOrEqual(item, this.item) || this.transformType != transformType || this.small != small) {
             if (this.item != null) {
                 this.broadcast(this.transformType.createEquipmentPacket(this.getEntityId(), null));
             }
             this.transformType = transformType;
+            this.small = small;
             this.item = item;
             if (this.item != null) {
                 this.broadcast(this.transformType.createEquipmentPacket(this.getEntityId(), this.item));
             }
             this.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
-                    EntityArmorStandHandle.DATA_FLAG_IS_SMALL, this.transformType.isSmall());
+                    EntityArmorStandHandle.DATA_FLAG_IS_SMALL, small);
         }
     }
 
@@ -108,8 +117,8 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
         // Adjust relative offset of the armorstand entity to take shoulder angle into account
         // This doesn't apply for head, and only matters for the left/right hand
         // This ensures any further positioning is relative to the base of the shoulder controlled
-        double hor_offset = this.transformType.getHorizontalOffset();
-        double ver_offset = this.transformType.getVerticalOffset();
+        double hor_offset = this.transformType.getArmorStandHorizontalOffset(small);
+        double ver_offset = this.transformType.getArmorStandVerticalOffset(small);
         Vector original_offset = super.getRelativeOffset().clone();
         if (hor_offset != 0.0) {
             this.addRelativeOffset(

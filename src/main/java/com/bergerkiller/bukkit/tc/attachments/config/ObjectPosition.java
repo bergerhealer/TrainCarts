@@ -12,11 +12,14 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
  * Standard class for storing and representing an object's position.
  * Is typically used for attachments, with an editor widget menu of sliders
  * where the position, rotation and anchor can be configured.
+ * Size is also available through here for use by attachments which can
+ * have a variable size.
  */
 public class ObjectPosition {
     public AttachmentAnchor anchor = AttachmentAnchor.DEFAULT;
     public Vector3 position = new Vector3();
     public Vector3 rotation = new Vector3();
+    public Vector3 size = new Vector3(1.0, 1.0, 1.0);
     public Matrix4x4 transform = new Matrix4x4();
     private boolean _isDefault = true;
     private boolean _isIdentity = true;
@@ -33,6 +36,9 @@ public class ObjectPosition {
         this.rotation.x = 0.0;
         this.rotation.y = 0.0;
         this.rotation.z = 0.0;
+        this.size.x = 1.0;
+        this.size.y = 1.0;
+        this.size.z = 1.0;
         this.transform.setIdentity();
         this.anchor = AttachmentAnchor.DEFAULT;
     }
@@ -65,6 +71,7 @@ public class ObjectPosition {
         this.anchor = source.anchor;
         this.position = source.position;
         this.rotation = source.rotation;
+        this.size = source.size;
         this.transform.set(source.transform);
         this._isDefault = source._isDefault;
         this._isIdentity = source._isIdentity;
@@ -92,6 +99,9 @@ public class ObjectPosition {
             this.rotation.x = config.get("rotX", 0.0);
             this.rotation.y = config.get("rotY", 0.0);
             this.rotation.z = config.get("rotZ", 0.0);
+            this.size.x = config.getOrDefault("sizeX", 1.0);
+            this.size.y = config.getOrDefault("sizeY", 1.0);
+            this.size.z = config.getOrDefault("sizeZ", 1.0);
             this._isIdentity = this.position.x == 0.0 &&
                                this.position.y == 0.0 &&
                                this.position.z == 0.0 &&

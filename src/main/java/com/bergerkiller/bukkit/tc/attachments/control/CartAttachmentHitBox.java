@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.math.Quaternion;
+import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
@@ -57,23 +58,34 @@ public class CartAttachmentHitBox extends CartAttachment {
         }
 
         @Override
+        public void migrateConfiguration(ConfigurationNode config) {
+            if (config.isNode("size")) {
+                ConfigurationNode size = config.getNode("size");
+                config.set("position.sizeX", size.get("x", 1.0));
+                config.set("position.sizeY", size.get("y", 1.0));
+                config.set("position.sizeZ", size.get("z", 1.0));
+                size.remove();
+            }
+        }
+
+        @Override
         public void createPositionMenu(PositionMenu.Builder builder) {
             builder.addRow(menu -> new MapWidgetSizeBox() {
                 @Override
                 public void onAttached() {
                     super.onAttached();
 
-                    ConfigurationNode size = menu.getAttachment().getConfig().getNode("size");
-                    setSize(size.get("x", 1.0), size.get("y", 1.0), size.get("z", 1.0));
+                    setSize(menu.getPositionConfigValue("sizeX", 1.0),
+                            menu.getPositionConfigValue("sizeY", 1.0),
+                            menu.getPositionConfigValue("sizeZ", 1.0));
                 }
 
                 @Override
                 public void onSizeChanged() {
-                    menu.updateConfig(config -> {
-                        ConfigurationNode size = config.getNode("size");
-                        size.set("x", x.getValue());
-                        size.set("y", y.getValue());
-                        size.set("z", z.getValue());
+                    menu.updatePositionConfig(config -> {
+                        config.set("sizeX", x.getValue());
+                        config.set("sizeY", y.getValue());
+                        config.set("sizeZ", z.getValue());
                     });
                 }
             }.setBounds(25, 0, menu.getSliderWidth(), 35))
@@ -94,15 +106,12 @@ public class CartAttachmentHitBox extends CartAttachment {
 
     @Override
     public void onLoad(ConfigurationNode config) {
-        ConfigurationNode sizeCfg = config.getNode("size");
-        Vector size = new Vector(sizeCfg.get("x", 1.0),
-                                 sizeCfg.get("y", 1.0),
-                                 sizeCfg.get("z", 1.0));
-        bbox.setSize(size);
-        heightOffset = 0.5 * size.getY();
+        Vector3 size = this.getConfiguredPosition().size;
+        bbox.setSize(new Vector(size.x, size.y, size.z));
+        heightOffset = 0.5 * size.y;
 
         // Compute the new size mode based on this size
-        SizeMode newSizeMode = SizeMode.fromSize(Math.min(Math.min(size.getX(), size.getY()), size.getZ()));
+        SizeMode newSizeMode = SizeMode.fromSize(Math.min(Math.min(size.x, size.y), size.z));
         if (newSizeMode != sizeMode && !nearbyViewers.isEmpty()) {
             // Respawn for viewers
             for (AttachmentViewer viewer : this.getAttachmentViewers()) {

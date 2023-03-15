@@ -55,11 +55,11 @@ class FirstPersonSpectatedEntityHead extends FirstPersonSpectatedEntity {
         });
         skull.beforeSwap(swapped -> {
             // Make original invisible, make alt visible
-            skull.entity.setItem(ItemTransformType.SMALL_HEAD, null);
-            swapped.setItem(ItemTransformType.SMALL_HEAD, skullItem);
+            skull.entity.setItem(ItemTransformType.HEAD, true, null);
+            swapped.setItem(ItemTransformType.HEAD, true, skullItem);
         });
-        skull.entity.setItem(ItemTransformType.SMALL_HEAD, skullItem);
-        skull.entityAlt.setItem(ItemTransformType.SMALL_HEAD, null);
+        skull.entity.setItem(ItemTransformType.HEAD, true, skullItem);
+        skull.entityAlt.setItem(ItemTransformType.HEAD, true, null);
         skull.spawn(eyeTransform, new Vector());
         skull.spectate();
     }

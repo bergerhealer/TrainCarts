@@ -235,7 +235,7 @@ public class PositionMenu extends MapWidgetMenu {
     public <T> T getPositionConfigValue(String key, T def) {
         ConfigurationNode config = getPositionConfig();
         if (config.contains(key)) {
-            return config.get(key, def);
+            return config.getOrDefault(key, def);
         } else {
             return def;
         }

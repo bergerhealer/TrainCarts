@@ -54,7 +54,7 @@ public class SeatedEntityHead extends SeatedEntity {
                 skull = new VirtualArmorStandItemEntity(seat.getManager());
                 skull.setSyncMode(SyncMode.ITEM);
                 skull.setUseMinecartInterpolation(seat.isMinecartInterpolation());
-                skull.setItem(ItemTransformType.SMALL_HEAD, createSkullItem(entity));
+                skull.setItem(ItemTransformType.HEAD, true, createSkullItem(entity));
                 skull.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, FakePlayerSpawner.UPSIDEDOWN.getPlayerName());
                 skull.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, false);
                 updateFocus(seat.isFocused());
