@@ -216,6 +216,10 @@ public class CartAttachmentEntity extends CartAttachment {
     private VirtualEntity actual;
     private VirtualEntity entity;
 
+    private VirtualEntity actualEntity() {
+        return actual != null ? actual : entity;
+    }
+
     @Override
     public void onDetached() {
         super.onDetached();
@@ -224,19 +228,42 @@ public class CartAttachmentEntity extends CartAttachment {
     }
 
     @Override
+    public boolean checkCanReload(ConfigurationNode config) {
+        if (!super.checkCanReload(config)) {
+            return false;
+        }
+
+        VirtualEntity displayed = actualEntity();
+
+        // Change in entity type requires re-creating
+        EntityType entityType = config.get("entityType", EntityType.MINECART);
+        if (displayed.getEntityType() != entityType) {
+            return false;
+        }
+
+        // Change of sitting requires respawning the mount (only check for non-shulker)
+        boolean currSitting = (actual != null);
+        boolean newSitting = config.get("sitting", false);
+        if (newSitting != currSitting && !entityType.name().equals("SHULKER")) {
+            return false;
+        }
+
+        return true;
+    }
+
+    @Override
     public void onAttached() {
         super.onAttached();
 
         EntityType entityType = this.getConfig().get("entityType", EntityType.MINECART);
         boolean sitting = this.getConfig().get("sitting", false);
-        boolean hasCustomName = this.getConfig().isNode("nametag") && this.getConfig().get("nametag.used", true);
 
         // Some entity types cannot be spawned, use placeholder
         if (!isEntityTypeSupported(entityType)) {
             entityType = EntityType.MINECART;
         }
 
-        if (this.getParent() != null || !VirtualEntity.isMinecart(entityType) || hasCustomName || !hasController()) {
+        if (this.getParent() != null || !VirtualEntity.isMinecart(entityType) || !hasController()) {
             // Generate entity (UU)ID
             this.entity = new VirtualEntity(this.getManager());
         } else {
@@ -247,20 +274,6 @@ public class CartAttachmentEntity extends CartAttachment {
             this.entity.setRespawnOnPitchFlip(true);
         }
         this.entity.setEntityType(entityType);
-
-        // Boat wood type
-        if (entityType == EntityType.BOAT) {
-            this.entity.getMetaData().set(EntityBoatHandle.DATA_WOOD_TYPE, this.getConfig().get("boatWoodType", BoatWoodType.OAK));
-        }
-
-        // Nametag
-        if (hasCustomName) {
-            ConfigurationNode nametag = this.getConfig().getNode("nametag");
-            boolean visible = nametag.get("visible", true);
-            String text = nametag.get("text", "");
-            this.entity.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, ChatText.fromMessage(text));
-            this.entity.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, visible);
-        }
 
         // Minecarts have a 'strange' rotation point - fix it!
         if (VirtualEntity.isMinecart(entityType)) {
@@ -286,17 +299,34 @@ public class CartAttachmentEntity extends CartAttachment {
     }
 
     @Override
+    public void onLoad(ConfigurationNode config) {
+        VirtualEntity displayed = actualEntity();
+
+        // Entity NameTag
+        if (config.isNode("nametag") && config.get("nametag.used", true)) {
+            ConfigurationNode nametag = config.getNode("nametag");
+            boolean visible = nametag.get("visible", true);
+            String text = nametag.get("text", "");
+            displayed.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, ChatText.fromMessage(text));
+            displayed.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, visible);
+        } else {
+            displayed.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, null);
+        }
+
+        // Boat wood type
+        if (displayed.getEntityType() == EntityType.BOAT) {
+            displayed.getMetaData().set(EntityBoatHandle.DATA_WOOD_TYPE, config.get("boatWoodType", BoatWoodType.OAK));
+        }
+    }
+
+    @Override
     public void onFocus() {
-        this.entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, true);
-        this.updateGlowColor(this.entity.getEntityUUID(), HelperMethods.getFocusGlowColor(this));
+        actualEntity().setGlowColor(HelperMethods.getFocusGlowColor(this));
     }
 
     @Override
     public void onBlur() {
-        this.entity.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, false);
-
-        // Leave entity registered under the glow color to prevent flickering of white
-        // this.updateGlowColor(this.entity.getEntityUUID(), null);
+        actualEntity().setGlowColor(null);
     }
 
     @Override
@@ -317,7 +347,7 @@ public class CartAttachmentEntity extends CartAttachment {
     @Override
     public void applyPassengerSeatTransform(Matrix4x4 transform) {
         // Minecarts can uniquely pitch - so here we perform the transformation a little differently
-        VirtualEntity displayed = (this.actual != null) ? this.actual : this.entity;
+        VirtualEntity displayed = actualEntity();
         if (displayed.isMinecart()) {
             transform.translate(0.0, displayed.getMountOffset(), 0.0);
             return;
@@ -364,11 +394,6 @@ public class CartAttachmentEntity extends CartAttachment {
         if (actual != null) {
             viewer.getVehicleMountController().mount(entity.getEntityId(), actual.getEntityId());
         }
-
-        // Apply focus color
-        if (this.isFocused()) {
-            this.updateGlowColorFor(this.entity.getEntityUUID(), HelperMethods.getFocusGlowColor(this), viewer);
-        }
     }
 
     @Override
@@ -378,9 +403,6 @@ public class CartAttachmentEntity extends CartAttachment {
             actual.destroy(viewer);
         }
         entity.destroy(viewer);
-
-        // Undo focus color
-        this.updateGlowColorFor(this.entity.getEntityUUID(), null, viewer);
     }
 
     @Override
