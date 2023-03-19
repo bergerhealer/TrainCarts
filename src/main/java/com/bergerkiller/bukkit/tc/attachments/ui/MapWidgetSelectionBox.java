@@ -22,6 +22,7 @@ public class MapWidgetSelectionBox extends MapWidget {
     private int selectedIndex = -1;
     private final MapWidgetArrow nav_left = new MapWidgetArrow(BlockFace.WEST);
     private final MapWidgetArrow nav_right = new MapWidgetArrow(BlockFace.EAST);
+    private MapFont<Character> font = MapFont.MINECRAFT;
 
     public MapWidgetSelectionBox() {
         this.setFocusable(true);
@@ -37,6 +38,18 @@ public class MapWidgetSelectionBox extends MapWidget {
             this.selectedIndex = -1;
             this.invalidate();
         }
+    }
+
+    /**
+     * Sets the font used to display items in this selection box
+     *
+     * @param font
+     * @return this
+     */
+    public MapWidgetSelectionBox setFont(MapFont<Character> font) {
+        this.font = font;
+        this.invalidate();
+        return this;
     }
 
     /**
@@ -125,7 +138,7 @@ public class MapWidgetSelectionBox extends MapWidget {
         if (selectedItem != null) {
             // Display text of the item centred in the middle
             this.view.setAlignment(Alignment.MIDDLE);
-            this.view.draw(MapFont.MINECRAFT, getWidth() / 2, 2, MapColorPalette.COLOR_WHITE, selectedItem);
+            this.view.draw(font, getWidth() / 2, 2, MapColorPalette.COLOR_WHITE, selectedItem);
         } else {
             // No item selected / error
         }

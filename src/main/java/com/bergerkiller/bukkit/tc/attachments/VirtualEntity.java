@@ -9,6 +9,8 @@ import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -43,7 +45,7 @@ import com.bergerkiller.generated.net.minecraft.server.level.EntityTrackerEntryS
  * Represents a single Virtual entity, that only exists for clients using packet protocol.
  * The entity can be spawned or destroyed for individual players.
  */
-public class VirtualEntity {
+public class VirtualEntity extends VirtualSpawnableObject {
     /**
      * Add this offset to the sit butt offset and the position is exactly where the center of the head is.
      * This is where the player looks from.
@@ -62,7 +64,6 @@ public class VirtualEntity {
      */
     public static final double ARMORSTAND_BUTT_OFFSET = 0.27;
 
-    private final AttachmentManager manager;
     private final int entityId;
     private final UUID entityUUID;
     protected DataWatcher metaData;
@@ -83,7 +84,6 @@ public class VirtualEntity {
     private SyncMode syncMode = SyncMode.NORMAL;
     private boolean minecartInterpolation = false;
     private boolean useParentMetadata = false;
-    private final ArrayList<AttachmentViewer> viewers = new ArrayList<AttachmentViewer>();
     private Vector yawPitchRoll = new Vector(0.0, 0.0, 0.0);
 
     public VirtualEntity(AttachmentManager manager) {
@@ -91,7 +91,7 @@ public class VirtualEntity {
     }
 
     public VirtualEntity(AttachmentManager manager, int entityId, UUID entityUUID) {
-        this.manager = manager;
+        super(manager);
         this.entityId = entityId;
         this.entityUUID = entityUUID;
         this.metaData = new DataWatcher();
@@ -113,6 +113,11 @@ public class VirtualEntity {
 
     public int getEntityId() {
         return this.entityId;
+    }
+
+    @Override
+    public boolean containsEntityId(int entityId) {
+        return entityId == this.entityId;
     }
 
     public double getPosX() {
@@ -227,11 +232,7 @@ public class VirtualEntity {
         return this.syncPitch;
     }
 
-    /**
-     * Updates the position of the displayed part
-     * 
-     * @param transform relative to which the part should be positioned
-     */
+    @Override
     public void updatePosition(Matrix4x4 transform) {
         Quaternion rotation = transform.getRotation();
         Vector f = rotation.forwardVector();
@@ -336,7 +337,7 @@ public class VirtualEntity {
         liveVel = 0.0;
         if (this.entityTypeIsMinecart && this.manager instanceof AttachmentControllerMember) {
             MinecartMember<?> member = ((AttachmentControllerMember) manager).getMember();
-            if (!member.isUnloaded() && member.getGroup().getProperties().isSoundEnabled() && !member.isDerailed()) {
+            if (member.hasInitializedGroup() && member.getGroup().getProperties().isSoundEnabled() && !member.isDerailed()) {
                 if (!Double.isNaN(this.velSyncAbsPos.getX())) {
                     liveVel = this.liveAbsPos.distance(this.velSyncAbsPos);
                 }
@@ -373,53 +374,45 @@ public class VirtualEntity {
         this.useParentMetadata = use;
     }
 
-    private AttachmentViewer asAttachmentViewer(Player player) {
-        if (this.manager != null) {
-            return this.manager.asAttachmentViewer(player);
-        } else {
-            return AttachmentViewer.fallback(player);
-        }
-    }
-
+    // Avoid breaking API compatibility
     @Deprecated
     public void addViewerWithoutSpawning(Player viewer) {
-        addViewerWithoutSpawning(asAttachmentViewer(viewer));
+        super.addViewerWithoutSpawning(viewer);
     }
 
+    // Avoid breaking API compatibility
     public void addViewerWithoutSpawning(AttachmentViewer viewer) {
-        if (!this.viewers.contains(viewer)) {
-            this.viewers.add(viewer);
-        }
+        super.addViewerWithoutSpawning(viewer);
     }
 
+    // Avoid breaking API compatibility
     public boolean hasViewers() {
-        return !this.viewers.isEmpty();
+        return super.hasViewers();
     }
 
+    // Avoid breaking API compatibility
     @Deprecated
     public boolean isViewer(Player viewer) {
-        return isViewer(asAttachmentViewer(viewer));
+        return super.isViewer(viewer);
     }
 
+    // Avoid breaking API compatibility
     public boolean isViewer(AttachmentViewer viewer) {
-        return this.viewers.contains(viewer);
+        return super.isViewer(viewer);
     }
 
+    // Avoid breaking API compatibility
     @Deprecated
     public final void spawn(Player viewer, Vector motion) {
-        spawn(asAttachmentViewer(viewer), motion);
+        super.spawn(viewer, motion);
     }
 
+    // Avoid breaking API compatibility
     public final void spawn(AttachmentViewer viewer, Vector motion) {
-        // Destroy first if needed. Shouldn't happen, but just in case.
-        if (this.viewers.contains(viewer)) {
-            this.destroy(viewer);
-        }
-        this.viewers.add(viewer);
-
-        this.sendSpawnPackets(viewer, motion);
+        super.spawn(viewer, motion);
     }
 
+    @Override
     protected void sendSpawnPackets(AttachmentViewer viewer, Vector motion) {
         //motX = motY = motZ = 0.0;
 
@@ -481,6 +474,18 @@ public class VirtualEntity {
         }
     }
 
+    @Override
+    protected void applyGlowing(ChatColor color) {
+        this.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING,
+                color != null);
+        this.syncMetadata();
+    }
+
+    @Override
+    protected void applyGlowColorForViewer(AttachmentViewer viewer, ChatColor color) {
+        viewer.updateGlowColor(this.entityUUID, color);
+    }
+
     public void syncMetadata() {
         DataWatcher metaData = getUsedMeta();
         if (metaData.isChanged()) {
@@ -498,8 +503,9 @@ public class VirtualEntity {
         this.syncVel = this.liveVel;
     }
 
+    @Override
     public void syncPosition(boolean absolute) {
-        if (this.viewers.isEmpty()) {
+        if (!this.hasViewers()) {
             // No viewers. Assign live to sync right away.
             syncPositionSilent();
             return;
@@ -527,9 +533,9 @@ public class VirtualEntity {
 
         // Detect a glitched pitch rotation, and perform a respawn then
         if (this.respawnOnPitchFlip && this.syncPitch != this.livePitch && Util.isProtocolRotationGlitched(this.syncPitch, this.livePitch)) {
-            this.viewers.forEach(this::sendDestroyPackets);
+            this.forAllViewers(this::sendDestroyPackets);
             this.syncPositionSilent();
-            for (AttachmentViewer viewer : this.viewers) {
+            for (AttachmentViewer viewer : this.getViewers()) {
                 sendSpawnPackets(viewer, largeChange ? new Vector() : new Vector(dx, dy, dz));
             }
             return;
@@ -602,7 +608,7 @@ public class VirtualEntity {
             broadcast(packet);
         } else if (rotated) {
             // Only rotation changed
-            for (AttachmentViewer viewer : this.viewers) {
+            for (AttachmentViewer viewer : this.getViewers()) {
                 if (viewer.evaluateGameVersion(">=", "1.15")) {
                     // On minecraft 1.15 and later there is a Minecraft client bug
                     // Sending an Entity Look packet causes the client to cancel/ignore previous movement updates
@@ -661,44 +667,45 @@ public class VirtualEntity {
     }
 
     public void respawnForAll(final Vector motion) {
-        viewers.forEach(this::sendDestroyPackets);
-        this.syncPosition(true);
-        viewers.forEach(v -> sendSpawnPackets(v, motion));
+        forAllViewers(this::sendDestroyPackets);
+        syncPosition(true);
+        forAllViewers(v -> sendSpawnPackets(v, motion));
     }
 
+    // Avoid breaking API compatibility
     public void destroyForAll() {
-        for (AttachmentViewer viewer : this.viewers) {
-            this.sendDestroyPackets(viewer);
-            viewer.getVehicleMountController().remove(this.entityId);
-        }
-        this.viewers.clear();
+        super.destroyForAll();
     }
 
+    // Avoid breaking API compatibility
     @Deprecated
     public void destroy(Player viewer) {
-        destroy(asAttachmentViewer(viewer));
+        super.destroy(viewer);
     }
 
+    // Avoid breaking API compatibility
     public void destroy(AttachmentViewer viewer) {
-        this.viewers.remove(viewer);
-        this.sendDestroyPackets(viewer);
-        viewer.getVehicleMountController().remove(this.entityId);
+        super.destroy(viewer);
     }
 
-    private void sendDestroyPackets(AttachmentViewer viewer) {
+    @Override
+    protected void sendDestroyPackets(AttachmentViewer viewer) {
         if (this.syncVel > 0.0) {
             viewer.send(PacketType.OUT_ENTITY_VELOCITY.newInstance(this.entityId, new Vector()));
         }
         PacketPlayOutEntityDestroyHandle destroyPacket = PacketPlayOutEntityDestroyHandle.createNewSingle(this.entityId);
         viewer.send(destroyPacket);
+        viewer.getVehicleMountController().remove(this.entityId);
     }
 
+    // Avoid breaking API compatibility
     public void broadcast(CommonPacket packet) {
-        viewers.forEach(v -> v.send(packet));
+        super.broadcast(packet);
     }
 
+    // Avoid breaking API compatibility
     public void broadcast(PacketHandle packet) {
-        viewers.forEach(v -> v.send(packet));
+        super.broadcast(packet);
     }
 
     private DataWatcher getUsedMeta() {

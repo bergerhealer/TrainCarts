@@ -8,8 +8,8 @@ import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.attachments.VirtualArmorStandItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
+import com.bergerkiller.bukkit.tc.attachments.config.transform.ArmorStandItemTransformType;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
 
@@ -30,7 +30,7 @@ public final class FirstPersonEyePositionArrow {
     public void start(AttachmentViewer viewer, int tickDuration) {
         if (this.arrow == null) {
             this.arrow = new VirtualArmorStandItemEntity(seat.getManager());
-            this.arrow.setItem(ItemTransformType.HEAD, new ItemStack(MaterialUtil.getFirst(
+            this.arrow.setItem(ArmorStandItemTransformType.HEAD, new ItemStack(MaterialUtil.getFirst(
                     "ARROW", "LEGACY_ARROW")));
             this.arrow.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_ON_FIRE, true);
             this.arrow.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, EntityArmorStandHandle.DATA_FLAG_SET_MARKER, true);

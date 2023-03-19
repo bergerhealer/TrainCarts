@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
@@ -36,6 +37,8 @@ import java.util.UUID;
  * to enter or destroy the cart.
  */
 public class CartAttachmentHitBox extends CartAttachment {
+    private static final Vector3 DEFAULT_SCALE = new Vector3(1.0, 1.0, 1.0);
+
     public static final AttachmentType TYPE = new AttachmentType() {
         @Override
         public String getID() {
@@ -75,9 +78,9 @@ public class CartAttachmentHitBox extends CartAttachment {
                 public void onAttached() {
                     super.onAttached();
 
-                    setSize(menu.getPositionConfigValue("sizeX", 1.0),
-                            menu.getPositionConfigValue("sizeY", 1.0),
-                            menu.getPositionConfigValue("sizeZ", 1.0));
+                    setSize(menu.getPositionConfigValue("sizeX", DEFAULT_SCALE.x),
+                            menu.getPositionConfigValue("sizeY", DEFAULT_SCALE.y),
+                            menu.getPositionConfigValue("sizeZ", DEFAULT_SCALE.z));
                 }
 
                 @Override
@@ -106,7 +109,7 @@ public class CartAttachmentHitBox extends CartAttachment {
 
     @Override
     public void onLoad(ConfigurationNode config) {
-        Vector3 size = this.getConfiguredPosition().size;
+        Vector3 size = LogicUtil.fixNull(this.getConfiguredPosition().size, DEFAULT_SCALE);
         bbox.setSize(new Vector(size.x, size.y, size.z));
         heightOffset = 0.5 * size.y;
 

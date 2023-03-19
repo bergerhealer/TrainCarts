@@ -19,7 +19,7 @@ public class ObjectPosition {
     public AttachmentAnchor anchor = AttachmentAnchor.DEFAULT;
     public Vector3 position = new Vector3();
     public Vector3 rotation = new Vector3();
-    public Vector3 size = new Vector3(1.0, 1.0, 1.0);
+    public Vector3 size = new Vector3();
     public Matrix4x4 transform = new Matrix4x4();
     private boolean _isDefault = true;
     private boolean _isIdentity = true;

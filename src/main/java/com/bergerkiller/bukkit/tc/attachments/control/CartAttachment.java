@@ -8,7 +8,6 @@ import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
@@ -88,23 +87,25 @@ public abstract class CartAttachment implements Attachment {
     public void onTransformChanged(Matrix4x4 transform) {
     }
 
+    /**
+     * @deprecated Use {@link AttachmentViewer#updateGlowColor(UUID, ChatColor)} instead
+     */
+    @Deprecated
     protected void updateGlowColorFor(UUID entityUUID, ChatColor color, Player viewer) {
         updateGlowColorFor(entityUUID, color, getManager().asAttachmentViewer(viewer));
     }
 
+    /**
+     * @deprecated Use {@link AttachmentViewer#updateGlowColor(UUID, ChatColor)} instead
+     */
+    @Deprecated
     protected void updateGlowColorFor(UUID entityUUID, ChatColor color, AttachmentViewer viewer) {
-        if (TrainCarts.plugin != null && TrainCarts.plugin.getGlowColorTeamProvider() != null) {
-            if (color == null) {
-                TrainCarts.plugin.getGlowColorTeamProvider().reset(viewer, entityUUID);
-            } else {
-                TrainCarts.plugin.getGlowColorTeamProvider().update(viewer, entityUUID, color);
-            }
-        }
+        viewer.updateGlowColor(entityUUID, color);
     }
 
     protected void updateGlowColor(UUID entityUUID, ChatColor color) {
-        for (Player viewer : this.getViewers()) {
-            updateGlowColorFor(entityUUID, color, viewer);
+        for (AttachmentViewer viewer : this.getAttachmentViewers()) {
+            viewer.updateGlowColor(entityUUID, color);
         }
     }
 

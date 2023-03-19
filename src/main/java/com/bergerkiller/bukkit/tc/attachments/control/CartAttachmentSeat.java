@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.stream.Stream;
 
+import com.bergerkiller.bukkit.tc.attachments.config.transform.ArmorStandItemTransformType;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -31,7 +32,6 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity.DisplayMode;
@@ -425,11 +425,11 @@ public class CartAttachmentSeat extends CartAttachment {
         }
         if (this._displayedItemEntity != null) {
             ItemStack newItem = config.get("displayItem.item", ItemStack.class);
-            ItemTransformType newTransformType;
+            ArmorStandItemTransformType newTransformType;
             if (config.isNode("displayItem.position")) {
-                newTransformType = config.get("displayItem.position.transform", ItemTransformType.HEAD);
+                newTransformType = config.get("displayItem.position.transform", ArmorStandItemTransformType.HEAD);
             } else {
-                newTransformType = ItemTransformType.HEAD;
+                newTransformType = ArmorStandItemTransformType.HEAD;
             }
             this._displayedItemEntity.setItem(newTransformType, newItem);
         }

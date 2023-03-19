@@ -9,7 +9,7 @@ import com.bergerkiller.bukkit.tc.attachments.VirtualArmorStandItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
+import com.bergerkiller.bukkit.tc.attachments.config.transform.ArmorStandItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
@@ -55,11 +55,11 @@ class FirstPersonSpectatedEntityHead extends FirstPersonSpectatedEntity {
         });
         skull.beforeSwap(swapped -> {
             // Make original invisible, make alt visible
-            skull.entity.setItem(ItemTransformType.HEAD, true, null);
-            swapped.setItem(ItemTransformType.HEAD, true, skullItem);
+            skull.entity.setItem(ArmorStandItemTransformType.HEAD, null);
+            swapped.setItem(ArmorStandItemTransformType.HEAD, skullItem);
         });
-        skull.entity.setItem(ItemTransformType.HEAD, true, skullItem);
-        skull.entityAlt.setItem(ItemTransformType.HEAD, true, null);
+        skull.entity.setItem(ArmorStandItemTransformType.HEAD, skullItem);
+        skull.entityAlt.setItem(ArmorStandItemTransformType.HEAD, null);
         skull.spawn(eyeTransform, new Vector());
         skull.spectate();
     }

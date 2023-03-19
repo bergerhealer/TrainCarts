@@ -65,9 +65,13 @@ public class GlowColorTeamProvider {
      * @param color
      */
     public void update(AttachmentViewer viewer, UUID entityUUID, ChatColor color) {
-        TeamProvider.Team team = teamsByColor.get(color);
-        if (team != null) {
-            team.join(viewer, entityUUID);
+        if (color == null) {
+            reset(viewer, entityUUID);
+        } else {
+            TeamProvider.Team team = teamsByColor.get(color);
+            if (team != null) {
+                team.join(viewer, entityUUID);
+            }
         }
     }
 

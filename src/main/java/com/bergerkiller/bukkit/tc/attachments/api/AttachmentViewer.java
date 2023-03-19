@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.api;
 
+import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutScoreboardTeamHandle;
@@ -182,6 +183,35 @@ public interface AttachmentViewer extends TrainCarts.Provider {
      */
     default boolean evaluateGameVersion(String operand, String rightSide) {
         return PlayerUtil.evaluateGameVersion(getPlayer(), operand, rightSide);
+    }
+
+    /**
+     * Gets whether this viewer, and the server itself, can support the use of display entities.
+     * If true, a display entity can be spawned for this player. If false, armorstands should be used.
+     *
+     * @return True if the display entity is supported by this viewer
+     */
+    default boolean supportsDisplayEntities() {
+        return CommonCapabilities.HAS_DISPLAY_ENTITY && evaluateGameVersion(">=", "1.19.4");
+    }
+
+    /**
+     * Resets the glow color of an entity
+     *
+     * @param entityUUID Entity UUID
+     */
+    default void resetGlowColor(UUID entityUUID) {
+        getTrainCarts().getGlowColorTeamProvider().reset(this, entityUUID);
+    }
+
+    /**
+     * Sets a glow color for an entity
+     *
+     * @param entityUUID Entity UUID
+     * @param color Desired color. Null to reset.
+     */
+    default void updateGlowColor(UUID entityUUID, ChatColor color) {
+        getTrainCarts().getGlowColorTeamProvider().update(this, entityUUID, color);
     }
 
     /**

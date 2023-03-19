@@ -249,6 +249,17 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     }
 
     /**
+     * Gets whether this member has been assigned to a group. If not,
+     * and the member is not unloaded, {@link #getGroup()} will assign
+     * it a new group.
+     *
+     * @return True if it has a group
+     */
+    public boolean hasInitializedGroup() {
+        return this.group != null && !this.isUnloaded();
+    }
+
+    /**
      * Sets the group of this Minecart, removing this member from the previous
      * group<br>
      * Only called by internal methods (as it relies on group adding)

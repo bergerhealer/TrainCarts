@@ -9,7 +9,7 @@ import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
-import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
+import com.bergerkiller.bukkit.tc.attachments.config.transform.ArmorStandItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.ui.ItemDropTarget;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
@@ -126,15 +126,15 @@ public class SeatDisplayedItemDialog extends MapWidgetMenu {
                 public void onAttached() {
                     super.onAttached();
 
-                    for (ItemTransformType type : ItemTransformType.values()) {
+                    for (ArmorStandItemTransformType type : ArmorStandItemTransformType.values()) {
                         this.addItem(type.toString());
                     }
-                    this.setSelectedItem(getConfigValue("transform", ItemTransformType.HEAD).toString());
+                    this.setSelectedItem(getConfigValue("transform", ArmorStandItemTransformType.HEAD).toString());
                 }
 
                 @Override
                 public void onSelectedItemChanged() {
-                    updateConfigValue("transform", ItemTransformType.get(getSelectedItem()).name());
+                    updateConfigValue("transform", ArmorStandItemTransformType.get(getSelectedItem()).name());
                 }
             }).setBounds(30, y_offset, slider_width, 11);
             addLabel(5, y_offset + 3, "Mode");

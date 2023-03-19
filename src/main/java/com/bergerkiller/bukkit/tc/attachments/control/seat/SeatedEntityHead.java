@@ -11,7 +11,7 @@ import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualArmorStandItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
+import com.bergerkiller.bukkit.tc.attachments.config.transform.ArmorStandItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.com.mojang.authlib.GameProfileHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
@@ -54,7 +54,7 @@ public class SeatedEntityHead extends SeatedEntity {
                 skull = new VirtualArmorStandItemEntity(seat.getManager());
                 skull.setSyncMode(SyncMode.ITEM);
                 skull.setUseMinecartInterpolation(seat.isMinecartInterpolation());
-                skull.setItem(ItemTransformType.HEAD, true, createSkullItem(entity));
+                skull.setItem(ArmorStandItemTransformType.HEAD, createSkullItem(entity));
                 skull.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, FakePlayerSpawner.UPSIDEDOWN.getPlayerName());
                 skull.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, false);
                 updateFocus(seat.isFocused());

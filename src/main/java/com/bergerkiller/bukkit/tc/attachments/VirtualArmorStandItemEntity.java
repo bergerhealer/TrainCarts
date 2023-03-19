@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments;
 
+import com.bergerkiller.bukkit.tc.attachments.config.transform.ArmorStandItemTransformType;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
@@ -11,7 +13,6 @@ import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.bukkit.tc.attachments.config.ItemTransformType;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
 
@@ -20,8 +21,7 @@ import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityAr
  * The yaw rotation is automatically smoothed.
  */
 public class VirtualArmorStandItemEntity extends VirtualEntity {
-    private ItemTransformType transformType;
-    private boolean small;
+    private ArmorStandItemTransformType transformType;
     private ItemStack item;
     private Quaternion last_rot;
 
@@ -40,8 +40,7 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
         this.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
                 EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE, true);
 
-        this.transformType = ItemTransformType.HEAD;
-        this.small = false;
+        this.transformType = ArmorStandItemTransformType.HEAD;
         this.item = null;
         this.last_rot = null;
     }
@@ -50,29 +49,22 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
         return item;
     }
 
-    public ItemTransformType getTransformType() {
+    public ArmorStandItemTransformType getTransformType() {
         return transformType;
     }
 
-    public boolean isSmall() { return small; }
-
-    public void setItem(ItemTransformType transformType, ItemStack item) {
-        setItem(transformType, false, item);
-    }
-
-    public void setItem(ItemTransformType transformType, boolean small, ItemStack item) {
-        if (!LogicUtil.bothNullOrEqual(item, this.item) || this.transformType != transformType || this.small != small) {
+    public void setItem(ArmorStandItemTransformType transformType, ItemStack item) {
+        if (!LogicUtil.bothNullOrEqual(item, this.item) || this.transformType != transformType) {
             if (this.item != null) {
                 this.broadcast(this.transformType.createEquipmentPacket(this.getEntityId(), null));
             }
             this.transformType = transformType;
-            this.small = small;
             this.item = item;
             if (this.item != null) {
                 this.broadcast(this.transformType.createEquipmentPacket(this.getEntityId(), this.item));
             }
             this.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
-                    EntityArmorStandHandle.DATA_FLAG_IS_SMALL, small);
+                    EntityArmorStandHandle.DATA_FLAG_IS_SMALL, transformType.isSmallArmorStand());
         }
     }
 
@@ -117,8 +109,8 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
         // Adjust relative offset of the armorstand entity to take shoulder angle into account
         // This doesn't apply for head, and only matters for the left/right hand
         // This ensures any further positioning is relative to the base of the shoulder controlled
-        double hor_offset = this.transformType.getArmorStandHorizontalOffset(small);
-        double ver_offset = this.transformType.getArmorStandVerticalOffset(small);
+        double hor_offset = this.transformType.getArmorStandHorizontalOffset();
+        double ver_offset = this.transformType.getArmorStandVerticalOffset();
         Vector original_offset = super.getRelativeOffset().clone();
         if (hor_offset != 0.0) {
             this.addRelativeOffset(
@@ -139,7 +131,7 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
         DataWatcher meta = this.getMetaData();
         if (this.transformType.isHead()) {
             meta.set(EntityArmorStandHandle.DATA_POSE_HEAD, rotation);
-        } else if (this.transformType == ItemTransformType.CHEST) {
+        } else if (this.transformType == ArmorStandItemTransformType.CHEST || this.transformType == ArmorStandItemTransformType.SMALL_CHEST) {
             meta.set(EntityArmorStandHandle.DATA_POSE_BODY, rotation);
         } else if (this.transformType.isLeftHand()) {
             rotation.setX(rotation.getX() - 90.0);
@@ -151,6 +143,10 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
             meta.set(EntityArmorStandHandle.DATA_POSE_LEG_LEFT, rotation);
             meta.set(EntityArmorStandHandle.DATA_POSE_LEG_RIGHT, rotation);
         }
+
+        // This must be run every tick (and is fine async) as otherwise the change in pose
+        // does not look smooth.
+        this.syncMetadata();
     }
 
     @Override
@@ -161,5 +157,14 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
         if (this.item != null) {
             viewer.send(this.transformType.createEquipmentPacket(this.getEntityId(), this.item));
         }
+    }
+
+    @Override
+    protected void applyGlowing(ChatColor color) {
+        this.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, EntityArmorStandHandle.DATA_FLAG_SET_MARKER,
+                color != null);
+        this.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING | EntityHandle.DATA_FLAG_ON_FIRE,
+                color != null);
+        this.syncMetadata();
     }
 }
