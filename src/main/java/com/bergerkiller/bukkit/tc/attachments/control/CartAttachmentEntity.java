@@ -310,7 +310,7 @@ public class CartAttachmentEntity extends CartAttachment {
             displayed.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, ChatText.fromMessage(text));
             displayed.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, visible);
         } else {
-            displayed.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, null);
+            displayed.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, ChatText.empty());
         }
 
         // Boat wood type
