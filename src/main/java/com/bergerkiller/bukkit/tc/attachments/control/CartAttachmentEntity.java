@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.control;
 
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
+import com.bergerkiller.bukkit.common.Common;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -310,7 +311,8 @@ public class CartAttachmentEntity extends CartAttachment {
             displayed.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, ChatText.fromMessage(text));
             displayed.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, visible);
         } else {
-            displayed.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, ChatText.empty());
+            displayed.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, Common.evaluateMCVersion(">=", "1.13")
+                    ? null : ChatText.empty());
         }
 
         // Boat wood type
