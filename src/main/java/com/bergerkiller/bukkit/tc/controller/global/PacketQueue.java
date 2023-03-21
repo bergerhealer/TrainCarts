@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.global;
 
+import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.protocol.PlayerGameInfo;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import org.bukkit.entity.Player;
@@ -40,7 +41,16 @@ public class PacketQueue implements AttachmentViewer, me.m56738.smoothcoasters.a
      * @return Packet queue
      */
     public static PacketQueue create(TrainCarts plugin, Player player) {
-        return new PacketQueue(plugin, player, new CircularFIFOQueueStampedRW<>());
+        PlayerGameInfo playerGameInfo = PlayerGameInfo.of(player);
+        CircularFIFOQueue<CommonPacket> fifoQueue = new CircularFIFOQueueStampedRW<>();
+
+        // Since Minecraft 1.19.4 we can send Bundle packets so that all packets arrive in the same tick
+        // If supported by the server AND the player, use these.
+        if (CommonCapabilities.HAS_BUNDLE_PACKET && playerGameInfo.evaluateVersion(">=", "1.19.4")) {
+            return new BundlerPacketQueue(plugin, player, playerGameInfo, fifoQueue);
+        }
+
+        return new PacketQueue(plugin, player, playerGameInfo, fifoQueue);
     }
 
     /**
@@ -66,11 +76,11 @@ public class PacketQueue implements AttachmentViewer, me.m56738.smoothcoasters.a
         this.thread = null;
     }
 
-    private PacketQueue(TrainCarts plugin, Player player, CircularFIFOQueue<CommonPacket> queue) {
+    protected PacketQueue(TrainCarts plugin, Player player, PlayerGameInfo playerGameInfo, CircularFIFOQueue<CommonPacket> queue) {
         this.plugin = plugin;
         this.player = player;
         this.vmc = PlayerUtil.getVehicleMountController(player);
-        this.playerGameInfo = PlayerGameInfo.of(player);
+        this.playerGameInfo = playerGameInfo;
         this.queue = queue;
         this.queue.setWakeCallback(this::startProcessingPackets);
         this.thread = null;
@@ -137,12 +147,19 @@ public class PacketQueue implements AttachmentViewer, me.m56738.smoothcoasters.a
     }
 
     /**
-     * Waits until all packets queued up before have been sent to the player
+     * Called before a large amount of packets are going to be sent to a Player.
+     * Waits until all packets have been processed. Might do more stuff in preparation.
      */
-    public void sync() {
+    public void syncBegin() {
         while (!this.queue.isEmpty()) {
             Thread.yield(); // Eh.
         }
+    }
+
+    /**
+     * Performs any operations needed after a large amount of packets have been sent to this player
+     */
+    public void syncEnd() {
     }
 
     private void startProcessingPackets() {

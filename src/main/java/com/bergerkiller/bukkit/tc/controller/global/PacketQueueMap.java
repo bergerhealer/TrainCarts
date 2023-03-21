@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.controller.global;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import org.bukkit.entity.Player;
@@ -55,9 +56,11 @@ public class PacketQueueMap {
     }
 
     /**
-     * Calls {@link PacketQueue#sync()} on all queues active right now
+     * Runs an action on all currently existing player queues
+     *
+     * @param operation Operation to run
      */
-    public synchronized void syncAll() {
-        queuesList.forEach(PacketQueue::sync);
+    public synchronized void forAllQueues(Consumer<PacketQueue> operation) {
+        queuesList.forEach(operation);
     }
 }

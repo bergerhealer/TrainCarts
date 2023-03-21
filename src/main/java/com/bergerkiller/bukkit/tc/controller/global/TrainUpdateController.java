@@ -236,11 +236,16 @@ public class TrainUpdateController {
             // BEFORE we send a lot of packets to players synchronizing the network, process all
             // packets queued up so far. By doing this before the actual sending, we give the server
             // a full tick time to process everything.
-            ((TrainCarts) getPlugin()).getPacketQueueMap().syncAll();
+            // This also activates bundler mode for 1.19.4+ clients.
+            PacketQueueMap packetQueues = ((TrainCarts) getPlugin()).getPacketQueueMap();
+            packetQueues.forAllQueues(PacketQueue::syncBegin);
 
             // Actual sending of network updates
             try (ImplicitlySharedSet<MinecartGroup> groups = MinecartGroupStore.getGroups().clone()) {
                 syncPositions(groups, false);
+            } finally {
+                // Send the bundler packets / cleanup
+                packetQueues.forAllQueues(PacketQueue::syncEnd);
             }
         }
     }
