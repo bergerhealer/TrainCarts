@@ -239,15 +239,16 @@ public class Util {
         int z = from.getZ();
         World world = from.getWorld();
         if (mode == BlockFace.DOWN) {
-            for (int y = sy - 1; y > 0; --y) {
+            int min = WorldUtil.getWorldMinimumHeight(world);
+            for (int y = sy - 1; y > min; --y) {
                 Block block = world.getBlockAt(x, y, z);
                 if (RailType.getType(block) != RailType.NONE) {
                     return block;
                 }
             }
         } else if (mode == BlockFace.UP) {
-            int height = world.getMaxHeight();
-            for (int y = sy + 1; y < height; y++) {
+            int max = WorldUtil.getWorldMaximumHeight(world);
+            for (int y = sy + 1; y < max; y++) {
                 Block block = world.getBlockAt(x, y, z);
                 if (RailType.getType(block) != RailType.NONE) {
                     return block;
