@@ -238,9 +238,10 @@ public class Util {
         int x = from.getX();
         int z = from.getZ();
         World world = from.getWorld();
+        int maxSteps = 1024;
         if (mode == BlockFace.DOWN) {
             int min = WorldUtil.getWorldMinimumHeight(world);
-            for (int y = sy - 1; y > min; --y) {
+            for (int y = sy - 1; y > min && --maxSteps > 0; --y) {
                 Block block = world.getBlockAt(x, y, z);
                 if (RailType.getType(block) != RailType.NONE) {
                     return block;
@@ -248,7 +249,7 @@ public class Util {
             }
         } else if (mode == BlockFace.UP) {
             int max = WorldUtil.getWorldMaximumHeight(world);
-            for (int y = sy + 1; y < max; y++) {
+            for (int y = sy + 1; y < max && --maxSteps > 0; y++) {
                 Block block = world.getBlockAt(x, y, z);
                 if (RailType.getType(block) != RailType.NONE) {
                     return block;
