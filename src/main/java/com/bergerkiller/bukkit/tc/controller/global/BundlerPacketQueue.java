@@ -20,6 +20,7 @@ import java.util.concurrent.locks.StampedLock;
  * it uses the ordinary base asynchronous FIFO queue.
  */
 class BundlerPacketQueue extends PacketQueue {
+    private static final int MAX_PACKETS_PER_BUNDLE = 4095;
     private final StampedLock lock = new StampedLock();
     private final AtomicInteger bufferIndex = new AtomicInteger(Integer.MIN_VALUE);
     private final ArrayList<Object> fallbackBuffer = new ArrayList<>();
@@ -52,9 +53,23 @@ class BundlerPacketQueue extends PacketQueue {
     public void stopBundling() {
         long writeLock = lock.writeLock();
         try {
-            int numPackets = bufferIndex.getAndSet(Integer.MIN_VALUE);
-            if (numPackets > 0) {
-                Object[] bundlePackets = Arrays.copyOf(buffer, numPackets);
+            int numBufferPackets = Math.min(buffer.length, bufferIndex.getAndSet(Integer.MIN_VALUE));
+            if (numBufferPackets > 0) {
+                int numPackets = numBufferPackets + fallbackBuffer.size();
+
+                // Copy all packets over into a new array
+                // Do so in reverse, and while an element is unset, yield()
+                // until the other thread finished writing to it. Because we
+                // iterate in reverse we reduce the number of yield()s required.
+                Object[] bundlePackets = new Object[numPackets];
+                for (int i = numBufferPackets - 1; i >= 0; --i) {
+                    Object rawPacket;
+                    while ((rawPacket = buffer[i]) == null) {
+                        Thread.yield();
+                    }
+                    bundlePackets[i] = rawPacket;
+                }
+
                 if (fallbackBuffer.isEmpty()) {
                     // Only copied the buffer, so fill it with nulls again
                     Arrays.fill(buffer, 0, numPackets, null);
@@ -69,9 +84,20 @@ class BundlerPacketQueue extends PacketQueue {
                     buffer = new Object[numPackets * 2];
                 }
 
-                // Throw into a Bundle packet and send it
-                // Leave locked while we do this as otherwise packets can be sent out of order
-                super.send(ClientboundBundlePacketHandle.createNew(Arrays.asList(bundlePackets)));
+                if (numPackets > MAX_PACKETS_PER_BUNDLE) {
+                    // If more than 4095 packets split it up into multiple bundles, as clients
+                    // otherwise error out
+                    int i = 0;
+                    do {
+                        int endIndex = Math.min(i + MAX_PACKETS_PER_BUNDLE, numPackets);
+                        Object[] singleBundlePackets = Arrays.copyOfRange(bundlePackets, i, endIndex);
+                        super.send(ClientboundBundlePacketHandle.createNew(Arrays.asList(singleBundlePackets)));
+                        i = endIndex;
+                    } while (i < numPackets);
+                } else {
+                    // Send all of them at once in a single bundle packet (ideal)
+                    super.send(ClientboundBundlePacketHandle.createNew(Arrays.asList(bundlePackets)));
+                }
             }
         } finally {
             lock.unlockWrite(writeLock);
@@ -96,78 +122,61 @@ class BundlerPacketQueue extends PacketQueue {
     }
 
     @Override
-    public void send(PacketHandle packet) {
-        long readLock = lock.readLock();
-        int index = bufferIndex.getAndIncrement();
-        if (index < 0) {
-            try {
-                super.send(packet);
-            } finally {
-                lock.unlockRead(readLock);
-            }
-        } else {
-            addToQueue(readLock, index, packet.getRaw());
-        }
+    public void send(CommonPacket packet) {
+        handleSend(packet.getHandle(), () -> super.send(packet));
     }
 
     @Override
-    public void send(CommonPacket packet) {
-        long readLock = lock.readLock();
-        int index = bufferIndex.getAndIncrement();
-        if (index < 0) {
-            try {
-                super.send(packet);
-            } finally {
-                lock.unlockRead(readLock);
-            }
-        } else {
-            addToQueue(readLock, index, packet.getHandle());
-        }
+    public void send(PacketHandle packet) {
+        handleSend(packet.getRaw(), () -> super.send(packet));
     }
 
     @Override
     public void sendSilent(CommonPacket packet) {
-        long readLock = lock.readLock();
-        int index = bufferIndex.getAndIncrement();
-        if (index < 0) {
-            try {
-                super.sendSilent(packet);
-            } finally {
-                lock.unlockRead(readLock);
-            }
-        } else {
-            addToQueue(readLock, index, packet.getHandle());
-        }
+        handleSend(packet.getHandle(), () -> super.sendSilent(packet));
     }
 
     @Override
     public void sendSilent(PacketHandle packet) {
-        long readLock = lock.readLock();
-        int index = bufferIndex.getAndIncrement();
-        if (index < 0) {
-            try {
-                super.sendSilent(packet);
-            } finally {
-                lock.unlockRead(readLock);
-            }
-        } else {
-            addToQueue(readLock, index, packet.getRaw());
-        }
+        handleSend(packet.getRaw(), () -> super.sendSilent(packet));
     }
 
-    private void addToQueue(long readLock, int index, Object rawPacket) {
-        // Try to add to the buffer
-        Object[] buffer = this.buffer;
-        if (index < buffer.length) {
-            buffer[index] = rawPacket;
-        } else {
-            // Buffer is too small! Add to the fallback list. Next sync we resize the buffer
-            // so it fits the right amount of items.
-            // This is slower, but we only suck for a single run.
-            synchronized (fallbackBuffer) {
-                fallbackBuffer.add(rawPacket);
+    private void handleSend(Object rawPacket, Runnable fallbackAction) {
+        // Most common case: try to put it in the buffer without any locks
+        // If this index is outside the range of the buffer or is negative, then
+        // we need to use a read lock to properly guarantee order.
+        int index = bufferIndex.getAndIncrement();
+        if (index >= 0) {
+            Object[] buffer = this.buffer;
+            if (index < buffer.length) {
+                buffer[index] = rawPacket;
+                return;
             }
         }
-        lock.unlockRead(readLock);
+
+        // Got to synchronize. Open a read lock so we aren't sending packets out of order by accident
+        long readLock = lock.readLock();
+        try {
+            index = bufferIndex.getAndIncrement();
+
+            // Try to put in the buffer again. If buffer is full, put it into the slower fallback list
+            if (index >= 0) {
+                Object[] buffer = this.buffer;
+                if (index < buffer.length) {
+                    buffer[index] = rawPacket;
+                } else {
+                    synchronized (fallbackBuffer) {
+                        fallbackBuffer.add(rawPacket);
+                    }
+                }
+                return;
+            }
+
+            // Queue is not actually buffering for the bundle packet. Send to the fallback.
+            bufferIndex.set(Integer.MIN_VALUE); // Don't drift
+            fallbackAction.run();
+        } finally {
+            lock.unlockRead(readLock);
+        }
     }
 }
