@@ -6,10 +6,12 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.utils.CircularFIFOQueue;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundBundlePacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.StampedLock;
 
@@ -149,7 +151,24 @@ class BundlerPacketQueue extends PacketQueue {
         if (index >= 0) {
             Object[] buffer = this.buffer;
             if (index < buffer.length) {
-                buffer[index] = rawPacket;
+                Iterable<Object> bundleSubPackets = PacketHandle.tryUnwrapBundlePacket(rawPacket);
+                if (bundleSubPackets != null) {
+                    Iterator<Object> iter = bundleSubPackets.iterator();
+                    if (iter.hasNext()) {
+                        buffer[index] = iter.next();
+                        while (iter.hasNext()) {
+                            handleSend(iter.next(), fallbackAction);
+                        }
+                    } else {
+                        // Empty bundle??? We already advanced the index though, so something must be put
+                        // As a fallback, send some dummy packet that doesn't mean anything
+                        // The bundle packet itself cannot be sent - recursive bundle packets aren't supported
+                        // by the client. Ideally this code is never hit...
+                        buffer[index] = createDummyPacket();
+                    }
+                } else {
+                    buffer[index] = rawPacket;
+                }
                 return;
             }
         }
@@ -162,11 +181,42 @@ class BundlerPacketQueue extends PacketQueue {
             // Try to put in the buffer again. If buffer is full, put it into the slower fallback list
             if (index >= 0) {
                 Object[] buffer = this.buffer;
-                if (index < buffer.length) {
-                    buffer[index] = rawPacket;
+                Iterable<Object> bundleSubPackets = PacketHandle.tryUnwrapBundlePacket(rawPacket);
+                if (bundleSubPackets != null) {
+                    Iterator<Object> iter = bundleSubPackets.iterator();
+                    if (iter.hasNext()) {
+                        // Handle one or more bundle sub packets being added
+                        // We have a read lock, so the index is never going to go negative
+                        // Once buffer is full, put the remainder into the fallback buffer
+                        while (true) {
+                            if (index < buffer.length) {
+                                buffer[index] = iter.next();
+                            } else {
+                                synchronized (fallbackBuffer) {
+                                    do {
+                                        fallbackBuffer.add(iter.next());
+                                    } while (iter.hasNext());
+                                }
+                                break;
+                            }
+                            if (iter.hasNext()) {
+                                index = bufferIndex.getAndIncrement();
+                            } else {
+                                break;
+                            }
+                        }
+                    } else if (index < buffer.length) {
+                        // Empty bundles - handled same way as before
+                        buffer[index] = createDummyPacket();
+                    }
                 } else {
-                    synchronized (fallbackBuffer) {
-                        fallbackBuffer.add(rawPacket);
+                    // Handle a non-bundle packet to be added
+                    if (index < buffer.length) {
+                        buffer[index] = rawPacket;
+                    } else {
+                        synchronized (fallbackBuffer) {
+                            fallbackBuffer.add(rawPacket);
+                        }
                     }
                 }
                 return;
@@ -178,5 +228,9 @@ class BundlerPacketQueue extends PacketQueue {
         } finally {
             lock.unlockRead(readLock);
         }
+    }
+
+    private static Object createDummyPacket() {
+        return PacketPlayOutEntityDestroyHandle.createNewMultiple(new int[0]).getRaw();
     }
 }
