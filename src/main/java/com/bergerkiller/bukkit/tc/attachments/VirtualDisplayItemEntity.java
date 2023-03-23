@@ -41,7 +41,9 @@ public class VirtualDisplayItemEntity extends VirtualSpawnableObject {
         MOUNT_METADATA.watch(EntityHandle.DATA_FLAGS,
                 (byte) (EntityHandle.DATA_FLAG_INVISIBLE | EntityHandle.DATA_FLAG_FLYING));
         MOUNT_METADATA.watch(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
-                (byte) (EntityArmorStandHandle.DATA_FLAG_SET_MARKER | EntityArmorStandHandle.DATA_FLAG_IS_SMALL));
+                (byte) (EntityArmorStandHandle.DATA_FLAG_SET_MARKER |
+                        EntityArmorStandHandle.DATA_FLAG_IS_SMALL |
+                        EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE));
     }
 
     // Entity tracking code
