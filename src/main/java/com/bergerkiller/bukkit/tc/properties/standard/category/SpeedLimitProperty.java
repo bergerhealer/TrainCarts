@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.properties.standard.category;
 
 import java.util.Optional;
 
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
@@ -46,8 +47,15 @@ public final class SpeedLimitProperty extends FieldBackedStandardTrainProperty.S
             final CommandSender sender,
             final TrainProperties properties
     ) {
+        double speedKMH = MathUtil.round(properties.getSpeedLimit() * (20.0 * 3600.0) / 1000.0, 2);
+        double speedMPH = MathUtil.round(properties.getSpeedLimit() * (20.0 * 3600.0) / 1609.344, 2);
+
         sender.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE +
-                properties.getSpeedLimit() + " blocks/tick");
+                MathUtil.round(properties.getSpeedLimit(), 4) + " blocks/tick (" +
+                ChatColor.BLUE + speedKMH + " km/h" + ChatColor.WHITE + " / " +
+                ChatColor.BLUE + speedMPH + " mph" +
+                ChatColor.WHITE + ")");
+
     }
 
     @PropertyParser("maxspeed|speedlimit")
