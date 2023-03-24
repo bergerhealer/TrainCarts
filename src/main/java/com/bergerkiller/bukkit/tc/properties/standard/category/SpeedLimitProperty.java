@@ -47,15 +47,22 @@ public final class SpeedLimitProperty extends FieldBackedStandardTrainProperty.S
             final CommandSender sender,
             final TrainProperties properties
     ) {
-        double speedKMH = MathUtil.round(properties.getSpeedLimit() * (20.0 * 3600.0) / 1000.0, 2);
-        double speedMPH = MathUtil.round(properties.getSpeedLimit() * (20.0 * 3600.0) / 1609.344, 2);
+        double currSpeed = properties.hasHolder() ? properties.getHolder().head().getRealSpeedLimited() : 0.0;
 
-        sender.sendMessage(ChatColor.YELLOW + "Maximum speed: " + ChatColor.WHITE +
-                MathUtil.round(properties.getSpeedLimit(), 4) + " blocks/tick (" +
-                ChatColor.BLUE + speedKMH + " km/h" + ChatColor.WHITE + " / " +
-                ChatColor.BLUE + speedMPH + " mph" +
-                ChatColor.WHITE + ")");
+        sender.sendMessage(ChatColor.YELLOW + "Maximum speed: " +
+                formatSpeed(properties.getSpeedLimit(), ChatColor.WHITE));
+        sender.sendMessage(ChatColor.YELLOW + "Current speed: " +
+                formatSpeed(currSpeed, (currSpeed == properties.getSpeedLimit())
+                        ? ChatColor.RED : ChatColor.WHITE));
+    }
 
+    private static String formatSpeed(double speed, ChatColor baseColor) {
+        double speedKMH = MathUtil.round(speed * (20.0 * 3600.0) / 1000.0, 2);
+        double speedMPH = MathUtil.round(speed * (20.0 * 3600.0) / 1609.344, 2);
+        return baseColor.toString() + MathUtil.round(speed, 4) + " blocks/tick (" +
+               ChatColor.BLUE + speedKMH + " km/h" + baseColor + " / " +
+               ChatColor.BLUE + speedMPH + " mph" +
+                baseColor + ")";
     }
 
     @PropertyParser("maxspeed|speedlimit")

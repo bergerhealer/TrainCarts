@@ -778,7 +778,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      */
     public double getRealSpeedLimited() {
         if (this.group != null) {
-            return Math.min(entity.vel.length(), entity.getMaxSpeed()) / this.group.getUpdateSpeedFactor();
+            double baseSpeed = Math.min(entity.vel.length(), entity.getMaxSpeed()) / this.group.getUpdateSpeedFactor();
+            return Math.min(baseSpeed, group.getObstacleTracker().getSpeedLimit());
         } else {
             return Math.min(entity.vel.length(), entity.getMaxSpeed());
         }
