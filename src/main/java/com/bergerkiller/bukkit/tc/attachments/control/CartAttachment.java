@@ -3,6 +3,8 @@ package com.bergerkiller.bukkit.tc.attachments.control;
 import java.util.Collection;
 import java.util.UUID;
 
+import com.bergerkiller.bukkit.common.Common;
+import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
@@ -123,6 +125,10 @@ public abstract class CartAttachment implements Attachment {
 
         if (EntityShulkerHandle.T.isAvailable()) {
             AttachmentTypeRegistry.instance().register(CartAttachmentPlatformOriginal.TYPE);
+        }
+
+        if (CommonCapabilities.HAS_DISPLAY_ENTITY) {
+            AttachmentTypeRegistry.instance().register(CartAttachmentBlock.TYPE);
         }
     }
 }

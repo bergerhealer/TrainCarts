@@ -5,7 +5,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Supplier;
 
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentBlock;
+import org.bukkit.block.Block;
+import org.bukkit.event.Event;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -400,6 +407,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     @Override
     public boolean acceptItem(ItemStack item) {
         // If this is an item attachment, set the item
+        // TODO: Make this generic and part of the Type API
         if (this.getType() == CartAttachmentItem.TYPE) {
             this.getConfig().set("item", item.clone());
             sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
@@ -410,6 +418,27 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
             return true;
         }
         return false;
+    }
+
+    @Override
+    public void onBlockInteract(PlayerInteractEvent event) {
+        // If this is a block attachment, set the block
+        // TODO: Make this generic and part of the Type API
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK &&
+            this.getType() == CartAttachmentBlock.TYPE
+        ) {
+            Block block = event.getClickedBlock();
+            if (block != null) {
+                BlockData blockData = WorldUtil.getBlockData(block);
+                this.getConfig().set("blockData", blockData.serializeToString());
+                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+
+                // Redraw the appearance icon
+                this.resetIcon();
+                ((MapWidgetMenuButton) this.getWidget(0)).setIcon(getIcon());
+                event.setUseInteractedBlock(Event.Result.DENY);
+            }
+        }
     }
 
     @Override

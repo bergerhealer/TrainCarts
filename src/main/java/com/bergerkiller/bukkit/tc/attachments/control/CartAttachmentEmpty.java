@@ -19,6 +19,11 @@ public class CartAttachmentEmpty extends CartAttachment {
         }
 
         @Override
+        public double getSortPriority() {
+            return -1.0;
+        }
+
+        @Override
         public MapTexture getIcon(ConfigurationNode config) {
             return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/empty.png");
         }

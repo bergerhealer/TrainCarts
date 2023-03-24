@@ -123,6 +123,17 @@ public abstract class MapWidgetSizeBox extends MapWidget {
     }
 
     @Override
+    public void onKey(MapKeyEvent event) {
+        if (!this.isUniformFocused() || event.getKey() != MapPlayerInput.Key.ENTER) {
+            super.onKey(event);
+            return;
+        }
+
+        // Send onKey to all x/y/z to signal resetting
+        forAllAxis(a -> a.onKey(event));
+    }
+
+    @Override
     public void onKeyReleased(MapKeyEvent event) {
         if (!this.isUniformFocused()) {
             super.onKeyReleased(event);
@@ -133,6 +144,8 @@ public abstract class MapWidgetSizeBox extends MapWidget {
             forAllAxis(a -> a.stopArrowFocus(false));
         } else if (event.getKey() == MapPlayerInput.Key.RIGHT) {
             forAllAxis(a -> a.stopArrowFocus(true));
+        } else if (event.getKey() == MapPlayerInput.Key.ENTER) {
+            forAllAxis(a -> a.onKeyReleased(event));
         }
     }
 
@@ -149,6 +162,9 @@ public abstract class MapWidgetSizeBox extends MapWidget {
         } else if (event.getKey() == MapPlayerInput.Key.RIGHT) {
             forAllAxis(a -> a.updateArrowFocus(false, true));
             increaseUniform(0.01, event.getRepeat());
+        } else if (event.getKey() == MapPlayerInput.Key.ENTER) {
+            forAllAxis(a -> a.onKeyPressed(event));
+            return;
         }
 
         // Navigate back up to Z
@@ -160,13 +176,6 @@ public abstract class MapWidgetSizeBox extends MapWidget {
             return;
         }
         */
-
-        // When ENTER is pressed, do something? Currently just focuses Z
-        if (event.getKey() == MapPlayerInput.Key.ENTER) {
-            setUniformFocused(false);
-            z.focus();
-            return;
-        }
 
         // Try to navigate. If focus is lost, make this widget no
         // longer focusable.
