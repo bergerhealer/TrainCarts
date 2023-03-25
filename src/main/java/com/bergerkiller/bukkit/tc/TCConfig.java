@@ -111,6 +111,7 @@ public class TCConfig {
     public static int autoSaveInterval = 30 * 20; // autosave every 30 seconds
     public static int attachmentTransformParallelism = -1;
     public static boolean allowExternalTicketImagePaths = false; // Whether images outside of the images subdirectory are allowed
+    public static boolean allowSchematicAttachment = true;
     public static String currencyFormat;
     public static Set<Material> allowedBlockBreakTypes = new HashSet<>();
     public static ConfiguredWorldSet enabledWorlds = new ConfiguredWorldSet();
@@ -327,6 +328,11 @@ public class TCConfig {
         config.setHeader("allowUpsideDownRails", "\nWhether upside-down rail functionality is enabled on the server");
         config.addHeader("allowUpsideDownRails", "When disabled, minecarts can not be rotated upside-down");
         allowUpsideDownRails = config.get("allowUpsideDownRails", true);
+
+        config.setHeader("allowSchematicAttachment", "\nWhether to enable WorldEdit schematics to be loaded in as a SCHEMATIC attachment");
+        config.addHeader("allowSchematicAttachment", "This can be quite laggy, so only enable it if you can trust people with it");
+        config.addHeader("allowSchematicAttachment", "Only works on Minecraft server/clients 1.19.4 and later");
+        allowSchematicAttachment = config.get("allowSchematicAttachment", true);
 
         config.setHeader("legacySpeedLimiting", "\nBefore TrainCarts v1.12.2-v1 speed limiting was done on each individual axis");
         config.addHeader("legacySpeedLimiting", "This had a big impact on air physics, because it never made a good ellipse fall");

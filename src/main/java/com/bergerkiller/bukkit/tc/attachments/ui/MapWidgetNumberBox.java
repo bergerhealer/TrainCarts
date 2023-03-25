@@ -211,12 +211,23 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
         }
     }
 
+    /**
+     * Gets whether the user held the ENTER key for long enough for the value
+     * to be reset (this widget is activated)
+     *
+     * @return True if reset
+     */
+    public boolean isHoldEnterResetComplete() {
+        return this._holdEnterProgress >= this._holdEnterMaximum;
+    }
+
     @Override
     public void onKey(MapKeyEvent event) {
         if (event.getKey() == MapPlayerInput.Key.ENTER) {
             // Track amount of ticks ENTER was held
             if (this._holdEnterProgress <= this._holdEnterMaximum) {
-                if (++this._holdEnterProgress == this._holdEnterMaximum) {
+                ++this._holdEnterProgress;
+                if (this.isHoldEnterResetComplete()) {
                     this.activate();
                 }
                 this.invalidate();

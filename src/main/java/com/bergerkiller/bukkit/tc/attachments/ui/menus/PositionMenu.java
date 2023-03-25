@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetScroller;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSizeBox;
 import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
 
 import java.util.ArrayList;
@@ -433,6 +434,43 @@ public class PositionMenu extends MapWidgetMenu {
             Row row = new Row(creator);
             rows.add(index, row);
             return row;
+        }
+
+        /**
+         * Adds a set of sliders for configuring the configured size of the attachment
+         *
+         * @return added row
+         */
+        public Row addSizeBox() {
+            return this.addRow(menu -> (new MapWidgetSizeBox() {
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+
+                    setSize(menu.getPositionConfigValue("sizeX", 1.0),
+                            menu.getPositionConfigValue("sizeY", 1.0),
+                            menu.getPositionConfigValue("sizeZ", 1.0));
+                }
+
+                @Override
+                public void onSizeChanged() {
+                    menu.updatePositionConfig(config -> {
+                        if (x.getValue() == 1.0 && y.getValue() == 1.0 && z.getValue() == 1.0) {
+                            config.remove("sizeX");
+                            config.remove("sizeY");
+                            config.remove("sizeZ");
+                        } else {
+                            config.set("sizeX", x.getValue());
+                            config.set("sizeY", y.getValue());
+                            config.set("sizeZ", z.getValue());
+                        }
+                    });
+                }
+            }).setBounds(25, 0, menu.getSliderWidth(), 35))
+                    .addLabel(0, 3, "Size X")
+                    .addLabel(0, 15, "Size Y")
+                    .addLabel(0, 27, "Size Z")
+                    .setSpacingAbove(3);
         }
     }
 }

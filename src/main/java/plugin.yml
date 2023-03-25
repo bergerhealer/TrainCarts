@@ -5,7 +5,7 @@ build: ${project.build.number}
 description: Plugin that allows the use of minecart trains with adjustable settings
 authors: [bergerkiller, lenis0012, timstans, bubba1234119, KamikazePlatypus, mg_1999, Friwi, kpaulisse]
 api-version: 1.13
-softdepend: [BKCommonLib, MinecartManiaCore, SignLink, My_Worlds, LightAPI, Vault]
+softdepend: [BKCommonLib, MinecartManiaCore, SignLink, My_Worlds, LightAPI, Vault, WorldEdit]
 classdepend: [TAB]
 
 main: com.bergerkiller.bukkit.tc.Preloader

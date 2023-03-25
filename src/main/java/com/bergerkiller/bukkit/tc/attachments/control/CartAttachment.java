@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
@@ -129,6 +130,12 @@ public abstract class CartAttachment implements Attachment {
 
         if (CommonCapabilities.HAS_DISPLAY_ENTITY) {
             AttachmentTypeRegistry.instance().register(CartAttachmentBlock.TYPE);
+
+            // Requires WorldEdit to be loaded (not yet enabled, that's fine)
+            // We assume that WorldEdit will also load up properly
+            if (Bukkit.getPluginManager().getPlugin("WorldEdit") != null) {
+                AttachmentTypeRegistry.instance().register(CartAttachmentSchematic.TYPE);
+            }
         }
     }
 }

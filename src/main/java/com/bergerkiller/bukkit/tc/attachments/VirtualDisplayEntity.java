@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
@@ -28,13 +29,18 @@ import java.util.UUID;
  * Extra utilities to move a 1.19.4+ Display entity around
  */
 public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
+    public static final EntityType BLOCK_DISPLAY_ENTITY_TYPE = LogicUtil.tryMake(
+            () -> EntityType.valueOf("BLOCK_DISPLAY"), null);
+    public static final EntityType ITEM_DISPLAY_ENTITY_TYPE = LogicUtil.tryMake(
+            () -> EntityType.valueOf("ITEM_DISPLAY"), null);
+
     // This (unchanging) read-only metadata is used when spawning the mount of the display entity
-    private static final DataWatcher MOUNT_METADATA = new DataWatcher();
+    public static final DataWatcher ARMORSTAND_MOUNT_METADATA = new DataWatcher();
     static {
-        MOUNT_METADATA.watch(EntityHandle.DATA_NO_GRAVITY, true);
-        MOUNT_METADATA.watch(EntityHandle.DATA_FLAGS,
+        ARMORSTAND_MOUNT_METADATA.watch(EntityHandle.DATA_NO_GRAVITY, true);
+        ARMORSTAND_MOUNT_METADATA.watch(EntityHandle.DATA_FLAGS,
                 (byte) (EntityHandle.DATA_FLAG_INVISIBLE | EntityHandle.DATA_FLAG_FLYING));
-        MOUNT_METADATA.watch(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
+        ARMORSTAND_MOUNT_METADATA.watch(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
                 (byte) (EntityArmorStandHandle.DATA_FLAG_SET_MARKER |
                         EntityArmorStandHandle.DATA_FLAG_IS_SMALL |
                         EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE));
@@ -131,7 +137,7 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
             spawnPacket.setYaw(0.0f);
             spawnPacket.setPitch(0.0f);
             spawnPacket.setHeadYaw(0.0f);
-            viewer.sendEntityLivingSpawnPacket(spawnPacket, MOUNT_METADATA);
+            viewer.sendEntityLivingSpawnPacket(spawnPacket, ARMORSTAND_MOUNT_METADATA);
         }
 
         // Spawn the display entity itself

@@ -7,16 +7,12 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.generated.net.minecraft.world.entity.DisplayHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
-import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
 
 /**
  * Extra utilities to move a 1.19.4+ Display Item entity around
  */
 public class VirtualDisplayItemEntity extends VirtualDisplayEntity {
-    private static final EntityType DISPLAY_ENTITY_TYPE = LogicUtil.tryMake(
-            () -> EntityType.valueOf("ITEM_DISPLAY"), null);
-
     // This (unchanging) read-only metadata is used when spawning the mount of the display entity
     private static final DataWatcher MOUNT_METADATA = new DataWatcher();
     static {
@@ -34,7 +30,7 @@ public class VirtualDisplayItemEntity extends VirtualDisplayEntity {
     private ItemStack item;
 
     public VirtualDisplayItemEntity(AttachmentManager manager) {
-        super(manager, DISPLAY_ENTITY_TYPE);
+        super(manager, ITEM_DISPLAY_ENTITY_TYPE);
         metadata.watch(DisplayHandle.ItemDisplayHandle.DATA_ITEM_DISPLAY_MODE, ItemDisplayMode.HEAD);
         metadata.watch(DisplayHandle.ItemDisplayHandle.DATA_ITEM_STACK, null);
 

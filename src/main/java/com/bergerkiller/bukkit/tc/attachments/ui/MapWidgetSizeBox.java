@@ -41,15 +41,14 @@ public abstract class MapWidgetSizeBox extends MapWidget {
     });
 
     private Vector uniformFocusStart = new Vector();
-    private double uniformScale = 1.0;
     private boolean suppressSizeChanges = false;
     private boolean uniformFocusActive = false;
+    private double defaultValue = 1.0;
+    private boolean canBeNegative = false;
 
     public MapWidgetSizeBox() {
         this.setRetainChildWidgets(true);
-        x.setRange(0.01, 1000.0);
-        y.setRange(0.01, 1000.0);
-        z.setRange(0.01, 1000.0);
+        this.setRangeAndDefault(false, 1.0);
     }
 
     public boolean isUniformFocused() {
@@ -72,7 +71,6 @@ public abstract class MapWidgetSizeBox extends MapWidget {
             focus();
             forAllAxis(a -> a.setAlwaysFocused(true));
             uniformFocusStart = new Vector(x.getValue(), y.getValue(), z.getValue());
-            uniformScale = 1.0;
         } else {
             forAllAxis(a -> {
                 a.setAlwaysFocused(false);
@@ -80,6 +78,23 @@ public abstract class MapWidgetSizeBox extends MapWidget {
             });
             setFocusable(false);
         }
+    }
+
+    /**
+     * Sets the x/y/z coordinate range bounds and the default value to set when ENTER is kept
+     * pressed for a short time.
+     * @param canBeNegative Whether the number can go below 0
+     * @param defaultValue Default value
+     * @return this
+     */
+    public MapWidgetSizeBox setRangeAndDefault(boolean canBeNegative, double defaultValue) {
+        double min = canBeNegative ? -1000.0 : 0.01;
+        double max = 1000.0;
+        this.x.setRange(min, max);
+        this.y.setRange(min, max);
+        this.z.setRange(min, max);
+        this.defaultValue = defaultValue;
+        return this;
     }
 
     /**
@@ -109,17 +124,43 @@ public abstract class MapWidgetSizeBox extends MapWidget {
     }
 
     private void increaseUniform(double increase, int repeat) {
-        uniformScale = Math.max(0.0, MapWidgetNumberBox.scaledIncrease(uniformScale, increase, repeat));
+        // Scale the highest value axis by the increase (faster with repeat)
+        // If the highest value axis is 0, assume we want to uniform scale by the increase
+        double absX = Math.abs(uniformFocusStart.getX());
+        double absY = Math.abs(uniformFocusStart.getY());
+        double absZ = Math.abs(uniformFocusStart.getZ());
+
         suppressSizeChanges = true;
-        x.setValue(calcUniformScale(uniformFocusStart.getX(), increase));
-        y.setValue(calcUniformScale(uniformFocusStart.getY(), increase));
-        z.setValue(calcUniformScale(uniformFocusStart.getZ(), increase));
+        if (Math.max(Math.max(absX, absY), absZ) == 0.0) {
+            // All axis values are 0. Uniform scale them with the increase
+            double value = MapWidgetNumberBox.scaledIncrease(x.getValue(), increase, repeat);
+            x.setValue(value);
+            y.setValue(value);
+            z.setValue(value);
+        } else if (absX > absZ && absX > absY) {
+            // X is highest, increase X and adjust the other axis in same proportions
+            scaleAxisByIncreasing(x, uniformFocusStart.getX(), increase, repeat);
+        } else if (absY > absX && absY > absZ) {
+            // Y is highest, increase Y and adjust the other axis in same proportions
+            scaleAxisByIncreasing(y, uniformFocusStart.getY(), increase, repeat);
+        } else {
+            // Z is highest, increase Z and adjust the other axis in same proportions
+            scaleAxisByIncreasing(z, uniformFocusStart.getZ(), increase, repeat);
+        }
         suppressSizeChanges = false;
         onSizeChanged();
     }
 
-    private double calcUniformScale(double value, double incr) {
-        return incr * Math.round(uniformScale * value / incr);
+    private void scaleAxisByIncreasing(MapWidgetNumberBox axis, double uniformStart, double increase, int repeat) {
+        axis.setValue(MapWidgetNumberBox.scaledIncrease(axis.getValue(), increase, repeat));
+        double scale = axis.getValue() / uniformStart;
+        if (axis != x) x.setValue(roundByIncrease(uniformFocusStart.getX() * scale, increase));
+        if (axis != y) y.setValue(roundByIncrease(uniformFocusStart.getY() * scale, increase));
+        if (axis != z) z.setValue(roundByIncrease(uniformFocusStart.getZ() * scale, increase));
+    }
+
+    private double roundByIncrease(double value, double incr) {
+        return incr * Math.round(value / incr);
     }
 
     @Override
@@ -131,6 +172,10 @@ public abstract class MapWidgetSizeBox extends MapWidget {
 
         // Send onKey to all x/y/z to signal resetting
         forAllAxis(a -> a.onKey(event));
+        if (x.isHoldEnterResetComplete()) {
+            // Also reset the uniform state
+            this.uniformFocusStart = new Vector(x.getValue(), y.getValue(), z.getValue());
+        }
     }
 
     @Override
@@ -204,7 +249,7 @@ public abstract class MapWidgetSizeBox extends MapWidget {
 
         @Override
         public void onResetValue() {
-            setValue(1.0);
+            setValue(defaultValue);
         }
 
         @Override

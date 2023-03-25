@@ -14,7 +14,6 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
-import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSizeBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.block.BlockDataTextureCache;
 import com.bergerkiller.bukkit.tc.attachments.ui.block.MapWidgetBlockDataSelector;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
@@ -79,35 +78,7 @@ public class CartAttachmentBlock extends CartAttachment {
 
         @Override
         public void createPositionMenu(PositionMenu.Builder builder) {
-            builder.addRow(menu -> (new MapWidgetSizeBox() {
-                @Override
-                public void onAttached() {
-                    super.onAttached();
-
-                    setSize(menu.getPositionConfigValue("sizeX", 1.0),
-                            menu.getPositionConfigValue("sizeY", 1.0),
-                            menu.getPositionConfigValue("sizeZ", 1.0));
-                }
-
-                @Override
-                public void onSizeChanged() {
-                    menu.updatePositionConfig(config -> {
-                        if (x.getValue() == 1.0 && y.getValue() == 1.0 && z.getValue() == 1.0) {
-                            config.remove("sizeX");
-                            config.remove("sizeY");
-                            config.remove("sizeZ");
-                        } else {
-                            config.set("sizeX", x.getValue());
-                            config.set("sizeY", y.getValue());
-                            config.set("sizeZ", z.getValue());
-                        }
-                    });
-                }
-            }).setBounds(25, 0, menu.getSliderWidth(), 35))
-                    .addLabel(0, 3, "Size X")
-                    .addLabel(0, 15, "Size Y")
-                    .addLabel(0, 27, "Size Z")
-                    .setSpacingAbove(3);
+            builder.addSizeBox();
         }
     };
 
