@@ -22,6 +22,7 @@ import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -67,8 +68,19 @@ public class MovingSchematic extends VirtualSpawnableObject {
      */
     public void addBlock(double x, double y, double z, BlockData blockData) {
         if (!MaterialUtil.ISAIR.get(blockData)) {
-            this.blocks.add(new SingleSchematicBlock(x, y, z, blockData));
+            SingleSchematicBlock block = new SingleSchematicBlock(x, y, z, blockData);
+            this.blocks.add(block);
             this.cachedBlockEntityIds = null;
+            if (!isFirstSync) {
+                block.sync(liveRot, scale, spacing, Collections.emptyList());
+                forAllViewers(v -> block.spawn(v, syncPos, new Vector(0.0, 0.0, 0.0)));
+            }
+        }
+    }
+
+    public void resendMounts() {
+        if (!isFirstSync) {
+            broadcast(PacketPlayOutMountHandle.createNew(mountEntityId, getBlockEntityIds()));
         }
     }
 

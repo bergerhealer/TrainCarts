@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.api;
 
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -62,6 +63,28 @@ public interface AttachmentType {
      * @return Sort priority, higher priority types end in the back of the list
      */
     default double getSortPriority() { return 0.0; }
+
+    /**
+     * Gets whether this attachment type is shown inside the Attachment Editor's
+     * attaachment type list. By default checks for permission.
+     *
+     * @param player Player viewing the attachments
+     * @return True if listed in the attachment editor
+     */
+    default boolean isListed(Player player) {
+        return hasPermission(player);
+    }
+
+    /**
+     * Gets whether a particular Player has permission to see, create and import this
+     * type of attachment.
+     *
+     * @param player Player to check
+     * @return True if the player has permission to edit/view/create this attachment type
+     */
+    default boolean hasPermission(Player player) {
+        return true;
+    }
 
     /**
      * Gets the icon to show in the attachment editor for this attachment type.

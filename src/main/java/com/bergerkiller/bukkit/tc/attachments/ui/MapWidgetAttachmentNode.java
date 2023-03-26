@@ -9,7 +9,9 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentBlock;
+import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -322,6 +324,22 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
         } else {
             return (AttachmentEditor) this.getDisplay();
         }
+    }
+
+    public boolean checkModifyPermissions() {
+        if (display != null) {
+            AttachmentType type = getType();
+            for (Player player : display.getOwners()) {
+                if (!type.hasPermission(player)) {
+                    for (Player notifPlayer : display.getOwners()) {
+                        notifPlayer.sendMessage(ChatColor.RED +
+                                "You do not have permission to modify this type of attachment");
+                    }
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     @Override

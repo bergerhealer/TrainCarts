@@ -8,28 +8,18 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.wrappers.BlockData;
-import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.schematic.MovingSchematic;
+import com.bergerkiller.bukkit.tc.attachments.control.schematic.WorldEditSchematicLoader;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSizeBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
-import com.sk89q.worldedit.WorldEdit;
-import com.sk89q.worldedit.bukkit.BukkitAdapter;
-import com.sk89q.worldedit.extent.clipboard.Clipboard;
-import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
-import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
-import com.sk89q.worldedit.extent.clipboard.io.ClipboardReader;
-import com.sk89q.worldedit.math.BlockVector3;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.util.logging.Level;
 
 /**
  * Loads a WorldEdit schematic by name and shows its block contents centered
@@ -45,6 +35,16 @@ public class CartAttachmentSchematic extends CartAttachment {
         @Override
         public String getName() {
             return "SCHEMATIC";
+        }
+
+        @Override
+        public boolean isListed(Player player) {
+            return TrainCarts.plugin.getWorldEditSchematicLoader().isEnabled() && hasPermission(player);
+        }
+
+        @Override
+        public boolean hasPermission(Player player) {
+            return Permission.USE_SCHEMATIC_ATTACHMENTS.has(player);
         }
 
         @Override
@@ -142,54 +142,21 @@ public class CartAttachmentSchematic extends CartAttachment {
         }
     };
 
-    private String currSchematicName = "";
+    private WorldEditSchematicLoader.SchematicReader schematicReader;
     private MovingSchematic schematic;
 
     @Override
     public void onAttached() {
         schematic = new MovingSchematic(getManager());
-        currSchematicName = getConfig().get("schematic", "");
-        if (TCConfig.allowSchematicAttachment && !currSchematicName.isEmpty()) {
-            loadSchematic();
-        }
+        schematicReader = TrainCarts.plugin.getWorldEditSchematicLoader().startReading(
+                getConfig().get("schematic", ""));
+        loadNextBlocks();
     }
 
-    private void loadSchematic() {
-        try {
-            Clipboard c;
-            File schemDir = WorldEdit.getInstance().getWorkingDirectoryFile("schematics"); // Get the schematics directory from WorldEdit API
-            File file = new File(schemDir, currSchematicName);
-            if (!file.exists()) {
-                return; //TODO: Show something?
-            }
-
-            ClipboardFormat format = ClipboardFormats.findByFile(file);
-            Clipboard clipboard;
-            try (ClipboardReader reader = format.getReader(new FileInputStream(file))) { // Create a reader for the file
-                clipboard = reader.read(); // Read the clipboard from the file
-            }
-
-            BlockVector3 min = clipboard.getMinimumPoint();
-            BlockVector3 max = clipboard.getMaximumPoint();
-            double originX = 0.5 * (double) (min.getX() + max.getX());
-            double originY = (double) min.getY();
-            double originZ = 0.5 * (double) (min.getZ() + max.getZ());
-
-            for (int y = min.getY(); y <= max.getY(); y++) {
-                for (int x = min.getX(); x <= max.getX(); x++) {
-                    for (int z = min.getZ(); z <= max.getZ(); z++) {
-                        BlockData blockData = BlockData.fromBukkit(BukkitAdapter.adapt(
-                                clipboard.getBlock(BlockVector3.at(x, y, z))));
-                        schematic.addBlock((double) x - originX,
-                                (double) y - originY,
-                                (double) z - originZ,
-                                blockData);
-                    }
-                }
-            }
-        } catch (Throwable t) {
-            getPlugin().getLogger().log(Level.SEVERE, "Failed to load schematic " + currSchematicName + " for attachment", t);
-        }
+    @Override
+    public void onDetached() {
+        schematic = null;
+        schematicReader.abort();
     }
 
     @Override
@@ -197,7 +164,7 @@ public class CartAttachmentSchematic extends CartAttachment {
         if (!super.checkCanReload(config)) {
             return false;
         }
-        if (!currSchematicName.equals(config.get("schematic", ""))) {
+        if (!schematicReader.fileName().equals(config.get("schematic", ""))) {
             return false;
         }
 
@@ -211,21 +178,57 @@ public class CartAttachmentSchematic extends CartAttachment {
                 config.getOrDefault("position.spacingX", 0.0),
                 config.getOrDefault("position.spacingY", 0.0),
                 config.getOrDefault("position.spacingZ", 0.0)));
+    }
 
+    private void loadNextBlocks() {
+        if (schematicReader.isDone()) {
+            return;
+        }
+
+        WorldEditSchematicLoader.SchematicBlock block = schematicReader.next();
+        if (block != null) {
+            // Center the entire schematic at the bottom-middle
+            double originX = 0.5 * (double) (block.schematic.dimensions.x - 1);
+            double originY = 0.0;
+            double originZ = 0.5 * (double) (block.schematic.dimensions.z - 1);
+
+            do {
+                schematic.addBlock((double) block.x - originX,
+                        (double) block.y - originY,
+                        (double) block.z - originZ,
+                        block.blockData);
+            } while ((block = schematicReader.next()) != null);
+
+            // This spawned new blocks, now mount them into the armorstand again
+            schematic.resendMounts();
+        }
     }
 
     @Override
-    public void makeVisible(Player viewer) {
+    @Deprecated
+    public void makeVisible(Player player) {
+        makeVisible(getManager().asAttachmentViewer(player));
+    }
+
+    @Override
+    @Deprecated
+    public void makeHidden(Player player) {
+        makeHidden(getManager().asAttachmentViewer(player));
+    }
+
+    @Override
+    public void makeVisible(AttachmentViewer viewer) {
         schematic.spawn(viewer, new Vector(0.0, 0.0, 0.0));
     }
 
     @Override
-    public void makeHidden(Player viewer) {
+    public void makeHidden(AttachmentViewer viewer) {
         schematic.destroy(viewer);
     }
 
     @Override
     public void onTick() {
+        loadNextBlocks();
     }
 
     @Override

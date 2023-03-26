@@ -47,7 +47,9 @@ public class AttachmentEditor extends MapDisplay {
 
         @Override
         public void onMenuOpen(MapWidgetAttachmentNode node, MenuItem menu) {
-            AttachmentEditor.this.addWidget(menu.createMenu(node));
+            if (node.checkModifyPermissions()) {
+                AttachmentEditor.this.addWidget(menu.createMenu(node));
+            }
         }
     };
 

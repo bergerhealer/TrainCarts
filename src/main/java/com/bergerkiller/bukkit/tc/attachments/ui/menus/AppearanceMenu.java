@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -40,7 +41,16 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
             List<AttachmentType> types = this.typeRegistry.all();
             pages = new ArrayList<TypePage>(types.size());
             for (AttachmentType type : types) {
-                pages.add(new TypePage(type, this.tabView.addTab()));
+                boolean listed = true;
+                for (Player player : this.display.getOwners()) {
+                    if (!type.isListed(player)) {
+                        listed = false;
+                        break;
+                    }
+                }
+                if (listed) {
+                    pages.add(new TypePage(type, this.tabView.addTab()));
+                }
             }
         }
 

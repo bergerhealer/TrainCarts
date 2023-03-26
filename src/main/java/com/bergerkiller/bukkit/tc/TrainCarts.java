@@ -22,6 +22,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentLight;
 import com.bergerkiller.bukkit.tc.attachments.control.GlowColorTeamProvider;
 import com.bergerkiller.bukkit.tc.attachments.control.SeatAttachmentMap;
 import com.bergerkiller.bukkit.tc.attachments.control.TeamProvider;
+import com.bergerkiller.bukkit.tc.attachments.control.schematic.WorldEditSchematicLoader;
 import com.bergerkiller.bukkit.tc.attachments.ui.models.ResourcePackModelListing;
 import com.bergerkiller.bukkit.tc.chest.TrainChestListener;
 import com.bergerkiller.bukkit.tc.commands.Commands;
@@ -108,6 +109,7 @@ public class TrainCarts extends PluginBase {
     private final SignController signController = new SignController(this);
     private final PacketQueueMap packetQueueMap = new PacketQueueMap(this);
     private ResourcePackModelListing modelListing = new ResourcePackModelListing(); // Uninitialized
+    private final WorldEditSchematicLoader worldEditSchematicLoader = new WorldEditSchematicLoader(this);
     private Economy econ = null;
     private boolean isTabPluginEnabled = false;
     private SmoothCoastersAPI smoothCoastersAPI;
@@ -303,6 +305,17 @@ public class TrainCarts extends PluginBase {
             this.modelListing = listing;
         }
         return listing;
+    }
+
+    /**
+     * Gets the WorldEdit schematic loader. This is a service that loads WorldEdit schematics
+     * asynchronously, letting readers read the block data at their own leisure. Is not always
+     * enabled.
+     *
+     * @return WorldEdit schematic loader
+     */
+    public WorldEditSchematicLoader getWorldEditSchematicLoader() {
+        return worldEditSchematicLoader;
     }
 
     /**
@@ -640,6 +653,9 @@ public class TrainCarts extends PluginBase {
             }
         }
 
+        //WorldEdit schematic loader
+        this.worldEditSchematicLoader.enable();
+
         //Automatically tracks the signs that are loaded
         this.signController.enable();
 
@@ -923,6 +939,9 @@ public class TrainCarts extends PluginBase {
 
         // Save offline sign metadata to disk (if needed) and stop writing in the background
         this.offlineSignStore.disable();
+
+        //WorldEdit schematic loader can now also be shut down permanently
+        this.worldEditSchematicLoader.disable();
     }
 
     @SuppressWarnings({"rawtypes", "deprecation", "unchecked"})

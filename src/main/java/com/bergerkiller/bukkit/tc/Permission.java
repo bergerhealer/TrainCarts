@@ -134,7 +134,9 @@ public enum Permission implements IPermissionEnum {
     BREAK_MINECART_ANY("train.break.any", PermissionDefault.FALSE, "The player can break all carts in the game"),
     TICKET_MANAGE("train.ticket.manage", PermissionDefault.OP, "The player can edit the details of existing tickets or create new tickets"),
     // Special hidden debug sekretz
-    DEBUG_COMMAND_DEBUG("train.debug", PermissionDefault.OP, "The player can use special commands useful for debugging the plugin");
+    DEBUG_COMMAND_DEBUG("train.debug", PermissionDefault.OP, "The player can use special commands useful for debugging the plugin"),
+    // Create and change Schematic attachments
+    USE_SCHEMATIC_ATTACHMENTS("train.attachments.schematic.use", PermissionDefault.OP, "The player can create and modify SCHEMATIC attachments");
 
     private final String _root;
     private final PermissionDefault _default;
