@@ -60,9 +60,9 @@ class SingleSchematicBlock {
      */
     public void sync(Quaternion rotation, Vector scale, Vector spacing, Iterable<AttachmentViewer> viewers) {
         Vector translation = new Vector(
-                (scale.getX() * (x - 0.5)) + (spacing.getX() * x),
+                (scale.getX() * x) + (spacing.getX() * (x + 0.5)),
                 (scale.getY() * y) + (spacing.getY() * y),
-                (scale.getZ() * (z - 0.5)) + (spacing.getZ() * z));
+                (scale.getZ() * z) + (spacing.getZ() * (z + 0.5)));
         rotation.transformPoint(translation);
 
         metadata.set(DisplayHandle.DATA_SCALE, scale);

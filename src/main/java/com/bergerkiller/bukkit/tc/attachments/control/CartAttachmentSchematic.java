@@ -49,7 +49,7 @@ public class CartAttachmentSchematic extends CartAttachment {
 
         @Override
         public MapTexture getIcon(ConfigurationNode config) {
-            return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/empty.png");
+            return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/schematic.png");
         }
 
         @Override
@@ -188,14 +188,14 @@ public class CartAttachmentSchematic extends CartAttachment {
         WorldEditSchematicLoader.SchematicBlock block = schematicReader.next();
         if (block != null) {
             // Center the entire schematic at the bottom-middle
-            double originX = 0.5 * (double) (block.schematic.dimensions.x - 1);
+            double originX = 0.5 * block.schematic.dimensions.x;
             double originY = 0.0;
-            double originZ = 0.5 * (double) (block.schematic.dimensions.z - 1);
+            double originZ = 0.5 * block.schematic.dimensions.z;
 
             do {
                 schematic.addBlock((double) block.x - originX,
-                        (double) block.y - originY,
-                        (double) block.z - originZ,
+                                   (double) block.y - originY,
+                                   (double) block.z - originZ,
                         block.blockData);
             } while ((block = schematicReader.next()) != null);
 
