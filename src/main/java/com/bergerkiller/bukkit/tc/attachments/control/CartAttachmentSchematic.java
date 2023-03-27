@@ -112,9 +112,9 @@ public class CartAttachmentSchematic extends CartAttachment {
                 public void onAttached() {
                     super.onAttached();
 
-                    setSize(menu.getPositionConfigValue("spacingX", 0.0),
-                            menu.getPositionConfigValue("spacingY", 0.0),
-                            menu.getPositionConfigValue("spacingZ", 0.0));
+                    setInitialSize(menu.getPositionConfigValue("spacingX", 0.0),
+                                   menu.getPositionConfigValue("spacingY", 0.0),
+                                   menu.getPositionConfigValue("spacingZ", 0.0));
                 }
 
                 @Override

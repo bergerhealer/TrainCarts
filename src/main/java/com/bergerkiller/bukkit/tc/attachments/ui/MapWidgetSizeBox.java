@@ -17,11 +17,25 @@ public abstract class MapWidgetSizeBox extends MapWidget {
         public String getAcceptedPropertyName() {
             return "Size X-Axis";
         }
+
+        @Override
+        protected void onResetClickSound() {
+            if (!isUniformFocused()) {
+                super.onResetClickSound();
+            }
+        }
     });
     public final MapWidgetNumberBox y = addWidget(new SizeNumberBox() {
         @Override
         public String getAcceptedPropertyName() {
             return "Size Y-Axis";
+        }
+
+        @Override
+        protected void onResetClickSound() {
+            if (!isUniformFocused()) {
+                super.onResetClickSound();
+            }
         }
     });
     public final MapWidgetNumberBox z = addWidget(new SizeNumberBox() {
@@ -98,21 +112,38 @@ public abstract class MapWidgetSizeBox extends MapWidget {
     }
 
     /**
-     * Called when one of the size axis are changed
+     * Called when one of the size axis are changed. Is <b>not</b> called when
+     * {@link #setInitialSize(double, double, double)} is used.
      */
     public abstract void onSizeChanged();
 
     /**
-     * Sets the (initial) size displayed
+     * Sets the size displayed. Will fire {@link #onSizeChanged()}
+     * if changed.
      *
      * @param sx Size X-Axis
      * @param sy Size Y-Axis
      * @param sz Size Z-Axis
      */
     public void setSize(double sx, double sy, double sz) {
-        x.setValue(sx);
-        y.setValue(sy);
-        z.setValue(sz);
+        if (sx != x.getValue() || sy != y.getValue() || sz != z.getValue()) {
+            setInitialSize(sx, sy, sz);
+            onSizeChanged();
+        }
+    }
+
+    /**
+     * Sets the initial size displayed. Does <b>not</b> call
+     * {@link #onSizeChanged()}
+     *
+     * @param sx Size X-Axis
+     * @param sy Size Y-Axis
+     * @param sz Size Z-Axis
+     */
+    public void setInitialSize(double sx, double sy, double sz) {
+        x.setInitialValue(sx);
+        y.setInitialValue(sy);
+        z.setInitialValue(sz);
     }
 
     @Override

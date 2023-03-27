@@ -23,7 +23,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class PositionMenu extends MapWidgetMenu {
-    private boolean isLoadingWidgets;
     private final MapWidgetScroller scroller = new MapWidgetScroller();
 
     public PositionMenu() {
@@ -46,8 +45,6 @@ public class PositionMenu extends MapWidgetMenu {
     @Override
     public void onAttached() {
         super.onAttached();
-
-        isLoadingWidgets = true;
 
         final Builder builder = new Builder();
         builder.addRow(menu -> new MapWidgetSelectionBox() { // anchor
@@ -78,7 +75,7 @@ public class PositionMenu extends MapWidgetMenu {
             @Override
             public void onAttached() {
                 super.onAttached();
-                this.setValue(menu.getPositionConfigValue("posX", 0.0));
+                this.setInitialValue(menu.getPositionConfigValue("posX", 0.0));
             }
 
             @Override
@@ -98,7 +95,7 @@ public class PositionMenu extends MapWidgetMenu {
             @Override
             public void onAttached() {
                 super.onAttached();
-                this.setValue(menu.getPositionConfigValue("posY", 0.0));
+                this.setInitialValue(menu.getPositionConfigValue("posY", 0.0));
             }
 
             @Override
@@ -117,7 +114,7 @@ public class PositionMenu extends MapWidgetMenu {
             @Override
             public void onAttached() {
                 super.onAttached();
-                this.setValue(menu.getPositionConfigValue("posZ", 0.0));
+                this.setInitialValue(menu.getPositionConfigValue("posZ", 0.0));
             }
 
             @Override
@@ -137,7 +134,7 @@ public class PositionMenu extends MapWidgetMenu {
             public void onAttached() {
                 super.onAttached();
                 this.setIncrement(0.1);
-                this.setValue(menu.getPositionConfigValue("rotX", 0.0));
+                this.setInitialValue(menu.getPositionConfigValue("rotX", 0.0));
             }
 
             @Override
@@ -157,7 +154,7 @@ public class PositionMenu extends MapWidgetMenu {
             public void onAttached() {
                 super.onAttached();
                 this.setIncrement(0.1);
-                this.setValue(menu.getPositionConfigValue("rotY", 0.0));
+                this.setInitialValue(menu.getPositionConfigValue("rotY", 0.0));
             }
 
             @Override
@@ -177,7 +174,7 @@ public class PositionMenu extends MapWidgetMenu {
             public void onAttached() {
                 super.onAttached();
                 this.setIncrement(0.1);
-                this.setValue(menu.getPositionConfigValue("rotZ", 0.0));
+                this.setInitialValue(menu.getPositionConfigValue("rotZ", 0.0));
             }
 
             @Override
@@ -221,8 +218,6 @@ public class PositionMenu extends MapWidgetMenu {
 
             yPos += rowHeight;
         }
-
-        isLoadingWidgets = false;
     }
 
     /**
@@ -260,10 +255,6 @@ public class PositionMenu extends MapWidgetMenu {
      * @param manipulator
      */
     public void updatePositionConfig(Consumer<ConfigurationNode> manipulator) {
-        if (isLoadingWidgets) {
-            return;
-        }
-
         ConfigurationNode config = getPositionConfig();
         boolean wasDefaultPosition = ObjectPosition.isDefaultSeatParent(config);
 
@@ -295,10 +286,6 @@ public class PositionMenu extends MapWidgetMenu {
      * @param manipulator
      */
     public void updateConfig(Consumer<ConfigurationNode> manipulator) {
-        if (isLoadingWidgets) {
-            return;
-        }
-
         ConfigurationNode config = this.getAttachment().getConfig();
         manipulator.accept(config);
         sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
@@ -446,10 +433,9 @@ public class PositionMenu extends MapWidgetMenu {
                 @Override
                 public void onAttached() {
                     super.onAttached();
-
-                    setSize(menu.getPositionConfigValue("sizeX", 1.0),
-                            menu.getPositionConfigValue("sizeY", 1.0),
-                            menu.getPositionConfigValue("sizeZ", 1.0));
+                    setInitialSize(menu.getPositionConfigValue("sizeX", 1.0),
+                                   menu.getPositionConfigValue("sizeY", 1.0),
+                                   menu.getPositionConfigValue("sizeZ", 1.0));
                 }
 
                 @Override

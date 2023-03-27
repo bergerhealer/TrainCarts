@@ -118,9 +118,9 @@ public class CartAttachmentItem extends CartAttachment {
         public void onAttached() {
             super.onAttached();
 
-            setSize(menu.getPositionConfigValue("sizeX", 1.0),
-                    menu.getPositionConfigValue("sizeY", 1.0),
-                    menu.getPositionConfigValue("sizeZ", 1.0));
+            setInitialSize(menu.getPositionConfigValue("sizeX", 1.0),
+                           menu.getPositionConfigValue("sizeY", 1.0),
+                           menu.getPositionConfigValue("sizeZ", 1.0));
 
             setEnabled(ItemTransformType.deserialize(menu.getPositionConfig(), "transform")
                     .category() == ItemTransformType.Category.DISPLAY);

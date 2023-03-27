@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.ui;
 
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
@@ -93,17 +94,38 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
         }
     }
 
+    /**
+     * Sets the initial value, without firing {@link #onValueChanged()} if it
+     * differs from the current value (default of 0)
+     *
+     * @param value The initial value
+     */
+    public void setInitialValue(double value) {
+        if (value != this._value) {
+            updateValue(value);
+        }
+    }
+
+    /**
+     * Sets a new value. Will fire {@link #onValueChanged()} if the value changes.
+     *
+     * @param value The new value
+     */
     public void setValue(double value) {
         if (value != this._value) {
-            this._value = value;
-            if (this._value < this._min) {
-                this._value = this._min;
-            } else if (this._value > this._max) {
-                this._value = this._max;
-            }
-            this.invalidate();
+            updateValue(value);
             this.onValueChanged();
         }
+    }
+
+    private void updateValue(double value) {
+        this._value = value;
+        if (this._value < this._min) {
+            this._value = this._min;
+        } else if (this._value > this._max) {
+            this._value = this._max;
+        }
+        this.invalidate();
     }
 
     public double getValue() {
@@ -218,7 +240,7 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
      * @return True if reset
      */
     public boolean isHoldEnterResetComplete() {
-        return this._holdEnterProgress >= this._holdEnterMaximum;
+        return this._holdEnterProgress == this._holdEnterMaximum;
     }
 
     @Override
@@ -382,8 +404,18 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
     public void onActivate() {
         this.onResetValue();
         this.onValueChangeEnd();
+        this.onResetClickSound();
     }
 
+    // So that others can cancel the click sound (size box...)
+    protected void onResetClickSound() {
+        this.display.playSound(SoundEffect.CLICK);
+    }
+
+    /**
+     * Called when the value is changed by the user. Is <b>not</b> called when
+     * {@link #setInitialValue(double)} is used,
+     */
     public void onValueChanged() {
     }
 
