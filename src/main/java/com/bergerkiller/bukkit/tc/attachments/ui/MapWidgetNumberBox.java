@@ -272,6 +272,8 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
                 case RIGHT:
                     this.onResetSpecial(event.getKey());
                     this._holdEnterProgress = this._holdEnterMaximum + 1;
+                    this.invalidate();
+                    this.onResetClickSound();
                     break;
                 default:
                     super.onKeyPressed(event);
