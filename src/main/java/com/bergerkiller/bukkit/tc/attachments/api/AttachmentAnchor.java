@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.api;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.util.Vector;
@@ -212,6 +213,8 @@ public abstract class AttachmentAnchor {
      */
     public static <T extends AttachmentAnchor> T register(T anchor) {
         registry.put(anchor.getName(), anchor);
+        registry.put(anchor.getName().toLowerCase(Locale.ENGLISH), anchor);
+        registry.put(anchor.getName().toUpperCase(Locale.ENGLISH), anchor);
         return anchor;
     }
 
@@ -221,7 +224,9 @@ public abstract class AttachmentAnchor {
      * @param anchor to unregister
      */
     public static void unregister(AttachmentAnchor anchor) {
-        registry.remove(anchor.getName());
+        registry.remove(anchor.getName(), anchor);
+        registry.remove(anchor.getName().toLowerCase(Locale.ENGLISH), anchor);
+        registry.remove(anchor.getName().toUpperCase(Locale.ENGLISH), anchor);
     }
 
     /**

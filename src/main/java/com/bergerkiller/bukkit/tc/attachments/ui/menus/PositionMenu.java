@@ -54,21 +54,38 @@ public class PositionMenu extends MapWidgetMenu {
             public void onAttached() {
                 super.onAttached();
 
+                // Currently selected
+                AttachmentAnchor current = getCurrentAnchor();
+
                 // To test compatibility: load the attachment first
                 AttachmentType attachmentType = menu.getAttachment().getType();
+                boolean foundCurrent = false;
                 for (AttachmentAnchor type : AttachmentAnchor.values()) {
                     if (type.supports(AttachmentControllerMember.class, attachmentType)) {
                         this.addItem(type.getName());
+                        if (type.equals(current)) {
+                            foundCurrent = true;
+                        }
                     }
                 }
-                this.setSelectedItem(menu.getPositionConfigValue("anchor", AttachmentAnchor.DEFAULT.getName()));
+                if (!foundCurrent) {
+                    this.addItem(current.getName()); // Some unsupported type, but show it anyway
+                }
+                this.setSelectedItem(current.getName());
             }
 
             @Override
             public void onSelectedItemChanged() {
-                if (!menu.getPositionConfigValue("anchor", AttachmentAnchor.DEFAULT.getName()).equals(getSelectedItem())) {
-                    menu.updatePositionConfigValue("anchor", getSelectedItem());
+                AttachmentAnchor newAnchor = AttachmentAnchor.find(
+                        AttachmentControllerMember.class, menu.getAttachment().getType(), getSelectedItem());
+                if (!getCurrentAnchor().equals(newAnchor)) {
+                    menu.updatePositionConfigValue("anchor", newAnchor.getName());
                 }
+            }
+
+            private AttachmentAnchor getCurrentAnchor() {
+                String name = menu.getPositionConfigValue("anchor", AttachmentAnchor.DEFAULT.getName());
+                return AttachmentAnchor.find(AttachmentControllerMember.class, menu.getAttachment().getType(), name);
             }
         }.setBounds(25, 0, menu.getSliderWidth(), 11))
                 .addLabel(0, 3, "Anchor");
