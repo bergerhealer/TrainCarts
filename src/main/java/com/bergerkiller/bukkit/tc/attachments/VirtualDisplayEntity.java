@@ -34,6 +34,12 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
     public static final EntityType ITEM_DISPLAY_ENTITY_TYPE = LogicUtil.tryMake(
             () -> EntityType.valueOf("ITEM_DISPLAY"), null);
 
+    /**
+     * This multiplier is needed for the bounding box (clip box) size to make sure this
+     * block remains visible even when rotated 45 degrees.
+     */
+    public static final double BBOX_FACT = 1.0 / MathUtil.HALFROOTOFTWO;
+
     // This (unchanging) read-only metadata is used when spawning the mount of the display entity
     public static final DataWatcher ARMORSTAND_MOUNT_METADATA = new DataWatcher();
     static {

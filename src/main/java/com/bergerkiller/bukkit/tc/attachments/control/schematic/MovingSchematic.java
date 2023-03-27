@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualSpawnableObject;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
@@ -36,11 +37,13 @@ public class MovingSchematic extends VirtualSpawnableObject {
     private final Vector livePos = new Vector();
     private final Vector syncPos = new Vector();
     private final Quaternion liveRot = new Quaternion();
+    private final Vector blockBounds = new Vector(1.0, 1.0, 1.0);
     private final Vector scale = new Vector(1.0, 1.0, 1.0);
     private final Vector spacing = new Vector(0.0, 0.0, 0.0);
-    private final Vector spacingFactor = new Vector(1.0, 1.0, 1.0);
+    private boolean hasSpacing = false;
+    private float bbSize = 1.0F;
     private int[] cachedBlockEntityIds = null;
-    private boolean isFirstSync = true;
+    private boolean hasKnownPosition = false;
 
     public MovingSchematic(AttachmentManager manager) {
         super(manager);
@@ -48,13 +51,19 @@ public class MovingSchematic extends VirtualSpawnableObject {
     }
 
     /**
-     * Should be called up-front when initializing blocks: defines the factor with which
-     * the spacing value is multiplied. Depends on the dimensions of the blocks.
+     * Sets the total block dimensions of this moving schematic. This, together with
+     * scale, is used to figure out the size of the clipping bounding box.
      *
-     * @param factor Spacing factor (default: 1 1 1)
+     * @param blockBounds Block bounds of the schematic
      */
-    public void setSpacingFactor(Vector factor) {
-        MathUtil.setVector(spacingFactor, factor);
+    public void setBlockBounds(Vector blockBounds) {
+        if (this.blockBounds.getX() != blockBounds.getX() ||
+            this.blockBounds.getY() != blockBounds.getY() ||
+            this.blockBounds.getZ() != blockBounds.getZ()
+        ) {
+            MathUtil.setVector(this.blockBounds, blockBounds);
+            rescaleAllBlocks();
+        }
     }
 
     /**
@@ -71,15 +80,20 @@ public class MovingSchematic extends VirtualSpawnableObject {
             SingleSchematicBlock block = new SingleSchematicBlock(x, y, z, blockData);
             this.blocks.add(block);
             this.cachedBlockEntityIds = null;
-            if (!isFirstSync) {
-                block.sync(liveRot, scale, spacing, Collections.emptyList());
+            if (hasKnownPosition) {
+                if (hasSpacing) {
+                    block.setScaleAndSpacing(scale, spacing, bbSize);
+                } else {
+                    block.setScaleZeroSpacing(scale, bbSize);
+                }
+                block.sync(liveRot, Collections.emptyList());
                 forAllViewers(v -> block.spawn(v, syncPos, new Vector(0.0, 0.0, 0.0)));
             }
         }
     }
 
     public void resendMounts() {
-        if (!isFirstSync) {
+        if (hasKnownPosition) {
             broadcast(PacketPlayOutMountHandle.createNew(mountEntityId, getBlockEntityIds()));
         }
     }
@@ -101,27 +115,48 @@ public class MovingSchematic extends VirtualSpawnableObject {
     public void setScale(Vector3 scale) {
         if (this.scale.getX() != scale.x || this.scale.getY() != scale.y || this.scale.getZ() != scale.z) {
             MathUtil.setVector(this.scale, scale.x, scale.y, scale.z);
-            syncAllBlocks();
+            rescaleAllBlocks();
         }
     }
 
     public void setScale(Vector scale) {
         if (this.scale.getX() != scale.getX() || this.scale.getY() != scale.getY() || this.scale.getZ() != scale.getZ()) {
             MathUtil.setVector(this.scale, scale);
-            syncAllBlocks();
+            rescaleAllBlocks();
         }
     }
 
     public void setSpacing(Vector spacing) {
         if (this.spacing.getX() != spacing.getX() || this.spacing.getY() != spacing.getY() || this.spacing.getZ() != spacing.getZ()) {
             MathUtil.setVector(this.spacing, spacing);
-            syncAllBlocks();
+            hasSpacing = (spacing.getX() != 0.0 || spacing.getY() != 0.0 || spacing.getZ() != 0.0);
+            rescaleAllBlocks();
         }
     }
 
-    private void syncAllBlocks() {
-        for (SingleSchematicBlock block : blocks) {
-            block.sync(liveRot, scale, spacing, getViewers());
+    private void rescaleAllBlocks() {
+        bbSize = (float) (VirtualDisplayEntity.BBOX_FACT * Util.absMaxAxis(blockBounds.clone().add(spacing).multiply(scale)));
+        if (hasKnownPosition) {
+            Float bbSize = Float.valueOf(this.bbSize);
+            if (hasSpacing) {
+                for (SingleSchematicBlock block : blocks) {
+                    block.setScaleZeroSpacing(scale, bbSize);
+                    block.sync(liveRot, getViewers());
+                }
+            } else {
+                for (SingleSchematicBlock block : blocks) {
+                    block.setScaleAndSpacing(scale, spacing, bbSize);
+                    block.sync(liveRot, getViewers());
+                }
+            }
+        }
+    }
+
+    private void syncBlockPositions() {
+        if (hasKnownPosition) {
+            for (SingleSchematicBlock block : blocks) {
+                block.sync(liveRot, getViewers());
+            }
         }
     }
 
@@ -166,17 +201,17 @@ public class MovingSchematic extends VirtualSpawnableObject {
         MathUtil.setVector(livePos, transform.toVector());
         liveRot.setTo(transform.getRotation());
 
-        if (isFirstSync) {
-            isFirstSync = false;
+        if (!hasKnownPosition) {
+            hasKnownPosition = true;
             MathUtil.setVector(syncPos, livePos);
-            syncAllBlocks(); // Important for spawn() to work right
+            rescaleAllBlocks();
         }
     }
 
     @Override
     public void syncPosition(boolean absolute) {
         // Sync rotation and relative translations of all the block entities
-        syncAllBlocks();
+        syncBlockPositions();
 
         // Move the armorstand itself
         {

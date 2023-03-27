@@ -187,6 +187,9 @@ public class CartAttachmentSchematic extends CartAttachment {
 
         WorldEditSchematicLoader.SchematicBlock block = schematicReader.next();
         if (block != null) {
+            // Required for correct clipping bounding box calculations
+            schematic.setBlockBounds(block.schematic.dimensions.toVector());
+
             // Center the entire schematic at the bottom-middle
             double originX = 0.5 * block.schematic.dimensions.x;
             double originY = 0.0;

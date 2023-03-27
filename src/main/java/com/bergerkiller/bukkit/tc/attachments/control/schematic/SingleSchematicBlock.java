@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.control.schematic;
 
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayEntity;
@@ -19,6 +20,8 @@ import java.util.UUID;
  */
 class SingleSchematicBlock {
     private final double x, y, z;
+    private double sx, sy, sz; // Scaled x/y/z
+    private final Vector translation;
     private final int entityId;
     private final UUID entityUUID;
     private final DataWatcher metadata;
@@ -27,6 +30,10 @@ class SingleSchematicBlock {
         this.x = x;
         this.y = y;
         this.z = z;
+        this.sx = x;
+        this.sy = y;
+        this.sz = z;
+        this.translation = new Vector(x, y, z);
         this.entityId = EntityUtil.getUniqueEntityId();
         this.entityUUID = UUID.randomUUID();
         this.metadata = new DataWatcher();
@@ -36,6 +43,8 @@ class SingleSchematicBlock {
         metadata.watch(DisplayHandle.DATA_SCALE, new Vector(1, 1, 1));
         metadata.watch(DisplayHandle.DATA_TRANSLATION, new Vector());
         metadata.watch(DisplayHandle.DATA_LEFT_ROTATION, new Quaternion());
+        metadata.watch(DisplayHandle.DATA_WIDTH, (float) 1.5F);
+        metadata.watch(DisplayHandle.DATA_HEIGHT, (float) 1.5F);
         metadata.watch(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, blockData);
     }
 
@@ -49,23 +58,48 @@ class SingleSchematicBlock {
     }
 
     /**
+     * Refreshes the scale and spacing used when displaying this block
+     *
+     * @param scale New scale factor
+     * @param spacing New spacing
+     * @param bb Bounding box size (width and height)
+     */
+    public void setScaleAndSpacing(Vector scale, Vector spacing, Float bb) {
+        sx = scale.getX() * (x + (spacing.getX() * (x + 0.5)));
+        sy = scale.getY() * (y + (spacing.getY() * y));
+        sz = scale.getZ() * (z + (spacing.getZ() * (z + 0.5)));
+        metadata.set(DisplayHandle.DATA_SCALE, scale);
+        metadata.set(DisplayHandle.DATA_WIDTH, bb);
+        metadata.set(DisplayHandle.DATA_HEIGHT, bb);
+    }
+
+    /**
+     * Refreshes the scale used when displaying this block. Assumes zero spacing (common)
+     *
+     * @param scale New scale factor
+     * @param bb Bounding box size (width and height)
+     */
+    public void setScaleZeroSpacing(Vector scale, Float bb) {
+        sx = scale.getX() * x;
+        sy = scale.getY() * y;
+        sz = scale.getZ() * z;
+        metadata.set(DisplayHandle.DATA_SCALE, scale);
+        metadata.set(DisplayHandle.DATA_WIDTH, bb);
+        metadata.set(DisplayHandle.DATA_HEIGHT, bb);
+    }
+
+    /**
      * Updates the rotation and scale of this schematic block. Updates the relative
      * rotation and translation of this block around 0,0,0. Sends these updates
      * to all viewers specified, and future spawns will use it.
      *
      * @param rotation Rotation Quaternion
-     * @param scale Scale of the overall structure
-     * @param spacing Block spacing between all individual blocks (0 for none)
      * @param viewers Recipients of the metadata updates
      */
-    public void sync(Quaternion rotation, Vector scale, Vector spacing, Iterable<AttachmentViewer> viewers) {
-        Vector translation = new Vector(
-                (scale.getX() * x) + (spacing.getX() * (x + 0.5)),
-                (scale.getY() * y) + (spacing.getY() * y),
-                (scale.getZ() * z) + (spacing.getZ() * (z + 0.5)));
+    public void sync(Quaternion rotation, Iterable<AttachmentViewer> viewers) {
+        Vector translation = this.translation;
+        MathUtil.setVector(translation, sx, sy, sz);
         rotation.transformPoint(translation);
-
-        metadata.set(DisplayHandle.DATA_SCALE, scale);
         metadata.forceSet(DisplayHandle.DATA_TRANSLATION, translation);
         metadata.forceSet(DisplayHandle.DATA_LEFT_ROTATION, rotation);
         metadata.forceSet(DisplayHandle.DATA_INTERPOLATION_START_DELTA_TICKS, 0);
