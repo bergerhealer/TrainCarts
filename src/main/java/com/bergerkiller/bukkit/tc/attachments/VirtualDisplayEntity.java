@@ -57,7 +57,7 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
     protected final DataWatcher metadata;
 
     // Properties
-    private final Vector scale;
+    protected final Vector scale;
 
     public VirtualDisplayEntity(AttachmentManager manager, EntityType entityType) {
         super(manager);
@@ -95,15 +95,19 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
     public void setScale(Vector3 scale) {
         if (this.scale.getX() != scale.x || this.scale.getY() != scale.y || this.scale.getZ() != scale.z) {
             MathUtil.setVector(this.scale, scale.x, scale.y, scale.z);
-            this.metadata.set(DisplayHandle.DATA_SCALE, this.scale);
+            onScaleUpdated();
         }
     }
 
     public void setScale(Vector scale) {
         if (this.scale.getX() != scale.getX() || this.scale.getY() != scale.getY() || this.scale.getZ() != scale.getZ()) {
             MathUtil.setVector(this.scale, scale);
-            this.metadata.set(DisplayHandle.DATA_SCALE, this.scale);
+            onScaleUpdated();
         }
+    }
+
+    protected void onScaleUpdated() {
+        this.metadata.set(DisplayHandle.DATA_SCALE, this.scale);
     }
 
     @Override
