@@ -140,12 +140,12 @@ public class MovingSchematic extends VirtualSpawnableObject {
             Float bbSize = Float.valueOf(this.bbSize);
             if (hasSpacing) {
                 for (SingleSchematicBlock block : blocks) {
-                    block.setScaleZeroSpacing(scale, bbSize);
+                    block.setScaleAndSpacing(scale, spacing, bbSize);
                     block.sync(liveRot, getViewers());
                 }
             } else {
                 for (SingleSchematicBlock block : blocks) {
-                    block.setScaleAndSpacing(scale, spacing, bbSize);
+                    block.setScaleZeroSpacing(scale, bbSize);
                     block.sync(liveRot, getViewers());
                 }
             }
