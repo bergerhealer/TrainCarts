@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.common.wrappers.ItemDisplayMode;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.generated.net.minecraft.world.entity.DisplayHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
@@ -28,6 +29,8 @@ public class VirtualDisplayItemEntity extends VirtualDisplayEntity {
     // Properties
     private ItemDisplayMode mode;
     private ItemStack item;
+    private double clip;
+    private boolean appliedClip;
 
     public VirtualDisplayItemEntity(AttachmentManager manager) {
         super(manager, ITEM_DISPLAY_ENTITY_TYPE);
@@ -36,6 +39,8 @@ public class VirtualDisplayItemEntity extends VirtualDisplayEntity {
 
         mode = ItemDisplayMode.HEAD;
         item = null;
+        clip = 0.0;
+        appliedClip = false;
     }
 
     public ItemStack getItem() {
@@ -56,6 +61,40 @@ public class VirtualDisplayItemEntity extends VirtualDisplayEntity {
             this.metadata.set(DisplayHandle.ItemDisplayHandle.DATA_ITEM_STACK, item);
             this.metadata.set(DisplayHandle.ItemDisplayHandle.DATA_ITEM_DISPLAY_MODE, mode);
             syncMeta(); // Changes in item should occur immediately
+        }
+    }
+
+    @Override
+    protected void onScaleUpdated() {
+        super.onScaleUpdated();
+        applyClip();
+    }
+
+    /**
+     * Sets a new clip size. This together with the scale axis defines the size of the entity
+     *
+     * @param clip Clip bounding box size (before scale)
+     */
+    public void setClip(double clip) {
+        if (this.clip != clip) {
+            this.clip = clip;
+            applyClip();
+        }
+    }
+
+    private void applyClip() {
+        if (this.clip != 0.0) {
+            if (!appliedClip) {
+                appliedClip = true;
+                metadata.watch(DisplayHandle.ItemDisplayHandle.DATA_WIDTH, 0.0f);
+                metadata.watch(DisplayHandle.ItemDisplayHandle.DATA_HEIGHT, 0.0f);
+            }
+            float f = (float) (this.clip * BBOX_FACT * Util.absMaxAxis(scale));
+            metadata.set(DisplayHandle.ItemDisplayHandle.DATA_WIDTH, f);
+            metadata.set(DisplayHandle.ItemDisplayHandle.DATA_HEIGHT, f);
+        } else if (appliedClip) {
+            metadata.set(DisplayHandle.ItemDisplayHandle.DATA_WIDTH, 0.0f);
+            metadata.set(DisplayHandle.ItemDisplayHandle.DATA_HEIGHT, 0.0f);
         }
     }
 }

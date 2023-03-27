@@ -19,6 +19,7 @@ public class VirtualHybridItemEntity extends VirtualSpawnableObject {
     private HybridItemTransformType transformType = HybridItemTransformType.ARMORSTAND_HEAD;
     private ItemStack item = null;
     private Matrix4x4 transform = null;
+    private double clip = 0.0;
     // Avoids creating a bunch of wasteful matrices all the time
     private final Matrix4x4 tmpArmorstandTransform = Matrix4x4.identity();
     private final Matrix4x4 tmpDisplayTransform = Matrix4x4.identity();
@@ -53,6 +54,18 @@ public class VirtualHybridItemEntity extends VirtualSpawnableObject {
         }
     }
 
+    /**
+     * Sets a new clip size. This together with the scale axis defines the size of the entity
+     *
+     * @param clip Clip bounding box size (before scale)
+     */
+    public void setClip(double clip) {
+        this.clip = clip;
+        if (display != null) {
+            display.setClip(clip);
+        }
+    }
+
     @Override
     protected void sendSpawnPackets(AttachmentViewer viewer, Vector motion) {
         if (viewer.supportsDisplayEntities()) {
@@ -62,6 +75,7 @@ public class VirtualHybridItemEntity extends VirtualSpawnableObject {
                 }
                 display = new VirtualDisplayItemEntity(manager);
                 display.setGlowColor(getGlowColor());
+                display.setClip(clip);
                 display.setScale(transformType.displayScale());
                 display.setItem(transformType.displayMode(), item);
                 display.updatePosition(transformType.transformDisplay(tmpDisplayTransform, transform));

@@ -5,9 +5,11 @@ import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayItemEntity;
+import com.bergerkiller.bukkit.tc.attachments.VirtualHybridItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualSpawnableObject;
 import com.bergerkiller.bukkit.tc.attachments.config.transform.ItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetItemTransformTypeSelector;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSizeBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 import org.bukkit.Material;
@@ -85,6 +87,8 @@ public class CartAttachmentItem extends CartAttachment {
                     for (MapWidget widget : getParent().getWidgets()) {
                         if (widget instanceof ScaleWidget) {
                             widget.setEnabled(type.category() == ItemTransformType.Category.DISPLAY);
+                        } else if (widget instanceof ClipWidget) {
+                            widget.setEnabled(type.category() != ItemTransformType.Category.ARMORSTAND);
                         }
                     }
                 }
@@ -94,18 +98,46 @@ public class CartAttachmentItem extends CartAttachment {
                 transformRow.addLabel(0, 15, "Tr.form");
             }
 
-            // On 1.19.4+ show the full size x/y/z axis.
+            // On 1.19.4+ show the clip size and full size x/y/z axis.
             if (CommonCapabilities.HAS_DISPLAY_ENTITY) {
+                builder.addRow(menu -> (new ClipWidget(menu))
+                                .setBounds(25, 0, menu.getSliderWidth(), 11))
+                        .addLabel(0, 3, "Clip")
+                        .setSpacingAbove(3);
+
                 builder.addRow(menu -> (new ScaleWidget(menu))
-                                .setBounds(25, 0, menu.getSliderWidth(), 35)
-                        )
+                                .setBounds(25, 0, menu.getSliderWidth(), 35))
                         .addLabel(0, 3, "Size X")
                         .addLabel(0, 15, "Size Y")
-                        .addLabel(0, 27, "Size Z")
-                        .setSpacingAbove(3);
+                        .addLabel(0, 27, "Size Z");
             }
         }
     };
+
+    private static class ClipWidget extends MapWidgetNumberBox {
+        private final PositionMenu menu;
+
+        public ClipWidget(PositionMenu menu) {
+            this.menu = menu;
+        }
+
+        @Override
+        public void onAttached() {
+            super.onAttached();
+
+            setRange(0.0, 1000.0);
+            setInitialValue(menu.getPositionConfigValue("clip", 0.0));
+            if (getValue() == 0.0) {
+                this.setTextOverride("<Disabled>");
+            }
+        }
+
+        @Override
+        public void onValueChanged() {
+            this.setTextOverride((getValue() == 0.0) ? "<Disabled>" : null);
+            menu.updatePositionConfigValue("clip", getValue() == 0.0 ? null : getValue());
+        }
+    }
 
     private static class ScaleWidget extends MapWidgetSizeBox {
         private final PositionMenu menu;
@@ -183,7 +215,12 @@ public class CartAttachmentItem extends CartAttachment {
         ItemTransformType type = ItemTransformType.deserialize(config, "position.transform");
         type.update(entity, newItem);
         if (entity instanceof VirtualDisplayItemEntity) {
-            ((VirtualDisplayItemEntity) entity).setScale(getConfiguredPosition().size);
+            VirtualDisplayItemEntity itemDisplay = (VirtualDisplayItemEntity) entity;
+            itemDisplay.setScale(getConfiguredPosition().size);
+            itemDisplay.setClip(config.getOrDefault("position.clip", 0.0));
+        } else if (entity instanceof VirtualHybridItemEntity) {
+            VirtualHybridItemEntity hybrid = (VirtualHybridItemEntity) entity;
+            hybrid.setClip(config.getOrDefault("position.clip", 0.0));
         }
     }
 
