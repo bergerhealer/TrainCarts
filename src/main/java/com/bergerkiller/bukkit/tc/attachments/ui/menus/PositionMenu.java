@@ -4,8 +4,10 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapFont;
+import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
@@ -129,11 +131,10 @@ public class PositionMenu extends MapWidgetMenu {
         }.setBounds(25, 0, menu.getSliderWidth(), 11))
                 .addLabel(0, 3, "Pos.Z");
 
-        builder.addRow(menu -> new MapWidgetNumberBox() { // Rotation X (pitch)
+        builder.addRow(menu -> new RotationNumberBox() { // Rotation X (pitch)
             @Override
             public void onAttached() {
                 super.onAttached();
-                this.setIncrement(0.1);
                 this.setInitialValue(menu.getPositionConfigValue("rotX", 0.0));
             }
 
@@ -149,11 +150,10 @@ public class PositionMenu extends MapWidgetMenu {
         }.setBounds(25, 0, menu.getSliderWidth(), 11))
                 .addLabel(0, 3, "Pitch");
 
-        builder.addRow(menu -> new MapWidgetNumberBox() { // Rotation Y (yaw)
+        builder.addRow(menu -> new RotationNumberBox() { // Rotation Y (yaw)
             @Override
             public void onAttached() {
                 super.onAttached();
-                this.setIncrement(0.1);
                 this.setInitialValue(menu.getPositionConfigValue("rotY", 0.0));
             }
 
@@ -169,11 +169,10 @@ public class PositionMenu extends MapWidgetMenu {
         }.setBounds(25, 0, menu.getSliderWidth(), 11))
                 .addLabel(0, 3, "Yaw");
 
-        builder.addRow(menu -> new MapWidgetNumberBox() { // Rotation Z (roll)
+        builder.addRow(menu -> new RotationNumberBox() { // Rotation Z (roll)
             @Override
             public void onAttached() {
                 super.onAttached();
-                this.setIncrement(0.1);
                 this.setInitialValue(menu.getPositionConfigValue("rotZ", 0.0));
             }
 
@@ -309,6 +308,26 @@ public class PositionMenu extends MapWidgetMenu {
      */
     public MapWidgetAttachmentNode getAttachment() {
         return this.attachment;
+    }
+
+    private class RotationNumberBox extends MapWidgetNumberBox {
+
+        public RotationNumberBox() {
+            this.setIncrement(0.1);
+        }
+
+        @Override
+        public void onResetSpecial(MapPlayerInput.Key key) {
+            // LEFT/RIGHT increments it by 90 degrees steps
+            // UP/DOWN flips the value 180 degrees
+            if (key == MapPlayerInput.Key.RIGHT) {
+                setValue(MathUtil.wrapAngle(getValue() + 90.0));
+            } else if (key == MapPlayerInput.Key.LEFT) {
+                setValue(MathUtil.wrapAngle(getValue() - 90.0));
+            } else {
+                setValue(MathUtil.wrapAngle(getValue() + 180.0));
+            }
+        }
     }
 
     /**
