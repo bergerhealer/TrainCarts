@@ -7,18 +7,22 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil.ItemSynchronizer;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import org.bukkit.util.Vector;
 
 /**
  * Previews the set cart width, wheel distance and wheel offset of a Minecart
  * by showing a bounding box, and particles for where the wheels are.
  */
 public class PhysicalMemberPreview {
-    private final VirtualFishingBoundingBox boundingBox = new VirtualFishingBoundingBox();
+    private final VirtualFishingBoundingBox boundingBox = new VirtualFishingBoundingBox(null);
     private final VirtualMemberWheelPreview wheelsFront = new VirtualMemberWheelPreview();
     private final VirtualMemberWheelPreview wheelsBack = new VirtualMemberWheelPreview();
     private final Set<Player> viewers = new HashSet<Player>();
@@ -28,6 +32,8 @@ public class PhysicalMemberPreview {
     public PhysicalMemberPreview(MinecartMember<?> member, Supplier<Collection<Player>> viewerSupplier) {
         this.member = member;
         this.viewerSupplier = viewerSupplier;
+        this.boundingBox.update(this.member.getHitBox());
+        this.boundingBox.setGlowColor(ChatColor.WHITE);
     }
 
     public void update() {
@@ -50,32 +56,33 @@ public class PhysicalMemberPreview {
 
             @Override
             public Player onAdded(Player value) {
-                spawn(value);
+                spawn(TrainCarts.plugin.getPacketQueueMap().getQueue(value));
                 return value;
             }
 
             @Override
             public void onRemoved(Player item) {
-                destroy(item);
+                destroy(TrainCarts.plugin.getPacketQueueMap().getQueue(item));
             }
         });
     }
 
-    private void spawn(Player viewer) {
-        this.boundingBox.spawn(viewer, this.member.getHitBox());
-        this.wheelsFront.spawn(viewer, 1.0, this.member.getWheels().front());
-        this.wheelsBack.spawn(viewer, 1.0, this.member.getWheels().back());
+    private void spawn(AttachmentViewer viewer) {
+        this.boundingBox.spawn(viewer, new Vector(0.0, 0.0, 0.0));
+        this.wheelsFront.spawn(viewer.getPlayer(), 1.0, this.member.getWheels().front());
+        this.wheelsBack.spawn(viewer.getPlayer(), 1.0, this.member.getWheels().back());
     }
 
     private void update(Iterable<Player> viewers) {
-        this.boundingBox.update(viewers, this.member.getHitBox());
+        this.boundingBox.update(this.member.getHitBox());
+        this.boundingBox.syncPosition(true);
         this.wheelsFront.update(viewers, 1.0, this.member.getWheels().front());
         this.wheelsBack.update(viewers, 1.0, this.member.getWheels().back());
     }
 
-    private void destroy(Player viewer) {
+    private void destroy(AttachmentViewer viewer) {
         this.boundingBox.destroy(viewer);
-        this.wheelsFront.destroy(viewer);
-        this.wheelsBack.destroy(viewer);
+        this.wheelsFront.destroy(viewer.getPlayer());
+        this.wheelsBack.destroy(viewer.getPlayer());
     }
 }

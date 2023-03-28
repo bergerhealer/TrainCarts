@@ -1,7 +1,8 @@
 package com.bergerkiller.bukkit.tc.attachments.particle;
 
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import org.bukkit.entity.Player;
+import org.bukkit.ChatColor;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
@@ -16,7 +17,7 @@ import java.util.function.Function;
 /**
  * Uses 12 {@link VirtualFishingLine} instances to display a bounding box
  */
-public class VirtualFishingBoundingBox {
+public class VirtualFishingBoundingBox extends VirtualBoundingBox {
     // Bottom 4 lines
     private final BBOXLine line_btm_nx = new BBOXLine(c -> c.btm_nx_nz, c -> c.btm_nx_pz);
     private final BBOXLine line_btm_px = new BBOXLine(c -> c.btm_px_nz, c -> c.btm_nx_nz);
@@ -41,48 +42,58 @@ public class VirtualFishingBoundingBox {
             line_vrt_nxnz, line_vrt_pxnz, line_vrt_pxpz, line_vrt_nxpz
     );
 
-    public void spawn(Player viewer, OrientedBoundingBox boundingBox) {
-        spawn(AttachmentViewer.fallback(viewer), boundingBox);
+    private ComputedCorners corners = null;
+    private boolean linesSpawned = false;
+
+    public VirtualFishingBoundingBox(AttachmentManager manager) {
+        super(manager);
     }
 
-    public void spawn(AttachmentViewer viewer, OrientedBoundingBox boundingBox) {
-        ComputedCorners corners = new ComputedCorners(boundingBox);
+    @Override
+    public boolean containsEntityId(int entityId) {
+        return false; // Collision is disabled
+    }
+
+    @Override
+    protected void sendSpawnPackets(AttachmentViewer viewer, Vector motion) {
         ArrayList<UUID> uuids = new ArrayList<>(24);
-        lines.forEach(bboxline -> bboxline.spawn(viewer, corners, uuids));
+        if (linesSpawned) {
+            lines.forEach(bboxline -> bboxline.spawn(viewer, corners, uuids));
+        } else {
+            lines.forEach(bboxline -> bboxline.spawnWithoutLine(viewer, corners, uuids));
+        }
         viewer.sendDisableCollision(uuids);
     }
 
-    public void spawnWithoutLines(AttachmentViewer viewer, OrientedBoundingBox boundingBox) {
-        ComputedCorners corners = new ComputedCorners(boundingBox);
-        ArrayList<UUID> uuids = new ArrayList<>(24);
-        lines.forEach(bboxline -> bboxline.spawnWithoutLine(viewer, corners, uuids));
-        viewer.sendDisableCollision(uuids);
-    }
-
-    public void update(Iterable<Player> viewers, OrientedBoundingBox boundingBox) {
-        this.updateViewers(AttachmentViewer.fallbackIterable(viewers), boundingBox);
-    }
-
-    public void updateViewers(Iterable<AttachmentViewer> viewers, OrientedBoundingBox boundingBox) {
-        ComputedCorners corners = new ComputedCorners(boundingBox);
-        lines.forEach(bboxline -> bboxline.updateViewers(viewers, corners));
-    }
-
-    public void destroy(Player viewer) {
+    @Override
+    protected void sendDestroyPackets(AttachmentViewer viewer) {
         lines.forEach(line -> line.destroy(viewer));
     }
 
-    public void destroy(AttachmentViewer viewer) {
-        lines.forEach(line -> line.destroy(viewer));
+    @Override
+    protected void applyGlowing(ChatColor color) {
+        if (linesSpawned != (color != null)) {
+            linesSpawned = !linesSpawned;
+            if (hasViewers()) {
+                if (linesSpawned) {
+                    // Spawn the lines for everyone
+                    forAllViewers(v -> lines.forEach(line -> line.spawnLine(v, corners)));
+                } else {
+                    // Destroy the lines for everyone
+                    forAllViewers(v -> lines.forEach(line -> line.destroyLine(v)));
+                }
+            }
+        }
     }
 
-    public void spawnLines(AttachmentViewer viewer, OrientedBoundingBox boundingBox) {
-        ComputedCorners corners = new ComputedCorners(boundingBox);
-        lines.forEach(line -> line.spawnLine(viewer, corners));
+    @Override
+    public void update(OrientedBoundingBox boundingBox) {
+        this.corners = new ComputedCorners(boundingBox);
     }
 
-    public void destroyLines(AttachmentViewer viewer) {
-        lines.forEach(line -> line.destroyLine(viewer));
+    @Override
+    public void syncPosition(boolean absolute) {
+        lines.forEach(bboxline -> bboxline.updateViewers(getViewers(), corners));
     }
 
     private static class ComputedCorners {

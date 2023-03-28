@@ -28,7 +28,7 @@ public abstract class VirtualSpawnableObject {
     private ChatColor glowColor = null;
 
     public VirtualSpawnableObject(AttachmentManager manager) {
-        this.manager = manager;
+        this.manager = manager; // Can be null!
     }
 
     /**

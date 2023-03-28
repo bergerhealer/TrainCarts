@@ -12,8 +12,10 @@ import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
+import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.particle.VirtualFishingBoundingBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSizeBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
@@ -142,11 +144,7 @@ public class CartAttachmentHitBox extends CartAttachment {
     @Override
     public void makeVisible(AttachmentViewer viewer) {
         if (box != null) {
-            if (this.isFocused()) {
-                box.makeVisible(viewer);
-            } else {
-                box.makeVisibleWithoutLines(viewer);
-            }
+            box.makeVisible(viewer);
         }
 
         updateHitBoxForViewer(viewer);
@@ -227,19 +225,20 @@ public class CartAttachmentHitBox extends CartAttachment {
     @Override
     public void onFocus() {
         if (box == null) {
-            box = new Box(bbox);
+            box = new Box(getManager(), bbox);
+            box.entity.setGlowColor(HelperMethods.getFocusGlowColor(this));
             for (AttachmentViewer viewer : this.getAttachmentViewers()) {
                 box.makeVisible(viewer);
             }
         } else {
-            box.showLines(this.getAttachmentViewers());
+            box.entity.setGlowColor(HelperMethods.getFocusGlowColor(this));
         }
     }
 
     @Override
     public void onBlur() {
         if (box != null) {
-            box.hideLines(this.getAttachmentViewers());
+            box.entity.setGlowColor(null);
             box.tickLastHidden = CommonUtil.getServerTicks();
         }
     }
@@ -249,9 +248,7 @@ public class CartAttachmentHitBox extends CartAttachment {
         if (box != null && !this.isFocused() &&
                 (CommonUtil.getServerTicks() - box.tickLastHidden) > 40
         ) {
-            for (AttachmentViewer viewer : this.getAttachmentViewers()) {
-                box.makeHidden(viewer);
-            }
+            box.entity.destroyForAll();
             box = null;
         }
     }
@@ -261,12 +258,15 @@ public class CartAttachmentHitBox extends CartAttachment {
         Quaternion orientation = transform.getRotation();
         bbox.setPosition(transform.toVector().add(orientation.upVector().multiply(heightOffset)));
         bbox.setOrientation(orientation);
+        if (box != null) {
+            box.update(bbox);
+        }
     }
 
     @Override
     public void onMove(boolean absolute) {
         if (box != null) {
-            box.move(this.getViewers());
+            box.sync();
         }
 
         for (AttachmentViewer viewer : this.getAttachmentViewers()) {
@@ -316,36 +316,28 @@ public class CartAttachmentHitBox extends CartAttachment {
     }
 
     private static class Box {
-        public final VirtualFishingBoundingBox entity = new VirtualFishingBoundingBox();
-        public final OrientedBoundingBox bbox;
+        public final VirtualFishingBoundingBox entity;
         private int tickLastHidden = 0;
 
-        public Box(OrientedBoundingBox bbox) {
-            this.bbox = bbox;
+        public Box(AttachmentManager manager, OrientedBoundingBox bbox) {
+            this.entity = new VirtualFishingBoundingBox(manager);
+            this.entity.update(bbox);
         }
 
-        public void move(Iterable<Player> players) {
-            entity.update(players, bbox);
+        public void update(OrientedBoundingBox bbox) {
+            this.entity.update(bbox);
+        }
+
+        public void sync() {
+            this.entity.syncPosition(true);
         }
 
         public void makeVisible(AttachmentViewer viewer) {
-            entity.spawn(viewer, bbox);
-        }
-
-        public void makeVisibleWithoutLines(AttachmentViewer viewer) {
-            entity.spawnWithoutLines(viewer, bbox);
+            entity.spawn(viewer, new Vector(0.0, 0.0, 0.0));
         }
 
         public void makeHidden(AttachmentViewer viewer) {
             entity.destroy(viewer);
-        }
-
-        public void showLines(Iterable<AttachmentViewer> viewers) {
-            viewers.forEach(v -> entity.spawnLines(v, bbox));
-        }
-
-        public void hideLines(Iterable<AttachmentViewer> viewers) {
-            viewers.forEach(entity::destroyLines);
         }
     }
 
