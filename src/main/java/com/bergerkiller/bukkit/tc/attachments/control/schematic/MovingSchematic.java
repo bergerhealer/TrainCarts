@@ -1,7 +1,9 @@
 package com.bergerkiller.bukkit.tc.attachments.control.schematic;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
@@ -37,7 +39,7 @@ public class MovingSchematic extends VirtualSpawnableObject {
     private final Vector livePos = new Vector();
     private final Vector syncPos = new Vector();
     private final Quaternion liveRot = new Quaternion();
-    private final Vector blockBounds = new Vector(1.0, 1.0, 1.0);
+    private IntVector3 blockBounds = new IntVector3(1, 1, 1);
     private final Vector scale = new Vector(1.0, 1.0, 1.0);
     private final Vector spacing = new Vector(0.0, 0.0, 0.0);
     private boolean hasSpacing = false;
@@ -56,12 +58,9 @@ public class MovingSchematic extends VirtualSpawnableObject {
      *
      * @param blockBounds Block bounds of the schematic
      */
-    public void setBlockBounds(Vector blockBounds) {
-        if (this.blockBounds.getX() != blockBounds.getX() ||
-            this.blockBounds.getY() != blockBounds.getY() ||
-            this.blockBounds.getZ() != blockBounds.getZ()
-        ) {
-            MathUtil.setVector(this.blockBounds, blockBounds);
+    public void setBlockBounds(IntVector3 blockBounds) {
+        if (!this.blockBounds.equals(blockBounds)) {
+            this.blockBounds = blockBounds;
             rescaleAllBlocks();
         }
     }
@@ -90,6 +89,20 @@ public class MovingSchematic extends VirtualSpawnableObject {
                 forAllViewers(v -> block.spawn(v, syncPos, new Vector(0.0, 0.0, 0.0)));
             }
         }
+    }
+
+    /**
+     * Creates an oriented bounding box based on the position, orientation and scale of this
+     * schematic.
+     *
+     * @return BBOX
+     */
+    public OrientedBoundingBox createBBOX() {
+        Vector bbSize = new Vector((blockBounds.x + spacing.getX() * (blockBounds.x - 1)) * scale.getX(),
+                                   (blockBounds.y + spacing.getY() * (blockBounds.y - 1)) * scale.getY(),
+                                   (blockBounds.z + spacing.getZ() * (blockBounds.z - 1)) * scale.getZ());
+        Vector position = livePos.clone().add(liveRot.upVector().multiply(0.5 * bbSize.getY()));
+        return new OrientedBoundingBox(position, bbSize, liveRot);
     }
 
     public void resendMounts() {
@@ -135,7 +148,7 @@ public class MovingSchematic extends VirtualSpawnableObject {
     }
 
     private void rescaleAllBlocks() {
-        bbSize = (float) (VirtualDisplayEntity.BBOX_FACT * Util.absMaxAxis(blockBounds.clone().add(spacing).multiply(scale)));
+        bbSize = (float) (VirtualDisplayEntity.BBOX_FACT * Util.absMaxAxis(blockBounds.toVector().add(spacing).multiply(scale)));
         if (hasKnownPosition) {
             Float bbSize = Float.valueOf(this.bbSize);
             if (hasSpacing) {

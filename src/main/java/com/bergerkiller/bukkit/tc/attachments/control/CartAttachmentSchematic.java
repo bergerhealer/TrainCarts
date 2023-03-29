@@ -15,6 +15,8 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.schematic.MovingSchematic;
 import com.bergerkiller.bukkit.tc.attachments.control.schematic.WorldEditSchematicLoader;
+import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
+import com.bergerkiller.bukkit.tc.attachments.particle.VirtualDisplayBoundingBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSizeBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
@@ -144,6 +146,8 @@ public class CartAttachmentSchematic extends CartAttachment {
 
     private WorldEditSchematicLoader.SchematicReader schematicReader;
     private MovingSchematic schematic;
+    private VirtualDisplayBoundingBox bbox;
+    private int bboxShowTicksShown = 0;
 
     @Override
     public void onAttached() {
@@ -188,7 +192,7 @@ public class CartAttachmentSchematic extends CartAttachment {
         WorldEditSchematicLoader.SchematicBlock block = schematicReader.next();
         if (block != null) {
             // Required for correct clipping bounding box calculations
-            schematic.setBlockBounds(block.schematic.dimensions.toVector());
+            schematic.setBlockBounds(block.schematic.dimensions);
 
             // Center the entire schematic at the bottom-middle
             double originX = 0.5 * block.schematic.dimensions.x;
@@ -222,25 +226,69 @@ public class CartAttachmentSchematic extends CartAttachment {
     @Override
     public void makeVisible(AttachmentViewer viewer) {
         schematic.spawn(viewer, new Vector(0.0, 0.0, 0.0));
+        if (bbox != null) {
+            bbox.spawn(viewer, new Vector(0.0, 0.0, 0.0));
+        }
     }
 
     @Override
     public void makeHidden(AttachmentViewer viewer) {
         schematic.destroy(viewer);
+        if (bbox != null) {
+            bbox.destroy(viewer);
+        }
+    }
+
+    @Override
+    public void onFocus() {
+        if (bbox == null) {
+            bbox = new VirtualDisplayBoundingBox(getManager());
+            bbox.update(schematic.createBBOX());
+            bbox.setGlowColor(null);
+            for (AttachmentViewer viewer : getAttachmentViewers()) {
+                bbox.spawn(viewer, new Vector(0.0, 0.0, 0.0));
+            }
+        } else {
+            bbox.setGlowColor(null); // Don't glow at t=0 so that resizing doesn't look ugly
+        }
+        bboxShowTicksShown = 0;
+    }
+
+    @Override
+    public void onBlur() {
+        if (bbox != null) {
+            bbox.setGlowColor(null);
+            bboxShowTicksShown = 20;
+        }
     }
 
     @Override
     public void onTick() {
         loadNextBlocks();
+        if (bbox != null) {
+            ++bboxShowTicksShown;
+            if (bboxShowTicksShown == 2) {
+                bbox.setGlowColor(HelperMethods.getFocusGlowColor(this));
+            } else if (bboxShowTicksShown >= 40) {
+                bbox.destroyForAll();
+                bbox = null;
+            }
+        }
     }
 
     @Override
     public void onTransformChanged(Matrix4x4 transform) {
         schematic.updatePosition(transform);
+        if (bbox != null) {
+            bbox.update(schematic.createBBOX());
+        }
     }
 
     @Override
     public void onMove(boolean absolute) {
         schematic.syncPosition(absolute);
+        if (bbox != null) {
+            bbox.syncPosition(absolute);
+        }
     }
 }
