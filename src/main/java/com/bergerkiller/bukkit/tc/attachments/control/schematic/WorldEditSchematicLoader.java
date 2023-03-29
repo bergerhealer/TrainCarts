@@ -126,7 +126,6 @@ public class WorldEditSchematicLoader {
                             }
                         }
                         for (Schematic s : schematicsToUnload) {
-                            System.out.println("Unloading: " + s.schematicFilePath);
                             s.remove(true);
                         }
                     }
