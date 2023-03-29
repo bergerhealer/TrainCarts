@@ -16,7 +16,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
-import com.bergerkiller.bukkit.tc.attachments.particle.VirtualFishingBoundingBox;
+import com.bergerkiller.bukkit.tc.attachments.particle.VirtualBoundingBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSizeBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
@@ -316,11 +316,11 @@ public class CartAttachmentHitBox extends CartAttachment {
     }
 
     private static class Box {
-        public final VirtualFishingBoundingBox entity;
+        public final VirtualBoundingBox entity;
         private int tickLastHidden = 0;
 
         public Box(AttachmentManager manager, OrientedBoundingBox bbox) {
-            this.entity = new VirtualFishingBoundingBox(manager);
+            this.entity = VirtualBoundingBox.create(manager);
             this.entity.update(bbox);
         }
 

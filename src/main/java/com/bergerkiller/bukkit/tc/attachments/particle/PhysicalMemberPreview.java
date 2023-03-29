@@ -22,7 +22,7 @@ import org.bukkit.util.Vector;
  * by showing a bounding box, and particles for where the wheels are.
  */
 public class PhysicalMemberPreview {
-    private final VirtualFishingBoundingBox boundingBox = new VirtualFishingBoundingBox(null);
+    private final VirtualBoundingBox boundingBox = VirtualBoundingBox.create(null);
     private final VirtualMemberWheelPreview wheelsFront = new VirtualMemberWheelPreview();
     private final VirtualMemberWheelPreview wheelsBack = new VirtualMemberWheelPreview();
     private final Set<Player> viewers = new HashSet<Player>();

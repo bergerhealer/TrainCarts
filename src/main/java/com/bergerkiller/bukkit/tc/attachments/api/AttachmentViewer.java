@@ -1,9 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.api;
 
 import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
-import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutScoreboardTeamHandle;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
@@ -19,9 +17,6 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlay
 
 import me.m56738.smoothcoasters.api.NetworkInterface;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -212,6 +207,16 @@ public interface AttachmentViewer extends TrainCarts.Provider {
      */
     default void updateGlowColor(UUID entityUUID, ChatColor color) {
         getTrainCarts().getGlowColorTeamProvider().update(this, entityUUID, color);
+    }
+
+    /**
+     * Sets a glow color for an entity
+     *
+     * @param entityUUIDs Entity UUIDs
+     * @param color Desired color. Null to reset.
+     */
+    default void updateGlowColor(Iterable<UUID> entityUUIDs, ChatColor color) {
+        getTrainCarts().getGlowColorTeamProvider().update(this, entityUUIDs, color);
     }
 
     /**

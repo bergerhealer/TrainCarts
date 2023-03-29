@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.particle;
 
+import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.tc.attachments.VirtualSpawnableObject;
@@ -12,7 +13,7 @@ import org.bukkit.util.Vector;
  */
 public abstract class VirtualBoundingBox extends VirtualSpawnableObject {
 
-    public VirtualBoundingBox(AttachmentManager manager) {
+    protected VirtualBoundingBox(AttachmentManager manager) {
         super(manager);
     }
 
@@ -28,5 +29,19 @@ public abstract class VirtualBoundingBox extends VirtualSpawnableObject {
     @Override
     public final void updatePosition(Matrix4x4 transform) {
         throw new UnsupportedOperationException("Must specify a bounding box");
+    }
+
+    /**
+     * Creates the most appropriate virtual bounding box entity
+     *
+     * @param manager AttachmentManager
+     * @return VirtualBoundingBox fake entity
+     */
+    public static VirtualBoundingBox create(AttachmentManager manager) {
+        if (CommonCapabilities.HAS_DISPLAY_ENTITY) {
+            return new VirtualHybridBoundingBox(manager);
+        } else {
+            return new VirtualFishingBoundingBox(manager);
+        }
     }
 }

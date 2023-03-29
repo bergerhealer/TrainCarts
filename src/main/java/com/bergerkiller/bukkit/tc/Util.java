@@ -1674,4 +1674,9 @@ public class Util {
         //TODO: Use MathUtil max(x,y,z)
         return Math.max(Math.max(Math.abs(v.getX()), Math.abs(v.getY())), Math.abs(v.getZ()));
     }
+
+    public static double absMinAxis(Vector v) {
+        //TODO: Use MathUtil min(x,y,z)
+        return Math.min(Math.min(Math.abs(v.getX()), Math.abs(v.getY())), Math.abs(v.getZ()));
+    }
 }

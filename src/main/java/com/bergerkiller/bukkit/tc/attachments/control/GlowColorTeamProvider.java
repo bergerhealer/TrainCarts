@@ -1,22 +1,14 @@
 package com.bergerkiller.bukkit.tc.attachments.control;
 
-import java.util.Collections;
 import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutScoreboardTeamHandle;
 
 /**
  * Automatically generates scoreboard teams with a variety of colors and
@@ -73,6 +65,37 @@ public class GlowColorTeamProvider {
                 team.join(viewer, entityUUID);
             }
         }
+    }
+
+    /**
+     * Assigns a color to the entity. If the entity was already part of a team
+     * with a different color, the entity is re-assigned to another team.
+     *
+     * @param viewer
+     * @param entityUUIDs
+     * @param color
+     */
+    public void update(AttachmentViewer viewer, Iterable<UUID> entityUUIDs, ChatColor color) {
+        if (color == null) {
+            reset(viewer, entityUUIDs);
+        } else {
+            TeamProvider.Team team = teamsByColor.get(color);
+            if (team != null) {
+                team.join(viewer, entityUUIDs);
+            }
+        }
+    }
+
+    /**
+     * Cleans up state when an entity that was possibly assigned a team is
+     * destroyed for a viewer, is no longer using the glow effect, or
+     * desires a white (default) glow effect
+     *
+     * @param viewer
+     * @param entityUUIDs
+     */
+    public void reset(AttachmentViewer viewer, Iterable<UUID> entityUUIDs) {
+        teamProvider.reset(viewer, entityUUIDs);
     }
 
     /**
