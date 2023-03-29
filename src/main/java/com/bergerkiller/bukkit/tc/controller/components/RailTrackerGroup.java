@@ -11,11 +11,9 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
-import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -137,7 +135,8 @@ public class RailTrackerGroup extends RailTracker {
      * Refreshes rail information, recalculating rail positions, directions and disconnect states
      */
     public void refresh() {
-        try (Timings t = TCTimings.RAILTRACKER_REFRESH.start()) {
+        /* Timings: refreshRails  (Train Physics, Rail Tracker) */
+        {
             this.prevRails.clear();
             this.prevRails.addAll(this.rails);
             this.rails.clear();
@@ -204,7 +203,8 @@ public class RailTrackerGroup extends RailTracker {
         }
 
         // Remove all previous rails from the rail member cache, and add the new rails
-        try (Timings t = TCTimings.RAILMEMBERCACHE.start()) {
+        /* Timings: cacheRailMembers  (Train Physics, Rail Tracker, Cache) */
+        {
             if (this.prevRails.isEmpty() && !this.rails.isEmpty()) {
                 // Spawning / entering rails for the first time
                 // Remove all earlier storing of the member

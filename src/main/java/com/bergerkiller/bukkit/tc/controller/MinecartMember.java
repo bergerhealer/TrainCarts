@@ -32,7 +32,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.ExtendedEntity;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
@@ -57,7 +56,6 @@ import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TCListener;
 import com.bergerkiller.bukkit.tc.TCSeatChangeListener;
-import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
@@ -1018,7 +1016,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return rail state
      */
     public RailState discoverRail() {
-        try (Timings t = TCTimings.MEMBER_PHYSICS_DISCOVER_RAIL.start()) {
+        /* Timings: discoverRail (Train Physics, RailLogic) */
+        {
             // Store motion vector in state
             RailState state = new RailState();
             state.setMember(this);
@@ -1533,7 +1532,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     @Override
     public boolean onBlockCollision(org.bukkit.block.Block hitBlock, BlockFace hitFace) {
-        try (Timings t = TCTimings.MEMBER_PHYSICS_BLOCK_COLLISION.start()) {
+        /* Timings: onBlockCollision  (Train Physics, Post-Move) */
+        {
             // When the minecart is vertical, minecraft likes to make it collide with blocks
             // on the opposite facing
             // Detect this and cancel this collision. This allows smooth air<>vertical
@@ -2198,7 +2198,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // Save the state prior to moving, then move the entity the required distance
         // During this movement, entity/block collisions are handled
         final RailState preMoveState;
-        try (Timings t = TCTimings.MEMBER_PHYSICS_POST_MOVE.start()) {
+        /* Timings: onPhysicsPostMove:onMove  (Train Physics, Post-Move) */
+        {
             preMoveState = this.railTrackerMember.getRail().state.clone();
 
             /*
@@ -2215,7 +2216,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // The train has been moved. Check the actual distance moved relative
         // to the origin, and move the same distance by walking on the track path
         // We might be iterating over multiple rail paths while doing this
-        try (Timings t = TCTimings.MEMBER_PHYSICS_POST_RAIL_LOGIC.start()) {
+        /* Timings: onPhysicsPostMove:onPostMove  (Train Physics, Post-Move, RailLogic) */
+        {
             boolean moveSuccessful = false;
 
             // If we were on rails before, attempt to move the full moved distance
@@ -2311,18 +2313,21 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         Location to = entity.getLocation();
         Vehicle vehicle = entity.getEntity();
 
-        try (Timings t = TCTimings.MEMBER_PHYSICS_POST_BUKKIT_UPDATE.start()) {
+        /* Timings: onPhysicsPostMove:VehicleUpdateEvent  (Train Physics, Post-Move, Bukkit) */
+        {
             CommonUtil.callEvent(new VehicleUpdateEvent(vehicle));
         }
 
         if (from.getX() != to.getX() || from.getY() != to.getY() || from.getZ() != to.getZ()) {
             // Execute move events
-            try (Timings t = TCTimings.MEMBER_PHYSICS_POST_BUKKIT_MOVE.start()) {
+            /* Timings: onPhysicsPostMove:VehicleMoveEvent  (Train Physics, Post-Move, Bukkit) */
+            {
                 CommonUtil.callEvent(new VehicleMoveEvent(vehicle, from, to));
             }
 
             // Execute signs MEMBER_MOVE
-            try (Timings t = TCTimings.MEMBER_PHYSICS_POST_SIGN_MEMBER_MOVE.start()) {
+            /* Timings: onPhysicsPostMove:SignMemberMove  (Train Physics, Post-Move, Sign Tracker) */
+            {
                 for (SignTracker.ActiveSign sign : this.getSignTracker().getActiveTrackedSigns().cloneAsIterable()) {
                     sign.executeEventForMember(SignActionType.MEMBER_MOVE, this);
                 }

@@ -6,8 +6,6 @@ import java.util.List;
 
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.Timings;
-import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.attachments.helper.AttachmentUpdateTransformHelper;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -38,7 +36,8 @@ public class AttachmentControllerGroup {
 
     public void syncPositionAbsolute() {
         this.ticksSinceLocationSync = 0;
-        try (Timings t = TCTimings.NETWORK_PERFORM_MOVEMENT.start()) {
+        /* Timings: performMovement  (Network) */
+        {
             for (MinecartMember<?> member : group) {
                 member.getAttachments().syncMovement(true);
             }
@@ -46,13 +45,15 @@ public class AttachmentControllerGroup {
     }
 
     public void syncPostPositionUpdate() {
-        try (Timings t = TCTimings.NETWORK_PERFORM_TICK.start()) {
+        /* Timings: performTick  (Network) */
+        {
             for (MinecartMember<?> member : this.group) {
                 member.getAttachments().syncPostPositionUpdate();
             }
         }
 
-        try (Timings t = TCTimings.NETWORK_PERFORM_MOVEMENT.start()) {
+        /* Timings: performMovement  (Network) */
+        {
             // Sync movement every now and then
             boolean isUpdateTick = false;
             if (++movementCounter >= MOVEMENT_UPDATE_INTERVAL) {

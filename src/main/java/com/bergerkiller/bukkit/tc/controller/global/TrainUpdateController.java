@@ -7,13 +7,11 @@ import java.util.logging.Level;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.collections.ImplicitlySharedSet;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
-import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.helper.AttachmentUpdateTransformHelper;
@@ -125,7 +123,8 @@ public class TrainUpdateController {
      * @param member MinecartMember to sync positions of
      */
     public void syncPositions(MinecartMember<?> member) {
-        try (Timings t = TCTimings.NETWORK_UPDATE_POSITIONS.start()) {
+        /* Timings: updatePositions  (Network) */
+        {
             // First do a pre-movement update
             try {
                 member.getAttachments().syncPrePositionUpdate(updateTransformHelper);
@@ -139,7 +138,8 @@ public class TrainUpdateController {
 
         // Post-updates
         try {
-            try (Timings t = TCTimings.NETWORK_PERFORM_MOVEMENT.start()) {
+            /* Timings: performMovement  (Network) */
+            {
                 member.getAttachments().syncMovement(true);
             }
         } catch (Throwable t) {
@@ -155,7 +155,8 @@ public class TrainUpdateController {
      *                     update attachment onTick() and will force attachment positions to be sync'd.
      */
     private void syncPositions(Collection<MinecartGroup> groups, boolean positionSync) {
-        try (Timings t = TCTimings.NETWORK_UPDATE_POSITIONS.start()) {
+        /* Timings: updatePositions  (Network) */
+        {
             // First do a pre-movement update for all trains
             for (MinecartGroup group : groups) {
                 try {

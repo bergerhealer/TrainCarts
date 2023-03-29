@@ -7,7 +7,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
-import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.ChunkUtil;
@@ -15,7 +14,6 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
-import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
@@ -268,7 +266,8 @@ public class SpawnSign {
      * @param sign event info
      */
     public void spawn(SignActionEvent sign) {
-        try (Timings t = TCTimings.SIGNACTION_SPAWN.start()) {
+        /* Timings: spawn  (Sign Action, Spawner) */
+        {
             // Before proceeding, verify the sign's contents again. May have changed!
             // Store can be null when a SpawnSign is created that is not tracked in the OfflineStore
             if (store != null && store.verifySign(sign.getSign(), SpawnSignManager.SpawnSignMetadata.class) == null) {

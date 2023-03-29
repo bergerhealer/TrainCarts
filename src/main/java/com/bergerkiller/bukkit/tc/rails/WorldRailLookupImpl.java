@@ -20,7 +20,6 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
-import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
@@ -28,7 +27,6 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
-import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
@@ -522,7 +520,8 @@ final class WorldRailLookupImpl implements WorldRailLookup {
             }
         }
 
-        try (Timings tim = TCTimings.RAILTYPE_FINDRAILINFO.start()) {
+        /* Timings: findRailInfo  (Rail Type Cache) */
+        {
             for (RailType type : RailType.values()) {
                 try {
                     List<Block> rails = type.findRails(positionBlock);
@@ -854,7 +853,8 @@ final class WorldRailLookupImpl implements WorldRailLookup {
             Bucket[] newRailsAtPosition = NO_RAILS_AT_POSITION;
             Bucket bucketInCache = this;
 
-            try (Timings tim = TCTimings.RAILTYPE_FINDRAILINFO.start()) {
+            /* Timings: findRailInfo  (Rail Type Cache) */
+            {
                 for (RailType type : RailType.values()) {
                     try {
                         List<Block> rails = type.findRails(positionBlock);

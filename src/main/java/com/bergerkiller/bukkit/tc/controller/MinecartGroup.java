@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.controller;
 
-import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.bases.mutable.VectorAbstract;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -19,7 +18,6 @@ import com.bergerkiller.bukkit.common.wrappers.LongHashSet.LongIterator;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TCConfig;
-import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
@@ -479,7 +477,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         this.getSignTracker().onMemberRemoved(member);
         this.getProperties().remove(member.getProperties());
         this.getRailTracker().removeMemberRails(member);
-        try (Timings t = TCTimings.RAILMEMBERCACHE.start()) {
+
+        /* Timings: cacheRailMembers  (Train Physics, Rail Tracker, Cache) */
+        {
             RailLookup.removeMemberFromAll(member);
         }
     }
@@ -1151,7 +1151,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     public void updateDirection() {
-        try (Timings t = TCTimings.GROUP_UPDATE_DIRECTION.start()) {
+        /* Timings: updateDirection  (Train Physics) */
+        {
             if (this.size() == 1) {
                 this.refreshRailTrackerIfChanged();
                 this.head().updateDirection();
@@ -1214,8 +1215,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
     // Refresh wheel position information, important to do it AFTER updateDirection()
     private void updateWheels() {
+
         for (MinecartMember<?> member : this) {
-            try (Timings t = TCTimings.MEMBER_PHYSICS_UPDATE_WHEELS.start()) {
+            /* Timings: updateWheels  (Train Physics, Wheel Tracker) */
+            {
                 member.getWheels().update();
             }
         }
@@ -1611,7 +1614,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      *                   besides refreshing the chunk area should be performed.
      */
     private void updateChunkInformation(boolean keepChunksLoaded, boolean isRemoving) {
-        try (Timings t = TCTimings.GROUP_UPDATE_CHUNKS.start()) {
+        /* Timings: updateChunkInformation  (Train Physics) */
+        {
             // Refresh the chunk area tracker using this information
             this.chunkArea.refresh(this.getWorld(), this.loadChunksBuffer());
             this.chunkAreaValid = true;
@@ -1722,7 +1726,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     private void tickActions() {
-        try (Timings t = TCTimings.GROUP_TICK_ACTIONS.start()) {
+        /* Timings: tickActions  (Train Physics) */
+        {
             this.getActions().doTick();
         }
     }
@@ -1812,7 +1817,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 this.updateSpeedFactor = realtimeFactor;
             }
 
-            try (Timings t = TCTimings.GROUP_DOPHYSICS.start()) {
+            /* Timings: Train Physics */
+            {
                 // Perform the physics changes
                 if (this.updateStepCount > 1) {
                     for (MinecartMember<?> mm : this) {
@@ -1923,7 +1929,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
 
             // Perform velocity updates
-            try (Timings t = TCTimings.MEMBER_PHYSICS_PRE.start()) {
+            /* Timings: onPhysicsPreMove  (Train Physics) */
+            {
                 for (MinecartMember<?> member : this) {
                     member.onPhysicsPreMove();
                 }
@@ -1990,7 +1997,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // If a wait distance is set, check for trains ahead of the track and wait for those
             // We do the waiting by setting the max speed of the train (NOT speed limit!) to match that train's speed
             // It is important speed of this train is updated before doing these checks.
-            try (Timings t = TCTimings.GROUP_ENFORCE_SPEEDAHEAD.start()) {
+            /* Timings: getSpeedAhead  (Train Physics) */
+            {
                 if (isFirstUpdateStep()) {
                     this.obstacleTracker.update(forwardMovingSpeed / getUpdateSpeedFactor());
                 }
@@ -2014,8 +2022,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
 
             // Perform the rail post-movement logic
-            for (MinecartMember<?> member : this) {
-                try (Timings t = TCTimings.MEMBER_PHYSICS_POST.start()) {
+            /* Timings: onPhysicsPostMove  (Train Physics) */
+            {
+                for (MinecartMember<?> member : this) {
                     member.onPhysicsPostMove();
                     if (this.breakPhysics) return true;
                 }

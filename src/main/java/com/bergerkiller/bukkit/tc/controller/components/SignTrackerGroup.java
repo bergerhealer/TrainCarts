@@ -1,9 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
-import com.bergerkiller.bukkit.common.Timings;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.tc.TCTimings;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailTracker.TrackedRail;
@@ -187,7 +185,8 @@ public class SignTrackerGroup extends SignTracker {
      * Refreshes the block space and active signs if required
      */
     public void refresh() {
-        try (Timings t = TCTimings.SIGNTRACKER_REFRESH.start()) {
+        /* Timings: refreshSigns  (Train Physics, Sign Tracker) */
+        {
             // No need to update anything for empty trains
             if (owner.isEmpty()) {
                 clear();
