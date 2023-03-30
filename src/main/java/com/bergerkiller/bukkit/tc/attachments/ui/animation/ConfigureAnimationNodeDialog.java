@@ -258,7 +258,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             @Override
             public void onAttached() {
                 super.onAttached();
-                this.setValue(getAverage().getDuration());
+                this.setInitialValue(getAverage().getDuration());
             }
 
             @Override
@@ -288,7 +288,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             @Override
             public void onAttached() {
                 super.onAttached();
-                this.setValue(getAverage().getPosition().getX());
+                this.setInitialValue(getAverage().getPosition().getX());
             }
 
             @Override
@@ -308,7 +308,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             @Override
             public void onAttached() {
                 super.onAttached();
-                this.setValue(getAverage().getPosition().getY());
+                this.setInitialValue(getAverage().getPosition().getY());
             }
 
             @Override
@@ -328,7 +328,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             @Override
             public void onAttached() {
                 super.onAttached();
-                this.setValue(getAverage().getPosition().getZ());
+                this.setInitialValue(getAverage().getPosition().getZ());
             }
 
             @Override
@@ -349,7 +349,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             public void onAttached() {
                 super.onAttached();
                 this.setIncrement(0.1);
-                this.setValue(getAverage().getRotationVector().getX());
+                this.setInitialValue(getAverage().getRotationVector().getX());
             }
 
             @Override
@@ -370,7 +370,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             public void onAttached() {
                 super.onAttached();
                 this.setIncrement(0.1);
-                this.setValue(getAverage().getRotationVector().getY());
+                this.setInitialValue(getAverage().getRotationVector().getY());
             }
 
             @Override
@@ -391,7 +391,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             public void onAttached() {
                 super.onAttached();
                 this.setIncrement(0.1);
-                this.setValue(getAverage().getRotationVector().getZ());
+                this.setInitialValue(getAverage().getRotationVector().getZ());
             }
 
             @Override

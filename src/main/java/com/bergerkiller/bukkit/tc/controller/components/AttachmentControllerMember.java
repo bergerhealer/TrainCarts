@@ -938,9 +938,15 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
             curr.getInternalState().onLoad(this.getClass(), type, config);
             curr.onLoad(config);
 
-            // TODO: Maybe only update from the changed attachment onwards?
-            this.member.getTrainCarts().getTrainUpdateController().computeAttachmentTransform(
-                    this.rootAttachment, this.getLiveTransform());
+            // This was disabled because it breaks the animation preview method. Here, after reloading, it
+            // instantly plays an animation with the new node position. If we sync position right now, it
+            // uses the animation-less position and it just doesn't show correctly.
+            // In future, this would have to be replaced by a method that sets the preview in a way that
+            // survives reloads of animations/configurations.
+            //
+            // For now this is fine though, because it updates transforms every tick anyway.
+            //this.member.getTrainCarts().getTrainUpdateController().computeAttachmentTransform(
+            //        this.rootAttachment, this.getLiveTransform());
         }
     }
 

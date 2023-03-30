@@ -540,7 +540,7 @@ public class AnimationMenu extends MapWidgetMenu {
 
         Animation replacement = new Animation(old_anim.getOptions().getName(), new_nodes);
         replacement.setOptions(old_anim.getOptions().clone());
-        setAnimationWithoutChange(replacement);
+        setAnimation(replacement);
 
         previewAnimationNode(this.animView.getSelectedIndex(), this.animView.getSelectedNode());
     }
@@ -623,13 +623,6 @@ public class AnimationMenu extends MapWidgetMenu {
     }
 
     public void setAnimation(Animation animation) {
-        setAnimationWithoutChange(animation);
-
-        // Important: let the underlying system know about the updated animation!
-        sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
-    }
-
-    public void setAnimationWithoutChange(Animation animation) {
         String old_name = this.animSelectionBox.getSelectedItem();
         String new_name = animation.getOptions().getName();
         boolean is_name_change = (old_name != null && !old_name.equals(new_name));
@@ -656,6 +649,9 @@ public class AnimationMenu extends MapWidgetMenu {
             this.animSelectionBox.addItem(new_name);
             this.animSelectionBox.setSelectedItem(new_name);
         }
+
+        // Sync() right away. This will cause the live attachments to reload the animation
+        sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
     }
 
     public ConfigurationNode getAnimRootConfig() {
