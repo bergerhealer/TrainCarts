@@ -5,6 +5,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetTooltip;
+import com.bergerkiller.bukkit.tc.attachments.ui.models.ResourcePackModelListing;
+import com.bergerkiller.bukkit.tc.attachments.ui.models.listing.ListedItemModel;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.enchantments.Enchantment;
@@ -35,6 +38,7 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
     private final List<ItemChangedListener> itemChangedListeners = new ArrayList<ItemChangedListener>();
     private final MapWidgetArrow nav_left = new MapWidgetArrow(BlockFace.WEST);
     private final MapWidgetArrow nav_right = new MapWidgetArrow(BlockFace.EAST);
+    private final MapWidgetTooltip below_tooltip = new MapWidgetTooltip();
     private final MapTexture background;
     private List<ItemStack> variants;
     private Map<ItemStack, MapTexture> iconCache = new HashMap<ItemStack, MapTexture>();
@@ -52,6 +56,7 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
         this.nav_right.setVisible(false);
         this.addWidget(this.nav_left);
         this.addWidget(this.nav_right);
+        this.addWidget(this.below_tooltip);
         this.setRetainChildWidgets(true);
 
         this.itemChangedListeners.add(this);
@@ -73,56 +78,9 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
             this.fireItemChangeEvent();
             return;
         }
-        int maxDurability = ItemUtil.getMaxDurability(item);
-        if (maxDurability > 0) {
-            // Uses durability
-            this.variants = new ArrayList<ItemStack>(maxDurability);
-            for (int i = 0; i <= maxDurability; i++) {
-                ItemStack tmp = ItemUtil.createItem(item.clone());
-                tmp.setDurability((short) i);
-                this.variants.add(tmp);
-            }
-        } else {
-            // Find variants using internal lookup (creative menu)
-            this.variants = ItemUtil.getItemVariants(item.getType());
 
-            // Guarantee CraftItemStack
-            for (int i = 0; i < this.variants.size(); i++) {
-                this.variants.set(i, ItemUtil.createItem(this.variants.get(i)));
-            }
-
-            if (this.variants.size() == 1) {
-                // Preverve all properties if there is only one variant
-                variants.get(0).setItemMeta(item.getItemMeta());
-            } else {
-                // Preserve some of the extra properties of the input item
-                for (ItemStack variant : this.variants) {
-                    for (Map.Entry<Enchantment, Integer> enchantment : item.getEnchantments().entrySet()) {
-                        variant.addEnchantment(enchantment.getKey(), enchantment.getValue().intValue());
-                    }
-                }
-                if (item.getItemMeta().hasDisplayName()) {
-                    String name = item.getItemMeta().getDisplayName();
-                    for (ItemStack variant : this.variants) {
-                        ItemUtil.setDisplayName(variant, name);
-                    }
-                }
-                CommonTagCompound tag = ItemUtil.getMetaTag(item);
-                if (tag != null && tag.containsKey("Unbreakable") && tag.getValue("Unbreakable", false)) {
-                    for (ItemStack variant : this.variants) {
-                        ItemUtil.getMetaTag(variant, true).putValue("Unbreakable", true);
-                    }
-                }
-                if (tag != null && tag.containsKey("CustomModelData")) {
-                    int customModelData = tag.getValue("CustomModelData", 0);
-                    if (customModelData > 0) {
-                        for (ItemStack variant : this.variants) {
-                            ItemUtil.getMetaTag(variant, true).putValue("CustomModelData", customModelData);
-                        }
-                    }
-                }
-            }
-        }
+        // Refresh the variants list
+        loadVariants(item);
 
         // Find the item in the variants to deduce the currently selected index
         this.variantIndex = 0;
@@ -139,6 +97,68 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
 
         this.invalidate();
         this.fireItemChangeEvent();
+    }
+
+    private void loadVariants(ItemStack item) {
+        // If item is part of traincarts model listing, make a variant list of item models
+        ResourcePackModelListing models = TrainCarts.plugin.getModelListing();
+        if (models.isBareItem(item)) {
+            this.variants = new ArrayList<>(models.root().bareItemStacks().keySet());
+            return;
+        }
+
+        // If it used durability, make a listing of all durabilities of this item
+        int maxDurability = ItemUtil.getMaxDurability(item);
+        if (maxDurability > 0) {
+            // Uses durability
+            this.variants = new ArrayList<ItemStack>(maxDurability);
+            for (int i = 0; i <= maxDurability; i++) {
+                ItemStack tmp = ItemUtil.createItem(item.clone());
+                tmp.setDurability((short) i);
+                this.variants.add(tmp);
+            }
+            return;
+        }
+
+        // Find variants using internal lookup (creative menu)
+        this.variants = ItemUtil.getItemVariants(item.getType());
+
+        // Guarantee CraftItemStack
+        for (int i = 0; i < this.variants.size(); i++) {
+            this.variants.set(i, ItemUtil.createItem(this.variants.get(i)));
+        }
+
+        if (this.variants.size() == 1) {
+            // Preverve all properties if there is only one variant
+            variants.get(0).setItemMeta(item.getItemMeta());
+        } else {
+            // Preserve some of the extra properties of the input item
+            for (ItemStack variant : this.variants) {
+                for (Map.Entry<Enchantment, Integer> enchantment : item.getEnchantments().entrySet()) {
+                    variant.addEnchantment(enchantment.getKey(), enchantment.getValue().intValue());
+                }
+            }
+            if (item.getItemMeta().hasDisplayName()) {
+                String name = item.getItemMeta().getDisplayName();
+                for (ItemStack variant : this.variants) {
+                    ItemUtil.setDisplayName(variant, name);
+                }
+            }
+            CommonTagCompound tag = ItemUtil.getMetaTag(item);
+            if (tag != null && tag.containsKey("Unbreakable") && tag.getValue("Unbreakable", false)) {
+                for (ItemStack variant : this.variants) {
+                    ItemUtil.getMetaTag(variant, true).putValue("Unbreakable", true);
+                }
+            }
+            if (tag != null && tag.containsKey("CustomModelData")) {
+                int customModelData = tag.getValue("CustomModelData", 0);
+                if (customModelData > 0) {
+                    for (ItemStack variant : this.variants) {
+                        ItemUtil.getMetaTag(variant, true).putValue("CustomModelData", customModelData);
+                    }
+                }
+            }
+        }
     }
 
     @Override
@@ -332,6 +352,19 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
 
     private void fireItemChangeEvent() {
         ItemStack item = this.getItem();
+
+        // Update tooltip
+        {
+            ListedItemModel itemMeta = TrainCarts.plugin.getModelListing().getBareItemModel(item);
+            if (itemMeta != null) {
+                below_tooltip.setText(itemMeta.name());
+                below_tooltip.setVisible(true);
+            } else {
+                below_tooltip.setText("");
+                below_tooltip.setVisible(false);
+            }
+        }
+
         for (ItemChangedListener listener : this.itemChangedListeners) {
             listener.onItemChanged(item);
         }

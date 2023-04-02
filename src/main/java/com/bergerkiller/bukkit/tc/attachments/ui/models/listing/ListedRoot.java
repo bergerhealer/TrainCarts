@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.ui.models.listing;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -13,15 +14,18 @@ import org.bukkit.inventory.ItemStack;
 public final class ListedRoot extends ListedEntry {
     final Map<String, ListedNamespace> namespacesByName;
     final List<ListedItemModel> allListedItems;
+    final Map<ItemStack, ListedItemModel> allListedBareItemStacks;
 
     public ListedRoot() {
         this.namespacesByName = new HashMap<>();
         this.allListedItems = new ArrayList<>();
+        this.allListedBareItemStacks = new LinkedHashMap<>();
     }
 
     private ListedRoot(ListedRoot root) {
         this.namespacesByName = new HashMap<>(root.namespacesByName.size());
         this.allListedItems = new ArrayList<>(root.allListedItems.size());
+        this.allListedBareItemStacks = new LinkedHashMap<>(root.allListedBareItemStacks.size());
     }
 
     @Override
@@ -73,6 +77,16 @@ public final class ListedRoot extends ListedEntry {
         return allListedItems;
     }
 
+    /**
+     * Gets a sorted flattened map of all bare item stacks contained below this root.
+     * These items do not have fancy descriptions/titles. This can be used to see
+     * if an ItemStack originated from here, and to find its item metadata
+     * information.
+     *
+     * @return Sorted Map of all bare item model item stacks and its associated metadata
+     */
+    public Map<ItemStack, ListedItemModel> bareItemStacks() { return allListedBareItemStacks; }
+
     @Override
     public String toString() {
         return "<ROOT>";
@@ -123,6 +137,7 @@ public final class ListedRoot extends ListedEntry {
         ListedItemModel entry = new ListedItemModel(fullPath, pathWithoutNamespace, name, credit, item);
         entry.setParent(containingEntry);
         allListedItems.add(entry);
+        allListedBareItemStacks.put(entry.bareItem(), entry);
         return entry;
     }
 

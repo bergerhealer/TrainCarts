@@ -2,6 +2,8 @@ package com.bergerkiller.bukkit.tc.attachments.ui.item;
 
 import java.util.List;
 
+import com.bergerkiller.bukkit.tc.attachments.ui.models.ResourcePackModelListing;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
@@ -56,7 +58,29 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
     private final MapWidgetItemVariantList variantList = new MapWidgetItemVariantList() {
         @Override
         public void onActivate() {
-            setGridOpened(true);
+            // If no resource pack is loaded on the server end, there's nothing to show
+            // Just pop open the item grid in that case (same as doing 2x DOWN)
+            ResourcePackModelListing listing = TrainCarts.plugin.getModelListing();
+            if (listing.isEmpty()) {
+                setGridOpened(true);
+                return;
+            }
+
+            // Show dialog, set the item that is selected
+            for (Player owner : display.getOwners()) {
+                if (!display.isControlling(owner)) {
+                    continue;
+                }
+                listing.buildDialog(owner)
+                        .cancelOnRootRightClick(false)
+                        .title("Select an item model")
+                        .show()
+                        .thenAccept(result -> {
+                            if (result.success()) {
+                                setSelectedItem(result.selectedBareItem());
+                            }
+                        });
+            }
         }
     };
 

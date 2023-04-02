@@ -152,6 +152,30 @@ public class ResourcePackModelListing extends ListedRootLoader {
     }
 
     /**
+     * Gets whether the ItemStack specified is a bare item (item without title/details)
+     * mapped to a model in this listing
+     *
+     * @param item Item to check
+     * @return True if contained as an item model
+     */
+    public boolean isBareItem(ItemStack item) {
+        return root.bareItemStacks().containsKey(item);
+    }
+
+    /**
+     * Gets {@link ListedItemModel} metadata about a bare item contained inside this
+     * model listing. Returns null if the input item is not one of the bare items
+     * listed.
+     *
+     * @param bareItem Bare ItemStack
+     * @return ListedItemModel of this item, or null if not listed
+     * @see ListedRoot#bareItemStacks()
+     */
+    public ListedItemModel getBareItemModel(ItemStack bareItem) {
+        return root.bareItemStacks().get(bareItem);
+    }
+
+    /**
      * Gets the {@link MapResourcePack} that was last loaded in using
      * {@link #load(MapResourcePack)}
      *

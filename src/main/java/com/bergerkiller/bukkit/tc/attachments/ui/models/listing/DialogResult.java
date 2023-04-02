@@ -76,12 +76,23 @@ public final class DialogResult {
     }
 
     /**
-     * Gets the ItemStack of the item model that was selected. returns null if
+     * Gets the ItemStack of the item model that was selected. Returns null if
      * {@link #success()} returns false.
      *
      * @return Selected item, null if none was selected
      */
     public ItemStack selectedItem() {
         return result == null ? null : result.item();
+    }
+
+    /**
+     * Gets the Bare ItemStack of the item model that was selected. This item
+     * contains only important predicates, and excludes extra details like descriptions,
+     * titles or lores.  Returns null if {@link #success()} returns false.
+     *
+     * @return Selected bare item, null if none was selected
+     */
+    public ItemStack selectedBareItem() {
+        return result == null ? null : result.bareItem();
     }
 }
