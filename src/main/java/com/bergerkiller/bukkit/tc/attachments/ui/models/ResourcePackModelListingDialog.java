@@ -131,7 +131,7 @@ class ResourcePackModelListingDialog implements Listener {
     }
 
     public void close() {
-        cancelDialog();
+        cancelDialog(false);
         if (player().getOpenInventory() != null && player().getOpenInventory().getTopInventory() == this.inventory) {
             player().closeInventory();
         }
@@ -320,7 +320,7 @@ class ResourcePackModelListingDialog implements Listener {
         }
     }
 
-    private void cancelDialog() {
+    private void cancelDialog(boolean delayEvent) {
         CommonUtil.unregisterListener(this);
 
         // Also de-register from the listing
@@ -332,13 +332,18 @@ class ResourcePackModelListingDialog implements Listener {
         }
 
         // Mark as closed
-        complete(new DialogResult(options, false));
+        final DialogResult result = new DialogResult(options, false);
+        if (delayEvent) {
+            Bukkit.getScheduler().scheduleSyncDelayedTask(options.plugin(), () -> complete(result));
+        } else {
+            complete(result);
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     private void onPlayerQuit(PlayerQuitEvent event) {
         if (event.getPlayer() == this.player()) {
-            this.cancelDialog();
+            this.cancelDialog(false);
         }
     }
 
@@ -352,7 +357,7 @@ class ResourcePackModelListingDialog implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     private void onInventoryClose(InventoryCloseEvent event) {
         if (event.getPlayer() == this.player() && event.getInventory() == this.inventory) {
-            cancelDialog();
+            cancelDialog(true);
         }
     }
 
