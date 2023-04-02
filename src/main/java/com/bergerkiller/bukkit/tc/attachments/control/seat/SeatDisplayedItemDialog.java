@@ -1,5 +1,8 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentItem;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
@@ -9,11 +12,8 @@ import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
-import com.bergerkiller.bukkit.tc.attachments.config.transform.ArmorStandItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.ui.ItemDropTarget;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
-import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
-import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.item.MapWidgetItemSelector;
 
 public class SeatDisplayedItemDialog extends MapWidgetMenu {
@@ -103,204 +103,16 @@ public class SeatDisplayedItemDialog extends MapWidgetMenu {
         super.onAttached();
     }
 
-    private static class PositionItemDialog extends MapWidgetMenu {
-        private boolean isLoadingWidgets;
-
-        public PositionItemDialog() {
-            this.setBounds(-13, -16, 108, 98);
-            this.setBackgroundColor(MapColorPalette.COLOR_GREEN);
-        }
+    private static class PositionItemDialog extends PositionMenu {
 
         @Override
-        public void onAttached() {
-            super.onAttached();
-
-            isLoadingWidgets = true;
-
-            int slider_width = 74;
-            int y_offset = 5;
-            int y_step = 12;
-
-            this.addWidget(new MapWidgetSelectionBox() {
-                @Override
-                public void onAttached() {
-                    super.onAttached();
-
-                    for (ArmorStandItemTransformType type : ArmorStandItemTransformType.values()) {
-                        this.addItem(type.toString());
-                    }
-                    this.setSelectedItem(getConfigValue("transform", ArmorStandItemTransformType.HEAD).toString());
-                }
-
-                @Override
-                public void onSelectedItemChanged() {
-                    updateConfigValue("transform", ArmorStandItemTransformType.get(getSelectedItem()).name());
-                }
-            }).setBounds(30, y_offset, slider_width, 11);
-            addLabel(5, y_offset + 3, "Mode");
-            y_offset += y_step;
-
-            // Spacing
-            y_offset += 3;
-
-            //this.transformType
-            this.addWidget(new MapWidgetNumberBox() { // Position X
-                @Override
-                public void onAttached() {
-                    super.onAttached();
-                    this.setValue(getConfigValue("posX", 0.0));
-                }
-
-                @Override
-                public String getAcceptedPropertyName() {
-                    return "Position X-Coordinate";
-                }
-
-                @Override
-                public void onValueChanged() {
-                    updateConfigValue("posX", getValue());
-                }
-            }).setBounds(30, y_offset, slider_width, 11);
-            addLabel(5, y_offset + 3, "Pos.X");
-            y_offset += y_step;
-
-            this.addWidget(new MapWidgetNumberBox() { // Position Y
-                @Override
-                public void onAttached() {
-                    super.onAttached();
-                    this.setValue(getConfigValue("posY", 0.0));
-                }
-
-                @Override
-                public String getAcceptedPropertyName() {
-                    return "Position Y-Coordinate";
-                }
-
-                @Override
-                public void onValueChanged() {
-                    updateConfigValue("posY", getValue());
-                }
-            }).setBounds(30, y_offset, slider_width, 11);
-            addLabel(5, y_offset + 3, "Pos.Y");
-            y_offset += y_step;
-
-            this.addWidget(new MapWidgetNumberBox() { // Position Z
-                @Override
-                public void onAttached() {
-                    super.onAttached();
-                    this.setValue(getConfigValue("posZ", 0.0));
-                }
-
-                @Override
-                public String getAcceptedPropertyName() {
-                    return "Position Z-Coordinate";
-                }
-
-                @Override
-                public void onValueChanged() {
-                    updateConfigValue("posZ", getValue());
-                }
-            }).setBounds(30, y_offset, slider_width, 11);
-            addLabel(5, y_offset + 3, "Pos.Z");
-            y_offset += y_step;
-
-            this.addWidget(new MapWidgetNumberBox() { // Rotation X (pitch)
-                @Override
-                public void onAttached() {
-                    super.onAttached();
-                    this.setIncrement(0.1);
-                    this.setValue(getConfigValue("rotX", 0.0));
-                }
-
-                @Override
-                public String getAcceptedPropertyName() {
-                    return "Rotation Pitch";
-                }
-
-                @Override
-                public void onValueChanged() {
-                    updateConfigValue("rotX", getValue());
-                }
-            }).setBounds(30, y_offset, slider_width, 11);
-            addLabel(5, y_offset + 3, "Pitch");
-            y_offset += y_step;
-
-            this.addWidget(new MapWidgetNumberBox() { // Rotation Y (yaw)
-                @Override
-                public void onAttached() {
-                    super.onAttached();
-                    this.setIncrement(0.1);
-                    this.setValue(getConfigValue("rotY", 0.0));
-                }
-
-                @Override
-                public String getAcceptedPropertyName() {
-                    return "Rotation Yaw";
-                }
-
-                @Override
-                public void onValueChanged() {
-                    updateConfigValue("rotY", getValue());
-                }
-            }).setBounds(30, y_offset, slider_width, 11);
-            addLabel(5, y_offset + 3, "Yaw");
-            y_offset += y_step;
-
-            this.addWidget(new MapWidgetNumberBox() { // Rotation Z (roll)
-                @Override
-                public void onAttached() {
-                    super.onAttached();
-                    this.setIncrement(0.1);
-                    this.setValue(getConfigValue("rotZ", 0.0));
-                }
-
-                @Override
-                public String getAcceptedPropertyName() {
-                    return "Rotation Roll";
-                }
-
-                @Override
-                public void onValueChanged() {
-                    updateConfigValue("rotZ", getValue());
-                }
-            }).setBounds(30, y_offset, slider_width, 11);
-            addLabel(5, y_offset + 3, "Roll");
-            y_offset += y_step;
-
-            isLoadingWidgets = false;
-
-            display.playSound(SoundEffect.PISTON_EXTEND);
-        }
-
-        @Override
-        public void onDetached() {
-            super.onDetached();
-            display.playSound(SoundEffect.PISTON_CONTRACT);
-        }
-
-        public <T> T getConfigValue(String key, T def) {
-            ConfigurationNode config = getConfig();
-            if (config.contains(key)) {
-                return config.get(key, def);
-            } else {
-                return def;
-            }
-        }
-
-        public void updateConfigValue(String key, Object value) {
-            if (isLoadingWidgets) {
-                return;
-            }
-
-            ConfigurationNode config = getConfig();
-
-            config.set(key, value);
-
-            sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
-        }
-
         public ConfigurationNode getConfig() {
-            return this.attachment.getConfig().getNode("displayItem.position");
+            return super.getConfig().getNode("displayItem");
+        }
+
+        @Override
+        protected AttachmentType getMenuAttachmentType() {
+            return CartAttachmentItem.TYPE;
         }
     }
 

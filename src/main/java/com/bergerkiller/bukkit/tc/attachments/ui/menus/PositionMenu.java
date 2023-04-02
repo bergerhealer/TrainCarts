@@ -10,7 +10,6 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
-import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
@@ -29,6 +28,7 @@ public class PositionMenu extends MapWidgetMenu {
 
     public PositionMenu() {
         this.setBounds(5, 15, 118, 108);
+        this.setPositionAbsolute(true);
         this.setBackgroundColor(MapColorPalette.COLOR_GREEN);
         this.scroller.setBounds(5, 5, getWidth() - 7, getHeight() - 10);
         this.scroller.setScrollPadding(20);
@@ -58,7 +58,7 @@ public class PositionMenu extends MapWidgetMenu {
                 AttachmentAnchor current = getCurrentAnchor();
 
                 // To test compatibility: load the attachment first
-                AttachmentType attachmentType = menu.getAttachment().getType();
+                AttachmentType attachmentType = menu.getMenuAttachmentType();
                 boolean foundCurrent = false;
                 for (AttachmentAnchor type : AttachmentAnchor.values()) {
                     if (type.supports(AttachmentControllerMember.class, attachmentType)) {
@@ -77,7 +77,7 @@ public class PositionMenu extends MapWidgetMenu {
             @Override
             public void onSelectedItemChanged() {
                 AttachmentAnchor newAnchor = AttachmentAnchor.find(
-                        AttachmentControllerMember.class, menu.getAttachment().getType(), getSelectedItem());
+                        AttachmentControllerMember.class, menu.getMenuAttachmentType(), getSelectedItem());
                 if (!getCurrentAnchor().equals(newAnchor)) {
                     menu.updatePositionConfigValue("anchor", newAnchor.getName());
                 }
@@ -85,7 +85,7 @@ public class PositionMenu extends MapWidgetMenu {
 
             private AttachmentAnchor getCurrentAnchor() {
                 String name = menu.getPositionConfigValue("anchor", AttachmentAnchor.DEFAULT.getName());
-                return AttachmentAnchor.find(AttachmentControllerMember.class, menu.getAttachment().getType(), name);
+                return AttachmentAnchor.find(AttachmentControllerMember.class, menu.getMenuAttachmentType(), name);
             }
         }.setBounds(25, 0, menu.getSliderWidth(), 11))
                 .addLabel(0, 3, "Anchor");
@@ -206,7 +206,7 @@ public class PositionMenu extends MapWidgetMenu {
                 .addLabel(0, 3, "Roll");
 
         // Let the attachment type insert/add additional rows
-        this.getAttachment().getType().createPositionMenu(builder);
+        this.getMenuAttachmentType().createPositionMenu(builder);
 
         // Actually create and initialize all the rows
         Row prevRow = null;
@@ -234,6 +234,10 @@ public class PositionMenu extends MapWidgetMenu {
 
             yPos += rowHeight;
         }
+    }
+
+    protected AttachmentType getMenuAttachmentType() {
+        return this.getAttachment().getType();
     }
 
     /**
@@ -272,16 +276,8 @@ public class PositionMenu extends MapWidgetMenu {
      */
     public void updatePositionConfig(Consumer<ConfigurationNode> manipulator) {
         ConfigurationNode config = getPositionConfig();
-        boolean wasDefaultPosition = ObjectPosition.isDefaultSeatParent(config);
-
         manipulator.accept(config);
-
-        // Reload the entire model when changing 'seat default' rules
-        if (wasDefaultPosition != ObjectPosition.isDefaultSeatParent(config)) {
-            sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
-        } else {
-            sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
-        }
+        sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
     }
 
     /**
@@ -302,20 +298,29 @@ public class PositionMenu extends MapWidgetMenu {
      * @param manipulator
      */
     public void updateConfig(Consumer<ConfigurationNode> manipulator) {
-        ConfigurationNode config = this.getAttachment().getConfig();
+        ConfigurationNode config = this.getConfig();
         manipulator.accept(config);
         sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
+    }
+
+    /**
+     * Gets the configuration of the selected attachment
+     *
+     * @return configuration
+     * @see MapWidgetAttachmentNode#getConfig()
+     */
+    public ConfigurationNode getConfig() {
+        return this.attachment.getConfig();
     }
 
     /**
      * Gets the position configuration of the selected attachment
      *
      * @return position configuration
-     * @see #getAttachment()
      * @see MapWidgetAttachmentNode#getConfig()
      */
-    public ConfigurationNode getPositionConfig() {
-        return this.attachment.getConfig().getNode("position");
+    public final ConfigurationNode getPositionConfig() {
+        return this.getConfig().getNode("position");
     }
 
     /**

@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualHybridItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualSpawnableObject;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
+import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
@@ -92,6 +93,18 @@ public interface ItemTransformType {
      *                                       with this transform type.
      */
     void update(VirtualSpawnableObject entity, ItemStack item);
+
+    /**
+     * Loads the entity configuration for an entity previously created using
+     * {@link #create(AttachmentManager, ItemStack)}
+     *
+     * @param entity Entity
+     * @param config Configuration
+     * @param position Configured position (loaded from same configuration)
+     */
+    default void load(VirtualSpawnableObject entity, ConfigurationNode config, ObjectPosition position) {
+        update(entity, config.get("item", ItemStack.class));
+    }
 
     /**
      * Gets whether the specified spawnable object can be
@@ -377,6 +390,15 @@ public interface ItemTransformType {
         }
 
         @Override
+        public void load(VirtualSpawnableObject entity, ConfigurationNode config, ObjectPosition position) {
+            ItemTransformType.super.load(entity, config, position);
+
+            VirtualDisplayItemEntity itemDisplay = (VirtualDisplayItemEntity) entity;
+            itemDisplay.setScale(position.size);
+            itemDisplay.setClip(config.getOrDefault("position.clip", 0.0));
+        }
+
+        @Override
         public boolean canUpdate(VirtualSpawnableObject entity) {
             return entity instanceof VirtualDisplayItemEntity;
         }
@@ -451,6 +473,14 @@ public interface ItemTransformType {
             } else {
                 throw new UnsupportedOperationException("Incompatible virtual entity");
             }
+        }
+
+        @Override
+        public void load(VirtualSpawnableObject entity, ConfigurationNode config, ObjectPosition position) {
+            ItemTransformType.super.load(entity, config, position);
+
+            VirtualHybridItemEntity hybrid = (VirtualHybridItemEntity) entity;
+            hybrid.setClip(config.getOrDefault("position.clip", 0.0));
         }
 
         @Override

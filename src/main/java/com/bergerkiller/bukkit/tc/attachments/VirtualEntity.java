@@ -197,13 +197,7 @@ public class VirtualEntity extends VirtualSpawnableObject {
         }
     }
 
-    /**
-     * Sets whether to use minecart movement interpolation. This makes this entity move
-     * at roughly the same speed as Minecart entities do, even though this entity is not
-     * a minecart.
-     *
-     * @param use
-     */
+    @Override
     public void setUseMinecartInterpolation(boolean use) {
         this.minecartInterpolation = use;
     }

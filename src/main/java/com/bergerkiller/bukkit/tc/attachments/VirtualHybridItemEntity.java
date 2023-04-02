@@ -20,6 +20,7 @@ public class VirtualHybridItemEntity extends VirtualSpawnableObject {
     private ItemStack item = null;
     private Matrix4x4 transform = null;
     private double clip = 0.0;
+    private boolean useMinecartInterpolation = false;
     // Avoids creating a bunch of wasteful matrices all the time
     private final Matrix4x4 tmpArmorstandTransform = Matrix4x4.identity();
     private final Matrix4x4 tmpDisplayTransform = Matrix4x4.identity();
@@ -75,6 +76,7 @@ public class VirtualHybridItemEntity extends VirtualSpawnableObject {
                 }
                 display = new VirtualDisplayItemEntity(manager);
                 display.setGlowColor(getGlowColor());
+                display.setUseMinecartInterpolation(useMinecartInterpolation);
                 display.setClip(clip);
                 display.setScale(transformType.displayScale());
                 display.setItem(transformType.displayMode(), item);
@@ -89,6 +91,7 @@ public class VirtualHybridItemEntity extends VirtualSpawnableObject {
                 }
                 armorstand = new VirtualArmorStandItemEntity(manager);
                 armorstand.setGlowColor(getGlowColor());
+                armorstand.setUseMinecartInterpolation(useMinecartInterpolation);
                 armorstand.setItem(transformType.armorStandTransform(), item);
                 armorstand.updatePosition(transformType.transformArmorStand(tmpArmorstandTransform, transform));
                 armorstand.syncPosition(true);
@@ -117,6 +120,17 @@ public class VirtualHybridItemEntity extends VirtualSpawnableObject {
         }
         if (armorstand != null) {
             armorstand.setGlowColor(color);
+        }
+    }
+
+    @Override
+    public void setUseMinecartInterpolation(boolean use) {
+        useMinecartInterpolation = use;
+        if (display != null) {
+            display.setUseMinecartInterpolation(use);
+        }
+        if (armorstand != null) {
+            armorstand.setUseMinecartInterpolation(use);
         }
     }
 

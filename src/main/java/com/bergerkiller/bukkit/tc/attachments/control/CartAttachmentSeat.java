@@ -4,12 +4,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.stream.Stream;
 
-import com.bergerkiller.bukkit.tc.attachments.config.transform.ArmorStandItemTransformType;
+import com.bergerkiller.bukkit.tc.attachments.VirtualSpawnableObject;
+import com.bergerkiller.bukkit.tc.attachments.config.transform.ItemTransformType;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -26,7 +26,6 @@ import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.attachments.VirtualArmorStandItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentInternalState;
@@ -309,7 +308,7 @@ public class CartAttachmentSeat extends CartAttachment {
 
     // Displays an item where the seat is at, but only to people in third-person
     // Also shown to first-person mode viewers, if their mode is THIRD_P
-    private VirtualArmorStandItemEntity _displayedItemEntity = null;
+    private VirtualSpawnableObject _displayedItemEntity = null;
     private ObjectPosition _displayedItemPosition = null;
     private boolean _displayedItemShowFirstPersonEnabled = false;
     private boolean _displayedItemShownInFirstPerson = false;
@@ -351,9 +350,11 @@ public class CartAttachmentSeat extends CartAttachment {
         this._displayedItemEntity = null;
         this._displayedItemShowFirstPersonEnabled = false;
         if (this.getConfig().get("displayItem.enabled", false)) {
+            ItemTransformType type = ItemTransformType.deserialize(getConfig(), "displayItem.position.transform");
+
             // Rest is loaded in during onLoad()
             this._displayedItemPosition = new ObjectPosition();
-            this._displayedItemEntity = new VirtualArmorStandItemEntity(this.getManager());
+            this._displayedItemEntity = type.create(this.getManager(), null);
             this._displayedItemShowFirstPersonEnabled = this.getConfig().get("displayItem.showFirstPerson", false);
         }
     }
@@ -366,8 +367,14 @@ public class CartAttachmentSeat extends CartAttachment {
         if (config.get("displayItem.enabled", false) != (this._displayedItemEntity != null)) {
             return false;
         }
-        if (this._displayedItemEntity != null && config.get("displayItem.showFirstPerson", false) != this._displayedItemShowFirstPersonEnabled) {
-            return false;
+        if (this._displayedItemEntity != null) {
+            if (config.get("displayItem.showFirstPerson", false) != this._displayedItemShowFirstPersonEnabled) {
+                return false;
+            }
+            ItemTransformType type = ItemTransformType.deserialize(config, "displayItem.position.transform");
+            if (!type.canUpdate(this._displayedItemEntity)) {
+                return false;
+            }
         }
         if (this.seated.getDisplayMode() != config.get("displayMode", DisplayMode.DEFAULT)) {
             return false;
@@ -419,19 +426,14 @@ public class CartAttachmentSeat extends CartAttachment {
         }
 
         // Displayed item and position
-        if (this._displayedItemPosition != null && config.isNode("displayItem.position")) {
-            this._displayedItemPosition.load(this.getManager().getClass(), CartAttachmentItem.TYPE,
-                    config.getNode("displayItem.position"));
-        }
         if (this._displayedItemEntity != null) {
-            ItemStack newItem = config.get("displayItem.item", ItemStack.class);
-            ArmorStandItemTransformType newTransformType;
-            if (config.isNode("displayItem.position")) {
-                newTransformType = config.get("displayItem.position.transform", ArmorStandItemTransformType.HEAD);
-            } else {
-                newTransformType = ArmorStandItemTransformType.HEAD;
-            }
-            this._displayedItemEntity.setItem(newTransformType, newItem);
+            ConfigurationNode displayItemConfig = config.getNode("displayItem");
+
+            this._displayedItemPosition.load(this.getManager().getClass(), CartAttachmentItem.TYPE,
+                    displayItemConfig.getNode("position"));
+
+            ItemTransformType.deserialize(displayItemConfig, "position.transform")
+                    .load(this._displayedItemEntity, displayItemConfig, this._displayedItemPosition);
         }
 
         // Reset (player modifying attachment position or other stuff)
@@ -902,7 +904,7 @@ public class CartAttachmentSeat extends CartAttachment {
 
     @Override
     public boolean containsEntityId(int entityId) {
-        if (this._displayedItemEntity != null && this._displayedItemEntity.getEntityId() == entityId) {
+        if (this._displayedItemEntity != null && this._displayedItemEntity.containsEntityId(entityId)) {
             return true;
         }
         return seated.containsEntityId(entityId);

@@ -4,8 +4,6 @@ import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
 import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
-import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayItemEntity;
-import com.bergerkiller.bukkit.tc.attachments.VirtualHybridItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualSpawnableObject;
 import com.bergerkiller.bukkit.tc.attachments.config.transform.ItemTransformType;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetItemTransformTypeSelector;
@@ -128,8 +126,11 @@ public class CartAttachmentItem extends CartAttachment {
             setRange(0.0, 1000.0);
             setInitialValue(menu.getPositionConfigValue("clip", 0.0));
             if (getValue() == 0.0) {
-                this.setTextOverride("<Disabled>");
+                setTextOverride("<Disabled>");
             }
+
+            setEnabled(ItemTransformType.deserialize(menu.getPositionConfig(), "transform")
+                    .category() != ItemTransformType.Category.ARMORSTAND);
         }
 
         @Override
@@ -211,17 +212,8 @@ public class CartAttachmentItem extends CartAttachment {
         super.onLoad(config);
 
         // New settings
-        ItemStack newItem = config.get("item", ItemStack.class);
-        ItemTransformType type = ItemTransformType.deserialize(config, "position.transform");
-        type.update(entity, newItem);
-        if (entity instanceof VirtualDisplayItemEntity) {
-            VirtualDisplayItemEntity itemDisplay = (VirtualDisplayItemEntity) entity;
-            itemDisplay.setScale(getConfiguredPosition().size);
-            itemDisplay.setClip(config.getOrDefault("position.clip", 0.0));
-        } else if (entity instanceof VirtualHybridItemEntity) {
-            VirtualHybridItemEntity hybrid = (VirtualHybridItemEntity) entity;
-            hybrid.setClip(config.getOrDefault("position.clip", 0.0));
-        }
+        ItemTransformType.deserialize(config, "position.transform")
+                .load(entity, config, getConfiguredPosition());
     }
 
     @Override

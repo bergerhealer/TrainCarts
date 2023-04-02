@@ -193,6 +193,11 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
     }
 
     @Override
+    public void setUseMinecartInterpolation(boolean use) {
+        metadata.set(DisplayHandle.DATA_INTERPOLATION_DURATION, use ? 5 : 3);
+    }
+
+    @Override
     public void syncPosition(boolean absolute) {
         metadata.forceSet(DisplayHandle.DATA_TRANSLATION, this.computeTranslation(this.liveRot));
         metadata.forceSet(DisplayHandle.DATA_LEFT_ROTATION, this.liveRot);

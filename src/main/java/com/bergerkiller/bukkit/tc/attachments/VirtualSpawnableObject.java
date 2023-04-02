@@ -131,6 +131,16 @@ public abstract class VirtualSpawnableObject {
     }
 
     /**
+     * Sets whether to use minecart movement interpolation. This makes this entity move
+     * at roughly the same speed as Minecart entities do, even though this entity is not
+     * a minecart.
+     *
+     * @param use Whether to use minecart interpolation
+     */
+    public void setUseMinecartInterpolation(boolean use) {
+    }
+
+    /**
      * Gets the glow color that is currently applied
      *
      * @return glow color. <i>Null</i> if glowing is disabled.
