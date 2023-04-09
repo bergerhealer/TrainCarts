@@ -1073,8 +1073,15 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @param position The positiion to snap this member to
      */
     public void snapToPosition(RailPath.Position position) {
+        snapToPosition(position, false);
+    }
+
+    private void snapToPosition(RailPath.Position position, boolean invertedMotion) {
         position.assertAbsolute();
         double velocity = entity.vel.length();
+        if (invertedMotion) {
+            velocity = -velocity;
+        }
         entity.setPosition(position.posX, position.posY, position.posZ);
         entity.vel.set(position.motX * velocity,
                        position.motY * velocity,
@@ -2197,10 +2204,15 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         // Save the state prior to moving, then move the entity the required distance
         // During this movement, entity/block collisions are handled
-        final RailState preMoveState;
+        RailState preMoveState;
+        boolean preMoveInverted = false;
         /* Timings: onPhysicsPostMove:onMove  (Train Physics, Post-Move) */
         {
             preMoveState = this.railTrackerMember.getRail().state.clone();
+            if (preMoveState.position().motDot(vel) < 0.0) {
+                preMoveState = preMoveState.cloneAndInvertMotion();
+                preMoveInverted = true;
+            }
 
             /*
             double distanceFromPath = preMoveState.loadRailLogic().getPath().distanceSquared(preMoveState.railPosition());
@@ -2227,7 +2239,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 do {
                     // Set MinecartMember position to the current walked point,
                     // and then call onPostMove() to let the logic/type do whatever with it.
-                    this.snapToPosition(p.state.position());
+                    this.snapToPosition(p.state.position(), preMoveInverted);
                     p.currentRailLogic.onPostMove(this);
                     p.state.railType().onPostMove(this);
                 } while (p.moveStep(distanceToMove - p.movedTotal));
@@ -2235,7 +2247,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 if (moveSuccessful = (p.failReason == TrackWalkingPoint.FailReason.LIMIT_REACHED)) {
                     // Moving on rails to a new location
                     // Now execute onPostMove() for the current rail
-                    this.snapToPosition(p.state.position());
+                    this.snapToPosition(p.state.position(), preMoveInverted);
                     p.currentRailLogic.onPostMove(this);
                     p.state.railType().onPostMove(this);
                 } else {
@@ -2250,7 +2262,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                     }
 
                     // Place the cart here
-                    this.snapToPosition(p.state.position());
+                    this.snapToPosition(p.state.position(), preMoveInverted);
                 }
             }
 
@@ -2261,7 +2273,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             if (!moveSuccessful) {
                 RailState newRailState = this.discoverRail();
                 if (newRailState.railType() != RailType.NONE) {
-                    this.snapToPosition(newRailState.position());
+                    this.snapToPosition(newRailState.position(), preMoveInverted);
                 }
             }
         }
