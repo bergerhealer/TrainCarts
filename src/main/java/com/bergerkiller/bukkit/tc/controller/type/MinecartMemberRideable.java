@@ -42,6 +42,16 @@ public class MinecartMemberRideable extends MinecartMember<CommonMinecartRideabl
         // If already a passenger, all we do here is try to swap seats
         // If the player goes to the same seat he is already in, nothing happens
         if (this.entity.isPassenger(interacter)) {
+            // If player only just entered this seat, do not allow switching seats
+            // Sadly the client can spam right-click packets very rapidly so we must
+            // filter those interactions to avoid trouble.
+            {
+                CartAttachmentSeat seat = this.getAttachments().findSeat(interacter);
+                if (seat != null && seat.getTicksInSeat() < 10) {
+                    return InteractionResult.PASS;
+                }
+            }
+
             // If playerexit or playerenter are false, do not allow switching seats
             TrainProperties tprop = this.getGroup().getProperties();
             if (!tprop.getPlayersExit() || !tprop.getPlayersEnter()) {

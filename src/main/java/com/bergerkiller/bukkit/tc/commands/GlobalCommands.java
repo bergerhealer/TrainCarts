@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.attachments.ui.SetValueTarget;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
@@ -334,7 +335,7 @@ public class GlobalCommands {
         // Create an inverted camera transformation of the player's view direction
         World playerWorld = player.getWorld();
         Matrix4x4 cameraTransform = new Matrix4x4();
-        cameraTransform.translateRotate(player.getEyeLocation());
+        cameraTransform.translateRotate(Util.getRealEyeLocation(player));
         cameraTransform.invert();
 
         // Go by all minecarts on the server, and pick those close in view on the same world

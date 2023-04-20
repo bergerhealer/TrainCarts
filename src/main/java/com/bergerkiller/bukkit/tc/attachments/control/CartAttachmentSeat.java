@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.stream.Stream;
 
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.attachments.VirtualSpawnableObject;
 import com.bergerkiller.bukkit.tc.attachments.config.transform.ItemTransformType;
 import org.bukkit.Location;
@@ -658,6 +659,16 @@ public class CartAttachmentSeat extends CartAttachment {
     }
 
     /**
+     * Gets the number of ticks this current Entity has been inside the seat.
+     * Returns 0 if this seat has no passenger.
+     *
+     * @return Number of ticks the current passenger entity has been inside the seat
+     */
+    public int getTicksInSeat() {
+        return this.seated.getTicksInSeat();
+    }
+
+    /**
      * Sets the Entity that is displayed and controlled.
      * Any previously set entity is reset to the defaults.
      * The new entity has seated entity specific settings applied to it.
@@ -895,6 +906,17 @@ public class CartAttachmentSeat extends CartAttachment {
         }
 
         return new Location(w, pos.getX(), pos.getY(), pos.getZ(), yaw, pitch);
+    }
+
+    /**
+     * Calculates the eye position and direction of a Player passenger inside this seat.
+     * If there is no entity inside (that has a first-person view) then this method
+     * returns null.
+     *
+     * @return Eye Location, or null if this seat has no (player) passenger
+     */
+    public Location getFirstPersonEyeLocation() {
+        return firstPerson.getPlayerEyeLocation();
     }
 
     @Override

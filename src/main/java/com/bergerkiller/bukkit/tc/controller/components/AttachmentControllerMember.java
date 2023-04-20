@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigListener;
 import org.bukkit.Location;
@@ -455,11 +456,13 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
         cameraTransform.invert();
 
         ArrayList<CartAttachmentSeat> result = new ArrayList<CartAttachmentSeat>(this.seatAttachments);
+
         Collections.sort(result, (o1, o2) -> {
             double d1 = getViewDistance(cameraTransform, o1.getTransform().toVector());
             double d2 = getViewDistance(cameraTransform, o2.getTransform().toVector());
             return Double.compare(d1, d2);
         });
+
         return Collections.unmodifiableList(result);
     }
 
@@ -574,7 +577,7 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
      * @param player
      */
     public void storeSeatHint(Player player) {
-        this.seatHints.put(player, new SeatHint(this.getSeatsClosestToHitTest(player.getEyeLocation())));
+        this.seatHints.put(player, new SeatHint(this.getSeatsClosestToHitTest(Util.getRealEyeLocation(player))));
     }
 
     /**

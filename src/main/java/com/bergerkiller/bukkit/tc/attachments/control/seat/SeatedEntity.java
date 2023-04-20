@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
 import java.util.function.Function;
 
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -33,6 +34,7 @@ import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityAr
  */
 public abstract class SeatedEntity {
     protected Entity entity = null;
+    protected int tickEntered = -1;
     protected boolean showDummy = false; // Whether to show a dummy player sitting in the seat
     protected DisplayMode displayMode = DisplayMode.DEFAULT;
     protected final CartAttachmentSeat seat;
@@ -94,6 +96,16 @@ public abstract class SeatedEntity {
     }
 
     /**
+     * Gets the number of ticks this current Entity has been inside the seat.
+     * Returns 0 if this seat has no passenger.
+     *
+     * @return Number of ticks the current passenger entity has been inside the seat
+     */
+    public int getTicksInSeat() {
+        return (tickEntered == -1) ? 0 :(CommonUtil.getServerTicks() - tickEntered);
+    }
+
+    /**
      * Gets whether a dummy player is being displayed, providing no other
      * entity is inside the seat.
      *
@@ -140,6 +152,9 @@ public abstract class SeatedEntity {
         }
 
         // Update entity
+        if (this.entity != entity) {
+            this.tickEntered = (entity == null) ? -1 : CommonUtil.getServerTicks();
+        }
         this.entity = entity;
 
         // Hide if view mode is no-nametag

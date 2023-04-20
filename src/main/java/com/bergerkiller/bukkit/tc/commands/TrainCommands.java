@@ -464,7 +464,7 @@ public class TrainCommands {
 
         // Resolve the launch direction into a BlockFace (TODO: Vector?) using the player's orientation
         BlockFace facing = (sender instanceof Player)
-                ? Util.vecToFace(((Player) sender).getEyeLocation().getDirection(), false).getOppositeFace()
+                ? Util.vecToFace(Util.getRealEyeLocation(((Player) sender)).getDirection(), false).getOppositeFace()
                         : BlockFace.UP;
         BlockFace directionFace = direction.getDirection(facing, member.getDirectionTo());
 

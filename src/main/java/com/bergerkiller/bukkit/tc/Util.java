@@ -14,6 +14,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
@@ -1670,6 +1673,20 @@ public class Util {
         }
     }
 
+    /**
+     * Gets whether a per-entity custom tracking range can be configured
+     *
+     * @return True if custom tracking range support exists
+     */
+    public static boolean hasPaperCustomTrackingRangeSupport() {
+        try {
+            Entity.class.getMethod("setCustomTrackingRange", int.class);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
     public static double absMaxAxis(Vector v) {
         //TODO: Use MathUtil max(x,y,z)
         return Math.max(Math.max(Math.abs(v.getX()), Math.abs(v.getY())), Math.abs(v.getZ()));
@@ -1678,5 +1695,31 @@ public class Util {
     public static double absMinAxis(Vector v) {
         //TODO: Use MathUtil min(x,y,z)
         return Math.min(Math.min(Math.abs(v.getX()), Math.abs(v.getY())), Math.abs(v.getZ()));
+    }
+
+    /**
+     * Gets the real eye location of a Player as witnessed by that player in first person. If the player
+     * is inside a fake virtual seat (camera), then the player eye location must be calculated
+     * as the one the server knows is inaccurate.
+     *
+     * @param player Player
+     * @return Eye Location of this Player
+     */
+    public static Location getRealEyeLocation(Player player) {
+        // Find where the player is looking if the player is inside a fake seat
+        // In that case, the player's eye location is inaccurate
+        MinecartMember<?> member = MinecartMemberStore.getFromEntity(player.getVehicle());
+        if (member != null) {
+            CartAttachmentSeat seat = member.getAttachments().findSeat(player);
+            if (seat != null) {
+                Location eye = seat.getFirstPersonEyeLocation();
+                if (eye != null) {
+                    return eye;
+                }
+            }
+        }
+
+        // Default
+        return player.getEyeLocation();
     }
 }

@@ -89,7 +89,7 @@ class TCInteractionPacketListener implements PacketListener {
             }
         }
         if (isAttackClick) {
-            MinecartMember<?> member = MinecartMemberStore.getFromHitTest(event.getPlayer().getEyeLocation());
+            MinecartMember<?> member = MinecartMemberStore.getFromHitTest(Util.getRealEyeLocation(event.getPlayer()));
             if (member != null) {
                 event.setCancelled(true);
                 TCPacketListener.fakeAttack(member, event.getPlayer());

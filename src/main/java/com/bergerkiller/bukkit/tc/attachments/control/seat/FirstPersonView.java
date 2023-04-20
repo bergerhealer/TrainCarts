@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -90,6 +91,23 @@ public abstract class FirstPersonView {
             eye.multiply(seat.getTransform());
             return eye;
         }
+    }
+
+    /**
+     * Gets the first-person viewed eye position of the Player that is in first-person view
+     *
+     * @return FPV Eye Location
+     */
+    public Location getPlayerEyeLocation() {
+        if (player != null) {
+            Vector pos = getEyeTransform().toVector();
+            Location eye = player.getPlayer().getEyeLocation();
+            eye.setX(pos.getX());
+            eye.setY(pos.getY());
+            eye.setZ(pos.getZ());
+            return eye;
+        }
+        return null;
     }
 
     /**

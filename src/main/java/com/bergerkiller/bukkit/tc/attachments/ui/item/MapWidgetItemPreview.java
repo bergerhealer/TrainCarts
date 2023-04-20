@@ -5,6 +5,7 @@ import java.util.List;
 import com.bergerkiller.bukkit.common.map.MapBlendMode;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.Util;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -83,7 +84,7 @@ public class MapWidgetItemPreview extends MapWidget {
     private void updateRenderRotation() {
         List<Player> viewers = display.getViewers();
         if (!viewers.isEmpty()) {
-            Location loc = viewers.get(0).getEyeLocation();
+            Location loc = Util.getRealEyeLocation(viewers.get(0));
             RenderOptions opt = new RenderOptions(lastRenderOptions, loc);
             if (RenderOptions.isDifferent(lastRenderOptions, opt)) {
                 synchronized (renderLock) {
