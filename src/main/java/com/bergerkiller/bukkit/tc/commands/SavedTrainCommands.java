@@ -205,7 +205,7 @@ public class SavedTrainCommands {
         if (newModuleName.isEmpty()) {
             commandSetDefaultModule(sender, plugin, savedTrain);
         } else if (newModuleName.equals(savedTrain.getModule().getName())) {
-            sender.sendMessage(ChatColor.YELLOW + "Train '" + savedTrain.getName() + "' is already stored module '" + newModuleName + "'");
+            sender.sendMessage(ChatColor.YELLOW + "Train '" + savedTrain.getName() + "' is already stored in module '" + newModuleName + "'");
         } else {
             plugin.getSavedTrains().setModuleNameOfTrain(savedTrain.getName(), newModuleName);
             sender.sendMessage(ChatColor.GREEN + "Train '" + savedTrain.getName() + "' is now stored in module '" + newModuleName + "'!");
@@ -221,7 +221,7 @@ public class SavedTrainCommands {
             final @Argument("savedtrainname") SavedTrainProperties savedTrain
     ) {
         ConfigurationNode exportedConfig = savedTrain.getConfig().clone();
-        exportedConfig.remove("claims");;
+        exportedConfig.remove("claims");
         Commands.exportTrain(sender, savedTrain.getName(), exportedConfig);
     }
 
@@ -277,7 +277,7 @@ public class SavedTrainCommands {
         try {
             plugin.getSavedTrains().setConfig(targetSavedTrainName, savedTrain.getConfig().clone());
         } catch (IllegalNameException e) {
-            sender.sendMessage(ChatColor.RED + "Invalid train name: " + targetSavedTrainName);
+            Localization.COMMAND_INPUT_NAME_INVALID.message(sender, targetSavedTrainName);
             return;
         }
 
@@ -341,7 +341,7 @@ public class SavedTrainCommands {
         } else {
             sender.sendMessage(ChatColor.RED + "Saved train '" + ChatColor.WHITE + name +
                     ChatColor.RED + "' cannot be removed! (read-only)");
-            sender.sendMessage(ChatColor.RED + "You can only override these properties by saving over time");
+            sender.sendMessage(ChatColor.RED + "You can only override these properties by saving a new configuration");
         }
     }
 
@@ -455,7 +455,7 @@ public class SavedTrainCommands {
                 plugin.getSavedTrains().setConfig(savedTrain.getName(), config);
             } catch (IllegalNameException e) {
                 // Should never happen because of pre-validation, but hey!
-                sender.sendMessage(ChatColor.RED + "Invalid train name: " + savedTrain.getName());
+                Localization.COMMAND_INPUT_NAME_INVALID.message(sender, savedTrain.getName());
                 return;
             }
             if (isNewTrain) {
@@ -467,7 +467,7 @@ public class SavedTrainCommands {
     }
 
     @CommandMethod("savedtrain list")
-    @CommandDescription("Lists all the train that exist on the server that a player can modify")
+    @CommandDescription("Lists all the saved trains that exist on the server that a player can modify")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     private void commandShowInfo(
             final CommandSender sender,
