@@ -1,23 +1,18 @@
 package com.bergerkiller.bukkit.tc.properties;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.ModularConfigurationEntry;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore.Claim;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CartLockOrientation;
 
@@ -113,22 +108,8 @@ public class SavedTrainProperties {
      * 
      * @return set of claims, unmodifiable
      */
-    public Set<SavedTrainPropertiesStore.Claim> getClaims() {
-        if (!entry.isRemoved() && entry.getConfig().contains("claims")) {
-            List<String> claim_strings = entry.getConfig().getList("claims", String.class);
-            if (claim_strings != null && !claim_strings.isEmpty()) {
-                Set<SavedTrainPropertiesStore.Claim> claims = new HashSet<>(claim_strings.size());
-                for (String claim_str : claim_strings) {
-                    try {
-                        claims.add(new Claim(claim_str));
-                    } catch (IllegalArgumentException ex) {
-                        // Ignore
-                    }
-                }
-                return Collections.unmodifiableSet(claims);
-            }
-        }
-        return Collections.emptySet();
+    public Set<SavedClaim> getClaims() {
+        return entry.isRemoved() ? Collections.emptySet() :  SavedClaim.loadClaims(entry.getConfig());
     }
 
     /**
@@ -136,20 +117,9 @@ public class SavedTrainProperties {
      * 
      * @param claims New claims to set, value is not stored
      */
-    public void setClaims(Collection<SavedTrainPropertiesStore.Claim> claims) {
-        if (entry.isRemoved()) {
-            return;
-        }
-
-        // Update configuration
-        if (claims.isEmpty()) {
-            entry.getConfig().remove("claims");
-        } else {
-            List<String> claim_strings = new ArrayList<String>(claims.size());
-            for (Claim claim : claims) {
-                claim_strings.add(claim.toString());
-            }
-            entry.getConfig().set("claims", claim_strings);
+    public void setClaims(Collection<SavedClaim> claims) {
+        if (!entry.isRemoved()) {
+            SavedClaim.saveClaims(entry.getConfig(), claims);
         }
     }
 
@@ -161,24 +131,7 @@ public class SavedTrainProperties {
      * @return True if the player has permission
      */
     public boolean hasPermission(CommandSender sender) {
-        // Console always has permission
-        if (!(sender instanceof Player)) {
-            return true; 
-        }
-
-        // Check claims
-        Set<Claim> claims = this.getClaims();
-        if (claims.isEmpty()) {
-            return true;
-        } else {
-            UUID playerUUID = ((Player) sender).getUniqueId();
-            for (Claim claim : claims) {
-                if (playerUUID.equals(claim.playerUUID)) {
-                    return true;
-                }
-            }
-            return false;
-        }
+        return entry.isRemoved() || SavedClaim.hasPermission(entry.getConfig(), sender);
     }
 
     public List<ConfigurationNode> getCarts() {

@@ -6,12 +6,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -26,10 +23,9 @@ import com.bergerkiller.bukkit.tc.commands.annotations.SavedTrainImplicitlyCreat
 import com.bergerkiller.bukkit.tc.commands.annotations.SavedTrainRequiresAccess;
 import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
-import com.bergerkiller.bukkit.tc.exception.command.InvalidClaimPlayerNameException;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainProperties;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore;
-import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore.Claim;
+import com.bergerkiller.bukkit.tc.properties.SavedClaim;
 import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
 
 import cloud.commandframework.CommandManager;
@@ -100,7 +96,7 @@ public class SavedTrainCommands {
 
                         // Add claim if configured this should happen
                         if (TCConfig.claimNewSavedTrains && context.getSender() instanceof Player) {
-                            savedTrain.setClaims(Collections.singleton(new Claim((Player) context.getSender())));
+                            savedTrain.setClaims(Collections.singleton(new SavedClaim((Player) context.getSender())));
                         }
                     } catch (IllegalNameException e) {
                         Localization.COMMAND_SAVEDTRAIN_INVALID_NAME.message(
@@ -176,7 +172,7 @@ public class SavedTrainCommands {
         builder.yellow("Total train length: ").white(savedTrain.getTotalTrainLength()).newLine();
 
         builder.yellow("Claimed by: ");
-        buildClaimList(builder, savedTrain.getClaims());
+        SavedClaim.buildClaimList(builder, savedTrain.getClaims());
 
         builder.send(sender);
     }
@@ -358,14 +354,14 @@ public class SavedTrainCommands {
             final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain
     ) {
         // Retrieve current list of claims
-        Set<SavedTrainPropertiesStore.Claim> oldClaims = savedTrain.getClaims();
+        Set<SavedClaim> oldClaims = savedTrain.getClaims();
 
         // Create claim using sender
-        SavedTrainPropertiesStore.Claim selfClaim = new SavedTrainPropertiesStore.Claim(sender);
+        SavedClaim selfClaim = new SavedClaim(sender);
         if (oldClaims.contains(selfClaim)) {
             sender.sendMessage(ChatColor.RED + "You have already claimed this saved train!");
         } else {
-            Set<SavedTrainPropertiesStore.Claim> newClaims = new HashSet<>(oldClaims);
+            Set<SavedClaim> newClaims = new HashSet<>(oldClaims);
             newClaims.add(selfClaim);
 
             // Update
@@ -384,11 +380,11 @@ public class SavedTrainCommands {
             final @Flag("force") boolean force
     ) {
         // Retrieve current list of claims
-        Set<SavedTrainPropertiesStore.Claim> oldClaims = savedTrain.getClaims();
+        Set<SavedClaim> oldClaims = savedTrain.getClaims();
 
         // Parse input into player claims, remove elements that are already in the claim list
-        Set<SavedTrainPropertiesStore.Claim> newClaims = new HashSet<>(oldClaims);
-        for (SavedTrainPropertiesStore.Claim addedClaim : parseClaims(sender, oldClaims, new String[] {player})) {
+        Set<SavedClaim> newClaims = new HashSet<>(oldClaims);
+        for (SavedClaim addedClaim : SavedClaim.parseClaims(oldClaims, new String[] {player})) {
             if (!newClaims.add(addedClaim)) {
                 sender.sendMessage(ChatColor.RED + "- Player " + addedClaim.description() + " was already on the claim list!");
             }
@@ -409,11 +405,11 @@ public class SavedTrainCommands {
             final @Flag("force") boolean force
     ) {
         // Retrieve current list of claims
-        Set<SavedTrainPropertiesStore.Claim> oldClaims = savedTrain.getClaims();
+        Set<SavedClaim> oldClaims = savedTrain.getClaims();
 
         // Parse input into player claims, remove elements that are already in the claim list
-        Set<SavedTrainPropertiesStore.Claim> newClaims = new HashSet<>(oldClaims);
-        for (SavedTrainPropertiesStore.Claim removedClaim : parseClaims(sender, oldClaims, new String[] {player})) {
+        Set<SavedClaim> newClaims = new HashSet<>(oldClaims);
+        for (SavedClaim removedClaim : SavedClaim.parseClaims(oldClaims, new String[] {player})) {
             if (!newClaims.remove(removedClaim)) {
                 sender.sendMessage(ChatColor.RED + "- Player " + removedClaim.description() + " was not on the claim list");
             }
@@ -433,7 +429,7 @@ public class SavedTrainCommands {
             final @Flag("force") boolean force
     ) {
         // Retrieve current list of claims
-        Set<SavedTrainPropertiesStore.Claim> oldClaims = savedTrain.getClaims();
+        Set<SavedClaim> oldClaims = savedTrain.getClaims();
 
         // Update
         updateClaimList(sender, savedTrain, oldClaims, Collections.emptySet());
@@ -523,18 +519,18 @@ public class SavedTrainCommands {
     }
 
     private static void updateClaimList(CommandSender sender, SavedTrainProperties savedTrain,
-            Set<SavedTrainPropertiesStore.Claim> oldClaims,
-            Set<SavedTrainPropertiesStore.Claim> newClaims
+            Set<SavedClaim> oldClaims,
+            Set<SavedClaim> newClaims
     ) {
         // Show messages for players added
-        for (SavedTrainPropertiesStore.Claim claim : newClaims) {
+        for (SavedClaim claim : newClaims) {
             if (!oldClaims.contains(claim)) {
                 sender.sendMessage(ChatColor.GREEN + "- Player " + claim.description() + " added to claim list");
             }
         }
 
         // Show messages for players removed
-        for (SavedTrainPropertiesStore.Claim claim : oldClaims) {
+        for (SavedClaim claim : oldClaims) {
             if (!newClaims.contains(claim)) {
                 sender.sendMessage(ChatColor.YELLOW + "- Player " + claim.description() + " "
                         + ChatColor.RED + "removed" + ChatColor.YELLOW + " from claim list");
@@ -551,94 +547,8 @@ public class SavedTrainCommands {
             builder.newLine();
         }
         builder.yellow("Saved train '").white(savedTrain.getName()).yellow("' is now claimed by: ");
-        buildClaimList(builder, newClaims);
+        SavedClaim.buildClaimList(builder, newClaims);
         builder.send(sender);
-    }
-
-    private static Set<SavedTrainPropertiesStore.Claim> parseClaims(
-            CommandSender sender,
-            Set<SavedTrainPropertiesStore.Claim> oldClaims,
-            String[] players
-    ) {
-        Set<SavedTrainPropertiesStore.Claim> result = new HashSet<>(players.length);
-        for (String playerArg : players) {
-            try {
-                UUID queryUUID = UUID.fromString(playerArg);
-
-                // Look this player up by UUID
-                // If not a Player, hasPlayedBefore() checks whether offline player data is available
-                // If this is not the case, then the offline player returned was made up, and the name is unreliable
-                OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(queryUUID);
-                if (!(player instanceof Player) && (player.getName() == null || !player.hasPlayedBefore())) {
-                    player = null;
-                }
-                if (player != null) {
-                    result.add(new SavedTrainPropertiesStore.Claim(player));
-                } else {
-                    // Try to find in old claims first
-                    boolean uuidMatchesOldClaim = false;
-                    for (SavedTrainPropertiesStore.Claim oldClaim : oldClaims) {
-                        if (oldClaim.playerUUID.equals(queryUUID)) {
-                            result.add(oldClaim);
-                            uuidMatchesOldClaim = true;
-                            break;
-                        }
-                    }
-
-                    // Add without a name
-                    if (!uuidMatchesOldClaim) {
-                        result.add(new SavedTrainPropertiesStore.Claim(queryUUID));
-                    }
-                }
-            } catch (IllegalArgumentException ex) {
-                // Check old claim values for a match first
-                boolean nameMatchesOldClaim = false;
-                for (SavedTrainPropertiesStore.Claim oldClaim : oldClaims) {
-                    if (oldClaim.playerName != null && oldClaim.playerName.equals(playerArg)) {
-                        result.add(oldClaim);
-                        nameMatchesOldClaim = true;
-                        break;
-                    }
-                }
-                if (nameMatchesOldClaim) {
-                    continue; // skip search by name
-                }
-
-                // Argument is a player name. Look it up. Verify the offline player is that of an actual player.
-                // It comes up with a fake runtime-generated 'OfflinePlayer' UUID that isn't actually valid
-                // In Offline mode though, this is valid, and hasPlayedBefore() should indicate that.
-                OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(playerArg);
-                if (!(player instanceof Player) && (player.getName() == null || !player.hasPlayedBefore())) {
-                    throw new InvalidClaimPlayerNameException(playerArg);
-                }
-                result.add(new SavedTrainPropertiesStore.Claim(player));
-            }
-        }
-        return result;
-    }
-
-    private static void buildClaimList(MessageBuilder builder, Set<SavedTrainPropertiesStore.Claim> claims) {
-        if (claims.isEmpty()) {
-            builder.red("Not Claimed");
-        } else {
-            builder.setSeparator(ChatColor.WHITE, ", ");
-            for (SavedTrainPropertiesStore.Claim claim : claims) {
-                OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(claim.playerUUID);
-                String name = player.getName();
-                if (name == null) {
-                    // Player not known on the server, possibly imported from elsewhere
-                    name = claim.playerName;
-                    if (name == null) {
-                        name = claim.playerUUID.toString();
-                    }
-                    builder.red(name);
-                } else if (player.isOnline()) {
-                    builder.aqua(name);
-                } else {
-                    builder.white(name);
-                }
-            }
-        }
     }
 
     public boolean checkAccess(CommandSender sender, SavedTrainProperties savedTrain, boolean force) {

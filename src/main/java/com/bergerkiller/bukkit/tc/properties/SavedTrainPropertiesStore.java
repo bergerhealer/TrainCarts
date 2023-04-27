@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -13,7 +12,6 @@ import com.bergerkiller.bukkit.tc.utils.modularconfiguration.ModularConfiguratio
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.ModularConfigurationFile;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.ModularConfigurationModule;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.ReadOnlyModuleException;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -146,7 +144,7 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
      * @param name
      * @return list of player claims, empty is unclaimed or non-existant train
      */
-    public Set<Claim> getClaims(String name) {
+    public Set<SavedClaim> getClaims(String name) {
         SavedTrainProperties savedProperties = this.getProperties(name);
         return (savedProperties == null) ? Collections.emptySet() : savedProperties.getClaims();
     }
@@ -158,7 +156,7 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
      * @param player to add to the claim list
      */
     public void setClaim(String name, Player player) {
-        setClaims(name, Collections.singleton(new Claim(player)));
+        setClaims(name, Collections.singleton(new SavedClaim(player)));
     }
 
     /**
@@ -169,7 +167,7 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
      * @param name
      * @param claims list to set to
      */
-    public void setClaims(String name, Set<Claim> claims) {
+    public void setClaims(String name, Set<SavedClaim> claims) {
         SavedTrainProperties savedProperties = this.getProperties(name);
         if (savedProperties != null) {
             savedProperties.setClaims(claims);
@@ -538,72 +536,6 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
             if (logSavedNameFieldWarning) {
                 traincarts.log(Level.WARNING, "If the intention was to rename the train, instead "
                         + "rename the key, not field '" + KEY_SAVED_NAME + "'");
-            }
-        }
-    }
-
-    /**
-     * A single claim on a saved train
-     */
-    public static class Claim {
-        public final UUID playerUUID;
-        public final String playerName;
-
-        public Claim(OfflinePlayer player) {
-            this.playerUUID = player.getUniqueId();
-            this.playerName = player.getName();
-        }
-
-        public Claim(UUID playerUUID) {
-            this.playerUUID = playerUUID;
-            this.playerName = null;
-        }
-
-        public Claim(String config) throws IllegalArgumentException {
-            config = config.trim();
-            int name_end = config.lastIndexOf(' ');
-            if (name_end == -1) {
-                // Assume only UUID is specified
-                this.playerName = null;
-                this.playerUUID = UUID.fromString(config);
-            } else {
-                // Format 'playername uuid' is used
-                this.playerName = config.substring(0, name_end);
-                this.playerUUID = UUID.fromString(config.substring(name_end+1).trim());
-            }
-        }
-
-        public String description() {
-            if (this.playerName == null) {
-                return "uuid=" + this.playerUUID.toString();
-            } else {
-                return this.playerName;
-            }
-        }
-
-        @Override
-        public String toString() {
-            if (this.playerName == null) {
-                return this.playerUUID.toString();
-            } else {
-                return this.playerName + " " + this.playerUUID.toString();
-            }
-        }
-
-        @Override
-        public int hashCode() {
-            return this.playerUUID.hashCode();
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (o == this) {
-                return true;
-            } else if (o instanceof Claim) {
-                Claim other = (Claim) o;
-                return other.playerUUID.equals(this.playerUUID);
-            } else {
-                return false;
             }
         }
     }
