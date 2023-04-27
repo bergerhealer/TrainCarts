@@ -45,6 +45,7 @@ import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.registry.TCPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.category.PaperPlayerViewDistanceProperty;
+import com.bergerkiller.bukkit.tc.properties.standard.category.PaperTrackingRangeProperty;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
@@ -579,6 +580,15 @@ public class TrainCarts extends PluginBase {
             }
         }
 
+        // Paper custom entity tracking range
+        if (Util.hasPaperCustomTrackingRangeSupport()) {
+            try {
+                propertyRegistry.register(PaperTrackingRangeProperty.INSTANCE);
+            } catch (Throwable t) {
+                getLogger().log(Level.SEVERE, "Failed to register paper tracking range property", t);
+            }
+        }
+
         // Register TrainCarts default attachment types
         CartAttachment.registerDefaultAttachments();
 
@@ -767,6 +777,16 @@ public class TrainCarts extends PluginBase {
             }
         }
 
+        // Paper tracking range logic handling
+        if (Util.hasPaperCustomTrackingRangeSupport()) {
+            try {
+                PaperTrackingRangeProperty.INSTANCE.enable(this);
+            } catch (Throwable t) {
+                getLogger().log(Level.SEVERE, "Failed to enable paper tracking range property", t);
+                this.propertyRegistry.unregister(PaperTrackingRangeProperty.INSTANCE);
+            }
+        }
+
         // Destroy all trains after initializing if specified
         if (TCConfig.destroyAllOnShutdown) {
             OfflineGroupManager.destroyAllAsync(false).thenAccept(count -> {
@@ -797,6 +817,15 @@ public class TrainCarts extends PluginBase {
                 PaperPlayerViewDistanceProperty.INSTANCE.disable(this);
             } catch (Throwable t) {
                 getLogger().log(Level.SEVERE, "Failed to disable paper player view distance property", t);
+            }
+        }
+
+        // Disable Paper tracking range logic handling
+        if (Util.hasPaperCustomTrackingRangeSupport()) {
+            try {
+                PaperTrackingRangeProperty.INSTANCE.disable(this);
+            } catch (Throwable t) {
+                getLogger().log(Level.SEVERE, "Failed to disable paper tracking range property", t);
             }
         }
 
