@@ -37,6 +37,7 @@ public class PlayerVelocityController {
     private final SentPositionChain sentPositions = new SentPositionChain();
     private boolean isSynchronized = false;
     private boolean syncAsArmorstand = true;
+    private boolean isFlightForced = false;
     private Vector lastSyncPos = null;
     private volatile boolean translateVehicleSteer = false;
 
@@ -83,6 +84,10 @@ public class PlayerVelocityController {
         if (tracker != null) {
             TrainCarts.plugin.unregister(tracker);
         }
+        if (isFlightForced) {
+            player.setAllowFlight(false);
+            isFlightForced = false;
+        }
     }
 
     public synchronized void setPosition(Vector position) {
@@ -103,6 +108,11 @@ public class PlayerVelocityController {
 
         // Important player is set to fly mode regularly
         if (!player.isFlying()) {
+            if (!player.getAllowFlight()) {
+                isFlightForced = true;
+                player.setAllowFlight(true);
+            }
+
             player.setFlying(true);
         }
 
