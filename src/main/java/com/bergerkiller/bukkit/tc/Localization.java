@@ -15,12 +15,22 @@ import org.bukkit.entity.Player;
 public class Localization extends LocalizationEnum {
     public static final Localization COMMAND_USAGE = new Localization("command.usage", ChatColor.GREEN + "See " + "[" + ChatColor.WHITE + ChatColor.UNDERLINE + "the WIKI](https://wiki.traincarts.net/p/TrainCarts)" + ChatColor.RESET + ChatColor.GREEN + " for more information, or use /train help");
     public static final Localization COMMAND_NOPERM = new Localization("command.noperm", ChatColor.RED + "You do not have permission, ask an admin to do this for you.");
+
     public static final Localization COMMAND_SAVEDTRAIN_CLAIMED = new Localization("command.savedtrain.claimed", ChatColor.RED + "Saved train with name %0% is claimed by someone else, you can not access it!");
     public static final Localization COMMAND_SAVEDTRAIN_GLOBAL_NOPERM = new Localization("command.savedtrain.global.noperm", ChatColor.RED + "You do not have permission to force access to saved trains by others, ask an admin to do this for you.");
     public static final Localization COMMAND_SAVEDTRAIN_NOTFOUND = new Localization("command.savedtrain.notfound", ChatColor.RED + "Saved train with name %0% does not exist!");
     public static final Localization COMMAND_SAVEDTRAIN_FORCE = new Localization("command.savedtrain.force", ChatColor.RED + "Saved train with name %0% is claimed by someone else, you can access it anyway with --force");
     public static final Localization COMMAND_SAVEDTRAIN_CLAIM_INVALID = new Localization("command.savedtrain.claim.invalid", ChatColor.RED + "Invalid player name specified: %0%");
     public static final Localization COMMAND_SAVEDTRAIN_INVALID_NAME = new Localization("command.savedtrain.name.invalid", ChatColor.RED + "Invalid train name: %0%");
+
+    public static final Localization COMMAND_MODEL_CONFIG_CLAIMED = new Localization("command.model.config.claimed", ChatColor.RED + "Saved model configuration with name %0% is claimed by someone else, you can not access it!");
+    public static final Localization COMMAND_MODEL_CONFIG_GLOBAL_NOPERM = new Localization("command.model.config.global.noperm", ChatColor.RED + "You do not have permission to force access to saved model configurations by others, ask an admin to do this for you.");
+    public static final Localization COMMAND_MODEL_CONFIG_NOTFOUND = new Localization("command.model.config.notfound", ChatColor.RED + "Saved model configuration with name %0% does not exist!");
+    public static final Localization COMMAND_MODEL_CONFIG_FORCE = new Localization("command.model.config.force", ChatColor.RED + "Saved model configuration with name %0% is claimed by someone else, you can access it anyway with --force");
+    public static final Localization COMMAND_MODEL_CONFIG_INVALID_NAME = new Localization("command.model.config.name.invalid", ChatColor.RED + "Invalid model configuration name: %0%");
+    public static final Localization COMMAND_MODEL_CONFIG_INPUT_NAME_EMPTY = new Localization("command.model.config.name.empty", ChatColor.RED + "Input model name is empty!");
+    public static final Localization COMMAND_MODEL_CONFIG_INPUT_NAME_INVALID = new Localization("command.model.config.name.invalid", ChatColor.RED + "Input model name '%0%' contains invalid characters!");
+
     public static final Localization COMMAND_TICKET_NOTFOUND = new Localization("command.ticket.notfound", ChatColor.RED + "Ticket with name %0% does not exist");
     public static final Localization COMMAND_TICKET_NOTEDITING = new Localization("command.ticket.notediting",
             ChatColor.RED + "You are not editing any tickets right now\n" +

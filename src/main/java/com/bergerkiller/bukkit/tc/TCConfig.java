@@ -92,6 +92,7 @@ public class TCConfig {
     public static boolean wheelTrackerDebugEnabled = false;
     public static boolean animationsUseTickTime = false;
     public static boolean claimNewSavedTrains = true;
+    public static boolean claimNewSavedModels = true;
     public static boolean onlyPoweredSwitchersDoPathFinding = true;
     public static boolean onlyEmptySwitchersDoPathFinding = false;
     public static boolean enableSneakingInAttachmentEditor = false;
@@ -271,6 +272,13 @@ public class TCConfig {
         config.addHeader("claimNewSavedTrains", "The original owner can put the train in public domain by disclaiming it (/savedtrain [name] disclaim)");
         config.addHeader("claimNewSavedTrains", "Players (moderators) with the " + Permission.COMMAND_SAVEDTRAIN_GLOBAL.getName() + " permission are exempt");
         claimNewSavedTrains = config.get("claimNewSavedTrains", true);
+
+        config.setHeader("claimNewSavedModels", "\nSets whether players automatically claim new saved attachment models that they save");
+        config.addHeader("claimNewSavedModels", "Once claimed, other players cannot overwrite the saved model, effectively protecting it");
+        config.addHeader("claimNewSavedModels", "Setting this to false will have new models exist in public domain, and anyone can modify it");
+        config.addHeader("claimNewSavedModels", "The original owner can put the model in public domain by disclaiming it (/train model config [name] disclaim)");
+        config.addHeader("claimNewSavedModels", "Players (moderators) with the " + Permission.COMMAND_SAVEDTRAIN_GLOBAL.getName() + " permission are exempt");
+        claimNewSavedModels = config.get("claimNewSavedModels", true);
 
         config.setHeader("hastebinServer", "\nThe hastebin server which is used to upload saved trains");
         config.addHeader("hastebinServer", "This will be used when using the /savedtrain [name] paste command");

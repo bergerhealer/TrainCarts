@@ -16,7 +16,7 @@ import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
-import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModelStore;
+import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModelStore;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentLight;
 import com.bergerkiller.bukkit.tc.attachments.control.GlowColorTeamProvider;
@@ -96,8 +96,8 @@ public class TrainCarts extends PluginBase {
     private TCPacketListener packetListener;
     private TCInteractionPacketListener interactionPacketListener;
     private FileConfiguration config;
-    private AttachmentModelStore attachmentModels;
     private final SpawnSignManager spawnSignManager = new SpawnSignManager(this);
+    private SavedAttachmentModelStore savedAttachmentModels;
     private SavedTrainPropertiesStore savedTrainsStore;
     private SeatAttachmentMap seatAttachmentMap;
     private TeamProvider teamProvider;
@@ -170,8 +170,8 @@ public class TrainCarts extends PluginBase {
      * 
      * @return attachment model store
      */
-    public AttachmentModelStore getAttachmentModels() {
-        return this.attachmentModels;
+    public SavedAttachmentModelStore getSavedAttachmentModels() {
+        return this.savedAttachmentModels;
     }
 
     /**
@@ -692,10 +692,6 @@ public class TrainCarts extends PluginBase {
         this.seatAttachmentMap = new SeatAttachmentMap();
         this.register((PacketListener) this.seatAttachmentMap, SeatAttachmentMap.LISTENED_TYPES);
 
-        //Load attachment models
-        attachmentModels = new AttachmentModelStore(getDataFolder() + File.separator + "models.yml");
-        attachmentModels.load();
-
         //Setup Economy (Vault)
         setupEconomy();
 
@@ -714,6 +710,11 @@ public class TrainCarts extends PluginBase {
 
         //Load tickets
         TicketStore.load(this);
+
+        //Load attachment models - used by MODEL attachments
+        this.savedAttachmentModels = SavedAttachmentModelStore.create(this,
+                "SavedModels.yml",
+                "savedModelModules");
 
         //Load saved trains
         this.savedTrainsStore = SavedTrainPropertiesStore.create(this,
@@ -996,6 +997,9 @@ public class TrainCarts extends PluginBase {
         //Save properties
         TrainProperties.save(autosave);
 
+        //Save model attachments
+        this.savedAttachmentModels.save(autosave);
+
         //Save saved trains
         this.savedTrainsStore.save(autosave);
 
@@ -1012,9 +1016,6 @@ public class TrainCarts extends PluginBase {
 
         //Save detector regions
         DetectorRegion.save(this, autosave);
-
-        //Save attachment models
-        attachmentModels.save(autosave);
 
         //Save routes
         routeManager.save(autosave);

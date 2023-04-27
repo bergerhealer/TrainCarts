@@ -72,6 +72,7 @@ public enum Permission implements IPermissionEnum {
     COMMAND_STORAGE_CHEST_CREATE("train.command.chest.create", PermissionDefault.OP, "Whether the player can create and modify a chest item that can store and spawn trains"),
     COMMAND_SAVE_TRAIN("train.command.save", PermissionDefault.OP, "Whether the player can use a command to save a train under a name"),
     COMMAND_SAVE_ROUTE("train.command.route.save", PermissionDefault.OP, "Whether the player can save a train or cart route to name to a global store"),
+
     COMMAND_SAVEDTRAIN_LIST("train.command.savedtrain.list", PermissionDefault.TRUE, "Whether the player can view saved trains and modules and use the /savedtrain command at all"),
     COMMAND_SAVEDTRAIN_REVERSE("train.command.savedtrain.reverse", PermissionDefault.OP, "Whether the player can reverse a saved train, so that back becomes front when spawning"),
     COMMAND_SAVEDTRAIN_RENAME("train.command.savedtrain.rename", PermissionDefault.OP, "Whether the player can rename a saved train to a new name"),
@@ -81,13 +82,23 @@ public enum Permission implements IPermissionEnum {
     COMMAND_SAVEDTRAIN_GLOBAL("train.command.savedtrain.global", PermissionDefault.OP, "Whether the player can modify, delete or claim saved trains claimed by other players"),
     COMMAND_SAVEDTRAIN_IMPORT("train.command.savedtrain.import", PermissionDefault.OP, "Whether the player can import (saved) trains from online using hastebin"),
     COMMAND_SAVEDTRAIN_EXPORT("train.command.savedtrain.export", PermissionDefault.OP, "Whether the player can export (paste) (saved) trains to online using hastebin"),
+
     COMMAND_ENTER("train.command.enter", PermissionDefault.OP, "Whether the player can use a command to enter the train/cart being edited"),
     COMMAND_EJECT("train.command.eject", PermissionDefault.OP, "Whether the player can use a command to eject players from the train/cart being edited"),
     COMMAND_LAUNCH("train.command.launch", PermissionDefault.OP, "Whether the player can use a command to launch the train being edited"),
     COMMAND_ANIMATE("train.command.animate", PermissionDefault.OP, "Whether the player can use a command to play an animation"),
     COMMAND_LOCATE("train.command.locate", PermissionDefault.OP, "Whether the player can locate trains, which shows a line from player to trains"),
     COMMAND_FLIP("train.command.flip", PermissionDefault.OP, "Whether the player can use a command to flip a cart or train around 180 degrees"),
-    COMMAND_LIST_MODELS("train.command.model.search", PermissionDefault.OP, "Whether the player can use a command to list and show all item models of the server resource pack"),
+
+    COMMAND_MODEL_CONFIG_LIST("train.command.model.config.list", PermissionDefault.TRUE, "Whether the player can view saved attachment models and modules and use the /train model config command at all"),
+    COMMAND_MODEL_CONFIG_RENAME("train.command.model.config.rename", PermissionDefault.OP, "Whether the player can rename a saved attachment model to a new name"),
+    COMMAND_MODEL_CONFIG_COPY("train.command.model.config.copy", PermissionDefault.OP, "Whether the player can copy an existing saved attachment model and save it as a new name"),
+    COMMAND_MODEL_CONFIG_DELETE("train.command.model.config.delete", PermissionDefault.OP, "Whether the player can delete a previously saved attachment model"),
+    COMMAND_MODEL_CONFIG_CLAIM("train.command.model.config.claim", PermissionDefault.OP, "Whether the player can change who has claimed a saved attachment model"),
+    COMMAND_MODEL_CONFIG_GLOBAL("train.command.model.config.global", PermissionDefault.OP, "Whether the player can modify, delete or claim saved attachment models claimed by other players"),
+    COMMAND_MODEL_CONFIG_IMPORT("train.command.model.config.import", PermissionDefault.OP, "Whether the player can import (saved) attachment models from online using hastebin"),
+    COMMAND_MODEL_CONFIG_EXPORT("train.command.model.config.export", PermissionDefault.OP, "Whether the player can export (paste) (saved) attachment models to online using hastebin"),
+    COMMAND_MODEL_SEARCH("train.command.model.search", PermissionDefault.OP, "Whether the player can use a command to list and show all item models of the server resource pack"),
 
     SPAWNER_AUTOMATIC("train.spawner.automatic", PermissionDefault.TRUE, "The player can build spawners which automatically create carts"),
     SPAWNER_REGULAR("train.spawner.regular", PermissionDefault.TRUE, "The player can build spawners which create regular minecarts"),

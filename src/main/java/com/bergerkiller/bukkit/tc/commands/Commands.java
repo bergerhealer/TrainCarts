@@ -427,6 +427,44 @@ public class Commands {
     }
 
     /**
+     * Downloads the full YAML configuration of a model configuration from hastebin, and
+     * calls the callback with the configuration if successful.
+     *
+     * @param plugin TrainCarts plugin instance
+     * @param sender Command Sender to send a message to when problems occur
+     * @param url The URL of the hastebin paste to download
+     * @param callback The callback to call when successfully downloaded
+     */
+    public static void importModel(final TrainCarts plugin, final CommandSender sender, final String url, final Consumer<ConfigurationNode> callback) {
+        TCConfig.hastebin.download(url).thenAccept(new Consumer<DownloadResult>() {
+            @Override
+            public void accept(DownloadResult result) {
+                // Check successful
+                if (!result.success()) {
+                    sender.sendMessage(ChatColor.RED + "Failed to import model: " + result.error());
+                    return;
+                }
+
+                // Parse the String contents as YAML
+                BasicConfiguration config;
+                try {
+                    config = result.contentYAML();
+                } catch (IOException ex) {
+                    sender.sendMessage(ChatColor.RED + "Failed to import model configuration because of YAML decode error: " + ex.getMessage());
+                    return;
+                } catch (Throwable t) {
+                    sender.sendMessage(ChatColor.RED + "An error occurred trying to import the model configuration YAML: " + t.getMessage());
+                    plugin.getLogger().log(Level.SEVERE, "Import error for " + url, t);
+                    return;
+                }
+
+                // Callback time!
+                callback.accept(config);
+            }
+        });
+    }
+
+    /**
      * Downloads the full YAML configuration of a train from hastebin, and
      * calls the callback with the configuration if successful.
      *
@@ -460,6 +498,28 @@ public class Commands {
 
                 // Callback time!
                 callback.accept(config);
+            }
+        });
+    }
+
+    /**
+     * Uploads the full YAML configuration of a model configuration to hastebin, using the
+     * configured hastebin server.
+     *
+     * @param sender Command Sender to send a message to once completed
+     * @param name Name of the model exported, part of the completion message
+     * @param exportedConfig Configuration to upload
+     */
+    public static void exportModel(final CommandSender sender, final String name, final ConfigurationNode exportedConfig) {
+        TCConfig.hastebin.upload(exportedConfig.toString()).thenAccept(new Consumer<UploadResult>() {
+            @Override
+            public void accept(UploadResult t) {
+                if (t.success()) {
+                    sender.sendMessage(ChatColor.GREEN + "Model configuration '" + ChatColor.YELLOW + name +
+                            ChatColor.GREEN + "' exported: " + ChatColor.WHITE + ChatColor.UNDERLINE + t.url());
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Failed to export model configuration '" + name + "': " + t.error());
+                }
             }
         });
     }

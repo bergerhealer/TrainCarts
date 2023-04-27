@@ -219,18 +219,24 @@ public final class TrainNameFormat {
     }
 
     public static enum VerifyResult {
-        OK(null),
-        ERR_EMPTY(Localization.COMMAND_INPUT_NAME_EMPTY),
-        ERR_INVALID_CHAR(Localization.COMMAND_INPUT_NAME_INVALID);
+        OK(null, null),
+        ERR_EMPTY(Localization.COMMAND_INPUT_NAME_EMPTY, Localization.COMMAND_MODEL_CONFIG_INPUT_NAME_EMPTY),
+        ERR_INVALID_CHAR(Localization.COMMAND_INPUT_NAME_INVALID, Localization.COMMAND_MODEL_CONFIG_INPUT_NAME_INVALID);
 
         private final Localization message;
+        private final Localization modelMessage;
 
-        private VerifyResult(Localization message) {
+        private VerifyResult(Localization message, Localization modelMessage) {
             this.message = message;
+            this.modelMessage = modelMessage;
         }
 
         public Localization getMessage() {
             return this.message;
+        }
+
+        public Localization getModelMessage() {
+            return this.modelMessage;
         }
     }
 }
