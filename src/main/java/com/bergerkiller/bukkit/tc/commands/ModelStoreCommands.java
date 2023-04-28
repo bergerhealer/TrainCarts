@@ -16,8 +16,10 @@ import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModelStore;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentItem;
 import com.bergerkiller.bukkit.tc.commands.annotations.SavedModelImplicitlyCreated;
 import com.bergerkiller.bukkit.tc.commands.annotations.SavedModelRequiresAccess;
 import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
@@ -37,6 +39,7 @@ import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.annotations.specifier.Greedy;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,6 +48,8 @@ import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
 /**
  * Houses all commands to do with (item) models. "Model" attachment names can be managed here,
@@ -427,6 +432,39 @@ public class ModelStoreCommands {
                 sender.sendMessage(ChatColor.GREEN + "The model configuration was imported and saved as " + savedModel.getName() + ", a previous model was overwritten");
             }
         });
+    }
+
+    @CommandMethod("config <savedmodelname> edit")
+    @CommandDescription("Switches the attachment editor to edit this model configuration")
+    @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
+    @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_IMPORT)
+    private void commandEdit(
+            final Player player,
+            final TrainCarts plugin,
+            final @SavedModelRequiresAccess @SavedModelImplicitlyCreated @Argument(value="savedmodelname") SavedAttachmentModel savedModel,
+            final @Flag("force") boolean force
+    ) {
+        // If creating a new model configuration, initialize a default configuration for it
+        boolean isNewModel = savedModel.isEmpty();
+
+        // Ensure saved model is created in the store
+        try {
+            plugin.getSavedAttachmentModels().setDefaultConfigIfMissing(savedModel.getName());
+        } catch (IllegalNameException e) {
+            // Should never happen because of pre-validation, but hey!
+            Localization.COMMAND_MODEL_CONFIG_INVALID_NAME.message(player, savedModel.getName());
+            return;
+        }
+
+        plugin.getSavedAttachmentModels().setEditing(player, savedModel);
+        if (isNewModel) {
+            player.sendMessage(ChatColor.GREEN + "You are now editing the " + ChatColor.BLUE +
+                    "NEW " + ChatColor.GREEN + " model configuration '" +
+                    ChatColor.YELLOW + savedModel.getName() + ChatColor.GREEN + "'!");
+        } else {
+            player.sendMessage(ChatColor.GREEN + "You are now editing the model configuration '" +
+                    ChatColor.YELLOW + savedModel.getName() + ChatColor.GREEN + "'!");
+        }
     }
 
     @CommandMethod("config list")

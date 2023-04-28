@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -325,17 +326,21 @@ public class AnimationMenu extends MapWidgetMenu {
      * @param optionFunc Callback that sets the animation playback options
      */
     public void playAnimation(Consumer<AnimationOptions> optionFunc) {
-        for (MinecartMember<?> member : attachment.getMembersUsingAttachment()) {
-            AnimationOptions options = new AnimationOptions(this.animSelectionBox.getSelectedItem());
-            optionFunc.accept(options);
-            this.playbackMode.applyOptions(options, this.animView::getSelectedScene);
-            if (this.playForAll) {
-                // Target the entire model
+        if (this.playForAll) {
+            // Collect all members and play it for all of them
+            for (MinecartMember<?> member : attachment.getMembersUsingAttachment()) {
+                AnimationOptions options = new AnimationOptions(this.animSelectionBox.getSelectedItem());
+                optionFunc.accept(options);
+                this.playbackMode.applyOptions(options, this.animView::getSelectedScene);
                 member.playNamedAnimation(options);
-            } else {
-                // Target only the attachment we are editing
-                int[] targetPath = this.attachment.getTargetPath();
-                member.playNamedAnimationFor(targetPath, options);
+            }
+        } else {
+            // Collect all live attachments and find its member + target path, play individually
+            for (Attachment liveAttachment : attachment.getAttachments()) {
+                AnimationOptions options = new AnimationOptions(this.animSelectionBox.getSelectedItem());
+                optionFunc.accept(options);
+                this.playbackMode.applyOptions(options, this.animView::getSelectedScene);
+                liveAttachment.playNamedAnimation(options);
             }
         }
     }
@@ -586,7 +591,7 @@ public class AnimationMenu extends MapWidgetMenu {
      * @param node
      */
     public void previewAnimationNode(int index, AnimationNode node) {
-        for (MinecartMember<?> member : attachment.getMembersUsingAttachment()) {
+        for (Attachment liveAttachment : attachment.getAttachments()) {
             // When inactive, blink the node on and off to display its position that way
             AnimationNode[] nodes;
             if (node.isActive()) {
@@ -601,7 +606,7 @@ public class AnimationMenu extends MapWidgetMenu {
             Animation anim_preview = new Animation("DUMMY_DO_NOT_USE", nodes);
             anim_preview.getOptions().setReset(true);
             anim_preview.getOptions().setLooped(true);
-            member.playAnimationFor(this.attachment.getTargetPath(), anim_preview);
+            liveAttachment.startAnimation(anim_preview);
         }
     }
 

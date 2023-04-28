@@ -31,6 +31,7 @@ public class SetCallbackCollector<T> implements Consumer<T> {
         } else if (size == 1) {
             HashSet<T> newSet = new HashSet<>(16);
             newSet.addAll(buffer);
+            newSet.add(t);
             this.buffer = newSet;
             this.result = Collections.unmodifiableSet(newSet);
         } else {

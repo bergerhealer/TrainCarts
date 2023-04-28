@@ -31,6 +31,7 @@ public class ListCallbackCollector<T> implements Consumer<T> {
         } else if (size == 1) {
             ArrayList<T> newList = new ArrayList<>(16);
             newList.add(buffer.get(0));
+            newList.add(t);
             this.buffer = newList;
             this.result = Collections.unmodifiableList(newList);
         } else {

@@ -43,7 +43,7 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
      */
     public T get() {
         T value = this.cachedValue;
-        if (value != null) {
+        if (value == null) {
             this.cachedValue = value = main.decodeConfig(this);
         }
         return value;

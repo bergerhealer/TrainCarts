@@ -1,12 +1,10 @@
 package com.bergerkiller.bukkit.tc.properties;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -76,8 +74,15 @@ public class CartPropertiesStore {
         } else {
             changed = editing.put(playerUUID, properties) != properties;
         }
+
+        // Make sure to stop editing a model configuration when the player selects a cart
+        // If wanting to edit a model while inside a cart, the player can re-edit the
+        // model after seating inside.
+        TrainCarts.plugin.getSavedAttachmentModels().setEditing(playerUUID, null);
+
+        // Refresh attachment editor if the selected cart also changed
         if (changed) {
-            refreshAttachmentEditor(playerUUID);
+            AttachmentEditor.reloadAttachmentEditorFor(playerUUID);
         }
     }
 
@@ -104,18 +109,7 @@ public class CartPropertiesStore {
             }
 
             for (UUID playerUUID : refreshPlayers) {
-                refreshAttachmentEditor(playerUUID);
-            }
-        }
-    }
-
-    private static void refreshAttachmentEditor(UUID playerUUID) {
-        Player player = Bukkit.getPlayer(playerUUID);
-        if (player != null) {
-            // Refresh attachment editor, if open
-            AttachmentEditor editor = MapDisplay.getHeldDisplay(player, AttachmentEditor.class);
-            if (editor != null) {
-                editor.reload();
+                AttachmentEditor.reloadAttachmentEditorFor(playerUUID);
             }
         }
     }

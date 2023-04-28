@@ -975,7 +975,9 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
             curr = curr.findChild(attachmentConfig.childPath());
 
             // Run the action
-            action.accept(curr);
+            if (curr != null) {
+                action.accept(curr);
+            }
         }
     }
 

@@ -488,10 +488,15 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     public void onDraw() {        
         int px = this.col * 17;
 
-        if (this.isFocused()) {
-            view.fillRectangle(px, 0, getWidth() - px, getHeight(), MapColorPalette.getColor(220, 220, 220));
-        } else if (this.isActivated()) {
-            view.fillRectangle(px, 0, getWidth() - px, getHeight(), MapColorPalette.getColor(220, 255, 220));
+        if (this.isActivated() || this.isFocused()) {
+            byte bgColor;
+            if (getEditor().isEditingSavedModel()) {
+                // More appropriate style color when editing a saved model
+                bgColor = MapColorPalette.getColor(77, 238, 250);
+            } else {
+                bgColor = MapColorPalette.getColor(220, 255, 220);
+            }
+            view.fillRectangle(px, 0, getWidth() - px, getHeight(), bgColor);
         }
 
         // Draw dots to the left to show our tree hierarchy

@@ -3,6 +3,9 @@ package com.bergerkiller.bukkit.tc.attachments.config;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentItem;
+import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.properties.SavedClaim;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.BasicModularConfiguration;
@@ -12,13 +15,19 @@ import com.bergerkiller.bukkit.tc.utils.modularconfiguration.ModularConfiguratio
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.ReadOnlyModuleException;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.logging.Level;
+
+import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
 /**
  * Stores the attachment configurations for models that have been saved.
@@ -193,6 +202,26 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
     public abstract void reload();
 
     /**
+     * Sets a default attachment configuration for a saved attachment model if
+     * the model by this name does not yet exist.
+     *
+     * @param name of the saved attachment model
+     * @return Existing or created saved attachment model
+     * @throws IllegalNameException If the name is null or empty
+     */
+    public SavedAttachmentModel setDefaultConfigIfMissing(String name) throws IllegalNameException {
+        SavedAttachmentModel existing = getModel(name);
+        if (existing != null) {
+            return existing;
+        }
+
+        ConfigurationNode config = new ConfigurationNode();
+        AttachmentTypeRegistry.instance().toConfig(config, CartAttachmentItem.TYPE);
+        config.set("item", new ItemStack(getMaterial("LEGACY_WOOD")));
+        return setConfig(name, config);
+    }
+
+    /**
      * Sets the configuration for a saved attachment model
      * 
      * @param name of the saved attachment model
@@ -218,7 +247,7 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
         // Store the entry
         ModularConfigurationEntry<SavedAttachmentModel> entry = container.add(name, config);
         entry.getWritableConfig().set("claims", claims);
-        return new SavedAttachmentModel(entry);
+        return entry.get();
     }
 
     /**
@@ -229,7 +258,7 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
      */
     public SavedAttachmentModel getModel(String name) {
         ModularConfigurationEntry<SavedAttachmentModel> entry = container.getIfExists(name);
-        return entry == null ? null : new SavedAttachmentModel(entry);
+        return entry == null ? null : entry.get();
     }
 
     /**
@@ -241,6 +270,80 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
      * @return saved model
      */
     public abstract SavedAttachmentModel getModelOrNone(String name);
+
+    /**
+     * Gets the attachment model configuration that a player is editing.
+     * Returns <i>null</i> if the player isn't editing any of these models.
+     * If the model does not yet exist, it is created and stored in this store,
+     * and configured with a default attachment ITEM configuration.
+     *
+     * @param player Player
+     * @return SavedAttachmentModel being edited by this player, or <i>null</i>
+     *         if the player isn't editing any model configurations
+     */
+    public final SavedAttachmentModel getEditingInit(Player player) {
+        return getEditingInit(player.getUniqueId());
+    }
+
+    /**
+     * Gets the attachment model configuration that a player is editing.
+     * Returns <i>null</i> if the player isn't editing any of these models.
+     * If the model does not yet exist, it is created and stored in this store,
+     * and configured with a default attachment ITEM configuration.
+     *
+     * @param playerUUID UUID of the Player
+     * @return SavedAttachmentModel being edited by this player, or <i>null</i>
+     *         if the player isn't editing any model configurations
+     */
+    public abstract SavedAttachmentModel getEditingInit(UUID playerUUID);
+
+    /**
+     * Gets the attachment model configuration that a player is editing.
+     * Returns <i>null</i> if the player isn't editing any of these models.
+     * The saved model might not yet exist, which should be checked with
+     * {@link SavedAttachmentModel#isNone()}.
+     *
+     * @param player Player
+     * @return SavedAttachmentModel being edited by this player, or <i>null</i>
+     *         if the player isn't editing any model configurations
+     */
+    public final SavedAttachmentModel getEditing(Player player) {
+        return getEditing(player.getUniqueId());
+    }
+
+    /**
+     * Gets the attachment model configuration that a player is editing.
+     * Returns <i>null</i> if the player isn't editing any of these models.
+     * The saved model might not yet exist, which should be checked with
+     * {@link SavedAttachmentModel#isNone()}.
+     *
+     * @param playerUUID UUID of the Player
+     * @return SavedAttachmentModel being edited by this player, or <i>null</i>
+     *         if the player isn't editing any model configurations
+     */
+    public abstract SavedAttachmentModel getEditing(UUID playerUUID);
+
+    /**
+     * Sets the attachment model configuration that a player is currently editing.
+     * Specify a <i>null</i> model to stop editing any models.
+     * Any active attachment editors are notified of this change if needed.
+     *
+     * @param player Player
+     * @param model Model configuration to edit, <i>null</i> to edit none
+     */
+    public final void setEditing(Player player, SavedAttachmentModel model) {
+        setEditing(player.getUniqueId(), model);
+    }
+
+    /**
+     * Sets the attachment model configuration that a player is currently editing.
+     * Specify a <i>null</i> model to stop editing any models.
+     * Any active attachment editors are notified of this change if needed.
+     *
+     * @param playerUUID UUID of the Player
+     * @param model Model configuration to edit, <i>null</i> to edit none
+     */
+    public abstract void setEditing(UUID playerUUID, SavedAttachmentModel model);
 
     /**
      * Gets the writable configuration for a saved attachment model
@@ -313,6 +416,7 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
      */
     private static class DefaultStore extends SavedAttachmentModelStore {
         private final ModularConfig modularConfig;
+        private final Map<UUID, String> playerEditedModelNames = new HashMap<>();
 
         public DefaultStore(TrainCarts traincarts, ModularConfig modularConfig) {
             super(traincarts, modularConfig);
@@ -359,7 +463,42 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
 
         @Override
         public SavedAttachmentModel getModelOrNone(String name) {
-            return new SavedAttachmentModel(modularConfig.get(name));
+            return modularConfig.get(name).get();
+        }
+
+        @Override
+        public SavedAttachmentModel getEditingInit(UUID playerUUID) {
+            String modelName = playerEditedModelNames.get(playerUUID);
+            if (modelName == null) {
+                return null;
+            } else {
+                try {
+                    return setDefaultConfigIfMissing(modelName);
+                } catch (IllegalNameException e) {
+                    playerEditedModelNames.remove(playerUUID);
+                    traincarts.getLogger().log(Level.SEVERE, "Unexpected illegal name exception", e);
+                    return null;
+                }
+            }
+        }
+
+        @Override
+        public SavedAttachmentModel getEditing(UUID playerUUID) {
+            String modelName = playerEditedModelNames.get(playerUUID);
+            return (modelName == null) ? null : getModelOrNone(modelName);
+        }
+
+        @Override
+        public void setEditing(UUID playerUUID, SavedAttachmentModel model) {
+            boolean changed;
+            if (model == null) {
+                changed = (playerEditedModelNames.remove(playerUUID) != null);
+            } else {
+                changed = (!model.getName().equals(playerEditedModelNames.put(playerUUID, model.getName())));
+            }
+            if (changed) {
+                AttachmentEditor.reloadAttachmentEditorFor(playerUUID);
+            }
         }
     }
 
@@ -409,7 +548,22 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
 
         @Override
         public SavedAttachmentModel getModelOrNone(String name) {
-            return new SavedAttachmentModel(module.getMain().get(name));
+            return module.getMain().get(name).get();
+        }
+
+        @Override
+        public SavedAttachmentModel getEditingInit(UUID playerUUID) {
+            return traincarts.getSavedAttachmentModels().getEditingInit(playerUUID);
+        }
+
+        @Override
+        public SavedAttachmentModel getEditing(UUID playerUUID) {
+            return traincarts.getSavedAttachmentModels().getEditing(playerUUID);
+        }
+
+        @Override
+        public void setEditing(UUID playerUUID, SavedAttachmentModel model) {
+            traincarts.getSavedAttachmentModels().setEditing(playerUUID, model);
         }
     }
 

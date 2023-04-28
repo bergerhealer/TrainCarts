@@ -1,6 +1,9 @@
 package com.bergerkiller.bukkit.tc.attachments.ui;
 
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModel;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -26,6 +29,7 @@ import com.bergerkiller.bukkit.tc.properties.CartProperties;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class AttachmentEditor extends MapDisplay {
     private static final int SNEAK_DEBOUNCE_TICKS = 5;
@@ -214,6 +218,32 @@ public class AttachmentEditor extends MapDisplay {
     }
 
     /**
+     * Gets whether the editor is editing a saved model configuration
+     *
+     * @return True if editing a saved model
+     */
+    public boolean isEditingSavedModel() {
+        return model instanceof SavedAttachmentModel;
+    }
+
+    /**
+     * Checks if there's any attachment editors active for a particular Player, and if so,
+     * reloads it.
+     *
+     * @param playerUUID UUID of the player
+     */
+    public static void reloadAttachmentEditorFor(UUID playerUUID) {
+        Player player = Bukkit.getPlayer(playerUUID);
+        if (player != null) {
+            // Refresh attachment editor, if open
+            AttachmentEditor editor = MapDisplay.getHeldDisplay(player, AttachmentEditor.class);
+            if (editor != null) {
+                editor.reload();
+            }
+        }
+    }
+
+    /**
      * Reloads the editor. Happens when switching between carts being edited.
      */
     public void reload() {
@@ -235,9 +265,21 @@ public class AttachmentEditor extends MapDisplay {
                 .setShadowColor(MapColorPalette.getSpecular(MapColorPalette.COLOR_RED, 0.5f))
                 .setPosition(20, 60);
         } else {
-            this.editedCart = CartProperties.getEditing(this.getOwners().get(0));
-            if (this.editedCart != null) {
-                this.sneakCounter = this.getOwners().get(0).isSneaking() ? SNEAK_DEBOUNCE_TICKS : 0;
+            Player owner = this.getOwners().get(0);
+
+            SavedAttachmentModel editedModel = TrainCarts.plugin.getSavedAttachmentModels().getEditingInit(owner);
+            if (editedModel != null) {
+                this.editedCart = null;
+                this.sneakCounter = owner.isSneaking() ? SNEAK_DEBOUNCE_TICKS : 0;
+                this.setReceiveInputWhenHolding(this.sneakCounter == 0);
+                this.model = editedModel;
+                this.tree.setModel(this.model);
+                this.tree.setBounds(5, 13, 7 * 17, 6 * 17);
+                this.window.getTitle().setText("Attachment Model Editor");
+                this.window.setBackgroundColor(MapColorPalette.getColor(54, 168, 176));
+                this.window.addWidget(this.tree);
+            } else if ((this.editedCart = CartProperties.getEditing(owner)) != null) {
+                this.sneakCounter = owner.isSneaking() ? SNEAK_DEBOUNCE_TICKS : 0;
                 this.setReceiveInputWhenHolding(this.sneakCounter == 0);
                 this.model = this.editedCart.getModel();
                 this.tree.setModel(this.model);

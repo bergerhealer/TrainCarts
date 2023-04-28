@@ -250,7 +250,7 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
         // Store the entry
         ModularConfigurationEntry<SavedTrainProperties> entry = container.add(name, config);
         entry.getWritableConfig().set("claims", claims);
-        return new SavedTrainProperties(entry);
+        return entry.get();
     }
 
     /**
@@ -261,7 +261,7 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
      */
     public SavedTrainProperties getProperties(String name) {
         ModularConfigurationEntry<SavedTrainProperties> entry = container.getIfExists(name);
-        return entry == null ? null : new SavedTrainProperties(entry);
+        return entry == null ? null : entry.get();
     }
 
     /**
@@ -408,7 +408,7 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
 
         @Override
         public SavedTrainProperties getPropertiesOrNone(String name) {
-            return new SavedTrainProperties(modularConfig.get(name));
+            return modularConfig.get(name).get();
         }
     }
 
@@ -458,7 +458,7 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
 
         @Override
         public SavedTrainProperties getPropertiesOrNone(String name) {
-            return new SavedTrainProperties(module.getMain().get(name));
+            return module.getMain().get(name).get();
         }
     }
 
