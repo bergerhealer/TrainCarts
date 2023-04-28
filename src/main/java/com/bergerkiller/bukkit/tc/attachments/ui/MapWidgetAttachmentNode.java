@@ -3,12 +3,16 @@ package com.bergerkiller.bukkit.tc.attachments.ui;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentBlock;
+import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
+import com.bergerkiller.bukkit.tc.utils.SetCallbackCollector;
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -318,6 +322,27 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
         return config.liveAttachments();
     }
 
+    /**
+     * Gets a set of live MinecartMember instances of carts using this particular
+     * attachment. When editing a model attachment, more than one member might be returned
+     * if more than one member is using it in a MODEL attachment.
+     *
+     * @return members using this attachment
+     */
+    public Set<MinecartMember<?>> getMembersUsingAttachment() {
+        SetCallbackCollector<MinecartMember<?>> collector = new SetCallbackCollector<>();
+        config.runAction(attachment -> {
+            AttachmentManager manager = attachment.getManager();
+            if (manager instanceof AttachmentControllerMember) {
+                MinecartMember<?> member = ((AttachmentControllerMember) manager).getMember();
+                if (!member.isUnloaded()) {
+                    collector.accept(member);
+                }
+            }
+        });
+        return collector.result();
+    }
+
     public AttachmentEditor getEditor() {
         if (this.display == null && this.root != null) {
             return (AttachmentEditor) this.root.getDisplay();
@@ -367,8 +392,8 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
         this.appearanceMenuButton.setTooltip("Appearance").setIcon(getIcon()).setPosition(px, 1);
         px += 17;
 
-        // Only for root nodes: modify Physical properties of the cart
-        if (this.parentAttachment == null) {
+        // Only for root nodes when editing carts: modify Physical properties of the cart
+        if (this.parentAttachment == null && getEditor().getEditedCartProperties() != null) {
             this.addWidget(new MapWidgetMenuButton(MenuItem.PHYSICAL).setIcon("attachments/physical.png").setPosition(px, 1));
             px += 17;
         }

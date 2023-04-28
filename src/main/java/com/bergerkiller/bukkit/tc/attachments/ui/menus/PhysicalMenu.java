@@ -40,21 +40,17 @@ public class PhysicalMenu extends MapWidgetMenu {
         super.onAttached();
 
         // If there is no edited cart, then we can't show a "physical" preview. Abort.
-        if (this.getAttachment().getEditor().getEditedCart() == null) {
-            close();
-            return;
+        if (this.getAttachment().getEditor().getEditedCart() != null) {
+            // Shows a preview in the real world
+            preview = new PhysicalMemberPreview(this.getAttachment().getEditor().getEditedCart(), () -> {
+                if (ticksPreviewVisible > 0 && display != null) {
+                    return display.getOwners();
+                } else {
+                    return Collections.emptySet();
+                }
+            });
         }
 
-        // Shows a preview in the real world
-        preview = new PhysicalMemberPreview(this.getAttachment().getEditor().getEditedCart(), () -> {
-                    if (ticksPreviewVisible > 0 && display != null) {
-                        return display.getOwners();
-                    } else {
-                        return Collections.emptySet();
-                    }
-                });
-
-        //this.transformType
         this.addWidget(new MapWidgetNumberBox() { // Position X
             @Override
             public void onAttached() {
@@ -124,13 +120,17 @@ public class PhysicalMenu extends MapWidgetMenu {
     @Override
     public void onDetached() {
         super.onDetached();
-        this.preview.hide();
+        if (this.preview != null) {
+            this.preview.hide();
+        }
     }
 
     @Override
     public void onTick() {
         super.onTick();
-        this.preview.update();
+        if (this.preview != null) {
+            this.preview.update();
+        }
         if (--this.ticksPreviewVisible < 0) {
             this.ticksPreviewVisible = 0;
         }

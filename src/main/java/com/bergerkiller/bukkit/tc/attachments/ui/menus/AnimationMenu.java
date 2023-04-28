@@ -325,22 +325,18 @@ public class AnimationMenu extends MapWidgetMenu {
      * @param optionFunc Callback that sets the animation playback options
      */
     public void playAnimation(Consumer<AnimationOptions> optionFunc) {
-        AttachmentEditor editor = (AttachmentEditor) this.getDisplay();
-        MinecartMember<?> member = editor.editedCart.getHolder();
-        if (member == null) {
-            return; // Not loaded.
-        }
-
-        AnimationOptions options = new AnimationOptions(this.animSelectionBox.getSelectedItem());
-        optionFunc.accept(options);
-        this.playbackMode.applyOptions(options, this.animView::getSelectedScene);
-        if (this.playForAll) {
-            // Target the entire model
-            member.playNamedAnimation(options);
-        } else {
-            // Target only the attachment we are editing
-            int[] targetPath = this.attachment.getTargetPath();
-            member.playNamedAnimationFor(targetPath, options);
+        for (MinecartMember<?> member : attachment.getMembersUsingAttachment()) {
+            AnimationOptions options = new AnimationOptions(this.animSelectionBox.getSelectedItem());
+            optionFunc.accept(options);
+            this.playbackMode.applyOptions(options, this.animView::getSelectedScene);
+            if (this.playForAll) {
+                // Target the entire model
+                member.playNamedAnimation(options);
+            } else {
+                // Target only the attachment we are editing
+                int[] targetPath = this.attachment.getTargetPath();
+                member.playNamedAnimationFor(targetPath, options);
+            }
         }
     }
 
@@ -590,27 +586,23 @@ public class AnimationMenu extends MapWidgetMenu {
      * @param node
      */
     public void previewAnimationNode(int index, AnimationNode node) {
-        AttachmentEditor editor = (AttachmentEditor) this.getDisplay();
-        MinecartMember<?> member = editor.editedCart.getHolder();
-        if (member == null) {
-            return; // Not loaded.
-        }
+        for (MinecartMember<?> member : attachment.getMembersUsingAttachment()) {
+            // When inactive, blink the node on and off to display its position that way
+            AnimationNode[] nodes;
+            if (node.isActive()) {
+                nodes = new AnimationNode[] {node};
+            } else {
+                nodes = new AnimationNode[] {
+                        new AnimationNode(node.getPosition(), node.getRotationVector(), true, 0.5),
+                        new AnimationNode(node.getPosition(), node.getRotationVector(), false, 0.5),
+                };
+            }
 
-        // When inactive, blink the node on and off to display it's position that way
-        AnimationNode[] nodes;
-        if (node.isActive()) {
-            nodes = new AnimationNode[] {node};
-        } else {
-            nodes = new AnimationNode[] {
-                    new AnimationNode(node.getPosition(), node.getRotationVector(), true, 0.5),
-                    new AnimationNode(node.getPosition(), node.getRotationVector(), false, 0.5),
-            };
+            Animation anim_preview = new Animation("DUMMY_DO_NOT_USE", nodes);
+            anim_preview.getOptions().setReset(true);
+            anim_preview.getOptions().setLooped(true);
+            member.playAnimationFor(this.attachment.getTargetPath(), anim_preview);
         }
-
-        Animation anim_preview = new Animation("DUMMY_DO_NOT_USE", nodes);
-        anim_preview.getOptions().setReset(true);
-        anim_preview.getOptions().setLooped(true);
-        member.playAnimationFor(this.attachment.getTargetPath(), anim_preview);
     }
 
     public Animation getAnimation() {

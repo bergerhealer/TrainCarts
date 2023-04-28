@@ -194,7 +194,8 @@ public class AttachmentEditor extends MapDisplay {
     }
 
     /**
-     * Gets the properties being edited. Null if no cart is being edited.
+     * Gets the properties being edited. Null if no cart is being edited,
+     * or a model configuration is being edited
      *
      * @return edited cart properties
      */
@@ -204,7 +205,7 @@ public class AttachmentEditor extends MapDisplay {
 
     /**
      * Gets the cart being edited. Null if no cart is being edited, or the
-     * cart is not loaded.
+     * cart is not loaded, or a model configuration is being edited
      *
      * @return edited cart
      */
