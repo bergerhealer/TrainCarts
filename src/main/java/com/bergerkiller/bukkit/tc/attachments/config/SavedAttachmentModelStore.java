@@ -217,7 +217,7 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
 
         // Store the entry
         ModularConfigurationEntry<SavedAttachmentModel> entry = container.add(name, config);
-        entry.getConfig().set("claims", claims);
+        entry.getWritableConfig().set("claims", claims);
         return new SavedAttachmentModel(entry);
     }
 
@@ -243,7 +243,7 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
     public abstract SavedAttachmentModel getModelOrNone(String name);
 
     /**
-     * Gets the configuration for a saved attachment model
+     * Gets the writable configuration for a saved attachment model
      * 
      * @param name of the saved attachment model
      * @return configuration, null if the model is not stored
@@ -429,10 +429,11 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
 
         @Override
         protected void postProcessEntryConfiguration(ModularConfigurationEntry<SavedAttachmentModel> entry) {
-            if (!entry.getConfig().contains(KEY_SAVED_NAME) ||
-                !entry.getConfig().get(KEY_SAVED_NAME, "").equals(entry.getName()))
+            ConfigurationNode config = entry.getWritableConfig();
+            if (!config.contains(KEY_SAVED_NAME) ||
+                !config.get(KEY_SAVED_NAME, "").equals(entry.getName()))
             {
-                entry.getConfig().set(KEY_SAVED_NAME, entry.getName());
+                config.set(KEY_SAVED_NAME, entry.getName());
             }
         }
 

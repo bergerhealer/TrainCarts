@@ -29,7 +29,7 @@ public abstract class ModularConfigurationBlockList<T> implements ModularConfigu
 
     @Override
     public void reload() {
-        getMain().groupChanges(() -> blocks.forEach(ModularConfigurationBlock::reload));
+        blocks.forEach(ModularConfigurationBlock::reload);
     }
 
     @Override
@@ -132,17 +132,13 @@ public abstract class ModularConfigurationBlockList<T> implements ModularConfigu
 
     /**
      * Clears all Modules previously added and marks all pre-existing Entries for
-     * removal. Listeners will be notified the entry is removed, unless
-     * {@link ModularConfiguration#groupChanges(Runnable)} was used to delay
-     * those changes until later.
+     * removal.
      */
     public void clear() {
-        getMain().groupChanges(() -> {
-            ArrayList<ModularConfigurationBlock<T>> copy = new ArrayList<>(blocks);
-            blocks.clear();
-            copy.stream()
-                    .flatMap(b -> b.getFiles().stream())
-                    .forEachOrdered(getMain()::onModuleRemoved);
-        });
+        ArrayList<ModularConfigurationBlock<T>> copy = new ArrayList<>(blocks);
+        blocks.clear();
+        copy.stream()
+                .flatMap(b -> b.getFiles().stream())
+                .forEachOrdered(getMain()::onModuleRemoved);
     }
 }

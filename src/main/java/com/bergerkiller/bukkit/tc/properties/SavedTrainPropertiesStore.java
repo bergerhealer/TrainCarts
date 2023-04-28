@@ -249,7 +249,7 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
 
         // Store the entry
         ModularConfigurationEntry<SavedTrainProperties> entry = container.add(name, config);
-        entry.getConfig().set("claims", claims);
+        entry.getWritableConfig().set("claims", claims);
         return new SavedTrainProperties(entry);
     }
 
@@ -479,10 +479,11 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
 
         @Override
         protected void postProcessEntryConfiguration(ModularConfigurationEntry<SavedTrainProperties> entry) {
-            if (!entry.getConfig().contains(KEY_SAVED_NAME) ||
-                !entry.getConfig().get(KEY_SAVED_NAME, "").equals(entry.getName()))
+            ConfigurationNode config = entry.getWritableConfig();
+            if (!config.contains(KEY_SAVED_NAME) ||
+                !config.get(KEY_SAVED_NAME, "").equals(entry.getName()))
             {
-                entry.getConfig().set(KEY_SAVED_NAME, entry.getName());
+                config.set(KEY_SAVED_NAME, entry.getName());
             }
         }
 

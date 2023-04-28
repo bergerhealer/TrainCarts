@@ -66,7 +66,7 @@ public interface AttachmentType {
 
     /**
      * Gets whether this attachment type is shown inside the Attachment Editor's
-     * attaachment type list. By default checks for permission.
+     * attachment type list. By default checks for permission.
      *
      * @param player Player viewing the attachments
      * @return True if listed in the attachment editor

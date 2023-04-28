@@ -36,11 +36,9 @@ public class ModularConfigurationFile<T> extends ModularConfigurationModule<T> {
             return;
         }
 
-        main.groupChanges(() -> {
-            main.onModuleRemoved(this);
-            loadConfig();
-            main.onModuleAdded(this);
-        });
+        main.onModuleRemoved(this);
+        loadConfig();
+        main.onModuleAdded(this);
     }
 
     @Override

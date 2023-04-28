@@ -19,7 +19,7 @@ public class SavedAttachmentModel extends AttachmentModel {
     private final ModularConfigurationEntry<SavedAttachmentModel> entry;
 
     SavedAttachmentModel(ModularConfigurationEntry<SavedAttachmentModel> entry) {
-        super(entry::getConfig);
+        super(entry.getConfig());
         this.entry = entry;
     }
 
@@ -89,7 +89,7 @@ public class SavedAttachmentModel extends AttachmentModel {
      */
     public void setClaims(Collection<SavedClaim> claims) {
         if (!entry.isRemoved()) {
-            SavedClaim.saveClaims(entry.getConfig(), claims);
+            SavedClaim.saveClaims(entry.getWritableConfig(), claims);
         }
     }
 

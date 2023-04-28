@@ -3,11 +3,8 @@ package com.bergerkiller.bukkit.tc.utils.modularconfiguration;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.google.common.collect.MapMaker;
 
-import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Logger;
@@ -44,8 +41,6 @@ public abstract class ModularConfiguration<T>
     final ConcurrentMap<String, ModularConfigurationEntry<T>> removedEntries = new MapMaker()
             .weakValues()
             .makeMap();
-    /** Temporarily stores entry changes that have occurred while changes are frozen */
-    Map<String, FrozenEntryChanges<T>> cachedChanges = null; // null if not frozen
 
     /**
      * Initializes a new modular configuration
@@ -150,9 +145,7 @@ public abstract class ModularConfiguration<T>
             }
 
             // Swap the entry for the existing one
-            try (ModularConfigurationEntry.ChangeTracker t = existing.makeChanges()) {
-                existing.loadFromModule(module);
-            }
+            existing.loadFromModule(module);
         }
     }
 
@@ -209,37 +202,6 @@ public abstract class ModularConfiguration<T>
 
         // Keep removed entries in the removed mapping in case they're still referenced
         newRemovedEntries.forEach(e -> removedEntries.put(e.getName(), e));
-
-        // Notify changes, probably does nothing
-        newRemovedEntries.forEach(ModularConfigurationEntry::afterChanges);
-    }
-
-    /**
-     * Groups the changes performed inside the action specified. If multiple changes occur
-     * that cancel each other out, such as the removal and re-creation of an entry with
-     * the same configuration, those changes are not notified.
-     *
-     * @param action Action that will cause lots of changes to happen
-     */
-    public void groupChanges(Runnable action) {
-        if (cachedChanges == null) {
-            // Start tracking
-            cachedChanges = new LinkedHashMap<>();
-            try {
-                // Make changes
-                action.run();
-            } finally {
-                // Apply changes
-                Collection<FrozenEntryChanges<T>> changes = cachedChanges.values();
-                cachedChanges = null;
-                changes.stream()
-                        .filter(FrozenEntryChanges::hasChanged)
-                        .forEachOrdered(c -> c.entry.afterChanges());
-            }
-        } else {
-            // Recursive groupChanges()
-            action.run();
-        }
     }
 
     /**

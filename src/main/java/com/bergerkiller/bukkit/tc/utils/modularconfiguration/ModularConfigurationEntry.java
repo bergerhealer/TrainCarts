@@ -1,19 +1,16 @@
 package com.bergerkiller.bukkit.tc.utils.modularconfiguration;
 
-import com.bergerkiller.bukkit.common.collections.ImplicitlySharedSet;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 
 /**
  * A single configuration entry including information about the
  * module it is stored inside. The entry and Name are rightly coupled,
  * so renaming an entry will result in a new entry being created
- * and the old one being removed. So long an entry has listeners,
- * its instance will remain cached internally.
+ * and the old one being removed.
  *
  * @param <T> Type of object stored the configuration is for
  */
@@ -23,7 +20,6 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
     final List<ModularConfigurationModule<T>> shadowModules;
     private final String name;
     private final ConfigurationNode config;
-    private ImplicitlySharedSet<ModularConfigurationChangeListener<T>> listeners;
     private T cachedValue;
 
     ModularConfigurationEntry(ModularConfiguration<T> main, String name) {
@@ -36,7 +32,6 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
         this.shadowModules = new ArrayList<>(2);
         this.name = name;
         this.config = config;
-        this.listeners = null;
         this.cachedValue = null;
     }
 
@@ -112,12 +107,29 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
      * Gets the configuration of this entry. Is empty if removed. The
      * returned instance will never be changed, and so it is safe to
      * register configuration change listeners on it. Those will remain
-     * functional even when the modules are reloaded.
+     * functional even when the modules are reloaded.<br>
+     * <br>
+     * If the entry was removed and is later created, then the same
+     * configuration instance is re-used and populated with the new configuration.
+     * Change listeners can in this way be notified of this.
      *
      * @return configuration
-     * @throws EntryRemovedException If this entry is {@link #isRemoved()} removed
      */
     public ConfigurationNode getConfig() {
+        return config;
+    }
+
+    /**
+     * Gets the configuration of this entry. Throws an error if the
+     * entry is removed, and the configuration cannot be written to. The
+     * returned instance will never be changed, and so it is safe to
+     * register configuration change listeners on it. Those will remain
+     * functional even when the modules are reloaded.
+     *
+     * @return writable configuration
+     * @throws EntryRemovedException If this entry is {@link #isRemoved()} removed
+     */
+    public ConfigurationNode getWritableConfig() {
         if (isRemoved()) {
             throw new EntryRemovedException();
         }
@@ -125,9 +137,9 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
     }
 
     /**
-     * Updates the configuration of this entry. Listeners registered for
-     * this entry will be notified of these changes. The input configuration
-     * is copied, no reference to it is stored.
+     * Updates the configuration of this entry. Listeners registered on
+     * this entry's configuration will be notified of these changes.
+     * The input configuration is copied, no reference to it is stored.
      *
      * @param config Configuration to set to
      * @throws ReadOnlyModuleException If this entry is currently stored
@@ -142,16 +154,14 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
             throw new ReadOnlyModuleException();
         }
 
-        try (ChangeTracker t = makeChanges()) {
-            this.config.setTo(config);
-            this.main.postProcessEntryConfiguration(this);
-        }
+        this.config.setTo(config);
+        this.main.postProcessEntryConfiguration(this);
     }
 
     /**
-     * Updates the configuration of this entry. Listeners registered for
-     * this entry will be notified of these changes. The input configuration
-     * is copied, no reference to it is stored.<br>
+     * Updates the configuration of this entry. Listeners registered on
+     * this entry's configuration will be notified of these changes.
+     * The input configuration is copied, no reference to it is stored.<br>
      * <br>
      * In addition to updating the configuration, will also migrate the entry
      * to be stored in the module specified. If the entry was
@@ -173,21 +183,19 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
             throw new ReadOnlyModuleException();
         }
 
-        try (ChangeTracker t = makeChanges()) {
-            if (isRemoved()) {
-                // Add this entry to this module
-                module.store(this);
+        if (isRemoved()) {
+            // Add this entry to this module
+            module.store(this);
 
-                // Also create in the main module
-                main.removedEntries.remove(name);
-                main.entries.set(name, this);
-            } else {
-                setModule(module);
-            }
-
-            this.config.setTo(config);
-            this.main.postProcessEntryConfiguration(this);
+            // Also create in the main module
+            main.removedEntries.remove(name);
+            main.entries.set(name, this);
+        } else {
+            setModule(module);
         }
+
+        this.config.setTo(config);
+        this.main.postProcessEntryConfiguration(this);
     }
 
     /**
@@ -212,14 +220,12 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
             throw new ReadOnlyModuleException();
         }
 
-        try (ChangeTracker t = makeChanges()) {
-            // Remove the configuration from the current module
-            module.removeInModule(name);
-            module = null;
+        // Remove the configuration from the current module
+        module.removeInModule(name);
+        module = null;
 
-            // Handle the file module being detached
-            onFileModuleDetached();
-        }
+        // Handle the file module being detached
+        onFileModuleDetached();
     }
 
     /**
@@ -232,10 +238,8 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
      */
     void onModuleRemoved(ModularConfigurationModule<T> module) {
         if (this.module == module) {
-            try (ChangeTracker t = makeChanges()) {
-                this.module = null;
-                this.onFileModuleDetached();
-            }
+            this.module = null;
+            this.onFileModuleDetached();
         } else {
             this.shadowModules.remove(module);
         }
@@ -252,8 +256,8 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
         // entry and set this entry to it.
         //
         // If removed completely, also remove it from the main module itself.
-        // If nobody references this entry anymore and no listeners are
-        // registered, then the entry is automatically garbage-collected.
+        // If nobody references this entry anymore then the entry is automatically
+        // garbage-collected.
         if (!shadowModules.isEmpty()) {
             loadFromModule(shadowModules.remove(shadowModules.size() - 1));
         } else {
@@ -311,9 +315,8 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
 
     /**
      * Copies the configuration of this entry into a different entry
-     * with a different name. Change listeners are not copied
-     * over and the original change listeners of the target entry are
-     * notified of the changing configuration.
+     * with a different name. Configuration change listeners are not
+     * transferred to the other entry.
      *
      * @param targetEntry Other entries to copy this entry's configuration to
      * @throws IllegalArgumentException If the target entry is null or the
@@ -337,10 +340,8 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
             throw new ReadOnlyModuleException();
         }
 
-        try (ChangeTracker t = makeChanges()) {
-            targetEntry.config.setTo(this.config);
-            this.main.postProcessEntryConfiguration(targetEntry);
-        }
+        targetEntry.config.setTo(this.config);
+        this.main.postProcessEntryConfiguration(targetEntry);
     }
 
     /**
@@ -348,8 +349,6 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
      * {@link ModularConfiguration#clear()}
      */
     void removeSilent() {
-        beforeChanges();
-
         // Prevent modifying read-only File Configurations
         detachAsShadowCopy();
 
@@ -407,90 +406,9 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
         }
     }
 
-    /**
-     * Adds a new listener for changes made to this entry
-     *
-     * @param listener Change Listener to add
-     */
-    public void addListener(ModularConfigurationChangeListener<T> listener) {
-        if (listeners == null) {
-            listeners = new ImplicitlySharedSet<>(new LinkedHashSet<>());
-            listeners.add(listener);
-            main.entriesWithListeners.add(this);
-        } else {
-            listeners.add(listener);
-        }
-    }
-
-    /**
-     * Removes a change listeners previously added using
-     * {@link #addListener(ModularConfigurationChangeListener)}
-     *
-     * @param listener Change Listener to remove
-     */
-    public void removeListener(ModularConfigurationChangeListener<T> listener) {
-        if (listeners != null && listeners.remove(listener) && listeners.isEmpty()) {
-            listeners = null;
-            main.entriesWithListeners.remove(this);
-        }
-    }
-
-    /**
-     * Returns an auto-closeable object that will perform the
-     * {@link #beforeChanges()} and {@link #afterChanges()} automatically
-     * using try-with-resources.
-     *
-     * @return ChangeTracker, should be used with try-with-resources
-     */
-    ChangeTracker makeChanges() {
-        return new ChangeTracker(this);
-    }
-
-    /**
-     * Should be called before changes occur. If changes were frozen, this
-     * is used to store a snapshot of the previous state.
-     */
-    void beforeChanges() {
-        if (main.cachedChanges != null) {
-            main.cachedChanges.computeIfAbsent(this.getName(), e -> new ModularConfiguration.FrozenEntryChanges<T>(this));
-        }
-    }
-
-    /**
-     * Notifies all registered recipients that this entry's configuration
-     * was changed. This is also called when the entry is removed. Does not
-     * notify when the module of an entry is changed.<br>
-     * <br>
-     * If changes were frozen, nothing happens
-     */
-    void afterChanges() {
-        if (main.cachedChanges != null) {
-            return;
-        }
-
-        // Notify everyone
-        if (listeners != null) {
-            listeners.cloneAndForEach(l -> l.onChanged(this));
-        }
-    }
-
     @Override
     public int compareTo(@NotNull ModularConfigurationEntry<T> tModularConfigurationEntry) {
         return name.compareTo(tModularConfigurationEntry.name);
-    }
-
-    static class ChangeTracker implements AutoCloseable {
-        private final ModularConfigurationEntry<?> entry;
-
-        public ChangeTracker(ModularConfigurationEntry<?> entry) {
-            this.entry = entry;
-            entry.beforeChanges();
-        }
-
-        @Override
-        public void close() {
-            entry.afterChanges();
-        }
     }
 
     /**

@@ -191,11 +191,9 @@ public class ModularConfigurationDirectory<T> implements ModularConfigurationBlo
         // Make sure any configuration changes are first committed to disk
         saveChanges();
 
-        main.groupChanges(() -> {
-            clear();
-            loadFiles();
-            files.forEach(main::onModuleAdded);
-        });
+        clear();
+        loadFiles();
+        files.forEach(main::onModuleAdded);
     }
 
     @Override

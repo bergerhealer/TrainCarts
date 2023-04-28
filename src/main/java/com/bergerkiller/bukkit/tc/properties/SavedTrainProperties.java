@@ -73,10 +73,10 @@ public class SavedTrainProperties {
             return;
         }
 
-        List<ConfigurationNode> carts = entry.getConfig().getNodeList("carts");
+        List<ConfigurationNode> carts = entry.getWritableConfig().getNodeList("carts");
         carts.forEach(StandardProperties::reverseSavedCart);
         Collections.reverse(carts);
-        entry.getConfig().setNodeList("carts", carts);
+        entry.getWritableConfig().setNodeList("carts", carts);
     }
 
     /**
@@ -90,7 +90,7 @@ public class SavedTrainProperties {
             return;
         }
 
-        List<ConfigurationNode> carts = entry.getConfig().getNodeList("carts");
+        List<ConfigurationNode> carts = entry.getWritableConfig().getNodeList("carts");
         for (ConfigurationNode cart : carts) {
             if (locked) {
                 StandardProperties.LOCK_ORIENTATION_FLIPPED.writeToConfig(cart,
@@ -99,7 +99,7 @@ public class SavedTrainProperties {
                 StandardProperties.LOCK_ORIENTATION_FLIPPED.writeToConfig(cart, Optional.empty());
             }
         }
-        entry.getConfig().setNodeList("carts", carts);
+        entry.getWritableConfig().setNodeList("carts", carts);
     }
 
     /**
@@ -119,7 +119,7 @@ public class SavedTrainProperties {
      */
     public void setClaims(Collection<SavedClaim> claims) {
         if (!entry.isRemoved()) {
-            SavedClaim.saveClaims(entry.getConfig(), claims);
+            SavedClaim.saveClaims(entry.getWritableConfig(), claims);
         }
     }
 
