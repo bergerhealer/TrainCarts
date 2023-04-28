@@ -89,6 +89,10 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
     @Override
     protected void startTracking() {
         completeConfig = completeConfigSupplier.get();
+        if (completeConfig == null) {
+            completeConfig = new ConfigurationNode();
+        }
+
         root = createNewRoot(completeConfig);
         root.addToTracker();
         completeConfig.addChangeListener(this);
@@ -121,6 +125,9 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         // root reference becomes invalid. It also becomes invalid when the configuration instance
         // changes, or it's no longer listening all of a sudden.
         ConfigurationNode configSnapshot = completeConfigSupplier.get();
+        if (configSnapshot == null) {
+            configSnapshot = new ConfigurationNode();
+        }
         AttachmentConfig tempRoot = createNewRoot(configSnapshot);
         return new AttachmentConfig.RootReference(tempRoot, new ConfigInvalidChecker(configSnapshot));
     }
@@ -131,11 +138,13 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
      */
     private class ConfigInvalidChecker implements AttachmentConfig.RootReference.ValidChecker, YamlChangeListener {
         private final ConfigurationNode configSnapshot;
+        private final int modCountSnapshot;
         private boolean valid;
 
         public ConfigInvalidChecker(ConfigurationNode configSnapshot) {
             this.configSnapshot = configSnapshot;
             this.configSnapshot.addChangeListener(this);
+            this.modCountSnapshot = modificationCount;
             this.valid = true;
         }
 
@@ -149,7 +158,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
             // If the configuration instance differs,
             // then it is also invalid. Everything else is handled by the onNodeChanged
             // callback.
-            if (isTracking() || configSnapshot != completeConfigSupplier.get()) {
+            if (isTracking() || modCountSnapshot != modificationCount || configSnapshot != completeConfigSupplier.get()) {
                 close();
                 return false;
             }
@@ -320,13 +329,17 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         return path;
     }
 
-    private static String readAttachmentTypeId(ConfigurationNode config) {
+    private static boolean isEmptyConfiguration(ConfigurationNode config) {
+        return !config.contains("type") && config.getNodeList("attachments").isEmpty();
+    }
+
+    private static String readAttachmentTypeId(ConfigurationNode config, String defaultType) {
         Object typeIdObj = config.get("type");
-        return (typeIdObj == null) ? "EMPTY" : typeIdObj.toString();
+        return (typeIdObj == null) ? defaultType : typeIdObj.toString();
     }
 
     private static String readModelName(ConfigurationNode config) {
-        Object modelNameObj = config.get("modelName");
+        Object modelNameObj = config.get(AttachmentConfig.Model.MODEL_NAME_CONFIG_KEY);
         return modelNameObj == null ? "" : modelNameObj.toString();
     }
 
@@ -335,7 +348,16 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
     }
 
     private TrackedAttachmentConfig createNewConfig(TrackedAttachmentConfig parent, YamlPath rootPath, ConfigurationNode config, int childIndex) {
-        String typeId = readAttachmentTypeId(config);
+        String typeId = readAttachmentTypeId(config, null);
+
+        // Check whether this configuration lacks a valid attachment configuration
+        // These attachments shouldn't be created (empty configurations / empty roots)
+        if (typeId == null) {
+            typeId = "EMPTY";
+            if (config.getNodeList("attachments").isEmpty()) {
+                return new TrackedEmptyAttachmentConfig(parent, rootPath, config, typeId, childIndex);
+            }
+        }
 
         // Create a TrackedModelAttachmentConfig for MODEL attachments with a valid non-empty model name set
         if (typeId.equals(AttachmentType.MODEL_TYPE_ID)) {
@@ -475,6 +497,11 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         @Override
         public ConfigurationNode config() {
             return config;
+        }
+
+        @Override
+        public boolean isEmptyConfig() {
+            return false;
         }
 
         @Override
@@ -627,7 +654,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
          */
         protected boolean handleLoad() {
             // Recreate this attachment and all children when the attachment type changes
-            return this.typeId.equals(readAttachmentTypeId(config));
+            return this.typeId.equals(readAttachmentTypeId(config, "EMPTY"));
         }
 
         private void addToTracker() {
@@ -696,6 +723,30 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         protected boolean handleLoad() {
             // Check that a model name is now set and not empty
             return super.handleLoad() && readModelName(config()).isEmpty();
+        }
+    }
+
+    /**
+     * Attachment configuration that is, presently, incomplete. This is the case if the
+     * attachment configuration does not declare an attachment type, nor any child
+     * attachments. Empty attachment configurations should not be loaded in as they
+     * are functionally invalid.
+     */
+    private class TrackedEmptyAttachmentConfig extends TrackedAttachmentConfig {
+
+        public TrackedEmptyAttachmentConfig(TrackedAttachmentConfig parent, YamlPath rootPath, ConfigurationNode config, String typeId, int childIndex) {
+            super(parent, rootPath, config, typeId, childIndex);
+        }
+
+        @Override
+        public boolean isEmptyConfig() {
+            return true;
+        }
+
+        @Override
+        protected boolean handleLoad() {
+            // Check still empty
+            return super.handleLoad() && isEmptyConfiguration(config());
         }
     }
 

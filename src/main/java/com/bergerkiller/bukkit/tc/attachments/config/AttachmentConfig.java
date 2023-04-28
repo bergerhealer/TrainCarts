@@ -261,6 +261,20 @@ public interface AttachmentConfig {
     ConfigurationNode config();
 
     /**
+     * Gets whether this attachment has an empty configuration.
+     * If the {@link #config() configuration} does not declare an attachment
+     * type, and no child attachments are stored either, this method
+     * will return true.<br>
+     * <br>
+     * Attachments with an empty configuration should not be loaded in / created,
+     * as they serve no purpose.
+     *
+     * @return True if this attachment has an empty configuration,
+     *         and should not be loaded in.
+     */
+    boolean isEmptyConfig();
+
+    /**
      * Copies the specified configuration into this {@link #config() attachment configuration}.
      * Child Attachments in the configuration are not copied.
      *
@@ -307,6 +321,10 @@ public interface AttachmentConfig {
      * AttachmentConfig is created instead.
      */
     interface Model extends AttachmentConfig {
+        /**
+         * Key used in the YAML configuration to store the modelName
+         */
+        String MODEL_NAME_CONFIG_KEY = "modelName";
 
         /**
          * Gets the name of the model this model attachment uses. Invisibly, the
