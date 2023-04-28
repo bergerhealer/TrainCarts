@@ -108,11 +108,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public static final int MAXIMUM_DAMAGE_SUSTAINED = 40;
     private final TrainCarts traincarts;
     protected final ToggledState forcedBlockUpdate = new ToggledState(true);
-    private final SignTrackerMember signTracker = new SignTrackerMember(this);
-    private final ActionTrackerMember actionTracker = new ActionTrackerMember(this);
-    private final RailTrackerMember railTrackerMember = new RailTrackerMember(this);
-    private final WheelTrackerMember wheelTracker = new WheelTrackerMember(this);
-    private final AttachmentControllerMember attachmentController = new AttachmentControllerMember(this);
+    private final SignTrackerMember signTracker;
+    private final ActionTrackerMember actionTracker;
+    private final RailTrackerMember railTrackerMember;
+    private final WheelTrackerMember wheelTracker;
+    private final AttachmentControllerMember attachmentController;
     private final ToggledState railActivated = new ToggledState(false);
     public boolean vertToSlope = false;
     protected MinecartGroup group;
@@ -141,7 +141,17 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private WorldRailLookup railLookup = WorldRailLookup.NONE; // current-world rail lookup
 
     public MinecartMember(TrainCarts traincarts) {
+        if (traincarts == null) {
+            throw new IllegalArgumentException("TrainCarts plugin cannot be null");
+        }
         this.traincarts = traincarts;
+
+        // Must be initialized after the traincarts plugin instance is set to avoid potential trouble
+        this.signTracker = new SignTrackerMember(this);
+        this.actionTracker = new ActionTrackerMember(this);
+        this.railTrackerMember = new RailTrackerMember(this);
+        this.wheelTracker = new WheelTrackerMember(this);
+        this.attachmentController = new AttachmentControllerMember(this);
     }
 
     @Override

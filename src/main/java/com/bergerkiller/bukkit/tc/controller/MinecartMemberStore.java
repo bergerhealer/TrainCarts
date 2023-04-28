@@ -127,11 +127,15 @@ public abstract class MinecartMemberStore {
      * Returns null if no member could be created for this Source.
      * If the source is already a Minecart Member, this is returned instead.
      *
+     * @param plugin TrainCarts plugin instance
      * @param source minecart to convert
      * @return Minecart Member conversion
      */
     @SuppressWarnings("rawtypes")
     public static MinecartMember<?> convert(TrainCarts plugin, Minecart source) {
+        if (plugin == null) {
+            throw new IllegalArgumentException("TrainCarts plugin instance cannot be null");
+        }
         if (source.isDead()) {
             return null;
         }
@@ -187,10 +191,14 @@ public abstract class MinecartMemberStore {
     /**
      * Creates a suitable Minecart Member controller for an Entity
      *
+     * @param plugin TrainCarts plugin instance
      * @param entityType of the controller to create
      * @return new MinecartMember instance suitable for the type of Entity, or null if none found
      */
     public static MinecartMember<?> createController(TrainCarts plugin, EntityType entityType) {
+        if (plugin == null) {
+            throw new IllegalArgumentException("TrainCarts plugin cannot be null");
+        }
         try {
             Class<?> commonType = CommonEntityType.byEntityType(entityType).commonType.getType();
             Function<TrainCarts, ? extends MinecartMember<?>> controllerConstr = controllers.get(commonType);
@@ -208,10 +216,14 @@ public abstract class MinecartMemberStore {
     /**
      * Creates a suitable Minecart Member controller for an Entity
      *
+     * @param plugin TrainCarts plugin instance
      * @param entity to create a controller for
      * @return new MinecartMember instance suitable for the type of Entity, or null if none found
      */
     public static MinecartMember<?> createController(TrainCarts plugin, CommonEntity<?> entity) {
+        if (plugin == null) {
+            throw new IllegalArgumentException("TrainCarts plugin cannot be null");
+        }
         Function<TrainCarts, ? extends MinecartMember<?>> controllerConstr = controllers.get(entity);
         if (controllerConstr == null) {
             return null;

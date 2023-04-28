@@ -13,9 +13,13 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigListener;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigModelTracker;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigTracker;
+import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModel;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -58,7 +62,9 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
  */
 public class AttachmentControllerMember implements AttachmentConfigListener, AttachmentManager {
     private final MinecartMember<?> member;
+    private final TrainCarts plugin;
     private AttachmentModel model; // Never changes!
+    private AttachmentConfigModelTracker modelTracker;
     private Attachment rootAttachment;
     private List<CartAttachmentSeat> seatAttachments = Collections.emptyList();
     private List<Attachment> flattenedAttachments = Collections.emptyList();
@@ -75,6 +81,7 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
 
     public AttachmentControllerMember(MinecartMember<?> member) {
         this.member = member;
+        this.plugin = member.getTrainCarts();
     }
 
     /**
@@ -542,7 +549,7 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
 
     @Override
     public AttachmentViewer asAttachmentViewer(Player player) {
-        return this.member.getTrainCarts().getPacketQueueMap().getQueue(player);
+        return plugin.getPacketQueueMap().getQueue(player);
     }
 
     /**
@@ -616,7 +623,7 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
     public synchronized void syncRespawn() {
         List<Player> oldViewers = new ArrayList<>(this.getViewers());
         this.makeHiddenForAll();
-        this.member.getTrainCarts().getTrainUpdateController().syncPositions(this.member);
+        plugin.getTrainUpdateController().syncPositions(this.member);
         for (Player viewer : oldViewers) {
             this.makeVisible(viewer);
         }
@@ -753,7 +760,13 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
             return;
         }
         model = member.getProperties().getModel();
-        AttachmentConfig rootConfig = model.getConfigTracker().startTracking(this);
+        modelTracker = new AttachmentConfigModelTracker(model.getConfigTracker(), plugin) {
+            @Override
+            public AttachmentConfigTracker findModelConfig(String name) {
+                return plugin.getSavedAttachmentModels().getModelOrNone(name).getConfigTracker();
+            }
+        };
+        AttachmentConfig rootConfig = modelTracker.startTracking(this);
         destroyRootAttachment();
         onAttachmentAdded(rootConfig);
         onSynchronized(rootConfig);
@@ -763,8 +776,9 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
         try {
             destroyRootAttachment();
         } finally {
-            if (model != null) {
-                this.model.getConfigTracker().stopTracking(this);
+            if (modelTracker != null) {
+                modelTracker.stopTracking(this);
+                modelTracker = null;
             }
         }
     }
@@ -869,7 +883,7 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
             this.updateFlattenedLists();
             this.changeListenerNewSeatsAdded = !seatAttachments.isEmpty();
             this.flattenedAttachments.forEach(HelperMethods::perform_onAttached_single);
-            this.member.getTrainCarts().getTrainUpdateController().computeAttachmentTransform(
+            this.plugin.getTrainUpdateController().computeAttachmentTransform(
                     this.rootAttachment, this.getLiveTransform());
 
             // Re-show the attachments. Seats are filled with entities later
@@ -902,7 +916,7 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
             addedAttachments.forEach(HelperMethods::perform_onAttached_single);
 
             // TODO: Maybe only update from the changed attachment onwards?
-            this.member.getTrainCarts().getTrainUpdateController().computeAttachmentTransform(
+            this.plugin.getTrainUpdateController().computeAttachmentTransform(
                     this.rootAttachment, this.getLiveTransform());
 
             // Make the attachment visible to all viewers
@@ -927,7 +941,7 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
             try {
                 type.migrateConfiguration(config);
             } catch (Throwable t) {
-                this.member.getTrainCarts().getLogger().log(Level.SEVERE,
+                this.plugin.getLogger().log(Level.SEVERE,
                         "Failed to migrate attachment configuration of " + type.getName(), t);
             }
 
@@ -948,7 +962,7 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
             // survives reloads of animations/configurations.
             //
             // For now this is fine though, because it updates transforms every tick anyway.
-            //this.member.getTrainCarts().getTrainUpdateController().computeAttachmentTransform(
+            //this.plugin.getTrainUpdateController().computeAttachmentTransform(
             //        this.rootAttachment, this.getLiveTransform());
         }
     }
@@ -970,7 +984,10 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
         // The MinecartMember owner must refresh its properties
         // If this returns false then the minecart no longer exists, and we missed a detaching action (?)
         if (!member.onModelChanged(model)) {
-            model.getConfigTracker().stopTracking(this);
+            if (modelTracker != null) {
+                modelTracker.stopTracking(this);
+                modelTracker = null;
+            }
             return;
         }
 
