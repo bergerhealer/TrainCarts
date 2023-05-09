@@ -527,7 +527,7 @@ public class VirtualEntity extends VirtualSpawnableObject {
 
         // Detect a glitched pitch rotation, and perform a respawn then
         if (this.respawnOnPitchFlip && this.syncPitch != this.livePitch && Util.isProtocolRotationGlitched(this.syncPitch, this.livePitch)) {
-            this.forAllViewers(this::sendDestroyPackets);
+            this.forAllViewers(this::sendDestroyPacketsWithoutVMC);
             this.syncPositionSilent();
             for (AttachmentViewer viewer : this.getViewers()) {
                 sendSpawnPackets(viewer, largeChange ? new Vector() : new Vector(dx, dy, dz));
@@ -661,7 +661,7 @@ public class VirtualEntity extends VirtualSpawnableObject {
     }
 
     public void respawnForAll(final Vector motion) {
-        forAllViewers(this::sendDestroyPackets);
+        forAllViewers(this::sendDestroyPacketsWithoutVMC);
         syncPosition(true);
         forAllViewers(v -> sendSpawnPackets(v, motion));
     }
@@ -684,12 +684,16 @@ public class VirtualEntity extends VirtualSpawnableObject {
 
     @Override
     protected void sendDestroyPackets(AttachmentViewer viewer) {
+        sendDestroyPacketsWithoutVMC(viewer);
+        viewer.getVehicleMountController().remove(this.entityId);
+    }
+
+    private void sendDestroyPacketsWithoutVMC(AttachmentViewer viewer) {
         if (this.syncVel > 0.0) {
             viewer.send(PacketType.OUT_ENTITY_VELOCITY.newInstance(this.entityId, new Vector()));
         }
         PacketPlayOutEntityDestroyHandle destroyPacket = PacketPlayOutEntityDestroyHandle.createNewSingle(this.entityId);
         viewer.send(destroyPacket);
-        viewer.getVehicleMountController().remove(this.entityId);
     }
 
     // Avoid breaking API compatibility

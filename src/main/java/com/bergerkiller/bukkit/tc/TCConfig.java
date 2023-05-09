@@ -284,10 +284,10 @@ public class TCConfig {
         config.addHeader("hastebinServer", "This will be used when using the /savedtrain [name] paste command");
         hastebin = new Hastebin(traincarts, config.get("hastebinServer", config.get("hastebinServer", "https://paste.traincarts.net")));
 
-        config.setHeader("enableSeatThirdPersonView", "\nEnable or disable seeing yourself in third-person on vertical rails");
-        config.addHeader("enableSeatThirdPersonView", "Turning this off only causes this mode to activate when going upside-down");
-        config.addHeader("enableSeatThirdPersonView", "If third person view is explicitly selected for the seat, this option is ignored");
+        config.setHeader("enableSeatThirdPersonView", "\nEnable or disable seeing yourself in third-person when upside-down or vertical");
+        config.addHeader("enableSeatThirdPersonView", "Turning this off will cause players to clip through the cart potentially");
         config.addHeader("enableSeatThirdPersonView", "This option is only active when FPV (First person view) is set to DYNAMIC");
+        config.addHeader("enableSeatThirdPersonView", "In that case, such seats will behave as if FPV is set to DEFAULT");
         enableSeatThirdPersonView = config.get("enableSeatThirdPersonView", false);
 
         config.setHeader("maxDetectorLength", "\nThe maximum length a detector region (between two detectors) can be");
