@@ -1,7 +1,9 @@
 package com.bergerkiller.bukkit.tc.attachments.api;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -21,6 +23,7 @@ import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMemb
  */
 public abstract class AttachmentAnchor {
     private static final Map<String, AttachmentAnchor> registry = new LinkedHashMap<String, AttachmentAnchor>();
+    private static final List<AttachmentAnchor> values = new ArrayList<>();
 
     /**
      * Default anchor is relative to the parent attachment
@@ -215,6 +218,7 @@ public abstract class AttachmentAnchor {
         registry.put(anchor.getName(), anchor);
         registry.put(anchor.getName().toLowerCase(Locale.ENGLISH), anchor);
         registry.put(anchor.getName().toUpperCase(Locale.ENGLISH), anchor);
+        values.add(anchor);
         return anchor;
     }
 
@@ -227,6 +231,7 @@ public abstract class AttachmentAnchor {
         registry.remove(anchor.getName(), anchor);
         registry.remove(anchor.getName().toLowerCase(Locale.ENGLISH), anchor);
         registry.remove(anchor.getName().toUpperCase(Locale.ENGLISH), anchor);
+        values.remove(anchor);
     }
 
     /**
@@ -235,7 +240,7 @@ public abstract class AttachmentAnchor {
      * @return values
      */
     public static Collection<AttachmentAnchor> values() {
-        return registry.values();
+        return values;
     }
 
     /**
