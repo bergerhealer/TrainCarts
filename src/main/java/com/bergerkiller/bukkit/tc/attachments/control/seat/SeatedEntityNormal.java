@@ -229,6 +229,11 @@ class SeatedEntityNormal extends SeatedEntity {
         if (!this.isDisplayed()) {
             new_isFake = false;
             new_isUpsideDown = false;
+        } else if (seat.getTransform() == null && this.isDummyPlayer()) {
+            // Race condition when focussing the seat before a position is known
+            new_isFake = true;
+            new_isUpsideDown = false;
+            silent = true;
         } else {
             Quaternion rotation = seat.getTransform().getRotation();
             double selfPitch = rotation.getPitch();
