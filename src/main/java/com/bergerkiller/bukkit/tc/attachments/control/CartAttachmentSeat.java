@@ -390,7 +390,22 @@ public class CartAttachmentSeat extends CartAttachment {
             return false;
         }
 
+        // Check whether the configured position uses seat-parent with identity vs not
+        // When this changes, the seat must be re-created to avoid trouble with the vehicle mount
+        ObjectPosition newPos = parsePosition(config);
+        boolean oldSeatParent = (getConfiguredPosition().anchor == AttachmentAnchor.SEAT_PARENT && getConfiguredPosition().isIdentity());
+        boolean newSeatParent = (newPos.anchor == AttachmentAnchor.SEAT_PARENT && newPos.isIdentity());
+        if (oldSeatParent != newSeatParent) {
+            return false;
+        }
+
         return true;
+    }
+
+    private ObjectPosition parsePosition(ConfigurationNode config) {
+        ObjectPosition pos = new ObjectPosition();
+        pos.load(getManager().getClass(), TYPE, config.getNode("position"));
+        return pos;
     }
 
     // Note: Only load things here that can be live-modified in the editor, such as positions
