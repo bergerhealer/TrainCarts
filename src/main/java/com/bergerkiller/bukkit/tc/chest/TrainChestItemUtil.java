@@ -290,10 +290,7 @@ public class TrainChestItemUtil {
         }
 
         // Spawn.
-        MinecartGroup spawnedGroup = group.spawn(locationList);
-        if (initialSpeed > 0.0) {
-            spawnedGroup.setForwardForce(initialSpeed);
-        }
+        MinecartGroup spawnedGroup = group.spawn(locationList, initialSpeed);
         if (spawnedGroup != null && !spawnedGroup.isEmpty()) {
             CartProperties.setEditing(player, spawnedGroup.tail().getProperties());
         }
@@ -371,10 +368,7 @@ public class TrainChestItemUtil {
         }
 
         // Spawn.
-        MinecartGroup spawnedGroup = group.spawn(locationList);
-        if (initialSpeed > 0.0) {
-            spawnedGroup.setForwardForce(initialSpeed);
-        }
+        MinecartGroup spawnedGroup = group.spawn(locationList, initialSpeed);
         if (spawnedGroup != null && !spawnedGroup.isEmpty()) {
             CartProperties.setEditing(player, spawnedGroup.tail().getProperties());
         }

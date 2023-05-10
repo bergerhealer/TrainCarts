@@ -154,6 +154,10 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
     }
 
     public static MinecartGroup spawn(SpawnableGroup spawnableGroup, SpawnableGroup.SpawnLocationList locations) {
+        return spawn(spawnableGroup, locations, 0.0);
+    }
+
+    public static MinecartGroup spawn(SpawnableGroup spawnableGroup, SpawnableGroup.SpawnLocationList locations, double initialSpeed) {
         if (locations.locations.isEmpty()) {
             throw new IllegalArgumentException("Spawn Location List has zero locations to spawn, " +
                     "cannot spawn a train with zero carts");
@@ -171,12 +175,19 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
             }
 
             // Spawn the minecart
-            group.add(loc.member.spawn(spawnLoc));
+            MinecartMember<?> member = loc.member.spawn(spawnLoc);
+            group.add(member);
+
+            // Set initial motion if specified
+            if (initialSpeed != 0.0) {
+                member.getEntity().setVelocity(loc.forward.clone().multiply(initialSpeed));
+            }
         }
 
         group.updateDirection();
         GroupCreateEvent.call(group);
         group.onGroupCreated();
+
         return group;
     }
 

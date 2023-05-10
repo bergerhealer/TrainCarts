@@ -510,7 +510,8 @@ public class SpawnableGroup {
 
     /**
      * Takes the information of this spawnable group and spawns it as a new train.
-     * The spawn locations and member information calculated using {@link #findSpawnLocations(startState, mode)} is used.
+     * The spawn locations and member information calculated using
+     * {@link #findSpawnLocations(Location, Vector, SpawnMode)} is used.
      * Using the spawn location list of another group may yield unpredictable results.
      * 
      * @param spawnLocations The spawn locations for all the members of this group
@@ -518,6 +519,23 @@ public class SpawnableGroup {
      */
     public MinecartGroup spawn(SpawnLocationList spawnLocations) {
         return MinecartGroupStore.spawn(this, spawnLocations);
+    }
+
+    /**
+     * Takes the information of this spawnable group and spawns it as a new train.
+     * The spawn locations and member information calculated using
+     * {@link #findSpawnLocations(Location, Vector, SpawnMode)} is used.
+     * Using the spawn location list of another group may yield unpredictable results.<br>
+     * <br>
+     * In addition to spawning makes the train move forwards (according to spawn locations)
+     * at an initial speed.
+     *
+     * @param spawnLocations The spawn locations for all the members of this group
+     * @param initialSpeed Initial forward (or backward, if negative) speed of the train
+     * @return newly spawned group
+     */
+    public MinecartGroup spawn(SpawnLocationList spawnLocations, double initialSpeed) {
+        return MinecartGroupStore.spawn(this, spawnLocations, initialSpeed);
     }
 
     /**
