@@ -33,6 +33,8 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
             () -> EntityType.valueOf("BLOCK_DISPLAY"), null);
     public static final EntityType ITEM_DISPLAY_ENTITY_TYPE = LogicUtil.tryMake(
             () -> EntityType.valueOf("ITEM_DISPLAY"), null);
+    public static final EntityType INTERACTION_ENTITY_TYPE = LogicUtil.tryMake(
+            () -> EntityType.valueOf("INTERACTION"), null);
 
     /**
      * This multiplier is needed for the bounding box (clip box) size to make sure this

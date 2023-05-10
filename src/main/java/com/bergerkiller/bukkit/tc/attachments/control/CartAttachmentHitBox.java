@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
@@ -20,10 +21,13 @@ import com.bergerkiller.bukkit.tc.attachments.particle.VirtualBoundingBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSizeBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityTeleportHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityLivingHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityAgeableHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.InteractionHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.monster.EntitySlimeHandle;
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
@@ -107,6 +111,7 @@ public class CartAttachmentHitBox extends CartAttachment {
     private final UUID hitboxEntityUUID = UUID.randomUUID();
     private Box box = null; // Null if not spawned
     private double heightOffset = 0.0;
+    private double minSize;
     private SizeMode sizeMode = SizeMode.SMALLEST;
 
     @Override
@@ -114,9 +119,10 @@ public class CartAttachmentHitBox extends CartAttachment {
         Vector3 size = LogicUtil.fixNull(this.getConfiguredPosition().size, DEFAULT_SCALE);
         bbox.setSize(new Vector(size.x, size.y, size.z));
         heightOffset = 0.5 * size.y;
+        minSize = Math.min(Math.min(size.x, size.y), size.z);
 
         // Compute the new size mode based on this size
-        SizeMode newSizeMode = SizeMode.fromSize(Math.min(Math.min(size.x, size.y), size.z));
+        SizeMode newSizeMode = SizeMode.fromSize(minSize);
         if (newSizeMode != sizeMode && !nearbyViewers.isEmpty()) {
             // Respawn for viewers
             for (AttachmentViewer viewer : this.getAttachmentViewers()) {
@@ -128,6 +134,14 @@ public class CartAttachmentHitBox extends CartAttachment {
             }
         } else {
             sizeMode = newSizeMode;
+
+            // Update metadata for 1.19.4+ clients
+            for (AttachmentViewer viewer : this.getAttachmentViewers()) {
+                if (viewer.supportsDisplayEntities()) {
+                    updateInteractionMeta(viewer);
+                    updateHitBoxForViewer(viewer);
+                }
+            }
         }
     }
 
@@ -153,21 +167,6 @@ public class CartAttachmentHitBox extends CartAttachment {
     @Override
     public boolean containsEntityId(int id) {
         return id == hitboxEntityId;
-    }
-
-    /**
-     * Calculates the position the invisible entity should have to optimally
-     * be interacted with by a Player
-     *
-     * @param player
-     * @return POV location
-     */
-    private Vector getPOVLocation(Player player) {
-        Vector p = getPOVLocationBottom(player);
-        if (p != null) {
-            p.setY(p.getY() - 0.5 * sizeMode.size);
-        }
-        return p;
     }
 
     /**
@@ -275,38 +274,64 @@ public class CartAttachmentHitBox extends CartAttachment {
     }
 
     private void updateHitBoxForViewer(AttachmentViewer viewer) {
-        Vector pos = this.getPOVLocation(viewer.getPlayer());
+        Vector pos = this.getPOVLocationBottom(viewer.getPlayer());
         if (pos == null) {
             despawnHitBoxForViewer(viewer);
             return;
         }
 
-        if (nearbyViewers.add(viewer.getPlayer())) {
-            // spawn an invisible entity whose hitbox the player can hit
-            // The entity is positioned in such a way the player hits it from that POV
-            PacketPlayOutSpawnEntityLivingHandle packet = PacketPlayOutSpawnEntityLivingHandle.createNew();
-            packet.setEntityId(hitboxEntityId);
-            packet.setEntityUUID(hitboxEntityUUID);
-            packet.setEntityType(sizeMode.type);
-            packet.setPosX(pos.getX());
-            packet.setPosY(pos.getY());
-            packet.setPosZ(pos.getZ());
-
-            DataWatcher meta = new DataWatcher();
-            meta.set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_FLYING | EntityHandle.DATA_FLAG_INVISIBLE));
-            meta.set(EntityHandle.DATA_NO_GRAVITY, true);
-            sizeMode.apply(meta);
-
-            viewer.sendEntityLivingSpawnPacket(packet, meta);
-
-            viewer.sendDisableCollision(hitboxEntityUUID);
+        boolean usesInteractionEntity = viewer.supportsDisplayEntities();
+        if (usesInteractionEntity) {
+            pos.setY(pos.getY() - 0.5 * minSize);
         } else {
-            // Update
+            pos.setY(pos.getY() - 0.5 * sizeMode.size);
+        }
+
+        if (nearbyViewers.add(viewer.getPlayer())) {
+            if (usesInteractionEntity) {
+                // Spawn an interaction entity with metadata setup right
+                PacketPlayOutSpawnEntityHandle packet = PacketPlayOutSpawnEntityHandle.createNew();
+                packet.setEntityId(hitboxEntityId);
+                packet.setEntityUUID(hitboxEntityUUID);
+                packet.setEntityType(VirtualDisplayEntity.INTERACTION_ENTITY_TYPE);
+                packet.setPosX(pos.getX());
+                packet.setPosY(pos.getY());
+                packet.setPosZ(pos.getZ());
+                viewer.send(packet);
+                updateInteractionMeta(viewer);
+            } else {
+                // spawn an invisible entity whose hitbox the player can hit
+                // The entity is positioned in such a way the player hits it from that POV
+                PacketPlayOutSpawnEntityLivingHandle packet = PacketPlayOutSpawnEntityLivingHandle.createNew();
+                packet.setEntityId(hitboxEntityId);
+                packet.setEntityUUID(hitboxEntityUUID);
+                packet.setEntityType(sizeMode.type);
+                packet.setPosX(pos.getX());
+                packet.setPosY(pos.getY());
+                packet.setPosZ(pos.getZ());
+
+                DataWatcher meta = new DataWatcher();
+                meta.set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_FLYING | EntityHandle.DATA_FLAG_INVISIBLE));
+                meta.set(EntityHandle.DATA_NO_GRAVITY, true);
+                sizeMode.apply(meta);
+
+                viewer.sendEntityLivingSpawnPacket(packet, meta);
+
+                viewer.sendDisableCollision(hitboxEntityUUID);
+            }
+        } else {
             PacketPlayOutEntityTeleportHandle packet = PacketPlayOutEntityTeleportHandle.createNew(
                     this.hitboxEntityId, pos.getX(), pos.getY(), pos.getZ(),
                     0.0f, 0.0f, false);
             viewer.send(packet);
         }
+    }
+
+    private void updateInteractionMeta(AttachmentViewer viewer) {
+        DataWatcher meta = new DataWatcher();
+        meta.set(InteractionHandle.DATA_WIDTH, (float) minSize);
+        meta.set(InteractionHandle.DATA_HEIGHT, (float) minSize);
+        viewer.send(PacketPlayOutEntityMetadataHandle.createNew(hitboxEntityId, meta, true));
     }
 
     private void despawnHitBoxForViewer(AttachmentViewer viewer) {
