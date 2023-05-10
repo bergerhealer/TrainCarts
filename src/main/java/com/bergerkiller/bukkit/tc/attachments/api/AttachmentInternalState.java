@@ -129,8 +129,8 @@ public class AttachmentInternalState {
      * @param config Configuration to load
      */
     public void onLoad(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType, ConfigurationNode config) {
-        // Reset prior
-        this.reset();
+        // Reset prior to loading (new) animations
+        this.resetAnimations();
 
         // Migrations
         try {
@@ -166,11 +166,15 @@ public class AttachmentInternalState {
      * Resets the state to the defaults
      */
     public void reset() {
-        this.animations.clear();
-        this.currentAnimation = null;
+        this.resetAnimations();
         this.last_transform = null;
         this.curr_transform = null;
         this.transformUpdateTask = null;
+    }
+
+    private void resetAnimations() {
+        this.animations.clear();
+        this.currentAnimation = null;
     }
 
     /**
