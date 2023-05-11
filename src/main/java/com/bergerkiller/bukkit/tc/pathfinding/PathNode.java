@@ -90,31 +90,6 @@ public class PathNode {
         return TrainCarts.plugin.getPathProvider().getWorld(location.world).getOrCreateAtRail(location);
     }
 
-    private static double getDistanceTo(PathConnection from, PathConnection conn, double currentDistance, double maxDistance, PathNode destination) {
-        final PathNode node = conn.destination;
-        currentDistance += conn.distance;
-        // Consider taking turns as one distance longer
-        // This avoids the excessive use of turns in 2-way 'X' intersections
-        if (destination == node) {
-            return currentDistance;
-        }
-        // Initial distance check before continuing
-        if (node.lastDistance < currentDistance || currentDistance > maxDistance) {
-            return Double.MAX_VALUE;
-        }
-        node.lastDistance = currentDistance;
-        // Check all neighbors and obtain the lowest distance recursively
-        double distance;
-        for (PathConnection connection : node.neighbors) {
-            distance = getDistanceTo(conn, connection, currentDistance, maxDistance, destination);
-            if (distance < maxDistance) {
-                maxDistance = distance;
-                node.lastTaken = connection;
-            }
-        }
-        return maxDistance;
-    }
-
     /**
      * Gets the world which this node is part of
      * 
@@ -133,6 +108,27 @@ public class PathNode {
     public PathConnection findConnection(String destination) {
         PathNode node = world.getNodeByName(destination);
         return node == null ? null : findConnection(node);
+    }
+
+    /**
+     * Tries to find the exact route (all nodes) to reach a destination from this node
+     *
+     * @param destination to reach
+     * @return the route taken, or an empty array if none could be found
+     */
+    public PathConnection[] findRoute(PathNode destination) {
+        if (findConnection(destination) == null) {
+            return new PathConnection[0];
+        }
+        List<PathConnection> route = new ArrayList<>();
+        PathConnection conn = this.lastTaken;
+        while (conn != null) {
+            route.add(conn);
+            PathNode connDest = conn.destination;
+            conn = connDest.lastTaken;
+            connDest.lastTaken = null; // Avoid infinite loops
+        }
+        return route.toArray(new PathConnection[0]);
     }
 
     /**
@@ -163,25 +159,29 @@ public class PathNode {
         }
     }
 
-    /**
-     * Tries to find the exact route (all nodes) to reach a destination from this node
-     *
-     * @param destination to reach
-     * @return the route taken, or an empty array if none could be found
-     */
-    public PathConnection[] findRoute(PathNode destination) {
-        if (findConnection(destination) == null) {
-            return new PathConnection[0];
+    private static double getDistanceTo(PathConnection from, PathConnection conn, double currentDistance, double maxDistance, PathNode destination) {
+        final PathNode node = conn.destination;
+        currentDistance += conn.distance;
+        // Consider taking turns as one distance longer
+        // This avoids the excessive use of turns in 2-way 'X' intersections
+        if (destination == node) {
+            return currentDistance;
         }
-        List<PathConnection> route = new ArrayList<>();
-        PathConnection conn = this.lastTaken;
-        while (conn != null) {
-            route.add(conn);
-            PathNode connDest = conn.destination;
-            conn = connDest.lastTaken;
-            connDest.lastTaken = null; // Avoid infinite loops
+        // Initial distance check before continuing
+        if (node.lastDistance < currentDistance || currentDistance > maxDistance) {
+            return Double.MAX_VALUE;
         }
-        return route.toArray(new PathConnection[0]);
+        node.lastDistance = currentDistance;
+        // Check all neighbors and obtain the lowest distance recursively
+        double distance;
+        for (PathConnection connection : node.neighbors) {
+            distance = getDistanceTo(conn, connection, currentDistance, maxDistance, destination);
+            if (distance < maxDistance) {
+                maxDistance = distance;
+                node.lastTaken = connection;
+            }
+        }
+        return maxDistance;
     }
 
     /**
