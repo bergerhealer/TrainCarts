@@ -18,7 +18,7 @@ import java.util.logging.Level;
 /**
  * Information stored (in memory) about a Player, such as the train or model
  * the player is editing. Players can be retrieved using the
- * {@link TrainCarts#getPlayerStore() TrainCarts Player Store}
+ * {@link TrainCarts#getPlayer(Player)}
  */
 public class TrainCartsPlayer implements TrainCarts.Provider {
     private final TrainCarts traincarts;
