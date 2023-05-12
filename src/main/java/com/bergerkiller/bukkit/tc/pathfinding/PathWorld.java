@@ -19,12 +19,19 @@ public class PathWorld implements TrainCarts.Provider {
     private final String _name;
     private final BlockMap<PathNode> _blockNodes;
     private final Map<String, PathNode> _nodes;
+    private final Map<PathFromToKey, PathSearchResult> _cachedSearchResults;
 
     public PathWorld(PathProvider provider, String worldName) {
         _provider = provider;
         _name = worldName;
         _blockNodes = new BlockMap<>();
         _nodes = new HashMap<>();
+        _cachedSearchResults = new HashMap<>();
+    }
+
+    protected void markChanged() {
+        _cachedSearchResults.clear();
+        _provider.markChanged();
     }
 
     @Override
@@ -89,6 +96,7 @@ public class PathWorld implements TrainCarts.Provider {
         PathNode node = new PathNode(this, location);
         addToMapping(node);
         _provider.scheduleNode(node);
+        markChanged();
         return node;
     }
 
@@ -97,23 +105,24 @@ public class PathWorld implements TrainCarts.Provider {
             _provider.discoverFromRail(location);
         }
         clearAll();
+        markChanged();
     }
 
     public void clearAll() {
         _nodes.clear();
         _blockNodes.clear();
-        _provider.markChanged();
+        markChanged();
     }
 
     protected void addNodeName(PathNode node, String name) {
         _nodes.put(name, node);
-        _provider.markChanged();
+        markChanged();
     }
 
     protected void removeNodeName(PathNode node, String name) {
         PathNode removed = _nodes.remove(name);
         if (removed == node) {
-            _provider.markChanged();
+            markChanged();
         } else if (removed != null) {
             _nodes.put(name, removed); // restore
         }
@@ -125,7 +134,7 @@ public class PathWorld implements TrainCarts.Provider {
         }
         _blockNodes.put(node.location, node);
         _nodes.put(node.location.toString(), node);
-        _provider.markChanged();
+        markChanged();
     }
 
     protected void removeFromMapping(PathNode node) {
@@ -141,6 +150,36 @@ public class PathWorld implements TrainCarts.Provider {
         } else if (removed != null) {
             _nodes.remove(node.location.toString());
         }
-        _provider.markChanged();
+        markChanged();
+    }
+
+    protected PathSearchResult findCachedSearchResult(PathNode node, PathNode destination) {
+        return _cachedSearchResults.getOrDefault(new PathFromToKey(node, destination),
+                PathSearchResult.DUMMY_NOT_FOUND);
+    }
+
+    protected void cacheSearchResult(PathSearchResult result) {
+        _cachedSearchResults.put(new PathFromToKey(result.node, result.destination), result);
+    }
+
+    private static final class PathFromToKey {
+        private final PathNode node;
+        private final PathNode destination;
+
+        public PathFromToKey(PathNode node, PathNode destination) {
+            this.node = node;
+            this.destination = destination;
+        }
+
+        @Override
+        public int hashCode() {
+            return node.hashCode() + 31 * destination.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            PathFromToKey other = (PathFromToKey) o;
+            return node == other.node && destination == other.destination;
+        }
     }
 }

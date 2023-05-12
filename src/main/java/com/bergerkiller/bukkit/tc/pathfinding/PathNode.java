@@ -15,9 +15,12 @@ public class PathNode {
     private final Set<String> names = new HashSet<>();
     private final List<PathConnection> neighbors = new ArrayList<>(3);
     public int index;
-    private double lastDistance;
-    private PathConnection lastTaken;
     private boolean isRailSwitchable;
+
+    // Used while calculating paths to avoid infinite recursion
+    private PathSearchOperation lastSearch = null;
+    private PathSearchResult lastSearchResult = null;
+    private double lastSearchStartDistance = Double.MAX_VALUE;
 
     protected PathNode(PathWorld world, BlockLocation location) {
         this.world = world;
@@ -114,74 +117,87 @@ public class PathNode {
      * Tries to find the exact route (all nodes) to reach a destination from this node
      *
      * @param destination to reach
-     * @return the route taken, or an empty array if none could be found
+     * @return the route taken, or an empty array if none could be found or this == destination
      */
     public PathConnection[] findRoute(PathNode destination) {
-        if (findConnection(destination) == null) {
+        PathSearchResult result = findBestPath(destination);
+        if (result.found) {
+            List<PathConnection> route = new ArrayList<>();
+            while (result.connection != null) {
+                route.add(result.connection);
+                result = result.next;
+            }
+            return route.toArray(new PathConnection[0]);
+        } else {
             return new PathConnection[0];
         }
-        List<PathConnection> route = new ArrayList<>();
-        PathConnection conn = this.lastTaken;
-        while (conn != null) {
-            route.add(conn);
-            PathNode connDest = conn.destination;
-            conn = connDest.lastTaken;
-            connDest.lastTaken = null; // Avoid infinite loops
-        }
-        return route.toArray(new PathConnection[0]);
     }
 
     /**
      * Tries to find a connection from this node to the node specified
      *
      * @param destination node to find
-     * @return A connection, or null if none could be found
+     * @return A connection, or null if none could be found or this == destination
      */
     public PathConnection findConnection(PathNode destination) {
-        for (PathNode node : world.getNodes()) {
-            node.lastDistance = Double.MAX_VALUE;
-            node.lastTaken = null;
-        }
-        double minDistance = Double.MAX_VALUE;
-        double distance;
-        final PathConnection from = new PathConnection(this, 0, "");
-        for (PathConnection connection : this.neighbors) {
-            distance = getDistanceTo(from, connection, 0.0, minDistance, destination);
-            if (distance < minDistance) {
-                minDistance = distance;
-                this.lastTaken = connection;
-            }
-        }
-        if (this.lastTaken == null) {
-            return null;
+        PathSearchResult result = findBestPath(destination);
+        if (result.found && result.connection != null) {
+            return new PathConnection(destination, result.distance, result.connection.junctionName);
         } else {
-            return new PathConnection(destination, minDistance, this.lastTaken.junctionName);
+            return null;
         }
     }
 
-    private static double getDistanceTo(PathConnection from, PathConnection conn, double currentDistance, double maxDistance, PathNode destination) {
-        final PathNode node = conn.destination;
-        currentDistance += conn.distance;
-        // Consider taking turns as one distance longer
-        // This avoids the excessive use of turns in 2-way 'X' intersections
-        if (destination == node) {
-            return currentDistance;
+    private PathSearchResult findBestPath(PathNode destination) {
+        PathSearchResult result = findBestPath(new PathSearchOperation(destination), 0.0);
+        if (result == PathSearchResult.DUMMY_NOT_FOUND) {
+            result = PathSearchResult.missing(this, destination);
         }
-        // Initial distance check before continuing
-        if (node.lastDistance < currentDistance || currentDistance > maxDistance) {
-            return Double.MAX_VALUE;
+        result.cache();
+        return result;
+    }
+
+    private PathSearchResult findBestPath(PathSearchOperation search, double startDistance) {
+        // Shortcut to quit early
+        if (startDistance > search.maxTotalDistance) {
+            return PathSearchResult.DUMMY_NOT_FOUND;
         }
-        node.lastDistance = currentDistance;
-        // Check all neighbors and obtain the lowest distance recursively
-        double distance;
-        for (PathConnection connection : node.neighbors) {
-            distance = getDistanceTo(conn, connection, currentDistance, maxDistance, destination);
-            if (distance < maxDistance) {
-                maxDistance = distance;
-                node.lastTaken = connection;
+
+        // Either we recursively hit ourselves and the last search wasn't finished yet,
+        // in which case it is set to DUMMY_NOT_FOUND. Or we had completed the search before and
+        // already have the remainder of the trip. Either way, stop searching.
+        if (this.lastSearch == search && startDistance > this.lastSearchStartDistance) {
+            return PathSearchResult.DUMMY_NOT_FOUND;
+        } else {
+            this.lastSearch = search;
+            this.lastSearchStartDistance = startDistance;
+        }
+
+        // If destination == this, return instantly with 0 distance
+        if (this == search.destination) {
+            return search.acceptResult(startDistance, this.lastSearchResult = PathSearchResult.self(this));
+        }
+
+        // First time hitting this node. Initiate a new search of its neighbours.
+        // Seed the initial result before it is known as not-found to avoid infinite recursion.
+        // Before we proceed, see if a path to this same destination was already cached.
+        // If so, we can simply try to use that
+        {
+            PathSearchResult result = this.lastSearchResult = this.world.findCachedSearchResult(this, search.destination);
+            if (result != PathSearchResult.DUMMY_NOT_FOUND) {
+                return search.acceptResult(startDistance, result);
             }
         }
-        return maxDistance;
+
+        // Ask all neighbouring nodes for the same destination, recursively
+        for (PathConnection neighbour : this.neighbors) {
+            PathSearchResult neigh_result = neighbour.destination.findBestPath(search, startDistance + neighbour.distance);
+            if (neigh_result.found) {
+                this.lastSearchResult = PathSearchResult.chain(this, search.destination, neighbour, neigh_result);
+            }
+        }
+
+        return this.lastSearchResult;
     }
 
     /**
@@ -212,7 +228,7 @@ public class PathNode {
         conn = new PathConnection(to, distance, junctionName);
         addNeighbourFast(conn);
         world.getProvider().scheduleNodeIfNotRecentlyRouted(to);
-        world.getProvider().markChanged();
+        world.markChanged();
         return conn;
     }
 
@@ -234,7 +250,7 @@ public class PathNode {
                 }
             }
         }
-        world.getProvider().markChanged();
+        world.markChanged();
     }
 
     /**
@@ -484,6 +500,44 @@ public class PathNode {
                 world.getTrainCarts().log(Level.INFO, "NODE AT " + this.location.toString() + " ADDED DESTINATION " + name);
             }
             world.addNodeName(this, name);
+        }
+    }
+
+    /**
+     * A single, unique, search operation and its state information
+     */
+    private static class PathSearchOperation {
+        /** Destination node being reached */
+        public final PathNode destination;
+        /**
+         * Maximum distance allowed for a valid search result. Avoids navigating
+         * paths that are longer than other paths that are already found.
+         */
+        public double maxTotalDistance = Double.MAX_VALUE;
+
+        public PathSearchOperation(PathNode destination) {
+            this.destination = destination;
+        }
+
+        /**
+         * Notifies that a search resulted in a solution, and wants to check whether
+         * the total distance is lower than any previous result (or no result).
+         *
+         * @param startDistance Distance before this part of the result was found
+         * @param result Part of the search path solution
+         * @return input result if accepted (or not found, unchanged), DUMMY_NOT_FOUND if not accepted
+         */
+        public PathSearchResult acceptResult(double startDistance, PathSearchResult result) {
+            if (!result.found) {
+                return result;
+            }
+            double total = startDistance + result.distance;
+            if (total < maxTotalDistance) {
+                maxTotalDistance = total;
+                return result;
+            } else {
+                return PathSearchResult.DUMMY_NOT_FOUND;
+            }
         }
     }
 }
