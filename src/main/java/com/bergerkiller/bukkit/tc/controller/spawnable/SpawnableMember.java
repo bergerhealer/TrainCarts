@@ -13,7 +13,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 /**
  * The information about a single Minecart to be spawned as part of a {@link SpawnableGroup}
  */
-public class SpawnableMember {
+public class SpawnableMember implements TrainCarts.Provider {
     private static final double DEFAULT_CART_LENGTH = 0.98;
     private final SpawnableGroup group;
     private final ConfigurationNode config;
@@ -35,13 +35,20 @@ public class SpawnableMember {
         this.flipped = this.config.get("flipped", false);
     }
 
+    @Override
+    public TrainCarts getTrainCarts() {
+        return this.group.getTrainCarts();
+    }
+
     /**
      * Gets the TrainCarts plugin instance that manages this SpawnableMember
      *
      * @return TrainCarts plugin instance
+     * @deprecated Use {@link #getTrainCarts()} instead
      */
+    @Deprecated
     public TrainCarts getPlugin() {
-        return this.group.getPlugin();
+        return this.group.getTrainCarts();
     }
 
     /**
@@ -51,7 +58,7 @@ public class SpawnableMember {
      * @return spawned Minecart
      */
     public MinecartMember<?> spawn(Location spawnLoc) {
-        return MinecartMemberStore.spawn(this.getPlugin(), spawnLoc, getEntityType(), this.config);
+        return MinecartMemberStore.spawn(this.getTrainCarts(), spawnLoc, getEntityType(), this.config);
     }
 
     /**

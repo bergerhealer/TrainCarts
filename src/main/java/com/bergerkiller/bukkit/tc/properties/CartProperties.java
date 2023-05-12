@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
@@ -30,6 +31,7 @@ import org.bukkit.entity.Player;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public class CartProperties extends CartPropertiesStore implements IProperties {
     private final TrainCarts traincarts;
@@ -38,17 +40,29 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     private final FieldBackedStandardCartProperty.CartInternalDataHolder standardProperties = new FieldBackedStandardCartProperty.CartInternalDataHolder();
     private ConfigurationNode config;
     private final UUID uuid;
+    protected boolean removed;
 
     protected CartProperties(TrainCarts traincarts, TrainProperties group, ConfigurationNode config, UUID uuid) {
         this.traincarts = traincarts;
         this.uuid = uuid;
         this.group = group;
         this.config = config;
+        this.removed = false;
     }
 
     @Override
     public TrainCarts getTrainCarts() {
         return traincarts;
+    }
+
+    /**
+     * Gets whether these cart properties have been removed. This is the case when the
+     * Minecart was removed from the server (not merely unloaded)
+     *
+     * @return True if removed
+     */
+    public boolean isRemoved() {
+        return removed;
     }
 
     /**
@@ -155,13 +169,9 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * @return Collection of editing player UUIDs
      */
     public Collection<UUID> getEditing() {
-        ArrayList<UUID> players = new ArrayList<>();
-        for (Map.Entry<UUID, CartProperties> entry : editing.entrySet()) {
-            if (entry.getValue() == this) {
-                players.add(entry.getKey());
-            }
-        }
-        return players;
+        List<TrainCartsPlayer> players = traincarts.getPlayerStore().find(
+                p -> p.getEditedCart() == CartProperties.this);
+        return players.stream().map(TrainCartsPlayer::getUniqueId).collect(Collectors.toList());
     }
 
     /**

@@ -33,7 +33,7 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 /**
  * Stores information about a train prior to spawning
  */
-public class SpawnableGroup {
+public class SpawnableGroup implements TrainCarts.Provider {
     private final TrainCarts plugin;
     private final List<SpawnableMember> members = new ArrayList<SpawnableMember>();
     private final ConfigurationNode config;
@@ -58,11 +58,18 @@ public class SpawnableGroup {
         this.config = new ConfigurationNode();
     }
 
+    @Override
+    public TrainCarts getTrainCarts() {
+        return plugin;
+    }
+
     /**
      * Gets the TrainCarts plugin instance that manages this SpawnableGroup
      *
      * @return TrainCarts plugin instance
+     * @deprecated Use {@link #getTrainCarts()} instead
      */
+    @Deprecated
     public TrainCarts getPlugin() {
         return this.plugin;
     }

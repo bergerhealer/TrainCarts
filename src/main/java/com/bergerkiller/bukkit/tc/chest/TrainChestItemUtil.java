@@ -33,7 +33,6 @@ import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
 import com.bergerkiller.bukkit.tc.debug.DebugToolUtil;
-import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.google.common.io.ByteStreams;
 
@@ -292,7 +291,7 @@ public class TrainChestItemUtil {
         // Spawn.
         MinecartGroup spawnedGroup = group.spawn(locationList, initialSpeed);
         if (spawnedGroup != null && !spawnedGroup.isEmpty()) {
-            CartProperties.setEditing(player, spawnedGroup.tail().getProperties());
+            spawnedGroup.getTrainCarts().getPlayer(player).editCart(spawnedGroup.tail().getProperties());
         }
         return SpawnResult.SUCCESS;
     }
@@ -370,7 +369,7 @@ public class TrainChestItemUtil {
         // Spawn.
         MinecartGroup spawnedGroup = group.spawn(locationList, initialSpeed);
         if (spawnedGroup != null && !spawnedGroup.isEmpty()) {
-            CartProperties.setEditing(player, spawnedGroup.tail().getProperties());
+            spawnedGroup.getTrainCarts().getPlayer(player).editMember(spawnedGroup.tail());
         }
         return SpawnResult.SUCCESS;
     }

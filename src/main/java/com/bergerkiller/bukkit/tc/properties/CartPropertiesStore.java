@@ -2,23 +2,18 @@ package com.bergerkiller.bukkit.tc.properties;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
+import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**
  * Stores all the Cart Properties available by Minecart UUID
  */
 public class CartPropertiesStore {
-    protected static HashMap<UUID, CartProperties> editing = new HashMap<>();
     private static HashMap<UUID, CartProperties> properties = new HashMap<>();
 
     /**
@@ -36,9 +31,11 @@ public class CartPropertiesStore {
      *
      * @param player that is editing
      * @return the Cart Properties the player is editing
+     * @see TrainCarts#getPlayer(Player)
+     * @see TrainCartsPlayer#getEditedCart()
      */
     public static CartProperties getEditing(Player player) {
-        return getEditing(player.getUniqueId());
+        return TrainCarts.plugin.getPlayer(player).getEditedCart();
     }
 
     /**
@@ -46,9 +43,11 @@ public class CartPropertiesStore {
      *
      * @param playerUUID of the player
      * @return the Cart Properties the player is editing
+     * @see TrainCarts#getPlayer(UUID)
+     * @see TrainCartsPlayer#getEditedCart()
      */
     public static CartProperties getEditing(UUID playerUUID) {
-        return editing.get(playerUUID);
+        return TrainCarts.plugin.getPlayer(playerUUID).getEditedCart();
     }
 
     /**
@@ -56,9 +55,11 @@ public class CartPropertiesStore {
      *
      * @param player that is editing
      * @param properties to set to
+     * @see TrainCarts#getPlayer(Player)
+     * @see TrainCartsPlayer#editCart(CartProperties)
      */
     public static void setEditing(Player player, CartProperties properties) {
-        setEditing(player.getUniqueId(), properties);
+        TrainCarts.plugin.getPlayer(player).editCart(properties);
     }
 
     /**
@@ -66,24 +67,11 @@ public class CartPropertiesStore {
      *
      * @param playerUUID of the player
      * @param properties to set to
+     * @see TrainCarts#getPlayer(UUID)
+     * @see TrainCartsPlayer#editCart(CartProperties) 
      */
     public static void setEditing(UUID playerUUID, CartProperties properties) {
-        boolean changed;
-        if (properties == null) {
-            changed = (editing.remove(playerUUID) != null);
-        } else {
-            changed = editing.put(playerUUID, properties) != properties;
-        }
-
-        // Make sure to stop editing a model configuration when the player selects a cart
-        // If wanting to edit a model while inside a cart, the player can re-edit the
-        // model after seating inside.
-        TrainCarts.plugin.getSavedAttachmentModels().setEditing(playerUUID, null);
-
-        // Refresh attachment editor if the selected cart also changed
-        if (changed) {
-            AttachmentEditor.reloadAttachmentEditorFor(playerUUID);
-        }
+        TrainCarts.plugin.getPlayer(playerUUID).editCart(properties);
     }
 
     /**
@@ -94,29 +82,17 @@ public class CartPropertiesStore {
     public static void remove(UUID uuid) {
         CartProperties prop = properties.remove(uuid);
         if (prop != null) {
-            Iterator<Map.Entry<UUID, CartProperties>> iter = editing.entrySet().iterator();
-            List<UUID> refreshPlayers = new ArrayList<UUID>(0);
-            while (iter.hasNext()) {
-                Map.Entry<UUID, CartProperties> e = iter.next();
-                if (e.getValue() == prop) {
-                    refreshPlayers.add(e.getKey());
-                    iter.remove();
-                }
-            }
+            prop.removed = true;
             TrainProperties tprop = prop.getTrainProperties();
             if (tprop != null) {
                 tprop.remove(prop);
-            }
-
-            for (UUID playerUUID : refreshPlayers) {
-                AttachmentEditor.reloadAttachmentEditorFor(playerUUID);
             }
         }
     }
 
     protected static void clearAllCarts() {
+        properties.values().forEach(p -> p.removed = true);
         properties.clear();
-        editing.clear();
     }
 
     /**

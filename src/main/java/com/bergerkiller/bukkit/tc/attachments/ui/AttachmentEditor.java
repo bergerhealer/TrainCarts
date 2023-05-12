@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.ui;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModel;
+import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -78,6 +79,14 @@ public class AttachmentEditor extends MapDisplay {
         if (this._hasPermission != Permission.COMMAND_GIVE_EDITOR.has(getOwners().get(0))) {
             this.setRunning(false);
             this.setRunning(true);
+            return;
+        }
+
+        // If edited cart can no longer be edited, reload
+        if (this.editedCart != null && editedCart.isRemoved()) {
+            this.setRunning(false);
+            this.setRunning(true);
+            return;
         }
 
         // Refresh which live attachments are selected & blinking
@@ -265,9 +274,11 @@ public class AttachmentEditor extends MapDisplay {
                 .setShadowColor(MapColorPalette.getSpecular(MapColorPalette.COLOR_RED, 0.5f))
                 .setPosition(20, 60);
         } else {
+            TrainCarts traincarts = TrainCarts.plugin;
             Player owner = this.getOwners().get(0);
+            TrainCartsPlayer tcOwner = traincarts.getPlayer(owner);
 
-            SavedAttachmentModel editedModel = TrainCarts.plugin.getSavedAttachmentModels().getEditingInit(owner);
+            SavedAttachmentModel editedModel = tcOwner.getEditedModelInit();
             if (editedModel != null) {
                 this.editedCart = null;
                 this.sneakCounter = owner.isSneaking() ? SNEAK_DEBOUNCE_TICKS : 0;
@@ -278,7 +289,7 @@ public class AttachmentEditor extends MapDisplay {
                 this.window.getTitle().setText("Attachment Model Editor");
                 this.window.setBackgroundColor(MapColorPalette.getColor(54, 168, 176));
                 this.window.addWidget(this.tree);
-            } else if ((this.editedCart = CartProperties.getEditing(owner)) != null) {
+            } else if ((this.editedCart = tcOwner.getEditedCart()) != null) {
                 this.sneakCounter = owner.isSneaking() ? SNEAK_DEBOUNCE_TICKS : 0;
                 this.setReceiveInputWhenHolding(this.sneakCounter == 0);
                 this.model = this.editedCart.getModel();

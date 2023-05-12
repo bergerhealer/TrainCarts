@@ -31,8 +31,6 @@ import com.bergerkiller.bukkit.tc.editor.TCMapControl;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathWorld;
-import com.bergerkiller.bukkit.tc.properties.CartProperties;
-import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
@@ -401,7 +399,7 @@ public class GlobalCommands {
             }.start(1, 1);
 
             // Mark minecart as editing
-            CartProperties.setEditing(player, bestMember.getProperties());
+            plugin.getPlayer(player).editMember(bestMember);
             Localization.EDIT_SUCCESS.message(player, bestMember.getGroup().getProperties().getTrainName());
         } else {
             player.sendMessage(ChatColor.RED + "You are not looking at any Minecart right now");
@@ -423,7 +421,7 @@ public class GlobalCommands {
         }
         if (prop != null && !prop.isEmpty()) {
             if (prop.hasOwnership((Player) sender)) {
-                CartPropertiesStore.setEditing((Player) sender, prop.get(0));
+                plugin.getPlayer((Player) sender).editCart(prop.get(0));
                 Localization.EDIT_SUCCESS.message(sender, prop.getTrainName());
             } else {
                 Localization.EDIT_NOTOWNED.message(sender);

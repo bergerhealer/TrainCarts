@@ -9,7 +9,9 @@ import cloud.commandframework.captions.Caption;
 
 import java.util.HashSet;
 
+import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
 import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 public class Localization extends LocalizationEnum {
@@ -149,6 +151,13 @@ public class Localization extends LocalizationEnum {
         }
         for (Player player : receivers) {
             this.message(player, arguments);
+        }
+    }
+
+    public void message(TrainCartsPlayer player, String... arguments) {
+        Player onlinePlayer = player.getOnlinePlayer();
+        if (onlinePlayer != null) {
+            message(onlinePlayer, arguments);
         }
     }
 

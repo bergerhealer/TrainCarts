@@ -23,6 +23,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentItem;
 import com.bergerkiller.bukkit.tc.commands.annotations.SavedModelImplicitlyCreated;
 import com.bergerkiller.bukkit.tc.commands.annotations.SavedModelRequiresAccess;
 import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
+import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.properties.SavedClaim;
 import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
@@ -439,7 +440,7 @@ public class ModelStoreCommands {
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_IMPORT)
     private void commandEdit(
-            final Player player,
+            final TrainCartsPlayer player,
             final TrainCarts plugin,
             final @SavedModelRequiresAccess @SavedModelImplicitlyCreated @Argument(value="savedmodelname") SavedAttachmentModel savedModel,
             final @Flag("force") boolean force
@@ -456,7 +457,7 @@ public class ModelStoreCommands {
             return;
         }
 
-        plugin.getSavedAttachmentModels().setEditing(player, savedModel);
+        player.editModel(savedModel);
         if (isNewModel) {
             player.sendMessage(ChatColor.GREEN + "You are now editing the " + ChatColor.BLUE +
                     "NEW " + ChatColor.GREEN + " model configuration '" +

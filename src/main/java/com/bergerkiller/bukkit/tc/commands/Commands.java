@@ -34,7 +34,9 @@ import com.bergerkiller.bukkit.tc.commands.suggestions.TrainNameSuggestionProvid
 import com.bergerkiller.bukkit.tc.commands.suggestions.TrainSpawnPatternSuggestionProvider;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
 import com.bergerkiller.bukkit.tc.debug.DebugCommands;
+import com.bergerkiller.bukkit.tc.exception.command.CommandOnlyForPlayersException;
 import com.bergerkiller.bukkit.tc.exception.command.InvalidClaimPlayerNameException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForAnyPropertiesException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
@@ -126,6 +128,15 @@ public class Commands {
         // Target a cart or train using added flags at the end of the command
         cloud.getParser().registerBuilderModifier(CommandTargetTrain.class, TrainTargetingFlags.INSTANCE);
 
+        // Convert Player -> TrainCarts Player
+        cloud.injector(TrainCartsPlayer.class, (context, annotations) -> {
+            if (context.getSender() instanceof Player) {
+                return plugin.getPlayer((Player) context.getSender());
+            } else {
+                throw new CommandOnlyForPlayersException();
+            }
+        });
+
         // Handle train not found exception
         cloud.injector(CartProperties.class, (context, annotations) -> {
             final CartProperties cartProperties = TrainTargetingFlags.INSTANCE.findCartProperties(context);
@@ -206,6 +217,10 @@ public class Commands {
 
         cloud.handle(InvalidClaimPlayerNameException.class, (sender, exception) -> {
             Localization.COMMAND_SAVEDTRAIN_CLAIM_INVALID.message(sender, exception.getArgument());
+        });
+
+        cloud.handle(CommandOnlyForPlayersException.class, (sender, exception) -> {
+            sender.sendMessage("Only players can execute this command");
         });
 
         // Provides names of animations stored in trains/carts

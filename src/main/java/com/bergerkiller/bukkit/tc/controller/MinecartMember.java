@@ -1396,7 +1396,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             } else {
                 // Select the Minecart for editing otherwise
                 if (damager instanceof Player) {
-                    CartPropertiesStore.setEditing((Player) damager, this.getProperties());
+                    traincarts.getPlayer((Player) damager).editMember(this);
                 }
             }
         } catch (Throwable t) {

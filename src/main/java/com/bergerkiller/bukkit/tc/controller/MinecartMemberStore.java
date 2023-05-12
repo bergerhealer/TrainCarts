@@ -272,7 +272,7 @@ public abstract class MinecartMemberStore {
             }
 
             // Make player edit the train
-            CartProperties.setEditing(player, spawned.getProperties());
+            plugin.getPlayer(player).editMember(spawned);
         }
         return spawned;
     }

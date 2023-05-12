@@ -5,7 +5,7 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentItem;
-import com.bergerkiller.bukkit.tc.attachments.ui.AttachmentEditor;
+import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.properties.SavedClaim;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.BasicModularConfiguration;
@@ -20,9 +20,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -280,9 +278,11 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
      * @param player Player
      * @return SavedAttachmentModel being edited by this player, or <i>null</i>
      *         if the player isn't editing any model configurations
+     * @see TrainCarts#getPlayer(Player)
+     * @see TrainCartsPlayer#getEditedModelInit()
      */
     public final SavedAttachmentModel getEditingInit(Player player) {
-        return getEditingInit(player.getUniqueId());
+        return traincarts.getPlayer(player).getEditedModelInit();
     }
 
     /**
@@ -294,8 +294,12 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
      * @param playerUUID UUID of the Player
      * @return SavedAttachmentModel being edited by this player, or <i>null</i>
      *         if the player isn't editing any model configurations
+     * @see TrainCarts#getPlayer(UUID)
+     * @see TrainCartsPlayer#getEditedModelInit()
      */
-    public abstract SavedAttachmentModel getEditingInit(UUID playerUUID);
+    public final SavedAttachmentModel getEditingInit(UUID playerUUID) {
+        return traincarts.getPlayer(playerUUID).getEditedModelInit();
+    }
 
     /**
      * Gets the attachment model configuration that a player is editing.
@@ -306,9 +310,11 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
      * @param player Player
      * @return SavedAttachmentModel being edited by this player, or <i>null</i>
      *         if the player isn't editing any model configurations
+     * @see TrainCarts#getPlayer(Player)
+     * @see TrainCartsPlayer#getEditedModel()
      */
     public final SavedAttachmentModel getEditing(Player player) {
-        return getEditing(player.getUniqueId());
+        return traincarts.getPlayer(player).getEditedModel();
     }
 
     /**
@@ -320,8 +326,12 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
      * @param playerUUID UUID of the Player
      * @return SavedAttachmentModel being edited by this player, or <i>null</i>
      *         if the player isn't editing any model configurations
+     * @see TrainCarts#getPlayer(UUID)
+     * @see TrainCartsPlayer#getEditedModel()
      */
-    public abstract SavedAttachmentModel getEditing(UUID playerUUID);
+    public final SavedAttachmentModel getEditing(UUID playerUUID) {
+        return traincarts.getPlayer(playerUUID).getEditedModel();
+    }
 
     /**
      * Sets the attachment model configuration that a player is currently editing.
@@ -330,9 +340,11 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
      *
      * @param player Player
      * @param model Model configuration to edit, <i>null</i> to edit none
+     * @see TrainCarts#getPlayer(Player)
+     * @see TrainCartsPlayer#editModel(SavedAttachmentModel)
      */
     public final void setEditing(Player player, SavedAttachmentModel model) {
-        setEditing(player.getUniqueId(), model);
+        traincarts.getPlayer(player).editModel(model);
     }
 
     /**
@@ -342,8 +354,12 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
      *
      * @param playerUUID UUID of the Player
      * @param model Model configuration to edit, <i>null</i> to edit none
+     * @see TrainCarts#getPlayer(UUID)
+     * @see TrainCartsPlayer#editModel(SavedAttachmentModel)
      */
-    public abstract void setEditing(UUID playerUUID, SavedAttachmentModel model);
+    public final void setEditing(UUID playerUUID, SavedAttachmentModel model) {
+        traincarts.getPlayer(playerUUID).editModel(model);
+    }
 
     /**
      * Gets the writable configuration for a saved attachment model
@@ -416,7 +432,6 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
      */
     private static class DefaultStore extends SavedAttachmentModelStore {
         private final ModularConfig modularConfig;
-        private final Map<UUID, String> playerEditedModelNames = new HashMap<>();
 
         public DefaultStore(TrainCarts traincarts, ModularConfig modularConfig) {
             super(traincarts, modularConfig);
@@ -464,41 +479,6 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
         @Override
         public SavedAttachmentModel getModelOrNone(String name) {
             return modularConfig.get(name).get();
-        }
-
-        @Override
-        public SavedAttachmentModel getEditingInit(UUID playerUUID) {
-            String modelName = playerEditedModelNames.get(playerUUID);
-            if (modelName == null) {
-                return null;
-            } else {
-                try {
-                    return setDefaultConfigIfMissing(modelName);
-                } catch (IllegalNameException e) {
-                    playerEditedModelNames.remove(playerUUID);
-                    traincarts.getLogger().log(Level.SEVERE, "Unexpected illegal name exception", e);
-                    return null;
-                }
-            }
-        }
-
-        @Override
-        public SavedAttachmentModel getEditing(UUID playerUUID) {
-            String modelName = playerEditedModelNames.get(playerUUID);
-            return (modelName == null) ? null : getModelOrNone(modelName);
-        }
-
-        @Override
-        public void setEditing(UUID playerUUID, SavedAttachmentModel model) {
-            boolean changed;
-            if (model == null) {
-                changed = (playerEditedModelNames.remove(playerUUID) != null);
-            } else {
-                changed = (!model.getName().equals(playerEditedModelNames.put(playerUUID, model.getName())));
-            }
-            if (changed) {
-                AttachmentEditor.reloadAttachmentEditorFor(playerUUID);
-            }
         }
     }
 
@@ -549,21 +529,6 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
         @Override
         public SavedAttachmentModel getModelOrNone(String name) {
             return module.getMain().get(name).get();
-        }
-
-        @Override
-        public SavedAttachmentModel getEditingInit(UUID playerUUID) {
-            return traincarts.getSavedAttachmentModels().getEditingInit(playerUUID);
-        }
-
-        @Override
-        public SavedAttachmentModel getEditing(UUID playerUUID) {
-            return traincarts.getSavedAttachmentModels().getEditing(playerUUID);
-        }
-
-        @Override
-        public void setEditing(UUID playerUUID, SavedAttachmentModel model) {
-            traincarts.getSavedAttachmentModels().setEditing(playerUUID, model);
         }
     }
 

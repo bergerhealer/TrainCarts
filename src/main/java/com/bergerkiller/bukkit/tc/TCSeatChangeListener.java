@@ -173,7 +173,7 @@ public class TCSeatChangeListener implements Listener {
         if (event.getEntity() instanceof Player) {
             Player player = (Player) event.getEntity();
             CartProperties cprop = event.getMember().getProperties();
-            CartPropertiesStore.setEditing(player, cprop);
+            cprop.getTrainCarts().getPlayer(player).editCart(cprop);
             if (event.wasMemberVehicleChange()) {
                 cprop.showEnterMessage(player);
             }

@@ -163,7 +163,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
                     "cannot spawn a train with zero carts");
         }
 
-        MinecartGroup group = new MinecartGroup(spawnableGroup.getPlugin());
+        MinecartGroup group = new MinecartGroup(spawnableGroup.getTrainCarts());
         group.setProperties(TrainPropertiesStore.createFromConfig(spawnableGroup.getConfig()));
         groups.add(group);
 

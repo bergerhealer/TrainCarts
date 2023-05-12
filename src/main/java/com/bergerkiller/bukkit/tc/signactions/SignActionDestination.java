@@ -23,7 +23,7 @@ public class SignActionDestination extends SignAction {
     @Override
     public boolean click(SignActionEvent info, Player player) {
         //get the train this player is editing
-        CartProperties cprop = CartProperties.getEditing(player);
+        CartProperties cprop = info.getTrainCarts().getPlayer(player).getEditedCart();
         if (cprop == null) {
             if (Permission.COMMAND_PROPERTIES.has(player)) {
                 Localization.EDIT_NOSELECT.message(player);

@@ -31,6 +31,8 @@ import com.bergerkiller.bukkit.tc.commands.selector.TCSelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.controller.*;
 import com.bergerkiller.bukkit.tc.controller.global.PacketQueueMap;
 import com.bergerkiller.bukkit.tc.controller.global.SignController;
+import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
+import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayerStore;
 import com.bergerkiller.bukkit.tc.controller.global.TrainUpdateController;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
@@ -111,6 +113,7 @@ public class TrainCarts extends PluginBase {
     private final PacketQueueMap packetQueueMap = new PacketQueueMap(this);
     private ResourcePackModelListing modelListing = new ResourcePackModelListing(); // Uninitialized
     private final WorldEditSchematicLoader worldEditSchematicLoader = new WorldEditSchematicLoader(this);
+    private final TrainCartsPlayerStore playerStore = new TrainCartsPlayerStore(this);
     private Economy econ = null;
     private boolean isTabPluginEnabled = false;
     private SmoothCoastersAPI smoothCoastersAPI;
@@ -317,6 +320,37 @@ public class TrainCarts extends PluginBase {
      */
     public WorldEditSchematicLoader getWorldEditSchematicLoader() {
         return worldEditSchematicLoader;
+    }
+
+    /**
+     * Gets the TrainCarts player information store. This store tracks information about
+     * players, such as the cart they are currently editing.
+     *
+     * @return TrainCarts player metadata/information store
+     */
+    public TrainCartsPlayerStore getPlayerStore() {
+        return playerStore;
+    }
+
+    /**
+     * Gets or creates the TrainCarts player information tracked for the Player with
+     * the specified UUID
+     *
+     * @param playerUUID UUID of the Player
+     * @return TrainCarts Player information
+     */
+    public TrainCartsPlayer getPlayer(UUID playerUUID) {
+        return playerStore.get(playerUUID);
+    }
+
+    /**
+     * Gets or creates the TrainCarts player information tracked for the Player specified.
+     *
+     * @param player Player
+     * @return TrainCarts Player information
+     */
+    public TrainCartsPlayer getPlayer(Player player) {
+        return playerStore.get(player);
     }
 
     /**

@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
@@ -164,7 +165,7 @@ public class TrainTargetingFlags implements BiFunction<CommandTargetTrain, Comma
 
         // If no cart was selected (and no train either), pick what the player is editing
         if (cartProperties == null && trainProperties == null && context.getSender() instanceof Player) {
-            cartProperties = CartPropertiesStore.getEditing((Player) context.getSender());
+            cartProperties = context.inject(TrainCartsPlayer.class).get().getEditedCart();
             if (cartProperties != null) {
                 trainProperties = cartProperties.getTrainProperties();
             }
