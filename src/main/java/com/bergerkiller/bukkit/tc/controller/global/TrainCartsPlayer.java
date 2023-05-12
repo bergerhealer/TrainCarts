@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.global;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModel;
@@ -26,6 +27,7 @@ public class TrainCartsPlayer implements TrainCarts.Provider {
     private WeakReference<Player> player;
     private WeakReference<CartProperties> editedCart;
     private String editedModelName;
+    private ConfigurationNode modelClipboard;
 
     TrainCartsPlayer(TrainCarts traincarts, Player player) {
         this(traincarts, player.getUniqueId());
@@ -38,6 +40,7 @@ public class TrainCartsPlayer implements TrainCarts.Provider {
         this.player = LogicUtil.nullWeakReference();
         this.editedCart = LogicUtil.nullWeakReference();
         this.editedModelName = null;
+        this.modelClipboard = null;
     }
 
     @Override
@@ -199,5 +202,23 @@ public class TrainCartsPlayer implements TrainCarts.Provider {
         if (changed) {
             AttachmentEditor.reloadAttachmentEditorFor(uuid);
         }
+    }
+
+    /**
+     * Gets the Attachment Configuration that was saved to the Player's clipboard.
+     *
+     * @return Model configuration on the clipboard, or <i>null</i> if none was saved
+     */
+    public ConfigurationNode getModelClipboard() {
+        return modelClipboard;
+    }
+
+    /**
+     * Saves model configuration to the Player's clipboard. If null, clears the clipboard.
+     *
+     * @param attachmentConfig Attachment YAML configuration to save
+     */
+    public void setModelClipboard(ConfigurationNode attachmentConfig) {
+        this.modelClipboard = (attachmentConfig == null) ? null : attachmentConfig.clone();
     }
 }

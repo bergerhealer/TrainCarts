@@ -121,6 +121,14 @@ public class Localization extends LocalizationEnum {
             ChatColor.GREEN + " at speed " + ChatColor.YELLOW + "%1%" + ChatColor.GREEN + " with phase delay " + ChatColor.YELLOW + "%2%");
     public static final Localization COMMAND_ANIMATE_FAILURE = new Localization("command.animate.failure", ChatColor.RED + "Failed to find animation " + ChatColor.YELLOW + "%0%" + ChatColor.RED + "!");
 
+    // Attachment editor chat/text messages
+    public static final Localization ATTACHMENTS_LOAD_CLIPBOARD = new Localization("attachments.load.clipboard", ChatColor.GREEN + "Attachment loaded from your clipboard!");
+    public static final Localization ATTACHMENTS_LOAD_MODEL_STORE = new Localization("attachments.load.modelstore", ChatColor.GREEN + "Attachment '%0%' loaded from the model store!");
+    public static final Localization ATTACHMENTS_LOAD_PASTE_SERVER = new Localization("attachments.load.pasteserver", ChatColor.GREEN + "Attachment imported from paste server!");
+    public static final Localization ATTACHMENTS_SAVE_CLIPBOARD = new Localization("attachments.save.clipboard", ChatColor.GREEN + "Attachment saved to your clipboard!");
+    public static final Localization ATTACHMENTS_SAVE_MODEL_STORE = new Localization("attachments.save.modelstore", ChatColor.GREEN + "Attachment saved to the model store as %0%!");
+    public static final Localization ATTACHMENTS_SAVE_PASTE_SERVER = new Localization("attachments.save.pasteserver", ChatColor.GREEN + "Attachment exported to paste server: " + ChatColor.WHITE + ChatColor.UNDERLINE + "%0%");
+
     private Localization(String name, String defValue) {
         super(name, defValue);
     }

@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.menus;
 
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.general.ModelStorageTypeSelectionDialog;
 import org.bukkit.inventory.ItemStack;
 
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
@@ -21,6 +22,13 @@ public class GeneralMenu extends MapWidgetMenu {
         this.setBackgroundColor(MapColorPalette.COLOR_YELLOW);
     }
 
+    private void addAndSelectAttachment(ConfigurationNode newAttachmentConfig) {
+        MapWidgetAttachmentNode added = attachment.addAttachment(newAttachmentConfig);
+        GeneralMenu.this.close();
+        attachment.getTree().setSelectedNode(added);
+        sendStatusChange(MapEventPropagation.DOWNSTREAM, "reset");
+    }
+
     @Override
     public void onAttached() {
         super.onAttached();
@@ -31,12 +39,21 @@ public class GeneralMenu extends MapWidgetMenu {
                 ConfigurationNode config = new ConfigurationNode();
                 AttachmentTypeRegistry.instance().toConfig(config, CartAttachmentItem.TYPE);
                 config.set("item", new ItemStack(getMaterial("LEGACY_WOOD")));
-                MapWidgetAttachmentNode added = attachment.addAttachment(config);
-                GeneralMenu.this.close();
-                attachment.getTree().setSelectedNode(added);
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "reset");
+                addAndSelectAttachment(config);
             }
-        }).setText("Add Attachment").setBounds(10, 10, 98, 18);
+        }).setText("Add Attachment").setBounds(10, 10, 85, 14);
+
+        this.addWidget(new MapWidgetButton() {
+            @Override
+            public void onActivate() {
+                GeneralMenu.this.addWidget(new ModelStorageTypeSelectionDialog.LoadDialog() {
+                    @Override
+                    public void onConfigLoaded(ConfigurationNode attachmentConfig) {
+                        addAndSelectAttachment(attachmentConfig);
+                    }
+                });
+            }
+        }).setText("V").setBounds(96, 10, 12, 14);
 
         this.addWidget(new MapWidgetButton() {
             @Override
@@ -44,7 +61,7 @@ public class GeneralMenu extends MapWidgetMenu {
                 attachment.setChangingOrder(true);
                 GeneralMenu.this.close();
             }
-        }).setText("Change order").setBounds(10, 30, 98, 18);
+        }).setText("Change order").setBounds(10, 27, 98, 14);
 
         this.addWidget(new MapWidgetButton() {
             @Override
@@ -57,7 +74,7 @@ public class GeneralMenu extends MapWidgetMenu {
                     }
                 });
             }
-        }).setText("Delete").setBounds(10, 50, 98, 18).setEnabled(attachment.getParentAttachment() != null);
+        }).setText("Delete").setBounds(10, 44, 98, 14).setEnabled(attachment.getParentAttachment() != null);
 
         this.addWidget(new MapWidgetButton() {
             @Override
@@ -69,11 +86,32 @@ public class GeneralMenu extends MapWidgetMenu {
                 sendStatusChange(MapEventPropagation.DOWNSTREAM, "reset");
                 GeneralMenu.this.close();
             }
-        }).setText("Duplicate").setBounds(10, 70, 98, 18).setEnabled(attachment.getParentAttachment() != null);
-    }
+        }).setText("Duplicate").setBounds(10, 61, 98, 14).setEnabled(attachment.getParentAttachment() != null);
 
-    public ConfigurationNode getConfig() {
-        return this.attachment.getConfig().getNode("position");
+        this.addWidget(new MapWidgetButton() {
+            @Override
+            public void onActivate() {
+                GeneralMenu.this.addWidget(new ModelStorageTypeSelectionDialog.SaveDialog(attachment.getConfig()) {
+                    @Override
+                    public void onExported() {
+                        GeneralMenu.this.close();
+                    }
+                });
+            }
+        }).setText("Save").setBounds(10, 78, 48, 14);
+
+        this.addWidget(new MapWidgetButton() {
+            @Override
+            public void onActivate() {
+                GeneralMenu.this.addWidget(new ModelStorageTypeSelectionDialog.LoadDialog() {
+                    @Override
+                    public void onConfigLoaded(ConfigurationNode attachmentConfig) {
+                        GeneralMenu.this.attachment.getConfig().setTo(attachmentConfig);
+                        GeneralMenu.this.close();
+                    }
+                });
+            }
+        }).setText("Load").setBounds(60, 78, 48, 14);
     }
 
     public MapWidgetAttachmentNode getAttachment() {
