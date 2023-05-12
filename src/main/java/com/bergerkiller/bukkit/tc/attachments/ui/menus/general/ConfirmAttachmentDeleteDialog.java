@@ -11,7 +11,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 public class ConfirmAttachmentDeleteDialog extends MapWidgetMenu {
 
     public ConfirmAttachmentDeleteDialog() {
-        this.setBounds(10, 22, 95, 58);
+        this.setBounds(10, 22, 98, 58);
         this.setBackgroundColor(MapColorPalette.getColor(135, 33, 33));
     }
 
@@ -30,7 +30,7 @@ public class ConfirmAttachmentDeleteDialog extends MapWidgetMenu {
             public void onActivate() {
                 ConfirmAttachmentDeleteDialog.this.close();
             }
-        }.setText("No").setBounds(10, 40, 35, 13));
+        }.setText("No").setBounds(10, 40, 36, 13));
 
         // Yes!
         this.addWidget(new MapWidgetButton() {
@@ -39,7 +39,7 @@ public class ConfirmAttachmentDeleteDialog extends MapWidgetMenu {
                 ConfirmAttachmentDeleteDialog.this.close();
                 ConfirmAttachmentDeleteDialog.this.onConfirmDelete();
             }
-        }.setText("Yes").setBounds(50, 40, 35, 13));
+        }.setText("Yes").setBounds(52, 40, 36, 13));
     }
 
     /**
