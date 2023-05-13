@@ -138,7 +138,9 @@ public class PacketQueue implements AttachmentViewer, me.m56738.smoothcoasters.a
             throw new IllegalArgumentException("Wrong network interface used, interface is of " +
                     this.player.getName() + " but updated " + player.getName());
         }
-        send(PacketPlayOutCustomPayloadHandle.createNew(channel, message));
+        //TODO: Seems Bundle packets break this, so send to queue directly and skip BundlerPacketQueue override
+        //send(PacketPlayOutCustomPayloadHandle.createNew(channel, message));
+        queue.put(PacketPlayOutCustomPayloadHandle.createNew(channel, message).toCommonPacket());
     }
     /// --------------------------------------------------------------------
 
