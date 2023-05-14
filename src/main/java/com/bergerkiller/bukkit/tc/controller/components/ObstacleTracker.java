@@ -391,7 +391,7 @@ public class ObstacleTracker implements TrainStatusProvider {
             ForwardChunkArea forwardChunks = null;
             if (group.getProperties().isKeepingChunksLoaded()) {
                 forwardChunks = group.getChunkArea().getForwardChunkArea();
-                forwardChunks.begin();
+                forwardChunks.begin(group.getWorld());
             } else {
                 group.getChunkArea().getForwardChunkArea().reset();
             }

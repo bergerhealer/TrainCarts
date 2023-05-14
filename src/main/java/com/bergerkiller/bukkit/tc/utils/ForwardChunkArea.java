@@ -56,15 +56,21 @@ public class ForwardChunkArea {
 
     /**
      * Must be called at the beginning of each new track iteration call, ideally
-     * at the start of the tick. Afterwards, {@link #add(World, int, int)} can be
+     * at the start of the tick. Afterwards, {@link #add(int, int)} can be
      * called to keep all the chunks that need to stay loaded.
      */
-    public void begin() {
+    public void begin(World world) {
         // Only run this once a tick at most. This makes sure that when the
         // forward path prediction runs multiple times (maybe some add-on calls it),
         // it doesn't repeatedly create and clear a chunk area. Instead, it will
         // combine the add() that occur in both cleanly.
         this.beginTickTracker.update();
+
+        // When changing world, reset chunk area completely
+        if (this.world != world) {
+            reset();
+            this.world = world;
+        }
     }
 
     /**
@@ -82,16 +88,10 @@ public class ForwardChunkArea {
     }
 
     public void addBlock(Block block) {
-        add(block.getWorld(), block.getX() >> 4, block.getZ() >> 4);
+        add(block.getX() >> 4, block.getZ() >> 4);
     }
 
-    public void add(World world, int cx, int cz) {
-        // When changing world, reset chunk area completely
-        if (this.world != world) {
-            reset();
-            this.world = world;
-        }
-
+    public void add(int cx, int cz) {
         // Track new chunk
         long key = MathUtil.longHashToLong(cx, cz);
         Entry e = lastEntry;
