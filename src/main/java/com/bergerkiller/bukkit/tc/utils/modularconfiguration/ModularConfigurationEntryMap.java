@@ -18,11 +18,13 @@ class ModularConfigurationEntryMap<T> implements ModularConfigurationEntry.Conta
     private final HashMap<String, ModularConfigurationEntry<T>> entries = new HashMap<>();
     private List<ModularConfigurationEntry<T>> entriesList = Collections.emptyList();
     private List<String> entryNamesList = Collections.emptyList();
+    private List<T> entryValuesList = Collections.emptyList();
 
     public void clear() {
         entries.clear();
         entriesList = Collections.emptyList();
         entryNamesList = Collections.emptyList();
+        entryValuesList = Collections.emptyList();
     }
 
     public void set(String name, ModularConfigurationEntry<T> entry) {
@@ -88,8 +90,23 @@ class ModularConfigurationEntryMap<T> implements ModularConfigurationEntry.Conta
         return result;
     }
 
+    @Override
+    public List<T> getAllValues() {
+        List<T> result = entryValuesList;
+        if (result == null) {
+            List<ModularConfigurationEntry<T>> allEntries = getAll();
+            result = new ArrayList<>(allEntries.size());
+            for (ModularConfigurationEntry<T> entry : allEntries) {
+                result.add(entry.get());
+            }
+            entryValuesList = result = Collections.unmodifiableList(result);
+        }
+        return result;
+    }
+
     private void regenSortedLists() {
         entriesList = null;
         entryNamesList = null;
+        entryValuesList = null;
     }
 }

@@ -3,9 +3,7 @@ package com.bergerkiller.bukkit.tc.utils.modularconfiguration;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.google.common.collect.MapMaker;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Logger;
 
@@ -35,8 +33,6 @@ public abstract class ModularConfiguration<T>
     final Logger logger;
     /** All entries that are still backed by a Module */
     final ModularConfigurationEntryMap<T> entries = new ModularConfigurationEntryMap<T>();
-    /** All entries that have change listeners. Prevents them from being garbage collected. */
-    final Set<ModularConfigurationEntry<T>> entriesWithListeners = new HashSet<>();
     /** Stores removed Entries until they get garbage-collected because nobody uses them */
     final ConcurrentMap<String, ModularConfigurationEntry<T>> removedEntries = new MapMaker()
             .weakValues()
@@ -311,39 +307,8 @@ public abstract class ModularConfiguration<T>
         return entries.getAll();
     }
 
-    /**
-     * Temporarily stores the state of an entry to detect when changes have
-     * occurred to the configuration.
-     */
-    static class FrozenEntryChanges<T> {
-        private final ModularConfigurationEntry<T> entry;
-        private final boolean removed;
-        private final ConfigurationNode config;
-
-        public FrozenEntryChanges(ModularConfigurationEntry<T> entry) {
-            this.entry = entry;
-            this.removed = entry.isRemoved();
-            this.config = entry.getConfig().clone();
-        }
-
-        /**
-         * Checks that the before-state described here is different from the
-         * current state, implying a change has occurred.
-         *
-         * @return True if the entry actually changed
-         */
-        public boolean hasChanged() {
-            // Changes to isRemoved()
-            if (removed != entry.isRemoved()) {
-                return true;
-            }
-
-            // Changes to the configuration
-            if (!entry.isRemoved() && !entry.getConfig().equals(config)) {
-                return true;
-            }
-
-            return false;
-        }
+    @Override
+    public List<T> getAllValues() {
+        return entries.getAllValues();
     }
 }

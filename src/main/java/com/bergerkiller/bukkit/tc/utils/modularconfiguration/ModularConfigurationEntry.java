@@ -501,6 +501,16 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
         List<ModularConfigurationEntry<T>> getAll();
 
         /**
+         * Gets an unmodifiable snapshot copy of all the values of all entries that exist
+         * inside this modular configuration. The entries are sorted alphabetically
+         * by name. The returned List cannot be modified.
+         *
+         * @return unmodifiable name-sorted List of all {@link ModularConfigurationEntry#get() Value}
+         *         properties of all entries
+         */
+        List<T> getAllValues();
+
+        /**
          * Gets whether this module does not store any entries
          *
          * @return True if this module is empty

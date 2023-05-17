@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.utils.modularconfiguration;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapResourcePack;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import org.bukkit.plugin.Plugin;
 
 import java.io.File;

@@ -188,6 +188,11 @@ public class ModularConfigurationModule<T> implements ModularConfigurationBlock<
     }
 
     @Override
+    public List<T> getAllValues() {
+        return entries.getAllValues();
+    }
+
+    @Override
     public int compareTo(ModularConfigurationModule<T> tModularConfigurationFile) {
         if (this.readOnly != tModularConfigurationFile.readOnly) {
             return this.readOnly ? 1 : -1;
