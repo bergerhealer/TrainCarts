@@ -2,10 +2,13 @@ package com.bergerkiller.bukkit.tc.attachments.ui.menus.general;
 
 import com.bergerkiller.bukkit.common.Hastebin;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
+import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -15,6 +18,7 @@ import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.properties.SavedClaim;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
@@ -38,6 +42,7 @@ public abstract class ModelStorageTypeSelectionDialog extends MapWidgetMenu {
      */
     protected ModelStorageTypeSelectionDialog(boolean load) {
         this.load = load;
+        this.playSoundWhenBackClosed = true;
         this.setBounds(9, 17, 100, 69);
         this.setBackgroundColor(MapColorPalette.getColor(183, 188, 79));
     }
@@ -68,7 +73,8 @@ public abstract class ModelStorageTypeSelectionDialog extends MapWidgetMenu {
         textWidget = this.addWidget(new MapWidgetSubmitText() {
             @Override
             public void onAccept(String text) {
-                textAccept.accept(text);
+                // Got to delay by one tick, seems to mess shit up otherwise
+                Bukkit.getScheduler().scheduleSyncDelayedTask(display.getPlugin(), () -> textAccept.accept(text));
             }
         });
 
@@ -119,9 +125,13 @@ public abstract class ModelStorageTypeSelectionDialog extends MapWidgetMenu {
         public void useClipboard() {
             if (getPlayerOwner().getModelClipboard() != null) {
                 Localization.ATTACHMENTS_LOAD_CLIPBOARD.message(display.getOwners().get(0));
+                display.playSound(SoundEffect.CLICK_WOOD);
                 onConfigLoaded(getPlayerOwner().getModelClipboard().clone());
+                close();
+            } else {
+                display.playSound(SoundEffect.EXTINGUISH);
+                close();
             }
-            close();
         }
 
         @Override
@@ -129,6 +139,7 @@ public abstract class ModelStorageTypeSelectionDialog extends MapWidgetMenu {
             askText("Enter Paste URL", url -> {
                 Commands.importModel(getTrainCarts(), display.getOwners().get(0), url, config -> {
                     Localization.ATTACHMENTS_LOAD_PASTE_SERVER.message(display.getOwners().get(0));
+                    display.playSound(SoundEffect.CLICK_WOOD);
                     onConfigLoaded(config);
                     close();
                 });
@@ -141,10 +152,12 @@ public abstract class ModelStorageTypeSelectionDialog extends MapWidgetMenu {
                 SavedAttachmentModel model = getTrainCarts().getSavedAttachmentModels().getModel(name);
                 if (model != null) {
                     Localization.ATTACHMENTS_LOAD_MODEL_STORE.message(display.getOwners().get(0), name);
+                    display.playSound(SoundEffect.CLICK_WOOD);
                     onConfigLoaded(model.getConfig().clone());
                     close();
                 } else {
                     Localization.COMMAND_MODEL_CONFIG_NOTFOUND.message(display.getOwners().get(0), name);
+                    display.playSound(SoundEffect.EXTINGUISH);
                 }
             });
         }

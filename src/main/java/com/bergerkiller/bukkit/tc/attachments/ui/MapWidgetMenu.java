@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 
 /**
  * Abstract base class for a menu window that is closed when deactivated
@@ -13,6 +14,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
 public class MapWidgetMenu extends MapWidgetWindow {
     protected MapWidgetAttachmentNode attachment;
     protected byte labelColor = MapColorPalette.COLOR_GREEN;
+    protected boolean playSoundWhenBackClosed = false;
 
     public MapWidgetMenu() {
         this.setDepthOffset(4);
@@ -32,6 +34,9 @@ public class MapWidgetMenu extends MapWidgetWindow {
     @Override
     public void onKeyPressed(MapKeyEvent event) {
         if (event.getKey() == Key.BACK && this.isActivated()) {
+            if (playSoundWhenBackClosed) {
+                display.playSound(SoundEffect.CLICK, 1.0f, 0.6f);
+            }
             this.close();
             return;
         }

@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.menus;
 
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.general.ModelStorageTypeSelectionDialog;
 import org.bukkit.inventory.ItemStack;
 
@@ -46,6 +47,7 @@ public class GeneralMenu extends MapWidgetMenu {
         this.addWidget(new MapWidgetButton() {
             @Override
             public void onActivate() {
+                display.playSound(SoundEffect.CLICK);
                 GeneralMenu.this.addWidget(new ModelStorageTypeSelectionDialog.LoadDialog() {
                     @Override
                     public void onConfigLoaded(ConfigurationNode attachmentConfig) {
@@ -91,6 +93,7 @@ public class GeneralMenu extends MapWidgetMenu {
         this.addWidget(new MapWidgetButton() {
             @Override
             public void onActivate() {
+                display.playSound(SoundEffect.CLICK);
                 GeneralMenu.this.addWidget(new ModelStorageTypeSelectionDialog.SaveDialog(attachment.getConfig()) {
                     @Override
                     public void onExported() {
@@ -103,6 +106,7 @@ public class GeneralMenu extends MapWidgetMenu {
         this.addWidget(new MapWidgetButton() {
             @Override
             public void onActivate() {
+                display.playSound(SoundEffect.CLICK);
                 GeneralMenu.this.addWidget(new ModelStorageTypeSelectionDialog.LoadDialog() {
                     @Override
                     public void onConfigLoaded(ConfigurationNode attachmentConfig) {

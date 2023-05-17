@@ -103,4 +103,20 @@ public class SavedAttachmentModel extends AttachmentModel {
     public boolean hasPermission(CommandSender sender) {
         return entry.isRemoved() || SavedClaim.hasPermission(entry.getConfig(), sender);
     }
+
+    @Override
+    public int hashCode() {
+        return entry.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        } else if (o instanceof SavedAttachmentModel) {
+            return ((SavedAttachmentModel) o).entry == entry;
+        } else {
+            return false;
+        }
+    }
 }

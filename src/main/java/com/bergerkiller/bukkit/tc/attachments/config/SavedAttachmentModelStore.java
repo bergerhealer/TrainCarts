@@ -99,7 +99,7 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
     /**
      * Gets a module by name
      * 
-     * @param moduleName
+     * @param moduleName Module Name
      * @return module, null if no module by this name exists
      */
     public abstract SavedAttachmentModelStore getModule(String moduleName);
@@ -108,7 +108,7 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
      * Checks to see what module an attachment model is saved in.
      * If it is saved in the default place, null is returned.
      * 
-     * @param name
+     * @param name Model Name
      * @return module name, null if not stored in a separate module
      */
     public String getModuleNameOfModel(String name) {
@@ -126,8 +126,8 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
      * If no saved attachment model with this name exists, this method does nothing.
      * Make sure to call this method after saving configuration, not before.
      * 
-     * @param name
-     * @param module name, null for the default store
+     * @param name Model Name
+     * @param module Module Name, null for the default store
      */
     public abstract void setModuleNameOfModel(String name, String module);
 
@@ -149,8 +149,8 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
      * An empty list indicates nobody has claimed the saved attachment model, or that the saved
      * attachment model does not exist. The returned list is unmodifiable.
      * 
-     * @param name
-     * @return list of player claims, empty is unclaimed or non-existant model
+     * @param name Model Name
+     * @return Set of player claims, empty is unclaimed or non-existent model
      */
     public Set<SavedClaim> getClaims(String name) {
         SavedAttachmentModel savedProperties = this.getModel(name);
@@ -160,7 +160,7 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
     /**
      * Calls {@link #setClaims(String, Collection)} with a single claim of a player.
      * 
-     * @param name
+     * @param name Model Name
      * @param player to add to the claim list
      */
     public void setClaim(String name, Player player) {
@@ -172,8 +172,8 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
      * An empty list indicates nobody has claimed the saved attachment model.
      * Fails silently if the model does not exist.
      * 
-     * @param name
-     * @param claims list to set to
+     * @param name Model Name
+     * @param claims Claims to set to
      */
     public void setClaims(String name, Collection<SavedClaim> claims) {
         SavedAttachmentModel savedModel = this.getModel(name);
@@ -185,7 +185,7 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
     /**
      * Checks whether a particular saved attachment model name exists inside this store
      * 
-     * @param name
+     * @param name Model Name
      * @return True if the model is contained
      */
     public boolean containsModel(String name) {
@@ -410,8 +410,8 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
      * If the same name exists multiple times in different modules, only one
      * instance is renamed.
      * 
-     * @param name
-     * @param newName
+     * @param name Name of the Model to rename
+     * @param newName New name for the Model
      * @return True if found and renamed
      */
     public boolean rename(String name, String newName) {
@@ -419,12 +419,21 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
     }
 
     /**
-     * Get a list of all saved attachment models
+     * Get a list of all saved attachment model names
      * 
      * @return A List of the names of all saved attachment models
      */
     public List<String> getNames() {
         return this.container.getNames();
+    }
+
+    /**
+     * Gets a list of all saved attachment models
+     *
+     * @return A List of all the saved attachment models
+     */
+    public List<SavedAttachmentModel> getAll() {
+        return this.container.getAllValues();
     }
 
     /**
