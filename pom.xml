@@ -231,7 +231,7 @@
         <dependency>
             <groupId>me.m56738</groupId>
             <artifactId>SmoothCoastersAPI</artifactId>
-            <version>1.8</version>
+            <version>1.9</version>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
