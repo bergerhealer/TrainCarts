@@ -655,7 +655,7 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
             DeepAttachmentConfig root = getRoot();
             if (root == null) {
                 // Check whether the attachment configuration was maybe empty in the past
-                if (!allowEmptyRootConfig && attachment.childPath().length == 0) {
+                if (!allowEmptyRootConfig && attachment.isRoot()) {
                     if (!attachment.isEmptyConfig()) {
                         onAttachmentAdded(attachment);
                     }
@@ -663,6 +663,10 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
                 }
 
                 throw new IllegalStateException("Root changed, but root was already removed");
+            } else if (attachment.isRoot() && !allowEmptyRootConfig && attachment.isEmptyConfig()) {
+                // New model configuration is empty. Disable the root.
+                onAttachmentRemoved(attachment);
+                return;
             }
 
             DeepAttachmentConfig child = root.nonModelChild(attachment.childPath());

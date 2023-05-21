@@ -653,6 +653,10 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
          * @return True when to notify a CHANGED notification
          */
         protected boolean handleLoad() {
+            // Recreate this attachment and all children when the new configuration is empty
+            if (isEmptyConfiguration(config)) {
+                return false;
+            }
             // Recreate this attachment and all children when the attachment type changes
             return this.typeId.equals(readAttachmentTypeId(config, "EMPTY"));
         }

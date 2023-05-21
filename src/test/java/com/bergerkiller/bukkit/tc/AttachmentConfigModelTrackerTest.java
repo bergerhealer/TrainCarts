@@ -17,6 +17,50 @@ import java.util.Map;
 public class AttachmentConfigModelTrackerTest {
 
     @Test
+    public void testSwitchOutEmptyModel() {
+        // Initializes a root that has a model but the model has no configuration (yet)
+        // Give it a configuration, and verify it gets added. Remove configuration again,
+        // verify it gets removed.
+
+        ConfigurationNode root = createAttachment("EMPTY");
+        addModelAttachment(root, "model1");
+
+        TestTracker tracker = track(root);
+        ConfigurationNode model1Root = tracker.addEmptyModel("model1");
+
+        tracker.start().assertPath().assertTypeId("EMPTY")
+                .assertChild(AttachmentType.MODEL_TYPE_ID, a -> {
+                    a.assertModelName("model1")
+                     .assertNoMoreChildren();
+                })
+                .assertNoMoreChildren();
+
+        // Update model configuration, so it is not empty
+        // We expect the new model configuration to result in added attachments
+        model1Root.setTo(createAttachment("EMPTY"));
+        addAttachment(model1Root, "ITEM");
+        tracker.sync();
+        tracker.assertAdded("EMPTY", 0, 0)
+                .assertChild("ITEM", a -> {
+                    a.assertNoMoreChildren();
+                })
+                .assertNoMoreChildren();
+        tracker.assertSynchronized("EMPTY");
+        tracker.assertNone();
+
+        // Clear model configuration again. Should remove the attachments.
+        model1Root.clear();
+        tracker.sync();
+        tracker.assertRemoved("EMPTY", 0, 0)
+                .assertChild("ITEM", a -> {
+                    a.assertNoMoreChildren();
+                })
+                .assertNoMoreChildren();
+        tracker.assertSynchronized("EMPTY");
+        tracker.assertNone();
+    }
+
+    @Test
     public void testInitializeInfiniteRecursion() {
         // Adds a model to the model store that references model2, that references model1 again
         // It should not add model1's details as child to model2 (and should also not hang)
@@ -389,6 +433,10 @@ public class AttachmentConfigModelTrackerTest {
             return tracker.rootTracker.getConfig();
         }
 
+        public ConfigurationNode addEmptyModel(String name) {
+            return tracker.addEmptyModel(name);
+        }
+
         public ConfigurationNode addModel(String name, String typeId) {
             return tracker.addModel(name, typeId);
         }
@@ -401,6 +449,12 @@ public class AttachmentConfigModelTrackerTest {
         public DefaultAttachmentConfigModelTracker(AttachmentConfigTracker tracker) {
             super(tracker);
             rootTracker = tracker;
+        }
+
+        public ConfigurationNode addEmptyModel(String name) {
+            ConfigurationNode model = new ConfigurationNode();
+            models.put(name, new AttachmentConfigTracker(model));
+            return model;
         }
 
         public ConfigurationNode addModel(String name, String typeId) {

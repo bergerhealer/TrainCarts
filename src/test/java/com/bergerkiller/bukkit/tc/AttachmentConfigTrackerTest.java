@@ -27,6 +27,35 @@ import java.util.function.Consumer;
 public class AttachmentConfigTrackerTest {
 
     @Test
+    public void testConfigurationEmptyToggle() {
+        ConfigurationNode root = new ConfigurationNode();
+        TestTracker tracker = new TestTracker(new AttachmentConfigTracker(root));
+
+        tracker.start().assertEmptyConfig();
+
+        // Make it non-empty. Should go from empty to not empty. (Removal + Add)
+        root.setTo(createAttachment("EMPTY"));
+        addAttachment(root, "ITEM");
+        tracker.sync();
+        tracker.assertRemoved("EMPTY").assertNoMoreChildren();
+        tracker.assertAdded("EMPTY").assertNonEmptyConfig().assertChild("ITEM", a1 -> {
+            a1.assertNonEmptyConfig().assertNoMoreChildren();
+        }).assertNoMoreChildren();
+        tracker.assertSynchronized("EMPTY");
+        tracker.assertNone();
+
+        // Make it empty again. Should go from non-empty to empty. (Removal + Add)
+        root.clear();
+        tracker.sync();
+        tracker.assertRemoved("EMPTY").assertChild("ITEM", a1 -> {
+            a1.assertNonEmptyConfig().assertNoMoreChildren();
+        }).assertNoMoreChildren();
+        tracker.assertAdded("EMPTY").assertEmptyConfig();
+        tracker.assertSynchronized("EMPTY");
+        tracker.assertNone();
+    }
+
+    @Test
     public void testAddAttachmentConfigChild() {
         ConfigurationNode root = createAttachment("ENTITY");
         ConfigurationNode mid = addAttachment(root, "EMPTY");
@@ -511,6 +540,16 @@ public class AttachmentConfigTrackerTest {
 
         public AttachmentAssertion assertTypeId(String typeId) {
             assertEquals(typeId, attachment.typeId());
+            return this;
+        }
+
+        public AttachmentAssertion assertEmptyConfig() {
+            assertTrue(attachment.isEmptyConfig());
+            return this;
+        }
+
+        public AttachmentAssertion assertNonEmptyConfig() {
+            assertFalse(attachment.isEmptyConfig());
             return this;
         }
 
