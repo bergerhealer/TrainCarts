@@ -32,6 +32,8 @@ public class Localization extends LocalizationEnum {
     public static final Localization COMMAND_MODEL_CONFIG_INVALID_NAME = new Localization("command.model.config.name.invalid", ChatColor.RED + "Invalid model configuration name: %0%");
     public static final Localization COMMAND_MODEL_CONFIG_INPUT_NAME_EMPTY = new Localization("command.model.config.name.empty", ChatColor.RED + "Input model name is empty!");
     public static final Localization COMMAND_MODEL_CONFIG_INPUT_NAME_INVALID = new Localization("command.model.config.name.invalid", ChatColor.RED + "Input model name '%0%' contains invalid characters!");
+    public static final Localization COMMAND_MODEL_CONFIG_EDIT_EXISTING = new Localization("command.model.config.edit.existing", ChatColor.GREEN + "You are now editing the model configuration '" + ChatColor.YELLOW + "%0%" + ChatColor.GREEN + "'!");
+    public static final Localization COMMAND_MODEL_CONFIG_EDIT_NEW = new Localization("command.model.config.edit.new", ChatColor.GREEN + "You are now editing the " + ChatColor.BLUE + "NEW" + ChatColor.GREEN + " model configuration '" + ChatColor.YELLOW + "%0%" + ChatColor.GREEN + "'!");
 
     public static final Localization COMMAND_TICKET_NOTFOUND = new Localization("command.ticket.notfound", ChatColor.RED + "Ticket with name %0% does not exist");
     public static final Localization COMMAND_TICKET_NOTEDITING = new Localization("command.ticket.notediting",

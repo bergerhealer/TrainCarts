@@ -43,7 +43,7 @@ public class CartAttachmentModel extends CartAttachment {
             final TrainCarts traincarts = TrainCarts.plugin;
 
             tab.addWidget(new MapWidgetText().setText("Current Model:")).setBounds(0, 3, 100, 16);
-            tab.addWidget(new MapWidgetModelStoreSelect(traincarts) {
+            final MapWidgetModelStoreSelect modelSelector = tab.addWidget(new MapWidgetModelStoreSelect(traincarts) {
                 @Override
                 public void onAttached() {
                     setSelectedModel(getModelOf(traincarts, attachment));
@@ -61,7 +61,8 @@ public class CartAttachmentModel extends CartAttachment {
                         }
                     }
                 }
-            }).setBounds(0, 13, 100, 13);
+            });
+            modelSelector.setBounds(0, 13, 100, 13);
 
             // Load button. Allows players to duplicate an existing model, or load one from paste,
             // or copy an attachment tree elsewhere and load it into it here. These things can
@@ -90,6 +91,7 @@ public class CartAttachmentModel extends CartAttachment {
                             // If model doesn't exist yet, create it. Name might be invalid, check for it.
                             try {
                                 traincarts.getSavedAttachmentModels().setConfig(model.getName(), attachmentConfig);
+                                modelSelector.setSelectedModel(model); // Ensure if it was missing, it updates
                             } catch (IllegalNameException e) {
                                 Localization.COMMAND_MODEL_CONFIG_INVALID_NAME.message(display.getOwners().get(0), model.getName());
                             }
@@ -112,8 +114,18 @@ public class CartAttachmentModel extends CartAttachment {
                     if (model == null) {
                         setEnabled(false);
                     } else if (checkPerm(model)) {
+                        boolean isNewModel = model.isNone();
+
                         // This will probably close the current session / remove this menu
-                        traincarts.getPlayer(display.getOwners().get(0)).editModel(model);
+                        Player player = display.getOwners().get(0);
+                        traincarts.getPlayer(player).editModel(model);
+
+                        // Inform the player as well
+                        if (isNewModel) {
+                            Localization.COMMAND_MODEL_CONFIG_EDIT_NEW.message(player, model.getName());
+                        } else {
+                            Localization.COMMAND_MODEL_CONFIG_EDIT_EXISTING.message(player, model.getName());
+                        }
                     }
                 }
             }).setText("Edit").setBounds(51, 30, 49, 14);

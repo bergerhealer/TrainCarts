@@ -459,12 +459,9 @@ public class ModelStoreCommands {
 
         player.editModel(savedModel);
         if (isNewModel) {
-            player.sendMessage(ChatColor.GREEN + "You are now editing the " + ChatColor.BLUE +
-                    "NEW " + ChatColor.GREEN + " model configuration '" +
-                    ChatColor.YELLOW + savedModel.getName() + ChatColor.GREEN + "'!");
+            Localization.COMMAND_MODEL_CONFIG_EDIT_NEW.message(player, savedModel.getName());
         } else {
-            player.sendMessage(ChatColor.GREEN + "You are now editing the model configuration '" +
-                    ChatColor.YELLOW + savedModel.getName() + ChatColor.GREEN + "'!");
+            Localization.COMMAND_MODEL_CONFIG_EDIT_EXISTING.message(player, savedModel.getName());
         }
     }
 
