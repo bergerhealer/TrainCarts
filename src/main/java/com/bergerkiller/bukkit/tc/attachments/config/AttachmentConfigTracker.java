@@ -272,8 +272,8 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
 
             // Update the configuration for this attachment itself
             TrackedAttachmentConfig attachment = findAttachment(attachmentPath);
-            if (attachment != null && !attachment.loadNeeded) {
-                attachment.loadNeeded = true;
+            if (attachment != null && !attachment.configChanged) {
+                attachment.configChanged = true;
                 attachment.markChanged();
             }
         }
@@ -381,7 +381,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         private final String typeId;
         private int childIndex;
         private boolean changed;
-        private boolean loadNeeded;
+        private boolean configChanged;
         private boolean childrenRefreshNeeded;
         private boolean removed;
 
@@ -393,7 +393,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
             this.typeId = typeId;
             this.childIndex = childIndex;
             this.changed = false;
-            this.loadNeeded = false;
+            this.configChanged = false;
             this.childrenRefreshNeeded = false;
             this.removed = true;
 
@@ -554,8 +554,8 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
 
             if (changed) {
                 changed = false;
-                if (loadNeeded) {
-                    loadNeeded = false;
+                if (configChanged) {
+                    configChanged = false;
                     if (handleLoad()) {
                         addChange(ChangeType.CHANGED, this);
                     } else {
