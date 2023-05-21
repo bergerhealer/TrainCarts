@@ -3,11 +3,13 @@ package com.bergerkiller.bukkit.tc.attachments.config;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentItem;
 import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.properties.SavedClaim;
+import com.bergerkiller.bukkit.tc.utils.SetCallbackCollector;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.BasicModularConfiguration;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.ModularConfigurationEntry;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.ModularConfigurationFile;
@@ -434,6 +436,105 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
      */
     public List<SavedAttachmentModel> getAll() {
         return this.container.getAllValues();
+    }
+
+    /**
+     * Parses the contents of an attachment configuration tree and discovers all the saved attachment
+     * models used inside, recursively. This includes models referenced that don't exist in this
+     * store, so make sure to check {@link SavedAttachmentModel#isNone()}.
+     *
+     * @param attachmentConfig Attachment Configuration to navigate
+     * @param models Collector for the set containing all the saved attachment models
+     */
+    public void findModelsUsedInConfiguration(AttachmentConfig attachmentConfig, SetCallbackCollector<SavedAttachmentModel> models) {
+        if (attachmentConfig instanceof AttachmentConfig.Model) {
+            String name = ((AttachmentConfig.Model) attachmentConfig).modelName();
+            SavedAttachmentModel model = getModelOrNone(name);
+            if (models.acceptCheckAdded(model) && !model.isNone()) {
+                findModelsUsedInConfiguration(model.getRoot().get(), models);
+            }
+        }
+
+        for (AttachmentConfig child : attachmentConfig.children()) {
+            findModelsUsedInConfiguration(child, models);
+        }
+    }
+
+    /**
+     * Parses the contents of an attachment configuration tree and discovers all the saved attachment
+     * models used inside, recursively. This includes models referenced that don't exist in this
+     * store, so make sure to check {@link SavedAttachmentModel#isNone()}.
+     *
+     * @param attachmentConfig Attachment YAML Configuration to parse
+     * @param models Collector for the set containing all the saved attachment models
+     */
+    public void findModelsUsedInConfiguration(ConfigurationNode attachmentConfig, SetCallbackCollector<SavedAttachmentModel> models) {
+        if (AttachmentType.MODEL_TYPE_ID.equals(attachmentConfig.getOrDefault("type", "EMPTY"))) {
+            String modelName = attachmentConfig.getOrDefault(AttachmentConfig.Model.MODEL_NAME_CONFIG_KEY, "");
+            if (!modelName.isEmpty()) {
+                SavedAttachmentModel model = traincarts.getSavedAttachmentModels().getModelOrNone(modelName);
+                if (models.acceptCheckAdded(model) && !model.isNone()) {
+                    findModelsUsedInConfiguration(model.getRoot().get(), models);
+                }
+            }
+        }
+
+        for (ConfigurationNode child : attachmentConfig.getNodeList("attachments")) {
+            findModelsUsedInConfiguration(child, models);
+        }
+    }
+
+    /**
+     * Interfaces that declares a particular object possesses information about the
+     * saved attachment models it uses. Must have access to the {@link SavedAttachmentModelStore}.
+     */
+    public interface ModelUsing {
+
+        /**
+         * Looks up all the saved attachment models that are used in the model configuration, recursively.
+         * If any, then exports all those configuration as plain YAML, keyed to the model name.
+         * If no saved attachment models are used, or none of them exist, returns <i>null</i>
+         *
+         * @return Exported "usedModels" configuration, or <i>null</i> if none exist or are used
+         */
+        default ConfigurationNode getUsedModelsAsExport() {
+            Set<SavedAttachmentModel> models = getUsedModels();
+            if (!models.isEmpty()) {
+                ConfigurationNode result = new ConfigurationNode();
+                for (SavedAttachmentModel model : models) {
+                    if (!model.isNone()) {
+                        result.set(model.getName(), model.getConfig().clone());
+                    }
+                }
+                if (!result.isEmpty()) {
+                    return result;
+                }
+            }
+
+            return null;
+        }
+
+        /**
+         * Looks up all the saved attachment models that are used in the model configuration, recursively.
+         * Includes models referenced by name that don't exist in the model store, which should be checked
+         * with {@link SavedAttachmentModel#isNone()}.
+         *
+         * @return Set of unique saved attachment models, including ones that don't yet exist
+         */
+        default Set<SavedAttachmentModel> getUsedModels() {
+            SetCallbackCollector<SavedAttachmentModel> models = new SetCallbackCollector<>();
+            getUsedModels(models);
+            return models.result();
+        }
+
+        /**
+         * Looks up all the saved attachment models that are used in the model configuration, recursively.
+         * Includes models referenced by name that don't exist in the model store, which should be checked
+         * with {@link SavedAttachmentModel#isNone()}.
+         *
+         * @param collector Collector that is filled up with the results
+         */
+        void getUsedModels(SetCallbackCollector<SavedAttachmentModel> collector);
     }
 
     /**

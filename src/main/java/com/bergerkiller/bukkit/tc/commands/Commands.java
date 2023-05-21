@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModel;
 import com.bergerkiller.bukkit.tc.chest.TrainChestCommands;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresMultiplePermissions;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
@@ -36,6 +37,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
 import com.bergerkiller.bukkit.tc.debug.DebugCommands;
+import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.exception.command.CommandOnlyForPlayersException;
 import com.bergerkiller.bukkit.tc.exception.command.InvalidClaimPlayerNameException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForAnyPropertiesException;
@@ -515,6 +517,74 @@ public class Commands {
                 callback.accept(config);
             }
         });
+    }
+
+    /**
+     * If a previously imported train configuration includes used models, imports those models as well.
+     * Tells the Player these were imported. The input configuration is modified to remove the
+     * "usedModels" field after processing.
+     *
+     * @param plugin TrainCarts plugin instance
+     * @param sender Command Sender to send a message to when problems occur
+     * @param savedTrainConfig Previously imported train configuration
+     * @param doImport Whether to actually do the importing of models (true), or to warn that these
+     *                 models were not imported and can be with a flag (false)
+     * @param force Whether to force importing models when the sender does not have a claim, but
+     *              does have global permission to modify it
+     * @see #importTrain(TrainCarts, CommandSender, String, Consumer) 
+     */
+    public static void importTrainUsedModels(
+            final TrainCarts plugin,
+            final CommandSender sender,
+            final ConfigurationNode savedTrainConfig,
+            final boolean doImport,
+            final boolean force
+    ) {
+        ConfigurationNode usedModels = savedTrainConfig.getNodeIfExists("usedModels");
+        if (usedModels != null) {
+            usedModels.remove();
+        } else {
+            return;
+        }
+
+        // If not actually importing, only show the models that it wants to import
+        if (!doImport) {
+            String message = usedModels.getKeys().stream()
+                    .map(name -> (plugin.getSavedAttachmentModels().containsModel(name)
+                                ? ChatColor.GREEN : ChatColor.RED) + name)
+                    .collect(Collectors.joining(ChatColor.YELLOW + ", "));
+            Localization.COMMAND_IMPORT_MISSING_MODELS.message(sender, message);
+            return;
+        }
+
+        if (!Permission.COMMAND_MODEL_CONFIG_LIST.has(sender)) {
+            sender.sendMessage(ChatColor.RED + "You do not have permission to read or write model configurations");
+            return;
+        }
+
+        boolean checkPerms = !force || !Permission.COMMAND_MODEL_CONFIG_GLOBAL.has(sender);
+        boolean warnedAboutForce = false;
+        List<String> imported = new ArrayList<>();
+        for (String key : usedModels.getKeys()) {
+            SavedAttachmentModel model = plugin.getSavedAttachmentModels().getModel(key);
+            if (model != null && checkPerms && !model.hasPermission(sender)) {
+                if (force && !warnedAboutForce) {
+                    Localization.COMMAND_MODEL_CONFIG_GLOBAL_NOPERM.message(sender);
+                    warnedAboutForce = true;
+                }
+                Localization.COMMAND_MODEL_CONFIG_FORCE.message(sender, key);
+                continue;
+            }
+            try {
+                plugin.getSavedAttachmentModels().setConfig(key, usedModels.getNode(key));
+                imported.add(key);
+            } catch (IllegalNameException e) {
+                Localization.COMMAND_MODEL_CONFIG_INVALID_NAME.message(sender, key);
+            }
+        }
+        if (!imported.isEmpty()) {
+            Localization.COMMAND_IMPORT_UPDATED_MODELS.message(sender, String.join(", ", imported));
+        }
     }
 
     /**

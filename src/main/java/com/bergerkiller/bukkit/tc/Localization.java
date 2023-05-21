@@ -11,7 +11,6 @@ import java.util.HashSet;
 
 import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
 import org.bukkit.ChatColor;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 public class Localization extends LocalizationEnum {
@@ -24,6 +23,10 @@ public class Localization extends LocalizationEnum {
     public static final Localization COMMAND_SAVEDTRAIN_FORCE = new Localization("command.savedtrain.force", ChatColor.RED + "Saved train with name %0% is claimed by someone else, you can access it anyway with --force");
     public static final Localization COMMAND_SAVEDTRAIN_CLAIM_INVALID = new Localization("command.savedtrain.claim.invalid", ChatColor.RED + "Invalid player name specified: %0%");
     public static final Localization COMMAND_SAVEDTRAIN_INVALID_NAME = new Localization("command.savedtrain.name.invalid", ChatColor.RED + "Invalid train name: %0%");
+
+    public static final Localization COMMAND_IMPORT_MISSING_MODELS = new Localization("command.import.models.missing", ChatColor.YELLOW + "The imported train configuration includes model configurations [" +
+            ChatColor.WHITE + "%0%" + ChatColor.YELLOW + "], import them by specifying --import-models");
+    public static final Localization COMMAND_IMPORT_UPDATED_MODELS = new Localization("command.import.models.updated", ChatColor.GREEN + "Imported model configurations: %0%");
 
     public static final Localization COMMAND_MODEL_CONFIG_CLAIMED = new Localization("command.model.config.claimed", ChatColor.RED + "Saved model configuration with name %0% is claimed by someone else, you can not access it!");
     public static final Localization COMMAND_MODEL_CONFIG_GLOBAL_NOPERM = new Localization("command.model.config.global.noperm", ChatColor.RED + "You do not have permission to force access to saved model configurations by others, ask an admin to do this for you.");

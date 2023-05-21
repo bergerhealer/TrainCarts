@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModel;
+import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModelStore;
+import com.bergerkiller.bukkit.tc.utils.SetCallbackCollector;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.tc.attachments.helper.AttachmentUpdateTransformHelper;
@@ -13,7 +16,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 /**
  * Manages the attachments updates of all the carts of a train
  */
-public class AttachmentControllerGroup {
+public class AttachmentControllerGroup implements SavedAttachmentModelStore.ModelUsing {
     public static final int ABSOLUTE_UPDATE_INTERVAL = 200;
     public static final int MOVEMENT_UPDATE_INTERVAL = 3;
     private final MinecartGroup group;
@@ -106,6 +109,13 @@ public class AttachmentControllerGroup {
         members.forEach(RespawnedMember::hide);
         group.getTrainCarts().getTrainUpdateController().syncPositions(Collections.singletonList(group));
         members.forEach(RespawnedMember::show);
+    }
+
+    @Override
+    public void getUsedModels(SetCallbackCollector<SavedAttachmentModel> collector) {
+        for (MinecartMember<?> member : group) {
+            member.getAttachments().getUsedModels(collector);
+        }
     }
 
     private static class RespawnedMember {

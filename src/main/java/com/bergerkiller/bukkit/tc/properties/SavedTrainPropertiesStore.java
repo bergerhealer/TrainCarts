@@ -489,7 +489,7 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
 
         @Override
         protected SavedTrainProperties decodeConfig(ModularConfigurationEntry<SavedTrainProperties> entry) {
-            return new SavedTrainProperties(entry);
+            return new SavedTrainProperties(traincarts, entry);
         }
 
         private void renameTrainsBeginningWithDigits(ConfigurationNode savedTrainsConfig) {

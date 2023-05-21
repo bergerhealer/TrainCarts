@@ -178,9 +178,7 @@ public class TrainCommands {
     ) {
         final String name = group.getProperties().getTrainName();
 
-        ConfigurationNode exportedConfig = group.saveConfig();
-        exportedConfig.remove("claims");
-        Commands.exportTrain(sender, name, exportedConfig);
+        Commands.exportTrain(sender, name, group.exportConfig());
     }
 
     @CommandTargetTrain

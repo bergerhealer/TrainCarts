@@ -24,18 +24,38 @@ public class SetCallbackCollector<T> implements Consumer<T> {
 
     @Override
     public void accept(T t) {
+        acceptCheckAdded(t);
+    }
+
+    /**
+     * Same as {@link #accept(Object)} but returns whether the object was added to the Set
+     *
+     * @param t Object to add
+     * @return True if the object was unique and added
+     */
+    public boolean acceptCheckAdded(T t) {
         Set<T> buffer = this.buffer;
         int size = buffer.size();
         if (size == 0) {
             this.result = this.buffer = Collections.singleton(t);
+            return true;
         } else if (size == 1) {
-            HashSet<T> newSet = new HashSet<>(16);
-            newSet.addAll(buffer);
-            newSet.add(t);
-            this.buffer = newSet;
-            this.result = Collections.unmodifiableSet(newSet);
+            // If buffer is not yet a HashSet, make it one so it can be added to
+            if (!(buffer instanceof HashSet)) {
+                HashSet<T> newSet = new HashSet<>(16);
+                newSet.addAll(buffer);
+                this.buffer = buffer = newSet;
+            }
+
+            // Try adding, once added make it also the result (as opposed to singleton)
+            if (buffer.add(t)) {
+                this.result = Collections.unmodifiableSet(buffer);
+                return true;
+            } else {
+                return false;
+            }
         } else {
-            buffer.add(t);
+            return buffer.add(t);
         }
     }
 }

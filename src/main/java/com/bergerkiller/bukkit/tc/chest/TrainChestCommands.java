@@ -181,11 +181,16 @@ public class TrainChestCommands {
     private void commandImportChestItem(
             final Player player,
             final TrainCarts plugin,
-            final @Argument("url") String url
+            final @Argument("url") String url,
+            final @Flag("force") boolean force,
+            final @Flag("import-models") boolean importModels
     ) {
         final ItemStack item_when_started = HumanHand.getItemInMainHand(player);
 
         Commands.importTrain(plugin, player, url, config -> {
+            // If used models are declared, import those as well
+            Commands.importTrainUsedModels(plugin, player, config, importModels, force);
+
             if (TrainChestItemUtil.isItem(item_when_started)) {
                 // Store into the item held while doing the command
                 TrainChestItemUtil.store(item_when_started, config);

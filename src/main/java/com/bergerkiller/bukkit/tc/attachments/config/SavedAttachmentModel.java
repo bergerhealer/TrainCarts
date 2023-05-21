@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.config;
 
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.properties.SavedClaim;
+import com.bergerkiller.bukkit.tc.utils.SetCallbackCollector;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.ModularConfigurationEntry;
 import org.bukkit.command.CommandSender;
 
@@ -15,7 +16,7 @@ import java.util.Set;
  * throws when reading the configuration, which should be checked with
  * {@link #isNone()}.
  */
-public class SavedAttachmentModel extends AttachmentModel {
+public class SavedAttachmentModel extends AttachmentModel implements SavedAttachmentModelStore.ModelUsing {
     private final ModularConfigurationEntry<SavedAttachmentModel> entry;
 
     SavedAttachmentModel(ModularConfigurationEntry<SavedAttachmentModel> entry) {
@@ -102,6 +103,13 @@ public class SavedAttachmentModel extends AttachmentModel {
      */
     public boolean hasPermission(CommandSender sender) {
         return entry.isRemoved() || SavedClaim.hasPermission(entry.getConfig(), sender);
+    }
+
+    @Override
+    public void getUsedModels(SetCallbackCollector<SavedAttachmentModel> collector) {
+        if (!isNone()) {
+            super.getUsedModels(collector);
+        }
     }
 
     @Override

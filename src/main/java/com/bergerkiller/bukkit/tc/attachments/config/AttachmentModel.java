@@ -5,6 +5,7 @@ import java.util.function.Supplier;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.properties.standard.type.AttachmentModelBoundToCart;
+import com.bergerkiller.bukkit.tc.utils.SetCallbackCollector;
 import org.bukkit.entity.EntityType;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -16,9 +17,10 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
  * The configuration and properties of a single Cart attachment model.
  * Everything configurable in the attachment editor is described here.
  */
-public class AttachmentModel {
+public class AttachmentModel implements SavedAttachmentModelStore.ModelUsing {
     private final AttachmentTypeRegistry registry;
     private final AttachmentConfigTracker tracker;
+    private final SavedAttachmentModelStore modelStore;
     private AttachmentModelMeta _meta;
 
     public AttachmentModel(ConfigurationNode config) {
@@ -28,6 +30,7 @@ public class AttachmentModel {
     public AttachmentModel(Supplier<ConfigurationNode> configSupplier) {
         this.registry = AttachmentTypeRegistry.instance();
         this.tracker = new AttachmentConfigTracker(configSupplier, TrainCarts.plugin);
+        this.modelStore = TrainCarts.plugin.getSavedAttachmentModels();
         this._meta = new AttachmentModelMeta();
     }
 
@@ -214,6 +217,11 @@ public class AttachmentModel {
     @Deprecated
     public void updateNode(int[] targetPath, ConfigurationNode newConfig, boolean notify) {
         updateNode(targetPath, newConfig);
+    }
+
+    @Override
+    public void getUsedModels(SetCallbackCollector<SavedAttachmentModel> collector) {
+        modelStore.findModelsUsedInConfiguration(getRoot().get(), collector);
     }
 
     private AttachmentModelMeta calcMeta() {

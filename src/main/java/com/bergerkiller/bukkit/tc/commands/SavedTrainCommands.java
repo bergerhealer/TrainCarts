@@ -220,9 +220,7 @@ public class SavedTrainCommands {
             final CommandSender sender,
             final @Argument("savedtrainname") SavedTrainProperties savedTrain
     ) {
-        ConfigurationNode exportedConfig = savedTrain.getConfig().clone();
-        exportedConfig.remove("claims");
-        Commands.exportTrain(sender, savedTrain.getName(), exportedConfig);
+        Commands.exportTrain(sender, savedTrain.getName(), savedTrain.getExportedConfig());
     }
 
     @CommandMethod("savedtrain <savedtrainname> rename|changename|move <newsavedtrainname>")
@@ -444,9 +442,13 @@ public class SavedTrainCommands {
             final TrainCarts plugin,
             final @SavedTrainRequiresAccess @SavedTrainImplicitlyCreated @Argument(value="savedtrainname") SavedTrainProperties savedTrain,
             final @Argument(value="url", description="The URL to a Hastebin-hosted paste to download from") String url,
-            final @Flag("force") boolean force
+            final @Flag("force") boolean force,
+            final @Flag("import-models") boolean importModels
     ) {
         Commands.importTrain(plugin, sender, url, config -> {
+            // If used models are declared, import those as well
+            Commands.importTrainUsedModels(plugin, sender, config, importModels, force);
+
             // Retrieve previous train properties
             boolean isNewTrain = savedTrain.isEmpty();
 

@@ -135,6 +135,20 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     }
 
     /**
+     * Same as {@link #saveConfig()} but excludes ownership (claim) information and includes
+     * information about used models. This method is used when executing the
+     * /train export command.
+     *
+     * @return configuration useful for exporting off-server
+     */
+    public ConfigurationNode exportConfig() {
+        ConfigurationNode exportedConfig = saveConfig();
+        exportedConfig.remove("claims");
+        exportedConfig.set("usedModels", getAttachments().getUsedModelsAsExport());
+        return exportedConfig;
+    }
+
+    /**
      * Saves the properties of this train, preserving information such the order of the carts
      * and the orientation of each cart. Owner information is stripped.<br>
      * <br>
@@ -151,7 +165,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
     /**
      * Saves the properties of this train, preserving information such the order of the carts
-     * and the orientation of each cart. Owner information is stripped.<br>
+     * and the orientation of each cart.<br>
      * <br>
      * A save lock mode can be set. This will make the train remember the flipped state of the
      * carts when saving, so that future saves will remember the orientation the train had.

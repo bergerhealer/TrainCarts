@@ -6,6 +6,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModel;
+import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModelStore;
+import com.bergerkiller.bukkit.tc.utils.SetCallbackCollector;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.ModularConfigurationEntry;
 import org.bukkit.command.CommandSender;
 
@@ -19,11 +23,18 @@ import com.bergerkiller.bukkit.tc.properties.standard.type.CartLockOrientation;
 /**
  * Wraps a saved train configuration
  */
-public class SavedTrainProperties {
+public class SavedTrainProperties implements TrainCarts.Provider, SavedAttachmentModelStore.ModelUsing {
+    private final TrainCarts traincarts;
     private final ModularConfigurationEntry<SavedTrainProperties> entry;
 
-    SavedTrainProperties(ModularConfigurationEntry<SavedTrainProperties> entry) {
+    SavedTrainProperties(TrainCarts traincarts, ModularConfigurationEntry<SavedTrainProperties> entry) {
+        this.traincarts = traincarts;
         this.entry = entry;
+    }
+
+    @Override
+    public TrainCarts getTrainCarts() {
+        return traincarts;
     }
 
     public SavedTrainPropertiesStore getModule() {
@@ -51,6 +62,30 @@ public class SavedTrainProperties {
 
     public ConfigurationNode getConfig() {
         return entry.getConfig();
+    }
+
+    /**
+     * Gets the full configuration of this saved train, similar to {@link #getConfig()}.
+     * Omits personalized information like player claims, and includes information about used
+     * saved attachment models.
+     *
+     * @return Train configuration as exported through /savedtrain [name] export
+     */
+    public ConfigurationNode getExportedConfig() {
+        ConfigurationNode exportedConfig = getConfig().clone();
+        exportedConfig.remove("claims");
+        exportedConfig.set("usedModels", getUsedModelsAsExport());
+        return exportedConfig;
+    }
+
+    @Override
+    public void getUsedModels(SetCallbackCollector<SavedAttachmentModel> collector) {
+        for (ConfigurationNode cart : getCarts()) {
+            ConfigurationNode modelConfig = cart.getNodeIfExists("model");
+            if (modelConfig != null) {
+                traincarts.getSavedAttachmentModels().findModelsUsedInConfiguration(modelConfig, collector);
+            }
+        }
     }
 
     /**

@@ -20,6 +20,8 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigListener;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigModelTracker;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigTracker;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModel;
+import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModelStore;
+import com.bergerkiller.bukkit.tc.utils.SetCallbackCollector;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -60,7 +62,7 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
  * into attachment controllers. It automatically updates the
  * controllers when this configuration changes.
  */
-public class AttachmentControllerMember implements AttachmentConfigListener, AttachmentManager {
+public class AttachmentControllerMember implements AttachmentConfigListener, AttachmentManager, SavedAttachmentModelStore.ModelUsing {
     private final MinecartMember<?> member;
     private final TrainCarts plugin;
     private AttachmentModel model; // Never changes!
@@ -1030,6 +1032,13 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
             //TODO!
         }
         this.previousSeatPositions.clear();
+    }
+
+    @Override
+    public void getUsedModels(SetCallbackCollector<SavedAttachmentModel> collector) {
+        if (model != null) {
+            model.getUsedModels(collector);
+        }
     }
 
     // Information stored when a player interacts with a seat trying to enter it
