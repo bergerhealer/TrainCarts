@@ -558,6 +558,13 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
                     configChanged = false;
                     if (handleLoad()) {
                         addChange(ChangeType.CHANGED, this);
+
+                        // If this attachment had attachments, but now the 'attachments' field is gone,
+                        // OR the attachment had no attachments but now the 'attachments' field exists,
+                        // refresh children as well. This covers a missing YAML change notification.
+                        if (!childrenRefreshNeeded && this.children.isEmpty() == config.contains("attachments")) {
+                            childrenRefreshNeeded = true;
+                        }
                     } else {
                         this.swap(createNewConfig(this.parent, rootPath, this.config, this.childIndex));
                     }

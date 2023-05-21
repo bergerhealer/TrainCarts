@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.config.yaml.YamlChangeListener;
 import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
@@ -53,6 +52,120 @@ public class AttachmentConfigTrackerTest {
         tracker.assertAdded("EMPTY").assertEmptyConfig();
         tracker.assertSynchronized("EMPTY");
         tracker.assertNone();
+    }
+
+    @Test
+    public void testFullAttachmentChildrenSwap() {
+        final ConfigurationNode configA;
+        {
+            configA = createAttachment("EMPTY");
+            addAttachment(configA, "SEAT");
+            ConfigurationNode mid = addAttachment(configA, "ITEM");
+            mid.set("itemstack", "miditem");
+            addAttachment(mid, "ITEM").set("itemstack", "item1");
+            addAttachment(mid, "ITEM").set("itemstack", "item2");
+            addAttachment(mid, "ITEM").set("itemstack", "item3");
+        }
+
+        final ConfigurationNode configB;
+        {
+            configB = createAttachment("EMPTY");
+            addAttachment(configB, "ITEM").set("itemstack", "item4");
+            addAttachment(configB, "ITEM").set("itemstack", "item5");
+            addAttachment(configB, "ITEM").set("itemstack", "item6");
+        }
+
+        ConfigurationNode root = configA.clone();
+
+        TestTracker tracker = new TestTracker(new AttachmentConfigTracker(root));
+
+        tracker.start().assertPath().assertTypeId("EMPTY")
+                .assertChild("SEAT", a2 -> a2.assertNoMoreChildren())
+                .assertChild("ITEM", a2 -> {
+                    a2.assertConfig(cfg -> assertEquals("miditem", cfg.get("itemstack", "")));
+                    a2.assertChild("ITEM", a3 -> {
+                        a3.assertConfig(cfg -> assertEquals("item1", cfg.get("itemstack", "")));
+                        a3.assertNoMoreChildren();
+                    });
+                    a2.assertChild("ITEM", a3 -> {
+                        a3.assertConfig(cfg -> assertEquals("item2", cfg.get("itemstack", "")));
+                        a3.assertNoMoreChildren();
+                    });
+                    a2.assertChild("ITEM", a3 -> {
+                        a3.assertConfig(cfg -> assertEquals("item3", cfg.get("itemstack", "")));
+                        a3.assertNoMoreChildren();
+                    });
+                })
+                .assertNoMoreChildren();
+
+        // Swap out for a completely new configuration with the sqme root EMPTY attachment, but a new
+        // set of child attachments.
+        root.setTo(configB);
+        {
+            tracker.sync();
+
+            // New configuration has one extra ITEM child of the root EMPTY, so that one is added first
+            tracker.assertAdded("ITEM", 2)
+                    .assertConfig(cfg -> assertEquals("item6", cfg.get("itemstack", "")))
+                    .assertNoMoreChildren();
+
+            // It should then see that the first attachment changed type (SEAT -> ITEM), so that one is removed and re-added
+            tracker.assertRemoved("SEAT", 0);
+            tracker.assertAdded("ITEM", 0)
+                    .assertConfig(cfg -> assertEquals("item4", cfg.get("itemstack", "")))
+                    .assertNoMoreChildren();
+
+            // Second item changed itemstack value
+            tracker.assertChanged("ITEM", 1)
+                    .assertConfig(cfg -> assertEquals("item5", cfg.get("itemstack", "")));
+
+            // Second item had 3 children, which are now removed. These removals should happen now.
+            tracker.assertRemoved("ITEM", 1, 0)
+                    .assertNoMoreChildren();
+            tracker.assertRemoved("ITEM", 1, 0)
+                    .assertNoMoreChildren();
+            tracker.assertRemoved("ITEM", 1, 0)
+                    .assertNoMoreChildren();
+
+            // Done
+            tracker.assertSynchronized("EMPTY");
+            tracker.assertNone();
+        }
+
+        // Switch back to the previous configuration, which should re-add the three child attachments
+        root.setTo(configA);
+        {
+            tracker.sync();
+
+            // Older configuration has one less child attachment, so the third one is now removed
+            tracker.assertRemoved("ITEM", 2)
+                    .assertConfig(cfg -> assertEquals("item6", cfg.get("itemstack", "")))
+                    .assertNoMoreChildren();
+
+            // First attachment changed type (ITEM -> SEAT), so is removed and re-added
+            tracker.assertRemoved("ITEM", 0);
+            tracker.assertAdded("SEAT", 0)
+                    .assertNoMoreChildren();
+
+            // Second attachment changed itemstack (now mid item)
+            tracker.assertChanged("ITEM", 1)
+                    .assertConfig(cfg -> assertEquals("miditem", cfg.get("itemstack", "")));
+
+            // Now the three items are re-added
+            tracker.assertAdded("ITEM", 1, 0)
+                    .assertConfig(cfg -> assertEquals("item1", cfg.get("itemstack", "")))
+                    .assertNoMoreChildren();
+            tracker.assertAdded("ITEM", 1, 1)
+                    .assertConfig(cfg -> assertEquals("item2", cfg.get("itemstack", "")))
+                    .assertNoMoreChildren();
+            tracker.assertAdded("ITEM", 1, 2)
+                    .assertConfig(cfg -> assertEquals("item3", cfg.get("itemstack", "")))
+                    .assertNoMoreChildren();
+
+            // Done
+            tracker.assertSynchronized("EMPTY");
+            tracker.assertNone();
+        }
     }
 
     @Test
@@ -527,6 +640,11 @@ public class AttachmentConfigTrackerTest {
             child.assertTypeId(typeId);
             child.assertPath(expectedChildPath);
             childAssertions.accept(child);
+            return this;
+        }
+
+        public AttachmentAssertion assertConfig(Consumer<ConfigurationNode> assertFunction) {
+            assertFunction.accept(attachment.config());
             return this;
         }
 
