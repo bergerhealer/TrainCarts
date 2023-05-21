@@ -2,14 +2,13 @@ package com.bergerkiller.bukkit.tc.attachments.ui.menus.general;
 
 import com.bergerkiller.bukkit.common.Hastebin;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
-import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.Localization;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModel;
@@ -33,6 +32,7 @@ import java.util.function.Consumer;
 public abstract class ModelStorageTypeSelectionDialog extends MapWidgetMenu {
     private final boolean load;
     private MapWidgetSubmitText textWidget;
+    private MapWidgetButton modelStoreButton;
     private Consumer<String> textAccept = t -> {};
 
     /**
@@ -100,12 +100,18 @@ public abstract class ModelStorageTypeSelectionDialog extends MapWidgetMenu {
             }
         }.setText("Paste Server").setBounds(5, 38, 90, 12));
 
-        this.addWidget(new MapWidgetButton() {
+        modelStoreButton = this.addWidget(new MapWidgetButton() {
             @Override
             public void onActivate() {
-                useModelStore();
+                if (Permission.COMMAND_MODEL_CONFIG_LIST.has(display.getOwners().get(0))) {
+                    useModelStore();
+                } else {
+                    setEnabled(false);
+                }
             }
-        }.setText("Model Store").setBounds(5, 52, 90, 12));
+        });
+        modelStoreButton.setText("Model Store").setBounds(5, 52, 90, 12);
+        modelStoreButton.setEnabled(Permission.COMMAND_MODEL_CONFIG_LIST.has(display.getOwners().get(0)));
     }
 
     public static abstract class LoadDialog extends ModelStorageTypeSelectionDialog {
