@@ -143,7 +143,8 @@ public abstract class MapWidgetModelStoreSelect extends MapWidget {
             if (selected != null) {
                 view.draw(MapFont.MINECRAFT, 3, 3,
                         selected.isNone() ? MapColorPalette.COLOR_RED
-                                : MapColorPalette.COLOR_BLACK,
+                                : (isFocused() ? MapColorPalette.COLOR_YELLOW
+                                               : MapColorPalette.COLOR_BLACK),
                         selected.getName());
             } else {
                 view.draw(MapFont.MINECRAFT, 3, 3,
