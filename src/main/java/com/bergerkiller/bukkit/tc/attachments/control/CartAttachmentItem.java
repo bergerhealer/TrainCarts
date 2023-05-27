@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.attachments.config.transform.ItemTransformType
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetItemTransformTypeSelector;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSizeBox;
+import com.bergerkiller.bukkit.tc.attachments.ui.item.MapWidgetBrightnessDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -59,6 +60,11 @@ public class CartAttachmentItem extends CartAttachment {
                 public void onAttached() {
                     super.onAttached();
                     this.setSelectedItem(attachment.getConfig().get("item", new ItemStack(Material.PUMPKIN)));
+
+                    {
+                        ItemTransformType type = ItemTransformType.deserialize(attachment.getConfig(), "position.transform");
+                        this.setShowBrightnessButton(type.category() != ItemTransformType.Category.ARMORSTAND);
+                    }
                 }
 
                 @Override
@@ -66,6 +72,35 @@ public class CartAttachmentItem extends CartAttachment {
                     attachment.getConfig().set("item", this.getSelectedItem());
                     sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
                     attachment.resetIcon();
+                }
+
+                @Override
+                public void onBrightnessClicked() {
+                    MapWidgetBrightnessDialog dialog = tab.addWidget(new MapWidgetBrightnessDialog() {
+                        @Override
+                        public void onAttached() {
+                            if (attachment.getConfig().contains("brightness")) {
+                                setBrightness(attachment.getConfig().get("brightness.block", 0),
+                                              attachment.getConfig().get("brightness.sky", 0));
+                            } else {
+                                setBrightness(-1, -1);
+                            }
+                        }
+
+                        @Override
+                        public void onBrightnessChanged() {
+                            if (getSkyLight() == -1 || getBlockLight() == -1) {
+                                attachment.getConfig().remove("brightness");
+                            } else {
+                                ConfigurationNode b_node = attachment.getConfig().getNode("brightness");
+                                b_node.set("block", getBlockLight());
+                                b_node.set("sky", getSkyLight());
+                            }
+                        }
+                    });
+                    dialog.setPosition(13, 3);
+                    dialog.setAttachment(attachment);
+                    dialog.activate();
                 }
             });
         }

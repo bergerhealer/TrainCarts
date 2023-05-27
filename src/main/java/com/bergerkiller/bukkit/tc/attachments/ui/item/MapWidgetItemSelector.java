@@ -108,6 +108,8 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
         }
     };
 
+    private final MapWidgetBlinkyButton brightnessButton;
+
     public MapWidgetItemSelector() {
         // Set the positions/bounds of all the child widgets and set self to its limits
         grid.setDimensions(6, 4);
@@ -158,6 +160,8 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
                         variantList.setItem(item);
                     }
                 };
+                unbreakableOption.setSize(14, 14);
+
                 this.variantList.registerItemChangedListener(new ItemChangedListener() {
                     @Override
                     public void onItemChanged(ItemStack item) {
@@ -171,7 +175,7 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
                         }
                     }
                 }, true);
-                tab.addWidget(unbreakableOption.setPosition(8, 1));
+                tab.addWidget(unbreakableOption.setPosition(8, 2));
             }
 
             { // Name the item
@@ -204,8 +208,9 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
                         nameItemTextBox.activate();
                     }
                 };
+                nameItemButton.setSize(14, 14);
                 nameItemButton.setIcon("attachments/item_named.png");
-                tab.addWidget(nameItemButton.setPosition(25, 1));
+                tab.addWidget(nameItemButton.setPosition(23, 2));
 
                 this.variantList.registerItemChangedListener(new ItemChangedListener() {
                     @Override
@@ -217,6 +222,20 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
                         }
                     }
                 }, true);
+            }
+
+            { // Display Entity Brightness (1.19.4 or later, optional)
+                brightnessButton = new MapWidgetBlinkyButton() {
+                    @Override
+                    public void onClick() {
+                        onBrightnessClicked();
+                    }
+                };
+                brightnessButton.setSize(14, 14);
+                brightnessButton.setIcon("attachments/item_brightness.png");
+                brightnessButton.setVisible(false);
+                brightnessButton.setTooltip("Item Brightness");
+                tab.addWidget(brightnessButton.setPosition(38, 2));
             }
 
             { // Custom Model Data (1.14 or later)
@@ -249,7 +268,7 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
                         variantList.setItem(item);
                     }
                 };
-                selector.setPosition(50, 2);
+                selector.setPosition(54, 2);
                 tab.addWidget(selector);
 
                 this.variantList.registerItemChangedListener(new ItemChangedListener() {
@@ -274,6 +293,15 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
                 onSelectedItemChanged();
             }
         }, false);
+    }
+
+    /**
+     * Sets whether the brightness adjustment button is shown
+     *
+     * @param show Whether it is shown
+     */
+    public void setShowBrightnessButton(boolean show) {
+        brightnessButton.setVisible(show);
     }
 
     /**
@@ -334,4 +362,12 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
     }
 
     public abstract void onSelectedItemChanged();
+
+    /**
+     * Optional: is called when the brightness adjustment button is clicked.
+     * Should open some dialog where the display entity brightness levels can
+     * be adjusted.
+     */
+    public void onBrightnessClicked() {
+    }
 }

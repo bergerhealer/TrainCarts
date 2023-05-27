@@ -21,6 +21,7 @@ public class VirtualHybridItemEntity extends VirtualSpawnableObject {
     private Matrix4x4 transform = null;
     private double clip = 0.0;
     private boolean useMinecartInterpolation = false;
+    private int blockLight = -1, skyLight = -1;
     // Avoids creating a bunch of wasteful matrices all the time
     private final Matrix4x4 tmpArmorstandTransform = Matrix4x4.identity();
     private final Matrix4x4 tmpDisplayTransform = Matrix4x4.identity();
@@ -67,6 +68,14 @@ public class VirtualHybridItemEntity extends VirtualSpawnableObject {
         }
     }
 
+    public void setBrightness(int blockLight, int skyLight) {
+        this.blockLight = blockLight;
+        this.skyLight = skyLight;
+        if (display != null) {
+            display.setBrightness(blockLight, skyLight);
+        }
+    }
+
     @Override
     protected void sendSpawnPackets(AttachmentViewer viewer, Vector motion) {
         if (viewer.supportsDisplayEntities()) {
@@ -79,6 +88,7 @@ public class VirtualHybridItemEntity extends VirtualSpawnableObject {
                 display.setUseMinecartInterpolation(useMinecartInterpolation);
                 display.setClip(clip);
                 display.setScale(transformType.displayScale());
+                display.setBrightness(blockLight, skyLight);
                 display.setItem(transformType.displayMode(), item);
                 display.updatePosition(transformType.transformDisplay(tmpDisplayTransform, transform));
                 display.syncPosition(true);

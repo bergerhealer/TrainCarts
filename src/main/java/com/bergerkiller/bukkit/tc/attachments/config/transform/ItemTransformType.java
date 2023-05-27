@@ -396,6 +396,13 @@ public interface ItemTransformType {
             VirtualDisplayItemEntity itemDisplay = (VirtualDisplayItemEntity) entity;
             itemDisplay.setScale(position.size);
             itemDisplay.setClip(config.getOrDefault("position.clip", 0.0));
+
+            ConfigurationNode brightness = config.getNodeIfExists("brightness");
+            if (brightness != null) {
+                itemDisplay.setBrightness(brightness.get("block", 0), brightness.get("sky", 0));
+            } else {
+                itemDisplay.setBrightness(-1, -1);
+            }
         }
 
         @Override
@@ -481,6 +488,13 @@ public interface ItemTransformType {
 
             VirtualHybridItemEntity hybrid = (VirtualHybridItemEntity) entity;
             hybrid.setClip(config.getOrDefault("position.clip", 0.0));
+
+            ConfigurationNode brightness = config.getNodeIfExists("brightness");
+            if (brightness != null) {
+                hybrid.setBrightness(brightness.get("block", 0), brightness.get("sky", 0));
+            } else {
+                hybrid.setBrightness(-1, -1);
+            }
         }
 
         @Override
