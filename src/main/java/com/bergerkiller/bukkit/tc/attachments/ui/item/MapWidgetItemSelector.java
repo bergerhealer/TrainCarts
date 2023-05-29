@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.ui.item;
 
 import java.util.List;
 
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetVerticalNavigableList;
 import com.bergerkiller.bukkit.tc.attachments.ui.models.ResourcePackModelListing;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -27,31 +28,23 @@ import com.bergerkiller.bukkit.tc.attachments.ui.SetValueTarget;
  */
 public abstract class MapWidgetItemSelector extends MapWidget implements ItemDropTarget, SetValueTarget {
 
-    private final MapWidgetTabView itemOptions = new MapWidgetTabView() {
+    private final MapWidgetVerticalNavigableList itemOptions = new MapWidgetVerticalNavigableList() {
         @Override
-        public void onKeyPressed(MapKeyEvent event) {
+        public boolean shouldInterceptInput(MapKeyEvent event) {
             // Disable this when inside the custom model data selector
             // Sadly there is no clean way to do this
             if (root.getActivatedWidget() instanceof CustomModelDataSelector) {
-                super.onKeyPressed(event);
-                return;
+                return false;
             }
 
-            if (event.getKey() == Key.UP && this.getSelectedIndex() > 0) {
-                display.playSound(SoundEffect.PISTON_EXTEND);
-                this.setSelectedIndex(this.getSelectedIndex()-1);
-                this.getSelectedTab().activate();
-            } else if (event.getKey() == Key.DOWN && this.getSelectedIndex() < (this.getTabCount()-1)) {
-                display.playSound(SoundEffect.PISTON_EXTEND);
-                this.setSelectedIndex(this.getSelectedIndex()+1);
-                this.getSelectedTab().activate();
-            } else if (event.getKey() == Key.DOWN) {
-                display.playSound(SoundEffect.PISTON_CONTRACT);
-                this.setSelectedIndex(0); // loop around first
-                setGridOpened(true);
-            } else {
-                super.onKeyPressed(event);
-            }
+            return true;
+        }
+
+        @Override
+        public void onLastItemDown(MapKeyEvent event) {
+            display.playSound(SoundEffect.PISTON_CONTRACT);
+            this.setSelectedIndex(0); // loop around first
+            setGridOpened(true);
         }
     };
 

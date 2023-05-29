@@ -1,9 +1,8 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.item;
 
-import com.bergerkiller.bukkit.common.map.MapColorPalette;
-import com.bergerkiller.bukkit.common.map.MapFont;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
-import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 
@@ -100,4 +99,36 @@ public abstract class MapWidgetBrightnessDialog extends MapWidgetMenu {
      * Called after the brightness configuration is changed
      */
     public abstract void onBrightnessChanged();
+
+    /**
+     * Handles the configuration of an attachment, storing the configured brightness
+     * in a 'brightness' configuration field.
+     */
+    public static class AttachmentBrightnessDialog extends MapWidgetBrightnessDialog {
+
+        public AttachmentBrightnessDialog(MapWidgetAttachmentNode attachment) {
+            this.setAttachment(attachment);
+        }
+
+        @Override
+        public void onAttached() {
+            if (attachment.getConfig().contains("brightness")) {
+                setBrightness(attachment.getConfig().get("brightness.block", 0),
+                              attachment.getConfig().get("brightness.sky", 0));
+            } else {
+                setBrightness(-1, -1);
+            }
+        }
+
+        @Override
+        public void onBrightnessChanged() {
+            if (getSkyLight() == -1 || getBlockLight() == -1) {
+                attachment.getConfig().remove("brightness");
+            } else {
+                ConfigurationNode b_node = attachment.getConfig().getNode("brightness");
+                b_node.set("block", getBlockLight());
+                b_node.set("sky", getSkyLight());
+            }
+        }
+    }
 }

@@ -16,13 +16,13 @@ import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.block.BlockDataTextureCache;
 import com.bergerkiller.bukkit.tc.attachments.ui.block.MapWidgetBlockDataSelector;
+import com.bergerkiller.bukkit.tc.attachments.ui.item.MapWidgetBrightnessDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 /**
- * Shows a Block display entity, or multiple blocks using a WorldEdit schematic
- * as a source.
+ * Shows a Block display entity
  */
 public class CartAttachmentBlock extends CartAttachment {
     public static final AttachmentType TYPE = new AttachmentType() {
@@ -61,7 +61,7 @@ public class CartAttachmentBlock extends CartAttachment {
 
         @Override
         public void createAppearanceTab(MapWidgetTabView.Tab tab, MapWidgetAttachmentNode attachment) {
-            tab.addWidget(new MapWidgetBlockDataSelector() {
+            MapWidgetBlockDataSelector selector = new MapWidgetBlockDataSelector() {
                 @Override
                 public void onAttached() {
                     this.setSelectedBlockData(deserializeBlockData(attachment.getConfig()));
@@ -73,7 +73,16 @@ public class CartAttachmentBlock extends CartAttachment {
                     sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
                     attachment.resetIcon();
                 }
-            });
+
+                @Override
+                public void onBrightnessClicked() {
+                    tab.addWidget(new MapWidgetBrightnessDialog.AttachmentBrightnessDialog(attachment))
+                            .setPosition(13, 3)
+                            .activate();
+                }
+            };
+            selector.showBrightnessButton();
+            tab.addWidget(selector);
         }
 
         @Override
@@ -101,6 +110,12 @@ public class CartAttachmentBlock extends CartAttachment {
     public void onLoad(ConfigurationNode config) {
         entity.setBlockData(deserializeBlockData(config));
         entity.setScale(getConfiguredPosition().size);
+        if (config.isNode("brightness")) {
+            entity.setBrightness(config.get("brightness.block", 0),
+                                 config.get("brightness.sky", 0));
+        } else {
+            entity.setBrightness(-1, -1);
+        }
     }
 
     @Override

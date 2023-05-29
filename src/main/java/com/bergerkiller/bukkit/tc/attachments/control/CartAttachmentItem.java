@@ -76,31 +76,9 @@ public class CartAttachmentItem extends CartAttachment {
 
                 @Override
                 public void onBrightnessClicked() {
-                    MapWidgetBrightnessDialog dialog = tab.addWidget(new MapWidgetBrightnessDialog() {
-                        @Override
-                        public void onAttached() {
-                            if (attachment.getConfig().contains("brightness")) {
-                                setBrightness(attachment.getConfig().get("brightness.block", 0),
-                                              attachment.getConfig().get("brightness.sky", 0));
-                            } else {
-                                setBrightness(-1, -1);
-                            }
-                        }
-
-                        @Override
-                        public void onBrightnessChanged() {
-                            if (getSkyLight() == -1 || getBlockLight() == -1) {
-                                attachment.getConfig().remove("brightness");
-                            } else {
-                                ConfigurationNode b_node = attachment.getConfig().getNode("brightness");
-                                b_node.set("block", getBlockLight());
-                                b_node.set("sky", getSkyLight());
-                            }
-                        }
-                    });
-                    dialog.setPosition(13, 3);
-                    dialog.setAttachment(attachment);
-                    dialog.activate();
+                    tab.addWidget(new MapWidgetBrightnessDialog.AttachmentBrightnessDialog(attachment))
+                            .setPosition(13, 3)
+                            .activate();
                 }
             });
         }
