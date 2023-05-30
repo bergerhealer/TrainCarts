@@ -535,7 +535,7 @@ public class TCConfig {
             itemshort.set("boots", MaterialUtil.ISBOOTS.toString());
         }
         if (!itemshort.contains("leggings")) {
-            itemshort.set("leggins", MaterialUtil.ISLEGGINGS.toString());
+            itemshort.set("leggings", MaterialUtil.ISLEGGINGS.toString());
         }
         if (!itemshort.contains("chestplate")) {
             itemshort.set("chestplate", MaterialUtil.ISCHESTPLATE.toString());
