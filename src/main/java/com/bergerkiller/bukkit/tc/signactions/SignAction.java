@@ -394,8 +394,22 @@ public abstract class SignAction {
         try {
             action.execute(info);
         } catch (Throwable t) {
+            String signInfo;
+            if (info.getTrackedSign().isRealSign()) {
+                Block signBlock = info.getBlock();
+                signInfo = signBlock.getWorld().getName() + " x=" + signBlock.getX() +
+                        " y=" + signBlock.getY() + " z=" + signBlock.getZ();
+            } else if (info.hasRails()) {
+                Block railBlock = info.getRails();
+                signInfo = info.getTrackedSign().getClass().getSimpleName() + " rail " +
+                        railBlock.getWorld().getName() + " x=" + railBlock.getX() +
+                        " y=" + railBlock.getY() + " z=" + railBlock.getZ();
+            } else {
+                signInfo = info.getTrackedSign().getClass().getSimpleName() + " key " +
+                        info.getTrackedSign().getUniqueKey();
+            }
             info.getTrainCarts().getLogger().log(Level.SEVERE, "Failed to execute " + info.getAction().toString() +
-                    " for " + action.getClass().getSimpleName() + ":", CommonUtil.filterStackTrace(t));
+                    " for " + action.getClass().getSimpleName() + " at {" + signInfo + "}:", CommonUtil.filterStackTrace(t));
         }
     }
 
