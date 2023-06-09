@@ -1,7 +1,8 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.item;
 
-import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
+import com.bergerkiller.bukkit.common.wrappers.Brightness;
+import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayEntity;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
@@ -56,11 +57,10 @@ public abstract class MapWidgetBrightnessDialog extends MapWidgetMenu {
     /**
      * Sets the initial brightness shown in the dialog
      *
-     * @param blockLight Block Light. -1 for automatic/natural
-     * @param skyLight Sky Light. -1 for automatic/natural
+     * @param brightness Block and Sky Light. Brightness.UNSET for automatic/natural.
      */
-    public void setBrightness(int blockLight, int skyLight) {
-        if (blockLight == -1 || skyLight == -1) {
+    public void setBrightness(Brightness brightness) {
+        if (brightness == Brightness.UNSET) {
             if (!this.disabled) {
                 updateDisabled(true);
                 this.blockLight.setInitialValue(0);
@@ -68,8 +68,8 @@ public abstract class MapWidgetBrightnessDialog extends MapWidgetMenu {
             }
         } else {
             updateDisabled(false);
-            this.blockLight.setInitialValue(blockLight);
-            this.skyLight.setInitialValue(skyLight);
+            this.blockLight.setInitialValue(brightness.blockLight());
+            this.skyLight.setInitialValue(brightness.skyLight());
         }
     }
 
@@ -95,6 +95,11 @@ public abstract class MapWidgetBrightnessDialog extends MapWidgetMenu {
         return disabled ? -1 : (int) skyLight.getValue();
     }
 
+    public Brightness getBrightness() {
+        return disabled ? Brightness.UNSET : Brightness.blockAndSkyLight(
+                (int) blockLight.getValue(), (int) skyLight.getValue());
+    }
+
     /**
      * Called after the brightness configuration is changed
      */
@@ -112,23 +117,12 @@ public abstract class MapWidgetBrightnessDialog extends MapWidgetMenu {
 
         @Override
         public void onAttached() {
-            if (attachment.getConfig().contains("brightness")) {
-                setBrightness(attachment.getConfig().get("brightness.block", 0),
-                              attachment.getConfig().get("brightness.sky", 0));
-            } else {
-                setBrightness(-1, -1);
-            }
+            setBrightness(VirtualDisplayEntity.loadBrightnessFromConfig(attachment.getConfig()));
         }
 
         @Override
         public void onBrightnessChanged() {
-            if (getSkyLight() == -1 || getBlockLight() == -1) {
-                attachment.getConfig().remove("brightness");
-            } else {
-                ConfigurationNode b_node = attachment.getConfig().getNode("brightness");
-                b_node.set("block", getBlockLight());
-                b_node.set("sky", getSkyLight());
-            }
+            VirtualDisplayEntity.saveBrightnessToConfig(attachment.getConfig(), getBrightness());
         }
     }
 }

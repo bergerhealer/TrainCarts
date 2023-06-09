@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.wrappers.Brightness;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.config.transform.HybridItemTransformType;
@@ -21,7 +22,7 @@ public class VirtualHybridItemEntity extends VirtualSpawnableObject {
     private Matrix4x4 transform = null;
     private double clip = 0.0;
     private boolean useMinecartInterpolation = false;
-    private int blockLight = -1, skyLight = -1;
+    private Brightness brightness = Brightness.UNSET;
     // Avoids creating a bunch of wasteful matrices all the time
     private final Matrix4x4 tmpArmorstandTransform = Matrix4x4.identity();
     private final Matrix4x4 tmpDisplayTransform = Matrix4x4.identity();
@@ -68,11 +69,10 @@ public class VirtualHybridItemEntity extends VirtualSpawnableObject {
         }
     }
 
-    public void setBrightness(int blockLight, int skyLight) {
-        this.blockLight = blockLight;
-        this.skyLight = skyLight;
+    public void setBrightness(Brightness brightness) {
+        this.brightness = brightness;
         if (display != null) {
-            display.setBrightness(blockLight, skyLight);
+            display.setBrightness(brightness);
         }
     }
 
@@ -88,7 +88,7 @@ public class VirtualHybridItemEntity extends VirtualSpawnableObject {
                 display.setUseMinecartInterpolation(useMinecartInterpolation);
                 display.setClip(clip);
                 display.setScale(transformType.displayScale());
-                display.setBrightness(blockLight, skyLight);
+                display.setBrightness(brightness);
                 display.setItem(transformType.displayMode(), item);
                 display.updatePosition(transformType.transformDisplay(tmpDisplayTransform, transform));
                 display.syncPosition(true);

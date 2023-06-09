@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.common.wrappers.ItemDisplayMode;
 import com.bergerkiller.bukkit.tc.attachments.VirtualArmorStandItemEntity;
+import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualHybridItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualSpawnableObject;
@@ -396,13 +397,7 @@ public interface ItemTransformType {
             VirtualDisplayItemEntity itemDisplay = (VirtualDisplayItemEntity) entity;
             itemDisplay.setScale(position.size);
             itemDisplay.setClip(config.getOrDefault("position.clip", 0.0));
-
-            ConfigurationNode brightness = config.getNodeIfExists("brightness");
-            if (brightness != null) {
-                itemDisplay.setBrightness(brightness.get("block", 0), brightness.get("sky", 0));
-            } else {
-                itemDisplay.setBrightness(-1, -1);
-            }
+            itemDisplay.setBrightness(VirtualDisplayEntity.loadBrightnessFromConfig(config));
         }
 
         @Override
@@ -488,13 +483,7 @@ public interface ItemTransformType {
 
             VirtualHybridItemEntity hybrid = (VirtualHybridItemEntity) entity;
             hybrid.setClip(config.getOrDefault("position.clip", 0.0));
-
-            ConfigurationNode brightness = config.getNodeIfExists("brightness");
-            if (brightness != null) {
-                hybrid.setBrightness(brightness.get("block", 0), brightness.get("sky", 0));
-            } else {
-                hybrid.setBrightness(-1, -1);
-            }
+            hybrid.setBrightness(VirtualDisplayEntity.loadBrightnessFromConfig(config));
         }
 
         @Override

@@ -2474,9 +2474,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     @Override
     public String getLocalizedName() {
         String name = super.getLocalizedName();
-        if (name == null || name.equals("unknown")) {
-            name = "Minecart"; // Bug with older BKCommonLib!
-        }
         if (!isSingle()) {
             name += " (Train)";
         }

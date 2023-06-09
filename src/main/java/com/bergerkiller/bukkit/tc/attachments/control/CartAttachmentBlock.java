@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayBlockEntity;
+import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
@@ -110,12 +111,7 @@ public class CartAttachmentBlock extends CartAttachment {
     public void onLoad(ConfigurationNode config) {
         entity.setBlockData(deserializeBlockData(config));
         entity.setScale(getConfiguredPosition().size);
-        if (config.isNode("brightness")) {
-            entity.setBrightness(config.get("brightness.block", 0),
-                                 config.get("brightness.sky", 0));
-        } else {
-            entity.setBrightness(-1, -1);
-        }
+        entity.setBrightness(VirtualDisplayEntity.loadBrightnessFromConfig(config));
     }
 
     @Override

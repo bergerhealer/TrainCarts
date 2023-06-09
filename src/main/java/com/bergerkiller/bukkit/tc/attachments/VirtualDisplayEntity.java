@@ -1,11 +1,10 @@
 package com.bergerkiller.bukkit.tc.attachments;
 
-import com.bergerkiller.bukkit.common.Common;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.math.Vector3;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -69,7 +68,7 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
 
     // Properties
     protected final Vector scale;
-    private int blockLight, skyLight;
+    private Brightness brightness;
 
     public VirtualDisplayEntity(AttachmentManager manager, EntityType entityType) {
         super(manager);
@@ -87,11 +86,10 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
         metadata.watch(DisplayHandle.DATA_TRANSLATION, new Vector());
         metadata.watch(DisplayHandle.DATA_LEFT_ROTATION, new Quaternion());
         metadata.watch(DisplayHandle.DATA_RIGHT_ROTATION, new Quaternion());
-        metadata.watch(CommonUtil.unsafeCast(DisplayHandle.DATA_BRIGHTNESS_OVERRIDE), encodeBrightness(-1, -1));
+        metadata.watch(DisplayHandle.DATA_BRIGHTNESS_OVERRIDE, Brightness.UNSET);
 
         scale = new Vector(1.0, 1.0, 1.0);
-        blockLight = -1;
-        skyLight = -1;
+        brightness = Brightness.UNSET;
     }
 
     protected Vector computeTranslation(Quaternion rotation) {
@@ -126,40 +124,14 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
     }
 
     /**
-     * Sets a brightness (emission) override. Use block/skylight of -1 to disable the override (default).
+     * Sets a brightness (emission) override. Use Brightness.UNSET to disable.
      *
-     * @param blockLight Emissive block light
-     * @param skyLight Emissive sky light
+     * @param brightness Emissive block and sky light
      */
-    public void setBrightness(int blockLight, int skyLight) {
-        if (this.blockLight != blockLight || this.skyLight != skyLight) {
-            this.blockLight = blockLight;
-            this.skyLight = skyLight;
-            this.metadata.set(CommonUtil.unsafeCast(DisplayHandle.DATA_BRIGHTNESS_OVERRIDE),
-                    encodeBrightness(blockLight, skyLight));
-        }
-    }
-
-    private static final boolean HAS_BRIGHTNESS_API = Common.hasCapability("Common:DisplayEntity:Brightness");
-
-    private static Object encodeBrightness(int blockLight, int skyLight) {
-        if (HAS_BRIGHTNESS_API) {
-            return encodeBrightnessUsingBKCL(blockLight, skyLight);
-        } else {
-            // Legacy int api, will be removed once BKCommonLib 1.19.4-v2 or later is a hard depend
-            if (blockLight == -1 || skyLight == -1) {
-                return Integer.valueOf(-1);
-            } else {
-                return Integer.valueOf((blockLight << 4 | skyLight << 20));
-            }
-        }
-    }
-
-    private static Object encodeBrightnessUsingBKCL(int blockLight, int skyLight) {
-        if (blockLight == -1 || skyLight == -1) {
-            return Brightness.UNSET;
-        } else {
-            return Brightness.blockAndSkyLight(blockLight, skyLight);
+    public void setBrightness(Brightness brightness) {
+        if (!this.brightness.equals(brightness)) {
+            this.brightness = brightness;
+            this.metadata.set(DisplayHandle.DATA_BRIGHTNESS_OVERRIDE, brightness);
         }
     }
 
@@ -283,5 +255,36 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
 
     protected void syncMeta() {
         broadcast(PacketPlayOutEntityMetadataHandle.createNew(displayEntityId, metadata, false));
+    }
+
+    /**
+     * Reads a configured brightness from YAML configuration
+     *
+     * @param config Configuration
+     * @return Configured Brightness
+     */
+    public static Brightness loadBrightnessFromConfig(ConfigurationNode config) {
+        ConfigurationNode brightnessConfig = config.getNodeIfExists("brightness");
+        if (brightnessConfig != null) {
+            return Brightness.blockAndSkyLight(brightnessConfig.get("block", 0),
+                                               brightnessConfig.get("sky", 0));
+        }
+        return Brightness.UNSET;
+    }
+
+    /**
+     * Writes a brightness value to YAML configuration. If unset, removes the config.
+     *
+     * @param config Configuration to write to
+     * @param brightness Brightness value to write
+     */
+    public static void saveBrightnessToConfig(ConfigurationNode config, Brightness brightness) {
+        if (brightness == Brightness.UNSET) {
+            config.remove("brightness");
+        } else {
+            ConfigurationNode brightnessConfig = config.getNode("brightness");
+            brightnessConfig.set("block", brightness.blockLight());
+            brightnessConfig.set("sky", brightness.skyLight());
+        }
     }
 }
