@@ -214,7 +214,12 @@ public interface ItemTransformType {
     static ItemTransformType deserialize(ConfigurationNode config, String key) {
         String name = config.get(key, String.class, null);
         if (name == null) {
-            ItemTransformType defaultType = Category.ARMORSTAND.defaultType();
+            ItemTransformType defaultType;
+            if (CommonCapabilities.HAS_DISPLAY_ENTITY) {
+                defaultType = Category.HYBRID.defaultType();
+            } else {
+                defaultType = Category.ARMORSTAND.defaultType();
+            }
             config.set(key, defaultType.serializedName());
             return defaultType;
         } else {
