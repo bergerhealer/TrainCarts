@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.common.wrappers.ItemDisplayMode;
@@ -25,6 +26,13 @@ public class VirtualDisplayItemEntity extends VirtualDisplayEntity {
                         EntityArmorStandHandle.DATA_FLAG_IS_SMALL |
                         EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE));
     }
+
+    /**
+     * On Minecraft 1.19.4 display entities had their yaw flipped. As such an extra flip was needed
+     * to correct for this. No per-player logic is needed as ViaVersion will flip yaw automatically
+     * when 1.19.4 clients connect to a 1.20 server.
+     */
+    private static final float INITIAL_YAW = Common.evaluateMCVersion("<=", "1.19.4") ? 180.0f : 0.0f;
 
     // Properties
     private ItemDisplayMode mode;
@@ -68,6 +76,11 @@ public class VirtualDisplayItemEntity extends VirtualDisplayEntity {
     protected void onScaleUpdated() {
         super.onScaleUpdated();
         applyClip();
+    }
+
+    @Override
+    protected float getInitialYaw() {
+        return INITIAL_YAW;
     }
 
     /**

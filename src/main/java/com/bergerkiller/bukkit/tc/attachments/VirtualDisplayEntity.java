@@ -149,6 +149,16 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
         }
     }
 
+    /**
+     * Gets the initial entity yaw of the display entity. Is used by
+     * item displays for 1.19.4 compatibility stuff. Block displays don't need it.
+     *
+     * @return Initial yaw
+     */
+    protected float getInitialYaw() {
+        return 0.0f;
+    }
+
     @Override
     protected void sendSpawnPackets(AttachmentViewer viewer, Vector motion) {
         // Spawn invisible marker armorstand mount
@@ -181,7 +191,7 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
             spawnPacket.setMotX(motion.getX());
             spawnPacket.setMotY(motion.getY());
             spawnPacket.setMotZ(motion.getZ());
-            spawnPacket.setYaw(0.0f);
+            spawnPacket.setYaw(this.getInitialYaw());
             spawnPacket.setPitch(0.0f);
             viewer.send(spawnPacket);
             viewer.send(PacketPlayOutEntityMetadataHandle.createNew(this.displayEntityId, metadata, true));

@@ -18,7 +18,6 @@ public enum HybridItemTransformType {
         public Matrix4x4 transformDisplay(Matrix4x4 tmp, Matrix4x4 transform) {
             tmp.set(transform);
             tmp.translate(0.0, 0.25, 0.0);
-            tmp.rotateYFlip();
             return tmp;
         }
     },
@@ -27,7 +26,6 @@ public enum HybridItemTransformType {
         public Matrix4x4 transformDisplay(Matrix4x4 tmp, Matrix4x4 transform) {
             tmp.set(transform);
             tmp.translate(0.0, 0.175, 0.0);
-            tmp.rotateYFlip();
             return tmp;
         }
     },
@@ -35,8 +33,7 @@ public enum HybridItemTransformType {
         @Override
         public Matrix4x4 transformDisplay(Matrix4x4 tmp, Matrix4x4 transform) {
             tmp.set(transform);
-            tmp.rotateYFlip();
-            tmp.translate(0.0625, 0.12575, -0.625);
+            tmp.translate(-0.0625, 0.12575, 0.625);
             return tmp;
         }
     },
@@ -44,8 +41,7 @@ public enum HybridItemTransformType {
         @Override
         public Matrix4x4 transformDisplay(Matrix4x4 tmp, Matrix4x4 transform) {
             tmp.set(transform);
-            tmp.rotateYFlip();
-            tmp.translate(0.0315, 0.06275, -0.31225);
+            tmp.translate(-0.0315, 0.06275, 0.31225);
             tmp.worldTranslate(-0.03625, 0.19625, 0.0);
             return tmp;
         }
@@ -54,7 +50,6 @@ public enum HybridItemTransformType {
         @Override
         public Matrix4x4 transformArmorStand(Matrix4x4 tmp, Matrix4x4 transform) {
             tmp.set(transform);
-            tmp.rotateYFlip();
             tmp.translate(0.0, -0.25, 0.0);
             return tmp;
         }
@@ -63,7 +58,6 @@ public enum HybridItemTransformType {
         @Override
         public Matrix4x4 transformArmorStand(Matrix4x4 tmp, Matrix4x4 transform) {
             tmp.set(transform);
-            tmp.rotateYFlip();
             tmp.translate(0.0, -0.175, 0.0);
             return tmp;
         }
@@ -73,7 +67,6 @@ public enum HybridItemTransformType {
         public Matrix4x4 transformArmorStand(Matrix4x4 tmp, Matrix4x4 transform) {
             tmp.set(transform);
             tmp.translate(-0.0625, -0.12575, 0.625);
-            tmp.rotateYFlip();
             return tmp;
         }
     },
@@ -83,7 +76,6 @@ public enum HybridItemTransformType {
             tmp.set(transform);
             tmp.worldTranslate(0.03625, -0.19625, 0.0);
             tmp.translate(-0.0315, -0.06275, 0.31225);
-            tmp.rotateYFlip();
             return tmp;
         }
     };
