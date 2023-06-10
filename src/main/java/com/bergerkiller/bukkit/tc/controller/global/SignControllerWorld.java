@@ -404,7 +404,7 @@ public class SignControllerWorld {
                 @Override
                 public void run() {
                     if (MaterialUtil.ISSIGN.get(potentialSign)) {
-                        addSign(potentialSign, false);
+                        addSign(potentialSign, false, true);
                     }
                 }
             }.start();
@@ -420,14 +420,16 @@ public class SignControllerWorld {
      * @param isSignChange Whether the sign was added as part of a sign change event.
      *                     If this is the case, pre-existing signs are destroyed first.
      *                     This is to support the use of sign-edit plugins.
+     * @param frontText If isSignChange is true, specifies whether the front changed (true)
+     *                  or the back (false).
      * @return entry for the sign, null if not a sign
      */
-    public SignController.Entry addSign(Block signBlock, boolean isSignChange) {
+    public SignController.Entry addSign(Block signBlock, boolean isSignChange, boolean frontText) {
         // Find/activate an existing sign
         SignController.Entry existing = this.findForSign(signBlock);
         if (existing != null) {
             if (isSignChange) {
-                if (existing.verifyBeforeSignChange()) {
+                if (existing.verifyBeforeSignChange(frontText)) {
                     return existing;
                 } else {
                     removeInvalidEntry(existing);
@@ -435,12 +437,15 @@ public class SignControllerWorld {
                 }
             }
 
-            if (existing.verify()) {
-                controller.activateEntry(existing, true, true);
-                return existing;
-            } else {
-                removeInvalidEntry(existing);
-                existing = null;
+            if (existing != null) {
+                if (existing.verify()) {
+                    controller.activateEntry(existing, true, true,
+                            true, true);
+                    return existing;
+                } else {
+                    removeInvalidEntry(existing);
+                    existing = null;
+                }
             }
         }
 
@@ -482,7 +487,7 @@ public class SignControllerWorld {
 
         entry.blocks.forAllBlocks(entry, this::addChunkByBlockEntry);
 
-        this.controller.activateEntry(entry, true, !isSignChange);
+        this.controller.activateEntry(entry, true, !isSignChange, true, true);
 
         return entry;
     }
@@ -567,7 +572,7 @@ public class SignControllerWorld {
      */
     private void deactivateSignsInChunk(Chunk chunk) {
         // Use isRemoved() because we just want to know whether the sign is there to avoid NPE
-        changeActiveForEntriesInChunk(chunk, false, e -> !e.sign.isRemoved(), this.controller::deactivateEntry);
+        changeActiveForEntriesInChunk(chunk, false, e -> !e.sign.isRemoved(), Entry::deactivate);
     }
 
     private void changeActiveForEntriesInChunk(
@@ -587,7 +592,7 @@ public class SignControllerWorld {
             {
                 boolean hasEntriesToHandle = false;
                 for (SignController.Entry entry : entries) {
-                    if (entry.activated != activating) {
+                    if (entry.front.activated != activating || entry.back.activated != activating) {
                         hasEntriesToHandle = true;
                         break;
                     }
@@ -613,7 +618,7 @@ public class SignControllerWorld {
             // Risks concurrent modification if SignAction loadedChanged modifies this,
             // so iterate a copy.
             for (SignController.Entry entry : new ArrayList<>(entries)) {
-                if (entry.activated != activating) {
+                if (entry.front.activated != activating || entry.back.activated != activating) {
                     if (verify.test(entry)) {
                         // Callbacks
                         handler.accept(entry);
@@ -676,6 +681,7 @@ public class SignControllerWorld {
 
             @Override
             public void onLoaded(ChunkStateTracker tracker) {
+                //System.out.println("All neighbours loaded: " + tracker.getChunk());
                 activateSignsInChunk(tracker.getChunk());
             }
 
@@ -721,8 +727,8 @@ public class SignControllerWorld {
             // Remove all entries from the by-neighbour-block mapping
             for (SignController.Entry entry : atChunk) {
                 // De-activate first, if it was activated still
-                if (entry.activated && !entry.sign.isRemoved()) {
-                    this.controller.deactivateEntry(entry);
+                if (!entry.sign.isRemoved()) {
+                    entry.deactivate();
                 }
 
                 entry.blocks.forAllBlocks(entry, (e, key) -> removeChunkByBlockEntry(e, key, true));
@@ -788,7 +794,7 @@ public class SignControllerWorld {
         }
 
         @Override
-        public SignController.Entry addSign(Block signBlock, boolean handleLoadChange) {
+        public SignController.Entry addSign(Block signBlock, boolean handleLoadChange, boolean frontText) {
             return null;
         }
 

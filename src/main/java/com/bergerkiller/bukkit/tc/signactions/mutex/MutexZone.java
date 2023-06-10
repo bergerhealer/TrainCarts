@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class MutexZone {
     public final OfflineBlock signBlock;
+    public final boolean signFront;
     public final IntVector3 start;
     public final IntVector3 end;
     public final String statement;
@@ -24,8 +25,9 @@ public class MutexZone {
     private final OrientedBoundingBox bb;
     private Boolean leversDown = null; // Avoids excessive block access
 
-    private MutexZone(OfflineBlock signBlock, IntVector3 start, IntVector3 end, MutexZoneSlotType type, String name, String statement) {
+    private MutexZone(OfflineBlock signBlock, boolean signFront, IntVector3 start, IntVector3 end, MutexZoneSlotType type, String name, String statement) {
         this.signBlock = signBlock;
+        this.signFront = signFront;
         this.statement = statement;
         this.start = start;
         this.end = end;
@@ -52,6 +54,16 @@ public class MutexZone {
 
     public Block getSignBlock() {
         return this.signBlock.getLoadedBlock();
+    }
+
+    /**
+     * Gets whether this mutex was declared on the front side of the sign (true) or back
+     * side (false, &gt;= MC 1.20 only)
+     *
+     * @return True if this mutex was declared on the front side of the sign
+     */
+    public boolean isSignFrontText() {
+        return this.signFront;
     }
 
     public static IntVector3 getPosition(SignActionEvent info) {
@@ -85,8 +97,8 @@ public class MutexZone {
         }
     }
 
-    public static MutexZone create(OfflineWorld world, IntVector3 signPosition, MutexSignMetadata metadata) {
-        return new MutexZone(world.getBlockAt(signPosition), metadata.start, metadata.end, metadata.type, metadata.name, metadata.statement);
+    public static MutexZone create(OfflineWorld world, IntVector3 signPosition, boolean isFrontText, MutexSignMetadata metadata) {
+        return new MutexZone(world.getBlockAt(signPosition), isFrontText, metadata.start, metadata.end, metadata.type, metadata.name, metadata.statement);
     }
 
     /**

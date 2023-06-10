@@ -24,6 +24,7 @@ public class SignActionHeader {
     private boolean power_rising = false;
     private boolean power_falling = false;
     private boolean is_converted = false;
+    private boolean is_empty = false;
     private String rc_name = "";
     private SignActionMode mode = SignActionMode.NONE;
     private String directions_str = null;
@@ -51,6 +52,15 @@ public class SignActionHeader {
     @Deprecated
     public boolean isLegacyConverted() {
         return is_converted;
+    }
+
+    /**
+     * Gets whether the header line is completely empty
+     *
+     * @return True if the first line (header line) is completely empty
+     */
+    public boolean isEmpty() {
+        return is_empty;
     }
 
     /**
@@ -545,6 +555,7 @@ public class SignActionHeader {
         SignActionHeader header = new SignActionHeader();
         if (line == null || line.isEmpty()) {
             header.mode = SignActionMode.NONE;
+            header.is_empty = true;
             return header;
         }
 

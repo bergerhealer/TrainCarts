@@ -21,6 +21,7 @@ import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
+import com.bergerkiller.generated.org.bukkit.block.SignHandle;
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
@@ -148,15 +149,15 @@ public abstract class SignAction {
      * Sign Actions bound to this sign will have their {@link #loadedChanged(SignActionEvent, boolean)} called.
      * 
      * @param sign that was loaded/unloaded
+     * @param frontText Whether to track the front (true) or back (false, >= MC 1.20 only)
      * @param loaded state change
      */
-    @SuppressWarnings("deprecation")
-    public static void handleLoadChange(Sign sign, boolean loaded) {
+    public static void handleLoadChange(Sign sign, boolean frontText, boolean loaded) {
         // Initially use a NONE rail piece type when trying to match a sign action
         // This avoids having to look up the rails for all signs on the server...
         // If a SignAction needs rail info for whatever reason in loadedChanged(), then
         // that sign action should use getRail() or get a NPE.
-        TrackedSign trackedSign = TrackedSign.forRealSign(sign, RailPiece.NONE);
+        TrackedSign trackedSign = TrackedSign.forRealSign(sign, frontText, RailPiece.NONE);
         trackedSign.rail = null; // Forces discovery of rail later
         handleLoadChange(trackedSign, loaded);
     }
@@ -186,10 +187,27 @@ public abstract class SignAction {
      * @return Whether the click was handled (and the original interaction should be cancelled)
      */
     public static boolean handleClick(Block clickedSign, Player player) {
-        SignActionEvent info = new SignActionEvent(clickedSign);
-        if (info.getSign() == null) {
+        Sign bsign = BlockUtil.getSign(clickedSign);
+        if (bsign == null) {
             return false;
         }
+
+        SignHandle bsignhandle = SignHandle.createHandle(bsign);
+        if (!bsignhandle.getFrontLine(0).isEmpty()) {
+            if (handleClick(TrackedSign.forRealSign(bsign, clickedSign, true, null), player)) {
+                return true;
+            }
+        }
+        if (!bsignhandle.getBackLine(0).isEmpty()) {
+            if (handleClick(TrackedSign.forRealSign(bsign, clickedSign, false, null), player)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean handleClick(TrackedSign clickedSign, Player player) {
+        SignActionEvent info = new SignActionEvent(clickedSign);
         SignAction action = getSignAction(info);
         return action != null && action.click(info, player);
     }

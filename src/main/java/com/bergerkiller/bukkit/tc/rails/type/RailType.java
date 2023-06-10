@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.rails.type;
 
+import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -568,7 +569,10 @@ public abstract class RailType {
         }
 
         signController.forEachSignInColumn(columnStart, direction, tracker -> {
-            result.add(TrackedSign.forRealSign(tracker, railPiece));
+            result.add(TrackedSign.forRealSign(tracker, true, railPiece));
+            if (CommonCapabilities.HAS_SIGN_BACK_TEXT) {
+                result.add(TrackedSign.forRealSign(tracker, false, railPiece));
+            }
         });
     }
 

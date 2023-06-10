@@ -162,7 +162,9 @@ public class MutexZoneSlot {
                 if (this.zones.size() == 1) {
                     Block signBlock = this.zones.get(0).getSignBlock();
                     if (signBlock != null && MaterialUtil.ISSIGN.get(signBlock)) {
-                        signEvent = new SignActionEvent(signBlock, group);
+                        RailLookup.TrackedSign trackedSign = RailLookup.TrackedSign.forRealSign(
+                                signBlock, this.zones.get(0).isSignFrontText(), null);
+                        signEvent = new SignActionEvent(trackedSign, group);
                         signEvent.setAction(SignActionType.GROUP_ENTER);
                     }
                 }

@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.UUID;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
@@ -29,12 +28,12 @@ public class MutexZoneCache {
 
             @Override
             public void onAdded(OfflineSignStore store, OfflineSign sign, MutexSignMetadata metadata) {
-                addMutexSign(sign.getWorld(), sign.getPosition(), metadata);
+                addMutexSign(sign.getWorld(), sign.getPosition(), sign.isFrontText(), metadata);
             }
 
             @Override
             public void onRemoved(OfflineSignStore store, OfflineSign sign, MutexSignMetadata metadata) {
-                removeMutexSign(sign.getWorld(), sign.getPosition());
+                removeMutexSign(sign.getWorld(), sign.getPosition(), sign.isFrontText());
             }
 
             @Override
@@ -79,16 +78,16 @@ public class MutexZoneCache {
         plugin.getOfflineSigns().unregisterHandler(MutexSignMetadata.class);
     }
 
-    private static void addMutexSign(OfflineWorld world, IntVector3 signPosition, MutexSignMetadata metadata) {
-        forWorld(world).add(MutexZone.create(world, signPosition, metadata));
+    private static void addMutexSign(OfflineWorld world, IntVector3 signPosition, boolean isFrontText, MutexSignMetadata metadata) {
+        forWorld(world).add(MutexZone.create(world, signPosition, isFrontText, metadata));
     }
 
-    private static void removeMutexSign(OfflineWorld world, IntVector3 signPosition) {
+    private static void removeMutexSign(OfflineWorld world, IntVector3 signPosition, boolean frontText) {
         // This causes pain & suffering (chunk unload event - accessing block data doesn't work)
         // zones.remove(info.getWorld(), MutexZone.getPosition(info));
 
         // Instead, a slow way
-        MutexZone zone = forWorld(world).removeAtSign(signPosition);
+        MutexZone zone = forWorld(world).removeAtSign(signPosition, frontText);
         if (zone != null) {
             removeMutexZone(zone);
         }

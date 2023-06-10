@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.portals.plugins;
 
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -37,7 +38,8 @@ public class MyWorldsPortalsProvider extends PortalProvider {
             return null;
         }
 
-        SignActionEvent dest_info = new SignActionEvent(sign);
+        //Note: MyWorlds only supports front text side to put [portal] signs
+        SignActionEvent dest_info = new SignActionEvent(RailLookup.TrackedSign.forRealSign(sign, true, null));
         if (!dest_info.hasRails()) {
             return null;
         }

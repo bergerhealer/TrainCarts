@@ -85,6 +85,13 @@
             <version>${project.bkcversion}</version>
             <scope>compile</scope>
         </dependency>
+        <!-- BKCommonLib shaded dependency is re-used -->
+        <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm</artifactId>
+            <version>9.2</version>
+            <scope>compile</scope>
+        </dependency>
 
         <!-- LightAPI-fork (optional) for light attachment -->
         <dependency>
@@ -277,6 +284,7 @@
 
         <plugins>
             <!-- Relocates references to the Cloud command framework to where they are in BKCommonLib -->
+            <!-- Relocates usage of ASM to where its shaded in in BKCommonLib -->
             <!-- Shades dependencies into a final jar -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -315,6 +323,12 @@
                         <relocation>
                             <pattern>net.kyori</pattern>
                             <shadedPattern>com.bergerkiller.bukkit.common.dep.net.kyori</shadedPattern>
+                        </relocation>
+
+                        <!-- BKCommonLib relocations of ASM -->
+                        <relocation>
+                            <pattern>org.objectweb.asm</pattern>
+                            <shadedPattern>com.bergerkiller.mountiplex.dep.org.objectweb.asm</shadedPattern>
                         </relocation>
                     </relocations>
                     <artifactSet>

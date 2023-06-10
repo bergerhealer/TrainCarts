@@ -28,7 +28,6 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.editor.TCMapControl;
-import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathWorld;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -50,7 +49,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
@@ -724,8 +722,7 @@ public class GlobalCommands {
 
                 if (prop.hasHolder() && !filter.isEmpty()) {
                     MinecartGroup group = prop.getHolder();
-                    SignActionEvent event = new SignActionEvent((Block) null, group);
-                    if (!Statement.has(group, filter, event)) {
+                    if (!Statement.has(group, filter, null)) {
                         continue;
                     }
                 }

@@ -22,7 +22,6 @@ import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.Sign;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -39,6 +38,11 @@ public class SignActionDetector extends SignAction {
      */
     public void enable(TrainCarts plugin) {
         plugin.getOfflineSigns().registerHandler(DetectorSign.Metadata.class, new OfflineSignMetadataHandler<DetectorSign.Metadata>() {
+            @Override
+            public int getMetadataVersion() {
+                return 1;
+            }
+
             @Override
             public void onUpdated(OfflineSignStore store, OfflineSign sign, DetectorSign.Metadata oldValue, DetectorSign.Metadata newValue) {
                 // If owner changes something pretty bad is going on, perform a full re-add in that case
@@ -82,9 +86,9 @@ public class SignActionDetector extends SignAction {
                     }
 
                     // See if theres metadata stored for the other sign, and if so, remove that one too
-                    DetectorSign.Metadata otherMeta = store.get(metadata.otherSign, DetectorSign.Metadata.class);
+                    DetectorSign.Metadata otherMeta = store.get(metadata.otherSign, metadata.otherSignFront, DetectorSign.Metadata.class);
                     if (otherMeta != null && metadata.region == otherMeta.region) {
-                        store.remove(metadata.otherSign, DetectorSign.Metadata.class);
+                        store.remove(metadata.otherSign, metadata.otherSignFront, DetectorSign.Metadata.class);
                     }
                 }
             }
@@ -92,6 +96,7 @@ public class SignActionDetector extends SignAction {
             @Override
             public void onEncode(DataOutputStream stream, OfflineSign sign, DetectorSign.Metadata value) throws IOException {
                 value.otherSign.getPosition().write(stream);
+                stream.writeBoolean(value.otherSignFront);
                 StreamUtil.writeUUID(stream, value.region.getUniqueId());
                 stream.writeBoolean(value.isLeverDown);
             }
@@ -99,6 +104,7 @@ public class SignActionDetector extends SignAction {
             @Override
             public DetectorSign.Metadata onDecode(DataInputStream stream, OfflineSign sign) throws IOException {
                 OfflineBlock otherSign = sign.getWorld().getBlockAt(IntVector3.read(stream));
+                boolean otherSignFront = stream.readBoolean();
                 DetectorRegion region = DetectorRegion.getRegion(StreamUtil.readUUID(stream));
                 boolean isLeverDown = stream.readBoolean();
 
@@ -106,7 +112,27 @@ public class SignActionDetector extends SignAction {
                     throw new InvalidMetadataException();
                 }
 
-                return new DetectorSign.Metadata(otherSign, region, isLeverDown);
+                return new DetectorSign.Metadata(otherSign, otherSignFront, region, isLeverDown);
+            }
+
+            @Override
+            public DataMigrationDecoder<DetectorSign.Metadata> getMigrationDecoder(OfflineSign gsign, int gdataVersion) {
+                if (gdataVersion == 0) {
+                    // v0 didn't store a 'front' field for the other sign, which is needed on 1.20+
+                    return (stream, sign, dataVersion) -> {
+                        OfflineBlock otherSign = sign.getWorld().getBlockAt(IntVector3.read(stream));
+                        DetectorRegion region = DetectorRegion.getRegion(StreamUtil.readUUID(stream));
+                        boolean isLeverDown = stream.readBoolean();
+
+                        if (region == null) {
+                            throw new InvalidMetadataException();
+                        }
+
+                        return new DetectorSign.Metadata(otherSign, true, region, isLeverDown);
+                    };
+                } else {
+                    return OfflineSignMetadataHandler.super.getMigrationDecoder(gsign, gdataVersion);
+                }
             }
         });
     }
@@ -169,7 +195,7 @@ public class SignActionDetector extends SignAction {
         // I lied! We have to double-check a detector region for this detector sign exists
         // Just in case data is corrupted, it can be restored by the first train driving over the detector
         if (info.getAction().isRedstone() || info.isAction(SignActionType.GROUP_ENTER)) {
-            if (info.getTrainCarts().getOfflineSigns().get(info.getBlock(), DetectorSign.Metadata.class) == null) {
+            if (info.getTrainCarts().getOfflineSigns().get(info.getTrackedSign(), DetectorSign.Metadata.class) == null) {
                 handlePlacement(info);
             }
         }
@@ -191,6 +217,12 @@ public class SignActionDetector extends SignAction {
             return false;
         }
 
+        //must be a real sign
+        if (!event.getTrackedSign().isRealSign()) {
+            event.getPlayer().sendMessage(ChatColor.RED + "Detector signs must be placed using real signs");
+            return false;
+        }
+
         //try to create the other sign
         if (!event.hasRails()) {
             event.getPlayer().sendMessage(ChatColor.RED + "No rails are nearby: This detector sign has not been activated!");
@@ -209,14 +241,13 @@ public class SignActionDetector extends SignAction {
         if (!event.hasRails()) {
             return false;
         }
-        Block startSignBlock = event.getBlock();
-        Sign startSign = event.getSign();
+        TrackedSign startSign = event.getTrackedSign();
         Block startrails = event.getRails();
         BlockFace dir = event.getFacing();
         String label = getLabel(event);
-        if (!tryBuild(event.getTrainCarts(), label, startrails, startSignBlock, startSign, dir)) {
-            if (!tryBuild(event.getTrainCarts(), label, startrails, startSignBlock, startSign, FaceUtil.rotate(dir, 2))) {
-                if (!tryBuild(event.getTrainCarts(), label, startrails, startSignBlock, startSign, FaceUtil.rotate(dir, -2))) {
+        if (!tryBuild(event.getTrainCarts(), label, startrails, startSign, dir)) {
+            if (!tryBuild(event.getTrainCarts(), label, startrails, startSign, FaceUtil.rotate(dir, 2))) {
+                if (!tryBuild(event.getTrainCarts(), label, startrails, startSign, FaceUtil.rotate(dir, -2))) {
                     return false;
                 }
             }
@@ -224,21 +255,21 @@ public class SignActionDetector extends SignAction {
         return true;
     }
 
-    public boolean tryBuild(TrainCarts traincarts, String label, Block startrails, Block startSignBlock, Sign startSign, BlockFace direction) {
+    public boolean tryBuild(TrainCarts traincarts, String label, Block startrails, TrackedSign startSign, BlockFace direction) {
         final TrackMap map = new TrackMap(startrails, direction, TCConfig.maxDetectorLength);
         map.next();
         //now try to find the end rails : find the other sign
-        Block endsign;
+        TrackedSign endsign;
         SignActionEvent info;
         while (map.hasNext()) {
             map.next();
             for (TrackedSign sign : map.getRailPiece().signs()) {
-                if (sign.signBlock.equals(startSignBlock) || !sign.isRealSign()) {
+                if (sign.equals(startSign) || !sign.isRealSign()) {
                     continue;
                 }
                 info = new SignActionEvent(sign);
                 if (matchLabel(info, label)) {
-                    endsign = sign.signBlock;
+                    endsign = sign;
 
                     // Create a new DetectorRegion using the path we found inbetween
                     DetectorRegion region = DetectorRegion.create(map);
@@ -246,8 +277,8 @@ public class SignActionDetector extends SignAction {
                     // Register detector sign metadata for both start and end sign with this region
                     // The handler will initialize the rest (listeners, etc.)
                     OfflineSignStore store = traincarts.getOfflineSigns();
-                    store.put(startSign, new DetectorSign.Metadata(OfflineBlock.of(endsign), region, false));
-                    store.put(endsign, new DetectorSign.Metadata(OfflineBlock.of(startSignBlock), region, false));
+                    store.put(startSign, new DetectorSign.Metadata(endsign, region, false));
+                    store.put(endsign, new DetectorSign.Metadata(startSign, region, false));
 
                     // Detect minecarts next-tick (don't want to do too much during this logic-)
                     CommonUtil.nextTick(() -> region.detectMinecarts());

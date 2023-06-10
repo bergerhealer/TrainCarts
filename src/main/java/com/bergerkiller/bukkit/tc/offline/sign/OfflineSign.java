@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.UUID;
 
+import com.bergerkiller.generated.org.bukkit.block.SignHandle;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
@@ -19,15 +20,25 @@ import com.bergerkiller.bukkit.common.offline.OfflineWorld;
  */
 public class OfflineSign {
     private static final String EMPTY_STR = ""; // for memory efficiency
-    private final OfflineBlock block;
+    private final OfflineSignSide side;
     private final String[] lines;
 
-    protected OfflineSign(OfflineBlock block, String[] lines) {
-        this.block = block;
+    protected OfflineSign(OfflineBlock block, boolean front, String[] lines) {
+        this.side = OfflineSignSide.of(block, front);
         this.lines = new String[4];
         for (int i = 0; i < lines.length; i++) {
             this.lines[i] = lines[i].isEmpty() ? EMPTY_STR : lines[i];
         }
+    }
+
+    /**
+     * Gets the Sign OfflineBlock and Side of the text. Can be used as a Key in
+     * HashMaps.
+     *
+     * @return OfflineSignSide
+     */
+    public OfflineSignSide getSide() {
+        return side;
     }
 
     /**
@@ -37,7 +48,7 @@ public class OfflineSign {
      * @return offline world
      */
     public OfflineWorld getWorld() {
-        return this.block.getWorld();
+        return this.side.getWorld();
     }
 
     /**
@@ -46,7 +57,17 @@ public class OfflineSign {
      * @return offline block
      */
     public OfflineBlock getBlock() {
-        return this.block;
+        return this.side.getBlock();
+    }
+
+    /**
+     * Gets whether this OfflineSign represents the front text of the sign (true) or the
+     * back side (false, &gt;= MC 1.20)
+     *
+     * @return True if this OfflineSign represents the front sign side text
+     */
+    public boolean isFrontText() {
+        return this.side.isFrontText();
     }
 
     /**
@@ -55,7 +76,7 @@ public class OfflineSign {
      * @return world uuid
      */
     public UUID getWorldUUID() {
-        return this.block.getWorldUUID();
+        return this.side.getWorldUUID();
     }
 
     /**
@@ -65,7 +86,7 @@ public class OfflineSign {
      * @return World this offline sign is on
      */
     public World getLoadedWorld() {
-        return this.block.getLoadedWorld();
+        return this.side.getLoadedWorld();
     }
 
     /**
@@ -74,7 +95,7 @@ public class OfflineSign {
      * @return block position
      */
     public IntVector3 getPosition() {
-        return this.block.getPosition();
+        return this.side.getPosition();
     }
 
     /**
@@ -85,7 +106,7 @@ public class OfflineSign {
      * @return Block the sign is on
      */
     public Block getLoadedBlock() {
-        return this.block.getLoadedBlock();
+        return this.side.getLoadedBlock();
     }
 
     /**
@@ -115,9 +136,18 @@ public class OfflineSign {
      * @return True if verified and still matching
      */
     public boolean verify(Sign sign) {
-        for (int n = 0; n < 4; n++) {
-            if (!sign.getLine(n).equals(this.lines[n])) {
-                return false;
+        SignHandle signHandle = SignHandle.createHandle(sign);
+        if (side.isFrontText()) {
+            for (int n = 0; n < 4; n++) {
+                if (!signHandle.getFrontLine(n).equals(this.lines[n])) {
+                    return false;
+                }
+            }
+        } else {
+            for (int n = 0; n < 4; n++) {
+                if (!signHandle.getBackLine(n).equals(this.lines[n])) {
+                    return false;
+                }
             }
         }
         return true;
@@ -125,15 +155,17 @@ public class OfflineSign {
 
     @Override
     public String toString() {
-        World world = this.block.getLoadedWorld();
-        return String.format("OfflineSign{world=%s, x=%d, y=%d, z=%d, lines=[%s | %s | %s | %s]}",
-                (world != null) ? world.getName() : "uuid_" + this.block.getWorldUUID(),
-                this.block.getX(), this.block.getY(), this.block.getZ(),
+        OfflineBlock block = side.getBlock();
+        World world = block.getLoadedWorld();
+        return String.format("OfflineSign{world=%s, x=%d, y=%d, z=%d, side=%s, lines=[%s | %s | %s | %s]}",
+                (world != null) ? world.getName() : "uuid_" + block.getWorldUUID(),
+                block.getX(), block.getY(), block.getZ(),
+                (side.isFrontText() ? "front" : "back"),
                 this.lines[0], this.lines[1], this.lines[2], this.lines[3]);
     }
 
     /**
-     * Reads the details of an OfflineSign from a data input stream
+     * Reads the details of an OfflineSign from a data input stream.
      *
      * @param stream Stream to read from
      * @return Decoded OfflineSign
@@ -141,11 +173,12 @@ public class OfflineSign {
      */
     public static OfflineSign readFrom(DataInputStream stream) throws IOException {
         OfflineBlock block = OfflineBlock.readFrom(stream);
+        boolean front = stream.readBoolean();
         String[] lines = new String[4];
         for (int n = 0; n < 4; n++) {
             lines[n] = stream.readUTF();
         }
-        return new OfflineSign(block, lines);
+        return new OfflineSign(block, front, lines);
     }
 
     /**
@@ -157,6 +190,7 @@ public class OfflineSign {
      */
     public static void writeTo(DataOutputStream stream, OfflineSign sign) throws IOException {
         OfflineBlock.writeTo(stream, sign.getBlock());
+        stream.writeBoolean(sign.isFrontText());
         for (String line : sign.getLines()) {
             stream.writeUTF(line);
         }
@@ -166,10 +200,16 @@ public class OfflineSign {
      * Creates a new state copy of a Bukkit sign's information
      *
      * @param sign Bukkit Sign whose lines and block information to copy
+     * @param isFrontText Whether to represent the front text (true) or the
+     *                    back text (false, &gt;= MC 1.20 only)
      * @return new OfflineSign
      */
-    public static OfflineSign fromSign(Sign sign) {
-        return new OfflineSign(OfflineWorld.of(sign.getWorld()).getBlockAt(
-                sign.getX(), sign.getY(), sign.getZ()), sign.getLines());
+    public static OfflineSign fromSign(Sign sign, boolean isFrontText) {
+        OfflineBlock signBlock = OfflineWorld.of(sign.getWorld())
+                .getBlockAt(sign.getX(), sign.getY(), sign.getZ());
+        SignHandle signHandle = SignHandle.createHandle(sign);
+        return new OfflineSign(signBlock,
+                               isFrontText,
+                               (isFrontText ? signHandle.getFrontLines() : signHandle.getBackLines()));
     }
 }

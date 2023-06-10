@@ -55,22 +55,82 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
     private boolean memberchecked = false;
     private boolean cancelled = false;
 
+    /**
+     * @deprecated This method only supports the front text of the sign. Use the TrackedSign constructor
+     *             to also support the back text.
+     * @see TrackedSign#forRealSign(Block, boolean, RailPiece)
+     */
+    @Deprecated
     public SignActionEvent(Block signblock, MinecartMember<?> member) {
         this(signblock);
         this.member = member;
         this.memberchecked = true;
     }
 
+    /**
+     * @deprecated This method only supports the front text of the sign. Use the TrackedSign constructor
+     *             to also support the back text.
+     * @see TrackedSign#forRealSign(Block, boolean, RailPiece)
+     */
+    @Deprecated
     public SignActionEvent(Block signblock, RailPiece rail, MinecartMember<?> member) {
         this(signblock, rail);
         this.member = member;
         this.memberchecked = true;
     }
 
+    /**
+     * @deprecated This method only supports the front text of the sign. Use the TrackedSign constructor
+     *             to also support the back text.
+     * @see TrackedSign#forRealSign(Block, boolean, RailPiece)
+     */
+    @Deprecated
     public SignActionEvent(Block signblock, MinecartGroup group) {
         this(signblock);
         this.group = group;
         this.memberchecked = true;
+    }
+
+    /**
+     * @deprecated This method only supports the front text of the sign. Use the TrackedSign constructor
+     *             to also support the back text.
+     * @see TrackedSign#forRealSign(Block, boolean, RailPiece)
+     */
+    @Deprecated
+    public SignActionEvent(Block signblock, RailPiece rail, MinecartGroup group) {
+        this(signblock, rail);
+        this.group = group;
+        this.memberchecked = true;
+    }
+
+    /**
+     * @deprecated This method only supports the front text of the sign. Use the TrackedSign constructor
+     *             to also support the back text.
+     * @see TrackedSign#forRealSign(Block, boolean, RailPiece)
+     */
+    @Deprecated
+    public SignActionEvent(final Block signBlock) {
+        this(TrackedSign.forRealSign(signBlock, null));
+    }
+
+    /**
+     * @deprecated This method only supports the front text of the sign. Use the TrackedSign constructor
+     *             to also support the back text.
+     * @see TrackedSign#forRealSign(Block, boolean, RailPiece)
+     */
+    @Deprecated
+    public SignActionEvent(final Block signblock, RailPiece rail) {
+        this(TrackedSign.forRealSign(signblock, rail));
+    }
+
+    /**
+     * @deprecated This method only supports the front text of the sign. Use the TrackedSign constructor
+     *             to also support the back text.
+     * @see TrackedSign#forRealSign(Block, boolean, RailPiece)
+     */
+    @Deprecated
+    public SignActionEvent(final Block signblock, final Sign sign, RailPiece rail) {
+        this(TrackedSign.forRealSign(sign, signblock, rail));
     }
 
     public SignActionEvent(TrackedSign trackedSign, MinecartMember<?> member) {
@@ -85,31 +145,13 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
         this.memberchecked = true;
     }
 
-    public SignActionEvent(Block signblock, RailPiece rail, MinecartGroup group) {
-        this(signblock, rail);
-        this.group = group;
-        this.memberchecked = true;
-    }
-
-    public SignActionEvent(final Block signBlock) {
-        this(TrackedSign.forRealSign(signBlock, null));
-    }
-
-    public SignActionEvent(final Block signblock, RailPiece rail) {
-        this(TrackedSign.forRealSign(signblock, rail));
-    }
-
-    public SignActionEvent(final Block signblock, final Sign sign, RailPiece rail) {
-        this(TrackedSign.forRealSign(sign, signblock, rail));
-    }
-
     public SignActionEvent(TrackedSign sign) {
         if (sign == null) {
             throw new IllegalArgumentException("Tracked sign is null");
         }
         this.sign = sign;
         this.actionType = SignActionType.NONE;
-        this.lowerSecondCleanedLine = Util.cleanSignLine(sign.sign.getLine(1)).toLowerCase(Locale.ENGLISH);
+        this.lowerSecondCleanedLine = Util.cleanSignLine(sign.getLine(1)).toLowerCase(Locale.ENGLISH);
         if (this.sign.getHeader().isLegacyConverted() && this.sign.getHeader().isValid()) {
             this.setLine(0, this.sign.getHeader().toString());
         }

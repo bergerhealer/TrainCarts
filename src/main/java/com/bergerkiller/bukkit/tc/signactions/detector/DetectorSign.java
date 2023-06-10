@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.signactions.detector;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -12,11 +13,13 @@ import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSign;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
 
 /**
  * A single detector sign part of a detector sign pair.
@@ -43,7 +46,7 @@ public class DetectorSign implements DetectorListener {
 
     public void remove() {
         // Event handling will automatically remove it for the pair's other sign too
-        this.store.remove(this.sign.getBlock(), Metadata.class);
+        this.store.remove(this.sign, Metadata.class);
     }
 
     public void loadChunks(World world) {
@@ -76,8 +79,10 @@ public class DetectorSign implements DetectorListener {
         Block signBlock = this.sign.getLoadedBlock();
         if (signBlock != null) {
             this.loadChunks(signBlock.getWorld());
-            if (MaterialUtil.ISSIGN.get(signBlock)) {
-                SignActionEvent event = new SignActionEvent(signBlock);
+            Sign sign = BlockUtil.getSign(signBlock);
+            if (sign != null) {
+                SignActionEvent event = new SignActionEvent(RailLookup.TrackedSign.forRealSign(
+                        sign, this.sign.isFrontText(), null));
                 if (this.validate(event)) {
                     return event;
                 }
@@ -103,7 +108,7 @@ public class DetectorSign implements DetectorListener {
         if (!this.metadata.isLeverDown && !isRemoved()) {
             SignActionEvent event = initSignEvent();
             if (event != null && event.isTrainSign() && isDown(event, null, group)) {
-                this.store.putIfPresent(this.sign.getBlock(),
+                this.store.putIfPresent(this.sign,
                         this.metadata = this.metadata.setLeverDown(true));
                 event.setLevers(true);
             }
@@ -125,7 +130,7 @@ public class DetectorSign implements DetectorListener {
         if (!this.metadata.isLeverDown && !isRemoved()) {
             SignActionEvent event = initSignEvent();
             if (event != null && event.isCartSign() && isDown(event, member, null)) {
-                this.store.putIfPresent(this.sign.getBlock(),
+                this.store.putIfPresent(this.sign,
                         this.metadata = this.metadata.setLeverDown(true));
                 event.setLevers(true);
             }
@@ -140,13 +145,13 @@ public class DetectorSign implements DetectorListener {
 
         for (MinecartMember<?> mm : this.metadata.region.getMembers()) {
             if (isDown(event, mm, null)) {
-                this.store.putIfPresent(this.sign.getBlock(),
+                this.store.putIfPresent(this.sign,
                         this.metadata = this.metadata.setLeverDown(true));
                 event.setLevers(true);
                 return true;
             }
         }
-        this.store.putIfPresent(this.sign.getBlock(),
+        this.store.putIfPresent(this.sign,
                 this.metadata = this.metadata.setLeverDown(false));
         event.setLevers(false);
         return false;
@@ -160,13 +165,13 @@ public class DetectorSign implements DetectorListener {
 
         for (MinecartGroup g : this.metadata.region.getGroups()) {
             if (isDown(event, null, g)) {
-                this.store.putIfPresent(this.sign.getBlock(),
+                this.store.putIfPresent(this.sign,
                         this.metadata = this.metadata.setLeverDown(true));
                 event.setLevers(true);
                 return true;
             }
         }
-        this.store.putIfPresent(this.sign.getBlock(),
+        this.store.putIfPresent(this.sign,
                 this.metadata = this.metadata.setLeverDown(false));
         event.setLevers(false);
         return false;
@@ -232,16 +237,25 @@ public class DetectorSign implements DetectorListener {
      */
     public static class Metadata {
         public final OfflineBlock otherSign;
+        public final boolean otherSignFront;
         public final DetectorRegion region;
         public final boolean isLeverDown;
         public DetectorSign owner;
 
-        public Metadata(OfflineBlock otherSign, DetectorRegion region, boolean isLeverDown) {
-            this(otherSign, region, isLeverDown, null);
+        public Metadata(RailLookup.TrackedSign otherSign, DetectorRegion region, boolean isLeverDown) {
+            this(OfflineBlock.of(otherSign.signBlock),
+                 ((RailLookup.TrackedRealSign) otherSign).isFrontText(),
+                 region,
+                 isLeverDown);
         }
 
-        private Metadata(OfflineBlock otherSign, DetectorRegion region, boolean isLeverDown, DetectorSign owner) {
+        public Metadata(OfflineBlock otherSign, boolean otherSignFront, DetectorRegion region, boolean isLeverDown) {
+            this(otherSign, otherSignFront, region, isLeverDown, null);
+        }
+
+        private Metadata(OfflineBlock otherSign, boolean otherSignFront, DetectorRegion region, boolean isLeverDown, DetectorSign owner) {
             this.otherSign = otherSign;
+            this.otherSignFront = otherSignFront;
             this.region = region;
             this.isLeverDown = isLeverDown;
             this.owner = owner;
@@ -251,7 +265,7 @@ public class DetectorSign implements DetectorListener {
             if (down == this.isLeverDown) {
                 return this; // Avoids frivolous saves
             }
-            return new Metadata(otherSign, region, down, owner);
+            return new Metadata(otherSign, otherSignFront, region, down, owner);
         }
     }
 }

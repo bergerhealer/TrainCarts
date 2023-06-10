@@ -7,6 +7,7 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -234,7 +235,7 @@ public class SignController implements LibraryComponent, Listener {
             if (entry.sign != tracker) {
                 entry.sign.update();
             }
-            if (!entry.verifyAfterUpdate(true)) {
+            if (!entry.verifyAfterUpdate(true, true)) {
                 worldController.removeInvalidEntry(entry);
             }
         }
@@ -319,7 +320,9 @@ public class SignController implements LibraryComponent, Listener {
 
         handleSignChange(event);
 
-        if (event.isCancelled()) {
+        // This stuff only occurs on <= 1.19.4. On 1.20 the sign change is separate
+        // from sign placement, so we shouldn't break the sign at all.
+        if (event.isCancelled() && !CommonCapabilities.HAS_SIGN_BACK_TEXT) {
             // Properly give the sign back to the player that placed it
             // We do not want to place down an empty sign, that is annoying
             // If this is impossible for whatever reason, just drop it
@@ -376,7 +379,7 @@ public class SignController implements LibraryComponent, Listener {
         //
         // No loadedChanged() event is fired, as handleBuild() already handles that there.
         SignControllerWorld controller = this.forWorld(event.getBlock().getWorld());
-        Entry newSignEntry = controller.addSign(event.getBlock(), true);
+        Entry newSignEntry = controller.addSign(event.getBlock(), true, BlockUtil.isChangingFrontLines(event));
 
         // Handle building the sign. Might cancel it (permissions)
         SignAction.handleBuild(event);
@@ -482,51 +485,59 @@ public class SignController implements LibraryComponent, Listener {
     }
 
     void activateEntry(Entry entry) {
-        activateEntry(entry, false, true);
+        activateEntry(entry, false, true, true, true);
     }
 
-    void activateEntry(Entry entry, boolean refreshRailSigns, boolean handleLoadChange) {
+    void activateEntry(Entry entry, boolean refreshRailSigns, boolean handleLoadChange, boolean activateFront, boolean activateBack) {
         // Refresh signs mapped to rails at all times, if specified
         // The tracked rail is made available later on to handle the load change, if set
-        TrackedSign trackedSign = null;
+        TrackedSign frontTrackedSign = null, backTrackedSign = null;
         if (refreshRailSigns) {
-            trackedSign = TrackedSign.forRealSign(entry.sign.getSign(), null);
-            trackedSign.getRail().forceCacheVerification();
+            if (activateFront && !entry.front.getHeader().isEmpty()) {
+                frontTrackedSign = TrackedSign.forRealSign(entry.sign.getSign(), true, null);
+            }
+            if (activateBack && !entry.back.getHeader().isEmpty()) {
+                backTrackedSign = TrackedSign.forRealSign(entry.sign.getSign(), false, null);
+            }
+
+            // Both use the same Rails guaranteed, so only verify once
+            if (frontTrackedSign != null) {
+                frontTrackedSign.getRail().forceCacheVerification();
+            } else if (backTrackedSign != null) {
+                backTrackedSign.getRail().forceCacheVerification();
+            }
         }
 
-        if (entry.activated) {
+        // Skip if there is nothing to do
+        boolean wasFrontActivated = entry.front.activated;
+        boolean wasBackActivated = entry.back.activated;
+        if ((!activateFront || wasFrontActivated) && (!activateBack || wasBackActivated)) {
             return;
         }
 
         Block b = entry.sign.getBlock();
         try {
-            entry.activated = true;
-            entry.initRedstonePower();
+            entry.setActivated(activateFront, activateBack);
 
             if (handleLoadChange) {
                 if (refreshRailSigns) {
-                    SignAction.handleLoadChange(trackedSign, true);
+                    if (frontTrackedSign != null && !wasFrontActivated) {
+                        SignAction.handleLoadChange(frontTrackedSign, true);
+                    }
+                    if (backTrackedSign != null && !wasBackActivated) {
+                        SignAction.handleLoadChange(backTrackedSign, true);
+                    }
                 } else {
-                    SignAction.handleLoadChange(entry.sign.getSign(), true);
+                    if (activateFront && !wasFrontActivated) {
+                        entry.front.handleLoadChange(true);
+                    }
+                    if (activateBack && !wasBackActivated) {
+                        entry.back.handleLoadChange(true);
+                    }
                 }
             }
         } catch (Throwable t) {
             plugin.getLogger().log(Level.SEVERE, "Error while initializing sign in world " +
-                    b.getWorld().getName() + " at " + b.getX() + " / " + b.getY() + " / " + b.getZ(), t);
-        }
-    }
-
-    void deactivateEntry(Entry entry) {
-        if (!entry.activated) {
-            return;
-        }
-
-        try {
-            entry.activated = false;
-            SignAction.handleLoadChange(entry.sign.getSign(), false);
-        } catch (Throwable t) {
-            Block b = entry.sign.getBlock();
-            plugin.getLogger().log(Level.SEVERE, "Error while unloading sign in world " +
                     b.getWorld().getName() + " at " + b.getX() + " / " + b.getY() + " / " + b.getZ(), t);
         }
     }
@@ -610,10 +621,7 @@ public class SignController implements LibraryComponent, Listener {
         public final SignChangeTracker sign;
         private SignChangeTracker signLastState; // Can be null if removed!
         public final SignControllerWorld world;
-        public boolean powered;
-        public boolean activated;
-        private SignActionHeader header;
-        private String headerLine;
+        final SignSide front, back;
         private final FastTrackedUpdateSet.Tracker<Entry> redstoneUpdateTracker;
         private final FastTrackedUpdateSet.Tracker<Entry> ignoreRedstoneUpdateTracker;
         final long blockKey;
@@ -624,10 +632,8 @@ public class SignController implements LibraryComponent, Listener {
         private Entry(Sign sign, SignControllerWorld world, long blockKey, long chunkKey, SignController controller) {
             this.sign = SignChangeTracker.track(sign);
             this.world = world;
-            this.powered = false; // Initialized later once neighbouring chunks are also loaded
-            this.activated = false; // Activated when neighbouring chunks load as well
-            this.headerLine = sign.getLine(0);
-            this.header = SignActionHeader.parse(Util.cleanSignLine(headerLine));
+            this.front = new SignSide(true, SignChangeTracker::getFrontLine);
+            this.back = new SignSide(false, SignChangeTracker::getBackLine);
             this.redstoneUpdateTracker = controller.pendingRedstoneUpdates.track(this);
             this.ignoreRedstoneUpdateTracker = controller.ignoreRedstoneUpdates.track(this);
             this.blockKey = blockKey;
@@ -643,12 +649,7 @@ public class SignController implements LibraryComponent, Listener {
          * events.
          */
         void updateLastSignState() {
-            if (sign instanceof Cloneable) {
-                // Newer bkcl api
-                signLastState = sign.clone();
-            } else {
-                signLastState = SignChangeTracker.track(sign.getSign());
-            }
+            signLastState = sign.clone();
         }
 
         /**
@@ -667,14 +668,12 @@ public class SignController implements LibraryComponent, Listener {
             return this.sign.getBlock();
         }
 
-        public SignActionHeader getHeader() {
-            String signLine = this.sign.getSign().getLine(0);
-            if (signLine.equals(this.headerLine)) {
-                return this.header;
-            } else {
-                this.headerLine = signLine;
-                return this.header = SignActionHeader.parse(Util.cleanSignLine(signLine));
-            }
+        public SignActionHeader getFrontHeader() {
+            return this.front.getHeader();
+        }
+
+        public SignActionHeader getBackHeader() {
+            return this.back.getHeader();
         }
 
         /**
@@ -686,13 +685,29 @@ public class SignController implements LibraryComponent, Listener {
         }
 
         /**
+         * Deactivates the front and back side of this sign entry, firing unload events
+         * if needed.
+         */
+        void deactivate() {
+            try {
+                front.deactivate();
+                back.deactivate();
+            } catch (Throwable t) {
+                Block b = sign.getBlock();
+                world.getPlugin().getLogger().log(Level.SEVERE, "Error while unloading sign in world " +
+                        b.getWorld().getName() + " at " + b.getX() + " / " + b.getY() + " / " + b.getZ(), t);
+            }
+        }
+
+        /**
          * Verifies that this sign is still there, and updates the text and facing information.
          * Fires the appropriate events if sign text changes.
          *
          * @return True if the sign still exists, False if it was removed
          */
         boolean verify() {
-            return verifyAfterUpdate(sign.update());
+            boolean changed = sign.update();
+            return verifyAfterUpdate(changed, changed);
         }
 
         /**
@@ -701,20 +716,21 @@ public class SignController implements LibraryComponent, Listener {
          * <br>
          * This assumes a sign update has already occurred earlier.
          *
-         * @param changed Whether the sign changed/was removed
+         * @param frontChanged Whether the front of the sign changed/was removed
+         * @param backChanged Whether the back of the sign changed/was removed
          * @return True if the sign still exists, False if it was removed
          */
-        boolean verifyAfterUpdate(boolean changed) {
+        boolean verifyAfterUpdate(boolean frontChanged, boolean backChanged) {
             // If removed, and it wasn't before, and the chunk is loaded, fire destroy events
             if (sign.isRemoved() && signLastState != null && !signLastState.isRemoved() && WorldUtil.isLoaded(sign.getBlock())) {
-                handleDestroy();
+                handleDestroy(frontChanged, backChanged);
                 return false;
             }
 
             //TODO: Change event for changed text?
 
             // Refresh last-known state
-            if (changed || (signLastState == null && !sign.isRemoved())) {
+            if ((frontChanged || backChanged) || (signLastState == null && !sign.isRemoved())) {
                 this.updateLastSignState();
             }
 
@@ -724,8 +740,12 @@ public class SignController implements LibraryComponent, Listener {
             }
 
             // If loaded and changed, also tell the offline sign metadata store to verify what it knows there
-            if (changed) {
-                world.getPlugin().getOfflineSigns().verifySign(sign.getSign(), null /* all */);
+            if (frontChanged && backChanged) {
+                world.getPlugin().getOfflineSigns().verifySign(sign.getSign());
+            } else if (frontChanged) {
+                world.getPlugin().getOfflineSigns().verifySign(sign.getSign(), true, null);
+            } else if (backChanged) {
+                world.getPlugin().getOfflineSigns().verifySign(sign.getSign(), false, null);
             }
 
             updateSignFacing();
@@ -737,18 +757,19 @@ public class SignController implements LibraryComponent, Listener {
          * Called when a new sign is placed by a Player at the same position as an existing sign.
          * Verifies the sign is still there, and fires a removal event if so.
          *
+         * @param frontText Whether the front changed (true) or the back (false)
          * @return True if the sign still exists, False if it was removed
          */
-        boolean verifyBeforeSignChange() {
+        boolean verifyBeforeSignChange(boolean frontText) {
             sign.update();
             if (sign.isRemoved()) {
                 // Handle removal of the sign in the normal way
-                verifyAfterUpdate(true);
+                verifyAfterUpdate(frontText, !frontText);
                 return false;
             } else {
                 // Fire destroy events for the previous sign details, if any
                 // Then, update the sign state for later
-                handleDestroy();
+                handleDestroy(frontText, !frontText);
                 updateSignFacing();
                 updateLastSignState();
                 return true;
@@ -759,20 +780,32 @@ public class SignController implements LibraryComponent, Listener {
          * Handles destruction of this sign. This informs sign actions and the offline sign metadata
          * store that the sign has been removed.
          */
-        private void handleDestroy() {
+        private void handleDestroy(boolean destroyFront, boolean destroyBack) {
             if (signLastState == null || signLastState.isRemoved()) {
                 return;
             }
 
             // Fire destroy event to tell sign actions the sign was broken
-            RailLookup.TrackedSign sign = RailLookup.TrackedSign.forRealSign(signLastState, RailPiece.NONE);
-            SignAction.handleDestroy(new SignActionEvent(sign));
+            if (destroyFront && !front.cachedHeader.isEmpty()) {
+                RailLookup.TrackedSign sign = RailLookup.TrackedSign.forRealSign(signLastState, true, RailPiece.NONE);
+                SignAction.handleDestroy(new SignActionEvent(sign));
+            }
+            if (destroyBack && !back.cachedHeader.isEmpty()) {
+                RailLookup.TrackedSign sign = RailLookup.TrackedSign.forRealSign(signLastState, false, RailPiece.NONE);
+                SignAction.handleDestroy(new SignActionEvent(sign));
+            }
 
             // Remove from the offline signs cache as well
-            world.getPlugin().getOfflineSigns().removeAll(signLastState.getBlock());
+            if (destroyFront && destroyBack) {
+                world.getPlugin().getOfflineSigns().removeAll(signLastState.getBlock());
 
-            // Make sure it does not fire again until a sign is detected
-            signLastState = null;
+                // Make sure it does not fire again until a sign is detected
+                signLastState = null;
+            } else if (destroyFront) {
+                world.getPlugin().getOfflineSigns().removeAll(signLastState.getBlock(), true);
+            } else if (destroyBack) {
+                world.getPlugin().getOfflineSigns().removeAll(signLastState.getBlock(), false);
+            }
         }
 
         /**
@@ -792,71 +825,157 @@ public class SignController implements LibraryComponent, Listener {
             this.redstoneUpdateTracker.set(true);
         }
 
-        public void initRedstonePower() {
-            SignActionHeader header = this.getHeader();
-            if (header.isAlwaysOn() || header.isAlwaysOff()) {
-                this.powered = false;
+        private static boolean skipReadingPower(SignActionHeader header) {
+            return header.isEmpty() || header.isAlwaysOn() || header.isAlwaysOff();
+        }
+
+        void setActivated(boolean activateFront, boolean activateBack) {
+            boolean powered;
+            if ((!activateFront || skipReadingPower(front.getHeader())) &&
+                (!activateBack || skipReadingPower(back.getHeader()))
+            ) {
+                powered = false;
             } else {
-                this.powered = PowerState.isSignPowered(this.sign.getBlock());
+                powered = PowerState.isSignPowered(this.sign.getBlock());
+            }
+            if (activateFront) {
+                front.activated = true;
+                front.setInitialPower(powered);
+            }
+            if (activateBack) {
+                back.activated = true;
+                back.setInitialPower(powered);
             }
         }
 
         public void updateRedstonePower() {
+            SignActionHeader frontHeader = this.getFrontHeader();
+            SignActionHeader backHeader = this.getBackHeader();
+
+            // Read power state or not?
+            boolean powered = (!skipReadingPower(frontHeader) || !skipReadingPower(backHeader)) &&
+                    PowerState.isSignPowered(this.sign.getBlock());
+
             // Only handle the REDSTONE_CHANGE action when using [+train] or [-train]
             // Improves performance by avoiding a needless isSignPowered() calculation
-            SignActionHeader header = this.getHeader();
-            if (header.isAlwaysOn() || header.isAlwaysOff()) {
-                this.setRedstonePowerChanged(header);
-                return;
+            if (!frontHeader.isEmpty()) {
+                if (frontHeader.isAlwaysOn() || frontHeader.isAlwaysOff()) {
+                    front.setRedstonePowerChanged(frontHeader);
+                } else {
+                    front.setRedstonePower(frontHeader, powered);
+                }
             }
-
-            setRedstonePower(header, PowerState.isSignPowered(this.sign.getBlock()));
+            if (!backHeader.isEmpty()) {
+                if (backHeader.isAlwaysOn() || backHeader.isAlwaysOff()) {
+                    back.setRedstonePowerChanged(backHeader);
+                } else {
+                    back.setRedstonePower(backHeader, powered);
+                }
+            }
         }
 
         public void updateRedstonePowerVerify(boolean isPowered) {
+            SignActionHeader frontHeader = this.getFrontHeader();
+            SignActionHeader backHeader = this.getBackHeader();
+
+            // If important, verify power has changed
             // Only handle the REDSTONE_CHANGE action when using [+train] or [-train]
             // Improves performance by avoiding a needless isSignPowered() calculation
-            SignActionHeader header = this.getHeader();
-            if (header.isAlwaysOn() || header.isAlwaysOff()) {
-                this.setRedstonePowerChanged(header);
-                return;
-            }
+            boolean powerStateCorrect = (!skipReadingPower(frontHeader) || !skipReadingPower(backHeader)) &&
+                    (isPowered == PowerState.isSignPowered(this.sign.getBlock()));
 
-            // Verify that the power state is correct
-            if (PowerState.isSignPowered(this.sign.getBlock()) != isPowered) {
-                return;
+            if (!frontHeader.isEmpty()) {
+                if (frontHeader.isAlwaysOn() || frontHeader.isAlwaysOff()) {
+                    front.setRedstonePowerChanged(frontHeader);
+                } else if (powerStateCorrect) {
+                    front.setRedstonePower(frontHeader, isPowered);
+                }
             }
-
-            // Update power level
-            setRedstonePower(header, isPowered);
+            if (!backHeader.isEmpty()) {
+                if (backHeader.isAlwaysOn() || backHeader.isAlwaysOff()) {
+                    back.setRedstonePowerChanged(backHeader);
+                } else if (powerStateCorrect) {
+                    back.setRedstonePower(backHeader, isPowered);
+                }
+            }
         }
 
-        public void setRedstonePower(SignActionHeader header, boolean newPowerState) {
-            // Is the event allowed?
-            SignActionEvent info = createSignActionEvent(header);
-            SignActionType type = info.getHeader().getRedstoneAction(newPowerState);
+        class SignSide {
+            private final boolean front;
+            private final GetLineFunction lineFunc;
+            public String headerLine;
+            private SignActionHeader cachedHeader;
+            public boolean powered;
+            public boolean activated;
 
-            // Change in redstone power?
-            if (this.powered != newPowerState) {
-                this.powered = newPowerState;
-                if (type != SignActionType.NONE) {
-                    SignAction.executeAll(info, type);
+            public SignSide(boolean front, GetLineFunction lineFunc) {
+                this.front = front;
+                this.lineFunc = lineFunc;
+                this.headerLine = lineFunc.getLine(sign, 0);
+                this.cachedHeader = SignActionHeader.parse(Util.cleanSignLine(headerLine));
+                this.powered = false; // Initialized later on
+                this.activated = false; // Activated when neighbouring chunks load as well
+            }
+
+            public SignActionHeader getHeader() {
+                String headerLine = lineFunc.getLine(sign, 0);
+                if (headerLine.equals(this.headerLine)) {
+                    return cachedHeader;
+                } else {
+                    this.headerLine = headerLine;
+                    return this.cachedHeader = SignActionHeader.parse(Util.cleanSignLine(headerLine));
                 }
             }
 
-            // Fire a REDSTONE_CHANGE event afterwards at all times
-            SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
+            public void setInitialPower(boolean powered) {
+                this.powered = powered;
+            }
+
+            public void deactivate() {
+                if (activated) {
+                    activated = false;
+                    handleLoadChange(false);
+                }
+            }
+
+            public void handleLoadChange(boolean loaded) {
+                if (!getHeader().isEmpty()) {
+                    SignAction.handleLoadChange(sign.getSign(), front, loaded);
+                }
+            }
+
+            public void setRedstonePower(SignActionHeader header, boolean newPowerState) {
+                // Is the event allowed?
+                SignActionEvent info = createSignActionEvent(header);
+                SignActionType type = info.getHeader().getRedstoneAction(newPowerState);
+
+                // Change in redstone power?
+                if (this.powered != newPowerState) {
+                    this.powered = newPowerState;
+                    if (type != SignActionType.NONE) {
+                        SignAction.executeAll(info, type);
+                    }
+                }
+
+                // Fire a REDSTONE_CHANGE event afterwards at all times
+                SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
+            }
+
+            public void setRedstonePowerChanged(SignActionHeader header) {
+                SignActionEvent info = createSignActionEvent(header);
+                SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
+            }
+
+            private SignActionEvent createSignActionEvent(SignActionHeader header) {
+                TrackedSign trackedSign = TrackedSign.forRealSign(sign, front, (RailPiece) null);
+                trackedSign.setCachedHeader(header);
+                return new SignActionEvent(trackedSign);
+            }
         }
 
-        public void setRedstonePowerChanged(SignActionHeader header) {
-            SignActionEvent info = createSignActionEvent(header);
-            SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
-        }
-
-        private SignActionEvent createSignActionEvent(SignActionHeader header) {
-            TrackedSign trackedSign = TrackedSign.forRealSign(this.sign, (RailPiece) null);
-            trackedSign.setCachedHeader(header);
-            return new SignActionEvent(trackedSign);
+        @FunctionalInterface
+        public interface GetLineFunction {
+            String getLine(SignChangeTracker sign, int index);
         }
     }
 

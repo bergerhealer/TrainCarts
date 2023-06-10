@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -248,7 +249,97 @@ public class OfflineSignStore {
     }
 
     /**
-     * Returns the current metadata stored for a sign, similar to {@link #get(Sign, Class)},
+     * @deprecated Assumes front side of the sign. Please specify the side of the sign with
+     *             {@link #computeIfAbsent(Block, boolean, Class, Function)} instead
+     */
+    @Deprecated
+    public <T> T computeIfAbsent(Block signBlock, Class<T> metadataType, Function<OfflineSign, ? extends T> factory) {
+        return computeIfAbsent(signBlock, true, metadataType, factory);
+    }
+
+    /**
+     * @deprecated Assumes front side of the sign. Please specify the side of the sign with
+     *             {@link #computeIfAbsent(Sign, boolean, Class, Function)} instead
+     */
+    @Deprecated
+    public <T> T computeIfAbsent(Sign sign, Class<T> metadataType, Function<OfflineSign, ? extends T> factory) {
+        return computeIfAbsent(sign, true, metadataType, factory);
+    }
+
+    /**
+     * @deprecated Assumes front side of the sign. Please specify the side of the sign with
+     *             {@link #putIfPresent(OfflineBlock, boolean, Object)} instead
+     */
+    @Deprecated
+    public <T> T putIfPresent(OfflineBlock signBlock, T metadata) {
+        return putIfPresent(signBlock, true, metadata);
+    }
+
+    /**
+     * @deprecated Assumes front side of the sign. Please specify the side of the sign with
+     *             {@link #put(Block, boolean, Object)} instead
+     */
+    @Deprecated
+    public <T> T put(Block signBlock, T metadata) {
+        return put(signBlock, true, metadata);
+    }
+
+    /**
+     * @deprecated Assumes front side of the sign. Please specify the side of the sign with
+     *             {@link #put(Sign, boolean, Object)} instead
+     */
+    @Deprecated
+    public <T> T put(Sign sign, T metadata) {
+        return put(sign, true, metadata);
+    }
+
+    /**
+     * @deprecated Assumes front side of the sign. Please specify the side of the sign with
+     *             {@link #remove(Block, boolean, Class)} instead
+     */
+    @Deprecated
+    public <T> T remove(Block signBlock, Class<T> metadataType) {
+        return remove(signBlock, true, metadataType);
+    }
+
+    /**
+     * @deprecated Assumes front side of the sign. Please specify the side of the sign with
+     *             {@link #remove(OfflineBlock, boolean, Class)} instead
+     */
+    @Deprecated
+    public <T> T remove(OfflineBlock signBlock, Class<T> metadataType) {
+        return remove(signBlock, true, metadataType);
+    }
+
+    /**
+     * Returns the current metadata stored for a sign, similar to {@link #get(RailLookup.TrackedSign, Class)},
+     * but if no metadata is currently stored computes a new metadata value to store. If the factory
+     * returns null, then no metadata will be stored.<br>
+     * <br>
+     * Unlike the Block version of this same function, it is less error-prone when the sign
+     * is not yet fully initialized (lines not known).<br>
+     * <br>
+     * Only works with tracked signs that refer to real signs.
+     *
+     * @param <T> Type of metadata
+     * @param sign TrackedSign state. Must be a real sign.
+     * @param metadataType Class type of metadata to check for
+     * @param factory Factory method called to create new metadata if none exists yet
+     * @return Computed metadata, null if the factory method returns null
+     */
+    public <T> T computeIfAbsent(RailLookup.TrackedSign sign, Class<T> metadataType, Function<OfflineSign, ? extends T> factory) {
+        if (sign instanceof RailLookup.TrackedRealSign) {
+            return computeIfAbsent( sign.sign,
+                                    ((RailLookup.TrackedRealSign) sign).isFrontText(),
+                                    metadataType,
+                                    factory);
+        } else {
+            throw new IllegalArgumentException("Sign is not a real physical sign and cannot store metadata");
+        }
+    }
+
+    /**
+     * Returns the current metadata stored for a sign, similar to {@link #get(Sign, boolean, Class)},
      * but if no metadata is currently stored computes a new metadata value to store. If the factory
      * returns null, then no metadata will be stored.<br>
      * <br>
@@ -257,39 +348,45 @@ public class OfflineSignStore {
      *
      * @param <T> Type of metadata
      * @param sign Sign state
+     * @param frontText Whether to store for the front text of the sign (true) or back text
+     *                  (false, &gt;= MC 1.20)
      * @param metadataType Class type of metadata to check for
      * @param factory Factory method called to create new metadata if none exists yet
      * @return Computed metadata, null if the factory method returns null
      */
-    public <T> T computeIfAbsent(Sign sign, Class<T> metadataType, Function<OfflineSign, ? extends T> factory) {
+    public <T> T computeIfAbsent(Sign sign, boolean frontText, Class<T> metadataType, Function<OfflineSign, ? extends T> factory) {
         return computeIfAbsentImpl(OfflineWorld.of(sign.getWorld()),
                                    new IntVector3(sign.getX(), sign.getY(), sign.getZ()),
+                                   frontText,
                                    () -> sign,
                                    metadataType,
                                    factory);
     }
 
     /**
-     * Returns the current metadata stored for a sign block, similar to {@link #get(Block, Class)},
+     * Returns the current metadata stored for a sign block, similar to {@link #get(Block, boolean, Class)},
      * but if no metadata is currently stored computes a new metadata value to store. If the factory
      * returns null, then no metadata will be stored.
      *
      * @param <T> Type of metadata
      * @param signBlock Sign block, must be of a sign
+     * @param frontText Whether to store for the front text of the sign (true) or back text
+     *                  (false, &gt;= MC 1.20)
      * @param metadataType Class type of metadata to check for
      * @param factory Factory method called to create new metadata if none exists yet
      * @return Computed metadata, null if the factory method returns null
      */
-    public <T> T computeIfAbsent(Block signBlock, Class<T> metadataType, Function<OfflineSign, ? extends T> factory) {
+    public <T> T computeIfAbsent(Block signBlock, boolean frontText, Class<T> metadataType, Function<OfflineSign, ? extends T> factory) {
         return computeIfAbsentImpl(OfflineWorld.of(signBlock.getWorld()),
                                    new IntVector3(signBlock),
+                                   frontText,
                                    signFromBlockSupplier(signBlock),
                                    metadataType,
                                    factory);
     }
 
     @SuppressWarnings("unchecked")
-    private <T> T computeIfAbsentImpl(OfflineWorld world, IntVector3 position, Supplier<Sign> signGetter,
+    private <T> T computeIfAbsentImpl(OfflineWorld world, IntVector3 position, boolean frontText, Supplier<Sign> signGetter,
             Class<T> metadataType, Function<OfflineSign, ? extends T> factory
     ) {
         MetadataHandlerEntry<T> handlerEntry = findHandlerByType(metadataType);
@@ -299,6 +396,9 @@ public class OfflineSignStore {
         OfflineSignWorldStore atWorld = forWorld(world);
         List<OfflineMetadataEntry<Object>> entries = atWorld.at(position);
         for (OfflineMetadataEntry<Object> entry : entries) {
+            if (entry.sign.isFrontText() != frontText) {
+                continue;
+            }
             sign = entry.sign;
             if (entry.handlerEntry == handlerEntry) {
                 return (T) entry.metadata;
@@ -307,7 +407,7 @@ public class OfflineSignStore {
 
         // Instantiate a new sign - error if this is not actually a sign!
         if (sign == null) {
-            sign = new OfflineSign(world.getBlockAt(position), signGetter.get().getLines());
+            sign = OfflineSign.fromSign(signGetter.get(), frontText);
         }
 
         // Ask factory for new metadata and store it if not null
@@ -331,20 +431,67 @@ public class OfflineSignStore {
      * currently loaded.
      *
      * @param <T> Type of metadata
+     * @param sign OfflineSign to store the metadata for. Must be a real sign.
+     * @param metadata New Metadata to store
+     * @return Previous metadata that was stored, or null if none was stored
+     *         and no metadata was updated
+     */
+    public <T> T putIfPresent(OfflineSign sign, T metadata) {
+        return putIfPresent(sign.getBlock(), sign.isFrontText(), metadata);
+    }
+
+    /**
+     * Updates the metadata for a sign block that already has metadata stored
+     * in this store. Does nothing and returns null if no previous metadata is
+     * stored, otherwise returns the previously stored metadata (non-null).<br>
+     * <br>
+     * This uniquely allows for updating the metadata without having to know
+     * the current sign details, and can be used to update signs that aren't
+     * currently loaded.
+     *
+     * @param <T> Type of metadata
+     * @param sign TrackedSign to store the metadata for. Must be a real sign.
+     * @param metadata New Metadata to store
+     * @return Previous metadata that was stored, or null if none was stored
+     *         and no metadata was updated
+     */
+    public <T> T putIfPresent(RailLookup.TrackedSign sign, T metadata) {
+        if (sign instanceof RailLookup.TrackedRealSign) {
+            return putIfPresent( OfflineBlock.of(sign.signBlock),
+                                 ((RailLookup.TrackedRealSign) sign).isFrontText(),
+                                 metadata );
+        } else {
+            //throw new IllegalArgumentException("Sign is not a real physical sign and cannot store metadata");
+            return null;
+        }
+    }
+
+    /**
+     * Updates the metadata for a sign block that already has metadata stored
+     * in this store. Does nothing and returns null if no previous metadata is
+     * stored, otherwise returns the previously stored metadata (non-null).<br>
+     * <br>
+     * This uniquely allows for updating the metadata without having to know
+     * the current sign details, and can be used to update signs that aren't
+     * currently loaded.
+     *
+     * @param <T> Type of metadata
      * @param signBlock OfflineBlock (world + coordinates) where the sign is at
+     * @param frontText Whether to store for the front text of the sign (true) or back text
+     *                  (false, &gt;= MC 1.20)
      * @param metadata New Metadata to store
      * @return Previous metadata that was stored, or null if none was stored
      *         and no metadata was updated
      */
     @SuppressWarnings("unchecked")
-    public <T> T putIfPresent(OfflineBlock signBlock, T metadata) {
+    public <T> T putIfPresent(OfflineBlock signBlock, boolean frontText, T metadata) {
         OfflineSignWorldStore atWorld = forWorld(signBlock.getWorld());
         MetadataHandlerEntry<T> handlerEntry = findHandler(metadata);
 
         // Find an existing sign metadata entry and update that if found
         List<OfflineMetadataEntry<Object>> entries = atWorld.at(signBlock.getPosition());
         for (OfflineMetadataEntry<Object> entry : entries) {
-            if (entry.handlerEntry == handlerEntry) {
+            if (entry.sign.isFrontText() == frontText && entry.handlerEntry == handlerEntry) {
                 T oldValue = (T) entry.metadata;
                 entry.setMetadata(metadata);
                 return oldValue;
@@ -361,13 +508,34 @@ public class OfflineSignStore {
      * than the Block method, whose sign may not yet be fully initialized.
      *
      * @param <T> Type of metadata
-     * @param sign Sign to store the metadata for
+     * @param sign TrackedSign to store the metadata for. Must be a real sign.
      * @param metadata Metadata to store
      * @return Previous metadata that was stored, or null if none was stored
      */
-    public <T> T put(Sign sign, T metadata) {
+    public <T> T put(RailLookup.TrackedSign sign, T metadata) {
+        if (sign instanceof RailLookup.TrackedRealSign) {
+            return put(sign.sign, ((RailLookup.TrackedRealSign) sign).isFrontText(), metadata);
+        } else {
+            throw new IllegalArgumentException("Sign is not a real physical sign and cannot store metadata");
+        }
+    }
+
+    /**
+     * Stores new or updated metadata for a sign. The initial sign
+     * lines are read from the sign specified. This is less error-prone
+     * than the Block method, whose sign may not yet be fully initialized.
+     *
+     * @param <T> Type of metadata
+     * @param sign Sign to store the metadata for
+     * @param frontText Whether to store for the front text of the sign (true) or back text
+     *                  (false, &gt;= MC 1.20)
+     * @param metadata Metadata to store
+     * @return Previous metadata that was stored, or null if none was stored
+     */
+    public <T> T put(Sign sign, boolean frontText, T metadata) {
         return putImpl(OfflineWorld.of(sign.getWorld()),
                        new IntVector3(sign.getX(), sign.getY(), sign.getZ()),
+                       frontText,
                        () -> sign,
                        metadata);
     }
@@ -377,18 +545,21 @@ public class OfflineSignStore {
      *
      * @param <T> Type of metadata
      * @param signBlock Sign block, must be of a sign
+     * @param frontText Whether to store for the front text of the sign (true) or back text
+     *                  (false, &gt;= MC 1.20)
      * @param metadata Metadata to store
      * @return Previous metadata that was stored, or null if none was stored
      */
-    public <T> T put(Block signBlock, T metadata) {
+    public <T> T put(Block signBlock, boolean frontText, T metadata) {
         return putImpl(OfflineWorld.of(signBlock.getWorld()),
                        new IntVector3(signBlock),
+                       frontText,
                        signFromBlockSupplier(signBlock),
                        metadata);
     }
 
     @SuppressWarnings("unchecked")
-    private <T> T putImpl(OfflineWorld world, IntVector3 position, Supplier<Sign> signGetter, T metadata) {
+    private <T> T putImpl(OfflineWorld world, IntVector3 position, boolean frontText, Supplier<Sign> signGetter, T metadata) {
         OfflineSignWorldStore atWorld = forWorld(world);
         MetadataHandlerEntry<T> handlerEntry = findHandler(metadata);
 
@@ -396,6 +567,9 @@ public class OfflineSignStore {
         OfflineSign offlineSign = null;
         List<OfflineMetadataEntry<Object>> entries = atWorld.at(position);
         for (OfflineMetadataEntry<Object> entry : entries) {
+            if (entry.sign.isFrontText() != frontText) {
+                continue;
+            }
             offlineSign = entry.sign;
             if (entry.handlerEntry == handlerEntry) {
                 T oldValue = (T) entry.metadata;
@@ -406,7 +580,7 @@ public class OfflineSignStore {
 
         // Instantiate a new sign - error if this is not actually a sign!
         if (offlineSign == null) {
-            offlineSign = new OfflineSign(world.getBlockAt(position), signGetter.get().getLines());
+            offlineSign = OfflineSign.fromSign(signGetter.get(), frontText);
         }
 
         // Create new
@@ -448,15 +622,46 @@ public class OfflineSignStore {
     }
 
     /**
+     * Gets sign metadata stored for a sign
+     *
+     * @param <T> Type of metadata
+     * @param sign OfflineSign whose metadata to get. Must be a real sign.
+     * @param metadataType Class type of metadata to check for
+     * @return metadata stored of this type, or null if none/incompatible is stored
+     */
+    public <T> T get(OfflineSign sign, Class<T> metadataType) {
+        return get(sign.getBlock(), sign.isFrontText(), metadataType);
+    }
+
+    /**
+     * Gets sign metadata stored for a sign
+     *
+     * @param <T> Type of metadata
+     * @param sign TrackedSign whose metadata to get. Must be a real sign.
+     * @param metadataType Class type of metadata to check for
+     * @return metadata stored of this type, or null if none/incompatible is stored
+     */
+    public <T> T get(RailLookup.TrackedSign sign, Class<T> metadataType) {
+        if (sign instanceof RailLookup.TrackedRealSign) {
+            return get(sign.sign, ((RailLookup.TrackedRealSign) sign).isFrontText(), metadataType);
+        } else {
+            //throw new IllegalArgumentException("Sign is not a real physical sign and cannot store metadata");
+            return null;
+        }
+    }
+
+    /**
      * Gets sign metadata stored for a sign at the given block
      *
      * @param <T> Type of metadata
      * @param signBlock Block the sign is at
+     * @param frontText Whether to store for the front text of the sign (true) or back text
+     *                  (false, &gt;= MC 1.20)
      * @param metadataType Class type of metadata to check for
      * @return metadata stored of this type, or null if none/incompatible is stored
      */
-    public <T> T get(Block signBlock, Class<T> metadataType) {
-        return get(OfflineWorld.of(signBlock.getWorld()), new IntVector3(signBlock), metadataType);
+    public <T> T get(Block signBlock, boolean frontText, Class<T> metadataType) {
+        return get(OfflineWorld.of(signBlock.getWorld()), new IntVector3(signBlock), frontText, metadataType);
     }
 
     /**
@@ -464,12 +669,15 @@ public class OfflineSignStore {
      *
      * @param <T> Type of metadata
      * @param sign Sign whose metadata to get
+     * @param frontText Whether to store for the front text of the sign (true) or back text
+     *                  (false, &gt;= MC 1.20)
      * @param metadataType Class type of metadata to check for
      * @return metadata stored of this type, or null if none/incompatible is stored
      */
-    public <T> T get(Sign sign, Class<T> metadataType) {
+    public <T> T get(Sign sign, boolean frontText, Class<T> metadataType) {
         return get(OfflineWorld.of(sign.getWorld()),
                 new IntVector3(sign.getX(), sign.getY(), sign.getZ()),
+                frontText,
                 metadataType);
     }
 
@@ -478,11 +686,13 @@ public class OfflineSignStore {
      *
      * @param <T> Type of metadata
      * @param signBlock OfflineBlock the sign is at
+     * @param frontText Whether to store for the front text of the sign (true) or back text
+     *                  (false, &gt;= MC 1.20)
      * @param metadataType Class type of metadata to check for
      * @return metadata stored of this type, or null if none/incompatible is stored
      */
-    public <T> T get(OfflineBlock signBlock, Class<T> metadataType) {
-        return get(signBlock.getWorld(), signBlock.getPosition(), metadataType);
+    public <T> T get(OfflineBlock signBlock, boolean frontText, Class<T> metadataType) {
+        return get(signBlock.getWorld(), signBlock.getPosition(), frontText, metadataType);
     }
 
     /**
@@ -491,12 +701,17 @@ public class OfflineSignStore {
      * @param <T> Type of metadata
      * @param world World, can be loaded or not loaded
      * @param position Coordinates of the sign on the world
+     * @param frontText Whether to store for the front text of the sign (true) or back text
+     *                  (false, &gt;= MC 1.20)
      * @param metadataType Class type of metadata to check for
      * @return metadata stored of this type, or null if none/incompatible is stored
      */
     @SuppressWarnings("unchecked")
-    public <T> T get(OfflineWorld world, IntVector3 position, Class<T> metadataType) {
+    public <T> T get(OfflineWorld world, IntVector3 position, boolean frontText, Class<T> metadataType) {
         for (OfflineMetadataEntry<?> entry : forWorld(world).at(position)) {
+            if (entry.sign.isFrontText() != frontText) {
+                continue;
+            }
             Object metadata = entry.getMetadata();
             if (metadataType.isInstance(metadata)) {
                 return (T) metadata;
@@ -514,6 +729,19 @@ public class OfflineSignStore {
      */
     public void removeAll(Block signBlock) {
         removeAll(OfflineBlock.of(signBlock));
+    }
+
+    /**
+     * Removes all metadata types stored for a sign at the given block,
+     * for a single side of the sign. If metadata is stored and a handler is
+     * installed, the handler will be notified of the removal.
+     *
+     * @param signBlock Block where the sign is at
+     * @param frontText Whether to remove all metadata for the front text of the
+     *                  sign (true) or back text (false, &gt;= MC 1.20)
+     */
+    public void removeAll(Block signBlock, boolean frontText) {
+        removeAll(OfflineBlock.of(signBlock), frontText);
     }
 
     /**
@@ -545,17 +773,88 @@ public class OfflineSignStore {
     }
 
     /**
+     * Removes all metadata types stored for a sign at the given block,
+     * for a single side of the sign. If metadata is stored and a handler is
+     * installed, the handler will be notified of the removal.
+     *
+     * @param signBlock OfflineBlock where the sign is at
+     * @param frontText Whether to remove all metadata for the front text of the
+     *                  sign (true) or back text (false, &gt;= MC 1.20)
+     */
+    public void removeAll(OfflineBlock signBlock, boolean frontText) {
+        OfflineSignWorldStore atWorld = forWorld(signBlock.getWorld());
+        boolean hasMoreMetadata;
+        do {
+            // Generally only one metadata value is stored, but it could be multiple
+            // The handler onRemoved callback could mutate the store, so we must not take
+            // any chances and create a new iterator for every entry that remains.
+            Iterator<OfflineMetadataEntry<Object>> iter = atWorld.at(signBlock.getPosition()).iterator();
+            OfflineMetadataEntry<Object> entry;
+            while (true) {
+                if (!iter.hasNext()) {
+                    return;
+                }
+                entry = iter.next();
+                if (entry.sign.isFrontText() == frontText) {
+                    break;
+                }
+            }
+
+            // Remove it
+            hasMoreMetadata = iter.hasNext();
+            iter.remove();
+            atWorld.atChunk(signBlock.getPosition().toChunkCoordinates()).remove(entry);
+            onEntryRemoved(entry);
+        } while (hasMoreMetadata);
+    }
+
+    /**
+     * Gets and removes metadata stored for a sign.
+     * If metadata is stored here and a handler is installed, will notify
+     * the handler of removal.
+     *
+     * @param <T> Type of metadata
+     * @param sign OfflineSign state of the sign.
+     * @param metadataType Class type of metadata to check for
+     * @return Found metadata that was removed, or null if none was stored
+     */
+    public <T> T remove(OfflineSign sign, Class<T> metadataType) {
+        return remove(sign.getBlock(), sign.isFrontText(), metadataType);
+    }
+
+    /**
+     * Gets and removes metadata stored for a sign.
+     * If metadata is stored here and a handler is installed, will notify
+     * the handler of removal.
+     *
+     * @param <T> Type of metadata
+     * @param sign TrackedSign of the sign. Must be of a real sign.
+     * @param metadataType Class type of metadata to check for
+     * @return Found metadata that was removed, or null if none was stored
+     */
+    public <T> T remove(RailLookup.TrackedSign sign, Class<T> metadataType) {
+        if (sign instanceof RailLookup.TrackedRealSign) {
+            return remove(sign.signBlock, ((RailLookup.TrackedRealSign) sign).isFrontText(), metadataType);
+        } else {
+            //throw new IllegalArgumentException("Sign is not a real physical sign and cannot store metadata");
+            return null;
+        }
+    }
+
+    /**
      * Gets and removes metadata stored for a sign at the given block.
      * If metadata is stored here and a handler is installed, will notify
      * the handler of removal.
      *
      * @param <T> Type of metadata
      * @param signBlock Block the sign is at
+     * @param frontText Whether to store for the front text of the sign (true) or back text
+     *                  (false, &gt;= MC 1.20)
      * @param metadataType Class type of metadata to check for
      * @return Found metadata that was removed, or null if none was stored
      */
-    public <T> T remove(Block signBlock, Class<T> metadataType) {
-        return remove(OfflineBlock.of(signBlock), metadataType);
+    public <T> T remove(Block signBlock, boolean frontText, Class<T> metadataType) {
+        return remove(OfflineBlock.of(signBlock), frontText, metadataType);
     }
 
     /**
@@ -569,15 +868,20 @@ public class OfflineSignStore {
      *
      * @param <T> Type of metadata
      * @param signBlock OfflineBlock (OfflineWorld + coordinates) where the sign is at
+     * @param frontText Whether to store for the front text of the sign (true) or back text
+     *                  (false, &gt;= MC 1.20)
      * @param metadataType Class type of metadata to check for
      * @return Found metadata that was removed, or null if none was stored
      */
     @SuppressWarnings("unchecked")
-    public <T> T remove(OfflineBlock signBlock, Class<T> metadataType) {
+    public <T> T remove(OfflineBlock signBlock, boolean frontText, Class<T> metadataType) {
         OfflineSignWorldStore atWorld = forWorld(signBlock.getWorld());
         Iterator<OfflineMetadataEntry<Object>> iter = atWorld.at(signBlock.getPosition()).iterator();
         while (iter.hasNext()) {
             OfflineMetadataEntry<Object> entry = iter.next();
+            if (entry.sign.isFrontText() != frontText) {
+                continue;
+            }
             Object metadata = entry.getMetadata();
             if (metadataType.isInstance(metadata)) {
                 iter.remove();
@@ -593,6 +897,31 @@ public class OfflineSignStore {
      * Verifies the sign contents of metadata stored for a sign are still correct. If they
      * are not, asks the handler for this metadata what to do. The handler can generate more
      * up-to-date metadata, which is then set and returned by this method. If the sign is
+     * no longer valid, the metadata is removed.
+     *
+     * @param sign Bukkit Sign with the up-to-date sign information
+     */
+    public void verifySign(Sign sign) {
+        IntVector3 position = new IntVector3(sign.getX(), sign.getY(), sign.getZ());
+        OfflineSignWorldStore atWorld = forWorld(sign.getWorld());
+        Iterator<OfflineMetadataEntry<Object>> iter = atWorld.at(position).iterator();
+        while (iter.hasNext()) {
+            OfflineMetadataEntry<Object> entry = iter.next();
+            if (!entry.sign.verify(sign)) {
+                OfflineSign newSign = OfflineSign.fromSign(sign, entry.sign.isFrontText());
+                if (!entry.callOnSignChanged(newSign)) {
+                    iter.remove();
+                    atWorld.atChunk(position.toChunkCoordinates()).remove(entry);
+                    onEntryRemoved(entry);
+                }
+            }
+        }
+    }
+
+    /**
+     * Verifies the sign contents of metadata stored for a sign are still correct. If they
+     * are not, asks the handler for this metadata what to do. The handler can generate more
+     * up-to-date metadata, which is then set and returned by this method. If the sign is
      * no longer valid, the metadata is removed and null is returned here.<br>
      * <br>
      * To verify any kind of metadata at all, simply pass a <i>null</i> metadataType. In that
@@ -600,20 +929,25 @@ public class OfflineSignStore {
      *
      * @param <T> Type of metadata
      * @param sign Bukkit Sign with the up-to-date sign information
+     * @param frontText Whether to store for the front text of the sign (true) or back text
+     *                  (false, &gt;= MC 1.20)
      * @param metadataType Class type of metadata to verify. Null to verify all (and return null)
      * @return Metadata now stored for this sign. Null if no metadata was stored, or the sign
      *         was invalid and metadata was removed.
      */
     @SuppressWarnings("unchecked")
-    public <T> T verifySign(Sign sign, Class<T> metadataType) {
+    public <T> T verifySign(Sign sign, boolean frontText, Class<T> metadataType) {
         IntVector3 position = new IntVector3(sign.getX(), sign.getY(), sign.getZ());
         OfflineSignWorldStore atWorld = forWorld(sign.getWorld());
         Iterator<OfflineMetadataEntry<Object>> iter = atWorld.at(position).iterator();
         T result = null;
         while (iter.hasNext()) {
             OfflineMetadataEntry<Object> entry = iter.next();
+            if (entry.sign.isFrontText() != frontText) {
+                continue;
+            }
             if (!entry.sign.verify(sign)) {
-                OfflineSign newSign = OfflineSign.fromSign(sign);
+                OfflineSign newSign = OfflineSign.fromSign(sign, frontText);
                 if (!entry.callOnSignChanged(newSign)) {
                     iter.remove();
                     atWorld.atChunk(position.toChunkCoordinates()).remove(entry);
@@ -701,7 +1035,10 @@ public class OfflineSignStore {
         // In practise this can't happen unless someone corrupted the sign data file.
         boolean hasDuplicateEntry = false;
         for (OfflineMetadataEntry<Object> existingEntry : entriesAtBlock) {
-            if (existingEntry != entry && existingEntry.handlerEntry == handler) {
+            if (existingEntry != entry &&
+                existingEntry.sign.isFrontText() == entry.sign.isFrontText() &&
+                existingEntry.handlerEntry == handler
+            ) {
                 hasDuplicateEntry = true;
                 break;
             }
@@ -790,7 +1127,7 @@ public class OfflineSignStore {
                 }
 
                 // Ask handler what to do with it. If there is no handler, just deletes it.
-                OfflineSign newSign = OfflineSign.fromSign(sign);
+                OfflineSign newSign = OfflineSign.fromSign(sign, entry.sign.isFrontText());
                 if (entry.callOnSignChanged(newSign)) {
                     continue; // OK
                 }
@@ -1315,37 +1652,53 @@ public class OfflineSignStore {
                     try (FileInputStream f_stream = new FileInputStream(this.saveFile);
                          DataInputStream stream = new DataInputStream(f_stream))
                     {
-                        int versionCode = readVariableLengthInt(stream);
-                        if (versionCode == 1) {
-                            while (stream.available() > 0) {
-                                // Read metadata bytes
-                                byte[] encodedData = new byte[readVariableLengthInt(stream)];
-                                stream.readFully(encodedData);
-
-                                // Decode just the sign metadata bit
-                                OfflineSign sign;
-                                String metadataTypeName;
-                                try (ByteArrayInputStream m_b_stream = new ByteArrayInputStream(encodedData);
-                                     InflaterInputStream m_d_stream = new InflaterInputStream(m_b_stream);
-                                     DataInputStream m_stream = new DataInputStream(m_d_stream))
-                                {
-                                    sign = OfflineSign.readFrom(m_stream);
-                                    metadataTypeName = m_stream.readUTF();
-                                }
-
-                                // Import it into the store
-                                OfflineMetadataEntry<Object> newEntry = new OfflineMetadataEntry<Object>(sign, encodedData);
-                                loadEntry(metadataTypeName, newEntry);
-                            }
-                        } else {
-                            logger.log(Level.SEVERE, "Failed to read sign metadata: unsupported version");
-                        }
+                        load(stream);
                     }
                 } catch (EOFException ex) {
                     logger.log(Level.SEVERE, "Reached unexpected end-of-file while reading sign metadata (corrupted file?)");
                 } catch (IOException ex) {
                     logger.log(Level.SEVERE, "Failed to read sign metadata", ex);
                 }
+            }
+        }
+
+        private void load(DataInputStream stream) throws IOException {
+            int versionCode = readVariableLengthInt(stream);
+
+            // Upgrade from V1 to v2, recurse try again
+            if (versionCode == 1) {
+                logger.log(Level.WARNING, "Upgrading offline sign metadata format from V1 to V2");
+                try (DataInputStream upgraded = OfflineSignStoreUpgradeV1ToV2.upgrade(stream)) {
+                    load(upgraded);
+                }
+                return;
+            }
+
+            // Must be V2 no later
+            if (versionCode != 2) {
+                logger.log(Level.SEVERE, "Failed to read sign metadata: unsupported version " + versionCode);
+                return;
+            }
+
+            while (stream.available() > 0) {
+                // Read metadata bytes
+                byte[] encodedData = new byte[readVariableLengthInt(stream)];
+                stream.readFully(encodedData);
+
+                // Decode just the sign metadata bit
+                OfflineSign sign;
+                String metadataTypeName;
+                try (ByteArrayInputStream m_b_stream = new ByteArrayInputStream(encodedData);
+                     InflaterInputStream m_d_stream = new InflaterInputStream(m_b_stream);
+                     DataInputStream m_stream = new DataInputStream(m_d_stream))
+                {
+                    sign = OfflineSign.readFrom(m_stream);
+                    metadataTypeName = m_stream.readUTF();
+                }
+
+                // Import it into the store
+                OfflineMetadataEntry<Object> newEntry = new OfflineMetadataEntry<Object>(sign, encodedData);
+                loadEntry(metadataTypeName, newEntry);
             }
         }
 
@@ -1360,7 +1713,7 @@ public class OfflineSignStore {
                 try (FileOutputStream f_stream = new FileOutputStream(tmpFile);
                      DataOutputStream stream = new DataOutputStream(f_stream))
                 {
-                    writeVariableLengthInt(stream, 1);
+                    writeVariableLengthInt(stream, 2); // Version 2
                     for (OfflineMetadataEntry<?> entry : allEntries.cloneAsIterable()) {
                         byte[] encodedData = entry.encodeMetadata();
                         if (encodedData != null) {
@@ -1440,7 +1793,7 @@ public class OfflineSignStore {
         throw new IOException("Atomic move from " + fromFile + " to " + toFile + " failed");
     }
 
-    private static int readVariableLengthInt(InputStream stream) throws IOException {
+    static int readVariableLengthInt(InputStream stream) throws IOException {
         // Read bytes as 7-bit chunks and keep reading/or-ing while the 8th bit is set
         int value = 0;
         int b;
@@ -1456,7 +1809,7 @@ public class OfflineSignStore {
         return value;
     }
 
-    private static void writeVariableLengthInt(OutputStream stream, int value) throws IOException {
+    static void writeVariableLengthInt(OutputStream stream, int value) throws IOException {
         // Get the number of 7-bit chunks to encode the number with some bit magic
         int numExtraBits = ((Integer.SIZE - Integer.numberOfLeadingZeros(value)) / 7) * 7;
         while (numExtraBits > 0) {

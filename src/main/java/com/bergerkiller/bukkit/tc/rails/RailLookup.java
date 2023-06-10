@@ -7,6 +7,7 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -32,6 +33,7 @@ import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.utils.FakeSign;
+import org.bukkit.event.block.SignChangeEvent;
 
 /**
  * Manages the {@link WorldRailLookup} caches for all worlds they exist on.
@@ -682,17 +684,15 @@ public final class RailLookup {
 
         /**
          * Gets a unique key by which this tracked sign can be identified. For real signs,
-         * this is this the sign block. For custom signs a custom tracking key can be
-         * added. A unique key is required to prevent one tracked sign overwriting another
-         * during tracking by trains.<br>
+         * this is this the sign block with front/back parity. For custom signs a custom
+         * tracking key can be added. A unique key is required to prevent one tracked sign
+         * overwriting another during tracking by trains.<br>
          * <br>
          * This key should not change during the lifetime of this TrackedSign
          *
          * @return unique key
          */
-        public Object getUniqueKey() {
-            return this.signBlock;
-        }
+        public abstract Object getUniqueKey();
 
         @Override
         public boolean equals(Object o) {
@@ -705,16 +705,12 @@ public final class RailLookup {
          * @param signTracker Sign Tracker for the Sign
          * @param rail Rail Piece the sign is for. If null, searches for the rail at the sign
          * @return TrackedSign for the sign tracked by the signTracker
+         * @deprecated Tracks the front text of signs. Please use the alternative API to specify front or back
+         *             to avoid possible broken behavior.
          */
+        @Deprecated
         public static TrackedSign forRealSign(SignChangeTracker signTracker, RailPiece rail) {
-            if (signTracker.isRemoved()) {
-                throw new IllegalArgumentException("Sign does not exist at sign block " + signTracker.getBlock());
-            }
-            if (rail == null) {
-                rail = RailLookup.discoverRailPieceFromSign(signTracker.getBlock());
-            }
-            //TODO: Don't abuse static
-            return new TrackedRealSign(TrainCarts.plugin, signTracker, rail);
+            return forRealSign(signTracker, true, rail);
         }
 
         /**
@@ -723,12 +719,12 @@ public final class RailLookup {
          * @param signBlock Sign Block
          * @param rail Rail Piece the sign is for. If null, searches for the rail at the sign
          * @return TrackedSign for the sign tracked by the signTracker
+         * @deprecated Tracks the front text of signs. Please use the alternative API to specify front or back
+         *             to avoid possible broken behavior.
          */
+        @Deprecated
         public static TrackedSign forRealSign(Block signBlock, RailPiece rail) {
-            if (signBlock == null) {
-                throw new IllegalArgumentException("Sign block is null");
-            }
-            return forRealSign(SignChangeTracker.track(signBlock), rail);
+            return forRealSign(signBlock, true, rail);
         }
 
         /**
@@ -737,12 +733,80 @@ public final class RailLookup {
          * @param sign Sign
          * @param rail Rail Piece the sign is for. If null, searches for the rail at the sign
          * @return TrackedSign for the sign tracked by the signTracker
+         * @deprecated Tracks the front text of signs. Please use the alternative API to specify front or back
+         *             to avoid possible broken behavior.
          */
+        @Deprecated
         public static TrackedSign forRealSign(Sign sign, RailPiece rail) {
+            return forRealSign(sign, true, rail);
+        }
+
+        /**
+         * Returns a new TrackedSign that tracks a real existing Sign Block. Uses front text only.
+         *
+         * @param sign Sign. If null, searches for a Sign at the signBlock instead
+         * @param signBlock Sign Block. If null, uses sign instead
+         * @param rail Rail Piece the sign is for. If null, searches for the rail at the sign
+         * @return TrackedSign for the sign tracked by the signTracker
+         * @deprecated Tracks the front text of signs. Please use the alternative API to specify front or back
+         *             to avoid possible broken behavior.
+         */
+        @Deprecated
+        public static TrackedSign forRealSign(Sign sign, Block signBlock, RailPiece rail) {
+            return forRealSign(sign, signBlock, true, rail);
+        }
+
+        /**
+         * Returns a new TrackedSign that tracks a real existing Sign Block.
+         *
+         * @param signTracker Sign Tracker for the Sign
+         * @param frontText Whether to represent the front text (true) or back text (false, MC 1.20+ only)
+         * @param rail Rail Piece the sign is for. If null, searches for the rail at the sign
+         * @return TrackedSign for the sign tracked by the signTracker
+         */
+        public static TrackedSign forRealSign(SignChangeTracker signTracker, boolean frontText, RailPiece rail) {
+            if (signTracker.isRemoved()) {
+                throw new IllegalArgumentException("Sign does not exist at sign block " + signTracker.getBlock());
+            }
+            if (rail == null) {
+                rail = RailLookup.discoverRailPieceFromSign(signTracker.getBlock());
+            }
+            //TODO: Don't abuse static
+            if (frontText) {
+                return new TrackedRealSignFront(TrainCarts.plugin, signTracker, rail);
+            } else {
+                return new TrackedRealSignBack(TrainCarts.plugin, signTracker, rail);
+            }
+        }
+
+        /**
+         * Returns a new TrackedSign that tracks a real existing Sign Block.
+         *
+         * @param signBlock Sign Block
+         * @param frontText Whether to represent the front text (true) or back text (false, MC 1.20+ only)
+         * @param rail Rail Piece the sign is for. If null, searches for the rail at the sign
+         * @return TrackedSign for the sign tracked by the signTracker
+         */
+        public static TrackedSign forRealSign(Block signBlock, boolean frontText, RailPiece rail) {
+            if (signBlock == null) {
+                throw new IllegalArgumentException("Sign block is null");
+            }
+            return forRealSign(SignChangeTracker.track(signBlock), frontText, rail);
+        }
+
+        /**
+         * Returns a new TrackedSign that tracks a real existing Sign Block.
+         *
+         * @param sign Sign
+         * @param frontText Whether to represent the front text (true) or back text (false, MC 1.20+ only)
+         * @param rail Rail Piece the sign is for. If null, searches for the rail at the sign
+         * @return TrackedSign for the sign tracked by the signTracker
+         */
+        public static TrackedSign forRealSign(Sign sign, boolean frontText, RailPiece rail) {
             if (sign == null) {
                 throw new IllegalArgumentException("Sign is null");
             }
-            return forRealSign(SignChangeTracker.track(sign), rail);
+            return forRealSign(SignChangeTracker.track(sign), frontText, rail);
         }
 
         /**
@@ -750,17 +814,30 @@ public final class RailLookup {
          *
          * @param sign Sign. If null, searches for a Sign at the signBlock instead
          * @param signBlock Sign Block. If null, uses sign instead
+         * @param frontText Whether to represent the front text (true) or back text (false, MC 1.20+ only)
          * @param rail Rail Piece the sign is for. If null, searches for the rail at the sign
          * @return TrackedSign for the sign tracked by the signTracker
          */
-        public static TrackedSign forRealSign(Sign sign, Block signBlock, RailPiece rail) {
+        public static TrackedSign forRealSign(Sign sign, Block signBlock, boolean frontText, RailPiece rail) {
             if (sign != null) {
-                return forRealSign(SignChangeTracker.track(sign), rail);
+                return forRealSign(SignChangeTracker.track(sign), frontText, rail);
             } else if (signBlock != null) {
-                return forRealSign(SignChangeTracker.track(signBlock), rail);
+                return forRealSign(SignChangeTracker.track(signBlock), frontText, rail);
             } else {
                 throw new IllegalArgumentException("No sign or sign block specified (null)");
             }
+        }
+
+        /**
+         * Represents the temporary information of a sign just changed by a Player. The side
+         * modified by the Player is used. Changing the lines of this tracked sign will
+         * modify the event rather than writing to the sign state.
+         *
+         * @param event Sign change event
+         * @return TrackedSign tracking this changing sign
+         */
+        public static TrackedSign forChangingSign(SignChangeEvent event) {
+            return new TrackedChangingSign(event);
         }
     }
 
@@ -777,8 +854,27 @@ public final class RailLookup {
         }
 
         public TrackedFakeSign(Block signBlock, RailPiece rail) {
-            super(new FakeSignImpl(signBlock), signBlock, rail);
-            ((FakeSignImpl) this.sign).fakeSign = this;
+            super(FakeSign.create(signBlock), signBlock, rail);
+            ((FakeSign) sign).setHandler(new FakeSign.Handler() {
+                @Override
+                public String getFrontLine(int index) {
+                    return TrackedFakeSign.this.getLine(index);
+                }
+
+                @Override
+                public void setFrontLine(int index, String text) {
+                    TrackedFakeSign.this.setLine(index, text);
+                }
+
+                @Override
+                public String getBackLine(int index) {
+                    return "";
+                }
+
+                @Override
+                public void setBackLine(int index, String text) {
+                }
+            });
         }
 
         /**
@@ -808,41 +904,162 @@ public final class RailLookup {
         public Object getUniqueKey() {
             return this; // Use fake sign instance for uniqueness - can be changed
         }
+    }
 
-        private static class FakeSignImpl extends FakeSign {
-            private TrackedFakeSign fakeSign;
+    /**
+     * A tracked sign that refers to a real, physical sign. This sign can be found at
+     * the sign block and has both a front and back side where text can be stored.
+     * Uniquely capable of storing persistent metadata in the Offline sign metadata
+     * store.
+     */
+    public static abstract class TrackedRealSign extends TrackedSign {
 
-            public FakeSignImpl(Block block) {
-                super(block);
+        TrackedRealSign(Sign sign, Block signBlock, RailPiece rail) {
+            super(sign, signBlock, rail);
+        }
+
+        @Override
+        public final boolean isRealSign() {
+            return true;
+        }
+
+        /**
+         * Gets whether this tracked sign refers to the front text of the sign (true)
+         * or the back side (false, &gt;= MC 1.20 only)
+         *
+         * @return True if this tracked sign is for the front text
+         */
+        public abstract boolean isFrontText();
+
+        @Override
+        public String toString() {
+            StringBuilder str = new StringBuilder();
+            str.append((this instanceof TrackedChangingSign) ? "TrackedChangingSign{" : "TrackedRealSign{");
+            str.append("world=").append(signBlock.getWorld().getName());
+            str.append(", x=").append(signBlock.getX());
+            str.append(", y=").append(signBlock.getY());
+            str.append(", z=").append(signBlock.getZ());
+            str.append(", side=").append(isFrontText() ? "front" : "back");
+            str.append(", lines=[");
+            for (int i = 0; i < 4; i++) {
+                if (i > 0) {
+                    str.append(" | ");
+                }
+                str.append(getLine(i));
             }
-
-            @Override
-            public String getLine(int index) throws IndexOutOfBoundsException {
-                return fakeSign.getLine(index);
-            }
-
-            @Override
-            public void setLine(int index, String line) throws IndexOutOfBoundsException {
-                fakeSign.setLine(index, line);
-            }
-
-            @Override
-            public boolean update() {
-                return true;
-            }
+            str.append("]}");
+            return str.toString();
         }
     }
 
-    private static class TrackedRealSign extends TrackedSign {
-        private final TrainCarts plugin;
-        private final SignChangeTracker tracker;
-        private final BlockFace facing;
+    private static class TrackedChangingSign extends TrackedRealSign {
+        private final SignChangeEvent event;
+        private final boolean front;
 
-        private TrackedRealSign(TrainCarts plugin, SignChangeTracker tracker, RailPiece rail) {
+        public TrackedChangingSign(SignChangeEvent event) {
+            super(FakeSign.create(event.getBlock()), event.getBlock(), RailPiece.NONE);
+            this.front = BlockUtil.isChangingFrontLines(event);
+            ((FakeSign) sign).setHandler(new FakeSign.HandlerSignFallback(signBlock) {
+                @Override
+                public String getFrontLine(int index) {
+                    return front ? event.getLine(index) : super.getFrontLine(index);
+                }
+
+                @Override
+                public void setFrontLine(int index, String text) {
+                    if (front) {
+                        event.setLine(index, text);
+                    } else {
+                        super.setFrontLine(index, text);
+                    }
+                }
+
+                @Override
+                public String getBackLine(int index) {
+                    return front ? super.getBackLine(index) : event.getLine(index);
+                }
+
+                @Override
+                public void setBackLine(int index, String text) {
+                    if (front) {
+                        super.setBackLine(index, text);
+                    } else {
+                        event.setLine(index, text);
+                    }
+                }
+            });
+            this.rail = null;
+            this.event = event;
+        }
+
+        @Override
+        public boolean isFrontText() {
+            return front;
+        }
+
+        @Override
+        public boolean verify() {
+            return false;
+        }
+
+        @Override
+        public boolean isRemoved() {
+            return !MaterialUtil.ISSIGN.get(event.getBlock());
+        }
+
+        @Override
+        public BlockFace getFacing() {
+            return BlockUtil.getFacing(event.getBlock());
+        }
+
+        @Override
+        public Block getAttachedBlock() {
+            return BlockUtil.getAttachedBlock(event.getBlock());
+        }
+
+        @Override
+        public String[] getExtraLines() {
+            return new String[0]; //TODO: important?
+        }
+
+        @Override
+        public PowerState getPower(BlockFace from) {
+            return PowerState.get(this.signBlock, from, true);
+        }
+
+        @Override
+        public String getLine(int index) throws IndexOutOfBoundsException {
+            return event.getLine(index);
+        }
+
+        @Override
+        public void setLine(int index, String line) throws IndexOutOfBoundsException {
+            event.setLine(index, line);
+        }
+
+        @Override
+        public Object getUniqueKey() {
+            return this;
+        }
+    }
+
+    private static abstract class TrackedRealSignBase extends TrackedRealSign {
+        protected final TrainCarts plugin;
+        protected final SignChangeTracker tracker;
+        protected final BlockFace facing;
+        private final RealSignKey key;
+
+        private TrackedRealSignBase(TrainCarts plugin, SignChangeTracker tracker, RailPiece rail, boolean front) {
             super(tracker.getSign(), tracker.getBlock(), rail);
             this.plugin = plugin;
             this.facing = tracker.getFacing();
             this.tracker = tracker;
+            this.key = new RealSignKey(signBlock, front);
+        }
+
+        @Override
+        public Object getUniqueKey() {
+            return key;
         }
 
         @Override
@@ -853,8 +1070,8 @@ public final class RailLookup {
             }
 
             return !tracker.isRemoved() &&
-                   tracker.getFacing() == facing &&
-                   tracker.getSign() == sign;
+                    tracker.getFacing() == facing &&
+                    tracker.getSign() == sign;
         }
 
         @Override
@@ -863,13 +1080,8 @@ public final class RailLookup {
         }
 
         @Override
-        public BlockFace getFacing() {
-            return this.facing;
-        }
-
-        @Override
-        public boolean isRealSign() {
-            return true;
+        public boolean isFrontText() {
+            return key.front;
         }
 
         @Override
@@ -892,7 +1104,10 @@ public final class RailLookup {
             do {
                 found = false;
                 for (TrackedSign sign : signs) {
-                    if (!(sign instanceof TrackedRealSign) || sign.getAction() != null) {
+                    if (!(sign instanceof TrackedRealSignBase) || sign.getAction() != null) {
+                        continue;
+                    }
+                    if (((TrackedRealSignBase) sign).isFrontText() != isFrontText()) {
                         continue;
                     }
 
@@ -919,22 +1134,89 @@ public final class RailLookup {
         }
 
         @Override
+        public boolean equals(Object o) {
+            if (o instanceof TrackedRealSignBase) {
+                return ((TrackedRealSignBase) o).key.equals(key);
+            }
+            return false;
+        }
+    }
+
+    private static class TrackedRealSignFront extends TrackedRealSignBase {
+
+        private TrackedRealSignFront(TrainCarts plugin, SignChangeTracker tracker, RailPiece rail) {
+            super(plugin, tracker, rail, true);
+        }
+
+        @Override
+        public BlockFace getFacing() {
+            return this.facing;
+        }
+
+        @Override
         public String getLine(int index) throws IndexOutOfBoundsException {
-            return this.sign.getLine(index);
+            return this.tracker.getFrontLine(index);
         }
 
         @Override
         public void setLine(int index, String line) throws IndexOutOfBoundsException {
-            this.sign.setLine(index, line);
-            this.sign.update(true);
+            this.tracker.setFrontLine(index, line);
+        }
+    }
+
+    private static class TrackedRealSignBack extends TrackedRealSignBase {
+
+        private TrackedRealSignBack(TrainCarts plugin, SignChangeTracker tracker, RailPiece rail) {
+            super(plugin, tracker, rail, false);
+        }
+
+        @Override
+        public BlockFace getFacing() {
+            return this.facing.getOppositeFace();
+        }
+
+        @Override
+        public String getLine(int index) throws IndexOutOfBoundsException {
+            return this.tracker.getBackLine(index);
+        }
+
+        @Override
+        public void setLine(int index, String line) throws IndexOutOfBoundsException {
+            this.tracker.setBackLine(index, line);
+        }
+    }
+
+    private static final class RealSignKey {
+        private final Block block;
+        private final boolean front;
+        private final int hashCode;
+
+        public RealSignKey(Block block, boolean front) {
+            this.block = block;
+            this.front = front;
+            this.hashCode = block.hashCode();
+        }
+
+        @Override
+        public int hashCode() {
+            return hashCode;
         }
 
         @Override
         public boolean equals(Object o) {
-            if (o instanceof TrackedRealSign) {
-                return ((TrackedSign) o).signBlock.equals(this.signBlock);
+            if (o == this) {
+                return true;
+            } else if (o instanceof RealSignKey) {
+                RealSignKey other = (RealSignKey) o;
+                return this.block.equals(other.block) && this.front == other.front;
+            } else {
+                return false;
             }
-            return false;
+        }
+
+        @Override
+        public String toString() {
+            return "RealSign{block=" + block + " side=" + (front ? "front" : "back") + "}";
         }
     }
 }

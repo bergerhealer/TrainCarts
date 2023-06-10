@@ -3,6 +3,8 @@ package com.bergerkiller.bukkit.tc.signactions.spawner;
 import java.util.Locale;
 import java.util.UUID;
 
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -23,11 +25,13 @@ import com.bergerkiller.bukkit.tc.offline.sign.OfflineSign;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
+import org.bukkit.block.Sign;
 
 public class SpawnSign {
     private final TrainCarts plugin;
     private final OfflineSignStore store;
     private final OfflineBlock location;
+    private final boolean frontText;
     private SpawnSignManager.SpawnSignMetadata state;
     private int ticksUntilFreeing = 0;
     private double spawnForce = 0.0;
@@ -39,6 +43,7 @@ public class SpawnSign {
         this.plugin = plugin;
         this.store = store;
         this.location = sign.getBlock();
+        this.frontText = sign.isFrontText();
         this.updateState(sign, metadata);
 
         // Add the 5x5 area of chunks around the sign as the initial chunks to load
@@ -70,12 +75,12 @@ public class SpawnSign {
 
     void updateUsingEvent(SignActionEvent event) {
         // Make sure stuff is up to date
-        this.store.verifySign(event.getSign(), SpawnSignManager.SpawnSignMetadata.class);
+        this.store.verifySign(event.getSign(), frontText, SpawnSignManager.SpawnSignMetadata.class);
 
         // Update active (redstone) state in case it changed without us knowing
         boolean active = event.isPowered();
         if (active != this.state.active) {
-            this.store.putIfPresent(this.location, this.state.setActive(active));
+            this.store.putIfPresent(location, frontText, this.state.setActive(active));
         }
     }
 
@@ -86,6 +91,16 @@ public class SpawnSign {
      */
     public OfflineBlock getLocation() {
         return this.location;
+    }
+
+    /**
+     * Gets whether this spawn sign was created on the front side of the sign (true),
+     * or back side (false)
+     *
+     * @return True if this is the front sign side
+     */
+    public boolean isFrontText() {
+        return this.frontText;
     }
 
     /**
@@ -170,9 +185,9 @@ public class SpawnSign {
      * after the current system time.
      */
     public void resetSpawnTime() {
-        if (this.store != null) {
-            this.store.putIfPresent(this.location, this.state.setAutoSpawnStart(
-                    System.currentTimeMillis() + this.state.intervalMillis));
+        if (store != null) {
+            store.putIfPresent(location, frontText, state.setAutoSpawnStart(
+                    System.currentTimeMillis() + state.intervalMillis));
         }
     }
 
@@ -232,7 +247,7 @@ public class SpawnSign {
      * Removes this spawn sign from the spawn sign manager
      */
     public void remove() {
-        this.store.remove(this.location, SpawnSignManager.SpawnSignMetadata.class);
+        this.store.remove(location, frontText, SpawnSignManager.SpawnSignMetadata.class);
     }
 
     /**
@@ -242,13 +257,18 @@ public class SpawnSign {
     public void spawn() {
         Block signBlock = this.location.getLoadedBlock();
         if (signBlock != null) {
-            SignActionEvent event = new SignActionEvent(signBlock);
-
-            // Before proceeding, verify the sign's contents again. May have changed!
-            if (store.verifySign(event.getSign(), SpawnSignManager.SpawnSignMetadata.class) == null) {
+            Sign bsign = BlockUtil.getSign(signBlock);
+            if (bsign == null) {
+                store.removeAll(signBlock);
                 return; // removed
             }
 
+            // Before proceeding, verify the sign's contents again. May have changed!
+            if (store.verifySign(bsign, frontText, SpawnSignManager.SpawnSignMetadata.class) == null) {
+                return; // removed
+            }
+
+            SignActionEvent event = new SignActionEvent(RailLookup.TrackedSign.forRealSign(bsign, frontText, null));
             if (isValid(event)) {
                 this.updateUsingEvent(event);
                 this.spawn(event);
@@ -270,7 +290,7 @@ public class SpawnSign {
         {
             // Before proceeding, verify the sign's contents again. May have changed!
             // Store can be null when a SpawnSign is created that is not tracked in the OfflineStore
-            if (store != null && store.verifySign(sign.getSign(), SpawnSignManager.SpawnSignMetadata.class) == null) {
+            if (store != null && store.verifySign(sign.getSign(), frontText, SpawnSignManager.SpawnSignMetadata.class) == null) {
                 return; // removed
             }
 

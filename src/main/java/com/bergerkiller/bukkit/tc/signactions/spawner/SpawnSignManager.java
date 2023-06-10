@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignSide;
 import org.bukkit.block.Block;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -30,7 +31,7 @@ public class SpawnSignManager {
     public static final long SPAWN_LOAD_DEBOUNCE = 30000; // Keep the area around a spawn sign loaded for at most 30s
     private final TrainCarts plugin;
     private final UpdateTask updateTask;
-    private final Map<OfflineBlock, SpawnSign> signs = new HashMap<OfflineBlock, SpawnSign>();
+    private final Map<OfflineSignSide, SpawnSign> signs = new HashMap<>();
     private List<SpawnSign> cachedSortedSigns = null; // when null, is re-sorted
 
     public SpawnSignManager(TrainCarts plugin) {
@@ -42,7 +43,7 @@ public class SpawnSignManager {
         this.plugin.getOfflineSigns().registerHandler(SpawnSignMetadata.class, new OfflineSignMetadataHandler<SpawnSignMetadata>() {
             @Override
             public void onUpdated(OfflineSignStore store, OfflineSign sign, SpawnSignMetadata oldValue, SpawnSignMetadata newValue) {
-                SpawnSign spawnSign = signs.get(sign.getBlock());
+                SpawnSign spawnSign = signs.get(sign.getSide());
                 if (spawnSign != null) {
                     spawnSign.updateState(sign, newValue);
                     notifyChanged();
@@ -52,13 +53,13 @@ public class SpawnSignManager {
             @Override
             public void onAdded(OfflineSignStore store, OfflineSign sign, SpawnSignMetadata metadata) {
                 SpawnSign newSpawnSign = new SpawnSign(plugin, store, sign, metadata);
-                signs.put(sign.getBlock(), newSpawnSign);
+                signs.put(sign.getSide(), newSpawnSign);
                 notifyChanged();
             }
 
             @Override
             public void onRemoved(OfflineSignStore store, OfflineSign sign, SpawnSignMetadata metadata) {
-                SpawnSign removedSign = signs.remove(sign.getBlock());
+                SpawnSign removedSign = signs.remove(sign.getSide());
                 if (removedSign != null) {
                     removedSign.loadChunksAsyncReset();
                 }
@@ -127,18 +128,25 @@ public class SpawnSignManager {
      * Gets the SpawnSign that exists at a specified sign block, if one exists there
      *
      * @param signBlock Block of the spawn sign
+     * @param isFrontText Whether is it the front text (true) or back text (false) of the sign
      * @return SpawnSign instance, or null if there is no spawn sign here
      */
-    public SpawnSign get(Block signBlock) {
-        return this.signs.get(OfflineBlock.of(signBlock));
+    public SpawnSign get(Block signBlock, boolean isFrontText) {
+        return this.signs.get(OfflineSignSide.of(signBlock, isFrontText));
     }
 
     public SpawnSign create(SignActionEvent signEvent) {
-        OfflineBlock position = OfflineBlock.of(signEvent.getBlock());
-        SpawnSign result = this.signs.get(position);
-        if (result != null) {
-            result.updateUsingEvent(signEvent);
-            return result;
+        final OfflineSignSide side;
+        if (signEvent.getTrackedSign().isRealSign()) {
+            side = OfflineSignSide.of(signEvent.getTrackedSign());
+            SpawnSign result = this.signs.get(side);
+            if (result != null) {
+                result.updateUsingEvent(signEvent);
+                return result;
+            }
+        } else {
+            // For non-physical signs assume front text and do nothing more
+            side = OfflineSignSide.of(signEvent.getBlock(), true);
         }
 
         // Parse options of the spawn sign
@@ -153,8 +161,8 @@ public class SpawnSignManager {
         // Only works for real signs
         if (signEvent.getTrackedSign().isRealSign() && options.autoSpawnInterval > 0) {
             // Put metadata, which will also put an entry in the signs mapping
-            this.plugin.getOfflineSigns().put(signEvent.getSign(), metadata);
-            result = this.signs.get(position);
+            this.plugin.getOfflineSigns().put(signEvent.getTrackedSign(), metadata);
+            SpawnSign result = this.signs.get(side);
             if (result == null) {
                 throw new IllegalStateException("No SpawnSign was put, onAdded() not called");
             }
@@ -162,15 +170,15 @@ public class SpawnSignManager {
         }
 
         // Don't store the sign in the store
-        return new SpawnSign(plugin, null, OfflineSign.fromSign(signEvent.getSign()), metadata);
+        return new SpawnSign(plugin, null, OfflineSign.fromSign(signEvent.getSign(), side.isFrontText()), metadata);
     }
 
     public void remove(SignActionEvent signEvent) {
-        this.plugin.getOfflineSigns().remove(signEvent.getBlock(), SpawnSignMetadata.class);
+        this.plugin.getOfflineSigns().remove(signEvent.getTrackedSign(), SpawnSignMetadata.class);
     }
 
     public void remove(SpawnSign sign) {
-        this.plugin.getOfflineSigns().remove(sign.getLocation(), SpawnSignMetadata.class);
+        this.plugin.getOfflineSigns().remove(sign.getLocation(), sign.isFrontText(), SpawnSignMetadata.class);
     }
 
     /**

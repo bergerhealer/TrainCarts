@@ -23,7 +23,7 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 public class MutexZoneCacheWorld {
     private static final MutexZone[] NO_ZONES = new MutexZone[0];
     private final OfflineWorld world;
-    private final Map<IntVector3, MutexZone> bySignPosition = new HashMap<>();
+    private final Map<SignSidePositionKey, MutexZone> bySignPosition = new HashMap<>();
     private final LongHashMap<MutexZone[]> byChunk = new LongHashMap<>();
 
     public MutexZoneCacheWorld(OfflineWorld world) {
@@ -99,7 +99,7 @@ public class MutexZoneCacheWorld {
     }
 
     public void add(MutexZone zone) {
-        bySignPosition.put(zone.signBlock.getPosition(), zone);
+        bySignPosition.put(new SignSidePositionKey(zone.signBlock.getPosition(), zone.signFront), zone);
 
         // Usually only one zone sits in a chunk. This optimizes that case.
         MutexZone[] singleZone = new MutexZone[] {zone};
@@ -125,8 +125,8 @@ public class MutexZoneCacheWorld {
         }
     }
 
-    public MutexZone removeAtSign(IntVector3 signPosition) {
-        MutexZone zone = bySignPosition.remove(signPosition);
+    public MutexZone removeAtSign(IntVector3 signPosition, boolean front) {
+        MutexZone zone = bySignPosition.remove(new SignSidePositionKey(signPosition, front));
         if (zone != null) {
             // De-register in all the chunks
             int chunkMinX = zone.start.getChunkX();
@@ -339,6 +339,27 @@ public class MutexZoneCacheWorld {
         public MutexZoneResult(MutexZone zone, double distance) {
             this.zone = zone;
             this.distance = distance;
+        }
+    }
+
+    private static class SignSidePositionKey {
+        public final IntVector3 position;
+        public final boolean front;
+
+        public SignSidePositionKey(IntVector3 position, boolean front) {
+            this.position = position;
+            this.front = front;
+        }
+
+        @Override
+        public int hashCode() {
+            return position.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            SignSidePositionKey other = (SignSidePositionKey) o;
+            return position.equals(other.position) && front == other.front;
         }
     }
 }

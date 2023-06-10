@@ -200,7 +200,7 @@ class OfflineSignLegacyImporter {
                         spawnSign.interval,
                         System.currentTimeMillis() + spawnSign.remaining - spawnSign.interval,
                         spawnSign.active);
-                store.put(sign, metadata);
+                store.put(sign, true, metadata);
             }
 
             // Import detector signs
@@ -227,8 +227,8 @@ class OfflineSignLegacyImporter {
                 // The handler will automatically initialize the DetectorSign logic itself
                 OfflineBlock sign1Block = OfflineWorld.of(world).getBlockAt(detectorSignPair.sign1Location);
                 OfflineBlock sign2Block = OfflineWorld.of(world).getBlockAt(detectorSignPair.sign2Location);
-                store.put(sign1, new DetectorSign.Metadata(sign2Block, region, detectorSignPair.sign1LeverDown));
-                store.put(sign2, new DetectorSign.Metadata(sign1Block, region, detectorSignPair.sign2LeverDown));
+                store.put(sign1, true, new DetectorSign.Metadata(sign2Block, true, region, detectorSignPair.sign1LeverDown));
+                store.put(sign2, true, new DetectorSign.Metadata(sign1Block, true, region, detectorSignPair.sign2LeverDown));
             }
         }
 
