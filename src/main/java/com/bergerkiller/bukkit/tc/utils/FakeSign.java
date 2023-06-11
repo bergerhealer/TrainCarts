@@ -53,6 +53,9 @@ public abstract class FakeSign extends BlockStateBase implements Sign {
      * @return new FakeSign instance
      */
     public static FakeSign create(Block signBlock) {
+        if (signBlock == null) {
+            throw new IllegalArgumentException("Sign block is null");
+        }
         return constructor.apply(signBlock);
     }
 
