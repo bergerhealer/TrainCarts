@@ -288,10 +288,9 @@ public abstract class FakeSign extends BlockStateBase implements Sign {
                 methodVisitor.visitCode();
                 methodVisitor.visitVarInsn(ALOAD, 0);
                 methodVisitor.visitVarInsn(ALOAD, 1);
-                methodVisitor.visitVarInsn(ALOAD, 2);
                 methodVisitor.visitMethodInsn(INVOKESPECIAL, MPLType.getInternalName(FakeSign.class), "<init>", ctorDesc, false);
                 methodVisitor.visitInsn(RETURN);
-                methodVisitor.visitMaxs(3, 3);
+                methodVisitor.visitMaxs(2, 2);
                 methodVisitor.visitEnd();
             }
         }
