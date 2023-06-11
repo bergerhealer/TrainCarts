@@ -24,6 +24,7 @@ import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import com.bergerkiller.generated.org.bukkit.block.SignHandle;
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.SignChangeEvent;
@@ -300,7 +301,11 @@ public abstract class SignAction {
         if (info.getMode() != SignActionMode.NONE && info.getTrackedSign().isRealSign()) {
             BlockData data = WorldUtil.getBlockData(info.getBlock());
             if (MaterialUtil.ISSIGN.get(data) && FaceUtil.isVertical(data.getAttachedFace())) {
-                BlockUtil.setFacing(info.getBlock(), Util.snapFace(data.getFacingDirection()));
+                BlockFace oldFacing = data.getFacingDirection();
+                BlockFace newFacing = Util.snapFace(oldFacing);
+                if (oldFacing != newFacing) {
+                    BlockUtil.setFacing(info.getBlock(), newFacing);
+                }
             }
         }
     }
