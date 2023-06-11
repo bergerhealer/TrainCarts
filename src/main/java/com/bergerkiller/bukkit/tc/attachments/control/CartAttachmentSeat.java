@@ -394,7 +394,8 @@ public class CartAttachmentSeat extends CartAttachment {
         // When this changes, the seat must be re-created to avoid trouble with the vehicle mount
         ObjectPosition newPos = parsePosition(config);
         boolean oldSeatParent = (getConfiguredPosition().anchor == AttachmentAnchor.SEAT_PARENT && getConfiguredPosition().isIdentity());
-        boolean newSeatParent = (newPos.anchor == AttachmentAnchor.SEAT_PARENT && newPos.isIdentity());
+        boolean newSeatParent = ((newPos.anchor == AttachmentAnchor.SEAT_PARENT || newPos.anchor == AttachmentAnchor.DEFAULT)
+                && newPos.isIdentity());
         if (oldSeatParent != newSeatParent) {
             return false;
         }
