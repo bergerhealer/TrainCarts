@@ -8,6 +8,10 @@ api-version: 1.13
 softdepend: [BKCommonLib, MinecartManiaCore, SignLink, My_Worlds, LightAPI, Vault, WorldEdit]
 classdepend: [TAB]
 
+bstats:
+    enabled: true
+    plugin-id: 18761
+
 main: com.bergerkiller.bukkit.tc.Preloader
 preloader:
     main: com.bergerkiller.bukkit.tc.TrainCarts
