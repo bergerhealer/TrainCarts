@@ -345,7 +345,7 @@ public class Commands {
             message.newLine().yellow("This minecart will attempt to reach: ").white(prop.getDestination());
         }
         message.newLine().yellow("Players entering trains: ").white(prop.getPlayersEnter() ? "Allowed" : "Denied");
-        message.newLine().yellow("Can be exited by players: ").white(prop.getPlayersExit());
+        message.newLine().yellow("Players exiting trains: ").white(prop.getPlayersExit() ? "Allowed" : "Denied");
         BlockLocation loc = prop.getLocation();
         if (loc != null) {
             message.newLine().yellow("Current location: ").white("[", loc.x, "/", loc.y, "/", loc.z, "] in world ", loc.world);
