@@ -12,8 +12,16 @@ import org.bukkit.event.block.SignChangeEvent;
 public class SignChangeActionEvent extends SignActionEvent {
     private final SignChangeEvent event;
 
+    public SignChangeActionEvent(Player player, TrackedSign sign) {
+        this(mockChangeEvent(player, sign), sign);
+    }
+
     public SignChangeActionEvent(SignChangeEvent event) {
-        super(TrackedSign.forChangingSign(event));
+        this(event, TrackedSign.forChangingSign(event));
+    }
+
+    private SignChangeActionEvent(SignChangeEvent event, TrackedSign sign) {
+        super(sign);
         this.event = event;
     }
 
@@ -30,5 +38,10 @@ public class SignChangeActionEvent extends SignActionEvent {
     public void setCancelled(boolean cancelled) {
         super.setCancelled(cancelled);
         this.event.setCancelled(cancelled);
+    }
+
+    private static SignChangeEvent mockChangeEvent(Player player, TrackedSign sign) {
+        //Note: deprecated constructor, assumed side FRONT
+        return new SignChangeEvent(sign.signBlock, player, sign.sign.getLines());
     }
 }
