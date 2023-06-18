@@ -209,7 +209,9 @@ public class SignTrackerGroup extends SignTracker {
                         if (signs.length > 0) {
                             ModificationTrackedList<ActiveSign> memberSigns = info.member.getSignTracker().liveActiveSigns;
                             for (TrackedSign sign : signs) {
-                                memberSigns.add(new ActiveSign(sign, info.state));
+                                if (sign.getAction() != null) {
+                                    memberSigns.add(new ActiveSign(sign, info.state));
+                                }
                             }
                         }
                     }
