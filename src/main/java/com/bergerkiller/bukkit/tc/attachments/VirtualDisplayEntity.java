@@ -142,7 +142,7 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
         // Update rotation
         liveRot.setTo(transform.getRotation());
         // Allow further changes
-        onRotationUpdaed(liveRot);
+        onRotationUpdated(liveRot);
 
         // Ensure synchronized the first time
         if (Double.isNaN(syncPos.getX())) {
