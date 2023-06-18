@@ -141,6 +141,8 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
         MathUtil.setVector(livePos, transform.toVector());
         // Update rotation
         liveRot.setTo(transform.getRotation());
+        // Allow further changes
+        onRotationUpdaed(liveRot);
 
         // Ensure synchronized the first time
         if (Double.isNaN(syncPos.getX())) {
@@ -149,14 +151,7 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
         }
     }
 
-    /**
-     * Gets the initial entity yaw of the display entity. Is used by
-     * item displays for 1.19.4 compatibility stuff. Block displays don't need it.
-     *
-     * @return Initial yaw
-     */
-    protected float getInitialYaw() {
-        return 0.0f;
+    protected void onRotationUpdated(Quaternion rotation) {
     }
 
     @Override
@@ -191,7 +186,7 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
             spawnPacket.setMotX(motion.getX());
             spawnPacket.setMotY(motion.getY());
             spawnPacket.setMotZ(motion.getZ());
-            spawnPacket.setYaw(this.getInitialYaw());
+            spawnPacket.setYaw(0.0f);
             spawnPacket.setPitch(0.0f);
             viewer.send(spawnPacket);
             viewer.send(PacketPlayOutEntityMetadataHandle.createNew(this.displayEntityId, metadata, true));

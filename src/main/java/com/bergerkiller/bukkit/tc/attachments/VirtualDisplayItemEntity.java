@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments;
 
 import com.bergerkiller.bukkit.common.Common;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.common.wrappers.ItemDisplayMode;
@@ -32,7 +33,7 @@ public class VirtualDisplayItemEntity extends VirtualDisplayEntity {
      * to correct for this. No per-player logic is needed as ViaVersion will flip yaw automatically
      * when 1.19.4 clients connect to a 1.20 server.
      */
-    private static final float INITIAL_YAW = Common.evaluateMCVersion("<=", "1.19.4") ? 180.0f : 0.0f;
+    public static final boolean IS_YAW_FLIPPED = Common.evaluateMCVersion("<=", "1.19.4");
 
     // Properties
     private ItemDisplayMode mode;
@@ -79,8 +80,10 @@ public class VirtualDisplayItemEntity extends VirtualDisplayEntity {
     }
 
     @Override
-    protected float getInitialYaw() {
-        return INITIAL_YAW;
+    protected void onRotationUpdated(Quaternion rotation) {
+        if (IS_YAW_FLIPPED) {
+            rotation.rotateYFlip();
+        }
     }
 
     /**
