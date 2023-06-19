@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSign;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignMetadataHandler;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.signactions.detector.DetectorSign;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
@@ -238,10 +239,10 @@ public class SignActionDetector extends SignAction {
     }
 
     private boolean handlePlacement(SignActionEvent event) {
-        if (!event.hasRails()) {
+        if (!event.hasRails() || !event.getTrackedSign().isRealSign()) {
             return false;
         }
-        TrackedSign startSign = event.getTrackedSign();
+        RailLookup.TrackedRealSign startSign = (RailLookup.TrackedRealSign) event.getTrackedSign();
         Block startrails = event.getRails();
         BlockFace dir = event.getFacing();
         String label = getLabel(event);
@@ -255,7 +256,7 @@ public class SignActionDetector extends SignAction {
         return true;
     }
 
-    public boolean tryBuild(TrainCarts traincarts, String label, Block startrails, TrackedSign startSign, BlockFace direction) {
+    public boolean tryBuild(TrainCarts traincarts, String label, Block startrails, RailLookup.TrackedRealSign startSign, BlockFace direction) {
         final TrackMap map = new TrackMap(startrails, direction, TCConfig.maxDetectorLength);
         map.next();
         //now try to find the end rails : find the other sign
@@ -264,9 +265,15 @@ public class SignActionDetector extends SignAction {
         while (map.hasNext()) {
             map.next();
             for (TrackedSign sign : map.getRailPiece().signs()) {
-                if (sign.equals(startSign) || !sign.isRealSign() || sign.isRemoved()) {
+                if (!sign.isRealSign() || sign.isRemoved()) {
                     continue;
                 }
+                if (sign.signBlock.equals(startSign.signBlock) &&
+                        ((RailLookup.TrackedRealSign) sign).isFrontText() == startSign.isFrontText()
+                ) {{
+                    continue;
+                }
+
                 info = new SignActionEvent(sign);
                 if (matchLabel(info, label)) {
                     endsign = sign;
