@@ -19,7 +19,7 @@ import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.signactions.detector.DetectorSign;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
-import com.bergerkiller.bukkit.tc.utils.TrackMap;
+import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -27,6 +27,8 @@ import org.bukkit.block.BlockFace;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 public class SignActionDetector extends SignAction {
     public static final SignActionDetector INSTANCE = new SignActionDetector();
@@ -257,14 +259,15 @@ public class SignActionDetector extends SignAction {
     }
 
     public boolean tryBuild(TrainCarts traincarts, String label, Block startrails, RailLookup.TrackedRealSign startSign, BlockFace direction) {
-        final TrackMap map = new TrackMap(startrails, direction, TCConfig.maxDetectorLength);
-        map.next();
-        //now try to find the end rails : find the other sign
-        TrackedSign endsign;
-        SignActionEvent info;
-        while (map.hasNext()) {
-            map.next();
-            for (TrackedSign sign : map.getRailPiece().signs()) {
+        final TrackWalkingPoint walker = new TrackWalkingPoint(startrails, direction);
+        final Set<IntVector3> coords = new HashSet<>();
+        while (walker.moveFull() && walker.movedTotal <= TCConfig.maxDetectorLength) {
+            // If visiting the same rail more than once, don't check for signs again
+            if (!coords.add(walker.state.railPiece().blockPosition())) {
+                continue;
+            }
+
+            for (TrackedSign sign : walker.state.railPiece().signs()) {
                 if (!sign.isRealSign() || sign.isRemoved()) {
                     continue;
                 }
@@ -274,12 +277,12 @@ public class SignActionDetector extends SignAction {
                     continue;
                 }
 
-                info = new SignActionEvent(sign);
+                SignActionEvent info = new SignActionEvent(sign);
                 if (matchLabel(info, label)) {
-                    endsign = sign;
+                    TrackedSign endsign = sign;
 
                     // Create a new DetectorRegion using the path we found inbetween
-                    DetectorRegion region = DetectorRegion.create(map);
+                    DetectorRegion region = DetectorRegion.create(walker.state.railWorld(), coords);
 
                     // Register detector sign metadata for both start and end sign with this region
                     // The handler will initialize the rest (listeners, etc.)
