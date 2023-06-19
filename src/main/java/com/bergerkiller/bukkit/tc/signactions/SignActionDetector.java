@@ -264,7 +264,7 @@ public class SignActionDetector extends SignAction {
         while (map.hasNext()) {
             map.next();
             for (TrackedSign sign : map.getRailPiece().signs()) {
-                if (sign.equals(startSign) || !sign.isRealSign()) {
+                if (sign.equals(startSign) || !sign.isRealSign() || sign.isRemoved()) {
                     continue;
                 }
                 info = new SignActionEvent(sign);
