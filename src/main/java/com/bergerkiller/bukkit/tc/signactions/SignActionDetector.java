@@ -270,7 +270,7 @@ public class SignActionDetector extends SignAction {
                 }
                 if (sign.signBlock.equals(startSign.signBlock) &&
                         ((RailLookup.TrackedRealSign) sign).isFrontText() == startSign.isFrontText()
-                ) {{
+                ) {
                     continue;
                 }
 
