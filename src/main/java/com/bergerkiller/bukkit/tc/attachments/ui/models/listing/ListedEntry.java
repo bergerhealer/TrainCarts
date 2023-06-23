@@ -275,11 +275,6 @@ public abstract class ListedEntry implements Comparable<ListedEntry> {
     public final List<? extends ListedEntry> displayedItems(int numDisplayed) {
         int numChildren = children().size();
 
-        // Probably doesn't happen but just in case
-        if (numChildren == 0) {
-            return Collections.emptyList();
-        }
-
         // If there are more children than can be displayed, add every child to the list
         // If a child directory only contains a single model, display the model in its place
         // Directories with only one single sub-directory are entered automatically
