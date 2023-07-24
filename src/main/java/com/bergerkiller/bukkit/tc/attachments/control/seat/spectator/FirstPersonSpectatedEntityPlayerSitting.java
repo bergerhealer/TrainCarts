@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat.spectator;
 
+import com.bergerkiller.bukkit.tc.Util;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -17,7 +18,6 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity.DisplayMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityHead;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityEquipmentHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutMountHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutUpdateAttributesHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
@@ -72,9 +72,9 @@ class FirstPersonSpectatedEntityPlayerSitting extends FirstPersonSpectatedEntity
             if (blindRespawn == null) {
                 if (view.getLiveMode() == FirstPersonViewMode.HEAD) {
                     // Swap which entity holds the player skull
-                    player.sendSilent(PacketPlayOutEntityEquipmentHandle.createNew(
+                    player.sendSilent(Util.createPlayerEquipmentPacket(
                             fakePlayer.entity.getEntityId(), EquipmentSlot.HEAD, null));
-                    player.sendSilent(PacketPlayOutEntityEquipmentHandle.createNew(
+                    player.sendSilent(Util.createPlayerEquipmentPacket(
                             swapped.getEntityId(), EquipmentSlot.HEAD, skullItem));
                 } else {
                     // Swap visibility
@@ -198,7 +198,7 @@ class FirstPersonSpectatedEntityPlayerSitting extends FirstPersonSpectatedEntity
                 fakePlayer.spectateFrom(blindRespawn.spectated.getEntityId());
                 if (view.getLiveMode() == FirstPersonViewMode.HEAD) {
                     // Make only the head visible
-                    player.sendSilent(PacketPlayOutEntityEquipmentHandle.createNew(
+                    player.sendSilent(Util.createPlayerEquipmentPacket(
                             fakePlayer.entity.getEntityId(), EquipmentSlot.HEAD, skullItem));
                 } else {
                     // Make entire body visible

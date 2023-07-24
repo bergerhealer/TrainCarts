@@ -138,7 +138,7 @@ public class VirtualArrowItem {
      */
     public VirtualArrowItem updateItem(Player viewer) {
         if (this.entityId != -1) {
-            PacketPlayOutEntityEquipmentHandle equipPacket = PacketPlayOutEntityEquipmentHandle.createNew(
+            PacketPlayOutEntityEquipmentHandle equipPacket = Util.createNonPlayerEquipmentPacket(
                     this.entityId, EquipmentSlot.HAND, this.item);
             PacketUtil.sendPacket(viewer, equipPacket);
         }
@@ -200,7 +200,7 @@ public class VirtualArrowItem {
         PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.entityId, metadata, true);
         PacketUtil.sendPacket(viewer, metaPacket);
 
-        PacketPlayOutEntityEquipmentHandle equipPacket = PacketPlayOutEntityEquipmentHandle.createNew(
+        PacketPlayOutEntityEquipmentHandle equipPacket = Util.createNonPlayerEquipmentPacket(
                 this.entityId, EquipmentSlot.HAND, this.item);
         PacketUtil.sendPacket(viewer, equipPacket);
 

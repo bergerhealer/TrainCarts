@@ -14,7 +14,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.number>NO-CI</project.build.number>
         <project.serverVersion>1.19.3-R0.1-SNAPSHOT</project.serverVersion>
-        <project.bkcversion>1.20.1-v1</project.bkcversion>
+        <project.bkcversion>1.20.1-v2-SNAPSHOT</project.bkcversion>
         <project.slversion>1.11.2-v2-SNAPSHOT</project.slversion>
         <project.mwversion>1.11.2-v2-SNAPSHOT</project.mwversion>
         <project.preloaderversion>1.8</project.preloaderversion>

@@ -14,9 +14,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityEquipmentHandle;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
@@ -34,6 +36,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.MaterialData;
@@ -1721,5 +1724,38 @@ public class Util {
 
         // Default
         return player.getEyeLocation();
+    }
+
+    // Added BKCL API to fix equipment slot serialization bugs on Minecraft 1.8
+    // If this API is available, use it
+    // TODO: Remove this crap when BKCommonLib 1.20.1-v2 or later is a hard-dependency
+    private interface CreateEquipmentPacketMethod {
+        PacketPlayOutEntityEquipmentHandle create(int entityId, EquipmentSlot slot, ItemStack itemStack);
+    }
+    private static final CreateEquipmentPacketMethod CREATE_PLAYER_EQUIPMENT_PACKET;
+    private static final CreateEquipmentPacketMethod CREATE_NON_PLAYER_EQUIPMENT_PACKET;
+    static {
+        CreateEquipmentPacketMethod player, nonPlayer;
+        try {
+            if (Common.hasCapability("Common:PacketPlayOutEntityEquipment:OwnerType")) {
+                player = (entityId, slot, itemStack) -> PacketPlayOutEntityEquipmentHandle.createNew(
+                        PacketPlayOutEntityEquipmentHandle.OwnerType.PLAYER, entityId, slot, itemStack);
+                nonPlayer = (entityId, slot, itemStack) -> PacketPlayOutEntityEquipmentHandle.createNew(
+                        PacketPlayOutEntityEquipmentHandle.OwnerType.NON_PLAYER, entityId, slot, itemStack);
+            } else {
+                throw new RuntimeException("Use legacy fallback");
+            }
+        } catch (Throwable t) {
+            player = PacketPlayOutEntityEquipmentHandle::createNew;
+            nonPlayer = PacketPlayOutEntityEquipmentHandle::createNew;
+        }
+        CREATE_PLAYER_EQUIPMENT_PACKET = player;
+        CREATE_NON_PLAYER_EQUIPMENT_PACKET = nonPlayer;
+    }
+    public static PacketPlayOutEntityEquipmentHandle createPlayerEquipmentPacket(int entityId, EquipmentSlot slot, ItemStack itemStack) {
+        return CREATE_PLAYER_EQUIPMENT_PACKET.create(entityId, slot, itemStack);
+    }
+    public static PacketPlayOutEntityEquipmentHandle createNonPlayerEquipmentPacket(int entityId, EquipmentSlot slot, ItemStack itemStack) {
+        return CREATE_NON_PLAYER_EQUIPMENT_PACKET.create(entityId, slot, itemStack);
     }
 }

@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
+import com.bergerkiller.bukkit.tc.Util;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
@@ -17,7 +18,6 @@ import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityEquipmentHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
@@ -229,7 +229,7 @@ public abstract class FirstPersonView {
         if (HAS_EQUIPMENT_SEND_METHOD) {
             sendEquipmentUsingBukkit(player.getPlayer(), slot, item);
         } else {
-            player.sendSilent(PacketPlayOutEntityEquipmentHandle.createNew(
+            player.sendSilent(Util.createPlayerEquipmentPacket(
                     player.getEntityId(), slot, item));
         }
     }
