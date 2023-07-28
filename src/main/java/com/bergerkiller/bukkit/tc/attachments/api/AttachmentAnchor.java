@@ -68,14 +68,36 @@ public abstract class AttachmentAnchor {
 
     /**
      * Aligns the attachment so that it is always pointing upwards (y-coordinate). Only yaw
-     * is preserved of the parent attachment.
+     * is preserved of the parent attachment. Roll will have no effect, but 180 degree
+     * pitch will cause the orientation to flip.
      */
     public static AttachmentAnchor ALIGN_UP = register(new AttachmentAnchor("align up") {
         @Override
         public void apply(Attachment attachment, Matrix4x4 transform) {
             Vector3 absolutePosition = transform.toVector3();
-            Vector forward = transform.getRotation().forwardVector();
+            Quaternion rotation =  transform.getRotation();
+            Vector forward = rotation.forwardVector();
             forward.setY(0.0);
+            transform.setIdentity();
+            transform.translate(absolutePosition);
+            if (forward.lengthSquared() > 1e-9) {
+                transform.rotate(Quaternion.fromLookDirection(forward));
+            }
+        }
+    });
+
+    /**
+     * Aligns the attachment so that it is always pointing upwards (y-coordinate). Only yaw
+     * is preserved of the parent attachment. Pitch will have no effect, but 180 degree
+     * roll will cause the orientation to flip.
+     */
+    public static AttachmentAnchor ALIGN_UP_PITCH = register(new AttachmentAnchor("align up [P]") {
+        @Override
+        public void apply(Attachment attachment, Matrix4x4 transform) {
+            Vector3 absolutePosition = transform.toVector3();
+            Quaternion rotation =  transform.getRotation();
+            Vector right = rotation.rightVector();
+            Vector forward = new Vector(-right.getZ(), 0.0, right.getX()); // rotate 90 transform
             transform.setIdentity();
             transform.translate(absolutePosition);
             if (forward.lengthSquared() > 1e-9) {
