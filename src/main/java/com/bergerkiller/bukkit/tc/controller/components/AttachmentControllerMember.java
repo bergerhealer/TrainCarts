@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -81,6 +82,19 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
     private long animationCurrentTime = 0;
     private double animationDeltaTime = 0.0;
 
+    /**
+     * When the cart is being teleported to another world (or a long distance, maybe),
+     * this is set to true. This is so that when this controller is detached the
+     * attachment controller isn't reset, only hidden from viewers, and no makeVisible
+     * is done until the teleport has completed.<br>
+     * <br>
+     * This must be done this way so that the train metadata (wheel positions) can
+     * update after the teleport before the attachments are re-created on the new world.
+     */
+    private boolean teleporting = false;
+    private boolean recreateAfterTeleport = false; // Set if onDetached() is called during teleport
+    private Set<Player> viewersAddedWhileTeleporting = Collections.emptySet();
+
     public AttachmentControllerMember(MinecartMember<?> member) {
         this.member = member;
         this.plugin = member.getTrainCarts();
@@ -98,6 +112,10 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
 
     // Called by NetworkController
     public synchronized void onAttached() {
+        if (teleporting) {
+            return; // Nothing is done here
+        }
+
         this.animationCurrentTime = System.currentTimeMillis();
         this.animationDeltaTime = 0.0;
         this.attached = true;
@@ -106,6 +124,12 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
 
     // Called by NetworkController
     public synchronized void onDetached() {
+        if (teleporting) {
+            recreateAfterTeleport = true;
+            makeHiddenForAll(); // Technically not needed, but just in case
+            return;
+        }
+
         attached = false;
         try {
             destroyRootAttachmentAndStopTracking();
@@ -128,6 +152,39 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
             destroyRootAttachmentAndStopTracking();
         } else {
             createRootAttachmentAndStartTracking();
+        }
+    }
+
+    /**
+     * Signals the start of a teleport action of the Minecart that would
+     * result in attachments being de-spawned and re-spawned.
+     */
+    public void startTeleport() {
+        teleporting = true;
+        makeHiddenForAll();
+        viewersAddedWhileTeleporting = Collections.emptySet();
+    }
+
+    /**
+     * Signals teleporting has finished and the train metadata has updated,
+     * such as wheels and such. The attachment tree will be re-created and
+     * spawned for all new viewers.
+     */
+    public void finishTeleport() {
+        if (teleporting) {
+            teleporting = false;
+            try {
+                if (recreateAfterTeleport) {
+                    onDetached();
+                    onAttached();
+                }
+                for (Player viewer : viewersAddedWhileTeleporting) {
+                    makeVisible(viewer);
+                }
+            } finally {
+                viewersAddedWhileTeleporting = Collections.emptySet();
+                recreateAfterTeleport = false;
+            }
         }
     }
 
@@ -508,6 +565,14 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
 
     // Called from NetworkController
     public synchronized void makeVisible(Player viewer) {
+        if (teleporting) {
+            if (viewersAddedWhileTeleporting.isEmpty()) {
+                viewersAddedWhileTeleporting = new LinkedHashSet<>();
+            }
+            viewersAddedWhileTeleporting.add(viewer);
+            return;
+        }
+
         AttachmentViewer attachmentViewer = asAttachmentViewer(viewer);
         viewers.put(viewer, attachmentViewer);
         if (!this.hidden) {
@@ -517,7 +582,12 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
 
     // Called from NetworkController
     public synchronized void makeHidden(Player viewer) {
-        //super.makeHidden(viewer, instant);
+        if (teleporting) {
+            if (!viewersAddedWhileTeleporting.isEmpty()) {
+                viewersAddedWhileTeleporting.remove(viewer);
+            }
+            return;
+        }
 
         AttachmentViewer attachmentViewer = viewers.remove(viewer);
         if (attachmentViewer == null) {

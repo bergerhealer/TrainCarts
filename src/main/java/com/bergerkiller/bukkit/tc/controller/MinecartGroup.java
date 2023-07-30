@@ -11,8 +11,6 @@ import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.common.wrappers.EntityTracker;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet.LongIterator;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
@@ -761,15 +759,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         this.getSignTracker().updatePosition();
         this.breakPhysics();
 
-        // If world change, perform a standard teleport
-        // If on same world, despawn by stopping tracking, teleport, then reset network controllers
-        // This eliminates the teleporting motion
-        boolean resetNetworkControllers = (locations[0].getWorld() == this.get(0).getWorld());
-        if (resetNetworkControllers) {
-            EntityTracker tracker = WorldUtil.getTracker(locations[0].getWorld());
-            for (MinecartMember<?> member : this) {
-                tracker.stopTracking(member.getEntity().getEntity());
-            }
+        // De-spawn the carts at the original position for all current viewers, and signal
+        // the train is teleporting. This prevents any new viewers being added until later.
+        for (MinecartMember<?> member : this) {
+            member.getAttachments().startTeleport();
         }
 
         // Invert location orientations where carts had orientation flipped
@@ -797,11 +790,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         this.updateWheels();
         this.getSignTracker().updatePosition();
 
-        // Respawn
-        if (resetNetworkControllers) {
-            for (MinecartMember<?> member : this) {
-                member.getEntity().setNetworkController(MinecartMemberStore.createNetworkController());
-            }
+        // Respawn the cart. If teleported to a different world, re-creates the entire
+        // attachment tree.
+        for (MinecartMember<?> member : this) {
+            member.getAttachments().finishTeleport();
         }
     }
 
