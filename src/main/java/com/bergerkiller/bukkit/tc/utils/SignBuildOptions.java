@@ -181,15 +181,12 @@ public class SignBuildOptions {
      * @see #showBuildMessage(Player)
      */
     public boolean handle(Player player) {
-        // Permission
-        if (permission != null && !CommonUtil.hasPermission(player, this.permission)) {
-            Localization.SIGN_NO_PERMISSION.message(player);
+        if (checkBuildPermission(player)) {
+            showBuildMessage(player);
+            return true;
+        } else {
             return false;
         }
-
-
-
-        return true;
     }
 
     /**
