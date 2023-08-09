@@ -131,18 +131,29 @@ public class SignBuildOptions {
     }
 
     /**
-     * Handles building of the sign. Checks permission, if set, and sends the appropriate messages
-     * 
-     * @param player The player to check permission on and send messages to
-     * @return True if the player could build the sign
+     * Checks that the player has permission to build this type of sign at all.
+     * Sends a message indicating the player can't if this returns false.
+     *
+     * @param player The player to check permission on
+     * @return True if the player can build the sign
      */
-    public boolean handle(Player player) {
+    public boolean checkBuildPermission(Player player) {
         // Permission
         if (permission != null && !CommonUtil.hasPermission(player, this.permission)) {
             Localization.SIGN_NO_PERMISSION.message(player);
             return false;
         }
 
+        return true;
+    }
+
+    /**
+     * Shows a successful build message of this type of sign with additional information
+     * as provided through this builder.
+     *
+     * @param player The player to send the build message to
+     */
+    public void showBuildMessage(Player player) {
         // Tell what sign was just built
         if (name != null) {
             ChatText message = ChatText.fromMessage(ChatColor.YELLOW + "You built a ");
@@ -159,6 +170,24 @@ public class SignBuildOptions {
         if (description != null) {
             player.sendMessage(ChatColor.GREEN + "This sign can " + description + ".");
         }
+    }
+
+    /**
+     * Handles building of the sign. Checks permission, if set, and sends the appropriate messages
+     * 
+     * @param player The player to check permission on and send messages to
+     * @return True if the player could build the sign
+     * @see #checkBuildPermission(Player)
+     * @see #showBuildMessage(Player)
+     */
+    public boolean handle(Player player) {
+        // Permission
+        if (permission != null && !CommonUtil.hasPermission(player, this.permission)) {
+            Localization.SIGN_NO_PERMISSION.message(player);
+            return false;
+        }
+
+
 
         return true;
     }

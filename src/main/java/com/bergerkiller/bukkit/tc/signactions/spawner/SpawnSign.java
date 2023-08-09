@@ -247,7 +247,9 @@ public class SpawnSign {
      * Removes this spawn sign from the spawn sign manager
      */
     public void remove() {
-        this.store.remove(location, frontText, SpawnSignManager.SpawnSignMetadata.class);
+        if (this.store != null) {
+            this.store.remove(location, frontText, SpawnSignManager.SpawnSignMetadata.class);
+        }
     }
 
     /**

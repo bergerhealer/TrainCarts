@@ -54,13 +54,12 @@ public class SignActionSpawn extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        if (!SignBuildOptions.create()
+        SignBuildOptions buildOpts = SignBuildOptions.create()
                 .setPermission(Permission.BUILD_SPAWNER)
                 .setName("train spawner")
                 .setDescription("spawn trains on the tracks above when powered by redstone")
-                .setTraincartsWIKIHelp("TrainCarts/Signs/Spawner")
-                .handle(event.getPlayer()))
-        {
+                .setTraincartsWIKIHelp("TrainCarts/Signs/Spawner");
+        if (!buildOpts.checkBuildPermission(event.getPlayer())) {
             return false;
         }
 
@@ -82,6 +81,7 @@ public class SignActionSpawn extends SignAction {
         }
 
         // Success!
+        buildOpts.showBuildMessage(event.getPlayer());
         if (sign.hasInterval()) {
             event.getPlayer().sendMessage(ChatColor.YELLOW + "This spawner will automatically spawn trains every " + Util.getTimeString(sign.getInterval()) + " while powered");
         }
