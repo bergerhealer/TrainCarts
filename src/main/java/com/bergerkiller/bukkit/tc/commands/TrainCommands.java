@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.commands.argument.DirectionOrFormattedSpeed;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
@@ -212,6 +213,15 @@ public class TrainCommands {
                 ConfigurationNode config;
                 config = group.saveConfig(lockOrientation ? SaveLockOrientationMode.ENABLED_OVERRIDE
                                                           : SaveLockOrientationMode.AUTOMATIC);
+
+                // Verify the player can actually create this type of train. If inventory cloning is disallowed,
+                // this check is important.
+                if (!SpawnableGroup.fromConfig(plugin, config).checkSpawnPermissions(sender)) {
+                    Localization.COMMAND_SAVE_FORBIDDEN_CONTENTS.message(sender);
+                    return;
+                }
+
+                // Success!
                 plugin.getSavedTrains().setConfig(name, config);
             }
 
@@ -222,19 +232,16 @@ public class TrainCommands {
             }
 
             if (wasContained) {
-                sender.sendMessage(ChatColor.GREEN + "The train was saved as " + name + moduleString + ", a previous train was overwritten");
+                Localization.COMMAND_SAVE_OVERWRITTEN.message(sender, name + moduleString);
             } else {
-                sender.sendMessage(ChatColor.GREEN + "The train was saved as " + name + moduleString);
+                Localization.COMMAND_SAVE_NEW.message(sender, name + moduleString);
                 if (TCConfig.claimNewSavedTrains && sender instanceof Player) {
                     plugin.getSavedTrains().setClaim(name, (Player) sender);
                 }
             }
 
             if (lockOrientation) {
-                sender.sendMessage(ChatColor.YELLOW + "Train orientation is now locked to the current forward direction!");
-                sender.sendMessage(ChatColor.YELLOW + "Future saves without --lockorientation passed will remember this orientation.");
-                sender.sendMessage(ChatColor.YELLOW + "This can be turned off using " + ChatColor.WHITE +
-                        "/savedtrain " + name + " lockorientation false");
+                Localization.COMMAND_SAVE_LOCK_ORIENTATION.message(sender, name);
             }
         } catch (IllegalNameException ex) {
             sender.sendMessage(ChatColor.RED + "The train could not be saved under this name: " + ex.getMessage());

@@ -4,10 +4,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.bergerkiller.bukkit.tc.Permission;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -571,15 +572,27 @@ public class SpawnableGroup implements TrainCarts.Provider {
      * Verifies whether the player can spawn this train, based on the individual carts being spawned.
      * If the player can not, the player is told why this is, and this method returns false.
      *
-     * @param player
+     * @param sender (or player)
      * @return True if spawning is permitted
      */
-    public boolean checkSpawnPermissions(Player player) {
+    public boolean checkSpawnPermissions(CommandSender sender) {
+        boolean canHaveItems = false;
         for (SpawnableMember member : getMembers()) {
-            if (!member.getPermission().handleMsg(player,
+            if (!member.getPermission().handleMsg(sender,
                     Localization.SPAWN_DISALLOWED_TYPE.get(member.toString()))
             ) {
                 return false;
+            }
+
+            if (canHaveItems) {
+                continue;
+            }
+            if (member.hasInventoryItems()) {
+                canHaveItems = Permission.SPAWNER_INVENTORY_ITEMS.has(sender);
+                if (!canHaveItems) {
+                    Localization.SPAWN_DISALLOWED_INVENTORY.message(sender);
+                    return false;
+                }
             }
         }
         return true;

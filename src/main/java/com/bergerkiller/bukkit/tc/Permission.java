@@ -108,6 +108,7 @@ public enum Permission implements IPermissionEnum {
     SPAWNER_HOPPER("train.spawner.hopper", PermissionDefault.TRUE, "The player can build spawners which create minecarts with hoppers"),
     SPAWNER_COMMAND("train.spawner.command", PermissionDefault.FALSE, "The player can build spawners which create minecarts with command blocks"),
     SPAWNER_SPAWNER("train.spawner.spawner", PermissionDefault.TRUE, "The player can build spawners which create minecarts with spawners"),
+    SPAWNER_INVENTORY_ITEMS("train.spawner.inventoryitems", PermissionDefault.OP, "The player can build spawners that spawn carts with pre-existing inventory items"),
 
     BUILD_STATION("train.build.station", PermissionDefault.OP, "The player can build train stations"),
     BUILD_SPAWNER("train.build.spawner", PermissionDefault.OP, "The player can build train spawners"),

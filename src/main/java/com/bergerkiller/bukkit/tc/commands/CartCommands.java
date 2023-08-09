@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -103,7 +104,19 @@ public class CartCommands {
 
         boolean wasContained = plugin.getSavedTrains().getConfig(name) != null;
         try {
-            plugin.getSavedTrains().setConfig(name, saveMemberConfig(member));
+            {
+                ConfigurationNode memberConfig = saveMemberConfig(member);
+
+                // Verify the player can actually create this type of cart. If inventory cloning is disallowed,
+                // this check is important.
+                if (!SpawnableGroup.fromConfig(plugin, memberConfig).checkSpawnPermissions(sender)) {
+                    Localization.COMMAND_SAVE_FORBIDDEN_CONTENTS.message(sender);
+                    return;
+                }
+
+                plugin.getSavedTrains().setConfig(name, memberConfig);
+            }
+
             String moduleString = "";
             if (module != null && !module.isEmpty()) {
                 moduleString = " in module " + module;

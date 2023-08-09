@@ -36,6 +36,7 @@ import com.bergerkiller.bukkit.tc.commands.suggestions.TrainSpawnPatternSuggesti
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
+import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
 import com.bergerkiller.bukkit.tc.debug.DebugCommands;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.exception.command.CommandOnlyForPlayersException;
@@ -496,7 +497,7 @@ public class Commands {
             public void accept(DownloadResult result) {
                 // Check successful
                 if (!result.success()) {
-                    sender.sendMessage(ChatColor.RED + "Failed to import train: " + result.error());
+                    Localization.COMMAND_IMPORT_ERROR.message(sender, result.error());
                     return;
                 }
 
@@ -505,11 +506,23 @@ public class Commands {
                 try {
                     config = result.contentYAML();
                 } catch (IOException ex) {
-                    sender.sendMessage(ChatColor.RED + "Failed to import train because of YAML decode error: " + ex.getMessage());
+                    Localization.COMMAND_IMPORT_ERROR.message(sender, "YAML decode error: " + ex.getMessage());
                     return;
                 } catch (Throwable t) {
-                    sender.sendMessage(ChatColor.RED + "An error occurred trying to import the train YAML: " + t.getMessage());
+                    Localization.COMMAND_IMPORT_ERROR.message(sender, t.getMessage());
                     plugin.getLogger().log(Level.SEVERE, "Import error for " + url, t);
+                    return;
+                }
+
+                // Verify the configuration does not include stuff the player has no permission for, such as
+                // command minecarts or chest minecarts with (illegal) inventory items
+                SpawnableGroup group = SpawnableGroup.fromConfig(plugin, config);
+                if (group.getMembers().isEmpty()) {
+                    Localization.COMMAND_IMPORT_NO_CARTS.message(sender);
+                    return;
+                }
+                if (!group.checkSpawnPermissions(sender)) {
+                    Localization.COMMAND_IMPORT_FORBIDDEN_CONTENTS.message(sender);
                     return;
                 }
 

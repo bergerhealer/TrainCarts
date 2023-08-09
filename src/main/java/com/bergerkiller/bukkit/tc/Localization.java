@@ -27,6 +27,16 @@ public class Localization extends LocalizationEnum {
     public static final Localization COMMAND_IMPORT_MISSING_MODELS = new Localization("command.import.models.missing", ChatColor.YELLOW + "The imported train configuration includes model configurations [" +
             ChatColor.WHITE + "%0%" + ChatColor.YELLOW + "], import them by specifying --import-models");
     public static final Localization COMMAND_IMPORT_UPDATED_MODELS = new Localization("command.import.models.updated", ChatColor.GREEN + "Imported model configurations: %0%");
+    public static final Localization COMMAND_IMPORT_NO_CARTS = new Localization("command.import.nocarts", ChatColor.RED + "Imported configuration does not include any carts!");
+    public static final Localization COMMAND_IMPORT_ERROR = new Localization("command.import.error", ChatColor.RED + "An error occurred trying to import the train configuration: %0%");
+    public static final Localization COMMAND_IMPORT_FORBIDDEN_CONTENTS = new Localization("command.import.forbiddencontents", ChatColor.RED + "The train configuration could not be imported because it contains things you have no permission to use or spawn");
+
+    public static final Localization COMMAND_SAVE_NEW = new Localization("command.save.new", ChatColor.GREEN + "The train was saved as %0%");
+    public static final Localization COMMAND_SAVE_OVERWRITTEN = new Localization("command.save.overwritten", ChatColor.GREEN + "The train was saved as %0%, a previous train was overwritten");
+    public static final Localization COMMAND_SAVE_LOCK_ORIENTATION = new Localization("command.save.lockorientation", ChatColor.YELLOW + "Train orientation is now locked to the current forward direction!\n" +
+            ChatColor.YELLOW + "Future saves without --lockorientation passed will remember this orientation.\n" +
+            ChatColor.YELLOW + "This can be turned off using " + ChatColor.WHITE + "/savedtrain %0% lockorientation false");
+    public static final Localization COMMAND_SAVE_FORBIDDEN_CONTENTS = new Localization("command.save.forbiddencontents", ChatColor.RED + "The train configuration could not be saved because the train contains things you have no permission to use or spawn");
 
     public static final Localization COMMAND_MODEL_CONFIG_CLAIMED = new Localization("command.model.config.claimed", ChatColor.RED + "Saved model configuration with name %0% is claimed by someone else, you can not access it!");
     public static final Localization COMMAND_MODEL_CONFIG_GLOBAL_NOPERM = new Localization("command.model.config.global.noperm", ChatColor.RED + "You do not have permission to force access to saved model configurations by others, ask an admin to do this for you.");
@@ -70,6 +80,7 @@ public class Localization extends LocalizationEnum {
     public static final Localization EDIT_NOTLOADED = new Localization("edit.notloaded", ChatColor.RED + "The selected train is not loaded right now!");
 
     public static final Localization SPAWN_DISALLOWED_TYPE = new Localization("spawn.type.notallowed", ChatColor.RED + "You do not have permission to create minecarts of type %0%");
+    public static final Localization SPAWN_DISALLOWED_INVENTORY = new Localization("spawn.inventoryitems.notallowed", ChatColor.RED + "You do not have permission to create minecarts with pre-existing inventory items");
 
     public static final Localization SELECT_DESTINATION = new Localization("select.destination", ChatColor.YELLOW + "You have selected " + ChatColor.WHITE + "%0%" + ChatColor.YELLOW + " as your destination!");
     public static final Localization TICKET_EXPIRED = new Localization("ticket.expired", ChatColor.RED + "Your ticket for %0% is expired");

@@ -99,6 +99,18 @@ public class SpawnableMember implements TrainCarts.Provider {
     }
 
     /**
+     * Gets whether the Minecart has inventory items metadata associated with it. If this
+     * cart type is a storage chest or hopper, then this returns true if the inventory
+     * is not empty upon spawning.
+     *
+     * @return True if the Minecart will have items after spawning
+     */
+    public boolean hasInventoryItems() {
+        ConfigurationNode data = config.getNodeIfExists("data");
+        return data != null && data.contains("contents") && !data.getList("contents").isEmpty();
+    }
+
+    /**
      * Gets the permission node for spawning this Minecart
      * 
      * @return spawn permission
