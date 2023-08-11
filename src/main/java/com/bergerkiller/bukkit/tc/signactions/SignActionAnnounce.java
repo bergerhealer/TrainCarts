@@ -7,27 +7,27 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
+import org.bukkit.entity.Player;
 
 public class SignActionAnnounce extends SignAction {
 
-    public static void sendMessage(SignActionEvent info, MinecartGroup group, String message) {
+    private static boolean useTitle = false;
+
+    private static void sendMessage(MinecartGroup group, AnnounceMessage message) {
         for (MinecartMember<?> member : group) {
-            sendMessage(info, member, message);
+            sendMessage(member, message);
         }
     }
 
-    public static void sendMessage(SignActionEvent info, MinecartMember<?> member, String message) {
-        member.getEntity().getPlayerPassengers().forEach(player -> TrainCarts.sendMessage(player, message));
-    }
-
-    public static String getMessage(SignActionEvent info) {
-        StringBuilder message = new StringBuilder(32);
-        message.append(info.getLine(2));
-        message.append(info.getLine(3));
-        for (String line : info.getExtraLinesBelow()) {
-            message.append(line);
+    private static void sendMessage(MinecartMember<?> member, AnnounceMessage message) {
+        for (Player player: member.getEntity().getPlayerPassengers()) {
+            if (SignActionAnnounce.useTitle) {
+                player.sendTitle(message.title, message.subtitle);
+            } else {
+                TrainCarts.sendMessage(player, message.title);
+                TrainCarts.sendMessage(player, message.subtitle);
+            }
         }
-        return TrainCarts.getMessage(message.toString());
     }
 
     @Override
@@ -37,16 +37,21 @@ public class SignActionAnnounce extends SignAction {
 
     @Override
     public void execute(SignActionEvent info) {
-        String message = getMessage(info);
-        if (info.isTrainSign() && info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_ON)) {
-            if (!info.hasRailedMember() || !info.isPowered()) return;
-            sendMessage(info, info.getGroup(), message);
-        } else if (info.isCartSign() && info.isAction(SignActionType.MEMBER_ENTER, SignActionType.REDSTONE_ON)) {
-            if (!info.hasRailedMember() || !info.isPowered()) return;
-            sendMessage(info, info.getMember(), message);
-        } else if (info.isRCSign() && info.isAction(SignActionType.REDSTONE_ON)) {
-            for (MinecartGroup group : info.getRCTrainGroups()) {
-                sendMessage(info, group, message);
+        // check if Sign is REDSTONE_ON
+        // setup AnnounceMessage and useTitle if so
+        if (info.isAction(SignActionType.REDSTONE_ON)) {
+
+            AnnounceMessage message = new AnnounceMessage(info);
+            SignActionAnnounce.useTitle = isTitleAnnounce(info);
+
+            if (info.isTrainSign() && info.isAction(SignActionType.GROUP_ENTER)) {
+                if (!info.hasRailedMember() || !info.isPowered()) return;
+                sendMessage(info.getGroup(), message);
+            } else if (info.isCartSign() && info.isAction(SignActionType.MEMBER_ENTER)) {
+                if (!info.hasRailedMember() || !info.isPowered()) return;
+                sendMessage(info.getMember(), message);
+            } else if (info.isRCSign()) {
+                info.getRCTrainGroups().forEach(group -> sendMessage(group, message));
             }
         }
     }
@@ -66,9 +71,29 @@ public class SignActionAnnounce extends SignAction {
                 .setPermission(Permission.BUILD_ANNOUNCER)
                 .setName("announcer")
                 .setDescription(event.isRCSign() ?
-                        "remotely send a message to all the players in the train" :
-                        "send a message to players in a train")
+                        "announce a message to all the players in the train" :
+                        "announce message to players in a train")
                 .setTraincartsWIKIHelp("TrainCarts/Signs/Announce")
                 .handle(event.getPlayer());
+    }
+
+    private static boolean isTitleAnnounce(SignActionEvent info) {
+        for (String part : info.getLine(1).split(" ")) {
+            if (part.equalsIgnoreCase("title")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static class AnnounceMessage {
+
+        public AnnounceMessage(SignActionEvent info) {
+            this.title = TrainCarts.getMessage(info.getLine(2));
+            this.subtitle = TrainCarts.getMessage(info.getLine(3));
+        }
+
+        public String title;
+        public String subtitle;
     }
 }
