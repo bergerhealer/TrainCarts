@@ -49,14 +49,14 @@ public class SignActionMutex extends SignAction {
                     .setName("smart mutex zone")
                     .setDescription("prevent more than one train occupying the same rail blocks within a zone")
                     .setTraincartsWIKIHelp("TrainCarts/Signs/Mutex")
-                    .handle(event.getPlayer());
+                    .handle(event);
         } else {
             return SignBuildOptions.create()
                     .setPermission(Permission.BUILD_MUTEX)
                     .setName("mutex zone")
                     .setDescription("prevent more than one train entering a zone")
                     .setTraincartsWIKIHelp("TrainCarts/Signs/Mutex")
-                    .handle(event.getPlayer());
+                    .handle(event);
         }
     }
 

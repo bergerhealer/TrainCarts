@@ -240,7 +240,7 @@ public abstract class SignAction {
     }
 
     public static void handleBuild(SignChangeEvent event) {
-        handleBuild(new SignBuildEvent(event));
+        handleBuild(new SignBuildEvent(event, true));
     }
 
     public static void handleBuild(SignBuildEvent info) {

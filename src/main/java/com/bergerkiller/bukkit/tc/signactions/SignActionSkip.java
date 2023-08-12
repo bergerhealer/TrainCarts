@@ -100,7 +100,7 @@ public class SignActionSkip extends SignAction {
         } else if (event.isRCSign()) {
             opt.setDescription("tell a remote train to skip signs");
         }
-        return opt.handle(event.getPlayer());
+        return opt.handle(event);
     }
 
     @Override

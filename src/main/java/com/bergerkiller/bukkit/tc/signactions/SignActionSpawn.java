@@ -81,9 +81,11 @@ public class SignActionSpawn extends SignAction {
         }
 
         // Success!
-        buildOpts.showBuildMessage(event.getPlayer());
-        if (sign.hasInterval()) {
-            event.getPlayer().sendMessage(ChatColor.YELLOW + "This spawner will automatically spawn trains every " + Util.getTimeString(sign.getInterval()) + " while powered");
+        if (event.isInteractive()) {
+            buildOpts.showBuildMessage(event.getPlayer());
+            if (sign.hasInterval()) {
+                event.getPlayer().sendMessage(ChatColor.YELLOW + "This spawner will automatically spawn trains every " + Util.getTimeString(sign.getInterval()) + " while powered");
+            }
         }
 
         return true;

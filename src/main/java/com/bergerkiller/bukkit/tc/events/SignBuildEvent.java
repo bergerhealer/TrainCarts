@@ -27,9 +27,12 @@ public class SignBuildEvent extends SignChangeActionEvent {
      *
      * @param player Player that built the sign
      * @param sign Sign that was built
+     * @param interactive Whether this is an interactive change. If true, then a
+     *                    sign build message is displayed. If not, the building is
+     *                    silent unless a permission-related issue occurs.
      */
-    public SignBuildEvent(Player player, RailLookup.TrackedSign sign) {
-        super(player, sign);
+    public SignBuildEvent(Player player, RailLookup.TrackedSign sign, boolean interactive) {
+        super(player, sign, interactive);
         this.action = SignAction.getSignAction(this);
     }
 
@@ -38,9 +41,12 @@ public class SignBuildEvent extends SignChangeActionEvent {
      * sign lines
      *
      * @param event SignChangeEvent describing the building of the new sign
+     * @param interactive Whether this is an interactive change. If true, then a
+     *                    sign build message is displayed. If not, the building is
+     *                    silent unless a permission-related issue occurs.
      */
-    public SignBuildEvent(SignChangeEvent event) {
-        super(event);
+    public SignBuildEvent(SignChangeEvent event, boolean interactive) {
+        super(event, interactive);
         this.action = SignAction.getSignAction(this);
     }
 
@@ -59,10 +65,13 @@ public class SignBuildEvent extends SignChangeActionEvent {
      *
      * @param player Player that built the sign
      * @param sign Sign that was built
+     * @param interactive Whether this is an interactive change. If true, then a
+     *                    sign build message is displayed. If not, the building is
+     *                    silent unless a permission-related issue occurs.
      * @param action Registered SignAction that manages execution of this sign
      */
-    public SignBuildEvent(Player player, RailLookup.TrackedSign sign, SignAction action) {
-        super(player, sign);
+    public SignBuildEvent(Player player, RailLookup.TrackedSign sign, boolean interactive, SignAction action) {
+        super(player, sign, interactive);
         this.action = action;
     }
 
@@ -71,10 +80,13 @@ public class SignBuildEvent extends SignChangeActionEvent {
      * is already known to eliminate an unneeded lookup.
      *
      * @param event SignChangeEvent describing the building of the new sign
+     * @param interactive Whether this is an interactive change. If true, then a
+     *                    sign build message is displayed. If not, the building is
+     *                    silent unless a permission-related issue occurs.
      * @param action Registered SignAction that manages execution of this sign
      */
-    public SignBuildEvent(SignChangeEvent event, SignAction action) {
-        super(event);
+    public SignBuildEvent(SignChangeEvent event, boolean interactive, SignAction action) {
+        super(event, interactive);
         this.action = action;
     }
 

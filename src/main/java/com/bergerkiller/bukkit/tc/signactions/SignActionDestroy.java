@@ -48,7 +48,7 @@ public class SignActionDestroy extends SignAction {
         } else if (event.isRCSign()) {
             opt.setDescription("destroy an entire train remotely");
         }
-        return opt.handle(event.getPlayer());
+        return opt.handle(event);
     }
 
     @Override

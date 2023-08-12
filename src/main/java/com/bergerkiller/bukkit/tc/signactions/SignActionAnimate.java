@@ -62,7 +62,7 @@ public class SignActionAnimate extends SignAction {
                         "play train model animations remotely" :
                         "play train model animations")
                 .setTraincartsWIKIHelp("TrainCarts/Signs/Animate")
-                .handle(event.getPlayer());
+                .handle(event);
     }
 
     @Override

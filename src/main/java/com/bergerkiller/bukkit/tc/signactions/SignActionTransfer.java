@@ -159,14 +159,14 @@ public class SignActionTransfer extends SignAction {
                     .setName("storage minecart item collector")
                     .setDescription("take items from " + StringUtil.combineNames(types))
                     .setTraincartsWIKIHelp("TrainCarts/Signs/Transfer")
-                    .handle(event.getPlayer());
+                    .handle(event);
         } else {
             return SignBuildOptions.create()
                     .setPermission(Permission.BUILD_DEPOSITOR)
                     .setName("storage minecart item depositor")
                     .setDescription("make trains put items into " + StringUtil.combineNames(types))
                     .setTraincartsWIKIHelp("TrainCarts/Signs/Transfer")
-                    .handle(event.getPlayer());
+                    .handle(event);
         }
     }
 }

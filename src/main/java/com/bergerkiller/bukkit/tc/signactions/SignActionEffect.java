@@ -105,7 +105,7 @@ public class SignActionEffect extends SignAction {
         } else if (event.isRCSign()) {
             opt.setDescription("play an effect in all minecarts of the train" + app);
         }
-        return opt.handle(event.getPlayer());
+        return opt.handle(event);
     }
 
     @Override

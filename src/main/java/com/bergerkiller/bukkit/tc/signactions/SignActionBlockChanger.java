@@ -99,7 +99,7 @@ public class SignActionBlockChanger extends SignAction {
         } else if (event.isRCSign()) {
             opt.setDescription("change the blocks displayed in a train remotely");
         }
-        return opt.handle(event.getPlayer());
+        return opt.handle(event);
     }
 
     @Override

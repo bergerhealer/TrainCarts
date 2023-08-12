@@ -119,6 +119,6 @@ public class SignActionTicket extends SignAction {
                 .setName("ticket system")
                 .setDescription("charges the passengers of a train")
                 .setTraincartsWIKIHelp("TrainCarts/Signs/Ticket")
-                .handle(event.getPlayer());
+                .handle(event);
     }
 }

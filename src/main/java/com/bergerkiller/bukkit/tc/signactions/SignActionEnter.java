@@ -157,6 +157,6 @@ public class SignActionEnter extends SignAction {
                 .setName("train enter sign")
                 .setDescription("cause nearby players/mobs to enter the train")
                 .setTraincartsWIKIHelp("TrainCarts/Signs/Enter")
-                .handle(event.getPlayer());
+                .handle(event);
     }
 }

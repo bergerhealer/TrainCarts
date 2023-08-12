@@ -62,6 +62,6 @@ public class SignActionJumper extends SignAction {
         } else {
             opt.setDescription("cause an entire train to jump towards a certain direction");
         }
-        return opt.handle(event.getPlayer());
+        return opt.handle(event);
     }
 }

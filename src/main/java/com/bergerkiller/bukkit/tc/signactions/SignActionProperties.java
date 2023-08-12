@@ -135,7 +135,7 @@ public class SignActionProperties extends SignAction {
         } else if (event.isRCSign()) {
             opt.setDescription( "remotely set properties on the train specified");
         }
-        if (!opt.handle(event.getPlayer())) {
+        if (!opt.handle(event)) {
             return false;
         }
 

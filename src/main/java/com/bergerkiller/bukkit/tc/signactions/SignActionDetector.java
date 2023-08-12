@@ -215,7 +215,7 @@ public class SignActionDetector extends SignAction {
                 .setName("train detector")
                 .setDescription("detect trains between this detector sign and another")
                 .setTraincartsWIKIHelp("TrainCarts/Signs/Detector")
-                .handle(event.getPlayer()))
+                .handle(event))
         {
             return false;
         }

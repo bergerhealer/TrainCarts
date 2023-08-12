@@ -59,7 +59,7 @@ public class SignActionFlip extends SignAction {
         } else if (event.isRCSign()) {
             opt.setDescription("flip the orientation of all Minecarts in a train remotely");
         }
-        return opt.handle(event.getPlayer());
+        return opt.handle(event);
     }
 
     @Override

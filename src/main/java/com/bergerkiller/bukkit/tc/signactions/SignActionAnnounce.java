@@ -69,6 +69,6 @@ public class SignActionAnnounce extends SignAction {
                         "remotely send a message to all the players in the train" :
                         "send a message to players in a train")
                 .setTraincartsWIKIHelp("TrainCarts/Signs/Announce")
-                .handle(event.getPlayer());
+                .handle(event);
     }
 }

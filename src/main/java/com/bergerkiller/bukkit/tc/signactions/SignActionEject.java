@@ -143,7 +143,7 @@ public class SignActionEject extends SignAction {
                 .setName("train ejector")
                 .setDescription("eject the passengers of a " + (event.isRCSign() ? "remote train" : "train"))
                 .setTraincartsWIKIHelp("TrainCarts/Signs/Ejector")
-                .handle(event.getPlayer());
+                .handle(event);
     }
 
     @Override

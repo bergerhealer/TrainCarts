@@ -33,6 +33,6 @@ public class SignActionTrigger extends SignAction {
                 .setName("train trigger")
                 .setDescription("reset the arrival time, train name and destination, which can be displayed using SignLink")
                 .setTraincartsWIKIHelp("TrainCarts/Signs/Trigger")
-                .handle(event.getPlayer());
+                .handle(event);
     }
 }

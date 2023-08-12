@@ -123,7 +123,7 @@ public class SignActionStation extends SignAction {
                 .setName("station")
                 .setDescription("stop, wait and launch trains")
                 .setTraincartsWIKIHelp("TrainCarts/Signs/Station")
-                .handle(event.getPlayer());
+                .handle(event);
     }
 
     @Override

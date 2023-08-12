@@ -75,6 +75,6 @@ public class SignActionBlocker extends SignAction {
                 .setName("train blocker")
                 .setDescription("block trains coming from a certain direction")
                 .setTraincartsWIKIHelp("TrainCarts/Signs/Blocker")
-                .handle(event.getPlayer());
+                .handle(event);
     }
 }

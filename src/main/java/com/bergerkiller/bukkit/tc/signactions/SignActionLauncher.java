@@ -141,6 +141,6 @@ public class SignActionLauncher extends SignAction {
                 .setName("launcher")
                 .setDescription("launch (or brake) trains at a desired speed")
                 .setTraincartsWIKIHelp("TrainCarts/Signs/Launcher")
-                .handle(event.getPlayer());
+                .handle(event);
     }
 }

@@ -156,7 +156,7 @@ public class SignActionDestination extends SignAction {
         } else if (event.isRCSign()) {
             opt.setDescription("set the destination on a remote train");
         }
-        return opt.handle(event.getPlayer());
+        return opt.handle(event);
     }
 
     @Override

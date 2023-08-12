@@ -106,14 +106,14 @@ public class SignActionSwitcher extends SignAction {
                     .setName("cart switcher")
                     .setDescription("switch between tracks based on properties of the cart above")
                     .setTraincartsWIKIHelp("TrainCarts/Signs/Switcher")
-                    .handle(event.getPlayer());
+                    .handle(event);
         } else if (event.isTrainSign()) {
             return SignBuildOptions.create()
                     .setPermission(Permission.BUILD_SWITCHER)
                     .setName("train switcher")
                     .setDescription("switch between tracks based on properties of the train above")
                     .setTraincartsWIKIHelp("TrainCarts/Signs/Switcher")
-                    .handle(event.getPlayer());
+                    .handle(event);
         }
         return false;
     }

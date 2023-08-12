@@ -144,6 +144,6 @@ public class SignActionElevator extends SignAction {
                 .setName("train elevator")
                 .setDescription("teleport trains vertically")
                 .setTraincartsWIKIHelp("TrainCarts/Signs/Elevator")
-                .handle(event.getPlayer());
+                .handle(event);
     }
 }

@@ -98,6 +98,6 @@ public class SignActionFuel extends SignAction {
                 .setName("powered minecart coal collector")
                 .setDescription("fuel the powered minecart using coal from a chest");
 
-        return opt.handle(event.getPlayer());
+        return opt.handle(event);
     }
 }

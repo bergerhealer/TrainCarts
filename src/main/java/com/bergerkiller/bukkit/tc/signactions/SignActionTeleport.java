@@ -157,7 +157,7 @@ public class SignActionTeleport extends SignAction {
                 .setName("train teleporter")
                 .setDescription("teleport trains large distances to another teleporter sign")
                 .setTraincartsWIKIHelp("TrainCarts/Signs/Teleporter")
-                .handle(event.getPlayer());
+                .handle(event);
     }
 
     private boolean matchMyWorlds(SignActionEvent info) {

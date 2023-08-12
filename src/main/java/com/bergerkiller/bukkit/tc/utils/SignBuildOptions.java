@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.utils;
 
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
@@ -81,7 +83,7 @@ public class SignBuildOptions {
     }
 
     /**
-     * Calls {@link #setHelpURL(url, alt)} with information about a page
+     * Calls {@link #setHelpURL(String, String)}  with information about a page
      * on the Traincarts Wiki.
      * 
      * @param page Path on the wiki where the information is located
@@ -93,7 +95,7 @@ public class SignBuildOptions {
     }
 
     /**
-     * Calls {@link #setHelpURL(url, alt)} with information about a page
+     * Calls {@link #setHelpURL(String, String)} with information about a page
      * on the Minecraft Wiki.
      * 
      * @param page Path on the wiki where the information is located
@@ -140,7 +142,7 @@ public class SignBuildOptions {
     public boolean checkBuildPermission(Player player) {
         // Permission
         if (permission != null && !CommonUtil.hasPermission(player, this.permission)) {
-            Localization.SIGN_NO_PERMISSION.message(player);
+            Localization.SIGN_NO_PERMISSION.message(player, LogicUtil.fixNull(name, ""));
             return false;
         }
 
@@ -186,6 +188,27 @@ public class SignBuildOptions {
             return true;
         } else {
             return false;
+        }
+    }
+
+    /**
+     * Handles building of the sign. Checks permission, if set, and sends the appropriate messages.
+     * In addition to {@link #handle(Player)} checks whether the sign was placed non-interactively,
+     * in which case no build message is sent.
+     *
+     * @param event SignChangeActionEvent describing the building of a new sign
+     * @return True if the player could build the sign
+     * @see SignChangeActionEvent#isInteractive()
+     * @see #handle(Player)
+     */
+    public boolean handle(SignChangeActionEvent event) {
+        if (!checkBuildPermission(event.getPlayer())) {
+            return false;
+        } else {
+            if (event.isInteractive()) {
+                showBuildMessage(event.getPlayer());
+            }
+            return true;
         }
     }
 

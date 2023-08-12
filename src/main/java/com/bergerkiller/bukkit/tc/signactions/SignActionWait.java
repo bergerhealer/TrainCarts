@@ -116,6 +116,6 @@ public class SignActionWait extends SignAction {
                 .setName("train waiter sign")
                 .setDescription("waits the train until the tracks ahead are clear")
                 .setTraincartsWIKIHelp("TrainCarts/Signs/Waiter")
-                .handle(event.getPlayer());
+                .handle(event);
     }
 }

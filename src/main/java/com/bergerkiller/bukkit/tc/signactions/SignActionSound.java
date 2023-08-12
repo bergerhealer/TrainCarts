@@ -126,7 +126,7 @@ public class SignActionSound extends SignAction {
         } else if (event.isRCSign()) {
             opt.setDescription("play a sound in all minecarts of the train" + app);
         }
-        return opt.handle(event.getPlayer());
+        return opt.handle(event);
     }
 
     @Override
