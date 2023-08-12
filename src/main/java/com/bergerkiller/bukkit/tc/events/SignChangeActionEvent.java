@@ -20,6 +20,10 @@ public class SignChangeActionEvent extends SignActionEvent {
         this(event, TrackedSign.forChangingSign(event));
     }
 
+    protected SignChangeActionEvent(SignChangeActionEvent event) {
+        this(event.event, event.getTrackedSign());
+    }
+
     private SignChangeActionEvent(SignChangeEvent event, TrackedSign sign) {
         super(sign);
         this.event = event;

@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignBuildEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathPredictEvent;
@@ -233,68 +234,80 @@ public abstract class SignAction {
                 .handle(event.getPlayer());
     }
 
-    public static void handleBuild(SignChangeEvent event) {
-        handleBuild(new SignChangeActionEvent(event));
+    @Deprecated
+    public static void handleBuild(SignChangeActionEvent info) {
+        handleBuild(new SignBuildEvent(info));
     }
 
-    public static void handleBuild(SignChangeActionEvent info) {
-        SignAction action = getSignAction(info);
-        if (action != null) {
+    public static void handleBuild(SignChangeEvent event) {
+        handleBuild(new SignBuildEvent(event));
+    }
+
+    public static void handleBuild(SignBuildEvent info) {
+        // Let other plugins see the build event and allow them to cancel it
+        CommonUtil.callEvent(info);
+
+        // If cancelled by a plugin, abort
+        if (info.isCancelled()) {
+            return;
+        }
+
+        if (info.hasRegisteredAction()) {
+            SignAction action = info.getRegisteredAction();
             if (!info.getTrackedSign().isRealSign() && !action.canSupportFakeSign(info)) {
                 info.getPlayer().sendMessage(ChatColor.RED + "A real sign is required for this type of action");
                 info.setCancelled(true);
                 return;
             }
 
-            if (action.build(info)) {
-                // Inform about use of RC when not supported
-                if (!action.canSupportRC() && info.isRCSign()) {
-                    info.getPlayer().sendMessage(ChatColor.RED + "This sign does not support remote control!");
-                    info.getHeader().setMode(SignActionMode.TRAIN);
-                    info.setLine(0, info.getHeader().toString());
-                }
-
-                // For signs that define path finding destinations, report about duplicate names
-                String destinationName = action.getRailDestinationName(info);
-                if (destinationName != null) {
-                    PathNode node = info.getTrainCarts().getPathProvider().getWorld(info.getWorld()).getNodeByName(destinationName);
-                    if (node != null) {
-                        Player p = info.getPlayer();
-                        p.sendMessage(ChatColor.RED + "Another destination with the same name already exists!");
-                        p.sendMessage(ChatColor.RED + "Please remove either sign and use /train reroute to fix");
-
-                        // Send location message
-                        BlockLocation loc = node.location;
-                        StringBuilder locMsg = new StringBuilder(100);
-                        locMsg.append(ChatColor.RED).append("Other destination '" + destinationName + "' is ");
-                        if (loc.getWorld() != info.getPlayer().getWorld()) {
-                            locMsg.append("on world ").append(ChatColor.WHITE).append(node.location.world);
-                            locMsg.append(' ').append(ChatColor.RED);
-                        }
-                        locMsg.append("at ").append(ChatColor.WHITE);
-                        locMsg.append('[').append(loc.x).append('/').append(loc.y);
-                        locMsg.append('/').append(loc.z).append(']');
-                        p.sendMessage(locMsg.toString());
-                    }
-                }
-
-                // Tell train above to update signs, if available
-                if (info.hasRails()) {
-                    for (MinecartMember<?> member : info.getRailPiece().members()) {
-                        if (!member.isUnloaded() && !member.getEntity().isRemoved()) {
-                            member.getGroup().getSignTracker().updatePosition();
-                        }
-                    }
-                }
-
-                // Call loaded
-                action.loadedChanged(info, true);
-            } else {
+            // Allow SignAction to cancel the building of the sign too
+            if (!action.build(info)) {
                 info.setCancelled(true);
-            }
-            if (info.isCancelled()) {
                 return;
             }
+
+            // Inform about use of RC when not supported
+            if (!action.canSupportRC() && info.isRCSign()) {
+                info.getPlayer().sendMessage(ChatColor.RED + "This sign does not support remote control!");
+                info.getHeader().setMode(SignActionMode.TRAIN);
+                info.setLine(0, info.getHeader().toString());
+            }
+
+            // For signs that define path finding destinations, report about duplicate names
+            String destinationName = action.getRailDestinationName(info);
+            if (destinationName != null) {
+                PathNode node = info.getTrainCarts().getPathProvider().getWorld(info.getWorld()).getNodeByName(destinationName);
+                if (node != null) {
+                    Player p = info.getPlayer();
+                    p.sendMessage(ChatColor.RED + "Another destination with the same name already exists!");
+                    p.sendMessage(ChatColor.RED + "Please remove either sign and use /train reroute to fix");
+
+                    // Send location message
+                    BlockLocation loc = node.location;
+                    StringBuilder locMsg = new StringBuilder(100);
+                    locMsg.append(ChatColor.RED).append("Other destination '" + destinationName + "' is ");
+                    if (loc.getWorld() != info.getPlayer().getWorld()) {
+                        locMsg.append("on world ").append(ChatColor.WHITE).append(node.location.world);
+                        locMsg.append(' ').append(ChatColor.RED);
+                    }
+                    locMsg.append("at ").append(ChatColor.WHITE);
+                    locMsg.append('[').append(loc.x).append('/').append(loc.y);
+                    locMsg.append('/').append(loc.z).append(']');
+                    p.sendMessage(locMsg.toString());
+                }
+            }
+
+            // Tell train above to update signs, if available
+            if (info.hasRails()) {
+                for (MinecartMember<?> member : info.getRailPiece().members()) {
+                    if (!member.isUnloaded() && !member.getEntity().isRemoved()) {
+                        member.getGroup().getSignTracker().updatePosition();
+                    }
+                }
+            }
+
+            // Call loaded
+            action.loadedChanged(info, true);
         }
 
         // Snap to fixed 45-degree angle
