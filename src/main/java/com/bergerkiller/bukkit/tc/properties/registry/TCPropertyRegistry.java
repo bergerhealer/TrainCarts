@@ -54,6 +54,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
 
     // All registered properties and their metadata
     private final Map<IProperty<Object>, PropertyDetails<Object>> properties = new HashMap<>();
+    private Collection<IProperty<Object>> cachedPropertiesAll = null; // Lazily initialized on first use
 
     // Used during lookup by name
     private final Map<String, PropertyParserElement<?>> parsersByName = new HashMap<>();
@@ -98,6 +99,9 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
         PropertyDetails<Object> details = CommonUtil.unsafeCast(this.createDetails(property));
         PropertyDetails<Object> previous = properties.put(details.property, details);
 
+        // Invalidate
+        cachedPropertiesAll = null;
+
         // Already registered
         if (details.property == previous) {
             return;
@@ -137,6 +141,9 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
         PropertyDetails<Object> removed = properties.remove(property);
         if (removed != null) {
             removed.parsers.forEach(this::unregisterParser);
+
+            // Invalidate
+            cachedPropertiesAll = null;
         }
     }
 
@@ -148,7 +155,11 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
 
     @Override
     public Collection<IProperty<Object>> all() {
-        return Collections.unmodifiableCollection(properties.keySet());
+        Collection<IProperty<Object>> all = cachedPropertiesAll;
+        if (all == null) {
+            cachedPropertiesAll = all = Collections.unmodifiableCollection(new ArrayList<>(properties.keySet()));
+        }
+        return all;
     }
 
     private void registerCondition(PropertySelectorConditionElement<?> condition) {
