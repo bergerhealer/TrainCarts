@@ -484,9 +484,11 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
 
             // Store all default properties, if they exist
             for (IProperty<Object> property : IPropertyRegistry.instance().all()) {
-                Object value = property.getDefault();
-                if (value != null) {
-                    property.writeToConfig(node, Optional.of(value));
+                if (property.isAppliedAsDefault()) {
+                    Object value = property.getDefault();
+                    if (value != null) {
+                        property.writeToConfig(node, Optional.of(value));
+                    }
                 }
             }
 

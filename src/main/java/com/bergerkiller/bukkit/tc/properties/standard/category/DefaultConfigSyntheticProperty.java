@@ -82,9 +82,11 @@ public final class DefaultConfigSyntheticProperty implements ISyntheticProperty<
         // Go by all properties and apply them to the cart
         // Do note: if properties are for trains, they are applied too!
         for (IProperty<Object> property : IPropertyRegistry.instance().all()) {
-            Optional<Object> value = property.readFromConfig(config);
-            if (value.isPresent()) {
-                properties.set(property, value.get());
+            if (property.isAppliedAsDefault()) {
+                Optional<Object> value = property.readFromConfig(config);
+                if (value.isPresent()) {
+                    properties.set(property, value.get());
+                }
             }
         }
     }
