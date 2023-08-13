@@ -3,17 +3,24 @@ package com.bergerkiller.bukkit.tc.properties.standard.category;
 import java.util.Optional;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedProperty;
 import com.bergerkiller.bukkit.tc.properties.standard.type.AttachmentModelBoundToCart;
+import org.bukkit.command.CommandSender;
 
 /**
  * Controls the Attachments Model used by a particular cart. This configures the outside
  * appearance of carts.
  */
 public final class ModelProperty extends FieldBackedProperty<AttachmentModel> {
+
+    @Override
+    public boolean hasPermission(CommandSender sender, String name) {
+        return Permission.COMMAND_GIVE_EDITOR.has(sender);
+    }
 
     @Override
     public AttachmentModel getDefault() {
