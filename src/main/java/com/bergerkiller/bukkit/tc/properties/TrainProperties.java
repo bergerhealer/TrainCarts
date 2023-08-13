@@ -8,12 +8,12 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.tc.properties.defaults.DefaultProperties;
 import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -1201,18 +1201,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     public void setDefault(String key) {
-        ConfigurationNode config = getDefaultsByName(key);
-        if (config != null) {
-            this.apply(config);
+        DefaultProperties defaults = getDefaultsByName(key);
+        if (defaults != null) {
+            this.apply(defaults);
         }
-    }
-
-    /**
-     * @deprecated Use {@link #apply(ConfigurationNode)} instead
-     */
-    @Deprecated
-    public void setDefault(ConfigurationNode node) {
-        this.apply(node);
     }
 
     public void setDefault(Player player) {
@@ -1223,6 +1215,14 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             // Load it
             this.apply(getDefaultsByPlayer(player));
         }
+    }
+
+    /**
+     * @deprecated Use {@link #apply(ConfigurationNode)} instead
+     */
+    @Deprecated
+    public void setDefault(ConfigurationNode node) {
+        this.apply(node);
     }
 
     public void tryUpdate() {
@@ -1357,7 +1357,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * @see #load(ConfigurationNode)
      */
     public void load(TrainProperties source) {
-        this.load(source.saveToConfig());
+        this.load(source.getConfig());
     }
 
     /**
@@ -1392,7 +1392,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
 
     @Override
     public void save(ConfigurationNode node) {
-        saveToConfig().cloneInto(node);
+        getConfig().cloneInto(node);
     }
 
     protected void onConfigurationChanged(boolean cartsChanged) {
@@ -1421,7 +1421,9 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * method is no longer needed.
      * 
      * @return saved {@link #getConfig()}
+     * @deprecated No longer does anything! Just use {@link #getConfig()}
      */
+    @Deprecated
     public ConfigurationNode saveToConfig() {
         // Save carts too!
         for (CartProperties cProp : this) {
@@ -1436,30 +1438,30 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * node to this train and this train's carts. For every cart property
      * the property is updated for all the carts of this train. If a property
      * isn't stored in the configuration, the original value of this train
-     * is preserved.
-     * 
+     * is preserved.<br>
+     * <br>
+     * <b>Note: it is more performant to create a {@link DefaultProperties}
+     * configuration and reuse that instead, if possible.</b>
+     *
      * @param node Configuration node to apply to this train and carts
+     * @see #apply(DefaultProperties)
      */
     public void apply(ConfigurationNode node) {
-        if (node == null) {
-            return;
+        if (node != null) {
+            DefaultProperties.of(node).applyTo(this);
         }
+    }
 
-        // Read all properties TrainCarts knows about from the configuration
-        // This will read and apply both train and cart properties
-        for (IProperty<Object> property : IPropertyRegistry.instance().all()) {
-            if (property.isAppliedAsDefault()) {
-                Optional<Object> value = property.readFromConfig(node);
-                if (value.isPresent()) {
-                    this.set(property, value.get());
-                }
-            }
-        }
-
-        // Fire onPropertiesChanged, if possible
-        this.tryUpdate();
-        for (CartProperties prop : this) {
-            prop.tryUpdate();
-        }
+    /**
+     * Applies all of the default property values in a default properties
+     * configuration to this train and this train's carts. For every cart property
+     * the property is updated for all the carts of this train. If a property
+     * isn't stored in the defaults configuration, the original value of this train
+     * is preserved.
+     *
+     * @param defaultProperties Default Properties configuration
+     */
+    public void apply(DefaultProperties defaultProperties) {
+        defaultProperties.applyTo(this);
     }
 }

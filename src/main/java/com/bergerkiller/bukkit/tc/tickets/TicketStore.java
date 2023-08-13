@@ -46,7 +46,7 @@ public class TicketStore {
         for (int i = 1; ticket == null; i++) {
             ticket = createTicket(baseTicket, "ticket" + i);
         }
-        ticket.setProperties(TrainProperties.getDefaultsByName("default"));
+        ticket.setProperties(TrainProperties.getDefaultsByName("default").getConfig());
         return ticket;
     }
 

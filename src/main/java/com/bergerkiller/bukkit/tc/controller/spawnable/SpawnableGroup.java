@@ -640,7 +640,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
             } else {
                 EntityType type = findVanillaCartType(c);
                 if (type != null) {
-                    ConfigurationNode standardCartConfig = TrainPropertiesStore.getDefaultsByName("spawner").clone();
+                    ConfigurationNode standardCartConfig = TrainPropertiesStore.getDefaultsByName("spawner").getConfig().clone();
                     standardCartConfig.remove("carts");
                     result.applyConfig(standardCartConfig);
                     standardCartConfig.set("entityType", type);

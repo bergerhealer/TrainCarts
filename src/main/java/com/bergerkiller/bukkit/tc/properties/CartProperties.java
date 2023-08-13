@@ -670,7 +670,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * @see #load(ConfigurationNode)
      */
     public void load(CartProperties source) {
-        this.load(source.saveToConfig());
+        this.load(source.getConfig());
     }
 
     @Override
@@ -687,7 +687,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
     @Override
     public void save(ConfigurationNode node) {
-        saveToConfig().cloneInto(node);
+        getConfig().cloneInto(node);
     }
 
     protected void onConfigurationChanged() {
@@ -704,9 +704,11 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
      * Note: this will be removed once all properties are
      * part of IProperties! Then they are all live-updated and this
      * method is no longer needed.
-     * 
+     *
      * @return saved {@link #getConfig()}
+     * @deprecated No longer does anything! Just use {@link #getConfig()}
      */
+    @Deprecated
     public ConfigurationNode saveToConfig() {
         return this.config;
     }

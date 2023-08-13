@@ -2,14 +2,12 @@ package com.bergerkiller.bukkit.tc.properties;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
-import com.bergerkiller.bukkit.tc.properties.api.IProperty;
-import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
+import com.bergerkiller.bukkit.tc.properties.defaults.DefaultProperties;
+import com.bergerkiller.bukkit.tc.properties.defaults.DefaultPropertiesLookup;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
@@ -18,7 +16,6 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import org.bukkit.entity.Player;
 
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.logging.Level;
 
 /**
@@ -28,9 +25,8 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
     private static boolean hasChanges = false;
     private static final long serialVersionUID = 1L;
     private static final String propertiesFile = "TrainProperties.yml";
-    private static final String defaultPropertiesFile = "DefaultTrainProperties.yml";
     private static FileConfiguration config = null;
-    private static FileConfiguration defconfig = null;
+    private static DefaultPropertiesLookup defaultProperties = null;
     private static TrainPropertiesMap trainProperties = new TrainPropertiesMap();
 
     /**
@@ -405,12 +401,12 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
     }
 
     /**
-     * Fixes deprecated properties from all nodes in a File configuration
+     * Fixes and upgrades deprecated train properties from all nodes in a File configuration
      *
      * @param config to fix
      * @return True if changes occurred, False if not
      */
-    private static boolean fixDeprecation(FileConfiguration config) {
+    public static boolean fixDeprecation(FileConfiguration config) {
         boolean changed = false;
         for (ConfigurationNode node : config.getNodes()) {
             if (node.contains("allowLinking")) {
@@ -476,48 +472,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
      * @param traincarts TrainCarts main plugin instance
      */
     public static void loadDefaults(TrainCarts traincarts) {
-        defconfig = new FileConfiguration(traincarts, defaultPropertiesFile);
-        defconfig.load();
-        boolean changed = false;
-        if (!defconfig.contains("default")) {
-            ConfigurationNode node = defconfig.getNode("default");
-
-            // Store all default properties, if they exist
-            for (IProperty<Object> property : IPropertyRegistry.instance().all()) {
-                if (property.isAppliedAsDefault()) {
-                    Object value = property.getDefault();
-                    if (value != null) {
-                        property.writeToConfig(node, Optional.of(value));
-                    }
-                }
-            }
-
-            // These defaults are only read, never written
-            node.set("blockTypes", "");
-            node.set("blockOffset", "unset");
-
-            changed = true;
-        }
-        if (!defconfig.contains("admin")) {
-            ConfigurationNode node = defconfig.getNode("admin");
-            for (Entry<String, Object> entry : defconfig.getNode("default").getValues().entrySet()) {
-                node.set(entry.getKey(), entry.getValue());
-            }
-            changed = true;
-        }
-        if (!defconfig.contains("spawner")) {
-            ConfigurationNode node = defconfig.getNode("spawner");
-            for (Entry<String, Object> entry : defconfig.getNode("default").getValues().entrySet()) {
-                node.set(entry.getKey(), entry.getValue());
-            }
-            changed = true;
-        }
-        if (fixDeprecation(defconfig)) {
-            changed = true;
-        }
-        if (changed) {
-            defconfig.save();
-        }
+        defaultProperties = DefaultPropertiesLookup.load(traincarts);
     }
 
     /**
@@ -546,8 +501,8 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
      * @param name of the properties Default
      * @return Default properties configuration node, or null if it doesn't exist
      */
-    public static ConfigurationNode getDefaultsByName(String name) {
-        return defconfig.isNode(name) ? defconfig.getNode(name) : null;
+    public static DefaultProperties getDefaultsByName(String name) {
+        return defaultProperties.getByName(name);
     }
 
     /**
@@ -556,26 +511,8 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
      * @param player the defaults apply to
      * @return Default properties configuration node, or null if not found
      */
-    public static ConfigurationNode getDefaultsByPlayer(Player player) {
-        Set<ConfigurationNode> specialNodes = new TreeSet<>(new Comparator<ConfigurationNode>() {
-            @Override
-            public int compare(ConfigurationNode o1, ConfigurationNode o2) {
-                return o1.getName().compareTo(o2.getName());
-            }
-        });
-        for (ConfigurationNode node : defconfig.getNodes()) {
-            if (LogicUtil.contains(node.getName(), "default", "spawner")) {
-                continue;
-            }
-            if (CommonUtil.hasPermission(player, "train.properties." + node.getName())) {
-                specialNodes.add(node);
-            }
-        }
-        if (specialNodes.isEmpty()) {
-            return defconfig.getNode("default");
-        } else {
-            return specialNodes.iterator().next();
-        }
+    public static DefaultProperties getDefaultsByPlayer(Player player) {
+        return defaultProperties.getForPlayer(player);
     }
 
     /**
