@@ -51,6 +51,7 @@ public class StandardProperties {
     public static final BreakBlocksProperty BLOCK_BREAK_TYPES = new BreakBlocksProperty();
     public static final RealtimePhysicsProperty REALTIME_PHYSICS = new RealtimePhysicsProperty();
     public static final EnterMessageProperty ENTER_MESSAGE = new EnterMessageProperty();
+    public static final TrainDisplayedBlocksProperty TRAIN_DISPLAYED_BLOCKS = new TrainDisplayedBlocksProperty();
 
     public static final ICartProperty<String> DRIVE_SOUND = new ICartProperty<String>() {
 
@@ -79,6 +80,11 @@ public class StandardProperties {
         @Override
         public String getDefault() {
             return "";
+        }
+
+        @Override
+        public boolean isAppliedAsDefault() {
+            return false;
         }
 
         @Override
@@ -218,6 +224,11 @@ public class StandardProperties {
         @Override
         public CartLockOrientation getDefault() {
             return CartLockOrientation.NONE;
+        }
+
+        @Override
+        public boolean isAppliedAsDefault() {
+            return false;
         }
 
         @Override

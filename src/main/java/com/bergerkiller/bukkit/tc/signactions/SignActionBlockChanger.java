@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.properties.standard.type.TrainDisplayedBlocks;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import java.util.ArrayList;
@@ -19,7 +20,15 @@ import java.util.List;
 import org.bukkit.Material;
 
 public class SignActionBlockChanger extends SignAction {
-    public static final int BLOCK_OFFSET_NONE = Integer.MAX_VALUE;
+    public static final int BLOCK_OFFSET_NONE = TrainDisplayedBlocks.BLOCK_OFFSET_NONE;
+
+    public static void setBlocks(Collection<MinecartMember<?>> members, TrainDisplayedBlocks config) {
+        if (config.getBlockTypesPattern().isEmpty()) {
+            setBlocks(members, new ItemParser[0], config.getOffset());
+        } else {
+            setBlocks(members, config.getBlockTypesPattern(), config.getOffset());
+        }
+    }
 
     public static void setBlocks(Collection<MinecartMember<?>> members, String blocksText, int blockOffset) {
         setBlocks(members, Util.getParsers(blocksText), blockOffset);

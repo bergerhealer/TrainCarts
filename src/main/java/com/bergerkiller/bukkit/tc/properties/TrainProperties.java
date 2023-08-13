@@ -23,7 +23,6 @@ import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.chunk.ChunkFutureProvider;
 import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
@@ -47,7 +46,6 @@ import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SlowdownMode;
 import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
 import com.bergerkiller.bukkit.tc.properties.standard.type.WaitOptions;
-import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
@@ -1454,28 +1452,6 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                 Optional<Object> value = property.readFromConfig(node);
                 if (value.isPresent()) {
                     this.set(property, value.get());
-                }
-            }
-        }
-
-        // These are legacy so that block offset / displayed blocks can be set using defaults
-        // These properties are purely saved so they are written correctly when saving defaults
-        // There are not meant to be read anywhere, because these exist as part of minecart metadata
-        // Only read these when actually set, don't add them using get's default if not so
-        // We don't want
-        if (node.contains("blockTypes") || node.contains("blockOffset")) {
-            String blockTypes = node.get("blockTypes", "");
-            int blockOffset = node.get("blockOffset", SignActionBlockChanger.BLOCK_OFFSET_NONE);
-
-            // Apply block types / block height to the actual minecart, if set
-            if (!blockTypes.isEmpty() || blockOffset != SignActionBlockChanger.BLOCK_OFFSET_NONE) {
-                MinecartGroup group = this.getHolder();
-                if (group != null) {
-                    if (blockTypes.isEmpty()) {
-                        SignActionBlockChanger.setBlocks(group, new ItemParser[0], blockOffset);
-                    } else {
-                        SignActionBlockChanger.setBlocks(group, blockTypes, blockOffset);
-                    }
                 }
             }
         }
