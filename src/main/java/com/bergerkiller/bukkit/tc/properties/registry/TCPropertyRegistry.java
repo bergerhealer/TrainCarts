@@ -102,11 +102,6 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
         // Invalidate
         cachedPropertiesAll = null;
 
-        // Already registered
-        if (details.property == previous) {
-            return;
-        }
-
         // Unregister a previous property that is overridden
         if (previous != null) {
             previous.parsers.forEach(this::unregisterParser);
