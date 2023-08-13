@@ -22,4 +22,9 @@ public interface ISyntheticProperty<T> extends IProperty<T> {
     @Override
     default void writeToConfig(ConfigurationNode config, Optional<T> value) {
     }
+
+    @Override
+    default boolean isAppliedAsDefault() {
+        return false;
+    }
 }

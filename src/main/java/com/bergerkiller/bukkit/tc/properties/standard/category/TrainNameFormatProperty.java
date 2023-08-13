@@ -123,6 +123,11 @@ public final class TrainNameFormatProperty implements ITrainProperty<TrainNameFo
     }
 
     @Override
+    public boolean isAppliedAsDefault() {
+        return false;
+    }
+
+    @Override
     public Optional<TrainNameFormat> readFromConfig(ConfigurationNode config) {
         return Util.getConfigOptional(config, "name", String.class)
                 .map(TrainNameFormat::parse);

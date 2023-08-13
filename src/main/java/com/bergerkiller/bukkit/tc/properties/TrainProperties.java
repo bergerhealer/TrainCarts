@@ -1450,9 +1450,11 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         // Read all properties TrainCarts knows about from the configuration
         // This will read and apply both train and cart properties
         for (IProperty<Object> property : IPropertyRegistry.instance().all()) {
-            Optional<Object> value = property.readFromConfig(node);
-            if (value.isPresent()) {
-                this.set(property, value.get());
+            if (property.isAppliedAsDefault()) {
+                Optional<Object> value = property.readFromConfig(node);
+                if (value.isPresent()) {
+                    this.set(property, value.get());
+                }
             }
         }
 

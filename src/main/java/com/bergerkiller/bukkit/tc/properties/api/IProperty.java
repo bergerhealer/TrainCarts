@@ -117,6 +117,18 @@ public interface IProperty<T> {
     void set(TrainProperties properties, T value);
 
     /**
+     * Gets whether this property is copied when applying a default configuration
+     * to a train. If this property combines multiple other properties or is
+     * {@link ISyntheticProperty synthetic}, it should return false. By default
+     * returns true.
+     *
+     * @return True if this property is applied when applying defaults
+     */
+    default boolean isAppliedAsDefault() {
+        return true;
+    }
+
+    /**
      * Throws a {@link NoPermissionForPropertyException} when
      * {@link #hasPermission(CommandSender, String)} returns false.
      * Also checks that the sender has permission to modify properties

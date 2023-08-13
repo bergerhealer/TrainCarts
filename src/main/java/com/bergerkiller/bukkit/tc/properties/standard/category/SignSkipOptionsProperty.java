@@ -27,6 +27,11 @@ public final class SignSkipOptionsProperty extends FieldBackedProperty<SignSkipO
     }
 
     @Override
+    public boolean isAppliedAsDefault() {
+        return false;
+    }
+
+    @Override
     public Optional<SignSkipOptions> readFromConfig(ConfigurationNode config) {
         if (!config.isNode("skipOptions")) {
             return Optional.empty();
