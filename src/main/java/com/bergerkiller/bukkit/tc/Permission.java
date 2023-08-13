@@ -52,6 +52,7 @@ public enum Permission implements IPermissionEnum {
     PROPERTY_TRACKING_RANGE("train.property.trackingrange", PermissionDefault.OP, "The player can change the range from which the train is visible to players"),
     PROPERTY_ENTER_MESSAGE("train.property.entermessage", PermissionDefault.TRUE, "The player can change the message displayed to players when they enter the train"),
     PROPERTY_EXIT_OFFSET("train.property.exitoffset", PermissionDefault.OP, "The player can change where players are ejected relative to the train"),
+    PROPERTY_WAIT("train.property.wait", PermissionDefault.TRUE, "The player can change the wait distance, acceleration and deceleration of trains"),
 
     COMMAND_DESTROY("train.command.destroy", PermissionDefault.OP, "The player can destroy owned carts through commands"),
     COMMAND_DESTROYALL("train.command.destroyall", PermissionDefault.OP, "The player can destroy all trains on the server"),

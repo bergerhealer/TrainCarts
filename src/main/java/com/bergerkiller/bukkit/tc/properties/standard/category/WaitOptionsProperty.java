@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.properties.standard.category;
 
 import java.util.Optional;
 
+import com.bergerkiller.bukkit.tc.Permission;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
@@ -203,6 +204,11 @@ public final class WaitOptionsProperty extends FieldBackedStandardTrainProperty<
                 context.current().acceleration(),
                 context.current().deceleration(),
                 context.inputBoolean());
+    }
+
+    @Override
+    public boolean hasPermission(CommandSender sender, String name) {
+        return Permission.PROPERTY_WAIT.has(sender);
     }
 
     @Override
