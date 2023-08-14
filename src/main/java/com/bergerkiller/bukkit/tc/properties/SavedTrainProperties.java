@@ -9,6 +9,7 @@ import java.util.Set;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModelStore;
+import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
 import com.bergerkiller.bukkit.tc.utils.SetCallbackCollector;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.ModularConfigurationEntry;
 import org.bukkit.command.CommandSender;
@@ -19,6 +20,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CartLockOrientation;
+import org.bukkit.entity.Player;
 
 /**
  * Wraps a saved train configuration
@@ -167,6 +169,15 @@ public class SavedTrainProperties implements TrainCarts.Provider, SavedAttachmen
      */
     public boolean hasPermission(CommandSender sender) {
         return entry.isRemoved() || SavedClaim.hasPermission(entry.getConfig(), sender);
+    }
+
+    /**
+     * Creates a SpawnableGroup with this saved train configuration
+     *
+     * @return SpawnableGroup
+     */
+    public SpawnableGroup toSpawnableGroup() {
+        return SpawnableGroup.fromConfig(traincarts, getConfig());
     }
 
     public List<ConfigurationNode> getCarts() {

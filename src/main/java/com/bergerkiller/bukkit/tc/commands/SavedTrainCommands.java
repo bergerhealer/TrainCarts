@@ -244,6 +244,14 @@ public class SavedTrainCommands {
             return;
         }
 
+        // Verify the train we are renaming does not contain stuff this player has no permission for
+        // This prevents an exploit where somebody can place a spawn sign with one name, then rename
+        // a train the player has no permission to spawn to that name so that it can be spawned anyway.
+        if (!savedTrain.toSpawnableGroup().checkSpawnPermissions(sender)) {
+            Localization.COMMAND_SAVE_FORBIDDEN_CONTENTS.message(sender);
+            return;
+        }
+
         String oldName = savedTrain.getName();
         plugin.getSavedTrains().rename(oldName, newSavedTrainName);
         sender.sendMessage(ChatColor.YELLOW + "Saved train '" + ChatColor.WHITE + oldName +
@@ -272,6 +280,14 @@ public class SavedTrainCommands {
             return;
         }
 
+        // Verify the train we are copying does not contain stuff this player has no permission for
+        // This prevents an exploit where somebody can place a spawn sign with one name, then copy
+        // a train the player has no permission to spawn to that name so that it can be spawned anyway.
+        if (!savedTrain.toSpawnableGroup().checkSpawnPermissions(sender)) {
+            Localization.COMMAND_SAVE_FORBIDDEN_CONTENTS.message(sender);
+            return;
+        }
+
         try {
             plugin.getSavedTrains().setConfig(targetSavedTrainName, savedTrain.getConfig().clone());
         } catch (IllegalNameException e) {
@@ -288,7 +304,7 @@ public class SavedTrainCommands {
     @CommandDescription("Reverse and flips the carts so it is moving in reverse when spawned")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_REVERSE)
-    private void commandRename(
+    private void commandReverse(
             final CommandSender sender,
             final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain,
             final @Flag("force") boolean force
