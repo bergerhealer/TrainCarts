@@ -341,22 +341,22 @@ public class CartAttachmentSeat extends CartAttachment {
     public void onAttached() {
         super.onAttached();
 
-        this.seated = this.getConfig().get("displayMode", DisplayMode.DEFAULT).create(this);
-        this._locked = this.getConfig().get("lockRotation", false);
-        this.fpvViewMode = this.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC);
-        this.fpvViewLockMode = this.getConfig().get("firstPersonViewLockMode", FirstPersonViewLockMode.OFF);
+        this.seated = this.getConfig().getOrDefault("displayMode", DisplayMode.DEFAULT).create(this);
+        this._locked = this.getConfig().getOrDefault("lockRotation", false);
+        this.fpvViewMode = this.getConfig().getOrDefault("firstPersonViewMode", FirstPersonViewMode.DYNAMIC);
+        this.fpvViewLockMode = this.getConfig().getOrDefault("firstPersonViewLockMode", FirstPersonViewLockMode.OFF);
 
         // If enabled, initialize a displayed item
         this._displayedItemPosition = null;
         this._displayedItemEntity = null;
         this._displayedItemShowFirstPersonEnabled = false;
-        if (this.getConfig().get("displayItem.enabled", false)) {
+        if (this.getConfig().getOrDefault("displayItem.enabled", false)) {
             ItemTransformType type = ItemTransformType.deserialize(getConfig(), "displayItem.position.transform");
 
             // Rest is loaded in during onLoad()
             this._displayedItemPosition = new ObjectPosition();
             this._displayedItemEntity = type.create(this.getManager(), null);
-            this._displayedItemShowFirstPersonEnabled = this.getConfig().get("displayItem.showFirstPerson", false);
+            this._displayedItemShowFirstPersonEnabled = this.getConfig().getOrDefault("displayItem.showFirstPerson", false);
         }
     }
 
@@ -369,7 +369,7 @@ public class CartAttachmentSeat extends CartAttachment {
             return false;
         }
         if (this._displayedItemEntity != null) {
-            if (config.get("displayItem.showFirstPerson", false) != this._displayedItemShowFirstPersonEnabled) {
+            if (config.getOrDefault("displayItem.showFirstPerson", false) != this._displayedItemShowFirstPersonEnabled) {
                 return false;
             }
             ItemTransformType type = ItemTransformType.deserialize(config, "displayItem.position.transform");
@@ -377,16 +377,16 @@ public class CartAttachmentSeat extends CartAttachment {
                 return false;
             }
         }
-        if (this.seated.getDisplayMode() != config.get("displayMode", DisplayMode.DEFAULT)) {
+        if (this.seated.getDisplayMode() != config.getOrDefault("displayMode", DisplayMode.DEFAULT)) {
             return false;
         }
-        if (this._locked != config.get("lockRotation", false)) {
+        if (this._locked != config.getOrDefault("lockRotation", false)) {
             return false;
         }
-        if (this.fpvViewMode != config.get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC)) {
+        if (this.fpvViewMode != config.getOrDefault("firstPersonViewMode", FirstPersonViewMode.DYNAMIC)) {
             return false;
         }
-        if (this.fpvViewLockMode != config.get("firstPersonViewLockMode", FirstPersonViewLockMode.OFF)) {
+        if (this.fpvViewLockMode != config.getOrDefault("firstPersonViewLockMode", FirstPersonViewLockMode.OFF)) {
             return false;
         }
 
@@ -415,7 +415,7 @@ public class CartAttachmentSeat extends CartAttachment {
     public void onLoad(ConfigurationNode config) {
         super.onLoad(config);
 
-        this._enterPermission = this.getConfig().get("enterPermission", String.class, null);
+        this._enterPermission = this.getConfig().getOrDefault("enterPermission", String.class, null);
 
         // If the position is default, change the anchor to seat_parent so that logic works correctly
         // This is technically legacy behavior, but we're stuck with it now...
@@ -437,9 +437,9 @@ public class CartAttachmentSeat extends CartAttachment {
 
         // Eject position
         {
-            ConfigurationNode ejectPosition = this.getConfig().getNode("ejectPosition");
+            ConfigurationNode ejectPosition = this.getConfig().getNodeIfExists("ejectPosition");
             this._ejectPosition.load(this.getManager().getClass(), TYPE, ejectPosition);
-            this._ejectLockRotation = ejectPosition.get("lockRotation", false);
+            this._ejectLockRotation = ejectPosition != null && ejectPosition.getOrDefault("lockRotation", false);
         }
 
         // Displayed item and position

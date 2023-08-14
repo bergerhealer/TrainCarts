@@ -145,7 +145,7 @@ public class AttachmentInternalState {
         this.config = config;
 
         // Position
-        this.position.load(managerType, attachmentType, config.getNode("position"));
+        this.position.load(managerType, attachmentType, config.getNodeIfExists("position"));
 
         // Animation list
         if (config.isNode("animations")) {

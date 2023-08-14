@@ -86,7 +86,7 @@ public class ObjectPosition {
      * @param config Configuration
      */
     public void load(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType, ConfigurationNode config) {
-        if (!config.isEmpty()) {
+        if (config != null && !config.isEmpty()) {
             if (config.contains("anchor")) {
                 this.anchor = AttachmentAnchor.find(managerType, attachmentType, config.get("anchor", AttachmentAnchor.DEFAULT.getName()));
             } else {

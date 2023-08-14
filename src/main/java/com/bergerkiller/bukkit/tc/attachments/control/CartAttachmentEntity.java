@@ -146,7 +146,7 @@ public class CartAttachmentEntity extends CartAttachment {
                     display.playSound(SoundEffect.CLICK);
                 }
             }).addOptions(b -> "Sitting: " + (b ? "YES" : "NO"), Boolean.TRUE, Boolean.FALSE)
-              .setSelectedOption(attachment.getConfig().get("sitting", false))
+              .setSelectedOption(attachment.getConfig().getOrDefault("sitting", false))
               .setBounds(0, 56, 102, 12);
 
             tab.addWidget(new MapWidgetButton() {
@@ -237,14 +237,14 @@ public class CartAttachmentEntity extends CartAttachment {
         VirtualEntity displayed = actualEntity();
 
         // Change in entity type requires re-creating
-        EntityType entityType = config.get("entityType", EntityType.MINECART);
+        EntityType entityType = config.getOrDefault("entityType", EntityType.MINECART);
         if (displayed.getEntityType() != entityType) {
             return false;
         }
 
         // Change of sitting requires respawning the mount (only check for non-shulker)
         boolean currSitting = (actual != null);
-        boolean newSitting = config.get("sitting", false);
+        boolean newSitting = config.getOrDefault("sitting", false);
         if (newSitting != currSitting && !entityType.name().equals("SHULKER")) {
             return false;
         }
@@ -256,8 +256,8 @@ public class CartAttachmentEntity extends CartAttachment {
     public void onAttached() {
         super.onAttached();
 
-        EntityType entityType = this.getConfig().get("entityType", EntityType.MINECART);
-        boolean sitting = this.getConfig().get("sitting", false);
+        EntityType entityType = this.getConfig().getOrDefault("entityType", EntityType.MINECART);
+        boolean sitting = this.getConfig().getOrDefault("sitting", false);
 
         // Some entity types cannot be spawned, use placeholder
         if (!isEntityTypeSupported(entityType)) {
