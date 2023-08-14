@@ -5,10 +5,12 @@ import java.util.Collections;
 import java.util.List;
 
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.properties.defaults.DefaultProperties;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -576,6 +578,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
      * @return True if spawning is permitted
      */
     public boolean checkSpawnPermissions(CommandSender sender) {
+        // Verify cart types and use of pre-set inventory items
         boolean canHaveItems = false;
         for (SpawnableMember member : getMembers()) {
             if (!member.getPermission().handleMsg(sender,
@@ -595,6 +598,18 @@ public class SpawnableGroup implements TrainCarts.Provider {
                 }
             }
         }
+
+        // Verify set properties
+        DefaultProperties defaults;
+        if (sender instanceof Player) {
+            defaults = TrainPropertiesStore.getDefaultsByPlayer((Player) sender);
+        } else {
+            defaults = TrainPropertiesStore.getDefaultsByName("default");
+        }
+        if (!defaults.checkSavedTrainPermissions(sender, this)) {
+            return false;
+        }
+
         return true;
     }
 

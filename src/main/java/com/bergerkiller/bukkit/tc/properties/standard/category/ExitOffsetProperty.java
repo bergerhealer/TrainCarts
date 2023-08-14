@@ -278,6 +278,11 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
         builder.send(sender);
     }
 
+    @Override
+    public String getPermissionName() {
+        return "exit offset";
+    }
+
     @PropertyParser(value="exitlocation", processPerCart = true)
     public ExitOffset parseLocation(PropertyParseContext<ExitOffset> context) {
         final Vector vec = Util.parseVector(context.input(), null);
@@ -354,14 +359,14 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
     @Override
     public Optional<ExitOffset> readFromConfig(ConfigurationNode config) {
         if (config.contains("exitOffset") || config.contains("exitYaw") || config.contains("exitPitch")) {
-            Vector absoluteCoords = config.get("exitLocation", Vector.class, null);
-            Vector offset = (absoluteCoords == null) ? config.get("exitOffset", new Vector()) : null;
-            float yaw = config.get("exitYaw", Float.NaN);
-            float pitch = config.get("exitPitch", Float.NaN);
-            if (!config.get("exitYawLocked", false)) {
+            Vector absoluteCoords = config.getOrDefault("exitLocation", Vector.class, null);
+            Vector offset = (absoluteCoords == null) ? config.getOrDefault("exitOffset", new Vector()) : null;
+            float yaw = config.getOrDefault("exitYaw", Float.NaN);
+            float pitch = config.getOrDefault("exitPitch", Float.NaN);
+            if (!config.getOrDefault("exitYawLocked", false)) {
                 yaw = Float.NaN;
             }
-            if (!config.get("exitPitchLocked", false)) {
+            if (!config.getOrDefault("exitPitchLocked", false)) {
                 pitch = Float.NaN;
             }
             if (absoluteCoords != null) {

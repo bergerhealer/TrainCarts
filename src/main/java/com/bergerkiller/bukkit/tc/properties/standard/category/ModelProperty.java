@@ -7,7 +7,7 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
-import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedProperty;
+import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardCartProperty;
 import com.bergerkiller.bukkit.tc.properties.standard.type.AttachmentModelBoundToCart;
 import org.bukkit.command.CommandSender;
 
@@ -15,7 +15,12 @@ import org.bukkit.command.CommandSender;
  * Controls the Attachments Model used by a particular cart. This configures the outside
  * appearance of carts.
  */
-public final class ModelProperty extends FieldBackedProperty<AttachmentModel> {
+public final class ModelProperty extends FieldBackedStandardCartProperty<AttachmentModel> {
+
+    @Override
+    public String getPermissionName() {
+        return "model (attachment editor)";
+    }
 
     @Override
     public boolean hasPermission(CommandSender sender, String name) {
@@ -79,9 +84,30 @@ public final class ModelProperty extends FieldBackedProperty<AttachmentModel> {
     }
 
     @Override
+    public AttachmentModel getData(CartInternalData data) {
+        return data.model;
+    }
+
+    @Override
+    public void setData(CartInternalData data, AttachmentModel value) {
+        if (value == null || value.isDefault()) {
+            // Reset model to vanilla defaults and wipe configuration
+            if (data.model != null) {
+                data.model.resetToDefaults();
+            }
+        } else {
+            // Clone configuration and update/assign model if one was initialized
+            // If the model was vanilla defaults, it will set the model during update()
+            if (data.model != null && data.model != value) {
+                data.model.update(value.getConfig());
+            }
+        }
+    }
+
+    @Override
     public Optional<AttachmentModel> readFromConfig(ConfigurationNode config) {
         if (config.isNode("model")) {
-            return Optional.of(new AttachmentModel(config.getNode("model").clone()));
+            return Optional.of(new AttachmentModel(config.getNode("model")));
         } else {
             return Optional.empty();
         }

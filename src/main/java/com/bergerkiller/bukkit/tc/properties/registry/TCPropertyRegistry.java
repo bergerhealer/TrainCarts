@@ -22,9 +22,12 @@ import java.util.stream.Stream;
 import com.bergerkiller.bukkit.common.cloud.CloudSimpleHandler;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.Localization;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.selector.SelectorCondition;
 import com.bergerkiller.bukkit.tc.commands.selector.TCSelectorHandlerRegistry;
+import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForAnyPropertiesException;
+import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
@@ -41,6 +44,7 @@ import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.mountiplex.reflection.ReflectionUtil;
 import com.bergerkiller.mountiplex.reflection.util.BoxedType;
 import com.bergerkiller.mountiplex.reflection.util.FastMethod;
+import org.bukkit.command.CommandSender;
 
 /**
  * Default traincarts property registry implementation
@@ -78,7 +82,16 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
             final IProperty<?> property = currentlyParsedProperty();
             final String propertyName = annot.value();
             return builder.prependHandler(context -> {
-                property.handlePermission(context.getSender(), propertyName);
+                CommandSender sender = context.getSender();
+                if (!Permission.COMMAND_PROPERTIES.has(sender) &&
+                    !Permission.COMMAND_GLOBALPROPERTIES.has(sender)
+                ) {
+                    throw new NoPermissionForAnyPropertiesException();
+                }
+
+                if (!property.hasPermission(sender, propertyName)) {
+                    throw new NoPermissionForPropertyException(propertyName);
+                }
             });
         });
 

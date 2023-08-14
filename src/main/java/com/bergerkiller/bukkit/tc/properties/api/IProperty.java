@@ -5,9 +5,6 @@ import java.util.Optional;
 import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForAnyPropertiesException;
-import com.bergerkiller.bukkit.tc.exception.command.NoPermissionForPropertyException;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
@@ -129,31 +126,38 @@ public interface IProperty<T> {
     }
 
     /**
-     * Throws a {@link NoPermissionForPropertyException} when
-     * {@link #hasPermission(CommandSender, String)} returns false.
-     * Also checks that the sender has permission to modify properties
-     * at all.
-     * 
-     * @param sender Sender to check permission for
-     * @param name The name of the property the sender tried to modify
-     * @throws NoPermissionForPropertyException
+     * Gets the name of this property. This is the name used when telling the
+     * Player that they lack permission for this type of property. By default
+     * looks for @{@link PropertyParser} annotations, and if absent, returns the
+     * simple name of this class. Can be overridden to force a particular
+     * name instead. This name is cached internally and is not used for
+     * anything functional.
+     *
+     * @return Property descriptive name
+     * @see #hasPermission(CommandSender, String)
      */
-    default void handlePermission(CommandSender sender, String name) {
-        if (!Permission.COMMAND_PROPERTIES.has(sender) &&
-            !Permission.COMMAND_GLOBALPROPERTIES.has(sender))
-        {
-            throw new NoPermissionForAnyPropertiesException();
+    default String getPermissionName() {
+        for (java.lang.reflect.Method m : this.getClass().getDeclaredMethods()) {
+            PropertyParser parser = m.getAnnotation(PropertyParser.class);
+            if (parser != null) {
+                String name = parser.value();
+                int sepIdx = name.indexOf('|');
+                if (sepIdx > 0) {
+                    name = name.substring(0, sepIdx);
+                }
+                return name;
+            }
         }
-        if (!hasPermission(sender, name)) {
-            throw new NoPermissionForPropertyException(name);
-        }
+        return this.getClass().getSimpleName();
     }
 
     /**
      * Gets whether a given CommandSender has permission to modify this property.
      * This permission is checked when a player performs a command or places down
-     * a property sign that matches a parser of this property.
-     * 
+     * a property sign that matches a parser of this property. There is no need to
+     * check for "has permission to modify properties", which is already done
+     * for you.
+     *
      * @param sender Sender to check permission for
      * @param name  The name of the property the sender tried to modify
      * @return True if the player has permission, False if not
