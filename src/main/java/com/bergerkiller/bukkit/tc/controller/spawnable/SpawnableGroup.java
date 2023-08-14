@@ -732,9 +732,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
         STORAGE('s', EntityType.MINECART_CHEST),
         POWERED('p', EntityType.MINECART_FURNACE),
         HOPPER('h', EntityType.MINECART_HOPPER),
-        TNT('t', EntityType.MINECART_TNT),
-        ENTITY_SPAWNER('e', EntityType.MINECART_MOB_SPAWNER),
-        COMMAND('c', EntityType.MINECART_COMMAND);
+        TNT('t', EntityType.MINECART_TNT);
 
         private final char code;
         private final EntityType type;
