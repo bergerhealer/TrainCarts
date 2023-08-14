@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
@@ -76,6 +77,7 @@ public class SignActionSpawn extends SignAction {
         // Check for all minecart types specified, whether the player has permission for it.
         // No permission? Cancel the building of the sign.
         if (!sign.getSpawnableGroup().checkSpawnPermissions(event.getPlayer())) {
+            Localization.SPAWN_FORBIDDEN_CONTENTS.message(event.getPlayer());
             sign.remove();
             return false;
         }

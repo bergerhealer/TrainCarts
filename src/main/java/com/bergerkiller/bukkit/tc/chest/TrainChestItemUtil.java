@@ -381,7 +381,7 @@ public class TrainChestItemUtil {
         FAIL_NORAIL_LOOK(Localization.CHEST_SPAWN_NORAIL_LOOK),
         FAIL_RAILTOOSHORT(Localization.CHEST_SPAWN_RAILTOOSHORT),
         FAIL_BLOCKED(Localization.CHEST_SPAWN_BLOCKED),
-        FAIL_NO_PERM(null);
+        FAIL_NO_PERM(Localization.SPAWN_FORBIDDEN_CONTENTS);
 
         private final Localization locale;
 

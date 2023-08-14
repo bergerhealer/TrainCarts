@@ -51,6 +51,7 @@ public class TrainChestCommands {
         if (spawnConfig != null && !spawnConfig.isEmpty()) {
             // Types permission check
             if (sender instanceof Player && !SpawnableGroup.parse(plugin, spawnConfig).checkSpawnPermissions((Player) sender)) {
+                Localization.SPAWN_FORBIDDEN_CONTENTS.message(sender);
                 return;
             }
 
@@ -88,6 +89,7 @@ public class TrainChestCommands {
         if (spawnConfig != null && !spawnConfig.isEmpty()) {
             // Types permission check
             if (!SpawnableGroup.parse(plugin, spawnConfig).checkSpawnPermissions(sender)) {
+                Localization.SPAWN_FORBIDDEN_CONTENTS.message(sender);
                 return;
             }
 
@@ -109,6 +111,7 @@ public class TrainChestCommands {
         if (spawnConfig != null && !spawnConfig.isEmpty() &&
                 !SpawnableGroup.parse(plugin, spawnConfig).checkSpawnPermissions(player)
         ) {
+            Localization.SPAWN_FORBIDDEN_CONTENTS.message(player);
             return;
         }
 
