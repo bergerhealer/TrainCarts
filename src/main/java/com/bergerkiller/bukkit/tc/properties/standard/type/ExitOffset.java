@@ -104,10 +104,19 @@ public final class ExitOffset {
                    this.rx == other.rx &&
                    this.ry == other.ry &&
                    this.rz == other.rz &&
-                   this.yaw == other.yaw &&
-                   this.pitch == other.pitch;
+                   (this.hasLockedYaw() ? (this.yaw == other.yaw) : !other.hasLockedYaw()) &&
+                   (this.hasLockedPitch() ? (this.pitch == other.pitch) : !other.hasLockedPitch());
         } else {
             return true;
+        }
+    }
+
+    @Override
+    public String toString() {
+        if (absolute) {
+            return "ExitLocation{x=" + rx + ", y=" + ry + ", z=" + rz + ", yaw=" + yaw + ", pitch=" + pitch + "}";
+        } else {
+            return "ExitOffset{dx=" + rx + ", dy=" + ry + ", dz=" + rz + ", yaw=" + yaw + ", pitch=" + pitch + "}";
         }
     }
 
