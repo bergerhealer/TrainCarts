@@ -20,7 +20,7 @@ import java.util.Optional;
 public class DefaultProperties {
     private final ConfigurationNode config;
     private final List<DefaultProperty<?>> properties;
-    private final List<DefaultPropertyWithValue<?>> propertiesWithValues;
+    private final List<DefaultProperty<?>> propertiesWithValues;
 
     /**
      * Generates the default properties using the configuration specified
@@ -40,19 +40,12 @@ public class DefaultProperties {
         this.propertiesWithValues = new ArrayList<>(registeredProperties.size());
         for (IProperty<?> property : registeredProperties) {
             if (property.isAppliedAsDefault()) {
-                loadProperty(property, config);
+                DefaultProperty<?> defaultProperty = new DefaultProperty<>(property, config);
+                this.properties.add(defaultProperty);
+                if (defaultProperty.set) {
+                    this.propertiesWithValues.add(defaultProperty);
+                }
             }
-        }
-    }
-
-    private <T> void loadProperty(IProperty<T> property, ConfigurationNode config) {
-        Optional<T> valueOpt = property.readFromConfig(config);
-        if (valueOpt.isPresent()) {
-            DefaultPropertyWithValue<T> defaultProperty = new DefaultPropertyWithValue<>(property, valueOpt.get());
-            this.properties.add(defaultProperty);
-            this.propertiesWithValues.add(defaultProperty);
-        } else {
-            this.properties.add(new DefaultProperty<>(property));
         }
     }
 
@@ -73,7 +66,7 @@ public class DefaultProperties {
     public void applyTo(TrainProperties properties) {
         // Read all properties TrainCarts knows about from the configuration
         // This will read and apply both train and cart properties
-        for (DefaultPropertyWithValue<?> defaultProperty : propertiesWithValues) {
+        for (DefaultProperty<?> defaultProperty : propertiesWithValues) {
             defaultProperty.applyTo(properties);
         }
 
@@ -93,7 +86,7 @@ public class DefaultProperties {
     public void applyTo(CartProperties properties) {
         // Read all properties TrainCarts knows about from the configuration
         // This will read and apply both train and cart properties
-        for (DefaultPropertyWithValue<?> defaultProperty : propertiesWithValues) {
+        for (DefaultProperty<?> defaultProperty : propertiesWithValues) {
             defaultProperty.applyTo(properties);
         }
 
@@ -103,18 +96,15 @@ public class DefaultProperties {
 
     private static class DefaultProperty<T> {
         public final IProperty<T> property;
-
-        public DefaultProperty(IProperty<T> property) {
-            this.property = property;
-        }
-    }
-
-    private static class DefaultPropertyWithValue<T> extends DefaultProperty<T> {
+        public final boolean set;
         public final T value;
 
-        public DefaultPropertyWithValue(IProperty<T> property, T value) {
-            super(property);
-            this.value = value;
+        public DefaultProperty(IProperty<T> property, ConfigurationNode config) {
+            this.property = property;
+
+            Optional<T> valueOpt = property.readFromConfig(config);
+            this.set = valueOpt.isPresent();
+            this.value = valueOpt.orElse(property.getDefault());
         }
 
         public void applyTo(IProperties properties) {
