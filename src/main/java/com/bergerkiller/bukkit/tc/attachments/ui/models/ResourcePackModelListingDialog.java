@@ -326,7 +326,7 @@ class ResourcePackModelListingDialog implements Listener {
         // Also de-register from the listing
         {
             ResourcePackModelListingDialog dialog = shownTo.remove(this.player());
-            if (dialog != this) {
+            if (dialog != null && dialog != this) {
                 shownTo.put(this.player(), dialog);
             }
         }
