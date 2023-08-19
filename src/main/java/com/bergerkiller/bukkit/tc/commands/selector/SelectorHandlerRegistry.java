@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandException;
@@ -97,6 +99,9 @@ public class SelectorHandlerRegistry implements Listener {
      */
     public synchronized List<String> expandCommands(CommandSender sender, String command) throws SelectorException {
         final int commandLength = command.length();
+
+        // Permission checked on demand
+        int maxSelectorValues = 0;
 
         // These will be filled up as the command is expanded
         List<StringBuilder> resultBuilders = null;
@@ -212,11 +217,31 @@ public class SelectorHandlerRegistry implements Listener {
                 }
             }
 
+            // Before actually executing the handler, verify that the sender has permission to expand selectors at all
+            if (maxSelectorValues == 0) {
+                if (Permission.COMMAND_USE_SELECTORS.has(sender)) {
+                    maxSelectorValues = TCConfig.maxCommandSelectorValues;
+                }
+                if (Permission.COMMAND_UNLIMITED_SELECTORS.has(sender)) {
+                    maxSelectorValues = Integer.MAX_VALUE;
+                }
+                if (maxSelectorValues <= 0) {
+                    Localization.COMMAND_INPUT_SELECTOR_NOPERM.message(sender);
+                    return Collections.emptyList();
+                }
+            }
+
             // With this information, ask the handler to provide replacement values
             // If empty, it ends the chain and an empty result is returned
             final Collection<String> values = handler.handle(sender, selector, conditions);
             final int valuesCount = values.size();
             if (valuesCount == 0) {
+                return Collections.emptyList();
+            }
+
+            // If values will exceed the limit, abort and disallow execution
+            if ((valuesCount * (resultBuilders == null ? 1 : resultBuilders.size())) > maxSelectorValues) {
+                Localization.COMMAND_INPUT_SELECTOR_EXCEEDEDLIMIT.message(sender);
                 return Collections.emptyList();
             }
 

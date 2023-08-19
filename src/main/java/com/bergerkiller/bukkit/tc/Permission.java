@@ -15,6 +15,8 @@ public enum Permission implements IPermissionEnum {
     COMMAND_GLOBALPROPERTIES("train.command.globalproperties", PermissionDefault.OP, "The player can edit the properties of all carts"),
     COMMAND_PROPERTIES("train.command.properties", PermissionDefault.TRUE, "The player can edit the properties of owned carts"),
     COMMAND_TARGET_NEAR("train.command.targetnear", PermissionDefault.TRUE, "The player can use the --near selector to target owned carts"),
+    COMMAND_USE_SELECTORS("train.command.selector.use", PermissionDefault.TRUE, "The player can use @train and @ptrain selectors to run commands for multiple trains"),
+    COMMAND_UNLIMITED_SELECTORS("train.command.selector.unlimited", PermissionDefault.OP, "The player can use @train and @ptrain selectors with an unlimited number of targeted players/trains"),
 
     // Powerful permission to apply all properties from defaults
     PROPERTY_APPLYDEFAULTS("train.property.applydefaults", PermissionDefault.OP, "The player can apply defaults from DefaultTrainProperties.yml to trains"),

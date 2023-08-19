@@ -113,6 +113,7 @@ public class TCConfig {
     public static int attachmentTransformParallelism = -1;
     public static boolean allowExternalTicketImagePaths = false; // Whether images outside of the images subdirectory are allowed
     public static boolean allowSchematicAttachment = true;
+    public static int maxCommandSelectorValues = 128;
     public static String currencyFormat;
     public static Set<Material> allowedBlockBreakTypes = new HashSet<>();
     public static ConfiguredWorldSet enabledWorlds = new ConfiguredWorldSet();
@@ -634,6 +635,13 @@ public class TCConfig {
         config.addHeader("unloadRunawayTrainDistance", "carts that derail and move this distance threshold away while derailed, automatically");
         config.addHeader("unloadRunawayTrainDistance", "unload (by setting keep chunks loaded to false again). A warning with details is logged.");
         unloadRunawayTrainDistance = config.get("unloadRunawayTrainDistance", 160.0);
+
+        config.setHeader("maxCommandSelectorValues", "Maximum number of expanded values resulting from the @train and @ptrain selectors players can use");
+        config.addHeader("maxCommandSelectorValues", "If more than this amount is expanded then an error is sent and no commands are executed");
+        config.addHeader("maxCommandSelectorValues", "This limit avoids players being able to freeze the server or crash players with large expressions");
+        config.addHeader("maxCommandSelectorValues", "Players need permission 'train.command.selector.use' to use selectors at all");
+        config.addHeader("maxCommandSelectorValues", "Players with permission 'train.command.selector.unlimited' are not subjected to this limit");
+        maxCommandSelectorValues = config.get("maxCommandSelectorValues", 128);
     }
 
     public static void putParsers(String key, ItemParser[] parsersArr) {

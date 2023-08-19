@@ -64,6 +64,8 @@ public class Localization extends LocalizationEnum {
     public static final Localization COMMAND_INPUT_NAME_EMPTY = new Localization("command.input.name.empty", ChatColor.RED + "Input train name is empty!");
     public static final Localization COMMAND_INPUT_NAME_INVALID = new Localization("command.input.name.invalid", ChatColor.RED + "Input train name '%0%' contains invalid characters!");
     public static final Localization COMMAND_INPUT_SELECTOR_INVALID = new Localization("command.input.selector.invalid", ChatColor.RED + "[TrainCarts] Selector condition contains syntax errors!");
+    public static final Localization COMMAND_INPUT_SELECTOR_NOPERM = new Localization("command.input.selector.noperm", ChatColor.RED + "[TrainCarts] You do not have permission to use TrainCarts command selectors!");
+    public static final Localization COMMAND_INPUT_SELECTOR_EXCEEDEDLIMIT = new Localization("command.input.selector.exceededlimit", ChatColor.RED + "[TrainCarts] Selector expression matched too many results!");
 
     public static final Localization PROPERTY_NOTFOUND = new Localization("property.notfound", ChatColor.RED + "Property with name '%0%' does not exist");
     public static final Localization PROPERTY_ERROR = new Localization("property.error", ChatColor.RED + "An internal error occurred while parsing value '%1%' for property '%0%'");
