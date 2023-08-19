@@ -219,11 +219,10 @@ public class SelectorHandlerRegistry implements Listener {
 
             // Before actually executing the handler, verify that the sender has permission to expand selectors at all
             if (maxSelectorValues == 0) {
-                if (Permission.COMMAND_USE_SELECTORS.has(sender)) {
-                    maxSelectorValues = TCConfig.maxCommandSelectorValues;
-                }
-                if (Permission.COMMAND_UNLIMITED_SELECTORS.has(sender)) {
+                if (sender == null || Permission.COMMAND_UNLIMITED_SELECTORS.has(sender)) {
                     maxSelectorValues = Integer.MAX_VALUE;
+                } else if (Permission.COMMAND_USE_SELECTORS.has(sender)) {
+                    maxSelectorValues = TCConfig.maxCommandSelectorValues;
                 }
                 if (maxSelectorValues <= 0) {
                     Localization.COMMAND_INPUT_SELECTOR_NOPERM.message(sender);
