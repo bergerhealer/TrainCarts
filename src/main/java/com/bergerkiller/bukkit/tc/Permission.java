@@ -142,6 +142,8 @@ public enum Permission implements IPermissionEnum {
     BUILD_MUTEX("train.build.mutex", PermissionDefault.OP, "The player can build a sign that defines a mutual exclusion zone, where only one train can be at"),
     BUILD_FLIPPER("train.build.flip", PermissionDefault.OP, "The player can build a sign that flips the orientation of a Minecart 180 degrees"),
     BUILD_ANIMATOR("train.build.animator", PermissionDefault.OP, "The player can build a sign that plays train animations"),
+    BUILD_TITLE("train.build.title", PermissionDefault.OP, "The player can build a sign that sends a title to all the players in a train"),
+
 
     GENERAL_PLACE_MINECART("train.place.minecart", PermissionDefault.TRUE, "The player can place minecarts"),
     GENERAL_PLACE_TRAINCART("train.place.traincart", PermissionDefault.TRUE, "The player can place TrainCarts minecarts"),
