@@ -59,10 +59,6 @@ public class SignActionTitle extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        if (!event.isType("title")) {
-            return false;
-        }
-
         return SignBuildOptions.create()
                 .setPermission(Permission.BUILD_TITLE)
                 .setName("title")

@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.permissions.PermissionEnum;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
@@ -70,7 +71,10 @@ public abstract class SignAction {
         register(new SignActionMutex());
         register(new SignActionFlip());
         register(new SignActionAnimate());
-        register(new SignActionTitle());
+
+        if (Common.evaluateMCVersion(">=", "1.11")) {
+            register(new SignActionTitle());
+        }
     }
 
     public static void deinit() {
