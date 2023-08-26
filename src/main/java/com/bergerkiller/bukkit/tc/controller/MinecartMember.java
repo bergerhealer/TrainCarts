@@ -138,6 +138,12 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private Location firstKnownDerailedPosition = null;
     private List<Entity> enterForced = new ArrayList<Entity>(1);
     private boolean wasMoving = false; // for starting driveSound property. TODO: Attachment?
+    /**
+     * Tracks the location since last vehicle move event. Works around an issue where the server is
+     * modifying the entity last location outside of the main tick() loop, causing random desynchs.
+     * Should be ignored if null or on a different World.
+     */
+    private Location lastLocation;
     private WorldRailLookup railLookup = WorldRailLookup.NONE; // current-world rail lookup
 
     public MinecartMember(TrainCarts traincarts) {
@@ -1964,6 +1970,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // Prepare
         entity.vel.fixNaN();
         entity.last.set(entity.loc);
+        if (lastLocation == null || lastLocation.getWorld() != entity.getWorld()) {
+            lastLocation = entity.getLocation();
+        }
     }
 
     /**
@@ -2331,7 +2340,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         getRailTracker().setLiveRailLogic();
 
         // Perform some (CraftBukkit) events
-        Location from = entity.getLastLocation();
+        Location from = lastLocation;
         Location to = entity.getLocation();
         Vehicle vehicle = entity.getEntity();
 
@@ -2340,7 +2349,13 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             CommonUtil.callEvent(new VehicleUpdateEvent(vehicle));
         }
 
-        if (from.getX() != to.getX() || from.getY() != to.getY() || from.getZ() != to.getZ()) {
+        // Our logic of snapping to rails may have changed stuff. Make sure to sync again!
+        lastLocation = to;
+        entity.last.set(to);
+
+        if (from != null && from.getWorld() == to.getWorld() &&
+                (from.getX() != to.getX() || from.getY() != to.getY() || from.getZ() != to.getZ())
+        ) {
             // Execute move events
             /* Timings: onPhysicsPostMove:VehicleMoveEvent  (Train Physics, Post-Move, Bukkit) */
             {
