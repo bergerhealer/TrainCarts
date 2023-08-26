@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.controller.global;
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -52,7 +51,7 @@ public class SignControllerWorld {
     private final World world;
     private final OfflineWorld offlineWorld;
     private final LongHashMap<List<SignController.Entry>> signsByChunk = new LongHashMap<>();
-    private final LongHashMap<SignController.Entry[]> signsByNeighbouringBlock = new LongHashMap<>();
+    private final LongHashMap<SignController.EntryList> signsByNeighbouringBlock = new LongHashMap<>();
     private final ChunkFutureProvider chunkFutureProvider;
     private boolean needsInitialization;
 
@@ -131,7 +130,7 @@ public class SignControllerWorld {
      * @return Entries nearby
      */
     public SignController.Entry[] findNearby(long blockCoordinatesKey) {
-        return signsByNeighbouringBlock.getOrDefault(blockCoordinatesKey, SignController.Entry.NO_ENTRIES);
+        return signsByNeighbouringBlock.getOrDefault(blockCoordinatesKey, SignController.EntryList.NONE).values();
     }
 
     /**
@@ -703,12 +702,7 @@ public class SignControllerWorld {
     }
 
     void addChunkByBlockEntry(final SignController.Entry entry, long key) {
-        this.signsByNeighbouringBlock.merge(key, entry.singletonArray, (a, b) -> {
-            int len = a.length;
-            SignController.Entry[] result = Arrays.copyOf(a, len + 1);
-            result[len] = entry;
-            return result;
-        });
+        this.signsByNeighbouringBlock.merge(key, entry.singletonList, (a, b) -> a.add(entry));
     }
 
     /**
@@ -752,28 +746,27 @@ public class SignControllerWorld {
     }
 
     private void removeChunkByBlockEntry(SignController.Entry entry, long key, boolean purgeAllInSameChunk) {
-        SignController.Entry[] entries = this.signsByNeighbouringBlock.remove(key);
-        if (entries == null || (purgeAllInSameChunk && LongBlockCoordinates.getChunkEdgeDistance(key) >= 2)) {
+        SignController.EntryList oldEntryList = this.signsByNeighbouringBlock.remove(key);
+        if (oldEntryList == null || (purgeAllInSameChunk && LongBlockCoordinates.getChunkEdgeDistance(key) >= 2)) {
             return;
         }
 
         // Slow method - we have to remove entries at chunk boundaries carefully, so we don't touch
         // entries that refer to signs in neighbouring (still loaded!) chunks.
-        SignController.Entry[] newEntries = SignController.Entry.NO_ENTRIES;
+        SignController.Entry[] oldEntries = oldEntryList.unsortedValues();
+        SignController.EntryList newEntryList = SignController.EntryList.NONE;
         int numNewEntries = 0;
-        int len = entries.length;
+        int len = oldEntries.length;
         while (--len >= 0) {
-            SignController.Entry e = entries[len];
+            SignController.Entry e = oldEntries[len];
             if (e != entry && (!purgeAllInSameChunk || e.chunkKey != entry.chunkKey)) {
-                newEntries = Arrays.copyOf(newEntries, numNewEntries + 1);
-                newEntries[numNewEntries] = e;
-                numNewEntries++;
+                newEntryList = newEntryList.add(e);
             }
         }
 
         // Put if there are entries to keep
-        if (numNewEntries > 0) {
-            this.signsByNeighbouringBlock.put(key, newEntries);
+        if (newEntryList.count() > 0) {
+            this.signsByNeighbouringBlock.put(key, newEntryList);
         }
     }
 
@@ -790,7 +783,7 @@ public class SignControllerWorld {
 
         @Override
         public SignController.Entry[] findNearby(Block block) {
-            return SignController.Entry.NO_ENTRIES;
+            return SignController.EntryList.NONE.values();
         }
 
         @Override

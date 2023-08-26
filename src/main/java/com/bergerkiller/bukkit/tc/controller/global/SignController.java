@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.global;
 
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.function.Consumer;
@@ -614,10 +616,56 @@ public class SignController implements LibraryComponent, Listener {
     }
 
     /**
+     * An optionally sorted list of sign entries
+     */
+    public static final class EntryList {
+        public static final EntryList NONE = new EntryList(new Entry[0], true);
+
+        private final Entry[] values;
+        private boolean sorted;
+
+        private EntryList(Entry[] values, boolean sorted) {
+            this.values = values;
+            this.sorted = sorted;
+        }
+
+        public int count() {
+            return values.length;
+        }
+
+        public Entry[] unsortedValues() {
+            return values;
+        }
+
+        public Entry[] values() {
+            if (!sorted) {
+                sorted = true;
+                Arrays.sort(values, Comparator.comparingLong(e -> e.blockKey));
+            }
+            return values;
+        }
+
+        public EntryList add(Entry entry) {
+            Entry[] values = this.values;
+            int len = values.length;
+            if (len == 0) {
+                return entry.singletonList;
+            } else {
+                Entry[] tmp = Arrays.copyOf(values, len + 1);
+                tmp[len] = entry;
+                return new EntryList(tmp, false /* needs sorting */);
+            }
+        }
+
+        public static EntryList of(Entry entry) {
+            return new EntryList(new Entry[] { entry }, true);
+        }
+    }
+
+    /**
      * A single sign
      */
     public static final class Entry {
-        public static final Entry[] NO_ENTRIES = new Entry[0];
         public final SignChangeTracker sign;
         private SignChangeTracker signLastState; // Can be null if removed!
         public final SignControllerWorld world;
@@ -627,7 +675,7 @@ public class SignController implements LibraryComponent, Listener {
         final long blockKey;
         SignBlocksAround blocks;
         final long chunkKey;
-        final Entry[] singletonArray;
+        final EntryList singletonList;
 
         private Entry(Sign sign, SignControllerWorld world, long blockKey, long chunkKey, SignController controller) {
             this.sign = SignChangeTracker.track(sign);
@@ -639,7 +687,7 @@ public class SignController implements LibraryComponent, Listener {
             this.blockKey = blockKey;
             this.chunkKey = chunkKey;
             this.blocks = SignBlocksAround.of(this.sign.getAttachedFace());
-            this.singletonArray = new Entry[] { this };
+            this.singletonList = EntryList.of(this);
             this.updateLastSignState();
         }
 
