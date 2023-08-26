@@ -144,6 +144,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * Should be ignored if null or on a different World.
      */
     private Location lastLocation;
+    /**
+     * Is set to lastLocation before it is updated. This way, outside of vehicle tick()
+     * this is set to last tick's location, the same behavior of Entity getLastLocation().
+     */
+    private Location lastLocationSync;
     private WorldRailLookup railLookup = WorldRailLookup.NONE; // current-world rail lookup
 
     public MinecartMember(TrainCarts traincarts) {
@@ -1973,6 +1978,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (lastLocation == null || lastLocation.getWorld() != entity.getWorld()) {
             lastLocation = entity.getLocation();
         }
+        if (lastLocationSync == null) {
+            lastLocationSync = lastLocation;
+        }
     }
 
     /**
@@ -2339,9 +2347,17 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // Invalidate volatile information
         getRailTracker().setLiveRailLogic();
 
-        // Perform some (CraftBukkit) events
+        // Track last location and update the sync one
         Location from = lastLocation;
         Location to = entity.getLocation();
+        if (from == null || from.getWorld() != to.getWorld()) {
+            lastLocation = from = to; // Force correct it
+        }
+        lastLocationSync = from;
+        lastLocation = to;
+        entity.last.set(from);
+
+        // Perform some (CraftBukkit) events
         Vehicle vehicle = entity.getEntity();
 
         /* Timings: onPhysicsPostMove:VehicleUpdateEvent  (Train Physics, Post-Move, Bukkit) */
@@ -2349,13 +2365,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             CommonUtil.callEvent(new VehicleUpdateEvent(vehicle));
         }
 
-        // Our logic of snapping to rails may have changed stuff. Make sure to sync again!
-        lastLocation = to;
-        entity.last.set(to);
-
-        if (from != null && from.getWorld() == to.getWorld() &&
-                (from.getX() != to.getX() || from.getY() != to.getY() || from.getZ() != to.getZ())
-        ) {
+        if (from.getX() != to.getX() || from.getY() != to.getY() || from.getZ() != to.getZ()) {
             // Execute move events
             /* Timings: onPhysicsPostMove:VehicleMoveEvent  (Train Physics, Post-Move, Bukkit) */
             {
@@ -2429,6 +2439,11 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // We don't do any actual updates here because paper RUINS it.
         if (!this.isUnloaded()) {
             this.getGroup();
+        }
+
+        // The server breaks entity last location by resetting it. Restore that info here.
+        if (lastLocationSync != null && lastLocationSync.getWorld() == entity.getWorld()) {
+            entity.last.set(lastLocationSync);
         }
     }
 
