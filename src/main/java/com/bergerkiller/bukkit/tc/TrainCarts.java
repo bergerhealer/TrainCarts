@@ -865,7 +865,11 @@ public class TrainCarts extends PluginBase {
         }
 
         // Close any open dialogs
-        ResourcePackModelListing.closeAllDialogs();
+        try {
+            ResourcePackModelListing.closeAllDialogs();
+        } catch (Throwable t) {
+            getLogger().log(Level.SEVERE, "Failed to shut down all open resource pack model dialogs");
+        }
 
         //Unregister listeners
         this.unregister(packetListener);
