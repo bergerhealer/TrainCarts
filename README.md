@@ -171,11 +171,6 @@ TrainCarts exposes an API that allows third parties to extend the plugin. Primar
 * **[Traincarts AdvancedSigns](https://www.spigotmc.org/resources/traincarts-advancedsigns.99881/)**: Adds additional sign types, particularly useful for rollercoaster rides
 * **[TCAnimatronics](https://www.spigotmc.org/resources/tcanimatronics.101995/)**: Play [Animatronics](https://www.spigotmc.org/resources/animatronics-animate-armorstands-1-8-1-18-2.36518/) animations with a TrainCarts sign
 
-## Promotional
-[<img src="https://raw.githubusercontent.com/bergerhealer/TrainCarts/master/misc/powerplugins_banner.png"/>](https://powerplugins.net/)
-
-You can join the Minecraft server hosted over at **[powerplugins.net](https://powerplugins.net/)** to see this plugin in action, as well as to check out other awesome plugins by the community!
-
 ## FAQ
 <details>
 <summary>When some players ride a train, the train glitches out and the player's cart gets stuck in position</summary>
