@@ -13,7 +13,10 @@ import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.neznamytabnametaghider.TabNameTagHider;
+import com.bergerkiller.bukkit.neznamytabnametaghider.TabNameTagHiderDependency;
 import com.bergerkiller.bukkit.sl.API.Variables;
+import com.bergerkiller.bukkit.common.softdependency.SoftDependency;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModelStore;
@@ -60,8 +63,6 @@ import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bergerkiller.bukkit.tc.utils.BlockPhysicsEventDataAccessor;
-import com.bergerkiller.bukkit.tc.utils.tab.TabNameTagHider;
-import com.bergerkiller.bukkit.tc.utils.tab.TabNameTagHiderImpl;
 import com.bergerkiller.mountiplex.conversion.Conversion;
 
 import me.m56738.smoothcoasters.api.SmoothCoastersAPI;
@@ -114,6 +115,12 @@ public class TrainCarts extends PluginBase {
     private ResourcePackModelListing modelListing = new ResourcePackModelListing(); // Uninitialized
     private final WorldEditSchematicLoader worldEditSchematicLoader = new WorldEditSchematicLoader(this);
     private final TrainCartsPlayerStore playerStore = new TrainCartsPlayerStore(this);
+    private final SoftDependency<TabNameTagHider> tabNameTagHider = new TabNameTagHiderDependency(this) {
+        @Override
+        protected void onEnable() {
+            getLogger().info("Neznamy TAB plugin detected! Player nametag hiding functionality enabled.");
+        }
+    };
     private Economy econ = null;
     private boolean isTabPluginEnabled = false;
     private SmoothCoastersAPI smoothCoastersAPI;
@@ -276,23 +283,8 @@ public class TrainCarts extends PluginBase {
      * @return Tab name tag hider if supported, null if the plugin isn't active or name
      *         can't be hidden
      */
-    public TabNameTagHider getTabNameHider(Player player) {
-        if (!isTabPluginEnabled) {
-            return null;
-        }
-
-        try {
-            Class.forName("me.neznamy.tab.api.TabAPI");
-        } catch (Throwable t) {
-            return null; // For good measure in case of plugin name conflicts or something
-        }
-
-        try {
-            return TabNameTagHiderImpl.ofPlayer(player);
-        } catch (Throwable t) {
-            getLogger().log(Level.SEVERE, "Failed to interface with TAB plugin to hide nametag", t);
-            return null; // Error???
-        }
+    public TabNameTagHider.TabPlayerNameTagHider getTabNameHider(Player player) {
+        return tabNameTagHider.get().get(player);
     }
 
     /**

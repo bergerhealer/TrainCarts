@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.control.seat;
 import java.util.function.Function;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.neznamytabnametaghider.TabNameTagHider;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -20,7 +21,6 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.bukkit.tc.utils.tab.TabNameTagHider;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutUpdateAttributesHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
@@ -52,7 +52,7 @@ public abstract class SeatedEntity {
     private boolean madeVisibleInFirstPerson = false;
 
     // Used to hide & restore custom TAB plugin nametags
-    private TabNameTagHider tabNameTagHider = null;
+    private TabNameTagHider.TabPlayerNameTagHider tabNameTagHider = null;
 
     public SeatedEntity(CartAttachmentSeat seat) {
         this.seat = seat;

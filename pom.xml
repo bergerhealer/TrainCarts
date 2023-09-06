@@ -38,6 +38,7 @@
 
     <repositories>
         <!-- Repo for TeamBergerhealer plugins and several of it's (soft) dependencies. Also used for:
+             - NeznamyTABNameTagHider
              - Neznamy TAB plugin
              - Milkbowl Vault
              - Multiverse Core and Portals
@@ -84,6 +85,13 @@
             <artifactId>BKCommonLib</artifactId>
             <version>${project.bkcversion}</version>
             <scope>compile</scope>
+            <exclusions>
+                <!-- This is here to avoid a potential conflict with what we shade in ourselves -->
+                <exclusion>
+                    <groupId>com.bergerkiller.bukkit.softdependency</groupId>
+                    <artifactId>SoftDependency</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <!-- BKCommonLib shaded dependency is re-used -->
         <dependency>
@@ -140,12 +148,12 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-        <!-- TAB (for hiding nametags) -->
+        <!-- TAB nametag hiding API. Is shaded in. (passively includes SoftDependency library) -->
         <dependency>
-            <groupId>me.neznamy</groupId>
-            <artifactId>tab-api</artifactId>
-            <version>3.1.4</version>
-            <scope>provided</scope>
+            <groupId>com.bergerkiller.bukkit.neznamytabnametaghider</groupId>
+            <artifactId>NeznamyTABNameTagHider-Core</artifactId>
+            <version>1.0</version>
+            <scope>compile</scope>
             <optional>true</optional>
         </dependency>
         <!-- Multiverse is optional for use with the teleport sign -->
@@ -307,6 +315,18 @@
                             <shadedPattern>com.bergerkiller.bukkit.tc</shadedPattern>
                         </relocation>
 
+                        <!-- TAB nametag hider lib -->
+                        <relocation>
+                            <pattern>com.bergerkiller.bukkit.neznamytabnametaghider</pattern>
+                            <shadedPattern>com.bergerkiller.bukkit.tc.dep.neznamytabnametaghider</shadedPattern>
+                        </relocation>
+
+                        <!-- SoftDependency lib - will be moved to BKCommonLib in the future -->
+                        <relocation>
+                            <pattern>com.bergerkiller.bukkit.softdependency</pattern>
+                            <shadedPattern>com.bergerkiller.bukkit.tc.dep.softdependency</shadedPattern>
+                        </relocation>
+
                         <!-- BKCommonLib relocations of Cloud command framework -->
                         <relocation>
                             <pattern>cloud.commandframework</pattern>
@@ -335,6 +355,10 @@
                         <includes>
                             <include>me.m56738</include>
                             <include>com.bergerkiller.bukkit.preloader</include>
+                            <include>com.bergerkiller.bukkit.neznamytabnametaghider</include>
+
+                            <!-- Note: Also exists in BKCommonLib, we disable importing that symbol to avoid issues -->
+                            <include>com.bergerkiller.bukkit.softdependency</include>
                         </includes>
                     </artifactSet>
                     <filters>
