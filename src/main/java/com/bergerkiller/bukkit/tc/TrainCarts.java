@@ -118,7 +118,7 @@ public class TrainCarts extends PluginBase {
     private final SoftDependency<TabNameTagHider> tabNameTagHider = new TabNameTagHiderDependency(this) {
         @Override
         protected void onEnable() {
-            getLogger().info("Neznamy TAB plugin detected! Player nametag hiding functionality enabled.");
+            getLogger().info("Neznamy TAB plugin detected! Seats with nametag hidden will also hide TAB nametags.");
         }
     };
     private Economy econ = null;
