@@ -122,7 +122,6 @@ public class TrainCarts extends PluginBase {
         }
     };
     private Economy econ = null;
-    private boolean isTabPluginEnabled = false;
     private SmoothCoastersAPI smoothCoastersAPI;
     private Commands commands;
 
@@ -572,10 +571,6 @@ public class TrainCarts extends PluginBase {
                     AttachmentTypeRegistry.instance().register(CartAttachmentLight.TYPE);
                 else
                     AttachmentTypeRegistry.instance().unregister(CartAttachmentLight.TYPE);
-                break;
-            case "TAB":
-                log(Level.INFO, "TAB plugin detected, seats with nametag hidden will also hide TAB nametags");
-                isTabPluginEnabled = enabled;
                 break;
         }
     }
