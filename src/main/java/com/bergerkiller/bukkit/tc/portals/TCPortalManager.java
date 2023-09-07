@@ -1,14 +1,8 @@
 package com.bergerkiller.bukkit.tc.portals;
 
 import java.util.HashMap;
-import java.util.logging.Level;
 
 import org.bukkit.World;
-import org.bukkit.plugin.Plugin;
-
-import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.portals.plugins.MultiversePortalsProvider;
-import com.bergerkiller.bukkit.tc.portals.plugins.MyWorldsPortalsProvider;
 
 /**
  * Manages all plugins that provide portal teleportation logic for use by TrainCarts.
@@ -16,23 +10,26 @@ import com.bergerkiller.bukkit.tc.portals.plugins.MyWorldsPortalsProvider;
  * and directions to teleport the train at.
  */
 public class TCPortalManager {
-    private static final HashMap<String, Class<? extends PortalProvider>> supportedProviders = new HashMap<String, Class<? extends PortalProvider>>();
     private static final HashMap<String, PortalProvider> portalProviders = new HashMap<String, PortalProvider>();
-
-    static {
-        addPortalSupport("My_Worlds", MyWorldsPortalsProvider.class);
-        addPortalSupport("Multiverse-Portals", MultiversePortalsProvider.class);
-    }
 
     /**
      * Registers a portal provider and the name of the plugin that provides it.
      * When the plugin is detected, the provider is automatically initialized.
      * 
-     * @param pluginName of the plugin providing portal support
-     * @param providerClass for handling portal logic
+     * @param pluginName Name of the plugin providing portal support
+     * @param provider Portal teleportation provider
      */
-    public static void addPortalSupport(String pluginName, Class<? extends PortalProvider> providerClass) {
-        supportedProviders.put(pluginName, providerClass);
+    public static void addPortalSupport(String pluginName, PortalProvider provider) {
+        portalProviders.put(pluginName, provider);
+    }
+
+    /**
+     * Un-registers a portal provider of a plugin
+     *
+     * @param pluginName Name of the plugin that was providing portal support
+     */
+    public static void removePortalSupport(String pluginName) {
+        portalProviders.remove(pluginName);
     }
 
     /**
@@ -43,38 +40,6 @@ public class TCPortalManager {
      */
     public static boolean isAvailable(String pluginName) {
         return portalProviders.containsKey(pluginName);
-    }
-
-    /**
-     * Internal use only: handles plugins enabling/disabling
-     * 
-     * @param pluginName
-     * @param plugin
-     * @param enabled
-     */
-    public static void updateProviders(String pluginName, Plugin plugin, boolean enabled) {
-        if (!enabled) {
-            portalProviders.remove(pluginName);
-            return;
-        }
-        if (portalProviders.containsKey(pluginName)) {
-            return;
-        }
-
-        // Detect new plugins that add support for portal destinations
-        Class<? extends PortalProvider> providerClass = supportedProviders.get(pluginName);
-        if (providerClass != null) {
-            PortalProvider provider;
-            try {
-                provider = providerClass.newInstance();
-                portalProviders.put(pluginName, provider);
-                provider.init(plugin);
-            } catch (Throwable t) {
-                portalProviders.remove(pluginName);
-                TrainCarts.plugin.getModuleLogger("Portals").log(Level.WARNING, 
-                        "Failed to add teleport portal support for plugin " + pluginName, t);
-            }
-        }
     }
 
     /**

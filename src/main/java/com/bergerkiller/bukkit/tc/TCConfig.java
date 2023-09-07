@@ -85,8 +85,6 @@ public class TCConfig {
     public static boolean enableCeilingBlockCollision = true; // whether to allow blocks above the minecart to collide
     public static int collisionReEnterDelay = 100; // Delay before letting mobs/player enter again
     public static boolean optimizeBlockActivation;
-    public static boolean SignLinkEnabled = false;
-    public static boolean MinecartManiaEnabled = false;
     public static boolean activatorEjectEnabled = true;
     public static boolean railTrackerDebugEnabled = false;
     public static boolean wheelTrackerDebugEnabled = false;

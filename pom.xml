@@ -152,7 +152,7 @@
         <dependency>
             <groupId>com.bergerkiller.bukkit.neznamytabnametaghider</groupId>
             <artifactId>NeznamyTABNameTagHider-Core</artifactId>
-            <version>1.0</version>
+            <version>1.01</version>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>

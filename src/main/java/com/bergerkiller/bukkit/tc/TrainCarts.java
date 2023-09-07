@@ -44,6 +44,8 @@ import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
 import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
 import com.bergerkiller.bukkit.tc.pathfinding.RouteManager;
 import com.bergerkiller.bukkit.tc.portals.TCPortalManager;
+import com.bergerkiller.bukkit.tc.portals.plugins.MultiversePortalsProvider;
+import com.bergerkiller.bukkit.tc.portals.plugins.MyWorldsPortalsProvider;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
@@ -67,7 +69,6 @@ import com.bergerkiller.mountiplex.conversion.Conversion;
 
 import me.m56738.smoothcoasters.api.SmoothCoastersAPI;
 import net.milkbowl.vault.economy.Economy;
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -89,7 +90,6 @@ import java.util.stream.Collectors;
 
 public class TrainCarts extends PluginBase {
     public static TrainCarts plugin;
-    private Task signtask;
     private Task autosaveTask;
     private Task cacheCleanupTask;
     private Task mutexZoneUpdateTask;
@@ -115,15 +115,73 @@ public class TrainCarts extends PluginBase {
     private ResourcePackModelListing modelListing = new ResourcePackModelListing(); // Uninitialized
     private final WorldEditSchematicLoader worldEditSchematicLoader = new WorldEditSchematicLoader(this);
     private final TrainCartsPlayerStore playerStore = new TrainCartsPlayerStore(this);
+    private SmoothCoastersAPI smoothCoastersAPI;
+    private Commands commands;
+
+    /* ===================================
+     * Optional dependencies of TrainCarts
+     * =================================== */
+
     private final SoftDependency<TabNameTagHider> tabNameTagHider = new TabNameTagHiderDependency(this) {
         @Override
         protected void onEnable() {
             getLogger().info("Neznamy TAB plugin detected! Seats with nametag hidden will also hide TAB nametags.");
         }
     };
-    private Economy econ = null;
-    private SmoothCoastersAPI smoothCoastersAPI;
-    private Commands commands;
+    private final SoftDependency<Plugin> signLink = new SoftDependency<Plugin>(this, "SignLink") {
+        private Task signtask;
+
+        @Override
+        protected Plugin initialize(Plugin plugin) {
+            return plugin;
+        }
+
+        @Override
+        protected void onEnable() {
+            log(Level.INFO, "SignLink detected, support for arrival signs added!");
+            Task.stop(signtask);
+            signtask = new Task(TrainCarts.this) {
+                public void run() {
+                    ArrivalSigns.updateAll();
+                }
+            };
+            signtask.start(0, 10);
+        }
+
+        @Override
+        protected void onDisable() {
+            Task.stop(signtask);
+            signtask = null;
+        }
+    };
+    private final SoftDependency<Plugin> lightAPI = SoftDependency.build(this, "LightAPI")
+            .withInitializer(p -> p)
+            .whenEnable(p -> {
+                log(Level.INFO, "LightAPI detected, the Light attachment is now available");
+                AttachmentTypeRegistry.instance().register(CartAttachmentLight.TYPE);
+            })
+            .whenDisable(p -> AttachmentTypeRegistry.instance().unregister(CartAttachmentLight.TYPE))
+            .create();
+    private final SoftDependency<MyWorldsPortalsProvider> myWorldsPortalProvider = SoftDependency.build(this, "My_Worlds")
+            .withInitializer(p -> new MyWorldsPortalsProvider())
+            .whenEnable(s -> TCPortalManager.addPortalSupport(s.name(), s.get()))
+            .whenDisable(s -> TCPortalManager.removePortalSupport(s.name()))
+            .create();
+    private final SoftDependency<MultiversePortalsProvider> multiversePortalProvider = SoftDependency.build(this, "Multiverse-Portals")
+            .withInitializer(p -> new MultiversePortalsProvider())
+            .whenEnable(s -> TCPortalManager.addPortalSupport(s.name(), s.get()))
+            .whenDisable(s -> TCPortalManager.removePortalSupport(s.name()))
+            .create();
+    private final SoftDependency<Economy> vaultEconomy = new SoftDependency<Economy>(this, "Vault") {
+        @Override
+        protected Economy initialize(Plugin plugin) {
+            RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
+            if (rsp == null) {
+                throw new IllegalStateException("Vault plugin exists but no Economy service is registered");
+            }
+            return rsp.getProvider();
+        }
+    };
 
     /**
      * Gets the property registry which tracks all train and cart properties
@@ -350,11 +408,15 @@ public class TrainCarts extends PluginBase {
      * @return
      */
     public Economy getEconomy() {
-        return econ;
+        return vaultEconomy.get();
     }
 
     public SmoothCoastersAPI getSmoothCoastersAPI() {
         return smoothCoastersAPI;
+    }
+
+    public boolean isSignLinkEnabled() {
+        return signLink.isEnabled();
     }
 
     public static boolean canBreak(Material type) {
@@ -368,7 +430,7 @@ public class TrainCarts extends PluginBase {
      * @return currency text
      */
     public static String getCurrencyText(double value) {
-        Economy econ = TrainCarts.plugin.econ;
+        Economy econ = TrainCarts.plugin.vaultEconomy.get();
         if (econ != null) {
             return econ.format(value);
         }
@@ -392,7 +454,7 @@ public class TrainCarts extends PluginBase {
      * @param text   to send
      */
     public static void sendMessage(Player player, String text) {
-        if (TCConfig.SignLinkEnabled) {
+        if (TrainCarts.plugin.isSignLinkEnabled()) {
             //TODO: SignLink 1.16.5-v1 supports far more functionality, such as escaping using %% and
             //      filtering out variable names with spaces in them. This code doesn't do that.
             //      Improvements could definitely be made.
@@ -407,23 +469,6 @@ public class TrainCarts extends PluginBase {
             }
         }
         player.sendMessage(text);
-    }
-
-    /**
-     * Setup the Vault service
-     *
-     * @return boolean  whether Vault was registered successfully
-     */
-    private boolean setupEconomy() {
-        if (getServer().getPluginManager().getPlugin("Vault") == null) {
-            return false;
-        }
-        RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
-        if (rsp == null) {
-            return false;
-        }
-        econ = rsp.getProvider();
-        return econ != null;
     }
 
     public static boolean isWorldDisabled(BlockEvent event) {
@@ -548,34 +593,6 @@ public class TrainCarts extends PluginBase {
     }
 
     @Override
-    public void updateDependency(Plugin plugin, String pluginName, boolean enabled) {
-        TCPortalManager.updateProviders(pluginName, plugin, enabled);
-        switch (pluginName) {
-            case "SignLink":
-                Task.stop(signtask);
-                if (TCConfig.SignLinkEnabled = enabled) {
-                    log(Level.INFO, "SignLink detected, support for arrival signs added!");
-                    signtask = new Task(this) {
-                        public void run() {
-                            ArrivalSigns.updateAll();
-                        }
-                    };
-                    signtask.start(0, 10);
-                } else {
-                    signtask = null;
-                }
-                break;
-            case "LightAPI":
-                log(Level.INFO, "LightAPI detected, the Light attachment is now available");
-                if (enabled)
-                    AttachmentTypeRegistry.instance().register(CartAttachmentLight.TYPE);
-                else
-                    AttachmentTypeRegistry.instance().unregister(CartAttachmentLight.TYPE);
-                break;
-        }
-    }
-
-    @Override
     public int getMinimumLibVersion() {
         return Common.VERSION;
     }
@@ -659,21 +676,18 @@ public class TrainCarts extends PluginBase {
         // Selector registry, do this early in case a command block triggers during enabling
         selectorHandlerRegistry.enable();
 
-        // And this
-        {
-            // BEFORE we load configurations!
-            Plugin lightAPI = Bukkit.getPluginManager().getPlugin("LightAPI");
-            if (lightAPI != null && lightAPI.isEnabled()) {
-                updateDependency(lightAPI, lightAPI.getName(), true);
-            }
-        }
-
         // Routinely saves TrainCarts changed state information to disk (autosave=true)
         // Configured by loadConfig() so instantiate it here
         autosaveTask = new AutosaveTask(this);
 
-        //Load configuration
+        // Load configuration. Must occur before dependencies as some dependencies might be
+        // disabled using TC's configuration.
         loadConfig();
+
+        // Ensure dependencies are loaded in at this point, they must be available when
+        // trains load in. There might be some dependencies we want to skip, in that case,
+        // add detect() calls per field instead of using the helper detectAll().
+        SoftDependency.detectAll(this);
 
         //update max item stack
         if (TCConfig.maxMinecartStackSize != 1) {
@@ -712,9 +726,6 @@ public class TrainCarts extends PluginBase {
         //Initialize seat attachment map
         this.seatAttachmentMap = new SeatAttachmentMap();
         this.register((PacketListener) this.seatAttachmentMap, SeatAttachmentMap.LISTENED_TYPES);
-
-        //Setup Economy (Vault)
-        setupEconomy();
 
         //init statements
         Statement.init();
@@ -871,7 +882,6 @@ public class TrainCarts extends PluginBase {
         FakePlayerSpawner.runAndClearCleanupTasks();
 
         //Stop tasks
-        Task.stop(signtask);
         Task.stop(autosaveTask);
         Task.stop(cacheCleanupTask);
         Task.stop(mutexZoneUpdateTask);
