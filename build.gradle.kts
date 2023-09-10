@@ -18,10 +18,8 @@ repositories {
             includeGroup("com.mojang")
         }
     }
-    mavenCentral()
     maven("https://ci.mg-dev.eu/plugin/repository/everything/")
     maven("https://repo.papermc.io/repository/maven-public/")
-    maven("https://maven.enginehub.org/repo/")
 }
 
 dependencies {
