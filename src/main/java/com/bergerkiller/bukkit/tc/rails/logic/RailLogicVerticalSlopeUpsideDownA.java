@@ -11,7 +11,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailPath;
  * This logic will most likely rarely be used because it teleports the minecart down onto different logic.
  * It is here in case the sloped rail is hit anyway, and the Minecart needs to be repositioned.<br>
  * <br>
- * <img src="./doc-files/sloped_vertical_rail_logics.png" />
+ * <img src="https://raw.githubusercontent.com/bergerhealer/TrainCarts/master/misc/sloped_vertical_rail_logics.png" />
  */
 public class RailLogicVerticalSlopeUpsideDownA extends RailLogicVerticalSlopeBase {
     private static final RailLogicVerticalSlopeUpsideDownA[] values = new RailLogicVerticalSlopeUpsideDownA[4];
