@@ -273,22 +273,6 @@ public abstract class SeatedEntity {
             return ((FirstPersonViewSpectator) seat.firstPerson).getCurrentHeadRotation(transform);
         }
 
-        // If smooth coasters is used, then the player yaw/pitch is relative to the eye orientation
-        if (seat.useSmoothCoasters()) {
-            EntityHandle entityHandle = EntityHandle.fromBukkit(entity);
-            float headYaw = entityHandle.getHeadRotation();
-            float headPitch = entityHandle.getPitch();
-
-            if (seat.isRotationLocked()) {
-                headYaw = MathUtil.clamp(headYaw, FirstPersonView.BODY_LOCK_FOV_LIMIT);
-            }
-
-            Quaternion rotation = seat.firstPerson.getEyeTransform().getRotation();
-            rotation.rotateY(-headYaw);
-            rotation.rotateX(headPitch);
-            return rotation;
-        }
-
         if (seat.isRotationLocked()) {
             // Default: query the entity head pitch and yaw
             //          restrict head yaw to body yaw
