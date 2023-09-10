@@ -1,0 +1,42 @@
+[versions]
+bkcommonlib = "1.20.1-v2-SNAPSHOT"
+cloud = "1.8.0-SNAPSHOT"
+junit = "4.11"
+lightapi-fork = "3.4.2-SNAPSHOT"
+lightapi-v5 = "5.0.0"
+multiverse = "4.2.0"
+myworlds = "1.11.2-v2-SNAPSHOT"
+neznamy-tab-hider = "1.01"
+preloader = "1.8"
+shadow = "8.1.1"
+signlink = "1.11.2-v2-SNAPSHOT"
+smoothcoasters-api = "1.10"
+spigot = "1.20.1-R0.1-SNAPSHOT"
+vault-api = "1.7"
+worldedit = "7.2.0"
+
+[libraries]
+bkcommonlib = { module = "com.bergerkiller.bukkit:BKCommonLib", version.ref = "bkcommonlib" }
+cloud-annotations = { module = "org.bergerhealer.cloud.commandframework:cloud-annotations", version.ref = "cloud" }
+cloud-minecraft-extras = { module = "org.bergerhealer.cloud.commandframework:cloud-minecraft-extras", version.ref = "cloud" }
+cloud-paper = { module = "org.bergerhealer.cloud.commandframework:cloud-paper", version.ref = "cloud" }
+junit = { module = "junit:junit", version.ref = "junit" }
+lightapi-fork = { module = "io.github.qveshn:LightAPI-fork", version.ref = "lightapi-fork" }
+lightapi-v5 = { module = "ru.beykerykt.minecraft:lightapi-bukkit-common", version.ref = "lightapi-v5" }
+multiverse-core = { module = "com.onarandombox.multiversecore:Multiverse-Core", version.ref = "multiverse" }
+multiverse-portals = { module = "com.onarandombox.multiverseportals:Multiverse-Portals", version.ref = "multiverse" }
+myworlds = { module = "com.bergerkiller.bukkit:MyWorlds", version.ref = "myworlds" }
+neznamy-tab-hider = { module = "com.bergerkiller.bukkit.neznamytabnametaghider:NeznamyTABNameTagHider-Core", version.ref = "neznamy-tab-hider" }
+preloader = { module = "com.bergerkiller.bukkit.preloader:PluginPreloader", version.ref = "preloader" }
+signlink = { module = "com.bergerkiller.bukkit:SignLink", version.ref = "signlink" }
+smoothcoasters-api = { module = "me.m56738:SmoothCoastersAPI", version.ref = "smoothcoasters-api" }
+spigot = { module = "org.spigotmc:spigot", version.ref = "spigot" }
+spigot-api = { module = "org.spigotmc:spigot-api", version.ref = "spigot" }
+vault-api = { module = "com.github.MilkBowl:VaultAPI", version.ref = "vault-api" }
+worldedit-bukkit = { module = "com.sk89q.worldedit:worldedit-bukkit", version.ref = "worldedit" }
+
+[bundles]
+cloud = ["cloud-paper", "cloud-annotations", "cloud-minecraft-extras"]
+
+[plugins]
+shadow = { id = "com.github.johnrengelman.shadow", version.ref = "shadow" }

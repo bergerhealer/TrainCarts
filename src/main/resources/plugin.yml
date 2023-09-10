@@ -1,7 +1,7 @@
 name: Train_Carts
-version: ${project.version}
-dev-url: ${project.url}
-build: ${project.build.number}
+version: '${version}'
+build: '${build}'
+dev-url: https://github.com/bergerhealer/TrainCarts
 description: Plugin that allows the use of minecart trains with adjustable settings
 authors: [bergerkiller, lenis0012, timstans, bubba1234119, KamikazePlatypus, mg_1999, Friwi, kpaulisse]
 api-version: 1.13
