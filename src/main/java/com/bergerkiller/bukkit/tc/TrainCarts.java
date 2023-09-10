@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.common.controller.DefaultEntityController;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.internal.legacy.MaterialsByName;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
+import com.bergerkiller.bukkit.common.metrics.Metrics;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
@@ -69,6 +70,7 @@ import com.bergerkiller.mountiplex.conversion.Conversion;
 
 import me.m56738.smoothcoasters.api.SmoothCoastersAPI;
 import net.milkbowl.vault.economy.Economy;
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -825,6 +827,33 @@ public class TrainCarts extends PluginBase {
             OfflineGroupManager.destroyAllAsync(false).thenAccept(count -> {
                 getLogger().info("[DestroyOnShutdown] Destroyed " + count + " trains");
             });
+        }
+
+        // Register custom metrics
+        if (hasMetrics()) {
+            Metrics metrics = getMetrics();
+
+            // smoothCoastersInstalled: Number of players with/without SmoothCoasters and the mod version
+            metrics.addCustomChart(new Metrics.DrilldownPie("smoothCoastersInstalled", () -> {
+                Map<String, Integer> versions = new HashMap<>();
+                int disabled = 0;
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    if (smoothCoastersAPI.isEnabled(player)) {
+                        String version = smoothCoastersAPI.getModVersion(player);
+                        if (version == null) {
+                            version = "unknown";
+                        }
+                        versions.merge(version, 1, Integer::sum);
+                    } else {
+                        disabled++;
+                    }
+                }
+
+                Map<String, Map<String, Integer>> categories = new HashMap<>();
+                categories.put("installed", versions);
+                categories.put("not installed", Collections.singletonMap("not installed", disabled));
+                return categories;
+            }));
         }
 
         // Now all is setup right, start a (potential) multithreaded updater
