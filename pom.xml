@@ -323,7 +323,7 @@
 
                         <!-- SoftDependency lib - will be moved to BKCommonLib in the future -->
                         <relocation>
-                            <pattern>com.bergerkiller.bukkit.softdependency</pattern>
+                            <pattern>com.bergerkiller.bukkit.common.softdependency</pattern>
                             <shadedPattern>com.bergerkiller.bukkit.tc.dep.softdependency</shadedPattern>
                         </relocation>
 
