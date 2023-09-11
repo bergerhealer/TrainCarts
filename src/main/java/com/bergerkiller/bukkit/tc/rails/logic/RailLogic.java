@@ -244,7 +244,7 @@ public abstract class RailLogic {
     /**
      * Is called right before the minecart will perform the movement updates<br>
      * This event is called before the onPostMove event<br><br>
-     * <p/>
+     * <p>
      * Velocity changes and positional fixes that influence the final movement should occur here
      *
      * @param member to update

@@ -32,7 +32,7 @@ import org.bukkit.material.Rails;
  * All regular types of rails - the ones provided by Minecraft.
  * All these rail types can slope and some of them can make curves.
  * None of them can be used vertically, hence, it is a horizontal rail.<br><br>
- * <p/>
+ * <p>
  * Warning: all 'regular' type of rails REQUIRE a valid Rails Material type.
  * Do not write an isType check that results in non-Rails material types.
  */

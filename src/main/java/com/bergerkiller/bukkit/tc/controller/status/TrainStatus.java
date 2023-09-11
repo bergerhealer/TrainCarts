@@ -21,7 +21,7 @@ import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
 /**
  * A single action or behavior the train is currently doing
  * 
- * @see {@link TrainStatusProvider}
+ * @see TrainStatusProvider
  */
 public interface TrainStatus {
 

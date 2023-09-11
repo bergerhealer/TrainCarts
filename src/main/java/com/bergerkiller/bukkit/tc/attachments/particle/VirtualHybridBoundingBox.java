@@ -7,7 +7,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.util.Vector;
 
 /**
- * Dynamically switches between showing the fishing rods for <= 1.19.3 clients (viaversion)
+ * Dynamically switches between showing the fishing rods for &lt;= 1.19.3 clients (viaversion)
  * and display entity bounding boxes (>= 1.19.4)
  */
 public class VirtualHybridBoundingBox extends VirtualBoundingBox {

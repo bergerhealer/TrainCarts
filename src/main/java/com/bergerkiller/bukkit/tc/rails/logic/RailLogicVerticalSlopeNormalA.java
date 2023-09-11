@@ -9,7 +9,7 @@ import org.bukkit.util.Vector;
 /**
  * Handles the rail logic of a sloped rail with a vertical rail above it.<br>
  * <br>
- * <img src="https://raw.githubusercontent.com/bergerhealer/TrainCarts/master/misc/sloped_vertical_rail_logics.png" />
+ * <img alt="vertical sloped rail logic" src="https://raw.githubusercontent.com/bergerhealer/TrainCarts/master/misc/sloped_vertical_rail_logics.png" />
  */
 public class RailLogicVerticalSlopeNormalA extends RailLogicVerticalSlopeBase {
     private static final RailLogicVerticalSlopeNormalA[] values = new RailLogicVerticalSlopeNormalA[4];

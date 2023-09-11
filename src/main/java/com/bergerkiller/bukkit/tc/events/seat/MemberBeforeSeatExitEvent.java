@@ -95,7 +95,7 @@ public class MemberBeforeSeatExitEvent extends MemberEvent implements Cancellabl
      * seat fails.
      *
      * @param position New exit position
-     * @see {@link #getExitPosition()}
+     * @see #getExitPosition()
      */
     public void setExitPosition(Location position) {
         this.exitPosition = position;

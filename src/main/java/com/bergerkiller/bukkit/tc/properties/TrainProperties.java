@@ -280,7 +280,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * 
      * @param acceleration Acceleration at which to speed up
      * @param deceleration Acceleration at which to slow down
-     * @see {@link #getWaitAcceleration()}
+     * @see #getWaitAcceleration()
      */
     public void setWaitAcceleration(final double acceleration, final double deceleration) {
         this.update(StandardProperties.WAIT, opt -> WaitOptions.create(

@@ -277,7 +277,7 @@ public class AttachmentInternalState {
 
     /**
      * Retrieves a {@link ForkJoinTask} which can be scheduled onto a
-     * <i>ForkJoinPool<i/> to recursively update the positions of this
+     * <i>ForkJoinPool</i> to recursively update the positions of this
      * attachment, and all child attachments.<br>
      * <br>
      * The returned task is cached, so changing the <i>initialTransformSupplier</i>

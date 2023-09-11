@@ -513,7 +513,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
     /**
      * Splits this train, the index is the first cart for the new group<br><br>
-     * <p/>
+     * <p>
      * For example, this Group has a total cart count of 5<br>
      * If you then split at index 2, it will result in:<br>
      * - This group becomes a group of 2 carts<br>
@@ -1696,7 +1696,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      * @param trains Whether to include other trains up ahead in the results
      * @param railObstacles Whether to include rail obstacles, like mutex zones, in the results
      * @return True if a matched obstacle is up ahead, False if not
-     * @see {@link #findObstaclesAhead(double, boolean, boolean)}
+     * @see #findObstaclesAhead(double, boolean, boolean)
      */
     public boolean isObstacleAhead(double distance, boolean trains, boolean railObstacles) {
         return !this.findObstaclesAhead(distance, trains, railObstacles).isEmpty();

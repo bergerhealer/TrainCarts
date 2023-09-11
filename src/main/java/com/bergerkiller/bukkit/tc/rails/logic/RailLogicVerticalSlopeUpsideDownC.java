@@ -9,7 +9,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 /**
  * Handles rail logic of an upside-down slope with a vertical rail below it.<br>
  * <br>
- * <img src="https://raw.githubusercontent.com/bergerhealer/TrainCarts/master/misc/sloped_vertical_rail_logics.png" />
+ * <img alt="vertical sloped rail logic" src="https://raw.githubusercontent.com/bergerhealer/TrainCarts/master/misc/sloped_vertical_rail_logics.png" />
  */
 public class RailLogicVerticalSlopeUpsideDownC extends RailLogicVerticalSlopeBase {
     private static final RailLogicVerticalSlopeUpsideDownC[] values = new RailLogicVerticalSlopeUpsideDownC[4];
