@@ -505,7 +505,7 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
                     new_name = "t" + name + i;
                 }
 
-                traincarts.log(Level.WARNING, "Train name '"  + name + "' starts with a digit, renamed to " + new_name);
+                logger.log(Level.WARNING, "Train name '"  + name + "' starts with a digit, renamed to " + new_name);
                 config.set(KEY_SAVED_NAME, new_name);
                 config.remove();
                 savedTrainsConfig.set(new_name, config);
@@ -527,7 +527,7 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
                 if (!config.getName().equals(setName)) {
                     // Note: people may have intended to rename these properties
                     // It is best to notify about this.
-                    traincarts.log(Level.WARNING, "Saved train '" + config.getName() + "' has a different "
+                    logger.log(Level.WARNING, "Saved train '" + config.getName() + "' has a different "
                             + "name set: '" + setName + "'");
                     logSavedNameFieldWarning = true;
 
@@ -535,7 +535,7 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
                 }
             }
             if (logSavedNameFieldWarning) {
-                traincarts.log(Level.WARNING, "If the intention was to rename the train, instead "
+                logger.log(Level.WARNING, "If the intention was to rename the train, instead "
                         + "rename the key, not field '" + KEY_SAVED_NAME + "'");
             }
         }

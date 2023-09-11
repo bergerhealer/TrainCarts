@@ -30,7 +30,7 @@ public abstract class ModularConfiguration<T>
         extends ModularConfigurationBlockList<T>
         implements ModularConfigurationEntry.Container<T>
 {
-    final Logger logger;
+    protected final Logger logger;
     /** All entries that are still backed by a Module */
     final ModularConfigurationEntryMap<T> entries = new ModularConfigurationEntryMap<T>();
     /** Stores removed Entries until they get garbage-collected because nobody uses them */

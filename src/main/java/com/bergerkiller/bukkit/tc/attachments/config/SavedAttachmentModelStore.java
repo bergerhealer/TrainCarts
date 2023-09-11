@@ -686,7 +686,7 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
                 if (!config.getName().equals(setName)) {
                     // Note: people may have intended to rename these properties
                     // It is best to notify about this.
-                    traincarts.log(Level.WARNING, "Saved attachment model '" + config.getName() + "' has a different "
+                    logger.log(Level.WARNING, "Saved attachment model '" + config.getName() + "' has a different "
                             + "name set: '" + setName + "'");
                     logSavedNameFieldWarning = true;
 
@@ -694,7 +694,7 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
                 }
             }
             if (logSavedNameFieldWarning) {
-                traincarts.log(Level.WARNING, "If the intention was to rename the model, instead "
+                logger.log(Level.WARNING, "If the intention was to rename the model, instead "
                         + "rename the key, not field '" + KEY_SAVED_NAME + "'");
             }
         }
