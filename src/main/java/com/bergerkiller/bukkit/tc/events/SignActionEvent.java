@@ -705,20 +705,18 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
      *
      * @param invert True to invert the power as a result, False to get the normal result
      * @return True if powered when not inverted, or not powered and inverted
-     * @deprecated Use {@link PowerState#isSignPowered(signBlock, inverted)} instead
      */
-    @Deprecated
     public boolean isPoweredRaw(boolean invert) {
         if (invert) {
+            boolean result = true;
             for (BlockFace face : FaceUtil.BLOCK_SIDES) {
-                if (this.sign.getPower(face) == PowerState.ON) {
-                    return false;
-                }
+                result &= (this.sign.getPower(face) != PowerState.ON);
             }
-            return true;
+            return result;
         } else {
+            boolean result = false;
             for (BlockFace face : FaceUtil.BLOCK_SIDES) {
-                if (this.sign.getPower(face).hasPower()) return true;
+                result |= this.sign.getPower(face).hasPower();
             }
             return false;
         }

@@ -877,6 +877,14 @@ public class SignController implements LibraryComponent, Listener {
             return header.isEmpty() || header.isAlwaysOn() || header.isAlwaysOff();
         }
 
+        private boolean checkIsSignPowered() {
+            // Only signs with registered sign actions auto-connect with redstone wire,
+            // as we don't want all signs serverwide to have this behavior suddenly.
+            PowerState.Options opt = (front.hasSignAction() || back.hasSignAction())
+                    ? PowerState.Options.SIGN_CONNECT_WIRE : PowerState.Options.SIGN;
+            return PowerState.isSignPowered(this.sign.getBlock(), opt);
+        }
+
         void setActivated(boolean activateFront, boolean activateBack) {
             boolean powered;
             if ((!activateFront || skipReadingPower(front.getHeader())) &&
@@ -884,7 +892,7 @@ public class SignController implements LibraryComponent, Listener {
             ) {
                 powered = false;
             } else {
-                powered = PowerState.isSignPowered(this.sign.getBlock());
+                powered = checkIsSignPowered();
             }
             if (activateFront) {
                 front.activated = true;
@@ -902,7 +910,7 @@ public class SignController implements LibraryComponent, Listener {
 
             // Read power state or not?
             boolean powered = (!skipReadingPower(frontHeader) || !skipReadingPower(backHeader)) &&
-                    PowerState.isSignPowered(this.sign.getBlock());
+                    checkIsSignPowered();
 
             // Only handle the REDSTONE_CHANGE action when using [+train] or [-train]
             // Improves performance by avoiding a needless isSignPowered() calculation
@@ -930,7 +938,7 @@ public class SignController implements LibraryComponent, Listener {
             // Only handle the REDSTONE_CHANGE action when using [+train] or [-train]
             // Improves performance by avoiding a needless isSignPowered() calculation
             boolean powerStateCorrect = (!skipReadingPower(frontHeader) || !skipReadingPower(backHeader)) &&
-                    (isPowered == PowerState.isSignPowered(this.sign.getBlock()));
+                    (isPowered == checkIsSignPowered());
 
             if (!frontHeader.isEmpty()) {
                 if (frontHeader.isAlwaysOn() || frontHeader.isAlwaysOff()) {
@@ -953,6 +961,7 @@ public class SignController implements LibraryComponent, Listener {
             private final GetLineFunction lineFunc;
             public String headerLine;
             private SignActionHeader cachedHeader;
+            private boolean cachedHasSignAction;
             public boolean powered;
             public boolean activated;
 
@@ -961,6 +970,7 @@ public class SignController implements LibraryComponent, Listener {
                 this.lineFunc = lineFunc;
                 this.headerLine = lineFunc.getLine(sign, 0);
                 this.cachedHeader = SignActionHeader.parse(Util.cleanSignLine(headerLine));
+                this.cachedHasSignAction = this.checkHasSignAction(this.cachedHeader);
                 this.powered = false; // Initialized later on
                 this.activated = false; // Activated when neighbouring chunks load as well
             }
@@ -971,8 +981,19 @@ public class SignController implements LibraryComponent, Listener {
                     return cachedHeader;
                 } else {
                     this.headerLine = headerLine;
-                    return this.cachedHeader = SignActionHeader.parse(Util.cleanSignLine(headerLine));
+                    SignActionHeader header = this.cachedHeader = SignActionHeader.parse(Util.cleanSignLine(headerLine));
+                    this.cachedHasSignAction = this.checkHasSignAction(header);
+                    return header;
                 }
+            }
+
+            public boolean hasSignAction() {
+                //getHeader(); // This only works because we always call getHeader() prior...
+                return cachedHasSignAction;
+            }
+
+            private boolean checkHasSignAction(SignActionHeader header) {
+                return SignAction.getSignAction(this.createSignActionEvent(header)) != null;
             }
 
             public void setInitialPower(boolean powered) {

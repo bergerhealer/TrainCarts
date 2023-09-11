@@ -1024,7 +1024,9 @@ public final class RailLookup {
 
         @Override
         public PowerState getPower(BlockFace from) {
-            return PowerState.get(this.signBlock, from, true);
+            return PowerState.get(this.signBlock, from, (getAction() != null)
+                    ? PowerState.Options.SIGN_CONNECT_WIRE
+                    : PowerState.Options.SIGN);
         }
 
         @Override
@@ -1130,7 +1132,9 @@ public final class RailLookup {
 
         @Override
         public PowerState getPower(BlockFace from) {
-            return PowerState.get(this.signBlock, from, true);
+            return PowerState.get(this.signBlock, from, (getAction() != null)
+                    ? PowerState.Options.SIGN_CONNECT_WIRE
+                    : PowerState.Options.SIGN);
         }
 
         @Override

@@ -19,6 +19,9 @@ import org.bukkit.material.Redstone;
 import org.bukkit.material.RedstoneTorch;
 import org.bukkit.material.RedstoneWire;
 
+import java.util.EnumMap;
+import java.util.Locale;
+
 /**
  * The way a block can be powered:<br>
  * - ON: Block is powered by something<br>
@@ -27,6 +30,16 @@ import org.bukkit.material.RedstoneWire;
  */
 public enum PowerState {
     ON, OFF, NONE;
+
+    //TODO: Use BlockDataState API in BKCL to avoid the by-name lookup entirely
+    //      We can't do this yet because this API was recently refactored
+    //      Change this when BKCommonLib is a hard dep for 1.20.1-v3 or later.
+    private static EnumMap<BlockFace, String> redstoneWireSideKey = new EnumMap<>(BlockFace.class);
+    static {
+        for (BlockFace face : FaceUtil.AXIS) {
+            redstoneWireSideKey.put(face, face.name().toLowerCase(Locale.ENGLISH));
+        }
+    }
 
     private static boolean isDistractingColumn(Block main, BlockFace face) {
         Block side = main.getRelative(face);
@@ -57,7 +70,7 @@ public enum PowerState {
     }
 
     public static PowerState get(Block block, BlockFace from) {
-        return get(block, from, true);
+        return get(block, from, Options.SIGN);
     }
 
     /**
@@ -69,11 +82,23 @@ public enum PowerState {
      * @return The Power State of the block
      */
     public static PowerState get(Block block, BlockFace from, boolean useSignLogic) {
+        return get(block, from, useSignLogic ? Options.SIGN : Options.FAR);
+    }
+
+    /**
+     * Computes the power state for a given block
+     *
+     * @param block   to get the power state of
+     * @param from    what BlockFace side the block power should be computed
+     * @param options options for the power search operation
+     * @return The Power State of the block
+     */
+    public static PowerState get(Block block, BlockFace from, Options options) {
         Block fromBlock = block.getRelative(from);
         BlockData fromBlockInfo = WorldUtil.getBlockData(fromBlock);
         MaterialData fromBlockData = fromBlockInfo.getMaterialData();
         if (fromBlockData instanceof RedstoneTorch) {
-            if (useSignLogic || from == BlockFace.DOWN) {
+            if (options.isNextToSign() || from == BlockFace.DOWN) {
                 return ((RedstoneTorch) fromBlockData).isPowered() ? ON : OFF;
             } else {
                 return NONE;
@@ -88,7 +113,19 @@ public enum PowerState {
                 return NONE;
             }
         } else if (fromBlockData instanceof RedstoneWire) {
-            if (useSignLogic || from == BlockFace.UP || (from != BlockFace.DOWN && !isDistracted(fromBlock, from))) {
+            if (options == Options.SIGN_CONNECT_WIRE && !FaceUtil.isVertical(from)) {
+                // Make sure we 'connect' the wire to this location
+                // TODO: Use BlockDataState
+                String sideKey = redstoneWireSideKey.get(from.getOppositeFace());
+                if (sideKey != null) {
+                    BlockData updated = fromBlockInfo.setState(sideKey, "side");
+                    if (fromBlockInfo != updated) {
+                        WorldUtil.setBlockData(fromBlock, updated);
+                    }
+                }
+            }
+
+            if (options.isNextToSign() || from == BlockFace.UP || (from != BlockFace.DOWN && !isDistracted(fromBlock, from))) {
                 return ((RedstoneWire) fromBlockData).isPowered() ? ON : OFF;
             } else {
                 return NONE;
@@ -96,7 +133,7 @@ public enum PowerState {
         }
 
         // Ignore indirect power from levers, because the sign is controlling that lever
-        if (fromBlockData instanceof Lever && !useSignLogic) {
+        if (fromBlockData instanceof Lever && !options.isNextToSign()) {
             return NONE;
         }
 
@@ -111,12 +148,12 @@ public enum PowerState {
 
         // For signs, the block they are attached to can be powered too
         // For those we need to do recursive checks if those are powered in some way
-        if (useSignLogic && BlockUtil.getAttachedFace(block) == from) {
+        if (options.isNextToSign() && BlockUtil.getAttachedFace(block) == from) {
             PowerState state = PowerState.NONE;
             for (BlockFace attFace : FaceUtil.BLOCK_SIDES) {
                 if (attFace == from.getOppositeFace()) continue;
 
-                PowerState attState = PowerState.get(fromBlock, attFace, false);
+                PowerState attState = PowerState.get(fromBlock, attFace, Options.FAR);
                 if (attState != PowerState.NONE) {
                     state = attState;
                     if (state == PowerState.ON) {
@@ -142,24 +179,47 @@ public enum PowerState {
 
     /**
      * Gets whether a certain sign block is powered by a Redstone power source.
-     * 
+     *
      * @param signBlock the block where the sign is located
      * @param inverted power - True to invert the power as a result, False to get the normal result
      * @return True if powered when not inverted, or not powered and inverted
      */
     public static boolean isSignPowered(Block signBlock, boolean inverted) {
+        return isSignPowered(signBlock, Options.SIGN_CONNECT_WIRE, inverted);
+    }
+
+    /**
+     * Gets whether a certain sign block is powered by a Redstone power source.
+     *
+     * @param signBlock the block where the sign is located
+     * @param options power state search options
+     * @return True if powered when not inverted, or not powered and inverted
+     */
+    public static boolean isSignPowered(Block signBlock, Options options) {
+        return isSignPowered(signBlock, options, false);
+    }
+
+    /**
+     * Gets whether a certain sign block is powered by a Redstone power source.
+     * 
+     * @param signBlock the block where the sign is located
+     * @param options power state search options
+     * @param inverted power - True to invert the power as a result, False to get the normal result
+     * @return True if powered when not inverted, or not powered and inverted
+     */
+    public static boolean isSignPowered(Block signBlock, Options options, boolean inverted) {
         if (inverted) {
+            boolean result = true;
             for (BlockFace face : FaceUtil.BLOCK_SIDES) {
-                if (PowerState.get(signBlock, face, true) == PowerState.ON) {
-                    return false;
-                }
+                result &= (PowerState.get(signBlock, face, options) != PowerState.ON);
             }
-            return true;
+            return result;
         } else {
+            boolean result = false;
             for (BlockFace face : FaceUtil.BLOCK_SIDES) {
-                if (PowerState.get(signBlock, face, true).hasPower()) return true;
+                result |= PowerState.get(signBlock, face, options).hasPower();
             }
-            return false;
+            return result;
         }
     }
 
@@ -174,6 +234,28 @@ public enum PowerState {
                 return true;
             default:
                 return false;
+        }
+    }
+
+    /**
+     * Options for controlling the power state searching operation
+     */
+    public enum Options {
+        /** Searching far from the block. Wire does not connect. */
+        FAR(false),
+        /** Searching adjacent to a sign. Wire connects. */
+        SIGN(true),
+        /** Searching adjacent to a sign. Wire connects. Modify wire to show that. */
+        SIGN_CONNECT_WIRE(true);
+
+        private final boolean isNextToSign;
+
+        Options(boolean isNextToSign) {
+            this.isNextToSign = isNextToSign;
+        }
+
+        public boolean isNextToSign() {
+            return isNextToSign;
         }
     }
 }
