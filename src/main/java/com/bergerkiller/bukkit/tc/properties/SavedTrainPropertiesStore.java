@@ -25,8 +25,6 @@ import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
  * These properties can also be used on spawner signs, or fused into spawning items.
  */
 public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
-    private static final String KEY_SAVED_NAME = "savedName";
-
     protected final TrainCarts traincarts;
     protected final ModularConfigurationEntry.Container<SavedTrainProperties> container;
 

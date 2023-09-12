@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.ui.menus;
 
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.general.ModelStorageTypeSelectionDialog;
+import com.bergerkiller.bukkit.tc.utils.modularconfiguration.BasicModularConfiguration;
 import org.bukkit.inventory.ItemStack;
 
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
@@ -15,6 +16,8 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentItem;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.general.ConfirmAttachmentDeleteDialog;
+
+import java.util.Collections;
 
 public class GeneralMenu extends MapWidgetMenu {
 
@@ -110,7 +113,8 @@ public class GeneralMenu extends MapWidgetMenu {
                 GeneralMenu.this.addWidget(new ModelStorageTypeSelectionDialog.LoadDialog() {
                     @Override
                     public void onConfigLoaded(ConfigurationNode attachmentConfig) {
-                        GeneralMenu.this.attachment.getConfig().setTo(attachmentConfig);
+                        GeneralMenu.this.attachment.getConfig().setToExcept(attachmentConfig,
+                                Collections.singleton(BasicModularConfiguration.KEY_SAVED_NAME));
                         GeneralMenu.this.close();
                     }
                 });

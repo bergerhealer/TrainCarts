@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.config;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.properties.SavedClaim;
 import com.bergerkiller.bukkit.tc.utils.SetCallbackCollector;
+import com.bergerkiller.bukkit.tc.utils.modularconfiguration.BasicModularConfiguration;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.ModularConfigurationEntry;
 import org.bukkit.command.CommandSender;
 
@@ -65,7 +66,7 @@ public class SavedAttachmentModel extends AttachmentModel implements SavedAttach
         }
 
         for (String key : entry.getConfig().getKeys()) {
-            if (!LogicUtil.contains(key, "claims", "editor", SavedAttachmentModelStore.KEY_SAVED_NAME)) {
+            if (!LogicUtil.contains(key, "claims", "editor", BasicModularConfiguration.KEY_SAVED_NAME)) {
                 return false;
             }
         }

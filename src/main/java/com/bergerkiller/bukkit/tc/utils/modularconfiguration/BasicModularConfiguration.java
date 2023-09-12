@@ -23,6 +23,12 @@ import java.util.logging.Level;
  */
 public abstract class BasicModularConfiguration<T> extends ModularConfiguration<T> {
     /**
+     * Key used to store the actual name of a configuration. This attribute isn't overwritten
+     * when copying configurations from one entry to another.
+     */
+    public static final String KEY_SAVED_NAME = "savedName";
+
+    /**
      * The default (main) YAML file module. New entries are added to this one
      * by default.
      */

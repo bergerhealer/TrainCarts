@@ -35,8 +35,6 @@ import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
  * the attachment editor.
  */
 public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
-    static final String KEY_SAVED_NAME = "savedName";
-
     protected final TrainCarts traincarts;
     protected final ModularConfigurationEntry.Container<SavedAttachmentModel> container;
 

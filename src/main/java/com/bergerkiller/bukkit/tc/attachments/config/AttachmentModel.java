@@ -1,11 +1,13 @@
 package com.bergerkiller.bukkit.tc.attachments.config;
 
+import java.util.Collections;
 import java.util.function.Supplier;
 
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.properties.standard.type.AttachmentModelBoundToCart;
 import com.bergerkiller.bukkit.tc.utils.SetCallbackCollector;
+import com.bergerkiller.bukkit.tc.utils.modularconfiguration.BasicModularConfiguration;
 import org.bukkit.entity.EntityType;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -149,7 +151,7 @@ public class AttachmentModel implements SavedAttachmentModelStore.ModelUsing {
     public void update(ConfigurationNode newConfig) {
         if (getConfig() != newConfig) {
             getConfig().clear(); // Prevents attachments being re-used
-            getConfig().setTo(newConfig);
+            getConfig().setToExcept(newConfig, Collections.singleton(BasicModularConfiguration.KEY_SAVED_NAME));
         }
         sync();
     }

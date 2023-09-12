@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -154,7 +155,7 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
             throw new ReadOnlyModuleException();
         }
 
-        this.config.setTo(config);
+        this.config.setToExcept(config, Collections.singleton(BasicModularConfiguration.KEY_SAVED_NAME));
         this.main.postProcessEntryConfiguration(this);
     }
 
@@ -194,7 +195,7 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
             setModule(module);
         }
 
-        this.config.setTo(config);
+        this.config.setToExcept(config, Collections.singleton(BasicModularConfiguration.KEY_SAVED_NAME));
         this.main.postProcessEntryConfiguration(this);
     }
 
@@ -340,7 +341,7 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
             throw new ReadOnlyModuleException();
         }
 
-        targetEntry.config.setTo(this.config);
+        targetEntry.config.setToExcept(this.config, Collections.singleton(BasicModularConfiguration.KEY_SAVED_NAME));
         this.main.postProcessEntryConfiguration(targetEntry);
     }
 
@@ -394,7 +395,7 @@ public class ModularConfigurationEntry<T> implements Comparable<ModularConfigura
 
         boolean wasChanged = module.configChanged;
         {
-            this.config.setTo(module.config.getNode(name));
+            this.config.setToExcept(module.config.getNode(name), Collections.singleton(BasicModularConfiguration.KEY_SAVED_NAME));
             module.store(this);
         }
         module.configChanged = wasChanged;
