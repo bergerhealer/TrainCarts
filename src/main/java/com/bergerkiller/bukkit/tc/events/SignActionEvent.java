@@ -718,7 +718,7 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
             for (BlockFace face : FaceUtil.BLOCK_SIDES) {
                 result |= this.sign.getPower(face).hasPower();
             }
-            return false;
+            return result;
         }
     }
 
