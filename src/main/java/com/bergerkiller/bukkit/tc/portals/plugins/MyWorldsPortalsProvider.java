@@ -20,9 +20,8 @@ import com.bergerkiller.bukkit.tc.portals.PortalProvider;
  */
 public class MyWorldsPortalsProvider extends PortalProvider {
 
-    @Override
-    public void init(Plugin plugin) {
-        TrainCarts.plugin.log(Level.INFO, "MyWorlds detected, support for portal sign train teleportation added!");
+    public MyWorldsPortalsProvider(TrainCarts traincarts, Plugin plugin) {
+        traincarts.log(Level.INFO, "MyWorlds detected, support for portal sign train teleportation added!");
     }
 
     @Override

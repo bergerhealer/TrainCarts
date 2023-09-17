@@ -165,12 +165,12 @@ public class TrainCarts extends PluginBase {
             .whenDisable(p -> AttachmentTypeRegistry.instance().unregister(CartAttachmentLight.TYPE))
             .create();
     private final SoftDependency<MyWorldsPortalsProvider> myWorldsPortalProvider = SoftDependency.build(this, "My_Worlds")
-            .withInitializer(p -> new MyWorldsPortalsProvider())
+            .withInitializer(p -> new MyWorldsPortalsProvider(this, p))
             .whenEnable(s -> TCPortalManager.addPortalSupport(s.name(), s.get()))
             .whenDisable(s -> TCPortalManager.removePortalSupport(s.name()))
             .create();
     private final SoftDependency<MultiversePortalsProvider> multiversePortalProvider = SoftDependency.build(this, "Multiverse-Portals")
-            .withInitializer(p -> new MultiversePortalsProvider())
+            .withInitializer(p -> new MultiversePortalsProvider(TrainCarts.this, p))
             .whenEnable(s -> TCPortalManager.addPortalSupport(s.name(), s.get()))
             .whenDisable(s -> TCPortalManager.removePortalSupport(s.name()))
             .create();

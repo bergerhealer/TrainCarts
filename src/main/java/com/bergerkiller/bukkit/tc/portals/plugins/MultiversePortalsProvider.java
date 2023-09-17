@@ -19,12 +19,11 @@ import com.onarandombox.MultiversePortals.PortalLocation;
  * Handles teleportation to Multiverse-Portals portals
  */
 public class MultiversePortalsProvider extends PortalProvider {
-    private MultiversePortals plugin;
+    private final MultiversePortals plugin;
 
-    @Override
-    public void init(Plugin plugin) {
+    public MultiversePortalsProvider(TrainCarts traincarts, Plugin plugin) {
         this.plugin = (MultiversePortals) plugin;
-        TrainCarts.plugin.log(Level.INFO, "Multiverse Portals detected, trains can be teleported to MV Portals");
+        traincarts.log(Level.INFO, "Multiverse Portals detected, trains can be teleported to MV Portals");
     }
 
     @Override
