@@ -9,11 +9,6 @@ import org.bukkit.plugin.Plugin;
 public abstract class PortalProvider {
 
     /**
-     * Called when the provider becomes available
-     */
-    public abstract void init(Plugin plugin);
-
-    /**
      * Gets the destination rails and suggested spawn directions for a particular portal by name
      * 
      * @param world from which is teleported as a hint for the portal name
