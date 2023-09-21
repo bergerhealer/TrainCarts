@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -26,7 +27,6 @@ import com.bergerkiller.bukkit.tc.events.seat.MemberBeforeSeatExitEvent;
 import com.bergerkiller.bukkit.tc.events.seat.MemberSeatEnterEvent;
 import com.bergerkiller.bukkit.tc.events.seat.MemberSeatExitEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
-import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 
 /**
@@ -331,7 +331,7 @@ public class TCSeatChangeListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onVehicleExit(VehicleExitEvent event) {
-        MinecartMember<?> member;
+        final MinecartMember<?> member;
         if (!suppressSeatChangeEvents && (member = MinecartMemberStore.getFromEntity(event.getVehicle())) != null) {
             final CartAttachmentSeat seat = member.getAttachments().findSeat(event.getExited());
             if (seat != null) {
@@ -357,6 +357,16 @@ public class TCSeatChangeListener implements Listener {
                 final Entity vehicle = event.getVehicle();
                 final Entity passenger = event.getExited();
                 CommonUtil.nextTick(() -> {
+                    // Before resuming ensure that the network controller has updated
+                    // This releases the entity from the seat, so that the entity can be properly teleported
+                    // afterwards. It might be the Minecart got deleted after a tick so be careful here.
+                    if (!member.getEntity().isRemoved()) {
+                        EntityNetworkController<?> controller = member.getEntity().getNetworkController();
+                        if (controller != null) {
+                            controller.syncPassengers();
+                        }
+                    }
+
                     if (passenger.getVehicle() != vehicle) {
                         CommonUtil.callEvent(new MemberSeatExitEvent(seat, passenger, seatPosition, exitPosition, playerInitiated));
                     }
