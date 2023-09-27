@@ -397,20 +397,20 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
 
         // Only for root nodes when editing carts: modify Physical properties of the cart
         if (this.parentAttachment == null && getEditor().getEditedCartProperties() != null) {
-            this.addWidget(new MapWidgetMenuButton(MenuItem.PHYSICAL).setIcon("attachments/physical.png").setPosition(px, 1));
+            this.addWidget(new MapWidgetMenuButton(MenuItem.PHYSICAL).setPosition(px, 1));
             px += COL_WIDTH;
         }
 
         // Change 3D position of the attachment
-        this.addWidget(new MapWidgetMenuButton(MenuItem.POSITION).setIcon("attachments/move.png").setPosition(px, 1));
+        this.addWidget(new MapWidgetMenuButton(MenuItem.POSITION).setPosition(px, 1));
         px += COL_WIDTH;
 
         // Animation frames for an attachment
-        this.addWidget(new MapWidgetMenuButton(MenuItem.ANIMATION).setIcon("attachments/animation.png").setPosition(px, 1));
+        this.addWidget(new MapWidgetMenuButton(MenuItem.ANIMATION).setPosition(px, 1));
         px += COL_WIDTH;
 
         // Drops down a menu to add/remove/move the attachment entry
-        this.addWidget(new MapWidgetMenuButton(MenuItem.GENERAL).setIcon("attachments/general_menu.png").setPosition(px, 1));
+        this.addWidget(new MapWidgetMenuButton(MenuItem.GENERAL).setPosition(px, 1));
         px += COL_WIDTH;
 
         // Enabled/disabled
@@ -650,6 +650,9 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
         public MapWidgetMenuButton(MenuItem menu) {
             this._menu = menu;
             this.setTooltip(Character.toUpperCase(menu.name().charAt(0)) + menu.name().substring(1).toLowerCase(Locale.ENGLISH));
+            if (menu.getIcon() != null) {
+                this.setIcon(menu.getIcon());
+            }
         }
 
         @Override
@@ -729,16 +732,22 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     }
 
     public enum MenuItem {
-        APPEARANCE(AppearanceMenu::new),
-        POSITION(PositionMenu::new),
-        ANIMATION(AnimationMenu::new),
-        GENERAL(GeneralMenu::new),
-        PHYSICAL(PhysicalMenu::new);
+        APPEARANCE(AppearanceMenu::new, null),
+        POSITION(PositionMenu::new, "attachments/move.png"),
+        ANIMATION(AnimationMenu::new, "attachments/animation.png"),
+        GENERAL(GeneralMenu::new, "attachments/general_menu.png"),
+        PHYSICAL(PhysicalMenu::new, "attachments/physical.png");
 
         private final Supplier<? extends MapWidgetMenu> _menuConstructor;
+        private final String _icon;
 
-        MenuItem(Supplier<? extends MapWidgetMenu> menuConstructor) {
+        MenuItem(Supplier<? extends MapWidgetMenu> menuConstructor, String icon) {
             this._menuConstructor = menuConstructor;
+            this._icon = icon;
+        }
+
+        public String getIcon() {
+            return _icon;
         }
 
         public MapWidgetMenu createMenu(MapWidgetAttachmentNode attachmentNode) {
