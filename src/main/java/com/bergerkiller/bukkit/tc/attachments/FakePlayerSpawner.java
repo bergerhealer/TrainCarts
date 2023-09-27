@@ -176,7 +176,7 @@ public enum FakePlayerSpawner {
 
         // Spawn in a fake player with the same UUID
         // Thanks to the earlier profile name change, the player will spawn upside-down
-        PacketPlayOutNamedEntitySpawnHandle fakePlayerSpawnPacket = PacketPlayOutNamedEntitySpawnHandle.T.newHandleNull();
+        PacketPlayOutNamedEntitySpawnHandle fakePlayerSpawnPacket = PacketPlayOutNamedEntitySpawnHandle.createNew();
         fakePlayerSpawnPacket.setEntityId(entityId);
         fakePlayerSpawnPacket.setEntityUUID(uuidOfFakePlayer);
         applier.accept(fakePlayerSpawnPacket);
