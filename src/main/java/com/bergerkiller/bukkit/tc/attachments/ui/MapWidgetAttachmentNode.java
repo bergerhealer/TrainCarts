@@ -6,6 +6,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
@@ -47,6 +48,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
  * the configuration for the node.
  */
 public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget {
+    private static final int COL_WIDTH = 17;
     private final MapWidgetAttachmentTree tree;
     private static MapTexture expanded_icon = null;
     private static MapTexture collapsed_icon = null;
@@ -58,6 +60,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     private boolean changingOrder = false;
     private boolean expanded = true;
     private MapWidgetMenuButton appearanceMenuButton;
+    private final MapWidgetNameBox topNameBox = new MapWidgetNameBox();
 
     public MapWidgetAttachmentNode(MapWidgetAttachmentTree tree, AttachmentConfig config) {
         this.tree = tree;
@@ -387,34 +390,43 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
         // After being activated, add a bunch of buttons that can be pressed
         // Each button will open its own context menu to edit things
         // The buttons shown here depend on the type of the node, somewhat
-        int px = this.col * 17 + 1;
+        int px = this.col * COL_WIDTH + 1;
         this.appearanceMenuButton = this.addWidget(new MapWidgetMenuButton(MenuItem.APPEARANCE));
-        this.appearanceMenuButton.setTooltip("Appearance").setIcon(getIcon()).setPosition(px, 1);
-        px += 17;
+        this.appearanceMenuButton.setIcon(getIcon()).setPosition(px, 1);
+        px += COL_WIDTH;
 
         // Only for root nodes when editing carts: modify Physical properties of the cart
         if (this.parentAttachment == null && getEditor().getEditedCartProperties() != null) {
             this.addWidget(new MapWidgetMenuButton(MenuItem.PHYSICAL).setIcon("attachments/physical.png").setPosition(px, 1));
-            px += 17;
+            px += COL_WIDTH;
         }
 
         // Change 3D position of the attachment
         this.addWidget(new MapWidgetMenuButton(MenuItem.POSITION).setIcon("attachments/move.png").setPosition(px, 1));
-        px += 17;
+        px += COL_WIDTH;
 
         // Animation frames for an attachment
         this.addWidget(new MapWidgetMenuButton(MenuItem.ANIMATION).setIcon("attachments/animation.png").setPosition(px, 1));
-        px += 17;
+        px += COL_WIDTH;
 
         // Drops down a menu to add/remove/move the attachment entry
         this.addWidget(new MapWidgetMenuButton(MenuItem.GENERAL).setIcon("attachments/general_menu.png").setPosition(px, 1));
-        px += 17;
+        px += COL_WIDTH;
 
         // Enabled/disabled
         if (this.isChangingOrder()) {
             for (MapWidget child : this.getWidgets()) {
                 child.setEnabled(false);
             }
+        }
+
+        // If one or more names are set for this attachment, display them (scrolling) above the widget
+        List<String> names;
+        if (!(names = getConfig().getList("names", String.class)).isEmpty()) {
+            int xoff = col * COL_WIDTH;
+            topNameBox.setText(String.join(" - ", names));
+            topNameBox.setBounds(xoff + 1, -topNameBox.getHeight(), getWidth()-xoff-2, topNameBox.getHeight());
+            this.addWidget(topNameBox);
         }
     }
 
@@ -486,7 +498,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
 
     @Override
     public void onDraw() {        
-        int px = this.col * 17;
+        int px = this.col * COL_WIDTH;
 
         if (this.isActivated() || this.isFocused()) {
             byte bgColor;
@@ -512,19 +524,19 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
             // Dot pattern vertical line to top
             byte dotColor = MapColorPalette.getColor(64, 64, 64);
             for (int n = 0; n < 5; n++) {
-                this.view.drawPixel(px - 17 + 8, n * 2 + dotOffset, dotColor);
+                this.view.drawPixel(px - COL_WIDTH + 8, n * 2 + dotOffset, dotColor);
             }
 
             // Dot pattern horizontal
             for (int n = 1; n < 5; n++) {
-                this.view.drawPixel(px - 17 + 8 + n * 2, 8 + dotOffset, dotColor);
+                this.view.drawPixel(px - COL_WIDTH + 8 + n * 2, 8 + dotOffset, dotColor);
             }
 
             // If not last child, continue dot pattern down
             int childIdx = this.parentAttachment.attachments.indexOf(this);
             if (childIdx != (this.parentAttachment.attachments.size() - 1)) {
                 for (int n = 5; n < 9; n++) {
-                    this.view.drawPixel(px - 17 + 8, n * 2 + dotOffset, dotColor);
+                    this.view.drawPixel(px - COL_WIDTH + 8, n * 2 + dotOffset, dotColor);
                 }
             }
 
@@ -543,7 +555,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
                     }
                 }
                 tmpNode = tmpNodeParent;
-                tmpX -= 17;
+                tmpX -= COL_WIDTH;
             }
 
             // When this node has children, show a [+] or [-] depending on collapsed or not
@@ -585,6 +597,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     public void setChangingOrder(boolean changing) {
         if (this.changingOrder != changing) {
             this.changingOrder = changing;
+            this.topNameBox.invalidate();
             this.invalidate();
             for (MapWidget child : this.getWidgets()) {
                 child.setEnabled(!changing);
@@ -645,6 +658,76 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
         }
     }
 
+    /**
+     * Displays the name(s) set for the attachment above the attachment itself.
+     * Shows nothing if no names are set.
+     */
+    private class MapWidgetNameBox extends MapWidget {
+        private static final int SCROLL_DELAY = 40;
+        private static final int SCROLL_HOLD = 20;
+        private static final int SCROLL_STEP = 3;
+        private String text = "";
+        private int textWidth = -1;
+        private int textScroll = 0;
+        private int delayCtr = 0;
+        private int holdCtr = 0;
+
+        public MapWidgetNameBox() {
+            this.setDepthOffset(1);
+            this.setSize(64, 6);
+        }
+
+        public void setText(String text) {
+            this.text = text;
+            this.textWidth = -1;
+            this.textScroll = 0;
+            this.delayCtr = 0;
+            this.holdCtr = 0;
+            this.invalidate();
+        }
+
+        private int getTextWidth() {
+            int w = textWidth;
+            if (w == -1) {
+                textWidth = w = view.calcFontSize(MapFont.TINY, text).width;
+            }
+            return w;
+        }
+
+        @Override
+        public void onTick() {
+            int overflow = getTextWidth() - getWidth() + 1;
+            if (overflow > 0 && ++delayCtr > SCROLL_DELAY) {
+                int newScroll = Math.min(overflow, textScroll + SCROLL_STEP);
+                if (newScroll != textScroll) {
+                    textScroll = newScroll;
+                    invalidate();
+                } else if (++holdCtr > SCROLL_HOLD) {
+                    delayCtr = 0;
+                    holdCtr = 0;
+                    textScroll = 0;
+                    invalidate();
+                }
+            }
+        }
+
+        @Override
+        public void onDraw() {
+            if (text.isEmpty() || isChangingOrder()) {
+                return;
+            }
+
+            // Draw a filled green box
+            int width = Math.min(getWidth(), getTextWidth()+1);
+            int x = (getWidth() - width) / 2;
+            view.fillRectangle(x, 0, width, getHeight(), MapColorPalette.COLOR_GREEN);
+
+            // Draw the (scrolling) text inside
+            view.getView(x + 1, 1, width-2, getHeight()-1)
+                    .draw(MapFont.TINY, -textScroll, 0, MapColorPalette.getColor(255, 255, 255), text);
+        }
+    }
+
     public enum MenuItem {
         APPEARANCE(AppearanceMenu::new),
         POSITION(PositionMenu::new),
@@ -664,5 +747,4 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
             return menu;
         }
     }
-
 }
