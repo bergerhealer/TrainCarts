@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.ui.menus;
 
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.general.ModelStorageTypeSelectionDialog;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.general.NameAttachmentDialog;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.BasicModularConfiguration;
 import org.bukkit.inventory.ItemStack;
 
@@ -45,7 +46,7 @@ public class GeneralMenu extends MapWidgetMenu {
                 config.set("item", new ItemStack(getMaterial("LEGACY_WOOD")));
                 addAndSelectAttachment(config);
             }
-        }).setText("Add Attachment").setBounds(10, 10, 85, 14);
+        }).setText("Add Attachment").setBounds(10, 8, 85, 13);
 
         this.addWidget(new MapWidgetButton() {
             @Override
@@ -58,7 +59,26 @@ public class GeneralMenu extends MapWidgetMenu {
                     }
                 });
             }
-        }).setText("V").setBounds(96, 10, 12, 14);
+        }).setText("V").setBounds(96, 8, 12, 13);
+
+        this.addWidget(new MapWidgetButton() {
+            @Override
+            public void onActivate() {
+                int index = attachment.getParentAttachment().getChildAttachmentNodes().indexOf(attachment);
+                MapWidgetAttachmentNode addedNode;
+                addedNode = attachment.getParentAttachment().addAttachment(index+1, attachment.getConfig().clone());
+                attachment.getTree().setSelectedNode(addedNode);
+                sendStatusChange(MapEventPropagation.DOWNSTREAM, "reset");
+                GeneralMenu.this.close();
+            }
+        }).setText("Duplicate").setBounds(10, 23, 98, 13).setEnabled(attachment.getParentAttachment() != null);
+
+        this.addWidget(new MapWidgetButton() {
+            @Override
+            public void onActivate() {
+                GeneralMenu.this.addWidget(new NameAttachmentDialog(attachment));
+            }
+        }).setText("Name").setBounds(10, 38, 98, 13);
 
         this.addWidget(new MapWidgetButton() {
             @Override
@@ -66,7 +86,7 @@ public class GeneralMenu extends MapWidgetMenu {
                 attachment.setChangingOrder(true);
                 GeneralMenu.this.close();
             }
-        }).setText("Change order").setBounds(10, 27, 98, 14);
+        }).setText("Change Order").setBounds(10, 53, 98, 13);
 
         this.addWidget(new MapWidgetButton() {
             @Override
@@ -79,19 +99,7 @@ public class GeneralMenu extends MapWidgetMenu {
                     }
                 });
             }
-        }).setText("Delete").setBounds(10, 44, 98, 14).setEnabled(attachment.getParentAttachment() != null);
-
-        this.addWidget(new MapWidgetButton() {
-            @Override
-            public void onActivate() {
-                int index = attachment.getParentAttachment().getChildAttachmentNodes().indexOf(attachment);
-                MapWidgetAttachmentNode addedNode;
-                addedNode = attachment.getParentAttachment().addAttachment(index+1, attachment.getConfig().clone());
-                attachment.getTree().setSelectedNode(addedNode);
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "reset");
-                GeneralMenu.this.close();
-            }
-        }).setText("Duplicate").setBounds(10, 61, 98, 14).setEnabled(attachment.getParentAttachment() != null);
+        }).setText("Delete").setBounds(10, 68, 98, 13).setEnabled(attachment.getParentAttachment() != null);
 
         this.addWidget(new MapWidgetButton() {
             @Override
@@ -104,7 +112,7 @@ public class GeneralMenu extends MapWidgetMenu {
                     }
                 });
             }
-        }).setText("Save").setBounds(10, 78, 48, 14);
+        }).setText("Save").setBounds(10, 83, 48, 13);
 
         this.addWidget(new MapWidgetButton() {
             @Override
@@ -119,7 +127,7 @@ public class GeneralMenu extends MapWidgetMenu {
                     }
                 });
             }
-        }).setText("Load").setBounds(60, 78, 48, 14);
+        }).setText("Load").setBounds(60, 83, 48, 13);
     }
 
     public MapWidgetAttachmentNode getAttachment() {

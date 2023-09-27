@@ -57,6 +57,16 @@ public interface Attachment {
     }
 
     /**
+     * Gets a Set of unique names that identify this attachment. External processes
+     * can address this attachment by using one of these names.
+     *
+     * @return Set of attachment names
+     */
+    default Set<String> getNames() {
+        return getInternalState().names;
+    }
+
+    /**
      * Gets the plugin that provided and created this attachment instance. Same as the
      * plugin returned by {@link AttachmentType#getPlugin()} but is efficiently cached.<br>
      * <br>
@@ -640,5 +650,35 @@ public interface Attachment {
             result[len] = parent.getChildren().indexOf(this);
             return result;
         }
+    }
+
+    /**
+     * A type of attachment that produces some sort of effect. An effect can be
+     * sound, particles or some other thing triggered through packets.<br>
+     * <br>
+     * This attachment controls:
+     * <ul>
+     *     <li>Where the effect occurs</li>
+     *     <li>To who the effect is displayed</li>
+     *     <li>Effect details, such as the audio channel and sound name for sound effects</li>
+     * </ul>
+     * An external process or attachment controls:
+     * <ul>
+     *     <li>When the effect is played</li>
+     *     <li>How often the effect is played</li>
+     *     <li>The playback speed of the effect</li>
+     *     <li>The intensity of the effect - volume for sounds</li>
+     * </ul>
+     */
+    interface EffectAttachment extends Attachment {
+
+        /**
+         * Plays the effect. Is possibly called asynchronously, so the implementation must ensure the
+         * operation is thread-safe.
+         *
+         * @param speed Playback speed modifier of the effect, 1.0 is the default
+         * @param intensity Intensity of the effect between 0.0 and 1.0, where 1.0 is the default
+         */
+        void playEffect(double speed, double intensity);
     }
 }

@@ -3,8 +3,10 @@ package com.bergerkiller.bukkit.tc.attachments.api;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ForkJoinTask;
 import java.util.logging.Level;
 
@@ -55,6 +57,12 @@ public class AttachmentInternalState {
      * before onAttached() is called, returned by getConfig().
      */
     protected ConfigurationNode config = new ConfigurationNode();
+
+    /**
+     * Set of names assigned to this attachment. Can be used externally to target
+     * this attachment (and others with the same name)
+     */
+    public Set<String> names = Collections.emptySet();
 
     /**
      * Animations stored in the attachment, can be looked up by name
@@ -128,9 +136,13 @@ public class AttachmentInternalState {
      * @param attachmentType The type of attachment being loaded
      * @param config Configuration to load
      */
-    public void onLoad(Class<? extends AttachmentManager> managerType, AttachmentType attachmentType, ConfigurationNode config) {
+    public void onLoad(
+            final Class<? extends AttachmentManager> managerType,
+            final AttachmentType attachmentType,
+            final ConfigurationNode config
+    ) {
         // Reset prior to loading (new) animations
-        this.resetAnimations();
+        this.resetEffectsAndAnimations();
 
         // Migrations
         try {
@@ -146,6 +158,16 @@ public class AttachmentInternalState {
 
         // Position
         this.position.load(managerType, attachmentType, config.getNodeIfExists("position"));
+
+        // Effect names (for effect attachments)
+        List<String> effectNamesList;
+        if (config.contains("names") &&
+            !(effectNamesList = config.getList("names", String.class)).isEmpty()
+        ) {
+            this.names = new LinkedHashSet<>(effectNamesList);
+        } else {
+            this.names = Collections.emptySet();
+        }
 
         // Animation list
         if (config.isNode("animations")) {
@@ -166,13 +188,13 @@ public class AttachmentInternalState {
      * Resets the state to the defaults
      */
     public void reset() {
-        this.resetAnimations();
+        this.resetEffectsAndAnimations();
         this.last_transform = null;
         this.curr_transform = null;
         this.transformUpdateTask = null;
     }
 
-    private void resetAnimations() {
+    private void resetEffectsAndAnimations() {
         this.animations.clear();
         this.currentAnimation = null;
     }
