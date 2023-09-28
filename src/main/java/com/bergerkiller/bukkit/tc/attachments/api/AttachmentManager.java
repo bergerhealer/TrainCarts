@@ -83,4 +83,17 @@ public interface AttachmentManager {
 
         return attachment;
     }
+
+    /**
+     * Obtains an immutable snapshot of the {@link AttachmentNameLookup name lookup} of a
+     * subtree of attachments managed by this manager. Internally caches the result until
+     * this subtree changes. Identity comparison can be used to check whether this subtree
+     * changed since a previous invocation.<br>
+     * <br>
+     * Is multi-thread safe.
+     *
+     * @param root Root attachment of the subtree to get a name lookup for
+     * @return AttachmentNameLookup
+     */
+    AttachmentNameLookup getNameLookup(Attachment root);
 }

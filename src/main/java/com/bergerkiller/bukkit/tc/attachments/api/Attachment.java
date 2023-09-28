@@ -354,6 +354,20 @@ public interface Attachment {
     }
 
     /**
+     * Obtains an immutable snapshot of the {@link AttachmentNameLookup name lookup} of a
+     * subtree of attachments starting with this attachment. Internally caches the result until
+     * this subtree changes. Identity comparison can be used to check whether this subtree
+     * changed since a previous invocation.<br>
+     * <br>
+     * Is multi-thread safe.
+     *
+     * @return AttachmentNameLookup
+     */
+    default AttachmentNameLookup getNameLookup() {
+        return getManager().getNameLookup(this);
+    }
+
+    /**
      * Gets the parent controller of this controller, if one is available.
      * 
      * @return parent controller

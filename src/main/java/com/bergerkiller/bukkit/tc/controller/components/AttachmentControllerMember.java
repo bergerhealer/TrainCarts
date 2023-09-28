@@ -16,6 +16,7 @@ import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigListener;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigModelTracker;
@@ -71,6 +72,7 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
     private Attachment rootAttachment;
     private List<CartAttachmentSeat> seatAttachments = Collections.emptyList();
     private List<Attachment> flattenedAttachments = Collections.emptyList();
+    private final Map<Attachment, AttachmentNameLookup> cachedNameLookups = new IdentityHashMap<>();
     private Map<Entity, SeatHint> seatHints = new HashMap<Entity, SeatHint>();
     private final Map<Player, AttachmentViewer> viewers = new IdentityHashMap<>();
     private final Map<Entity, Vector> previousSeatPositions = new IdentityHashMap<>();
@@ -142,7 +144,7 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
         return this.hidden;
     }
 
-    public void setHidden(boolean hidden) {
+    public synchronized void setHidden(boolean hidden) {
         if (this.hidden == hidden) {
             return;
         }
@@ -242,6 +244,11 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
      */
     public List<Attachment> getAllAttachments() {
         return this.flattenedAttachments;
+    }
+
+    @Override
+    public synchronized AttachmentNameLookup getNameLookup(Attachment root) {
+        return cachedNameLookups.computeIfAbsent(root, AttachmentNameLookup::create);
     }
 
     /**
@@ -879,6 +886,7 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
             this.changeListenerNewSeatsAdded = false;
             this.flattenedAttachments = Collections.emptyList();
             this.seatAttachments = Collections.emptyList();
+            this.cachedNameLookups.clear();
         }
     }
 
@@ -895,6 +903,7 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
                 .filter(attachment -> attachment instanceof CartAttachmentSeat)
                 .map(attachment -> (CartAttachmentSeat) attachment)
                 .collect(StreamUtil.toUnmodifiableList());
+        this.cachedNameLookups.clear(); // Invalidate
     }
 
     @Override
@@ -1024,7 +1033,14 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
                 return;
             }
 
+            // Load the internal state first.
+            // Invalidate by-name cache if names changed
+            Collection<String> oldNames = curr.getNames();
             curr.getInternalState().onLoad(this.getClass(), type, config);
+            if (!oldNames.equals(curr.getNames())) {
+                this.cachedNameLookups.clear();
+            }
+
             curr.onLoad(config);
 
             // This was disabled because it breaks the animation preview method. Here, after reloading, it
