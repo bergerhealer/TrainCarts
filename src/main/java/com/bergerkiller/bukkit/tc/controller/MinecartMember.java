@@ -1281,10 +1281,26 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     /**
      * Sets the direction property of this minecart to the forward orientation
+     *
+     * @deprecated Does not take flipped state into account and shouldn't be used
      */
+    @Deprecated
     public void setDirectionForward() {
+        setDirectionForward(false);
+    }
+
+    /**
+     * Sets the direction property of this minecart to the forward orientation
+     *
+     * @param flipped Whether the forward-orientation is flipped 180 degrees compared to the
+     *                movement direction
+     */
+    public void setDirectionForward(boolean flipped) {
         this.directionFrom = this.directionTo = null;
         this.direction = Util.vecToFace(this.getOrientationForward(), true);
+        if (flipped) {
+            this.direction = this.direction.getOppositeFace();
+        }
     }
 
     /**

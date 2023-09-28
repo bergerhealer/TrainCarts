@@ -58,7 +58,7 @@ public class SpawnableMember implements TrainCarts.Provider {
      * @return spawned Minecart
      */
     public MinecartMember<?> spawn(Location spawnLoc) {
-        return MinecartMemberStore.spawn(this.getTrainCarts(), spawnLoc, getEntityType(), this.config);
+        return MinecartMemberStore.spawn(this.getTrainCarts(), spawnLoc, isFlipped(), getEntityType(), this.config);
     }
 
     /**
@@ -162,6 +162,24 @@ public class SpawnableMember implements TrainCarts.Provider {
             this.member = member;
             this.forward = forward;
             this.location = location;
+        }
+
+        /**
+         * Spawns the member at the location as declared in this SpawnLocation instance.
+         * If an initial speed is set, sets that as the initial velocity for the cart.
+         *
+         * @param initialSpeed
+         * @return Spawned Member
+         */
+        public MinecartMember<?> spawn(double initialSpeed) {
+            MinecartMember<?> spawnedMember = member.spawn(location);
+
+            // Set initial motion if specified
+            if (initialSpeed != 0.0) {
+                spawnedMember.getEntity().setVelocity(forward.clone().multiply(initialSpeed));
+            }
+
+            return spawnedMember;
         }
     }
 }

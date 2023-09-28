@@ -168,20 +168,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         groups.add(group);
 
         for (int i = locations.locations.size() - 1; i >= 0; i--) {
-            SpawnableMember.SpawnLocation loc = locations.locations.get(i);
-            Location spawnLoc = loc.location;
-            if (loc.member.isFlipped()) {
-                spawnLoc = Util.invertRotation(spawnLoc);
-            }
-
-            // Spawn the minecart
-            MinecartMember<?> member = loc.member.spawn(spawnLoc);
-            group.add(member);
-
-            // Set initial motion if specified
-            if (initialSpeed != 0.0) {
-                member.getEntity().setVelocity(loc.forward.clone().multiply(initialSpeed));
-            }
+            group.add(locations.locations.get(i).spawn(initialSpeed));
         }
 
         group.updateDirection();

@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.type.*;
 import com.bergerkiller.bukkit.tc.events.MemberSpawnEvent;
@@ -282,6 +283,10 @@ public abstract class MinecartMemberStore {
     }
 
     public static MinecartMember<?> spawn(TrainCarts plugin, Location at, EntityType type, ConfigurationNode config) {
+        return spawn(plugin, at, false, type, config);
+    }
+
+    public static MinecartMember<?> spawn(TrainCarts plugin, Location at, boolean flipped, EntityType type, ConfigurationNode config) {
         MinecartMember<?> controller = createController(plugin, type);
         if (controller == null) {
             throw new IllegalArgumentException("No suitable MinecartMember type for " + type);
@@ -293,8 +298,13 @@ public abstract class MinecartMemberStore {
             controller.getAttachments().setHidden(true);
         }
 
+        // Rotate spawn location 180 degrees if flipped
+        if (flipped) {
+            at = Util.invertRotation(at.clone());
+        }
+
         CommonEntity.spawn(type, at, controller, createNetworkController());
-        controller.setDirectionForward();
+        controller.setDirectionForward(flipped);
         controller.updateDirection();
         MinecartMember<?> result = MemberSpawnEvent.call(controller).getMember();
 
