@@ -11,6 +11,8 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.commands.argument.DirectionOrFormattedSpeed;
@@ -330,19 +332,31 @@ public class TrainCommands {
     @CommandDescription("Ejects the passengers of all the carts of a train, ignoring the allow player exit property")
     private void commandEject(
             final CommandSender sender,
-            final TrainProperties trainProperties
+            final TrainProperties trainProperties,
+            final @Flag(value="seat", suggestions="trainSeatAttachments") String seatName
     ) {
         if (!trainProperties.isLoaded()) {
             sender.sendMessage(ChatColor.RED + "Can not eject the train: it is not loaded");
             return;
         }
-
         MinecartGroup group = trainProperties.getHolder();
-        if (group.hasPassenger()) {
-            group.eject();
-            sender.sendMessage(ChatColor.GREEN + "Selected train ejected!");
+
+        if (seatName != null) {
+            // Query seat to eject by name
+            List<Attachment> seats = new ArrayList<>();
+            for (MinecartMember<?> member : group) {
+                seats.addAll(member.getAttachments().getRootAttachment()
+                        .getNameLookup().get(seatName, e -> e instanceof CartAttachmentSeat));
+            }
+            Commands.ejectSeats(sender, seatName, seats);
         } else {
-            sender.sendMessage(ChatColor.YELLOW + "Selected train has no passengers!");
+            // All seats of train
+            if (group.hasPassenger()) {
+                group.eject();
+                sender.sendMessage(ChatColor.GREEN + "Selected train ejected!");
+            } else {
+                sender.sendMessage(ChatColor.YELLOW + "Selected train has no passengers!");
+            }
         }
     }
 

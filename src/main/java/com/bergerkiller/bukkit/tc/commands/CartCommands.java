@@ -10,6 +10,8 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -301,7 +303,8 @@ public class CartCommands {
     @CommandDescription("Ejects the passengers of a cart, ignoring the allow player exit property")
     private void commandEject(
             final CommandSender sender,
-            final CartProperties cartProperties
+            final CartProperties cartProperties,
+            final @Flag(value="seat", suggestions="cartSeatAttachments") String seatName
     ) {
         MinecartMember<?> member = cartProperties.getHolder();
         if (member == null || member.isUnloaded()) {
@@ -309,11 +312,19 @@ public class CartCommands {
             return;
         }
 
-        if (member.getEntity().hasPassenger()) {
-            member.eject();
-            sender.sendMessage(ChatColor.GREEN + "Selected cart ejected!");
+        if (seatName != null) {
+            // Query seat to eject by name
+            List<Attachment> seats = member.getAttachments().getRootAttachment()
+                    .getNameLookup().get(seatName, e -> e instanceof CartAttachmentSeat);
+            Commands.ejectSeats(sender, seatName, seats);
         } else {
-            sender.sendMessage(ChatColor.YELLOW + "Selected cart has no passengers!");
+            // All seats of cart
+            if (member.getEntity().hasPassenger()) {
+                member.eject();
+                sender.sendMessage(ChatColor.GREEN + "Selected cart ejected!");
+            } else {
+                sender.sendMessage(ChatColor.YELLOW + "Selected cart has no passengers!");
+            }
         }
     }
 

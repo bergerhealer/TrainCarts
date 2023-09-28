@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.stream.Stream;
 
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.attachments.VirtualSpawnableObject;
 import com.bergerkiller.bukkit.tc.attachments.config.transform.ItemTransformType;
 import org.bukkit.Location;
@@ -734,6 +733,33 @@ public class CartAttachmentSeat extends CartAttachment {
     @Override
     public TrainCarts getPlugin() {
         return (TrainCarts) super.getPlugin();
+    }
+
+    /**
+     * Ejects the passenger from this seat, if there was a passenger in this seat.
+     * Assumes this is an automated process not initiated by the player.
+     *
+     * @return True if the seat was not empty and the passenger was ejected.
+     *         False if ejecting was cancelled or this seat had no passenger.
+     */
+    public boolean eject() {
+        return eject(false);
+    }
+
+    /**
+     * Ejects the passenger from this seat, if there was a passenger in this seat.
+     *
+     * @param isPlayerInitiated Whether this ejecting was done by the player itself, or
+     *                          is an automated (forced) process.
+     * @return True if the seat was not empty and the passenger was ejected.
+     *         False if ejecting was cancelled or this seat had no passenger.
+     */
+    public boolean eject(boolean isPlayerInitiated) {
+        if (this.getEntity() == null) {
+            return false;
+        } else {
+            return AttachmentControllerMember.handleSeatChange(getEntity(), this, null, isPlayerInitiated);
+        }
     }
 
     @Override
