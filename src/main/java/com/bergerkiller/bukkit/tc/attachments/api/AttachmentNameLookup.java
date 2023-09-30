@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.api;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -18,16 +19,20 @@ import java.util.function.Predicate;
  * also be created for subtrees of attachments.
  */
 public class AttachmentNameLookup {
+    public static final AttachmentNameLookup EMPTY = new AttachmentNameLookup(Collections.emptyMap());
     private final Map<String, List<Attachment>> attachments;
     private final List<String> names;
 
-    private AttachmentNameLookup(Attachment root) {
-        attachments = new HashMap<>();
-        fill(attachments, root);
+    private AttachmentNameLookup(Map<String, List<Attachment>> attachments) {
+        this.attachments = attachments;
+        this.names = attachments.isEmpty() ? Collections.emptyList()
+                : Collections.unmodifiableList(new ArrayList<>(attachments.keySet()));
+    }
+
+    private static void makeListsImmutable(Map<String, List<Attachment>> attachments) {
         for (Map.Entry<String, List<Attachment>> e : attachments.entrySet()) {
             e.setValue(Collections.unmodifiableList(e.getValue()));
         }
-        names = Collections.unmodifiableList(new ArrayList<>(attachments.keySet()));
     }
 
     private static void fill(Map<String, List<Attachment>> attachments, Attachment attachment) {
@@ -130,6 +135,68 @@ public class AttachmentNameLookup {
      * @return AttachmentNameLookup
      */
     public static AttachmentNameLookup create(Attachment root) {
-        return new AttachmentNameLookup(root);
+        Map<String, List<Attachment>> attachments = new HashMap<>();
+        fill(attachments, root);
+        makeListsImmutable(attachments);
+        return new AttachmentNameLookup(attachments);
+    }
+
+    /**
+     * Merges all the by-name lookups into a single by-name lookup view
+     *
+     * @param nameLookups Lookups to merge
+     * @return Merged view
+     */
+    public static AttachmentNameLookup merge(Collection<AttachmentNameLookup> nameLookups) {
+        // Go by all lookups and clone the map of the first one that is non-empty
+        Map<String, List<Attachment>> result = Collections.emptyMap();
+        AttachmentNameLookup first = null;
+        for (AttachmentNameLookup lookup : nameLookups) {
+            if (lookup.attachments.isEmpty()) {
+                continue;
+            }
+
+            if (first == null) {
+                first = lookup;
+            } else {
+                // Initialize a new modifiable hashmap
+                if (result.isEmpty()) {
+                    result = new HashMap<>(first.attachments);
+                    for (Map.Entry<String, List<Attachment>> e : result.entrySet()) {
+                        e.setValue(new ArrayList<>(e.getValue()));
+                    }
+                }
+                // Merge into it
+                for (Map.Entry<String, List<Attachment>> e : lookup.attachments.entrySet()) {
+                    result.computeIfAbsent(e.getKey(), n -> new ArrayList<>()).addAll(e.getValue());
+                }
+            }
+        }
+
+        // If only one non-empty element existed, just return that same one
+        // Otherwise, create a new immutable view of the results we've gathered
+        if (first != null && result.isEmpty()) {
+            return first;
+        } else {
+            makeListsImmutable(result);
+            return new AttachmentNameLookup(result);
+        }
+    }
+
+    /**
+     * Object that can produce an {@link AttachmentNameLookup}
+     */
+    public interface Holder {
+        /**
+         * Obtains an immutable snapshot of the {@link AttachmentNameLookup name lookup} of the root
+         * attachment(s). Internally caches the result until this subtree changes.
+         * Identity comparison can be used to check whether this subtree changed since a previous
+         * invocation.<br>
+         * <br>
+         * Is multi-thread safe.
+         *
+         * @return AttachmentNameLookup
+         */
+        AttachmentNameLookup getNameLookup();
     }
 }

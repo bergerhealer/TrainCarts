@@ -15,7 +15,6 @@ import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.chest.TrainChestCommands;
@@ -24,6 +23,7 @@ import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.commands.argument.DirectionOrFormattedSpeed;
 import com.bergerkiller.bukkit.tc.commands.parsers.AccelerationParser;
+import com.bergerkiller.bukkit.tc.commands.parsers.AttachmentByNameParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.DirectionOrFormattedSpeedParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.DirectionParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
@@ -32,7 +32,6 @@ import com.bergerkiller.bukkit.tc.commands.parsers.FormattedSpeedParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.TrainTargetingFlags;
 import com.bergerkiller.bukkit.tc.commands.suggestions.AnimationNameSuggestionProvider;
 import com.bergerkiller.bukkit.tc.commands.suggestions.AnimationSceneSuggestionProvider;
-import com.bergerkiller.bukkit.tc.commands.suggestions.AttachmentNameSuggestionProvider;
 import com.bergerkiller.bukkit.tc.commands.suggestions.TrainListFilterSuggestionProvider;
 import com.bergerkiller.bukkit.tc.commands.suggestions.TrainNameSuggestionProvider;
 import com.bergerkiller.bukkit.tc.commands.suggestions.TrainSpawnPatternSuggestionProvider;
@@ -206,6 +205,12 @@ public class Commands {
         cloud.parse(TrainNameFormat.class, p -> new TrainNameFormatParser());
         cloud.parse(DirectionOrFormattedSpeed.class, p -> new DirectionOrFormattedSpeedParser());
 
+        // Register attachment list arguments
+        cloud.parse("cartSeatAttachments", p -> AttachmentByNameParser.seats(false));
+        cloud.parse("trainSeatAttachments", p -> AttachmentByNameParser.seats(true));
+        cloud.parse("cartEffectAttachments", p -> AttachmentByNameParser.effects(false));
+        cloud.parse("trainEffectAttachments", p -> AttachmentByNameParser.effects(true));
+
         cloud.handleMessage(NoPermissionException.class, Localization.COMMAND_NOPERM.getName());
         cloud.handleMessage(NoTrainSelectedException.class, Localization.EDIT_NOSELECT.getName());
         cloud.handleMessage(SelectedTrainNotOwnedException.class, Localization.EDIT_NOTOWNED.getName());
@@ -238,10 +243,6 @@ public class Commands {
         // Register provider for train names a player can edit
         cloud.suggest("trainnames", new TrainNameSuggestionProvider());
         cloud.suggest("trainlistfilter", new TrainListFilterSuggestionProvider());
-
-        // Register provider for listing attachments by name that can be targeted
-        cloud.suggest("cartSeatAttachments", AttachmentNameSuggestionProvider.forSeats(false));
-        cloud.suggest("trainSeatAttachments", AttachmentNameSuggestionProvider.forSeats(true));
 
         // Register provider for spawn patterns
         cloud.suggest("trainspawnpattern", new TrainSpawnPatternSuggestionProvider());
@@ -652,31 +653,24 @@ public class Commands {
     }
 
     /**
-     * General logic for ejecting one or more seats. Handles the case of no seats being returned,
-     * or when no passengers are in the seats, sending the appropriate messages.
+     * General logic for ejecting one or more seats
      *
      * @param sender Sender
-     * @param seatName Name of the seat queried
      * @param seats List of seat attachments matched
      */
-    public static void ejectSeats(CommandSender sender, String seatName, List<Attachment> seats) {
-        if (seats.isEmpty()) {
-            sender.sendMessage(ChatColor.RED + "Seats by name '" + seatName + "' not found!");
+    public static void ejectSeats(CommandSender sender, List<CartAttachmentSeat> seats) {
+        boolean success = false;
+        boolean seatHadPassengers = false;
+        for (CartAttachmentSeat seat : seats) {
+            seatHadPassengers |= seat.getEntity() != null;
+            success |= seat.eject();
+        }
+        if (success) {
+            sender.sendMessage(ChatColor.GREEN + "Selected seats ejected!");
+        } else if (seatHadPassengers) {
+            sender.sendMessage(ChatColor.RED + "Selected seats could not be ejected (cancelled)!");
         } else {
-            boolean success = false;
-            boolean seatHadPassengers = false;
-            for (Attachment seatA : seats) {
-                CartAttachmentSeat seat = (CartAttachmentSeat) seatA;
-                seatHadPassengers |= seat.getEntity() != null;
-                success |= seat.eject();
-            }
-            if (success) {
-                sender.sendMessage(ChatColor.GREEN + "Selected seats ejected!");
-            } else if (seatHadPassengers) {
-                sender.sendMessage(ChatColor.RED + "Selected seats could not be ejected (cancelled)!");
-            } else {
-                sender.sendMessage(ChatColor.YELLOW + "Selected seats have no passengers!");
-            }
+            sender.sendMessage(ChatColor.YELLOW + "Selected seats have no passengers!");
         }
     }
 }

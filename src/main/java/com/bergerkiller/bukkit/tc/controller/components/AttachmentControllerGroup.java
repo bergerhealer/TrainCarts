@@ -1,9 +1,11 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
+import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModelStore;
 import com.bergerkiller.bukkit.tc.utils.SetCallbackCollector;
@@ -16,12 +18,15 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 /**
  * Manages the attachments updates of all the carts of a train
  */
-public class AttachmentControllerGroup implements SavedAttachmentModelStore.ModelUsing {
+public class AttachmentControllerGroup
+        implements SavedAttachmentModelStore.ModelUsing, AttachmentNameLookup.Holder
+{
     public static final int ABSOLUTE_UPDATE_INTERVAL = 200;
     public static final int MOVEMENT_UPDATE_INTERVAL = 3;
     private final MinecartGroup group;
     private int movementCounter;
     private int ticksSinceLocationSync = 0;
+    private SoftReference<CachedByNameLookup> cachedByNameLookup = new SoftReference<>(null);
 
     public AttachmentControllerGroup(MinecartGroup group) {
         this.group = group;
@@ -118,6 +123,15 @@ public class AttachmentControllerGroup implements SavedAttachmentModelStore.Mode
         }
     }
 
+    @Override
+    public AttachmentNameLookup getNameLookup() {
+        CachedByNameLookup cached = cachedByNameLookup.get();
+        if (cached == null || !cached.verifySame(group)) {
+            cachedByNameLookup = new SoftReference<>(cached = new CachedByNameLookup(group));
+        }
+        return cached.merged;
+    }
+
     private static class RespawnedMember {
         public final MinecartMember<?> member;
         private List<Player> players;
@@ -142,6 +156,33 @@ public class AttachmentControllerGroup implements SavedAttachmentModelStore.Mode
                     }
                 }
             }
+        }
+    }
+
+    private static class CachedByNameLookup {
+        public final List<AttachmentNameLookup> components;
+        public final AttachmentNameLookup merged;
+
+        public CachedByNameLookup(MinecartGroup group) {
+            this.components = new ArrayList<>(group.size());
+            for (MinecartMember<?> member : group) {
+                this.components.add(member.getAttachments().getNameLookup());
+            }
+            this.merged = AttachmentNameLookup.merge(this.components);
+        }
+
+        public boolean verifySame(MinecartGroup group) {
+            if (group.size() != components.size()) {
+                return false;
+            }
+
+            for (int i = 0; i < group.size(); i++) {
+                if (components.get(i) != group.get(i).getAttachments().getNameLookup()) {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }

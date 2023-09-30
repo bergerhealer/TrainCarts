@@ -23,6 +23,7 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigModelTracke
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigTracker;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModelStore;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.general.NameAttachmentDialog;
 import com.bergerkiller.bukkit.tc.utils.SetCallbackCollector;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -64,7 +65,10 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
  * into attachment controllers. It automatically updates the
  * controllers when this configuration changes.
  */
-public class AttachmentControllerMember implements AttachmentConfigListener, AttachmentManager, SavedAttachmentModelStore.ModelUsing {
+public class AttachmentControllerMember
+        implements AttachmentConfigListener, AttachmentManager,
+                   SavedAttachmentModelStore.ModelUsing, AttachmentNameLookup.Holder
+{
     private final MinecartMember<?> member;
     private final TrainCarts plugin;
     private AttachmentModel model; // Never changes!
@@ -244,6 +248,11 @@ public class AttachmentControllerMember implements AttachmentConfigListener, Att
      */
     public List<Attachment> getAllAttachments() {
         return this.flattenedAttachments;
+    }
+
+    @Override
+    public synchronized AttachmentNameLookup getNameLookup() {
+        return getNameLookup(getRootAttachment());
     }
 
     @Override

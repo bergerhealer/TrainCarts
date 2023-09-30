@@ -10,7 +10,6 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
-import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
@@ -304,7 +303,7 @@ public class CartCommands {
     private void commandEject(
             final CommandSender sender,
             final CartProperties cartProperties,
-            final @Flag(value="seat", suggestions="cartSeatAttachments") String seatName
+            final @Flag(value="seat", parserName="cartSeatAttachments") List<CartAttachmentSeat> seatAttachments
     ) {
         MinecartMember<?> member = cartProperties.getHolder();
         if (member == null || member.isUnloaded()) {
@@ -312,11 +311,9 @@ public class CartCommands {
             return;
         }
 
-        if (seatName != null) {
+        if (seatAttachments != null) {
             // Query seat to eject by name
-            List<Attachment> seats = member.getAttachments().getRootAttachment()
-                    .getNameLookup().get(seatName, e -> e instanceof CartAttachmentSeat);
-            Commands.ejectSeats(sender, seatName, seats);
+            Commands.ejectSeats(sender, seatAttachments);
         } else {
             // All seats of cart
             if (member.getEntity().hasPassenger()) {

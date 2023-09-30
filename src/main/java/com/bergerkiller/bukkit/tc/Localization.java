@@ -63,6 +63,8 @@ public class Localization extends LocalizationEnum {
     public static final Localization COMMAND_INPUT_DIRECTION_INVALID = new Localization("command.input.direction.invalid", ChatColor.RED + "Input value %0% is not a valid direction");
     public static final Localization COMMAND_INPUT_NAME_EMPTY = new Localization("command.input.name.empty", ChatColor.RED + "Input train name is empty!");
     public static final Localization COMMAND_INPUT_NAME_INVALID = new Localization("command.input.name.invalid", ChatColor.RED + "Input train name '%0%' contains invalid characters!");
+    public static final Localization COMMAND_INPUT_ATTACHMENTS_NO_SEATS = new Localization("command.input.attachments.noseats", ChatColor.RED + "No seats with name '%0%' found!");
+    public static final Localization COMMAND_INPUT_ATTACHMENTS_NO_EFFECTS = new Localization("command.input.attachments.noeffects", ChatColor.RED + "No effects with name '%0%' found!");
     public static final Localization COMMAND_INPUT_SELECTOR_INVALID = new Localization("command.input.selector.invalid", ChatColor.RED + "[TrainCarts] Selector condition contains syntax errors!");
     public static final Localization COMMAND_INPUT_SELECTOR_NOPERM = new Localization("command.input.selector.noperm", ChatColor.RED + "[TrainCarts] You do not have permission to use TrainCarts command selectors!");
     public static final Localization COMMAND_INPUT_SELECTOR_EXCEEDEDLIMIT = new Localization("command.input.selector.exceededlimit", ChatColor.RED + "[TrainCarts] Selector expression matched too many results!");
