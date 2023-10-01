@@ -62,7 +62,7 @@ public class MapWidgetBlockStateListTooltip extends MapWidget implements BlockDa
         // Block name
         drawText(y, this.block.getBlockName());
         y += ROW_HEIGHT + NAME_STATE_GAP;
-        for (Map.Entry<BlockState<?>, Comparable<?>> entry : this.block.getStates().entrySet()) {
+        for (Map.Entry<? extends BlockState<?>, Comparable<?>> entry : this.block.getStates().entrySet()) {
             String text = entry.getKey().name() + " = " + entry.getKey().valueName(entry.getValue());
             drawText(y, text);
             y += ROW_HEIGHT;
