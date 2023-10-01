@@ -90,120 +90,14 @@ public class PositionMenu extends MapWidgetMenu {
         }.setBounds(25, 0, menu.getSliderWidth(), 11))
                 .addLabel(0, 3, "Anchor");
 
-        builder.addRow(menu -> new MapWidgetNumberBox() { // Position X
-            @Override
-            public void onAttached() {
-                super.onAttached();
-                this.setInitialValue(menu.getPositionConfigValue("posX", 0.0));
-            }
+        builder.addPositionSlider("posX", "Pos.X", "Position X-Coordinate")
+                        .setSpacingAbove(3);
+        builder.addPositionSlider("posY", "Pos.Y", "Position Y-Coordinate");
+        builder.addPositionSlider("posZ", "Pos.Z", "Position Z-Coordinate");
 
-            @Override
-            public String getAcceptedPropertyName() {
-                return "Position X-Coordinate";
-            }
-
-            @Override
-            public void onValueChanged() {
-                menu.updatePositionConfigValue("posX", getValue());
-            }
-        }.setBounds(25, 0, menu.getSliderWidth(), 11))
-                .addLabel(0, 3, "Pos.X")
-                .setSpacingAbove(3);
-
-        builder.addRow(menu -> new MapWidgetNumberBox() { // Position Y
-            @Override
-            public void onAttached() {
-                super.onAttached();
-                this.setInitialValue(menu.getPositionConfigValue("posY", 0.0));
-            }
-
-            @Override
-            public String getAcceptedPropertyName() {
-                return "Position Y-Coordinate";
-            }
-
-            @Override
-            public void onValueChanged() {
-                menu.updatePositionConfigValue("posY", getValue());
-            }
-        }.setBounds(25, 0, menu.getSliderWidth(), 11))
-                .addLabel(0, 3, "Pos.Y");
-
-        builder.addRow(menu -> new MapWidgetNumberBox() { // Position Z
-            @Override
-            public void onAttached() {
-                super.onAttached();
-                this.setInitialValue(menu.getPositionConfigValue("posZ", 0.0));
-            }
-
-            @Override
-            public String getAcceptedPropertyName() {
-                return "Position Z-Coordinate";
-            }
-
-            @Override
-            public void onValueChanged() {
-                menu.updatePositionConfigValue("posZ", getValue());
-            }
-        }.setBounds(25, 0, menu.getSliderWidth(), 11))
-                .addLabel(0, 3, "Pos.Z");
-
-        builder.addRow(menu -> new RotationNumberBox() { // Rotation X (pitch)
-            @Override
-            public void onAttached() {
-                super.onAttached();
-                this.setInitialValue(menu.getPositionConfigValue("rotX", 0.0));
-            }
-
-            @Override
-            public String getAcceptedPropertyName() {
-                return "Rotation Pitch";
-            }
-
-            @Override
-            public void onValueChanged() {
-                menu.updatePositionConfigValue("rotX", getValue());
-            }
-        }.setBounds(25, 0, menu.getSliderWidth(), 11))
-                .addLabel(0, 3, "Pitch");
-
-        builder.addRow(menu -> new RotationNumberBox() { // Rotation Y (yaw)
-            @Override
-            public void onAttached() {
-                super.onAttached();
-                this.setInitialValue(menu.getPositionConfigValue("rotY", 0.0));
-            }
-
-            @Override
-            public String getAcceptedPropertyName() {
-                return "Rotation Yaw";
-            }
-
-            @Override
-            public void onValueChanged() {
-                menu.updatePositionConfigValue("rotY", getValue());
-            }
-        }.setBounds(25, 0, menu.getSliderWidth(), 11))
-                .addLabel(0, 3, "Yaw");
-
-        builder.addRow(menu -> new RotationNumberBox() { // Rotation Z (roll)
-            @Override
-            public void onAttached() {
-                super.onAttached();
-                this.setInitialValue(menu.getPositionConfigValue("rotZ", 0.0));
-            }
-
-            @Override
-            public String getAcceptedPropertyName() {
-                return "Rotation Roll";
-            }
-
-            @Override
-            public void onValueChanged() {
-                menu.updatePositionConfigValue("rotZ", getValue());
-            }
-        }.setBounds(25, 0, menu.getSliderWidth(), 11))
-                .addLabel(0, 3, "Roll");
+        builder.addRotationSlider("rotX", "Pitch", "Rotation Pitch");
+        builder.addRotationSlider("rotY", "Yaw", "Rotation Yaw");
+        builder.addRotationSlider("rotZ", "Roll", "Rotation Roll");
 
         // Let the attachment type insert/add additional rows
         this.getMenuAttachmentType().createPositionMenu(builder);
@@ -332,7 +226,7 @@ public class PositionMenu extends MapWidgetMenu {
         return this.attachment;
     }
 
-    private class RotationNumberBox extends MapWidgetNumberBox {
+    private static class RotationNumberBox extends MapWidgetNumberBox {
 
         public RotationNumberBox() {
             this.setIncrement(0.1);
@@ -498,6 +392,82 @@ public class PositionMenu extends MapWidgetMenu {
                     .addLabel(0, 15, "Size Y")
                     .addLabel(0, 27, "Size Z")
                     .setSpacingAbove(3);
+        }
+
+        /**
+         * Adds a position number slider, the same that is used for position x/y/z
+         *
+         * @param settingName Setting name, e.g. "posX"
+         * @param shortName Label next to slider, e.g. "Pos.X"
+         * @param propertyName Property name for the menu set command, e.g. "Position X Coordinate"
+         * @return added row
+         */
+        public Row addPositionSlider(String settingName, String shortName, String propertyName) {
+            return addPositionSlider(settingName, shortName, propertyName, Double.NaN);
+        }
+
+        /**
+         * Adds a position number slider, the same that is used for position x/y/z
+         *
+         * @param settingName Setting name, e.g. "posX"
+         * @param shortName Label next to slider, e.g. "Pos.X"
+         * @param propertyName Property name for the menu set command, e.g. "Position X Coordinate"
+         * @param defaultValue Default value that, if slider has this value, the property is removed.
+         *                     Use NaN to make it so this never happens.
+         * @return added row
+         */
+        public Row addPositionSlider(String settingName, String shortName, String propertyName, double defaultValue) {
+            return this.addRow(menu -> new MapWidgetNumberBox() {
+                        @Override
+                        public void onAttached() {
+                            super.onAttached();
+                            this.setInitialValue(menu.getPositionConfigValue(settingName, 0.0));
+                        }
+
+                        @Override
+                        public String getAcceptedPropertyName() {
+                            return propertyName;
+                        }
+
+                        @Override
+                        public void onValueChanged() {
+                            if (getValue() == defaultValue) {
+                                menu.updatePositionConfig(cfg -> cfg.remove(settingName));
+                            } else {
+                                menu.updatePositionConfigValue(settingName, getValue());
+                            }
+                        }
+            }.setBounds(25, 0, menu.getSliderWidth(), 11))
+             .addLabel(0, 3, shortName);
+        }
+
+        /**
+         * Adds a rotation number slider, the same that is used for rotation x/y/z
+         *
+         * @param settingName Setting name, e.g. "rotX"
+         * @param shortName Label next to slider, e.g. "Rot.X"
+         * @param propertyName Property name for the menu set command, e.g. "Rotation X Coordinate"
+         * @return added row
+         */
+        public Row addRotationSlider(String settingName, String shortName, String propertyName) {
+            return this.addRow(menu -> new RotationNumberBox() {
+                        @Override
+                        public void onAttached() {
+                            super.onAttached();
+                            this.setInitialValue(menu.getPositionConfigValue(settingName, 0.0));
+                        }
+
+                        @Override
+                        public String getAcceptedPropertyName() {
+                            return propertyName;
+                        }
+
+                        @Override
+                        public void onValueChanged() {
+                            menu.updatePositionConfigValue(settingName, getValue());
+                        }
+            }.setBounds(25, 0, menu.getSliderWidth(), 11))
+             .addLabel(0, 3, shortName);
         }
     }
 }

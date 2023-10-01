@@ -41,8 +41,10 @@ public class MovingSchematic extends VirtualSpawnableObject {
     private final Quaternion liveRot = new Quaternion();
     private IntVector3 blockBounds = new IntVector3(1, 1, 1);
     private final Vector scale = new Vector(1.0, 1.0, 1.0);
+    private final Vector origin = new Vector(0.0, 0.0, 0.0);
     private final Vector spacing = new Vector(0.0, 0.0, 0.0);
     private boolean hasSpacing = false;
+    private boolean hasOrigin = false;
     private float bbSize = 1.0F;
     private int[] cachedBlockEntityIds = null;
     private boolean hasKnownPosition = false;
@@ -81,9 +83,9 @@ public class MovingSchematic extends VirtualSpawnableObject {
             this.cachedBlockEntityIds = null;
             if (hasKnownPosition) {
                 if (hasSpacing) {
-                    block.setScaleAndSpacing(scale, spacing, bbSize);
+                    block.setScaleAndSpacing(scale, origin, spacing, bbSize);
                 } else {
-                    block.setScaleZeroSpacing(scale, bbSize);
+                    block.setScaleZeroSpacing(scale, origin, bbSize);
                 }
                 block.sync(liveRot, Collections.emptyList());
                 forAllViewers(v -> block.spawn(v, syncPos, new Vector(0.0, 0.0, 0.0)));
@@ -102,7 +104,24 @@ public class MovingSchematic extends VirtualSpawnableObject {
                                    (blockBounds.y + spacing.getY() * (blockBounds.y - 1)) * scale.getY(),
                                    (blockBounds.z + spacing.getZ() * (blockBounds.z - 1)) * scale.getZ());
         Vector position = livePos.clone().add(liveRot.upVector().multiply(0.5 * bbSize.getY()));
+        if (hasOrigin) {
+            Vector offset = origin.clone();
+            liveRot.transformPoint(offset);
+            position.subtract(offset);
+        }
         return new OrientedBoundingBox(position, bbSize, liveRot);
+    }
+
+    /**
+     * Gets a transformation matrix of the exact position of the origin point
+     *
+     * @return Origin point transform
+     */
+    public Matrix4x4 createOriginPointTransform() {
+        Matrix4x4 transform = Matrix4x4.translation(livePos);
+        transform.rotate(liveRot);
+        transform.translate(origin);
+        return transform;
     }
 
     public void resendMounts() {
@@ -147,18 +166,34 @@ public class MovingSchematic extends VirtualSpawnableObject {
         }
     }
 
+    public void setOrigin(Vector origin) {
+        if (this.origin.getX() != origin.getX() || this.origin.getY() != origin.getY() || this.origin.getZ() != origin.getZ()) {
+            MathUtil.setVector(this.origin, origin);
+            hasOrigin = (origin.getX() != 0.0 || origin.getY() != 0.0 || origin.getZ() != 0.0);
+            rescaleAllBlocks();
+        }
+    }
+
+    public boolean hasOrigin() {
+        return hasOrigin;
+    }
+
+    public Vector getOrigin() {
+        return origin;
+    }
+
     private void rescaleAllBlocks() {
         bbSize = (float) (VirtualDisplayEntity.BBOX_FACT * Util.absMaxAxis(blockBounds.toVector().add(spacing).multiply(scale)));
         if (hasKnownPosition) {
             Float bbSize = Float.valueOf(this.bbSize);
             if (hasSpacing) {
                 for (SingleSchematicBlock block : blocks) {
-                    block.setScaleAndSpacing(scale, spacing, bbSize);
+                    block.setScaleAndSpacing(scale, origin, spacing, bbSize);
                     block.sync(liveRot, getViewers());
                 }
             } else {
                 for (SingleSchematicBlock block : blocks) {
-                    block.setScaleZeroSpacing(scale, bbSize);
+                    block.setScaleZeroSpacing(scale, origin, bbSize);
                     block.sync(liveRot, getViewers());
                 }
             }
@@ -213,6 +248,12 @@ public class MovingSchematic extends VirtualSpawnableObject {
     public void updatePosition(Matrix4x4 transform) {
         MathUtil.setVector(livePos, transform.toVector());
         liveRot.setTo(transform.getRotation());
+
+        if (hasOrigin) {
+            Vector offset = origin.clone();
+            liveRot.transformPoint(offset);
+            livePos.add(offset);
+        }
 
         if (!hasKnownPosition) {
             hasKnownPosition = true;

@@ -61,13 +61,14 @@ class SingleSchematicBlock {
      * Refreshes the scale and spacing used when displaying this block
      *
      * @param scale New scale factor
+     * @param origin Origin position relative to which the root armorstand is placed
      * @param spacing New spacing
      * @param bb Bounding box size (width and height)
      */
-    public void setScaleAndSpacing(Vector scale, Vector spacing, Float bb) {
-        sx = scale.getX() * (x + (spacing.getX() * (x + 0.5)));
-        sy = scale.getY() * (y + (spacing.getY() * y));
-        sz = scale.getZ() * (z + (spacing.getZ() * (z + 0.5)));
+    public void setScaleAndSpacing(Vector scale, Vector origin, Vector spacing, Float bb) {
+        sx = scale.getX() * (x + (spacing.getX() * (x + 0.5))) - origin.getX();
+        sy = scale.getY() * (y + (spacing.getY() * y)) - origin.getY();
+        sz = scale.getZ() * (z + (spacing.getZ() * (z + 0.5))) - origin.getZ();
         metadata.set(DisplayHandle.DATA_SCALE, scale);
         metadata.set(DisplayHandle.DATA_WIDTH, bb);
         metadata.set(DisplayHandle.DATA_HEIGHT, bb);
@@ -77,12 +78,13 @@ class SingleSchematicBlock {
      * Refreshes the scale used when displaying this block. Assumes zero spacing (common)
      *
      * @param scale New scale factor
+     * @param origin Origin position relative to which the root armorstand is placed
      * @param bb Bounding box size (width and height)
      */
-    public void setScaleZeroSpacing(Vector scale, Float bb) {
-        sx = scale.getX() * x;
-        sy = scale.getY() * y;
-        sz = scale.getZ() * z;
+    public void setScaleZeroSpacing(Vector scale, Vector origin, Float bb) {
+        sx = scale.getX() * x - origin.getX();
+        sy = scale.getY() * y - origin.getY();
+        sz = scale.getZ() * z - origin.getZ();
         metadata.set(DisplayHandle.DATA_SCALE, scale);
         metadata.set(DisplayHandle.DATA_WIDTH, bb);
         metadata.set(DisplayHandle.DATA_HEIGHT, bb);

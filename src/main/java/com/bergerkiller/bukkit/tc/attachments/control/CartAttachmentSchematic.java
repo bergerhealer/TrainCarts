@@ -8,8 +8,11 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayBlockEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
@@ -20,6 +23,7 @@ import com.bergerkiller.bukkit.tc.attachments.particle.VirtualDisplayBoundingBox
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSizeBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -109,6 +113,11 @@ public class CartAttachmentSchematic extends CartAttachment {
 
         @Override
         public void createPositionMenu(PositionMenu.Builder builder) {
+            builder.addPositionSlider("originX", "Origin X", "Schematic Origin X-Coordinate", 0.0)
+                   .setSpacingAbove(3);
+            builder.addPositionSlider("originY", "Origin Y", "Schematic Origin Y-Coordinate", 0.0);
+            builder.addPositionSlider("originZ", "Origin Z", "Schematic Origin Z-Coordinate", 0.0);
+
             builder.addRow(menu -> (new MapWidgetSizeBox() {
                 @Override
                 public void onAttached() {
@@ -146,8 +155,7 @@ public class CartAttachmentSchematic extends CartAttachment {
 
     private WorldEditSchematicLoader.SchematicReader schematicReader;
     private MovingSchematic schematic;
-    private VirtualDisplayBoundingBox bbox;
-    private int bboxShowTicksShown = 0;
+    private DebugDisplay debug;
 
     @Override
     public void onAttached() {
@@ -182,6 +190,10 @@ public class CartAttachmentSchematic extends CartAttachment {
                 config.getOrDefault("position.spacingX", 0.0),
                 config.getOrDefault("position.spacingY", 0.0),
                 config.getOrDefault("position.spacingZ", 0.0)));
+        schematic.setOrigin(new Vector(
+                config.getOrDefault("position.originX", 0.0),
+                config.getOrDefault("position.originY", 0.0),
+                config.getOrDefault("position.originZ", 0.0)));
     }
 
     private void loadNextBlocks() {
@@ -226,52 +238,48 @@ public class CartAttachmentSchematic extends CartAttachment {
     @Override
     public void makeVisible(AttachmentViewer viewer) {
         schematic.spawn(viewer, new Vector(0.0, 0.0, 0.0));
-        if (bbox != null) {
-            bbox.spawn(viewer, new Vector(0.0, 0.0, 0.0));
+        if (debug != null) {
+            debug.makeVisible(viewer);
         }
     }
 
     @Override
     public void makeHidden(AttachmentViewer viewer) {
         schematic.destroy(viewer);
-        if (bbox != null) {
-            bbox.destroy(viewer);
+        if (debug != null) {
+            debug.makeHidden(viewer);
         }
     }
 
     @Override
     public void onFocus() {
-        if (bbox == null) {
-            bbox = new VirtualDisplayBoundingBox(getManager());
-            bbox.update(schematic.createBBOX());
-            bbox.setGlowColor(null);
+        if (debug == null) {
+            debug = new DebugDisplay();
             for (AttachmentViewer viewer : getAttachmentViewers()) {
-                bbox.spawn(viewer, new Vector(0.0, 0.0, 0.0));
+                debug.makeVisible(viewer);
             }
         } else {
-            bbox.setGlowColor(null); // Don't glow at t=0 so that resizing doesn't look ugly
+            debug.focus();
         }
-        bboxShowTicksShown = 0;
     }
 
     @Override
     public void onBlur() {
-        if (bbox != null) {
-            bbox.setGlowColor(null);
-            bboxShowTicksShown = 20;
+        if (debug != null) {
+            debug.blur();
         }
     }
 
     @Override
     public void onTick() {
         loadNextBlocks();
-        if (bbox != null) {
-            ++bboxShowTicksShown;
-            if (bboxShowTicksShown == 2) {
-                bbox.setGlowColor(HelperMethods.getFocusGlowColor(this));
-            } else if (bboxShowTicksShown >= 40) {
-                bbox.destroyForAll();
-                bbox = null;
+        if (debug != null) {
+            debug.ticksShown++;
+            if (debug.ticksShown == 2) {
+                debug.setGlowColor(HelperMethods.getFocusGlowColor(this));
+            } else if (debug.ticksShown >= 40) {
+                debug.hideForAll();
+                debug = null;
             }
         }
     }
@@ -279,16 +287,99 @@ public class CartAttachmentSchematic extends CartAttachment {
     @Override
     public void onTransformChanged(Matrix4x4 transform) {
         schematic.updatePosition(transform);
-        if (bbox != null) {
-            bbox.update(schematic.createBBOX());
+        if (debug != null) {
+            debug.updatePosition();
         }
     }
 
     @Override
     public void onMove(boolean absolute) {
         schematic.syncPosition(absolute);
-        if (bbox != null) {
+        if (debug != null) {
+            debug.syncPosition(absolute);
+        }
+    }
+
+    private class DebugDisplay {
+        private VirtualDisplayBoundingBox bbox;
+        private VirtualDisplayBlockEntity originPoint;
+        private int ticksShown = 0;
+
+        public DebugDisplay() {
+            bbox = new VirtualDisplayBoundingBox(getManager());
+            bbox.update(schematic.createBBOX());
+            bbox.setGlowColor(null);
+            if (schematic.hasOrigin()) {
+                initOriginPoint();
+            }
+        }
+
+        public void makeVisible(AttachmentViewer viewer) {
+            bbox.spawn(viewer, new Vector(0.0, 0.0, 0.0));
+            if (originPoint != null) {
+                originPoint.spawn(viewer, new Vector(0.0, 0.0, 0.0));
+            }
+        }
+
+        public void makeHidden(AttachmentViewer viewer) {
+            bbox.destroy(viewer);
+            if (originPoint != null) {
+                originPoint.destroy(viewer);
+            }
+        }
+
+        public void hideForAll() {
+            bbox.destroyForAll();
+            if (originPoint != null) {
+                originPoint.destroyForAll();
+            }
+        }
+
+        public void updatePosition() {
+            bbox.update(schematic.createBBOX());
+            if (schematic.hasOrigin()) {
+                if (originPoint == null) {
+                    initOriginPoint();
+                    for (AttachmentViewer viewer : getAttachmentViewers()) {
+                        originPoint.spawn(viewer, new Vector(0.0, 0.0, 0.0));
+                    }
+                } else {
+                    originPoint.updatePosition(schematic.createOriginPointTransform());
+                }
+            } else if (originPoint != null) {
+                originPoint.destroyForAll();
+                originPoint = null;
+            }
+        }
+
+        private void initOriginPoint() {
+            originPoint = new VirtualDisplayBlockEntity(getManager());
+            originPoint.setBlockData(BlockData.fromMaterial(MaterialUtil.getMaterial("REDSTONE_BLOCK")));
+            originPoint.setScale(new Vector(0.1, 0.1, 0.1));
+            originPoint.setGlowColor(ChatColor.RED);
+            originPoint.updatePosition(schematic.createOriginPointTransform());
+            originPoint.syncPosition(true);
+        }
+
+        public void syncPosition(boolean absolute) {
             bbox.syncPosition(absolute);
+            if (originPoint != null) {
+                originPoint.syncPosition(absolute);
+            }
+        }
+
+        public void focus() {
+            setGlowColor(null); // Don't glow at t=0 so that resizing doesn't look ugly
+            ticksShown = 0;
+        }
+
+        public void blur() {
+            setGlowColor(null);
+            ticksShown = 20;
+        }
+
+        public void setGlowColor(ChatColor color) {
+            bbox.setGlowColor(color);
         }
     }
 }
