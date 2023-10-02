@@ -1,14 +1,21 @@
 package com.bergerkiller.bukkit.tc.commands;
 
+import cloud.commandframework.ArgumentDescription;
+import cloud.commandframework.CommandManager;
+import cloud.commandframework.annotations.InitializationMethod;
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.cloud.parsers.SoundEffectArgument;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.internal.CommonPlugin;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
+import com.bergerkiller.bukkit.common.resources.ResourceKey;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
@@ -198,6 +205,24 @@ public class GlobalCommands {
         future.thenAccept(count -> {
             sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");  
         });
+    }
+
+    @InitializationMethod
+    private void initTrainMenuSetSoundCommand(CommandManager<CommandSender> manager) {
+        if (!Common.hasCapability("Common:Sound:CloudParser")) {
+            return;
+        }
+
+        manager.command(manager.commandBuilder("train").literal("menu")
+                .literal("sound", ArgumentDescription.of("Sets a sound effect in the TrainCarts editor map"))
+                .argument(SoundEffectArgument.of("path"))
+                .permission(Permission.COMMAND_GIVE_EDITOR.cloudPermission())
+                .senderType(Player.class)
+                .handler(context -> {
+                    Player sender = (Player) context.getSender();
+                    ResourceKey<SoundEffect> effect = context.get("path");
+                    commandMenuSet(sender, SetValueTarget.Operation.SET, effect.getPath());
+                }));
     }
 
     @CommandRequiresPermission(Permission.COMMAND_GIVE_EDITOR)
