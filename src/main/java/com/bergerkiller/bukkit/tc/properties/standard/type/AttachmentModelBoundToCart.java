@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentEntity;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.EntityType;
 
 import java.util.Arrays;
@@ -98,11 +99,24 @@ public class AttachmentModelBoundToCart extends AttachmentModel {
 
                             // Store the (changed) configuration node in the model field
                             // From now on, the properties are no longer default
-                            ConfigurationNode currCartConfig = properties.getConfig();
-                            if (!currCartConfig.isNode("model")) {
-                                currCartConfig.set("model", currConfig);
-                                defaultConfig = null;
-                                defaultConfigEntityType = null;
+                            // This must be done in a 1-tick scheduled task, not right away,
+                            // as re-parenting the YAML in the middle of other ongoing operations
+                            // can seriously corrupt it.
+                            if (!properties.getConfig().isNode("model")) {
+                                Runnable assignTask = () -> {
+                                    ConfigurationNode currCartConfig = properties.getConfig();
+                                    if (!currCartConfig.isNode("model")) {
+                                        currCartConfig.set("model", currConfig);
+                                        defaultConfig = null;
+                                        defaultConfigEntityType = null;
+                                    }
+                                };
+                                if (properties.getTrainCarts().isEnabled()) {
+                                    Bukkit.getScheduler().scheduleSyncDelayedTask(properties.getTrainCarts(), assignTask);
+                                } else {
+                                    // Right away just to make sure this persists
+                                    assignTask.run();
+                                }
                             }
                         }
                     });
