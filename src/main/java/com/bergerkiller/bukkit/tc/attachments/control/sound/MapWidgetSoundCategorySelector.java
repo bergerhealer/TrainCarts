@@ -16,7 +16,7 @@ import java.util.Map;
 /**
  * Selects a sound category from one of a select channels minecraft supports.
  */
-abstract class MapWidgetSoundCategorySelector extends MapWidget {
+abstract class MapWidgetSoundCategorySelector extends MapWidgetSoundElement {
     private SoundCategory category = SoundCategory.MASTER;
     private final ArrowWidget upArrow = new ArrowWidget(-90);
     private final ArrowWidget downArrow = new ArrowWidget(90);
@@ -24,7 +24,6 @@ abstract class MapWidgetSoundCategorySelector extends MapWidget {
 
     public MapWidgetSoundCategorySelector() {
         this.setSize(11, 11);
-        this.setFocusable(true);
         this.tooltip.setText(category.getId());
     }
 
@@ -50,6 +49,7 @@ abstract class MapWidgetSoundCategorySelector extends MapWidget {
 
     @Override
     public void onDraw() {
+        super.onDraw();
         view.draw(category.getIcon(isFocused()), 0, 0);
     }
 

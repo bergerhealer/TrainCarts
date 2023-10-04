@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.attachments.control.sound;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
-import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
 import com.bergerkiller.bukkit.common.resources.ResourceKey;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
@@ -16,7 +15,7 @@ import java.util.Locale;
  * Displays a sound name, and if too long to fit, scrolls it right to left
  * to show all of it. Allows changing it by entering it into an anvil menu.
  */
-abstract class MapWidgetSoundNameSelector extends MapWidget implements SetValueTarget {
+abstract class MapWidgetSoundNameSelector extends MapWidgetSoundElement implements SetValueTarget {
     private static final int SCROLL_DELAY = 20;
     private static final int SCROLL_HOLD = 80;
     private static final int SCROLL_STEP = 5;
@@ -36,7 +35,6 @@ abstract class MapWidgetSoundNameSelector extends MapWidget implements SetValueT
 
     public MapWidgetSoundNameSelector() {
         this.setSize(60, 11);
-        this.setFocusable(true);
         this.setRetainChildWidgets(true);
     }
 
@@ -61,28 +59,7 @@ abstract class MapWidgetSoundNameSelector extends MapWidget implements SetValueT
 
     @Override
     public void onDraw() {
-        // Draw the background of this widget, with different colors if selected
-        {
-            byte edgeColor = isFocused() ? MapColorPalette.getColor(25, 25, 25)
-                                         : MapColorPalette.COLOR_BLACK;
-            byte innerColorTop = isFocused() ? MapColorPalette.getColor(78, 185, 180)
-                                             : MapColorPalette.getColor(44, 109, 186);
-            byte innerColorBottom = isFocused() ? MapColorPalette.getColor(100, 151, 213)
-                                                : MapColorPalette.getColor(36, 89, 152);
-
-            view.fillRectangle(2, 2, getWidth() - 3, getHeight() - 3, innerColorBottom);
-            view.drawPixel(2, 2, innerColorTop);
-            view.drawLine(2, 1, getWidth() - 3, 1, innerColorTop);
-            view.drawLine(1, 2, 1, getHeight() - 3, innerColorTop);
-            view.drawLine(1, 0, getWidth()-2, 0, edgeColor);
-            view.drawLine(1, getHeight()-1, getWidth()-2, getHeight()-1, edgeColor);
-            view.drawLine(0, 1, 0, getHeight() - 2, edgeColor);
-            view.drawLine(getWidth() - 1, 1, getWidth() - 1, getHeight() - 2, edgeColor);
-            view.drawPixel(1, 1, edgeColor);
-            view.drawPixel(1, getHeight() - 2, edgeColor);
-            view.drawPixel(getWidth() - 2, getHeight() - 2, edgeColor);
-            view.drawPixel(getWidth() - 2, 1, edgeColor);
-        }
+        super.onDraw();
 
         // Draw the text itself - namespace in red, path in white
         MapCanvas textArea = view.getView(2, 2, getWidth() - 4, getHeight() - 3);
