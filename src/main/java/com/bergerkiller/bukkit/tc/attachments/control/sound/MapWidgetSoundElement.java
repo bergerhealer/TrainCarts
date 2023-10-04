@@ -18,12 +18,20 @@ public class MapWidgetSoundElement extends MapWidget {
     public void onDraw() {
         // Draw the background of this widget, with different colors if selected
         {
-            byte edgeColor = isFocused() ? MapColorPalette.getColor(25, 25, 25)
-                                         : MapColorPalette.COLOR_BLACK;
-            byte innerColorTop = isFocused() ? MapColorPalette.getColor(78, 185, 180)
-                                             : MapColorPalette.getColor(44, 109, 186);
-            byte innerColorBottom = isFocused() ? MapColorPalette.getColor(100, 151, 213)
-                                                : MapColorPalette.getColor(36, 89, 152);
+            byte edgeColor, innerColorTop, innerColorBottom;
+            if (isActivated()) {
+                edgeColor = MapColorPalette.COLOR_BLACK;
+                innerColorTop = MapColorPalette.getColor(36, 89, 152);
+                innerColorBottom = MapColorPalette.getColor(44, 109, 186);
+            } else if (isFocused()) {
+                edgeColor = MapColorPalette.getColor(25, 25, 25);
+                innerColorTop = MapColorPalette.getColor(78, 185, 180);
+                innerColorBottom = MapColorPalette.getColor(100, 151, 213);
+            } else {
+                edgeColor = MapColorPalette.COLOR_BLACK;
+                innerColorTop = MapColorPalette.getColor(44, 109, 186);
+                innerColorBottom = MapColorPalette.getColor(36, 89, 152);
+            }
 
             view.fillRectangle(2, 2, getWidth() - 3, getHeight() - 3, innerColorBottom);
             view.drawPixel(2, 2, innerColorTop);

@@ -63,8 +63,6 @@ abstract class MapWidgetSoundCategorySelector extends MapWidgetSoundElement {
         removeWidget(upArrow);
         removeWidget(downArrow);
         updateArrowsEnabled();
-        upArrow.stopFocus();
-        downArrow.stopFocus();
         addWidget(upArrow.setPosition(0, -upArrow.getHeight() - 1));
         addWidget(downArrow.setPosition(0, getHeight() + 1));
     }
@@ -103,20 +101,24 @@ abstract class MapWidgetSoundCategorySelector extends MapWidgetSoundElement {
                     setCategory(category.getPrev());
                     onCategoryChanged(getCategory());
                 }
+                return;
             } else if (event.getKey() == MapPlayerInput.Key.DOWN) {
                 downArrow.sendFocus();
                 if (category.hasNext()) {
                     setCategory(category.getNext());
                     onCategoryChanged(getCategory());
                 }
-            } else {
-                upArrow.stopFocus();
-                downArrow.stopFocus();
+                return;
+            } else if (event.getKey() == MapPlayerInput.Key.ENTER) {
                 this.deactivate();
+                return;
+            } else if (event.getKey() == MapPlayerInput.Key.LEFT || event.getKey() == MapPlayerInput.Key.RIGHT) {
+                // De-activate and focus this widget instead, then run the usual left/right navigation logic
+                this.focus();
             }
-        } else {
-            super.onKeyPressed(event);
         }
+
+        super.onKeyPressed(event);
     }
 
     @Override

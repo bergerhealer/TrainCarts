@@ -43,6 +43,12 @@ public class MapWidgetArrow extends MapWidget {
         return this;
     }
 
+    @Override
+    public void onDetached() {
+        super.onDetached();
+        stopFocus();
+    }
+
     /**
      * De-activates the focused sprite, showing the default sprite again
      */
