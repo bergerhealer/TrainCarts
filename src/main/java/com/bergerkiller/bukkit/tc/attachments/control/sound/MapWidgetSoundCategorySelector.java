@@ -8,6 +8,8 @@ import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetArrow;
+import org.bukkit.block.BlockFace;
 
 import java.util.HashMap;
 import java.util.Locale;
@@ -18,8 +20,8 @@ import java.util.Map;
  */
 abstract class MapWidgetSoundCategorySelector extends MapWidgetSoundElement {
     private SoundCategory category = SoundCategory.MASTER;
-    private final ArrowWidget upArrow = new ArrowWidget(-90);
-    private final ArrowWidget downArrow = new ArrowWidget(90);
+    private final MapWidgetArrow upArrow = new MapWidgetArrow(BlockFace.SOUTH);
+    private final MapWidgetArrow downArrow = new MapWidgetArrow(BlockFace.NORTH);
     private final ToolTipWidget tooltip = new ToolTipWidget();
 
     public MapWidgetSoundCategorySelector() {
@@ -61,8 +63,8 @@ abstract class MapWidgetSoundCategorySelector extends MapWidgetSoundElement {
         removeWidget(upArrow);
         removeWidget(downArrow);
         updateArrowsEnabled();
-        upArrow.setPressed(false);
-        downArrow.setPressed(false);
+        upArrow.stopFocus();
+        downArrow.stopFocus();
         addWidget(upArrow.setPosition(0, -upArrow.getHeight() - 1));
         addWidget(downArrow.setPosition(0, getHeight() + 1));
     }
@@ -96,20 +98,20 @@ abstract class MapWidgetSoundCategorySelector extends MapWidgetSoundElement {
     public void onKeyPressed(MapKeyEvent event) {
         if (this.isActivated()) {
             if (event.getKey() == MapPlayerInput.Key.UP) {
-                upArrow.setPressed(true);
+                upArrow.sendFocus();
                 if (category.hasPrev()) {
                     setCategory(category.getPrev());
                     onCategoryChanged(getCategory());
                 }
             } else if (event.getKey() == MapPlayerInput.Key.DOWN) {
-                downArrow.setPressed(true);
+                downArrow.sendFocus();
                 if (category.hasNext()) {
                     setCategory(category.getNext());
                     onCategoryChanged(getCategory());
                 }
             } else {
-                upArrow.setPressed(false);
-                downArrow.setPressed(false);
+                upArrow.stopFocus();
+                downArrow.stopFocus();
                 this.deactivate();
             }
         } else {
@@ -121,9 +123,9 @@ abstract class MapWidgetSoundCategorySelector extends MapWidgetSoundElement {
     public void onKeyReleased(MapKeyEvent event) {
         if (this.isActivated()) {
             if (event.getKey() == MapPlayerInput.Key.UP) {
-                upArrow.setPressed(false);
+                upArrow.stopFocus();
             } else if (event.getKey() == MapPlayerInput.Key.DOWN) {
-                downArrow.setPressed(false);
+                downArrow.stopFocus();
             } else {
                 super.onKeyReleased(event);
             }
@@ -174,44 +176,6 @@ abstract class MapWidgetSoundCategorySelector extends MapWidgetSoundElement {
             int tw = (int) dim.getWidth() + 2;
             int th = (int) dim.getHeight() + 1;
             this.setBounds(getX() + getWidth() - tw, getY(), tw, th);
-        }
-    }
-
-    /**
-     * The up and down arrow to change category, shown when activated
-     */
-    private static class ArrowWidget extends MapWidget {
-        private final MapTexture icon_disabled;
-        private final MapTexture icon_enabled;
-        private final MapTexture icon_pressed;
-        private boolean pressed = false;
-
-        public ArrowWidget(int angle) {
-            MapTexture icon = MapTexture.loadPluginResource(TrainCarts.plugin,
-                    "com/bergerkiller/bukkit/tc/textures/attachments/arrow.png");
-            icon_disabled = MapTexture.rotate(icon.getView(0, 0, 6, 11), angle);
-            icon_enabled = MapTexture.rotate(icon.getView(6, 0, 6, 11), angle);
-            icon_pressed = MapTexture.rotate(icon.getView(12, 0, 6, 11), angle);
-            this.setSize(icon_enabled.getWidth(), icon_enabled.getHeight());
-        }
-
-        public ArrowWidget setPressed(boolean pressed) {
-            if (this.pressed != pressed) {
-                this.pressed = pressed;
-                invalidate();
-            }
-            return this;
-        }
-
-        @Override
-        public void onDraw() {
-            if (!this.isEnabled()) {
-                view.draw(icon_disabled, 0, 0);
-            } else if (pressed) {
-                view.draw(icon_pressed, 0, 0);
-            } else {
-                view.draw(icon_enabled, 0, 0);
-            }
         }
     }
 

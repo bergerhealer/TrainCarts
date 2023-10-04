@@ -24,9 +24,9 @@ public class MapWidgetArrow extends MapWidget {
         this.setDirection(direction);
     }
 
-    public void setDirection(BlockFace direction) {
+    public MapWidgetArrow setDirection(BlockFace direction) {
         if (this.direction == direction) {
-            return;
+            return this;
         }
         this.direction = direction;
 
@@ -40,8 +40,12 @@ public class MapWidgetArrow extends MapWidget {
         this.tex_enabled = MapTexture.rotate(in_text_enabled, FaceUtil.faceToYaw(direction));
         this.tex_focused = MapTexture.rotate(in_text_focused, FaceUtil.faceToYaw(direction));
         this.setSize(this.tex_enabled.getWidth(), this.tex_enabled.getHeight());
+        return this;
     }
 
+    /**
+     * De-activates the focused sprite, showing the default sprite again
+     */
     public void stopFocus() {
         if (this.focus_ticks > 0) {
             this.focus_ticks = 0;
@@ -49,6 +53,10 @@ public class MapWidgetArrow extends MapWidget {
         }
     }
 
+    /**
+     * Activates the focused sprite for at most 20 ticks (one second).
+     * When {@link #stopFocus()} is called focus is removed immediately.
+     */
     public void sendFocus() {
         if (this.focus_ticks == 0) {
             this.invalidate();
