@@ -103,6 +103,7 @@ public abstract class MapWidgetSoundNumberBox extends MapWidgetSoundElement impl
     public void onDeactivate() {
         super.onDeactivate();
 
+        this._holdEnterProgress = 0;
         removeWidget(leftArrow);
         removeWidget(rightArrow);
     }

@@ -57,9 +57,36 @@ public abstract class MapWidgetSoundSelector extends MapWidget {
     public MapWidgetSoundSelector setMode(Mode mode) {
         if (this.mode != mode) {
             this.mode = mode;
+
+            // This is a bugfix for a bug in BKCommonLib, can be removed and when
+            // BKCommonLib 1.20.2-v1 or later is a hard-depend
+            //
+            // BROKEN: this.setVisible(mode != Mode.NONE);
+            {
+                boolean visible = (mode != Mode.NONE);
+                if (visible != isVisible()) {
+                    setVisible(visible);
+                    for (MapWidget child1 : getWidgets()) {
+                        child1.invalidate();
+                        for (MapWidget child2 : child1.getWidgets()) {
+                            child2.invalidate();
+                        }
+                    }
+                }
+            }
+
             this.invalidate();
         }
         return this;
+    }
+
+    public MapWidgetSoundSelector setSoundPath(String soundPath) {
+        ResourceKey<SoundEffect> key = (soundPath == null) ? null : SoundEffect.fromName(soundPath);
+        return setSound(key);
+    }
+
+    public String getSoundPath() {
+        return name.getSound() == null ? null : name.getSound().getPath();
     }
 
     public MapWidgetSoundSelector setSound(ResourceKey<SoundEffect> sound) {
