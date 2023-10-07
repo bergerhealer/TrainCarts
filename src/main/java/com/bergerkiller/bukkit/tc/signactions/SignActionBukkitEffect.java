@@ -12,7 +12,12 @@ import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import org.bukkit.entity.Player;
 
-public class SignActionEffect extends SignAction {
+/**
+ * Old effect sign that is specifically made to play Bukkit Sound and Effect enum effects.
+ * It's kind of awful. But will stay around until we've made all sounds and particles available
+ * in the attachments system.
+ */
+public class SignActionBukkitEffect extends SignAction {
 
     public static Effect parse(SignActionEvent event) {
         Effect eff = new Effect();
@@ -33,7 +38,7 @@ public class SignActionEffect extends SignAction {
 
     @Override
     public boolean match(SignActionEvent info) {
-        return info.isType("effect", "meffect", "peffect");
+        return info.isType("beffect", "meffect", "peffect");
     }
 
     @Override
@@ -95,15 +100,15 @@ public class SignActionEffect extends SignAction {
 
         SignBuildOptions opt = SignBuildOptions.create()
                 .setPermission(Permission.BUILD_EFFECT)
-                .setName(event.isCartSign() ? "cart effect player" : "train effect player")
+                .setName(event.isCartSign() ? "cart Bukkit effect player" : "train Bukkit effect player")
                 .setTraincartsWIKIHelp("TrainCarts/Signs/Effect");
 
         if (event.isTrainSign()) {
-            opt.setDescription("play an effect in all minecarts of the train" + app);
+            opt.setDescription("play a Bukkit effect in all minecarts of the train" + app);
         } else if (event.isCartSign()) {
-            opt.setDescription("play an effect in the minecart" + app);
+            opt.setDescription("play a Bukkit effect in the minecart" + app);
         } else if (event.isRCSign()) {
-            opt.setDescription("play an effect in all minecarts of the train" + app);
+            opt.setDescription("play a Bukkit effect in all minecarts of the train" + app);
         }
         return opt.handle(event);
     }
