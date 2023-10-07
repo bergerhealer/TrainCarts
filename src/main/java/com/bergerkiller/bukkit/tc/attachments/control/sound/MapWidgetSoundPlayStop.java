@@ -1,8 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.sound;
 
-import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
-import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 
 import java.util.ArrayList;
@@ -17,6 +15,7 @@ import java.util.List;
 public abstract class MapWidgetSoundPlayStop extends MapWidget {
     private final PlayButton play = new PlayButton();
     private final StopButton stop = new StopButton();
+    private boolean sentPlay = false;
 
     public abstract void onPlay();
     public abstract void onStop();
@@ -27,7 +26,26 @@ public abstract class MapWidgetSoundPlayStop extends MapWidget {
         addWidget(stop.setBounds(play.getWidth() + 1, 0, 11, 11));
     }
 
-    private class PlayButton extends PressableButton {
+    @Override
+    public void onDetached() {
+        if (sentPlay) {
+            sentPlay = false;
+            onStop();
+        }
+        super.onDetached();
+    }
+
+    private void sendPlay() {
+        sentPlay = true;
+        onPlay();
+    }
+
+    private void sendStop() {
+        sentPlay = false;
+        onStop();
+    }
+
+    private class PlayButton extends MapWidgetSoundButton {
         private static final int AUTOPLAY_START_DELAY = 5;
         private static final int AUTOPLAY_ACTIVATION_TIME = 20;
         private int autoPlayCtr = 0;
@@ -77,21 +95,21 @@ public abstract class MapWidgetSoundPlayStop extends MapWidget {
         }
 
         @Override
-        public void onFirstTimeActivation() {
+        public void onClick() {
             if (autoPlayActive) {
                 autoPlayInterval = ticksSinceLastPress;
                 resetPlayCounters();
             }
-            onPlay();
+            sendPlay();
         }
 
         @Override
-        public void onSuccessiveActivation(int ticksHeld) {
+        public void onClickHold(int ticksHeld) {
             if (!autoPlayActive && ticksHeld >= AUTOPLAY_START_DELAY) {
                 if (ticksHeld >= (AUTOPLAY_START_DELAY + AUTOPLAY_ACTIVATION_TIME)) {
                     autoPlayActive = true;
                     resetPlayCounters();
-                    onPlay();
+                    sendPlay();
                 }
                 invalidate();
             } else if (ticksHeld == 1) {
@@ -111,7 +129,7 @@ public abstract class MapWidgetSoundPlayStop extends MapWidget {
                 ++ticksSinceLastPress;
                 if (++autoPlayCtr >= autoPlayInterval) {
                     autoPlayCtr = 0;
-                    onPlay();
+                    sendPlay();
                 }
                 invalidate();
             }
@@ -133,12 +151,8 @@ public abstract class MapWidgetSoundPlayStop extends MapWidget {
                                MapColorPalette.getColor(36, 89, 152),
                                MapColorPalette.getColor(44, 109, 186));
                 isPlayPressed = true;
-            } else if (pressed) {
-                drawBackground(MapColorPalette.COLOR_BLACK,
-                               MapColorPalette.getColor(36, 89, 152),
-                               MapColorPalette.getColor(44, 109, 186));
-                isPlayPressed = true;
             } else {
+                isPlayPressed = pressed;
                 super.onDraw();
             }
 
@@ -213,84 +227,20 @@ public abstract class MapWidgetSoundPlayStop extends MapWidget {
         }
     }
 
-    private class StopButton extends PressableButton {
+    private class StopButton extends MapWidgetSoundButton {
         @Override
-        public void onFirstTimeActivation() {
+        public void onClick() {
             play.disableAutoPlay();
-            onStop();
-        }
-
-        @Override
-        public void onSuccessiveActivation(int ticksHeld) {
+            sendStop();
         }
 
         @Override
         public void onDraw() {
-            if (pressed) {
-                drawBackground(MapColorPalette.COLOR_BLACK,
-                               MapColorPalette.getColor(36, 89, 152),
-                               MapColorPalette.getColor(44, 109, 186));
-            } else {
-                super.onDraw();
-            }
+            super.onDraw();
 
             view.fillRectangle(3, 3, getWidth() - 6, getHeight() - 6,
                     pressed ? MapColorPalette.getColor(180, 0, 0)
                             : MapColorPalette.COLOR_RED);
-        }
-    }
-
-    private static abstract class PressableButton extends MapWidgetSoundElement {
-        public boolean pressed = false;
-        public int pressedTicks = 0;
-
-        public abstract void onFirstTimeActivation();
-
-        public abstract void onSuccessiveActivation(int ticksHeld);
-
-        @Override
-        public void onKey(MapKeyEvent event) {
-            if (event.getKey() == MapPlayerInput.Key.ENTER) {
-                if (!pressed) {
-                    pressed = true;
-                    pressedTicks = 0;
-                    invalidate();
-                    onFirstTimeActivation();
-                } else {
-                    pressedTicks++;
-                    onSuccessiveActivation(pressedTicks);
-                }
-            } else {
-                super.onKey(event);
-            }
-        }
-
-        @Override
-        public void onKeyPressed(MapKeyEvent event) {
-            if (event.getKey() == MapPlayerInput.Key.ENTER) {
-                // Handled in onKey
-            } else {
-                super.onKeyPressed(event);
-            }
-        }
-
-        @Override
-        public void onKeyReleased(MapKeyEvent event) {
-            if (event.getKey() == MapPlayerInput.Key.ENTER) {
-                pressedTicks = 0;
-                if (pressed) {
-                    pressed = false;
-                    invalidate();
-                }
-            } else {
-                super.onKeyReleased(event);
-            }
-        }
-
-        @Override
-        public void onBlur() {
-            pressedTicks = 0;
-            pressed = false;
         }
     }
 }

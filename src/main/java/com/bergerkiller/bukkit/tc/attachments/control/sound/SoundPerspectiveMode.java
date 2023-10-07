@@ -10,20 +10,26 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
  */
 public enum SoundPerspectiveMode {
     /** The one and same sound plays no matter whether a player is inside or outside */
-    SAME,
+    SAME("play same sound for\nall perspectives"),
     /** One sound plays for the player in the cart, another for players not in the cart */
-    CART,
+    CART("1p cart passengers\n3p outside cart"),
     /** One sound plays for the player in the train, another for players not in the train */
-    TRAIN,
+    TRAIN("1p train passengers\n3p outside train"),
     /** One sound plays for the player in a parented seat, another for players not in the parented seat */
-    SEAT;
+    SEAT("1p seat passenger\n3p outside seat");
 
     private final MapTexture icon;
+    private final String tooltip;
 
-    SoundPerspectiveMode() {
+    SoundPerspectiveMode(String tooltip) {
         MapTexture tex = MapTexture.loadPluginResource(TrainCarts.plugin,
                 "com/bergerkiller/bukkit/tc/textures/attachments/sound_perspectives.png");
         this.icon = tex.getView(tex.getHeight() * ordinal(), 0, tex.getHeight(), tex.getHeight()).clone();
+        this.tooltip = tooltip;
+    }
+
+    public String getTooltip() {
+        return tooltip;
     }
 
     public MapTexture getIcon() {
