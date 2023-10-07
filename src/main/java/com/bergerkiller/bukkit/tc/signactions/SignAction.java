@@ -65,6 +65,7 @@ public abstract class SignAction {
         register(new SignActionElevator());
         register(new SignActionTicket());
         register(new SignActionAnnounce());
+        register(new SignActionEffect());
         register(new SignActionBukkitEffect());
         register(new SignActionSound());
         register(new SignActionSkip());

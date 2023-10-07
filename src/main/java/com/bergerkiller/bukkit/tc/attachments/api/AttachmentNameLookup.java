@@ -80,6 +80,20 @@ public class AttachmentNameLookup {
     }
 
     /**
+     * Gets an unmodifiable List of attachments that match the specified name, and are of
+     * the specified Class type.
+     *
+     * @param name Assigned name
+     * @param type Type of attachment
+     * @return List of attachments matching this name
+     * @param <T> Attachment Type
+     */
+    public <T extends Attachment> List<T> getOfType(String name, Class<T> type) {
+        //noinspection unchecked
+        return (List<T>) get(name, type::isInstance);
+    }
+
+    /**
      * Gets an unmodifiable List of attachments that match the specified name. A filter
      * can be specified to filter the results by attachments that pass the predicate.
      * If none match, an empty List is returned.
