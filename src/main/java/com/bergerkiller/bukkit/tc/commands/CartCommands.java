@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.commands;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -10,9 +11,11 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
+import com.bergerkiller.bukkit.tc.commands.argument.AttachmentsByName;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
@@ -176,12 +179,40 @@ public class CartCommands {
     }
 
     @CommandTargetTrain
+    @CommandRequiresPermission(Permission.COMMAND_EFFECT)
+    @CommandMethod("cart effect <effect_name>")
+    @CommandDescription("Plays an effect for a cart")
+    private void commandEffect(
+            final CommandSender sender,
+            final @Argument(value="effect_name", parserName="cartEffectAttachments") AttachmentsByName<Attachment.EffectAttachment> effectAttachments,
+            final @Flag(value="intensity", aliases="i", description="Playback intensity of the effect, 1.0 is the default") Double intensity,
+            final @Flag(value="speed", aliases="s", description="Playback speed of the effect, 1.0 is default") Double speed,
+            final @Flag(value="replay", description="Stops and replays the effect") boolean replay,
+            final @Flag(value="stop", description="Stops playing the effect") boolean stop
+    ) {
+        Attachment.EffectAttachment.EffectOptions opt = Attachment.EffectAttachment.EffectOptions.of(
+                LogicUtil.fixNull(intensity, 1.0),
+                LogicUtil.fixNull(speed, 1.0));
+
+        if (stop) {
+            effectAttachments.attachments().forEach(Attachment.EffectAttachment::stopEffect);
+            Localization.COMMAND_EFFECT_STOP.message(sender, effectAttachments.name());
+        } else if (replay) {
+            effectAttachments.attachments().forEach(e -> { e.stopEffect(); e.playEffect(opt); });
+            Localization.COMMAND_EFFECT_REPLAY.message(sender, effectAttachments.name());
+        } else {
+            effectAttachments.attachments().forEach(e -> e.playEffect(opt));
+            Localization.COMMAND_EFFECT_PLAY.message(sender, effectAttachments.name());
+        }
+    }
+
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_ANIMATE)
     @CommandMethod("cart animate <animation_name>")
     @CommandDescription("Plays an animation for the cart")
     private void commandAnimate(
             final CommandSender sender,
-            final CartProperties properties,
+            final MinecartMember<?> member,
             final @Quoted @Argument(value="animation_name", suggestions="cartAnimationName", description="Name of the animation to play") String animationName,
             final @Flag(value="speed", aliases="s", description="Speed of the animation, 1.0 is default") Double speed,
             final @Flag(value="delay", aliases="d", description="Delay of the animation, 0.0 is default") Double delay,
@@ -193,11 +224,6 @@ public class CartCommands {
             final @Flag(value="scene_begin", suggestions="cartAnimationScene", description="Sets the scene marker name from which to start playing") String sceneMarkerBegin,
             final @Flag(value="scene_end", suggestions="cartAnimationScene", description="Sets the scene marker name at which to stop playing (inclusive)") String sceneMarkerEnd
     ) {
-        if (!properties.hasHolder()) {
-            sender.sendMessage(ChatColor.RED + "Can not animate the minecart: it is not loaded");
-            return;
-        }
-
         AnimationOptions opt = new AnimationOptions();
         opt.setName(animationName);
         if (speed != null) opt.setSpeed(speed);
@@ -217,7 +243,7 @@ public class CartCommands {
             opt.setScene(opt.getSceneBegin(), sceneMarkerEnd);
         }
 
-        if (properties.getHolder().playNamedAnimation(opt)) {
+        if (member.playNamedAnimation(opt)) {
             sender.sendMessage(opt.getCommandSuccessMessage());
         } else {
             sender.sendMessage(opt.getCommandFailureMessage());
@@ -303,7 +329,7 @@ public class CartCommands {
     private void commandEject(
             final CommandSender sender,
             final CartProperties cartProperties,
-            final @Flag(value="seat", parserName="cartSeatAttachments") List<CartAttachmentSeat> seatAttachments
+            final @Flag(value="seat", parserName="cartSeatAttachments") AttachmentsByName<CartAttachmentSeat> seatAttachments
     ) {
         MinecartMember<?> member = cartProperties.getHolder();
         if (member == null || member.isUnloaded()) {

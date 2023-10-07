@@ -90,6 +90,7 @@ public enum Permission implements IPermissionEnum {
     COMMAND_EJECT("train.command.eject", PermissionDefault.OP, "Whether the player can use a command to eject players from the train/cart being edited"),
     COMMAND_LAUNCH("train.command.launch", PermissionDefault.OP, "Whether the player can use a command to launch the train being edited"),
     COMMAND_ANIMATE("train.command.animate", PermissionDefault.OP, "Whether the player can use a command to play an animation"),
+    COMMAND_EFFECT("train.command.effect", PermissionDefault.OP, "Whether the player can use a command to play a sound, particle or other effect"),
     COMMAND_LOCATE("train.command.locate", PermissionDefault.OP, "Whether the player can locate trains, which shows a line from player to trains"),
     COMMAND_FLIP("train.command.flip", PermissionDefault.OP, "Whether the player can use a command to flip a cart or train around 180 degrees"),
 

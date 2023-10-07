@@ -21,6 +21,7 @@ import com.bergerkiller.bukkit.tc.chest.TrainChestCommands;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresMultiplePermissions;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
+import com.bergerkiller.bukkit.tc.commands.argument.AttachmentsByName;
 import com.bergerkiller.bukkit.tc.commands.argument.DirectionOrFormattedSpeed;
 import com.bergerkiller.bukkit.tc.commands.parsers.AccelerationParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.AttachmentByNameParser;
@@ -656,21 +657,21 @@ public class Commands {
      * General logic for ejecting one or more seats
      *
      * @param sender Sender
-     * @param seats List of seat attachments matched
+     * @param seats List of seat attachments matched by name
      */
-    public static void ejectSeats(CommandSender sender, List<CartAttachmentSeat> seats) {
+    public static void ejectSeats(CommandSender sender, AttachmentsByName<CartAttachmentSeat> seats) {
         boolean success = false;
         boolean seatHadPassengers = false;
-        for (CartAttachmentSeat seat : seats) {
+        for (CartAttachmentSeat seat : seats.attachments()) {
             seatHadPassengers |= seat.getEntity() != null;
             success |= seat.eject();
         }
         if (success) {
-            sender.sendMessage(ChatColor.GREEN + "Selected seats ejected!");
+            sender.sendMessage(ChatColor.GREEN + "Seats with name '" + seats.name() + "' ejected!");
         } else if (seatHadPassengers) {
-            sender.sendMessage(ChatColor.RED + "Selected seats could not be ejected (cancelled)!");
+            sender.sendMessage(ChatColor.RED + "Seats with name '" + seats.name() + "' could not be ejected (cancelled)!");
         } else {
-            sender.sendMessage(ChatColor.YELLOW + "Selected seats have no passengers!");
+            sender.sendMessage(ChatColor.YELLOW + "Seats with name '" + seats.name() + "' have no passengers!");
         }
     }
 }

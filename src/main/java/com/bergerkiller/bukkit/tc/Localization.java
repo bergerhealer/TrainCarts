@@ -54,6 +54,10 @@ public class Localization extends LocalizationEnum {
             ChatColor.RED + "To create a new train ticket, use /train ticket create\n" +
             ChatColor.RED + "To edit an existing train ticket, use /train ticket edit [name]");
 
+    public static final Localization COMMAND_EFFECT_PLAY = new Localization("command.effect.play", ChatColor.GREEN + "Playing effect " + ChatColor.YELLOW + "%0%");
+    public static final Localization COMMAND_EFFECT_STOP = new Localization("command.effect.stop", ChatColor.YELLOW + "Stopping effect " + ChatColor.WHITE + "%0%");
+    public static final Localization COMMAND_EFFECT_REPLAY = new Localization("command.effect.replay", ChatColor.GREEN + "Re-playing effect " + ChatColor.YELLOW + "%0%");
+
     public static final Localization COMMAND_TRAIN_NOT_FOUND = new Localization("command.input.train.notfound", ChatColor.RED + "Train with name %0% does not exist");
     public static final Localization COMMAND_CART_NOT_FOUND_IN_TRAIN = new Localization("command.input.cart.notintrain", ChatColor.RED + "Cart '%0%' does not exist in the selected train");
     public static final Localization COMMAND_CART_NOT_FOUND_BY_UUID = new Localization("command.input.cart.uuidnotfound", ChatColor.RED + "Cart with unique ID %0% does not exist");

@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
+import com.bergerkiller.bukkit.tc.commands.argument.AttachmentsByName;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -21,7 +22,7 @@ import java.util.function.Predicate;
 /**
  * Parses attachments that match a specified name
  */
-public class AttachmentByNameParser implements ArgumentParser<CommandSender, List<Attachment>> {
+public class AttachmentByNameParser implements ArgumentParser<CommandSender, AttachmentsByName<Attachment>> {
     private final boolean forTrain;
     private final Predicate<Attachment> filter;
     private final Localization emptyMessage;
@@ -73,7 +74,7 @@ public class AttachmentByNameParser implements ArgumentParser<CommandSender, Lis
     }
 
     @Override
-    public ArgumentParseResult<List<Attachment>> parse(
+    public ArgumentParseResult<AttachmentsByName<Attachment>> parse(
             final CommandContext<CommandSender> commandContext,
             final Queue<String> inputQueue
     ) {
@@ -92,7 +93,7 @@ public class AttachmentByNameParser implements ArgumentParser<CommandSender, Lis
         }
 
         inputQueue.poll();
-        return ArgumentParseResult.success(result);
+        return ArgumentParseResult.success(new AttachmentsByName<>(name, result));
     }
 
     @Override

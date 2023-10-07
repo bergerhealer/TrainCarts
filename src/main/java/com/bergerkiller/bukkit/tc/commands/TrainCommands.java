@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.commands;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Localization;
@@ -11,9 +12,11 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
+import com.bergerkiller.bukkit.tc.commands.argument.AttachmentsByName;
 import com.bergerkiller.bukkit.tc.commands.argument.DirectionOrFormattedSpeed;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -332,7 +335,7 @@ public class TrainCommands {
     private void commandEject(
             final CommandSender sender,
             final TrainProperties trainProperties,
-            final @Flag(value="seat", parserName="trainSeatAttachments") List<CartAttachmentSeat> seatAttachments
+            final @Flag(value="seat", parserName="trainSeatAttachments") AttachmentsByName<CartAttachmentSeat> seatAttachments
     ) {
         if (!trainProperties.isLoaded()) {
             sender.sendMessage(ChatColor.RED + "Can not eject the train: it is not loaded");
@@ -514,12 +517,40 @@ public class TrainCommands {
     }
 
     @CommandTargetTrain
+    @CommandRequiresPermission(Permission.COMMAND_EFFECT)
+    @CommandMethod("train effect <effect_name>")
+    @CommandDescription("Plays an effect for the entire train")
+    private void commandEffect(
+            final CommandSender sender,
+            final @Argument(value="effect_name", parserName="trainEffectAttachments") AttachmentsByName<Attachment.EffectAttachment> effectAttachments,
+            final @Flag(value="intensity", aliases="i", description="Playback intensity of the effect, 1.0 is the default") Double intensity,
+            final @Flag(value="speed", aliases="s", description="Playback speed of the effect, 1.0 is default") Double speed,
+            final @Flag(value="replay", description="Stops and replays the effect") boolean replay,
+            final @Flag(value="stop", description="Stops playing the effect") boolean stop
+    ) {
+        Attachment.EffectAttachment.EffectOptions opt = Attachment.EffectAttachment.EffectOptions.of(
+                LogicUtil.fixNull(intensity, 1.0),
+                LogicUtil.fixNull(speed, 1.0));
+
+        if (stop) {
+            effectAttachments.attachments().forEach(Attachment.EffectAttachment::stopEffect);
+            Localization.COMMAND_EFFECT_STOP.message(sender, effectAttachments.name());
+        } else if (replay) {
+            effectAttachments.attachments().forEach(e -> { e.stopEffect(); e.playEffect(opt); });
+            Localization.COMMAND_EFFECT_REPLAY.message(sender, effectAttachments.name());
+        } else {
+            effectAttachments.attachments().forEach(e -> e.playEffect(opt));
+            Localization.COMMAND_EFFECT_PLAY.message(sender, effectAttachments.name());
+        }
+    }
+
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_ANIMATE)
     @CommandMethod("train animate <animation_name>")
     @CommandDescription("Plays an animation for the entire train")
     private void commandAnimate(
             final CommandSender sender,
-            final TrainProperties properties,
+            final MinecartGroup group,
             final @Quoted @Argument(value="animation_name", suggestions="trainAnimationName", description="Name of the animation to play") String animationName,
             final @Flag(value="speed", aliases="s", description="Speed of the animation, 1.0 is default") Double speed,
             final @Flag(value="delay", aliases="d", description="Delay of the animation, 0.0 is default") Double delay,
@@ -531,11 +562,6 @@ public class TrainCommands {
             final @Flag(value="scene_begin", suggestions="trainAnimationScene", description="Sets the scene marker name from which to start playing") String sceneMarkerBegin,
             final @Flag(value="scene_end", suggestions="trainAnimationScene", description="Sets the scene marker name at which to stop playing (inclusive)") String sceneMarkerEnd
     ) {
-        if (!properties.isLoaded()) {
-            sender.sendMessage(ChatColor.RED + "Can not animate the train: it is not loaded");
-            return;
-        }
-
         AnimationOptions opt = new AnimationOptions();
         opt.setName(animationName);
         if (speed != null) opt.setSpeed(speed);
@@ -555,7 +581,7 @@ public class TrainCommands {
             opt.setScene(opt.getSceneBegin(), sceneMarkerEnd);
         }
 
-        if (properties.getHolder().playNamedAnimation(opt)) {
+        if (group.playNamedAnimation(opt)) {
             sender.sendMessage(opt.getCommandSuccessMessage());
         } else {
             sender.sendMessage(opt.getCommandFailureMessage());
