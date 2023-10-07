@@ -691,9 +691,60 @@ public interface Attachment extends AttachmentNameLookup.Holder {
          * Plays the effect. Is possibly called asynchronously, so the implementation must ensure the
          * operation is thread-safe.
          *
-         * @param speed Playback speed modifier of the effect, 1.0 is the default
-         * @param intensity Intensity of the effect between 0.0 and 1.0, where 1.0 is the default
+         * @param options Options that change how the effect is played
          */
-        void playEffect(double speed, double intensity);
+        void playEffect(EffectOptions options);
+
+        /**
+         * Stops playing this effect, if possible. Is possibly called asynchronously, so the implementation
+         * must ensure the operation is thread-safe.
+         */
+        void stopEffect();
+
+        /**
+         * Options specified when playing an effect
+         */
+        class EffectOptions {
+            /** Default options for an effect */
+            public static final EffectOptions DEFAULT = new EffectOptions(1.0, 1.0);
+            private final double intensity, speed;
+
+            protected EffectOptions(double intensity, double speed) {
+                this.intensity = intensity;
+                this.speed = speed;
+            }
+
+            /**
+             * The intensity of the effect. For sounds this means the volume, and for particle effects
+             * it means the number of particles spawned, or something else like color changes.
+             *
+             * @return Intensity, where 0.0 plays nothing and 1.0 plays the default amount
+             */
+            public double intensity() {
+                return intensity;
+            }
+
+            /**
+             * Playback speed of the effect. For sounds this is pitch, for particles the rate at which
+             * they move.
+             *
+             * @return Speed, where 1.0 is the default
+             */
+            public double speed() {
+                return speed;
+            }
+
+            /**
+             * Retrieves Effect Options for playing an effect at a certain intensity (sound volume)
+             * and speed (sound pitch).
+             *
+             * @param intensity Intensity
+             * @param speed Speed
+             * @return EffectOptions
+             */
+            public static EffectOptions of(double intensity, double speed) {
+                return new EffectOptions(intensity, speed);
+            }
+        }
     }
 }
