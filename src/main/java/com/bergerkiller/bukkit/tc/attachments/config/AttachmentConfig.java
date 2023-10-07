@@ -315,6 +315,26 @@ public interface AttachmentConfig {
     }
 
     /**
+     * Finds all live {@link Attachment} instances that use this attachment configuration.
+     * Only attachments that are an instance of the type specified are returned.
+     *
+     * @param type Attachment Type
+     * @return Unmodifiable List of live Attachments
+     * @param <T> Attachment Type
+     * @see #runAction(Consumer)
+     */
+    default <T extends Attachment> List<T> liveAttachmentsOfType(Class<T> type) {
+        ListCallbackCollector<T> collector = new ListCallbackCollector<>();
+        runAction(attachment -> {
+            if (type.isInstance(attachment)) {
+                //noinspection unchecked
+                collector.accept((T) attachment);
+            }
+        });
+        return collector.result();
+    }
+
+    /**
      * Attachment Configuration for a Model Attachment that has a valid model name
      * defined. Model name will not change and will always be non-empty. If changes
      * happen a new Model configuration is created, and if empty, a normal

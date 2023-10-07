@@ -326,6 +326,19 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     }
 
     /**
+     * Looks up a List of all the attachment instances that use this attachment configuration.
+     * Changes to these attachments will cause live changes.
+     * Only attachments that are an instance of the type specified are returned.
+     *
+     * @param type Attachment Type
+     * @return List of live attachments using this attachment configuration
+     * @param <T> Attachment Type
+     */
+    public <T extends Attachment> List<T> getAttachmentsOfType(Class<T> type) {
+        return config.liveAttachmentsOfType(type);
+    }
+
+    /**
      * Gets a set of live MinecartMember instances of carts using this particular
      * attachment. When editing a model attachment, more than one member might be returned
      * if more than one member is using it in a MODEL attachment.
