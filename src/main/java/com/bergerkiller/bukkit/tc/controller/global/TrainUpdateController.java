@@ -82,7 +82,7 @@ public class TrainUpdateController {
         this.updateTask = new TrainUpdateTask(this.plugin);
         this.updateTask.start(1, 1);
 
-        this.networkSyncTask = new TrainNetworkSyncTask(this.plugin);
+        this.networkSyncTask = new TrainNetworkSyncTask();
         this.networkSyncTask.start(1, 1);
 
         this.updateTransformHelper = AttachmentUpdateTransformHelper.create(1);
@@ -228,7 +228,7 @@ public class TrainUpdateController {
 
     private class TrainNetworkSyncTask extends Task {
 
-        public TrainNetworkSyncTask(JavaPlugin plugin) {
+        public TrainNetworkSyncTask() {
             super(plugin);
         }
 
@@ -238,12 +238,15 @@ public class TrainUpdateController {
             // packets queued up so far. By doing this before the actual sending, we give the server
             // a full tick time to process everything.
             // This also activates bundler mode for 1.19.4+ clients.
-            PacketQueueMap packetQueues = ((TrainCarts) getPlugin()).getPacketQueueMap();
+            PacketQueueMap packetQueues = plugin.getPacketQueueMap();
             packetQueues.forAllQueues(PacketQueue::syncBegin);
 
             // Actual sending of network updates
             try (ImplicitlySharedSet<MinecartGroup> groups = MinecartGroupStore.getGroups().clone()) {
+                // Update train positions
                 syncPositions(groups, false);
+                // Update playback of synchronous effects (sound & particle packets)
+                plugin.getEffectLoopPlayer().updateSync();
             } finally {
                 // Send the bundler packets / cleanup
                 packetQueues.forAllQueues(PacketQueue::syncEnd);

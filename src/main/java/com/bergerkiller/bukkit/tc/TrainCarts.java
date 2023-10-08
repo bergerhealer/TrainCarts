@@ -33,6 +33,7 @@ import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.commands.selector.SelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.commands.selector.TCSelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.controller.*;
+import com.bergerkiller.bukkit.tc.controller.global.EffectLoopPlayer;
 import com.bergerkiller.bukkit.tc.controller.global.PacketQueueMap;
 import com.bergerkiller.bukkit.tc.controller.global.SignController;
 import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
@@ -117,6 +118,7 @@ public class TrainCarts extends PluginBase {
     private ResourcePackModelListing modelListing = new ResourcePackModelListing(); // Uninitialized
     private final WorldEditSchematicLoader worldEditSchematicLoader = new WorldEditSchematicLoader(this);
     private final TrainCartsPlayerStore playerStore = new TrainCartsPlayerStore(this);
+    private final EffectLoopPlayer effectLoopPlayer = new EffectLoopPlayer(this);
     private SmoothCoastersAPI smoothCoastersAPI;
     private Commands commands;
 
@@ -405,6 +407,15 @@ public class TrainCarts extends PluginBase {
     }
 
     /**
+     * Gets the {@link EffectLoopPlayer} that can play effect loops til completion
+     *
+     * @return EffectLoopPlayer
+     */
+    public EffectLoopPlayer getEffectLoopPlayer() {
+        return effectLoopPlayer;
+    }
+
+    /**
      * Gets the Economy manager
      *
      * @return
@@ -681,6 +692,10 @@ public class TrainCarts extends PluginBase {
         // Routinely saves TrainCarts changed state information to disk (autosave=true)
         // Configured by loadConfig() so instantiate it here
         autosaveTask = new AutosaveTask(this);
+
+        // Start playing effect loops. Not that internally it only starts playing after a 1 tick delay.
+        // This is so that asynchronous loops don't play while the server is still starting up...
+        effectLoopPlayer.enable();
 
         // Load configuration. Must occur before dependencies as some dependencies might be
         // disabled using TC's configuration.
@@ -1019,6 +1034,8 @@ public class TrainCarts extends PluginBase {
 
         // Now plugin is mostly shut down, de-register all MinecartMember controllers from the server
         undoAllTCControllers();
+
+        this.effectLoopPlayer.disable();
 
         this.teamProvider.disable();
         this.teamProvider = null;
