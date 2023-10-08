@@ -14,6 +14,7 @@ smoothcoasters-api = "1.10"
 spigot = "1.20.1-R0.1-SNAPSHOT"
 vault-api = "1.7"
 worldedit = "7.2.0"
+softdependency = "1.02"
 
 [libraries]
 bkcommonlib = { module = "com.bergerkiller.bukkit:BKCommonLib", version.ref = "bkcommonlib" }
@@ -28,6 +29,7 @@ multiverse-portals = { module = "com.onarandombox.multiverseportals:Multiverse-P
 myworlds = { module = "com.bergerkiller.bukkit:MyWorlds", version.ref = "myworlds" }
 neznamy-tab-hider = { module = "com.bergerkiller.bukkit.neznamytabnametaghider:NeznamyTABNameTagHider-Core", version.ref = "neznamy-tab-hider" }
 preloader = { module = "com.bergerkiller.bukkit.preloader:PluginPreloader", version.ref = "preloader" }
+softdependency = { module = "com.bergerkiller.bukkit.softdependency:SoftDependency", version.ref = "softdependency" }
 signlink = { module = "com.bergerkiller.bukkit:SignLink", version.ref = "signlink" }
 smoothcoasters-api = { module = "me.m56738:SmoothCoastersAPI", version.ref = "smoothcoasters-api" }
 spigot = { module = "org.spigotmc:spigot", version.ref = "spigot" }

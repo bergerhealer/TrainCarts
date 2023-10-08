@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.common.internal.legacy.MaterialsByName;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.metrics.Metrics;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
+import com.bergerkiller.bukkit.common.softdependency.SoftServiceDependency;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.neznamytabnametaghider.TabNameTagHider;
@@ -176,16 +177,10 @@ public class TrainCarts extends PluginBase {
             .whenEnable(s -> TCPortalManager.addPortalSupport(s.name(), s.get()))
             .whenDisable(s -> TCPortalManager.removePortalSupport(s.name()))
             .create();
-    private final SoftDependency<Economy> vaultEconomy = new SoftDependency<Economy>(this, "Vault") {
-        @Override
-        protected Economy initialize(Plugin plugin) {
-            RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
-            if (rsp == null) {
-                throw new IllegalStateException("Vault plugin exists but no Economy service is registered");
-            }
-            return rsp.getProvider();
-        }
-    };
+    private final SoftServiceDependency<Economy> vaultEconomy = SoftServiceDependency.build(this, "net.milkbowl.vault.economy.Economy")
+            .withInitializer(Economy.class::cast)
+            .whenEnable(s -> log(Level.INFO, "Support for Economy plugin '" + s.getServicePlugin().getName() + "' enabled"))
+            .create();
 
     /**
      * Gets the property registry which tracks all train and cart properties

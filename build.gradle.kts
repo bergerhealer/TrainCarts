@@ -34,6 +34,7 @@ dependencies {
     }
     compileOnly(libs.bundles.cloud) // Reused from BKCommonLib
     implementation(libs.preloader)
+    implementation(libs.softdependency)
 
     // Optional dependencies for integrations with other plugins
     compileOnly(libs.lightapi.fork)
