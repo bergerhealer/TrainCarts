@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.control;
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapTexture;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.resources.ResourceKey;
@@ -15,6 +16,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.sound.MapWidgetSoundAutoResumeToggle;
 import com.bergerkiller.bukkit.tc.attachments.control.sound.MapWidgetSoundPerspectiveMode;
 import com.bergerkiller.bukkit.tc.attachments.control.sound.MapWidgetSoundPlayStop;
+import com.bergerkiller.bukkit.tc.attachments.control.sound.MapWidgetSoundPositionMode;
 import com.bergerkiller.bukkit.tc.attachments.control.sound.MapWidgetSoundSelector;
 import com.bergerkiller.bukkit.tc.attachments.control.sound.MapWidgetSoundVolumePitch;
 import com.bergerkiller.bukkit.tc.attachments.control.sound.SoundPerspectiveMode;
@@ -110,6 +112,12 @@ public class CartAttachmentSound extends CartAttachment implements Attachment.Ef
                     attachment.getConfig().set("perspectiveMode", newMode);
                     soundSelector.setMode(newMode.getSoundMode());
                     soundSelectorAlt.setMode(newMode.getSoundAltMode());
+                    for (MapWidget widget : tab.getWidgets()) {
+                        if (widget instanceof MapWidgetSoundPositionMode) {
+                            ((MapWidgetSoundPositionMode) widget).setIsSamePerspective(
+                                    newMode == SoundPerspectiveMode.SAME);
+                        }
+                    }
                 }
             }.setPosition(9, 3));
 
@@ -125,6 +133,23 @@ public class CartAttachmentSound extends CartAttachment implements Attachment.Ef
                     attachment.getConfig().set("autoResume", autoResume);
                 }
             }.setPosition(21, 3));
+
+            tab.addWidget(new MapWidgetSoundPositionMode() {
+                @Override
+                public void onAttached() {
+                    SoundPerspectiveMode perspective = attachment.getConfig().getOrDefault("perspectiveMode", SoundPerspectiveMode.SAME);
+                    setIsSamePerspective(perspective == SoundPerspectiveMode.SAME);
+                    setMode(attachment.getConfig().getOrDefault("sound.atPlayer", false),
+                            attachment.getConfig().getOrDefault("soundAlt.atPlayer", false));
+                    super.onAttached();
+                }
+
+                @Override
+                public void onModeChanged(SoundPositionMode newMode) {
+                    attachment.getConfig().set("sound.atPlayer", newMode.isAtPlayer1P());
+                    attachment.getConfig().set("soundAlt.atPlayer", newMode.isAtPlayer3P());
+                }
+            }.setPosition(33, 3));
 
             tab.addWidget(new MapWidgetSoundPlayStop() {
                 @Override
@@ -269,15 +294,18 @@ public class CartAttachmentSound extends CartAttachment implements Attachment.Ef
         private static final boolean CAN_STOP_SOUND = Common.hasCapability("Common:Sound:StopSoundPacket");
         public final ResourceKey<SoundEffect> key;
         public final String category;
+        public final boolean atPlayer;
 
         public SoundType(ConfigurationNode config) {
             if (config != null) {
                 String keyPath = config.getOrDefault("key", String.class, null);
                 this.key = (keyPath == null) ? null : SoundEffect.fromName(keyPath);
                 this.category = config.getOrDefault("category", "master");
+                this.atPlayer = config.getOrDefault("atPlayer", false);
             } else {
                 this.key = null;
                 this.category = "master";
+                this.atPlayer = false;
             }
         }
 
@@ -287,7 +315,8 @@ public class CartAttachmentSound extends CartAttachment implements Attachment.Ef
 
         public void play(AttachmentViewer viewer, Location location, VolumePitch volumePitch) {
             if (key != null) {
-                viewer.send(PacketPlayOutCustomSoundEffectHandle.createNew(key, category, location,
+                Location at = atPlayer ? viewer.getPlayer().getLocation() : location;
+                viewer.send(PacketPlayOutCustomSoundEffectHandle.createNew(key, category, at,
                         volumePitch.volume, volumePitch.pitch));
             }
         }
@@ -303,7 +332,9 @@ public class CartAttachmentSound extends CartAttachment implements Attachment.Ef
         }
 
         public static boolean isSameSound(SoundType a, SoundType b) {
-            return LogicUtil.bothNullOrEqual(a.key, b.key) && a.category.equals(b.category);
+            return LogicUtil.bothNullOrEqual(a.key, b.key)
+                    && a.category.equals(b.category)
+                    && a.atPlayer == b.atPlayer;
         }
     }
 
