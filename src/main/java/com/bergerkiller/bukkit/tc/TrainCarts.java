@@ -177,10 +177,17 @@ public class TrainCarts extends PluginBase {
             .whenEnable(s -> TCPortalManager.addPortalSupport(s.name(), s.get()))
             .whenDisable(s -> TCPortalManager.removePortalSupport(s.name()))
             .create();
-    private final SoftServiceDependency<Economy> vaultEconomy = SoftServiceDependency.build(this, "net.milkbowl.vault.economy.Economy")
-            .withInitializer(Economy.class::cast)
-            .whenEnable(s -> log(Level.INFO, "Support for Economy plugin '" + s.getServicePlugin().getName() + "' enabled"))
-            .create();
+    private final SoftServiceDependency<Economy> vaultEconomy = new SoftServiceDependency<Economy>(this, "net.milkbowl.vault.economy.Economy") {
+        @Override
+        protected Economy initialize(Object service) throws Error, Exception {
+            return Economy.class.cast(service);
+        }
+
+        @Override
+        protected void onEnable() {
+            log(Level.INFO, "Support for Economy plugin '" + getServicePlugin().getName() + "' enabled");
+        }
+    };
 
     /**
      * Gets the property registry which tracks all train and cart properties
