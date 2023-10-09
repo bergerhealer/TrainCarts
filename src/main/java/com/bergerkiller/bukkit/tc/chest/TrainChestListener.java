@@ -115,10 +115,21 @@ public class TrainChestListener implements Listener {
         }
 
         // Swap out for an empty chest item if finite
+        // Remove item if the chest item is also locked
         if (result == TrainChestItemUtil.SpawnResult.SUCCESS && TrainChestItemUtil.isFiniteSpawns(heldItem)) {
-            heldItem = ItemUtil.cloneItem(heldItem);
-            TrainChestItemUtil.clear(heldItem);
-            HumanHand.setItemInMainHand(event.getPlayer(), heldItem);
+            if (TrainChestItemUtil.isLocked(heldItem)) {
+                if (heldItem.getAmount() > 1) {
+                    heldItem = ItemUtil.cloneItem(heldItem);
+                    heldItem.setAmount(heldItem.getAmount() - 1);
+                    HumanHand.setItemInMainHand(event.getPlayer(), heldItem);
+                } else {
+                    HumanHand.setItemInMainHand(event.getPlayer(), null);
+                }
+            } else {
+                heldItem = ItemUtil.cloneItem(heldItem);
+                TrainChestItemUtil.clear(heldItem);
+                HumanHand.setItemInMainHand(event.getPlayer(), heldItem);
+            }
         }
 
         if (result.hasMessage()) {
