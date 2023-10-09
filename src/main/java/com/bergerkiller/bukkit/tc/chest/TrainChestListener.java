@@ -133,7 +133,16 @@ public class TrainChestListener implements Listener {
         }
 
         if (result.hasMessage()) {
-            result.getLocale().message(event.getPlayer());
+            String customSpawnMessage = null;
+            if (result == TrainChestItemUtil.SpawnResult.SUCCESS) {
+                customSpawnMessage = TrainChestItemUtil.getSpawnMessage(heldItem);
+            }
+
+            if (customSpawnMessage == null) {
+                result.getLocale().message(event.getPlayer());
+            } else if (!customSpawnMessage.isEmpty()) {
+                event.getPlayer().sendMessage(customSpawnMessage);
+            }
         }
 
         if (result == TrainChestItemUtil.SpawnResult.SUCCESS) {

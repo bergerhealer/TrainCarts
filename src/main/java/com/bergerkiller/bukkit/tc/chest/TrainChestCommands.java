@@ -2,6 +2,8 @@ package com.bergerkiller.bukkit.tc.chest;
 
 import java.util.function.Consumer;
 
+import cloud.commandframework.annotations.specifier.Quoted;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -39,7 +41,8 @@ public class TrainChestCommands {
             final @Flag(value="train", description="Initial train spawn configuration", suggestions="trainspawnpattern") String spawnConfig,
             final @Flag(value="name", description="Display name of the train in the chest item") String name,
             final @Flag(value="locked", description="Whether the train in the item can be changed") boolean locked,
-            final @Flag(value="finite", description="Whether to make the item empty when used") boolean finite
+            final @Flag(value="finite", description="Whether to make the item empty when used") boolean finite,
+            final @Quoted @Flag(value="spawnmessage", description="Sets a custom successful spawn message") String spawnMessage
     ) {
         Player targetPlayer = Util.findPlayer(sender, targetPlayerName);
         if (targetPlayer == null) {
@@ -66,6 +69,9 @@ public class TrainChestCommands {
         }
         if (finite) {
             TrainChestItemUtil.setFiniteSpawns(item, finite);
+        }
+        if (spawnMessage != null) {
+            TrainChestItemUtil.setSpawnMessage(item, StringUtil.ampToColor(spawnMessage));
         }
         targetPlayer.getInventory().addItem(item);
         if (targetPlayer == sender) {
@@ -175,6 +181,26 @@ public class TrainChestCommands {
             final @Argument("name") String name
     ) {
         updateChestItemInInventory(player, item -> TrainChestItemUtil.setName(item, name));
+    }
+
+    @CommandRequiresPermission(Permission.COMMAND_STORAGE_CHEST_CREATE)
+    @CommandMethod("train chest spawnmessage <message>")
+    @CommandDescription("Sets the message displayed when successfully spawning using the chest item")
+    private void commandSetShowMessage(
+            final Player player,
+            final @Greedy @Argument("message") String message
+    ) {
+        updateChestItemInInventory(player, item -> TrainChestItemUtil.setSpawnMessage(item,
+                StringUtil.ampToColor(message)));
+    }
+
+    @CommandRequiresPermission(Permission.COMMAND_STORAGE_CHEST_CREATE)
+    @CommandMethod("train chest spawnmessage DEFAULT")
+    @CommandDescription("Resets the message displayed when successfully spawning using the chest item")
+    private void commandSetDefaultShowMessage(
+            final Player player
+    ) {
+        updateChestItemInInventory(player, item -> TrainChestItemUtil.setSpawnMessage(item, null));
     }
 
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_IMPORT)

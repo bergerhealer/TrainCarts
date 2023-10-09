@@ -113,6 +113,17 @@ public class TrainChestItemUtil {
         }
     }
 
+    public static void setSpawnMessage(ItemStack item, String message) {
+        if (isItem(item)) {
+            ItemUtil.getMetaTag(item, true).putValue("spawnMessage", message);
+        }
+    }
+
+    public static String getSpawnMessage(ItemStack item) {
+        return isItem(item) ? ItemUtil.getMetaTag(item).getValue("spawnMessage", String.class, null)
+                            : null;
+    }
+
     public static boolean isLocked(ItemStack item) {
         return isItem(item) && ItemUtil.getMetaTag(item).getValue("locked", false);
     }
