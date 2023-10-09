@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 
 import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
+import com.bergerkiller.bukkit.tc.utils.RecursionGuard;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -70,11 +71,17 @@ public class SignController implements LibraryComponent, Listener {
     private SignControllerWorld byWorldLastGet = NONE;
     private final RedstoneUpdateTask updateTask;
     private boolean redstonePhysicsSuppressed = false;
+    private final RecursionGuard<ChunkLoadEvent> loadChunkRecursionGuard;
 
     public SignController(TrainCarts plugin) {
         this.plugin = plugin;
         this.updateTask = new RedstoneUpdateTask(plugin);
         this.blockPhysicsFireForSigns = doesBlockPhysicsFireForSigns();
+        this.loadChunkRecursionGuard = RecursionGuard.handleOnce(event -> {
+            plugin.getLogger().log(Level.WARNING, "Sync chunk load detected loading signs in chunk "
+                    + event.getWorld().getName() + " [" + event.getChunk().getX()
+                    + ", " + event.getChunk().getZ() + "]", new RuntimeException("Stack"));
+        });
     }
 
     public TrainCarts getPlugin() {
@@ -278,7 +285,9 @@ public class SignController implements LibraryComponent, Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     private void onChunkLoad(ChunkLoadEvent event) {
-        forWorld(event.getWorld()).loadChunk(event.getChunk());
+        try (RecursionGuard.Token t = loadChunkRecursionGuard.open(event)) {
+            forWorld(event.getWorld()).loadChunk(event.getChunk());
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -993,7 +1002,7 @@ public class SignController implements LibraryComponent, Listener {
             }
 
             private boolean checkHasSignAction(SignActionHeader header) {
-                return SignAction.getSignAction(this.createSignActionEvent(header)) != null;
+                return SignAction.getSignAction(this.createSignActionEvent(header, RailPiece.NONE /* ignore */)) != null;
             }
 
             public void setInitialPower(boolean powered) {
@@ -1015,7 +1024,7 @@ public class SignController implements LibraryComponent, Listener {
 
             public void setRedstonePower(SignActionHeader header, boolean newPowerState) {
                 // Is the event allowed?
-                SignActionEvent info = createSignActionEvent(header);
+                SignActionEvent info = createSignActionEvent(header, null /* discover */);
                 SignActionType type = info.getHeader().getRedstoneAction(newPowerState);
 
                 // Change in redstone power?
@@ -1031,12 +1040,12 @@ public class SignController implements LibraryComponent, Listener {
             }
 
             public void setRedstonePowerChanged(SignActionHeader header) {
-                SignActionEvent info = createSignActionEvent(header);
+                SignActionEvent info = createSignActionEvent(header, null /* discover */);
                 SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
             }
 
-            private SignActionEvent createSignActionEvent(SignActionHeader header) {
-                TrackedSign trackedSign = TrackedSign.forRealSign(sign, front, (RailPiece) null);
+            private SignActionEvent createSignActionEvent(SignActionHeader header, RailPiece rail) {
+                TrackedSign trackedSign = TrackedSign.forRealSign(sign, front, rail);
                 trackedSign.setCachedHeader(header);
                 return new SignActionEvent(trackedSign);
             }
