@@ -101,6 +101,7 @@ public class TCConfig {
     public static boolean rerouteOnStartup = false;
     public static boolean switcherResetCountersOnFirstCart = true;
     public static boolean logMutexConflicts = false;
+    public static boolean logSyncChunkLoads = false;
     public static String launchFunctionType = "bezier";
     public static boolean parseOldSigns;
     public static boolean allowParenthesesFormat = true;
@@ -369,6 +370,10 @@ public class TCConfig {
 
         config.setHeader("logMutexConflicts", "\nLogs a message to server log when two trains are inside a mutex zone, when they shouldn't be");
         logMutexConflicts = config.get("logMutexConflicts", false);
+
+        config.setHeader("logSyncChunkLoads", "\nLogs when TrainCarts sync-loads another chunk while not expected to, like while handling a chunk load");
+        config.addHeader("logSyncChunkLoads", "This is mostly for developers to diagnose performance issues. Sync chunk loads can, potentially, hurt server TPS");
+        logSyncChunkLoads = config.get("logSyncChunkLoads", false);
 
         // Cache settings
         {

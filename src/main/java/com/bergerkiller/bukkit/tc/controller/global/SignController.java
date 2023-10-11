@@ -10,6 +10,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.utils.RecursionGuard;
 import org.bukkit.Bukkit;
@@ -78,6 +79,10 @@ public class SignController implements LibraryComponent, Listener {
         this.updateTask = new RedstoneUpdateTask(plugin);
         this.blockPhysicsFireForSigns = doesBlockPhysicsFireForSigns();
         this.loadChunkRecursionGuard = RecursionGuard.handleOnce(event -> {
+            if (!TCConfig.logSyncChunkLoads) {
+                return;
+            }
+
             plugin.getLogger().log(Level.WARNING, "Sync chunk load detected loading signs in chunk "
                     + event.getWorld().getName() + " [" + event.getChunk().getX()
                     + ", " + event.getChunk().getZ() + "]", new RuntimeException("Stack"));
