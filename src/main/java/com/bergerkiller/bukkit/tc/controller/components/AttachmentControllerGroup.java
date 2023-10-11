@@ -26,7 +26,7 @@ public class AttachmentControllerGroup
     private final MinecartGroup group;
     private int movementCounter;
     private int ticksSinceLocationSync = 0;
-    private SoftReference<CachedByNameLookup> cachedByNameLookup = new SoftReference<>(null);
+    private SoftReference<AttachmentNameLookup> cachedByNameLookup = new SoftReference<>(null);
 
     public AttachmentControllerGroup(MinecartGroup group) {
         this.group = group;
@@ -125,11 +125,26 @@ public class AttachmentControllerGroup
 
     @Override
     public AttachmentNameLookup getNameLookup() {
-        CachedByNameLookup cached = cachedByNameLookup.get();
-        if (cached == null || !cached.verifySame(group)) {
-            cachedByNameLookup = new SoftReference<>(cached = new CachedByNameLookup(group));
+        AttachmentNameLookup cached = cachedByNameLookup.get();
+        if (cached == null || !cached.isValid()) {
+            final ArrayList<AttachmentNameLookup> components = new ArrayList<>(group.size());
+            for (MinecartMember<?> member : group) {
+                components.add(member.getAttachments().getNameLookup());
+            }
+            cachedByNameLookup = new SoftReference<>(cached = AttachmentNameLookup.merge(components));
         }
-        return cached.merged;
+        return cached;
+    }
+
+    /**
+     * Called when MinecartMember instances are added or removed from the parent group.
+     * Invalidates {@link #getNameLookup()}
+     */
+    public void notifyGroupCompositionChanged() {
+        AttachmentNameLookup cached = cachedByNameLookup.get();
+        if (cached != null) {
+            cached.invalidate();
+        }
     }
 
     private static class RespawnedMember {
@@ -156,33 +171,6 @@ public class AttachmentControllerGroup
                     }
                 }
             }
-        }
-    }
-
-    private static class CachedByNameLookup {
-        public final List<AttachmentNameLookup> components;
-        public final AttachmentNameLookup merged;
-
-        public CachedByNameLookup(MinecartGroup group) {
-            this.components = new ArrayList<>(group.size());
-            for (MinecartMember<?> member : group) {
-                this.components.add(member.getAttachments().getNameLookup());
-            }
-            this.merged = AttachmentNameLookup.merge(this.components);
-        }
-
-        public boolean verifySame(MinecartGroup group) {
-            if (group.size() != components.size()) {
-                return false;
-            }
-
-            for (int i = 0; i < group.size(); i++) {
-                if (components.get(i) != group.get(i).getAttachments().getNameLookup()) {
-                    return false;
-                }
-            }
-
-            return true;
         }
     }
 }

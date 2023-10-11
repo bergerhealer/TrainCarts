@@ -355,78 +355,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         return true;
     }
 
-    // Called before addMember to fire the MemberAddEvent
-    // Sets the group to this group before adding to avoid problems
-    // when .getGroup() is called on the member to query the previous group.
-    private void addMemberPreEvent(MinecartMember<?> member) {
-        boolean wasGroupNull = false;
-        if (member.group == null) {
-            member.group = this;
-            wasGroupNull = true;
-        }
-        CommonUtil.callEvent(new MemberAddEvent(member, this));
-        if (wasGroupNull && member.group == this) {
-            member.group = null;
-        }
-    }
-
-    private void addMember(MinecartMember<?> member) {
-        this.chunkAreaValid = false;
-        notifyPhysicsChange();
-        member.setGroup(this);
-        this.getSignTracker().updatePosition();
-        this.getProperties().add(member.getProperties());
-    }
-
-    public void add(int index, MinecartMember<?> member) {
-        if (member.isUnloaded()) {
-            throw new IllegalArgumentException("Can not add unloaded members to groups");
-        }
-        super.add(index, member);
-        this.addMemberPreEvent(member);
-        this.addMember(member);
-    }
-
-    public boolean add(MinecartMember<?> member) {
-        if (member.isUnloaded()) {
-            throw new IllegalArgumentException("Can not add unloaded members to groups");
-        }
-        super.add(member);
-        this.addMemberPreEvent(member);
-        this.addMember(member);
-        return true;
-    }
-
-    public boolean addAll(int index, Collection<? extends MinecartMember<?>> members) {
-        super.addAll(index, members);
-        MinecartMember<?>[] memberArr = members.toArray(new MinecartMember<?>[0]);
-        for (MinecartMember<?> m : memberArr) {
-            if (m.isUnloaded()) {
-                throw new IllegalArgumentException("Can not add unloaded members to groups");
-            }
-            this.addMemberPreEvent(m);
-        }
-        for (MinecartMember<?> member : memberArr) {
-            this.addMember(member);
-        }
-        return true;
-    }
-
-    public boolean addAll(Collection<? extends MinecartMember<?>> members) {
-        super.addAll(members);
-        MinecartMember<?>[] memberArr = members.toArray(new MinecartMember<?>[0]);
-        for (MinecartMember<?> m : memberArr) {
-            if (m.isUnloaded()) {
-                throw new IllegalArgumentException("Can not add unloaded members to groups");
-            }
-            this.addMemberPreEvent(m);
-        }
-        for (MinecartMember<?> member : memberArr) {
-            this.addMember(member);
-        }
-        return true;
-    }
-
     public boolean containsIndex(int index) {
         return !this.isEmpty() && (index >= 0 && index < this.size());
     }
@@ -450,6 +378,59 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         return !this.isEmpty() && (this.size() == 1 || !this.getProperties().isPoweredMinecartRequired() || this.size(EntityType.MINECART_FURNACE) > 0);
     }
 
+    @Override
+    public void add(int index, MinecartMember<?> member) {
+        if (member.isUnloaded()) {
+            throw new IllegalArgumentException("Can not add unloaded members to groups");
+        }
+        super.add(index, member);
+        this.fireMemberAddEvent(member);
+        this.onMemberAdded(member);
+    }
+
+    @Override
+    public boolean add(MinecartMember<?> member) {
+        if (member.isUnloaded()) {
+            throw new IllegalArgumentException("Can not add unloaded members to groups");
+        }
+        super.add(member);
+        this.fireMemberAddEvent(member);
+        this.onMemberAdded(member);
+        return true;
+    }
+
+    @Override
+    public boolean addAll(int index, Collection<? extends MinecartMember<?>> members) {
+        super.addAll(index, members);
+        MinecartMember<?>[] memberArr = members.toArray(new MinecartMember<?>[0]);
+        for (MinecartMember<?> m : memberArr) {
+            if (m.isUnloaded()) {
+                throw new IllegalArgumentException("Can not add unloaded members to groups");
+            }
+            this.fireMemberAddEvent(m);
+        }
+        for (MinecartMember<?> member : memberArr) {
+            this.onMemberAdded(member);
+        }
+        return true;
+    }
+
+    @Override
+    public boolean addAll(Collection<? extends MinecartMember<?>> members) {
+        super.addAll(members);
+        MinecartMember<?>[] memberArr = members.toArray(new MinecartMember<?>[0]);
+        for (MinecartMember<?> m : memberArr) {
+            if (m.isUnloaded()) {
+                throw new IllegalArgumentException("Can not add unloaded members to groups");
+            }
+            this.fireMemberAddEvent(m);
+        }
+        for (MinecartMember<?> member : memberArr) {
+            this.onMemberAdded(member);
+        }
+        return true;
+    }
+
     /**
      * Removes a member without splitting the train or causing link effects
      *
@@ -468,34 +449,13 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         return true;
     }
 
+    @Override
     public boolean remove(Object o) {
         int index = this.indexOf(o);
         return index != -1 && this.remove(index) != null;
     }
 
-    private MinecartMember<?> removeMember(int index) {
-        this.chunkAreaValid = false;
-        notifyPhysicsChange();
-        MinecartMember<?> member = super.get(index);
-        MemberRemoveEvent.call(member);
-        super.remove(index);
-        this.getActions().removeActions(member);
-        onMemberRemoved(member);
-        member.group = null;
-        return member;
-    }
-
-    private void onMemberRemoved(MinecartMember<?> member) {
-        this.getSignTracker().onMemberRemoved(member);
-        this.getProperties().remove(member.getProperties());
-        this.getRailTracker().removeMemberRails(member);
-
-        /* Timings: cacheRailMembers  (Train Physics, Rail Tracker, Cache) */
-        {
-            RailLookup.removeMemberFromAll(member);
-        }
-    }
-
+    @Override
     public MinecartMember<?> remove(int index) {
         MinecartMember<?> removed = this.removeMember(index);
         if (this.isEmpty()) {
@@ -509,6 +469,62 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             this.split(index);
         }
         return removed;
+    }
+
+    private MinecartMember<?> removeMember(int index) {
+        this.chunkAreaValid = false; // Probably unneeded but keeping it just in case
+        notifyPhysicsChange();
+        MinecartMember<?> member = super.get(index);
+        MemberRemoveEvent.call(member);
+        super.remove(index);
+        getActions().removeActions(member);
+        onMemberRemoved(member);
+        member.group = null;
+        return member;
+    }
+
+    /**
+     * Called whenever the composition of this group changes. That is, members are added
+     * or removed, or this group is removed in its entirety.
+     */
+    private void onCompositionChanged() {
+        this.chunkAreaValid = false;
+        this.attachmentController.notifyGroupCompositionChanged();
+    }
+
+    // Called before addMember to fire the MemberAddEvent
+    // Sets the group to this group before adding to avoid problems
+    // when .getGroup() is called on the member to query the previous group.
+    private void fireMemberAddEvent(MinecartMember<?> member) {
+        boolean wasGroupNull = false;
+        if (member.group == null) {
+            member.group = this;
+            wasGroupNull = true;
+        }
+        CommonUtil.callEvent(new MemberAddEvent(member, this));
+        if (wasGroupNull && member.group == this) {
+            member.group = null;
+        }
+    }
+
+    private void onMemberAdded(MinecartMember<?> member) {
+        onCompositionChanged();
+        notifyPhysicsChange();
+        member.setGroup(this);
+        getSignTracker().updatePosition();
+        getProperties().add(member.getProperties());
+    }
+
+    private void onMemberRemoved(MinecartMember<?> member) {
+        onCompositionChanged();
+        getSignTracker().onMemberRemoved(member);
+        getProperties().remove(member.getProperties());
+        getRailTracker().removeMemberRails(member);
+
+        /* Timings: cacheRailMembers  (Train Physics, Rail Tracker, Cache) */
+        {
+            RailLookup.removeMemberFromAll(member);
+        }
     }
 
     /**
@@ -674,6 +690,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         // Release chunks previously kept loaded by this train
         this.chunkArea.reset();
         this.chunkAreaValid = false;
+        this.onCompositionChanged();
     }
 
     /**

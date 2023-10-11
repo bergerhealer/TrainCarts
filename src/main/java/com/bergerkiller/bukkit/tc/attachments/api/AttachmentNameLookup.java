@@ -20,8 +20,18 @@ import java.util.function.Predicate;
  */
 public class AttachmentNameLookup {
     public static final AttachmentNameLookup EMPTY = new AttachmentNameLookup(Collections.emptyMap());
+    static {
+        EMPTY.invalidate(); // Not backed by anything so is invalid
+    }
+
     private final Map<String, List<Attachment>> attachments;
     private final List<String> names;
+    private boolean valid = true;
+
+    private AttachmentNameLookup(AttachmentNameLookup original) {
+        this.attachments = original.attachments;
+        this.names = original.names;
+    }
 
     private AttachmentNameLookup(Map<String, List<Attachment>> attachments) {
         this.attachments = attachments;
@@ -43,6 +53,23 @@ public class AttachmentNameLookup {
         for (Attachment child : attachment.getChildren()) {
             fill(attachments, child);
         }
+    }
+
+    /**
+     * Gets whether this lookup is still valid. If attachments have changed since this object
+     * was requested, this will return false indicating it should be looked up again.
+     *
+     * @return True if valid and still representative of the attachment configuration
+     */
+    public boolean isValid() {
+        return valid;
+    }
+
+    /**
+     * Makes this configuration no longer valid, making {@link #isValid()} return false.
+     */
+    public void invalidate() {
+        valid = false;
     }
 
     /**
@@ -156,9 +183,9 @@ public class AttachmentNameLookup {
     }
 
     /**
-     * Merges all the by-name lookups into a single by-name lookup view
+     * Merges all the by-name lookups into a single by-name lookup view.
      *
-     * @param nameLookups Lookups to merge
+     * @param nameLookups Lookups to merge. This Collection must be immutable.
      * @return Merged view
      */
     public static AttachmentNameLookup merge(Collection<AttachmentNameLookup> nameLookups) {
@@ -190,10 +217,48 @@ public class AttachmentNameLookup {
         // If only one non-empty element existed, just return that same one
         // Otherwise, create a new immutable view of the results we've gathered
         if (first != null && result.isEmpty()) {
-            return first;
+            return new AttachmentNameLookupMerged(first, nameLookups);
         } else {
             makeListsImmutable(result);
-            return new AttachmentNameLookup(result);
+            return new AttachmentNameLookupMerged(result, nameLookups);
+        }
+    }
+
+    /**
+     * Provides a merged view of the attachments of many members
+     */
+    private static class AttachmentNameLookupMerged extends AttachmentNameLookup {
+        private final Collection<AttachmentNameLookup> originalLookups;
+
+        private AttachmentNameLookupMerged(
+                AttachmentNameLookup original,
+                Collection<AttachmentNameLookup> originalLookups
+        ) {
+            super(original);
+            this.originalLookups = originalLookups;
+        }
+
+        private AttachmentNameLookupMerged(
+                Map<String, List<Attachment>> attachments,
+                Collection<AttachmentNameLookup> originalLookups
+        ) {
+            super(attachments);
+            this.originalLookups = originalLookups;
+        }
+
+        @Override
+        public boolean isValid() {
+            if (!super.isValid()) {
+                return false;
+            }
+
+            for (AttachmentNameLookup lookup : originalLookups) {
+                if (!lookup.isValid()) {
+                    invalidate();
+                    return false;
+                }
+            }
+            return true;
         }
     }
 

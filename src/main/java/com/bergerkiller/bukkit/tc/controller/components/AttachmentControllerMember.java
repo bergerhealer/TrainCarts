@@ -895,8 +895,13 @@ public class AttachmentControllerMember
             this.changeListenerNewSeatsAdded = false;
             this.flattenedAttachments = Collections.emptyList();
             this.seatAttachments = Collections.emptyList();
-            this.cachedNameLookups.clear();
+            this.invalidateCachedNameLookups();
         }
+    }
+
+    private void invalidateCachedNameLookups() {
+        this.cachedNameLookups.values().forEach(AttachmentNameLookup::invalidate);
+        this.cachedNameLookups.clear();
     }
 
     private static void detachAttachments(List<Attachment> flattenedAttachments) {
@@ -912,7 +917,7 @@ public class AttachmentControllerMember
                 .filter(attachment -> attachment instanceof CartAttachmentSeat)
                 .map(attachment -> (CartAttachmentSeat) attachment)
                 .collect(StreamUtil.toUnmodifiableList());
-        this.cachedNameLookups.clear(); // Invalidate
+        this.invalidateCachedNameLookups(); // Invalidate
     }
 
     @Override
@@ -1047,7 +1052,7 @@ public class AttachmentControllerMember
             Collection<String> oldNames = curr.getNames();
             curr.getInternalState().onLoad(this.getClass(), type, config);
             if (!oldNames.equals(curr.getNames())) {
-                this.cachedNameLookups.clear();
+                this.invalidateCachedNameLookups();
             }
 
             curr.onLoad(config);
