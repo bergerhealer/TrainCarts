@@ -113,6 +113,7 @@ public class TCConfig {
     public static boolean allowExternalTicketImagePaths = false; // Whether images outside of the images subdirectory are allowed
     public static boolean allowSchematicAttachment = true;
     public static int maxCommandSelectorValues = 128;
+    public static int maxConcurrentEffectLoops = 20;
     public static String currencyFormat;
     public static Set<Material> allowedBlockBreakTypes = new HashSet<>();
     public static ConfiguredWorldSet enabledWorlds = new ConfiguredWorldSet();
@@ -639,12 +640,26 @@ public class TCConfig {
         config.addHeader("unloadRunawayTrainDistance", "unload (by setting keep chunks loaded to false again). A warning with details is logged.");
         unloadRunawayTrainDistance = config.get("unloadRunawayTrainDistance", 160.0);
 
-        config.setHeader("maxCommandSelectorValues", "Maximum number of expanded values resulting from the @train and @ptrain selectors players can use");
+        config.setHeader("maxCommandSelectorValues", "\nMaximum number of expanded values resulting from the @train and @ptrain selectors players can use");
         config.addHeader("maxCommandSelectorValues", "If more than this amount is expanded then an error is sent and no commands are executed");
         config.addHeader("maxCommandSelectorValues", "This limit avoids players being able to freeze the server or crash players with large expressions");
         config.addHeader("maxCommandSelectorValues", "Players need permission 'train.command.selector.use' to use selectors at all");
         config.addHeader("maxCommandSelectorValues", "Players with permission 'train.command.selector.unlimited' are not subjected to this limit");
         maxCommandSelectorValues = config.get("maxCommandSelectorValues", 128);
+
+        config.setHeader("maxConcurrentEffectLoops", "\nMaximum number of times a single Effect Loop can play concurrently");
+        config.addHeader("maxConcurrentEffectLoops", "This limit prevents the server running out of resources if some infinite cycle occurs");
+        config.addHeader("maxConcurrentEffectLoops", "This is not a GLOBAL limit, but one that applies per 'unique' configurable effect loop");
+        config.addHeader("maxConcurrentEffectLoops", "If set to -1 there will be no limit, but this could be dangerous");
+        {
+            int max = config.get("maxConcurrentEffectLoops", 20);
+            if (max < 0) {
+                max = Integer.MAX_VALUE;
+            } else if (max == 0) {
+                max = 1;
+            }
+            maxConcurrentEffectLoops = max;
+        }
     }
 
     public static void putParsers(String key, ItemParser[] parsersArr) {

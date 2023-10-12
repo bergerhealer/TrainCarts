@@ -246,7 +246,7 @@ public class TrainUpdateController {
                 // Update train positions
                 syncPositions(groups, false);
                 // Update playback of synchronous effects (sound & particle packets)
-                plugin.getEffectLoopPlayer().updateSync();
+                plugin.getEffectLoopPlayerController().updateSync();
             } finally {
                 // Send the bundler packets / cleanup
                 packetQueues.forAllQueues(PacketQueue::syncEnd);

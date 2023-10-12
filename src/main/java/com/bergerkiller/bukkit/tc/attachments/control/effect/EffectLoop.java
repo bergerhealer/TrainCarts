@@ -1,11 +1,11 @@
 package com.bergerkiller.bukkit.tc.attachments.control.effect;
 
-import com.bergerkiller.bukkit.tc.controller.global.EffectLoopPlayer;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 
 /**
- * Plays a sequence of effects over time. Can be registered into the
- * {@link EffectLoopPlayer} so it is played back automatically.
- * Runs asynchronously.
+ * Plays a sequence of effects over time. Can be played by the  {@link EffectLoop.Player}.
+ * Retrieve one using {@link TrainCarts#createEffectLoopPlayer()}. Every player instance
+ * is limited to a certain amount of concurrently playing effect loops.
  */
 public interface EffectLoop {
     /**
@@ -88,5 +88,21 @@ public interface EffectLoop {
         SYNCHRONOUS,
         /** EffectLoop runs asynchronously on a dedicated Sound Loop thread */
         ASYNCHRONOUS
+    }
+
+    /**
+     * Plays EffectLoops
+     */
+    @FunctionalInterface
+    interface Player {
+        /**
+         * Starts playing the EffectLoop instance specified. Will stop playing when
+         * the instance {@link EffectLoop#advance(double)} returns false.
+         * This method may be called asynchronously, even if the run mode of the
+         * loop is synchronous.
+         *
+         * @param loop EffectLoop to play
+         */
+        void play(EffectLoop loop);
     }
 }

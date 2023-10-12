@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.global;
 
 import com.bergerkiller.bukkit.common.component.LibraryComponent;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
 import org.bukkit.Bukkit;
@@ -9,21 +10,51 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.LockSupport;
 import java.util.logging.Level;
 
 /**
- * Plays {@link EffectLoop} instances that have been scheduled to start. Runs two
- * operating modes: synchronous and asynchronous.
+ * Provides {@link EffectLoop.Player} instances for playing effect loops.
+ * Each Player is limited to a configurable limit of simultaneously playing
+ * effect loops. EffectLoops can be scheduled to play synchronously (main thread)
+ * or asynchronously (dedicated asynchronous thread).
  */
-public class EffectLoopPlayer implements LibraryComponent  {
+public class EffectLoopPlayerController implements LibraryComponent, TrainCarts.Provider {
     private final TrainCarts plugin;
     private final Queue<EffectLoop> startPendingSync = new ConcurrentLinkedQueue<>();
     private final List<EffectLoop> syncRunning = new ArrayList<>();
     private final AsyncWorker asyncWorker = new AsyncWorker(1);
 
-    public EffectLoopPlayer(TrainCarts plugin) {
+    public EffectLoopPlayerController(TrainCarts plugin) {
         this.plugin = plugin;
+    }
+
+    @Override
+    public TrainCarts getTrainCarts() {
+        return plugin;
+    }
+
+    /**
+     * Creates a new EffectLoop player instance, with the number of concurrently playing
+     * effect loops limited by TrainCarts configuration.
+     *
+     * @return EffectLoop Player
+     */
+    public EffectLoop.Player createPlayer() {
+        return new EffectLoopPlayer();
+    }
+
+    /**
+     * Creates a new EffectLoop player instance with a certain limit of concurrently playing
+     * effect loops.
+     *
+     * @param limit Maximum number of concurrently playing effect loops. The TrainCarts configured
+     *              limit is also in effect.
+     * @return EffectLoop Player
+     */
+    public EffectLoop.Player createPlayer(int limit) {
+        return new EffectLoopPlayer(limit);
     }
 
     @Override
@@ -57,8 +88,7 @@ public class EffectLoopPlayer implements LibraryComponent  {
      *
      * @param loop EffectLoop
      */
-    public void start(EffectLoop loop) {
-        loop = new EffectLoopErrorGuard(plugin, loop);
+    private void schedule(EffectLoop loop) {
         if (loop.runMode() == EffectLoop.RunMode.SYNCHRONOUS) {
             startPendingSync.add(loop);
         } else {
@@ -116,12 +146,53 @@ public class EffectLoopPlayer implements LibraryComponent  {
         }
     }
 
-    private static class EffectLoopErrorGuard implements EffectLoop {
-        private final TrainCarts plugin;
+    /**
+     * Plays Effect Loops in a safe way. Has functionality to limit the number of simultaneously
+     * playing effect loops.
+     */
+    private class EffectLoopPlayer implements EffectLoop.Player, TrainCarts.Provider {
+        private final Semaphore semaphore;
+
+        public EffectLoopPlayer() {
+            this.semaphore = new Semaphore(TCConfig.maxConcurrentEffectLoops);
+        }
+
+        public EffectLoopPlayer(int limit) {
+            if (limit == 0) {
+                this.semaphore = new Semaphore(1);
+            } else if (limit < 0) {
+                this.semaphore = new Semaphore(TCConfig.maxConcurrentEffectLoops);
+            } else {
+                this.semaphore = new Semaphore(Math.min(limit, TCConfig.maxConcurrentEffectLoops));
+            }
+        }
+
+        @Override
+        public TrainCarts getTrainCarts() {
+            return plugin;
+        }
+
+        @Override
+        public void play(EffectLoop loop) {
+            if (semaphore.tryAcquire()) {
+                schedule(new EffectLoopWrap(this, loop));
+            }
+        }
+
+        public void onEffectLoopDone() {
+            semaphore.release();
+        }
+    }
+
+    /**
+     * Wraps an EffectLoop to track its completion with a {@link EffectLoopPlayer}
+     */
+    private static class EffectLoopWrap implements EffectLoop {
+        private final EffectLoopPlayer player;
         private final EffectLoop base;
 
-        public EffectLoopErrorGuard(TrainCarts plugin, EffectLoop loop) {
-            this.plugin = plugin;
+        public EffectLoopWrap(EffectLoopPlayer player, EffectLoop loop) {
+            this.player = player;
             this.base = loop;
         }
 
@@ -133,11 +204,14 @@ public class EffectLoopPlayer implements LibraryComponent  {
         @Override
         public boolean advance(double dt) {
             try {
-                return base.advance(dt);
+                if (base.advance(dt)) {
+                    return true;
+                }
             } catch (Throwable t) {
-                plugin.getLogger().log(Level.SEVERE, "An error occurred inside an effect loop", t);
-                return false;
+                player.getTrainCarts().getLogger().log(Level.SEVERE, "An error occurred inside an effect loop", t);
             }
+            player.onEffectLoopDone();
+            return false;
         }
     }
 }

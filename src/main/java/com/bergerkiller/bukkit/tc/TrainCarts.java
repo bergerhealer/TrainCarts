@@ -27,6 +27,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentLight;
 import com.bergerkiller.bukkit.tc.attachments.control.GlowColorTeamProvider;
 import com.bergerkiller.bukkit.tc.attachments.control.SeatAttachmentMap;
 import com.bergerkiller.bukkit.tc.attachments.control.TeamProvider;
+import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.control.schematic.WorldEditSchematicLoader;
 import com.bergerkiller.bukkit.tc.attachments.ui.models.ResourcePackModelListing;
 import com.bergerkiller.bukkit.tc.chest.TrainChestListener;
@@ -34,7 +35,7 @@ import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.commands.selector.SelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.commands.selector.TCSelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.controller.*;
-import com.bergerkiller.bukkit.tc.controller.global.EffectLoopPlayer;
+import com.bergerkiller.bukkit.tc.controller.global.EffectLoopPlayerController;
 import com.bergerkiller.bukkit.tc.controller.global.PacketQueueMap;
 import com.bergerkiller.bukkit.tc.controller.global.SignController;
 import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
@@ -84,7 +85,6 @@ import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockEvent;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -119,7 +119,7 @@ public class TrainCarts extends PluginBase {
     private ResourcePackModelListing modelListing = new ResourcePackModelListing(); // Uninitialized
     private final WorldEditSchematicLoader worldEditSchematicLoader = new WorldEditSchematicLoader(this);
     private final TrainCartsPlayerStore playerStore = new TrainCartsPlayerStore(this);
-    private final EffectLoopPlayer effectLoopPlayer = new EffectLoopPlayer(this);
+    private final EffectLoopPlayerController effectLoopPlayerController = new EffectLoopPlayerController(this);
     private SmoothCoastersAPI smoothCoastersAPI;
     private Commands commands;
 
@@ -409,12 +409,36 @@ public class TrainCarts extends PluginBase {
     }
 
     /**
-     * Gets the {@link EffectLoopPlayer} that can play effect loops til completion
+     * Gets the {@link EffectLoopPlayerController} that can play effect loops til completion
      *
      * @return EffectLoopPlayer
      */
-    public EffectLoopPlayer getEffectLoopPlayer() {
-        return effectLoopPlayer;
+    public EffectLoopPlayerController getEffectLoopPlayerController() {
+        return effectLoopPlayerController;
+    }
+
+    /**
+     * Creates a new EffectLoop player instance, with the number of concurrently playing
+     * effect loops limited by TrainCarts configuration.
+     *
+     * @return EffectLoop Player
+     * @see #createEffectLoopPlayer(int)
+     */
+    public EffectLoop.Player createEffectLoopPlayer() {
+        return effectLoopPlayerController.createPlayer();
+    }
+
+    /**
+     * Creates a new EffectLoop player instance with a certain limit of concurrently playing
+     * effect loops.
+     *
+     * @param limit Maximum number of concurrently playing effect loops. The TrainCarts configured
+     *              limit is also in effect.
+     * @return EffectLoop Player
+     * @see #createEffectLoopPlayer()
+     */
+    public EffectLoop.Player createEffectLoopPlayer(int limit) {
+        return effectLoopPlayerController.createPlayer(limit);
     }
 
     /**
@@ -697,7 +721,7 @@ public class TrainCarts extends PluginBase {
 
         // Start playing effect loops. Not that internally it only starts playing after a 1 tick delay.
         // This is so that asynchronous loops don't play while the server is still starting up...
-        effectLoopPlayer.enable();
+        effectLoopPlayerController.enable();
 
         // Load configuration. Must occur before dependencies as some dependencies might be
         // disabled using TC's configuration.
@@ -1037,7 +1061,7 @@ public class TrainCarts extends PluginBase {
         // Now plugin is mostly shut down, de-register all MinecartMember controllers from the server
         undoAllTCControllers();
 
-        this.effectLoopPlayer.disable();
+        this.effectLoopPlayerController.disable();
 
         this.teamProvider.disable();
         this.teamProvider = null;
