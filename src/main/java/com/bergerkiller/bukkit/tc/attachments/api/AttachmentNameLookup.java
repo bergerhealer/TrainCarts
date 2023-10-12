@@ -290,6 +290,7 @@ public class AttachmentNameLookup {
      * @param <T> Attachment Type
      */
     public static final class NameGroup<T extends Attachment> implements Iterable<T> {
+        private static final NameGroup<Attachment> NONE = new NameGroup<>(() -> AttachmentNameLookup.EMPTY, "", Attachment.class);
         private final Supplier lookupSupplier;
         private final String name;
         private final Class<T> type;
@@ -308,6 +309,17 @@ public class AttachmentNameLookup {
          */
         public static <T extends Attachment> NameGroup<T> of(Supplier lookupSupplier, String name, Class<T> type) {
             return new NameGroup<T>(lookupSupplier, name, type);
+        }
+
+        /**
+         * Gets a constant NameGroup that refers to no attachments at all. List is always empty.
+         *
+         * @return Empty NameGroup
+         * @param <T> Attachment Type
+         */
+        @SuppressWarnings("unchecked")
+        public static <T extends Attachment> NameGroup<T> none() {
+            return (NameGroup<T>) NONE;
         }
 
         private NameGroup(Supplier lookupSupplier, String name, Class<T> type) {

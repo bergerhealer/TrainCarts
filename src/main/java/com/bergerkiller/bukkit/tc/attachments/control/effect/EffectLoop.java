@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.control.effect;
 
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 
 /**
  * Plays a sequence of effects over time. Can be played by the  {@link EffectLoop.Player}.
@@ -62,12 +63,13 @@ public interface EffectLoop {
      * @return new EffectLoop that uses the speed modifier
      * @see #withAdvance(AdvanceModifier)
      */
-    default EffectLoop withSpeed(double speed) {
+    default EffectLoop withSpeed(final double speed) {
         if (speed < 1e-8) {
             return NONE;
+        } else if (speed == 1.0) {
+            return this;
         } else {
-            final double mult = 1.0 / speed;
-            return withAdvance((base, dt) -> base.advance(dt * mult));
+            return withAdvance((base, dt) -> base.advance(dt * speed));
         }
     }
 

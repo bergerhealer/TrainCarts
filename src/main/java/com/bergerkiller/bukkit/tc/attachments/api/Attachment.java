@@ -735,6 +735,26 @@ public interface Attachment extends AttachmentNameLookup.Supplier {
             }
 
             /**
+             * Returns new Effect Options with the intensity changed
+             *
+             * @param newIntensity New intensity
+             * @return New EffectOptions with intensity changed
+             */
+            public EffectOptions withIntensity(double newIntensity) {
+                return new EffectOptions(newIntensity, this.speed);
+            }
+
+            /**
+             * Returns new Effect Options with the speed changed
+             *
+             * @param newSpeed New speed
+             * @return New EffectOptions with speed changed
+             */
+            public EffectOptions withSpeed(double newSpeed) {
+                return new EffectOptions(this.intensity, newSpeed);
+            }
+
+            /**
              * Retrieves Effect Options for playing an effect at a certain intensity (sound volume)
              * and speed (sound pitch).
              *

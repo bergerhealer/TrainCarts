@@ -291,6 +291,7 @@ public class CartAttachmentSound extends CartAttachment implements Attachment.Ef
     }
 
     private static class SoundType {
+        private static final Random RANDOM_SEED_SOURCE = new Random();
         private static final boolean CAN_STOP_SOUND = Common.hasCapability("Common:Sound:StopSoundPacket");
         public final ResourceKey<SoundEffect> key;
         public final String category;
@@ -316,8 +317,13 @@ public class CartAttachmentSound extends CartAttachment implements Attachment.Ef
         public void play(AttachmentViewer viewer, Location location, VolumePitch volumePitch) {
             if (key != null) {
                 Location at = atPlayer ? viewer.getPlayer().getLocation() : location;
-                viewer.send(PacketPlayOutCustomSoundEffectHandle.createNew(key, category, at,
-                        volumePitch.volume, volumePitch.pitch));
+
+                // Note: must use this method because of a multithreading bug in BKCommonLibs location constructor
+                //       can be removed when BKCommonLib 1.20.2-v2 or later is a hard-depend
+                viewer.send(PacketPlayOutCustomSoundEffectHandle.createNew(key, category,
+                        at.getX(), at.getY(), at.getZ(),
+                        volumePitch.volume, volumePitch.pitch,
+                        RANDOM_SEED_SOURCE.nextLong()));
             }
         }
 
