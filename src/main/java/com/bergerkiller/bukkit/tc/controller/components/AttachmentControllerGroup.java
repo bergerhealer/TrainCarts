@@ -19,7 +19,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
  * Manages the attachments updates of all the carts of a train
  */
 public class AttachmentControllerGroup
-        implements SavedAttachmentModelStore.ModelUsing, AttachmentNameLookup.Holder
+        implements SavedAttachmentModelStore.ModelUsing, AttachmentNameLookup.Supplier
 {
     public static final int ABSOLUTE_UPDATE_INTERVAL = 200;
     public static final int MOVEMENT_UPDATE_INTERVAL = 3;

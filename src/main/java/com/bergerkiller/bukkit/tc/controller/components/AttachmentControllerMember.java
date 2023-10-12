@@ -23,7 +23,6 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigModelTracke
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigTracker;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModelStore;
-import com.bergerkiller.bukkit.tc.attachments.ui.menus.general.NameAttachmentDialog;
 import com.bergerkiller.bukkit.tc.utils.SetCallbackCollector;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -67,7 +66,7 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
  */
 public class AttachmentControllerMember
         implements AttachmentConfigListener, AttachmentManager,
-                   SavedAttachmentModelStore.ModelUsing, AttachmentNameLookup.Holder
+                   SavedAttachmentModelStore.ModelUsing, AttachmentNameLookup.Supplier
 {
     private final MinecartMember<?> member;
     private final TrainCarts plugin;
@@ -257,7 +256,9 @@ public class AttachmentControllerMember
 
     @Override
     public synchronized AttachmentNameLookup getNameLookup(Attachment root) {
-        return cachedNameLookups.computeIfAbsent(root, AttachmentNameLookup::create);
+        return cachedNameLookups.compute(root,
+                (r, prev) -> (prev != null && prev.isValid())
+                        ? prev : AttachmentNameLookup.create(root));
     }
 
     /**

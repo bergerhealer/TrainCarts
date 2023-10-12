@@ -23,7 +23,7 @@ import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
  * Controller object for attachments. This is added to the minecart
  * and is updated regularly.
  */
-public interface Attachment extends AttachmentNameLookup.Holder {
+public interface Attachment extends AttachmentNameLookup.Supplier {
 
     /**
      * Gets controller internal state information. Should return the same instance

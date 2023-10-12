@@ -6,8 +6,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 /**
@@ -31,6 +33,7 @@ public class AttachmentNameLookup {
     private AttachmentNameLookup(AttachmentNameLookup original) {
         this.attachments = original.attachments;
         this.names = original.names;
+        this.valid = original.valid;
     }
 
     private AttachmentNameLookup(Map<String, List<Attachment>> attachments) {
@@ -265,7 +268,8 @@ public class AttachmentNameLookup {
     /**
      * Object that can produce an {@link AttachmentNameLookup}
      */
-    public interface Holder {
+    @FunctionalInterface
+    public interface Supplier {
         /**
          * Obtains an immutable snapshot of the {@link AttachmentNameLookup name lookup} of the root
          * attachment(s). Internally caches the result until this subtree changes.
@@ -277,5 +281,77 @@ public class AttachmentNameLookup {
          * @return AttachmentNameLookup
          */
         AttachmentNameLookup getNameLookup();
+    }
+
+    /**
+     * A group of attachments retrieved that have a certain name. Can be synchronized (on the main thread)
+     * to keep it up-to-date with changes to the underlying attachments.
+     *
+     * @param <T> Attachment Type
+     */
+    public static final class NameGroup<T extends Attachment> implements Iterable<T> {
+        private final Supplier lookupSupplier;
+        private final String name;
+        private final Class<T> type;
+        private AttachmentNameLookup cachedLookup;
+        private List<T> cachedValues;
+
+        /**
+         * Creates a new NameGroup taking attachment details from an attachment name lookup supplier
+         *
+         * @param lookupSupplier Supplier for the AttachmentNameLookup from which to find attachments.
+         *                       Can specify an Attachment, MinecartMember or MinecartGroup as well.
+         * @param name Name of the attachments to look for
+         * @param type Type filter for the type of attachments to include
+         * @return NameGroup
+         * @param <T> Attachment Type
+         */
+        public static <T extends Attachment> NameGroup<T> of(Supplier lookupSupplier, String name, Class<T> type) {
+            return new NameGroup<T>(lookupSupplier, name, type);
+        }
+
+        private NameGroup(Supplier lookupSupplier, String name, Class<T> type) {
+            this.lookupSupplier = lookupSupplier;
+            this.name = name;
+            this.type = type;
+            this.cachedLookup = AttachmentNameLookup.EMPTY;
+            this.cachedValues = Collections.emptyList();
+            sync();
+        }
+
+        /**
+         * Gets an unmodifiable List of attachments matching this name group.
+         * This method can be safely called from another thread.
+         * Returns the attachments known since last {@link #sync()}.
+         * You can also just iterate this class itself, which iterates over the
+         * same values.
+         *
+         * @return Attachment Values
+         */
+        public List<T> values() {
+            return cachedValues;
+        }
+
+        /**
+         * Updates the List of attachments if these have changed. Must ideally only
+         * be called on the main thread.
+         */
+        public void sync() {
+            if (!cachedLookup.isValid()) {
+                AttachmentNameLookup lookup = lookupSupplier.getNameLookup();
+                cachedLookup = lookup;
+                cachedValues = lookup.getOfType(name, type);
+            }
+        }
+
+        @Override
+        public Iterator<T> iterator() {
+            return cachedValues.iterator();
+        }
+
+        @Override
+        public void forEach(Consumer<? super T> action) {
+            cachedValues.forEach(action);
+        }
     }
 }
