@@ -185,13 +185,13 @@ public class CartCommands {
     private void commandEffect(
             final CommandSender sender,
             final @Argument(value="effect_name", parserName="cartEffectAttachments") AttachmentsByName<Attachment.EffectAttachment> effectAttachments,
-            final @Flag(value="intensity", aliases="i", description="Playback intensity of the effect, 1.0 is the default") Double intensity,
+            final @Flag(value="volume", aliases="v", description="Playback volume of the effect, 1.0 is the default") Double volume,
             final @Flag(value="speed", aliases="s", description="Playback speed of the effect, 1.0 is default") Double speed,
             final @Flag(value="replay", description="Stops and replays the effect") boolean replay,
             final @Flag(value="stop", description="Stops playing the effect") boolean stop
     ) {
         Attachment.EffectAttachment.EffectOptions opt = Attachment.EffectAttachment.EffectOptions.of(
-                LogicUtil.fixNull(intensity, 1.0),
+                LogicUtil.fixNull(volume, 1.0),
                 LogicUtil.fixNull(speed, 1.0));
 
         if (stop) {

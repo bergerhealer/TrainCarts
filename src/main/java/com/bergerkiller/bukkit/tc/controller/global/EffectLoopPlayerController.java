@@ -78,13 +78,13 @@ public class EffectLoopPlayerController implements LibraryComponent, TrainCarts.
         for (EffectLoop loop; (loop = startPendingSync.poll()) != null;) {
             syncRunning.add(loop);
         }
-        syncRunning.removeIf(e -> !e.advance(0.05));
+        syncRunning.removeIf(e -> !e.advance(EffectLoop.Duration.ONE_TICK, EffectLoop.Duration.ZERO, false));
     }
 
     /**
-     * Starts playing the EffectLoop instance specified. Will stop playing when
-     * the instance {@link EffectLoop#advance(double)} returns false.
-     * This method can be called asynchronously.
+     * Starts playing the EffectLoop instance specified. Will stop playing when the instance
+     * {@link EffectLoop#advance(EffectLoop.Duration, EffectLoop.Duration, boolean)}
+     * returns false. This method can be called asynchronously.
      *
      * @param loop EffectLoop
      */
@@ -125,6 +125,7 @@ public class EffectLoopPlayerController implements LibraryComponent, TrainCarts.
         }
 
         public void processAsync() {
+            final EffectLoop.Duration zero_duration = EffectLoop.Duration.ZERO;
             final List<EffectLoop> asyncRunning = new ArrayList<>();
             long lastTime = System.nanoTime();
             while (!stopping) {
@@ -132,7 +133,7 @@ public class EffectLoopPlayerController implements LibraryComponent, TrainCarts.
 
                 // Measure time elapsed since previous loop
                 long now = System.nanoTime();
-                double elapsedTime = (now - lastTime) / 1_000_000_000.0;
+                EffectLoop.Duration elapsedTime = EffectLoop.Duration.nanos(now - lastTime);
                 lastTime = now;
 
                 // Run all effect loops
@@ -140,7 +141,7 @@ public class EffectLoopPlayerController implements LibraryComponent, TrainCarts.
                     for (EffectLoop loop; (loop = startPendingAsync.poll()) != null;) {
                         asyncRunning.add(loop);
                     }
-                    asyncRunning.removeIf(e -> !e.advance(elapsedTime));
+                    asyncRunning.removeIf(e -> !e.advance(elapsedTime, zero_duration, false));
                 }
             }
         }
@@ -202,9 +203,9 @@ public class EffectLoopPlayerController implements LibraryComponent, TrainCarts.
         }
 
         @Override
-        public boolean advance(double dt) {
+        public boolean advance(Duration dt, Duration duration, boolean loop) {
             try {
-                if (base.advance(dt)) {
+                if (base.advance(dt, duration, loop)) {
                     return true;
                 }
             } catch (Throwable t) {

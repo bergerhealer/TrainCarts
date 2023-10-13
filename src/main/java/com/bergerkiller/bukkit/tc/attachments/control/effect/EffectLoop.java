@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.effect;
 
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 
 /**
  * Plays a sequence of effects over time. Can be played by the  {@link EffectLoop.Player}.
@@ -20,7 +19,7 @@ public interface EffectLoop {
         }
 
         @Override
-        public boolean advance(double dt) {
+        public boolean advance(Duration dt, Duration duration, boolean loop) {
             return false;
         }
     };
@@ -39,14 +38,20 @@ public interface EffectLoop {
      * it should call it again next time period. Returns false if the effect
      * loop has finished and the caller can discard it.
      *
-     * @param dt Amount of time to advance in seconds
+     * @param dt Amount of time to advance
+     * @param duration Configures the duration playback should take.
+     *                 If set to non-zero, will limit the range that is played.
+     *                 If loop is also true, this defines at what point the
+     *                 effect loops. Is by default zero.
+     * @param loop Whether the effect should loop while playing.
+     *             Is by default False.
      * @return True to continue calling advance on this effect loop,
      *         False when the effect loop has finished.
      */
-    boolean advance(double dt);
+    boolean advance(Duration dt, Duration duration, boolean loop);
 
     /**
-     * Changes the behavior of {@link #advance(double)} using a modifier function.
+     * Changes the behavior of {@link #advance(Duration, Duration, boolean)} using a modifier function.
      *
      * @param modifier Advance behavior modifier
      * @return new EffectLoop that uses the modifier
@@ -56,7 +61,7 @@ public interface EffectLoop {
     }
 
     /**
-     * Changes the speed of {@link #advance(double)}. If speed is (close to) zero,
+     * Changes the speed of {@link #advance(Duration, Duration, boolean)}. If speed is (close to) zero,
      * returns {@link #NONE} as nothing would play in that case.
      *
      * @param speed Speed Modifier
@@ -69,17 +74,17 @@ public interface EffectLoop {
         } else if (speed == 1.0) {
             return this;
         } else {
-            return withAdvance((base, dt) -> base.advance(dt * speed));
+            return withAdvance((base, dt, duration, loop) -> base.advance(dt.multiply(speed), duration.multiply(speed), loop));
         }
     }
 
     /**
-     * Intercepts {@link #advance(double)} and allows for custom modifications,
+     * Intercepts {@link #advance(Duration, Duration, boolean)} and allows for custom modifications,
      * like speed changes or early termination.
      */
     @FunctionalInterface
     interface AdvanceModifier {
-        boolean advance(EffectLoop base, double dt);
+        boolean advance(EffectLoop base, Duration dt, Duration duration, boolean loop);
     }
 
     /**
@@ -99,12 +104,87 @@ public interface EffectLoop {
     interface Player {
         /**
          * Starts playing the EffectLoop instance specified. Will stop playing when
-         * the instance {@link EffectLoop#advance(double)} returns false.
+         * the instance {@link EffectLoop#advance(Duration, Duration, boolean)} returns false.
          * This method may be called asynchronously, even if the run mode of the
          * loop is synchronous.
          *
          * @param loop EffectLoop to play
          */
         void play(EffectLoop loop);
+    }
+
+    /**
+     * A unit of elapsed time. Represents the time both as seconds (double) as well as
+     * the number of nanoseconds (long).
+     */
+    class Duration {
+        public static final Duration ZERO = new Duration(0L) {
+            @Override
+            public Duration multiply(double factor) {
+                return this;
+            }
+        };
+        public static final Duration ONE_TICK = nanos(50000000L);
+        public final double seconds;
+        public final long nanos;
+
+        public static Duration seconds(double seconds) {
+            return new Duration(seconds);
+        }
+
+        public static Duration nanos(long nanoSeconds) {
+            return new Duration(nanoSeconds);
+        }
+
+        private Duration(double seconds) {
+            this.seconds = seconds;
+            this.nanos = (long) (seconds * 1_000_000_000.0);
+        }
+
+        private Duration(long nanos) {
+            this.seconds = (double) nanos / 1_000_000_000.0;
+            this.nanos = nanos;
+        }
+
+        /**
+         * Multiplies this Timespan with a factor. A lower factor will make the
+         * timespan shorter, a higher factor will make it longer.
+         *
+         * @param factor Factor
+         * @return New Timespan
+         */
+        public Duration multiply(double factor) {
+            return seconds(seconds * factor);
+        }
+
+        /**
+         * Gets whether this is a Zero Duration
+         *
+         * @return True if zero
+         */
+        public boolean isZero() {
+            return nanos == 0L;
+        }
+
+        /**
+         * Converts a time duration in seconds into nanoseconds
+         *
+         * @param seconds Seconds duration
+         * @return Nanoseconds
+         */
+        public static long secondsToNanos(double seconds) {
+            return (long) (seconds * 1_000_000_000.0);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            } else if (o instanceof Duration) {
+                return ((Duration) o).nanos == nanos;
+            } else {
+                return false;
+            }
+        }
     }
 }

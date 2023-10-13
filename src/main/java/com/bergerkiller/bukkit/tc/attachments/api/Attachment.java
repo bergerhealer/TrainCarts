@@ -682,7 +682,7 @@ public interface Attachment extends AttachmentNameLookup.Supplier {
      *     <li>When the effect is played</li>
      *     <li>How often the effect is played</li>
      *     <li>The playback speed of the effect</li>
-     *     <li>The intensity of the effect - volume for sounds</li>
+     *     <li>The volume of the effect</li>
      * </ul>
      */
     interface EffectAttachment extends Attachment {
@@ -707,21 +707,21 @@ public interface Attachment extends AttachmentNameLookup.Supplier {
         class EffectOptions {
             /** Default options for an effect */
             public static final EffectOptions DEFAULT = new EffectOptions(1.0, 1.0);
-            private final double intensity, speed;
+            private final double volume, speed;
 
-            protected EffectOptions(double intensity, double speed) {
-                this.intensity = intensity;
+            protected EffectOptions(double volume, double speed) {
+                this.volume = volume;
                 this.speed = speed;
             }
 
             /**
-             * The intensity of the effect. For sounds this means the volume, and for particle effects
+             * The volume of the effect. For sounds this means the audio volume, and for particle effects
              * it means the number of particles spawned, or something else like color changes.
              *
-             * @return Intensity, where 0.0 plays nothing and 1.0 plays the default amount
+             * @return Volume, where 0.0 plays nothing and 1.0 plays the default amount
              */
-            public double intensity() {
-                return intensity;
+            public double volume() {
+                return volume;
             }
 
             /**
@@ -735,13 +735,13 @@ public interface Attachment extends AttachmentNameLookup.Supplier {
             }
 
             /**
-             * Returns new Effect Options with the intensity changed
+             * Returns new Effect Options with the volume changed
              *
-             * @param newIntensity New intensity
-             * @return New EffectOptions with intensity changed
+             * @param newVolume New volume
+             * @return New EffectOptions with volume changed
              */
-            public EffectOptions withIntensity(double newIntensity) {
-                return new EffectOptions(newIntensity, this.speed);
+            public EffectOptions withVolume(double newVolume) {
+                return new EffectOptions(newVolume, this.speed);
             }
 
             /**
@@ -751,19 +751,19 @@ public interface Attachment extends AttachmentNameLookup.Supplier {
              * @return New EffectOptions with speed changed
              */
             public EffectOptions withSpeed(double newSpeed) {
-                return new EffectOptions(this.intensity, newSpeed);
+                return new EffectOptions(this.volume, newSpeed);
             }
 
             /**
-             * Retrieves Effect Options for playing an effect at a certain intensity (sound volume)
+             * Retrieves Effect Options for playing an effect at a certain volume
              * and speed (sound pitch).
              *
-             * @param intensity Intensity
+             * @param volume Volume
              * @param speed Speed
              * @return EffectOptions
              */
-            public static EffectOptions of(double intensity, double speed) {
-                return new EffectOptions(intensity, speed);
+            public static EffectOptions of(double volume, double speed) {
+                return new EffectOptions(volume, speed);
             }
         }
     }

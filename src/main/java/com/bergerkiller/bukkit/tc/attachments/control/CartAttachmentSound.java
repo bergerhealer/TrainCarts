@@ -280,7 +280,7 @@ public class CartAttachmentSound extends CartAttachment implements Attachment.Ef
         }
 
         public VolumePitch createVolumePitch(EffectOptions effectOptions) {
-            return new VolumePitch((float) (effectOptions.intensity() * volume.next()),
+            return new VolumePitch((float) (effectOptions.volume() * volume.next()),
                                    (float) (effectOptions.speed() * pitch.next()));
         }
 

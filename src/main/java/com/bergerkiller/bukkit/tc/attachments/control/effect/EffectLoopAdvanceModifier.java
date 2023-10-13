@@ -15,7 +15,7 @@ class EffectLoopAdvanceModifier implements EffectLoop {
     }
 
     @Override
-    public boolean advance(double dt) {
-        return modifier.advance(base, dt);
+    public boolean advance(Duration dt, Duration duration, boolean loop) {
+        return modifier.advance(base, dt, duration, loop);
     }
 }

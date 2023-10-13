@@ -76,7 +76,7 @@ public class SignActionEffect extends SignAction {
             {
                 String[] args = StringUtil.getAfter(event.getLine(1), " ").trim().split(" ", -1);
                 double speed = 1.0;
-                double intensity = 1.0;
+                double volume = 1.0;
                 boolean decodedSpeed = false;
                 boolean stop = false;
                 for (String arg : args) {
@@ -85,7 +85,7 @@ public class SignActionEffect extends SignAction {
                         break;
                     } else if (ParseUtil.isNumeric(arg)) {
                         if (decodedSpeed) {
-                            intensity = ParseUtil.parseDouble(arg, 1.0);
+                            volume = ParseUtil.parseDouble(arg, 1.0);
                         } else {
                             decodedSpeed = true;
                             speed = ParseUtil.parseDouble(arg, 1.0);
@@ -96,7 +96,7 @@ public class SignActionEffect extends SignAction {
                     action = Attachment.EffectAttachment::stopEffect;
                 } else {
                     final Attachment.EffectAttachment.EffectOptions opt =
-                            Attachment.EffectAttachment.EffectOptions.of(intensity, speed);
+                            Attachment.EffectAttachment.EffectOptions.of(volume, speed);
                     action = e -> e.playEffect(opt);
                 }
             }
