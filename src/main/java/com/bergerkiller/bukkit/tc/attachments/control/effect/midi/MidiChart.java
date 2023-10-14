@@ -5,7 +5,9 @@ import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Sequence of notes, sorted by time and then pitch, aligned on a
@@ -38,6 +40,23 @@ public final class MidiChart implements Cloneable {
     }
 
     /**
+     * Transforms this chart so that it uses different chart parameters.
+     * All original notes are updated to fit on this new chart.
+     * Notes that clash because they occupy the same bar position are
+     * removed.
+     *
+     * @param chartParams New MIDI chart parameters to put all the notes on
+     * @return MidiChart that uses the new parameters
+     */
+    public MidiChart withChartParameters(MidiChartParameters chartParams) {
+        MidiChart updated = new MidiChart(chartParams);
+        for (MidiNote note : this.notes) {
+            updated.addNote(note);
+        }
+        return updated;
+    }
+
+    /**
      * Gets whether this chart is empty, that is, has no notes
      *
      * @return True if empty
@@ -60,6 +79,33 @@ public final class MidiChart implements Cloneable {
      */
     public void clearNotes() {
         notes.clear();
+    }
+
+    /**
+     * Shifts all the notes forwards or backwards in time by one or more time steps.
+     *
+     * @param numTimeSteps Number of time steps to shift. Negative to shift them backwards in time.
+     */
+    public void timeShift(int numTimeSteps) {
+        if (numTimeSteps != 0) {
+            for (ListIterator<MidiNote> it = notes.listIterator(); it.hasNext();) {
+                it.set(it.next().withTimeShift(numTimeSteps));
+            }
+        }
+    }
+
+    /**
+     * Shifts the speed (pitch) up or down by a number of pitch classes
+     *
+     * @param numPitchClasses Number of pitch shift classes to shift. Positive number
+     *                        makes the pitch higher, negative number makes it lower.
+     */
+    public void pitchShift(int numPitchClasses) {
+        if (numPitchClasses != 0) {
+            for (ListIterator<MidiNote> it = notes.listIterator(); it.hasNext();) {
+                it.set(it.next().withPitchShift(numPitchClasses));
+            }
+        }
     }
 
     /**
@@ -100,6 +146,39 @@ public final class MidiChart implements Cloneable {
     }
 
     /**
+     * Gets the notes that are visible within a certain time step index range.
+     *
+     * @param startTimeStepIndex Start index of the first note to show
+     * @param numTimeSteps Number of time steps ('bars') displayed
+     * @return List of MIDI notes visible in this time range on the chart
+     */
+    public List<MidiNote> getChartVisibleNotes(int startTimeStepIndex, int numTimeSteps) {
+        //TODO: Could be optimized, do binary search maybe
+        List<MidiNote> result = new ArrayList<>();
+        for (MidiNote note : notes) {
+            int offset = note.timeStepIndex() - startTimeStepIndex;
+            if (offset >= 0 && offset < numTimeSteps) {
+                result.add(note);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Updates a single note
+     *
+     * @param note Note to update
+     * @param operation Operation to perform on the note, that returns an updated note
+     * @return The resulting updated note
+     */
+    public MidiNote update(MidiNote note, Function<MidiNote, MidiNote> operation) {
+        MidiNote updated = operation.apply(note);
+        removeNote(note);
+        addNoteDirect(updated);
+        return updated;
+    }
+
+    /**
      * Removes a previously added note
      *
      * @param note MIDI Note to remove
@@ -112,6 +191,22 @@ public final class MidiChart implements Cloneable {
                 notes.add(index, removed); // Weird!
             }
         }
+    }
+
+    /**
+     * Adds a note on a specific bar on this chart
+     *
+     * @param timeStepIndex Number of time steps ('bars') from the start of the chart
+     * @param pitchClass Number of pitch classes up or down (speed/pitch)
+     * @param volume Volume to play the note at
+     * @return Newly added MidiNote
+     */
+    public MidiNote addNoteOnBar(int timeStepIndex, int pitchClass, double volume) {
+        MidiNote note = new MidiNote(chartParams,
+                chartParams.timeStep().multiply(timeStepIndex),
+                Attachment.EffectAttachment.EffectOptions.of(volume, chartParams.getPitch(pitchClass)));
+        addNoteDirect(note);
+        return note;
     }
 
     /**

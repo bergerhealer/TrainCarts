@@ -39,7 +39,7 @@ public abstract class SequenceEffectLoop implements EffectLoop {
     }
 
     @Override
-    public boolean advance(Duration dt, Duration duration, boolean loop) {
+    public boolean advance(Time dt, Time duration, boolean loop) {
         long prev_time_nanos = this.nanosElapsed;
         long curr_time_nanos = prev_time_nanos + dt.nanos;
 

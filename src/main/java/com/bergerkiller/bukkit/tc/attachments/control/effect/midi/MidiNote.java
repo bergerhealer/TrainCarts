@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.control.effect.midi;
 
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
+import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
 
 /**
  * A single MIDI note that can be played. Stores the note play parameters,
@@ -9,7 +10,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
  */
 public final class MidiNote implements Comparable<MidiNote> {
     private final MidiChartParameters chartParams;
-    private final double timestamp;
+    private final EffectLoop.Time timestamp;
     private final Attachment.EffectAttachment.EffectOptions options;
 
     // These are calculated using the chartParams and define whether a note is equal to another
@@ -18,7 +19,11 @@ public final class MidiNote implements Comparable<MidiNote> {
     private final int pitchClass;
     private final Attachment.EffectAttachment.EffectOptions optionsAdjusted;
 
-    public MidiNote(MidiChartParameters chartParams, double timestamp, Attachment.EffectAttachment.EffectOptions options) {
+    public MidiNote(MidiChartParameters chartParams, double timestampSecs, Attachment.EffectAttachment.EffectOptions options) {
+        this(chartParams, EffectLoop.Time.seconds(timestampSecs), options);
+    }
+
+    public MidiNote(MidiChartParameters chartParams, EffectLoop.Time timestamp, Attachment.EffectAttachment.EffectOptions options) {
         this.chartParams = chartParams;
         this.timestamp = timestamp;
         this.options = options;
@@ -45,13 +50,43 @@ public final class MidiNote implements Comparable<MidiNote> {
     }
 
     /**
+     * Shifts this note forwards or backwards in time by a number of time steps
+     *
+     * @param numTimeSteps Number of time steps to shift, negative to go back in time
+     * @return MidiNote with timestamp updated
+     */
+    public MidiNote withTimeShift(int numTimeSteps) {
+        if (numTimeSteps == 0) {
+            return this;
+        } else {
+            return new MidiNote(this.chartParams, this.timestamp.add(this.chartParams.timeStep(), numTimeSteps), options);
+        }
+    }
+
+    /**
+     * Shifts this note up or down to a higher or lower pitch, based on pitch classes
+     *
+     * @param numPitchClasses Number of pitch shift classes to shift. Positive number
+     *                        makes the pitch higher, negative number makes it lower.
+     * @return MidiNote with pitch (speed) updated
+     */
+    public MidiNote withPitchShift(int numPitchClasses) {
+        if (numPitchClasses == 0) {
+            return this;
+        } else {
+            return new MidiNote(this.chartParams, this.timestamp, options.withSpeed(
+                    this.chartParams.getPitch(this.pitchClass + numPitchClasses)));
+        }
+    }
+
+    /**
      * Gets the timestamp of this note in seconds. This timestamp has not
      * been adjusted to sit on the MIDI chart. It will also not change when
      * {@link #withChartParameters(MidiChartParameters)} is used to change them.
      *
      * @return Timestamp in seconds from the start when this note is played
      */
-    public double timestamp() {
+    public EffectLoop.Time timestamp() {
         return timestamp;
     }
 

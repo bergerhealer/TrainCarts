@@ -78,12 +78,12 @@ public class EffectLoopPlayerController implements LibraryComponent, TrainCarts.
         for (EffectLoop loop; (loop = startPendingSync.poll()) != null;) {
             syncRunning.add(loop);
         }
-        syncRunning.removeIf(e -> !e.advance(EffectLoop.Duration.ONE_TICK, EffectLoop.Duration.ZERO, false));
+        syncRunning.removeIf(e -> !e.advance(EffectLoop.Time.ONE_TICK, EffectLoop.Time.ZERO, false));
     }
 
     /**
      * Starts playing the EffectLoop instance specified. Will stop playing when the instance
-     * {@link EffectLoop#advance(EffectLoop.Duration, EffectLoop.Duration, boolean)}
+     * {@link EffectLoop#advance(EffectLoop.Time, EffectLoop.Time, boolean)}
      * returns false. This method can be called asynchronously.
      *
      * @param loop EffectLoop
@@ -125,7 +125,7 @@ public class EffectLoopPlayerController implements LibraryComponent, TrainCarts.
         }
 
         public void processAsync() {
-            final EffectLoop.Duration zero_duration = EffectLoop.Duration.ZERO;
+            final EffectLoop.Time zero_duration = EffectLoop.Time.ZERO;
             final List<EffectLoop> asyncRunning = new ArrayList<>();
             long lastTime = System.nanoTime();
             while (!stopping) {
@@ -133,7 +133,7 @@ public class EffectLoopPlayerController implements LibraryComponent, TrainCarts.
 
                 // Measure time elapsed since previous loop
                 long now = System.nanoTime();
-                EffectLoop.Duration elapsedTime = EffectLoop.Duration.nanos(now - lastTime);
+                EffectLoop.Time elapsedTime = EffectLoop.Time.nanos(now - lastTime);
                 lastTime = now;
 
                 // Run all effect loops
@@ -203,7 +203,7 @@ public class EffectLoopPlayerController implements LibraryComponent, TrainCarts.
         }
 
         @Override
-        public boolean advance(Duration dt, Duration duration, boolean loop) {
+        public boolean advance(Time dt, Time duration, boolean loop) {
             try {
                 if (base.advance(dt, duration, loop)) {
                     return true;

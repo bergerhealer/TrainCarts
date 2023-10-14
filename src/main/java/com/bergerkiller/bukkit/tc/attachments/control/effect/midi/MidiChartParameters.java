@@ -17,7 +17,7 @@ public final class MidiChartParameters {
     public static final MidiChartParameters DEFAULT = chromatic(0.5);
 
     private static final double LOG2 = 0.6931471805599453;
-    private final EffectLoop.Duration timeStep;
+    private final EffectLoop.Time timeStep;
     private final int pitchClasses;
     private final double pitchClassesInv;
     private final double pitchClassesDivLog2;
@@ -50,7 +50,7 @@ public final class MidiChartParameters {
         if (timeStep < 1e-6) {
             throw new IllegalArgumentException("Time Step must be at least 1e-6 seconds");
         }
-        this.timeStep = EffectLoop.Duration.seconds(timeStep);
+        this.timeStep = EffectLoop.Time.seconds(timeStep);
         this.pitchClasses = pitchClasses;
         this.pitchClassesInv = 1.0 / pitchClasses;
         this.pitchClassesDivLog2 = (double) pitchClasses / LOG2;
@@ -59,10 +59,10 @@ public final class MidiChartParameters {
     /**
      * Gets the amount of time that elapses for a single 'bar' on the chart
      *
-     * @return Time step duration in seconds
+     * @return Time step duration
      */
-    public double timeStep() {
-        return timeStep.seconds;
+    public EffectLoop.Time timeStep() {
+        return timeStep;
     }
 
     /**
@@ -73,7 +73,18 @@ public final class MidiChartParameters {
      * @return Time step bar index
      */
     public int getTimeStepIndex(double timestamp) {
-        return (int) (EffectLoop.Duration.secondsToNanos(timestamp) / timeStep.nanos);
+        return (int) (EffectLoop.Time.secondsToNanos(timestamp) / timeStep.nanos);
+    }
+
+    /**
+     * Gets the time step index (bar X-coordinate) a given timestamp in seconds
+     * falls within.
+     *
+     * @param timestamp Timestamp from start
+     * @return Time step bar index
+     */
+    public int getTimeStepIndex(EffectLoop.Time timestamp) {
+        return (int) (timestamp.nanos / timeStep.nanos);
     }
 
     /**
