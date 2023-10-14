@@ -91,7 +91,7 @@ public final class MidiNote implements Comparable<MidiNote> {
     }
 
     /**
-     * Gets the time step index. This is the X-axis of where the bar lies on the
+     * Gets the time step index. This is the X-axis of where the note lies on the
      * chart.
      *
      * @return Time step index
@@ -102,7 +102,7 @@ public final class MidiNote implements Comparable<MidiNote> {
 
     /**
      * Gets the pitch class, where a class of 0 means exactly speed 1.0. This is the
-     * Y-axis of where the bar lies on the chart, centered around 0. This value
+     * Y-axis of where the note lies on the chart, centered around 0. This value
      * can be both positive (faster) and negative (slower).
      *
      * @return Pitch class

@@ -42,7 +42,7 @@ public final class MidiChart implements Cloneable {
     /**
      * Transforms this chart so that it uses different chart parameters.
      * All original notes are updated to fit on this new chart.
-     * Notes that clash because they occupy the same bar position are
+     * Notes that clash because they occupy the same note position are
      * removed.
      *
      * @param chartParams New MIDI chart parameters to put all the notes on
@@ -194,9 +194,10 @@ public final class MidiChart implements Cloneable {
     }
 
     /**
-     * Adds a note on a specific bar on this chart
+     * Adds a note on a specific position on this chart
      *
-     * @param timeStepIndex Number of time steps ('bars') from the start of the chart
+     * @param timeStepIndex Number of time steps ('notes') from the start of the chart.
+     *                      This number is controlled by the BPM and time signature.
      * @param pitchClass Number of pitch classes up or down (speed/pitch)
      * @param volume Volume to play the note at
      * @return Newly added MidiNote
