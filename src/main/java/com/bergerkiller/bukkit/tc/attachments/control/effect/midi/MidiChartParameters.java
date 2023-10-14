@@ -11,14 +11,14 @@ import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
  */
 public final class MidiChartParameters {
     /**
-     * The default (initial) MidiChartParameters, with a BPM of 120 at 4 notes per beat
-     * (0.125s time step) and a chromatic (12 pitch classes) scale.
+     * The default (initial) MidiChartParameters, with a BPM of 120 at common 4/4
+     * time signature (0.125s time step) and a chromatic (12 pitch classes) scale.
      */
-    public static final MidiChartParameters DEFAULT = chromatic(120, 4);
+    public static final MidiChartParameters DEFAULT = chromatic(MidiTimeSignature.COMMON, 120);
 
     private static final double LOG2 = 0.6931471805599453;
+    private final MidiTimeSignature timeSignature;
     private final int bpm;
-    private final int timeSignature;
     private final EffectLoop.Time timeStep;
     private final int pitchClasses;
     private final double pitchClassesInv;
@@ -27,29 +27,29 @@ public final class MidiChartParameters {
     /**
      * Creates new Chart Parameters for a chromatic scale (12 pitch classes)
      *
-     * @param bpm Beats per minute. Controls the time duration of a single measure
      * @param timeSignature How many notes per beat can be placed (e.g. 4 = 4/4)
+     * @param bpm Beats per minute. Controls the time duration of a single measure
      * @return Chart Parameters
      */
-    public static MidiChartParameters chromatic(int bpm, int timeSignature) {
-        return of(bpm, timeSignature, 12);
+    public static MidiChartParameters chromatic(MidiTimeSignature timeSignature, int bpm) {
+        return of(timeSignature, bpm, 12);
     }
 
     /**
      * Creates new Chart Parameters
      *
-     * @param bpm Beats per minute. Controls the time duration of a single measure
      * @param timeSignature How many notes per beat can be placed (e.g. 4 = 4/4)
+     * @param bpm Beats per minute. Controls the time duration of a single measure
      * @param pitchClasses Number of pitch classes per doubling of the speed
      * @return Chart Parameters
      */
-    public static MidiChartParameters of(int bpm, int timeSignature, int pitchClasses) {
-        return new MidiChartParameters(bpm, timeSignature, pitchClasses);
+    public static MidiChartParameters of(MidiTimeSignature timeSignature, int bpm, int pitchClasses) {
+        return new MidiChartParameters(timeSignature, bpm, pitchClasses);
     }
 
-    private MidiChartParameters(int bpm, int timeSignature, int pitchClasses) {
-        if (pitchClasses <= 0) {
-            throw new IllegalArgumentException("Number of pitch classes must be at least 1");
+    private MidiChartParameters(MidiTimeSignature timeSignature, int bpm, int pitchClasses) {
+        if (timeSignature == null) {
+            throw new IllegalArgumentException("Null time signature");
         }
         if (bpm < 1) {
             throw new IllegalArgumentException("Beats per minute must be at least 1");
@@ -57,15 +57,13 @@ public final class MidiChartParameters {
         if (bpm > 60000) {
             throw new IllegalArgumentException("Beats per minute must be no more than 60000");
         }
-        if (timeSignature < 1) {
-            throw new IllegalArgumentException("Time signature must be at least 1 note per beat");
+        if (pitchClasses <= 0) {
+            throw new IllegalArgumentException("Number of pitch classes must be at least 1");
         }
-        if (timeSignature > 64) {
-            throw new IllegalArgumentException("Time signature must be no more than 64 notes per beat");
-        }
-        this.bpm = bpm;
+
         this.timeSignature = timeSignature;
-        this.timeStep = EffectLoop.Time.seconds(60.0 / (bpm * timeSignature));
+        this.bpm = bpm;
+        this.timeStep = EffectLoop.Time.seconds(60.0 / (bpm * timeSignature.noteValue()));
         this.pitchClasses = pitchClasses;
         this.pitchClassesInv = 1.0 / pitchClasses;
         this.pitchClassesDivLog2 = (double) pitchClasses / LOG2;
@@ -81,6 +79,18 @@ public final class MidiChartParameters {
     }
 
     /**
+     * Gets the time signature, which controls how many notes can be placed per beat,
+     * and how many beats exist per measure.
+     *
+     * @return Time signature
+     * @see #bpm()
+     * @see #timeStep()
+     */
+    public MidiTimeSignature timeSignature() {
+        return timeSignature;
+    }
+
+    /**
      * Gets the beats-per-minute configured for the chart. This controls the duration of
      * a single measure of notes.
      *
@@ -90,17 +100,6 @@ public final class MidiChartParameters {
      */
     public int bpm() {
         return bpm;
-    }
-
-    /**
-     * Gets the time signature, which controls how many notes can be placed per measure.
-     *
-     * @return Time signature, notes per measure (or beat)
-     * @see #bpm()
-     * @see #timeStep()
-     */
-    public int timeSignature() {
-        return timeSignature;
     }
 
     /**
@@ -187,7 +186,7 @@ public final class MidiChartParameters {
         } else if (o instanceof MidiChartParameters) {
             MidiChartParameters other = (MidiChartParameters) o;
             return this.bpm == other.bpm
-                    && this.timeSignature == other.timeSignature
+                    && this.timeSignature.equals(other.timeSignature)
                     && this.pitchClasses == other.pitchClasses;
         } else {
             return false;
