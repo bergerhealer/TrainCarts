@@ -42,7 +42,7 @@ public class ListedRootLoader {
 
         List<String> parts = ListedEntry.tokenizePath(query);
 
-        // Decide on the namespce to include. If no namespace was prefixed, do all of them.
+        // Decide on the namespace to include. If no namespace was prefixed, do all of them.
         List<ListedNamespace> namespacesToCheck;
         if (!parts.isEmpty() && parts.get(0).endsWith(":")) {
             String namespace = parts.remove(0);

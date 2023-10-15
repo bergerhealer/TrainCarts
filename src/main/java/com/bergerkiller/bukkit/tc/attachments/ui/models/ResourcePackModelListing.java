@@ -232,6 +232,17 @@ public class ResourcePackModelListing extends ListedRootLoader {
                 String path = "item/" + ModelInfoLookup.lookupItemRenderOptions(item).lookupModelName();
                 if (allOverridedModels.contains(path)) {
                     for (ModelOverride override : resourcePack.getModelInfo(path).getOverrides()) {
+                        if (override.model == null) {
+                            continue;
+                        }
+                        if (override.model.startsWith("minecraft:")) {
+                            if (override.model.substring(10).equals(path)) {
+                                continue; // Same as original model
+                            }
+                        } else if (override.model.equals(path)) {
+                            continue; // Same as original model
+                        }
+
                         // Figure out what the 'credit' are for this model by reading the actual model
                         // No big deal if this fails.
                         String credit = resourcePack.getModelInfo(override.model).getCredit();
