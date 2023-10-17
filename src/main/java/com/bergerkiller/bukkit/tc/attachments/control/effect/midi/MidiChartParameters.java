@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.effect.midi;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
 
 /**
@@ -191,5 +192,30 @@ public final class MidiChartParameters {
         } else {
             return false;
         }
+    }
+
+    /**
+     * Writes these chart parameters to a YAML configuration
+     *
+     * @param config YAML configuration to write to
+     */
+    public void toYaml(ConfigurationNode config) {
+        config.set("timeSignature", timeSignature().toString());
+        config.set("bpm", bpm());
+        config.set("pitchClasses", pitchClasses());
+    }
+
+    /**
+     * Reads chart parameters from a YAML configuration
+     *
+     * @param config YAML configuration to read from
+     * @return decoded MidiChartParameters. Uses defaults for missing fields.
+     */
+    public static MidiChartParameters fromYaml(ConfigurationNode config) {
+        MidiTimeSignature timeSignature = MidiTimeSignature.fromString(
+                config.getOrDefault("timeSignature", ""), DEFAULT.timeSignature());
+        int bpm = config.getOrDefault("bpm", DEFAULT.bpm());
+        int pitchClasses = config.getOrDefault("pitchClasses", DEFAULT.pitchClasses());
+        return of(timeSignature, bpm, pitchClasses);
     }
 }

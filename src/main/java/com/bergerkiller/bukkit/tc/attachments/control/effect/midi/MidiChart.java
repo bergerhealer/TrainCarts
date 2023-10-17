@@ -1,8 +1,10 @@
 package com.bergerkiller.bukkit.tc.attachments.control.effect.midi;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
@@ -72,6 +74,29 @@ public final class MidiChart implements Cloneable {
      */
     public List<MidiNote> getNotes() {
         return notes;
+    }
+
+    /**
+     * Gets the minimum and maximum time step index and pitch classes of all notes on this
+     * chart
+     *
+     * @return Bounds
+     * @see Bounds#isEmpty()
+     */
+    public Bounds getBounds() {
+        if (isEmpty()) {
+            return Bounds.EMPTY;
+        }
+
+        int minTimeStepIndex = notes.get(0).timeStepIndex();
+        int maxTimeStepIndex = notes.get(notes.size() - 1).timeStepIndex();
+        int minPitch = Integer.MAX_VALUE;
+        int maxPitch = Integer.MIN_VALUE;
+        for (MidiNote note : notes) {
+            minPitch = Math.min(minPitch, note.pitchClass());
+            maxPitch = Math.max(maxPitch, note.pitchClass());
+        }
+        return new Bounds(minTimeStepIndex, maxTimeStepIndex, minPitch, maxPitch);
     }
 
     /**
@@ -179,6 +204,31 @@ public final class MidiChart implements Cloneable {
     }
 
     /**
+     * Gets whether this chart contains a particular note
+     *
+     * @param note MIDI note
+     * @return True if this note is contained on this chart
+     */
+    public boolean containsNote(MidiNote note) {
+        return Collections.binarySearch(notes, note) >= 0;
+    }
+
+    /**
+     * Checks whether this chart contains all the notes specified
+     *
+     * @param notes MIDI notes to find in this chart
+     * @return True if all notes are contained
+     */
+    public boolean containsAllNotes(Collection<MidiNote> notes) {
+        for (MidiNote note : notes) {
+            if (!containsNote(note)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * Removes a previously added note
      *
      * @param note MIDI Note to remove
@@ -186,10 +236,7 @@ public final class MidiChart implements Cloneable {
     public void removeNote(MidiNote note) {
         int index = Collections.binarySearch(notes, note);
         if (index >= 0) {
-            MidiNote removed = notes.remove(index);
-            if (removed != note) {
-                notes.add(index, removed); // Weird!
-            }
+            notes.remove(index);
         }
     }
 
@@ -254,6 +301,22 @@ public final class MidiChart implements Cloneable {
     }
 
     /**
+     * Removes all the notes defined in another chart from this chart.
+     * The notes will be aligned according to this chart's parameters,
+     * if they are different.
+     *
+     * @param chart Chart whose notes to remove from this chart
+     */
+    public void removeChartNotes(MidiChart chart) {
+        // If parameters are identical we can skip the per-note withChartParameters stuff
+        if (chart.chartParams.equals(this.chartParams)) {
+            chart.notes.forEach(this::removeNote);
+        } else {
+            chart.notes.forEach(n -> removeNote(n.withChartParameters(chartParams)));
+        }
+    }
+
+    /**
      * Adds a note to this chart, replacing any previous note at that
      * chart position.
      *
@@ -281,5 +344,144 @@ public final class MidiChart implements Cloneable {
         MidiChart copy = new MidiChart(chartParams);
         copy.notes.addAll(this.notes);
         return copy;
+    }
+
+    /**
+     * Saves this chart to YAML
+     *
+     * @return YAML
+     * @see #fromYaml(ConfigurationNode)
+     */
+    public ConfigurationNode toYaml() {
+        ConfigurationNode yaml = new ConfigurationNode();
+        getParameters().toYaml(yaml);
+        if (!isEmpty()) {
+            List<String> notesStr = yaml.getList("notes", String.class);
+            for (MidiNote note : notes) {
+                notesStr.add(note.toString());
+            }
+        }
+        return yaml;
+    }
+
+    /**
+     * Loads a MidiChart from previously saved YAML
+     *
+     * @param config Midi Chart configuration
+     * @return MidiChart
+     * @see #toYaml()
+     */
+    public static MidiChart fromYaml(ConfigurationNode config) {
+        MidiChart chart = MidiChart.empty(MidiChartParameters.fromYaml(config));
+        if (config.contains("notes")) {
+            for (String noteStr : config.getList("notes", String.class)) {
+                MidiNote note = MidiNote.fromString(chart.getParameters(), noteStr);
+                if (note != null) {
+                    chart.addNoteDirect(note);
+                }
+            }
+        }
+        return chart;
+    }
+
+    /**
+     * Returns a new empty midi chart with default chart parameters
+     *
+     * @return Empty MIDI chart
+     */
+    public static MidiChart empty() {
+        return empty(MidiChartParameters.DEFAULT);
+    }
+
+    /**
+     * Returns a new empty midi chart with the chart parameters specified
+     *
+     * @return Empty MIDI chart
+     */
+    public static MidiChart empty(MidiChartParameters chartParams) {
+        return new MidiChart(chartParams);
+    }
+
+    /**
+     * Creates a MIDI chart of bergerkiller's test tune
+     *
+     * @return MidiChart with berger's tune
+     */
+    public static MidiChart bergersTune() {
+        MidiChart chart = new MidiChart(MidiChartParameters.chromatic(MidiTimeSignature.COMMON, 150));
+        chart.addNote(0.0, 1.0, 0.6);
+        chart.addNote(0.1, 1.0, 0.8);
+        chart.addNote(0.2, 1.0, 1.0);
+        chart.addNote(0.3, 1.0, 1.2);
+        chart.addNote(0.4, 1.0, 1.4);
+        chart.addNote(0.5, 1.0, 1.6);
+        chart.addNote(0.6, 1.0, 1.8);
+        chart.addNote(0.7, 1.0, 2.0);
+
+        chart.addNote(1.0, 1.0, 1.0);
+        chart.addNote(1.2, 1.0, 1.2);
+        chart.addNote(1.4, 1.0, 1.4);
+
+        chart.addNote(1.6, 1.0, 1.4);
+        chart.addNote(1.7, 1.0, 1.2);
+        chart.addNote(1.8, 1.0, 1.0);
+        chart.addNote(1.9, 1.0, 0.8);
+
+        chart.addNote(2.0, 1.0, 0.9);
+        chart.addNote(2.2, 1.0, 1.1);
+        chart.addNote(2.4, 1.0, 0.5);
+        chart.addNote(2.6, 1.0, 0.7);
+        return chart;
+    }
+
+    /**
+     * Stores the minimum and maximum bounds of the time step index and pitch classes used in the chart
+     */
+    public static class Bounds {
+        public static final Bounds EMPTY = new Bounds(0, 0, 0, 0);
+        private final int minTimeStepIndex;
+        private final int maxTimeStepIndex;
+        private final int minPitchClass;
+        private final int maxPitchClass;
+
+        public Bounds(int minTimeStepIndex, int maxTimeStepIndex, int minPitchClass, int maxPitchClass) {
+            this.minTimeStepIndex = minTimeStepIndex;
+            this.maxTimeStepIndex = maxTimeStepIndex;
+            this.minPitchClass = minPitchClass;
+            this.maxPitchClass = maxPitchClass;
+        }
+
+        public int minTimeStepIndex() {
+            return minTimeStepIndex;
+        }
+
+        public int maxTimeStepIndex() {
+            return maxTimeStepIndex;
+        }
+
+        public int getNumTimeSteps() {
+            return maxTimeStepIndex - minTimeStepIndex + 1;
+        }
+
+        public int minPitchClass() {
+            return minPitchClass;
+        }
+
+        public int maxPitchClass() {
+            return maxPitchClass;
+        }
+
+        public int getNumPitchClasses() {
+            return maxPitchClass - minPitchClass + 1;
+        }
+
+        /**
+         * Gets whether the chart is/was empty. In that case there are no real bounds.
+         *
+         * @return True if empty
+         */
+        public boolean isEmpty() {
+            return this == EMPTY;
+        }
     }
 }

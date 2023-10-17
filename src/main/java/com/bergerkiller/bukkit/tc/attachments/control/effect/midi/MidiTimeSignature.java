@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.control.effect.midi;
 
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
+
 /**
  * A midi time signature, controlling how many notes can be put down per beat,
  * and how many beats exist per measure.
@@ -7,6 +9,7 @@ package com.bergerkiller.bukkit.tc.attachments.control.effect.midi;
 public class MidiTimeSignature {
     private final int beatsPerMeasure;
     private final int noteValue;
+    private final int notesPerMeasure;
 
     /**
      * A common time signature (4/4)
@@ -35,6 +38,7 @@ public class MidiTimeSignature {
 
         this.beatsPerMeasure = beatsPerMeasure;
         this.noteValue = noteValue;
+        this.notesPerMeasure = noteValue * beatsPerMeasure;
     }
 
     /**
@@ -44,6 +48,15 @@ public class MidiTimeSignature {
      */
     public int beatsPerMeasure() {
         return beatsPerMeasure;
+    }
+
+    /**
+     * Gets the number of notes displayed per measure of music
+     *
+     * @return Notes per measure (beats per measure * note value)
+     */
+    public int notesPerMeasure() {
+        return notesPerMeasure;
     }
 
     /**
@@ -71,5 +84,24 @@ public class MidiTimeSignature {
     @Override
     public String toString() {
         return beatsPerMeasure + "/" + noteValue;
+    }
+
+    /**
+     * Parses {@link #toString()} back into a MidiTimeSignature
+     *
+     * @param signatureText Text output of {@link #toString()}, e.g. "4/4"
+     * @param defaultSig Default time signature to return on failure
+     * @return MidiTimeSignature. On failure returns defaultSig
+     */
+    public static MidiTimeSignature fromString(String signatureText, MidiTimeSignature defaultSig) {
+        int sep;
+        if (signatureText != null && (sep = signatureText.indexOf('/')) != -1) {
+            String beatsPerMeasureStr = signatureText.substring(0, sep).trim();
+            String noteValueStr = signatureText.substring(sep + 1).trim();
+            return of(ParseUtil.parseInt(beatsPerMeasureStr, defaultSig.beatsPerMeasure),
+                      ParseUtil.parseInt(noteValueStr, defaultSig.noteValue));
+        } else {
+            return defaultSig;
+        }
     }
 }

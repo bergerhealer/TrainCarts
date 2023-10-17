@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.effect.midi;
 
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
@@ -139,5 +140,53 @@ public final class MidiNote implements Comparable<MidiNote> {
             comp = Integer.compare(this.pitchClass, note.pitchClass);
         }
         return comp;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append("t=").append(timestamp().seconds).append(" s=" ).append(options.speed());
+        if (options.volume() != 1.0) {
+            str.append(" v=").append(options.volume());
+        }
+        return str.toString();
+    }
+
+    /**
+     * Decodes {@link #toString()} back into a MidiNote
+     *
+     * @param chartParams Chart Parameters on which the Midi note will be put
+     * @param noteStr String to decode
+     * @return Decoded MidiNote. Returns <i>null</i> if the String lacks information about
+     *         the note timestamp or speed (pitch). Volume is assumed to be 1.0 if omitted.
+     */
+    public static MidiNote fromString(MidiChartParameters chartParams, String noteStr) {
+        int startIndex = 0;
+        boolean done = false;
+        double timestamp = Double.NaN, speed = Double.NaN, volume = 1.0;
+        do {
+            int endIndex = noteStr.indexOf(' ', startIndex);
+            if (endIndex == -1) {
+                endIndex = noteStr.length();
+                done = true;
+            }
+
+            String entry = noteStr.substring(startIndex, endIndex);
+            if (entry.startsWith("t=")) {
+                timestamp = ParseUtil.parseDouble(entry.substring(2), timestamp);
+            } else if (entry.startsWith("s=")) {
+                speed = ParseUtil.parseDouble(entry.substring(2), speed);
+            } else if (entry.startsWith("v=")) {
+                volume = ParseUtil.parseDouble(entry.substring(2), volume);
+            }
+
+            startIndex = endIndex + 1;
+        } while (!done);
+
+        if (Double.isNaN(timestamp) || Double.isNaN(speed)) {
+            return null;
+        }
+
+        return new MidiNote(chartParams, timestamp, Attachment.EffectAttachment.EffectOptions.of(volume, speed));
     }
 }
