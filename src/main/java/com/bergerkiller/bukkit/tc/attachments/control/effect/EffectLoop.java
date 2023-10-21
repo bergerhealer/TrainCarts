@@ -200,6 +200,24 @@ public interface EffectLoop {
             return (long) (seconds * 1_000_000_000.0);
         }
 
+        /**
+         * Divides this time value by a divisor, rounds the result (rather than flooring)
+         *
+         * @param divisor Divisor time value. Must not be 0.
+         * @return Rounded value of dividing this time by the divisor specified
+         */
+        public int roundDiv(Time divisor) {
+            if (divisor.isZero()) {
+                throw new ArithmeticException("Divisor is zero");
+            }
+            long division = nanos / divisor.nanos;
+            long remainder = Math.abs(nanos % divisor.nanos);
+            if (2 * remainder >= Math.abs(divisor.nanos)) {
+                division += ((nanos < 0) ^ (divisor.nanos < 0)) ? -1 : 1;
+            }
+            return (int) division;
+        }
+
         @Override
         public boolean equals(Object o) {
             if (o == this) {

@@ -46,7 +46,9 @@ public final class MidiNote implements Comparable<MidiNote> {
         if (this.chartParams.equals(chartParams)) {
             return this;
         } else {
-            return new MidiNote(chartParams, this.timestamp, this.options);
+            return new MidiNote(chartParams,
+                    MidiChartParameters.preserveTimeStep(this.timestamp, this.chartParams, chartParams),
+                    this.options);
         }
     }
 

@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc;
 
+import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiChartParameters;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiTimeSignature;
 import org.junit.Test;
@@ -10,6 +11,24 @@ import static org.junit.Assert.assertEquals;
  * Tests maths and logic of Midi (noteblock-esque) Playback
  */
 public class MidiEffectTest {
+
+    @Test
+    public void testTimeRoundDiv() {
+        assertEquals(2, roundDiv(1000, 500));
+        assertEquals(2, roundDiv(1249, 500));
+        assertEquals(2, roundDiv(751, 500));
+        assertEquals(1, roundDiv(1000, 1000));
+        assertEquals(1, roundDiv(501, 1000));
+        assertEquals(1, roundDiv(1499, 1000));
+        // Not going to happen in practise, but it's good to play it safe
+        assertEquals(-1, roundDiv(-1000, 1000));
+        assertEquals(-1, roundDiv(-1499, 1000));
+        assertEquals(-1, roundDiv(-501, 1000));
+    }
+
+    private static int roundDiv(int num, int div) {
+        return EffectLoop.Time.nanos(num).roundDiv(EffectLoop.Time.nanos(div));
+    }
 
     @Test
     public void testChromaticPitchToPitchClass() {
@@ -38,6 +57,8 @@ public class MidiEffectTest {
         MidiChartParameters p = MidiChartParameters.chromatic(MidiTimeSignature.COMMON, 150);
         assertEquals(0, p.getTimeStepIndex(0.0));
         assertEquals(1, p.getTimeStepIndex(0.1));
+        assertEquals(1, p.getTimeStepIndex(0.099));
+        assertEquals(1, p.getTimeStepIndex(0.101));
         assertEquals(5, p.getTimeStepIndex(0.5));
         assertEquals(200, p.getTimeStepIndex(20.0));
     }

@@ -28,7 +28,7 @@ public final class MidiChartParameters {
     /**
      * Creates new Chart Parameters for a chromatic scale (12 pitch classes)
      *
-     * @param timeSignature How many notes per beat can be placed (e.g. 4 = 4/4)
+     * @param timeSignature How many notes per beat can be placed (e.g. 4/4)
      * @param bpm Beats per minute. Controls the time duration of a single measure
      * @return Chart Parameters
      */
@@ -39,7 +39,7 @@ public final class MidiChartParameters {
     /**
      * Creates new Chart Parameters
      *
-     * @param timeSignature How many notes per beat can be placed (e.g. 4 = 4/4)
+     * @param timeSignature How many notes per beat can be placed (e.g. 4/4)
      * @param bpm Beats per minute. Controls the time duration of a single measure
      * @param pitchClasses Number of pitch classes per doubling of the speed
      * @return Chart Parameters
@@ -92,6 +92,36 @@ public final class MidiChartParameters {
     }
 
     /**
+     * Clones this MidiChartParameters with a new time signature
+     *
+     * @param signature New time signature
+     * @return New MidiChartParameters with time signature updated
+     */
+    public MidiChartParameters withTimeSignature(MidiTimeSignature signature) {
+        return new MidiChartParameters(signature, this.bpm, this.pitchClasses);
+    }
+
+    /**
+     * Clones this MidiChartParameters with a new beats per minute
+     *
+     * @param bpm New beats per minute
+     * @return New MidiChartParameters with beats per minute updated
+     */
+    public MidiChartParameters withBPM(int bpm) {
+        return new MidiChartParameters(this.timeSignature, bpm, this.pitchClasses);
+    }
+
+    /**
+     * Clones this MidiChartParameters with a new number of pitch classes
+     *
+     * @param numPitchClasses New number of pitch classes
+     * @return New MidiChartParameters with the number of pitch classesupdated
+     */
+    public MidiChartParameters withPitchClasses(int numPitchClasses) {
+        return new MidiChartParameters(this.timeSignature, this.bpm, numPitchClasses);
+    }
+
+    /**
      * Gets the beats-per-minute configured for the chart. This controls the duration of
      * a single measure of notes.
      *
@@ -111,7 +141,7 @@ public final class MidiChartParameters {
      * @return Time step index
      */
     public int getTimeStepIndex(double timestamp) {
-        return (int) (EffectLoop.Time.secondsToNanos(timestamp) / timeStep.nanos);
+        return getTimeStepIndex(EffectLoop.Time.seconds(timestamp));
     }
 
     /**
@@ -122,7 +152,7 @@ public final class MidiChartParameters {
      * @return Time step note index
      */
     public int getTimeStepIndex(EffectLoop.Time timestamp) {
-        return (int) (timestamp.nanos / timeStep.nanos);
+        return timestamp.roundDiv(timeStep);
     }
 
     /**
@@ -145,6 +175,23 @@ public final class MidiChartParameters {
      */
     public long getTimestampNanos(int timeStepIndex) {
         return timeStepIndex * timeStep.nanos;
+    }
+
+    /**
+     * Adjusts the timestamp so that it stays in the same time step, when changing from one
+     * set of chart parameters to another.
+     *
+     * @param time Timestamp
+     * @param from MidiChartParameters the timestamp was in
+     * @param to MidiChartParameters the timestamp should be in
+     * @return Adjusted timestamp
+     */
+    public static EffectLoop.Time preserveTimeStep(EffectLoop.Time time, MidiChartParameters from, MidiChartParameters to) {
+        if (from.timeStep.equals(to.timeStep)) {
+            return time;
+        } else {
+            return EffectLoop.Time.nanos((time.nanos * to.timeStep.nanos) / from.timeStep.nanos);
+        }
     }
 
     /**

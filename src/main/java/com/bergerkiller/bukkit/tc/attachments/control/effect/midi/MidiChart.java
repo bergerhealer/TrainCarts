@@ -59,6 +59,20 @@ public final class MidiChart implements Cloneable {
     }
 
     /**
+     * Transforms this chart so that it uses different chart parameters.
+     * All original notes are updated to fit on this new chart.
+     * Notes that clash because they occupy the same note position are
+     * removed.
+     *
+     * @param chartParamsChanger Function accepting the current chart parameter that
+     *                           returns the new MIDI chart parameters to apply
+     * @return MidiChart that uses the new parameters
+     */
+    public MidiChart withChartParameters(Function<MidiChartParameters, MidiChartParameters> chartParamsChanger) {
+        return withChartParameters(chartParamsChanger.apply(getParameters()));
+    }
+
+    /**
      * Gets whether this chart is empty, that is, has no notes
      *
      * @return True if empty
@@ -116,6 +130,15 @@ public final class MidiChart implements Cloneable {
             for (ListIterator<MidiNote> it = notes.listIterator(); it.hasNext();) {
                 it.set(it.next().withTimeShift(numTimeSteps));
             }
+        }
+    }
+
+    /**
+     * Shifts all notes backwards in time so that the first note is played at t=0
+     */
+    public void timeShiftToStart() {
+        if (!isEmpty()) {
+            timeShift(-getNotes().get(0).timeStepIndex());
         }
     }
 
@@ -313,6 +336,24 @@ public final class MidiChart implements Cloneable {
             chart.notes.forEach(this::removeNote);
         } else {
             chart.notes.forEach(n -> removeNote(n.withChartParameters(chartParams)));
+        }
+    }
+
+    /**
+     * Selectively adds or removes the notes of another chart to this chart.
+     * If all notes in the input chart are contained in this chart, removes all
+     * the notes. If not, adds them. This acts as a toggle.
+     *
+     * @param chart Chart with notes to add or remove from this chart
+     * @return True if notes were added, False if notes were removed
+     */
+    public boolean toggleChartNotes(MidiChart chart) {
+        if (containsAllNotes(chart.getNotes())) {
+            removeChartNotes(chart);
+            return false;
+        } else {
+            addChartNotes(chart);
+            return true;
         }
     }
 
