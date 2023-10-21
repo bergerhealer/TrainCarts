@@ -97,7 +97,7 @@ public class EffectLoopPlayerController implements LibraryComponent, TrainCarts.
     }
 
     private static class AsyncWorker {
-        private static final long INTERVAL = 50_000_000L;
+        private static final long INTERVAL = 10_000_000L;
         private final Queue<EffectLoop> startPendingAsync = new ConcurrentLinkedQueue<>();
         private final Thread effectLoopThread;
         private volatile boolean stopping = false;
