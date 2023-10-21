@@ -4,15 +4,21 @@ import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
+import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.utils.DebugUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiChart;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiNote;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiTimeSignature;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetTooltip;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * A menu dialog that displays a {@link MidiChart} and includes controls to place notes,
@@ -20,29 +26,133 @@ import java.util.Set;
  * When the chart is updated a callback is called.
  */
 public abstract class MidiChartDialog extends MapWidgetMenu {
+    private static final MapTexture MIDI_BUTTON_ICONS = MapTexture.loadPluginResource(TrainCarts.plugin,
+            "com/bergerkiller/bukkit/tc/textures/attachments/midi_buttons.png");
     private MidiChart chart = MidiChart.bergersTune(); //MidiChart.empty();
     private MidiChart selection = MidiChart.empty(chart.getParameters());
+    private MidiChart pattern = MidiChart.empty(chart.getParameters());
+    private Mode mode = Mode.NOTE;
+
+    private TopMenuButton btnModeNote, btnModeSelect, btnModePattern;
+    private TopMenuButton prevSelectedButton = null;
+    private MidiPianoRollWidget pianoRoll;
 
     public MidiChartDialog(MapWidgetAttachmentNode attachment) {
         this.setAttachment(attachment);
         this.setPositionAbsolute(true);
-        this.setBounds(5, 5, 118, 118);
+        this.setBounds(5, 5, 118, 117);
         this.setBackgroundColor(MapColorPalette.getColor(16, 16, 128));
     }
 
+    /**
+     * Called when changes are made to the chart
+     *
+     * @param chart New updated chart
+     */
     public abstract void onChartChanged(MidiChart chart);
 
+    /**
+     * Called when a melody needs to be pre-viewed. Should play this specific chart
+     * with the instrument configured.
+     *
+     * @param chart Chart to preview
+     */
+    public abstract void onPreview(MidiChart chart);
+
     public MidiChartDialog setChart(MidiChart chart) {
+        chart = chart.withChartParameters(p -> p.withBPM(DebugUtil.getIntValue("bpm", 95)));
         this.chart = chart;
         this.selection = MidiChart.empty(chart.getParameters());
+        this.pattern = MidiChart.empty(chart.getParameters());
         return this;
+    }
+
+    public void setMode(Mode mode) {
+        if (this.mode != mode) {
+            this.mode = mode;
+            applyMode();
+        }
+    }
+
+    private void applyMode() {
+        if (getDisplay() != null) {
+            btnModeNote.setSelected(mode == Mode.NOTE);
+            btnModeSelect.setSelected(mode == Mode.SELECT);
+            btnModePattern.setSelected(mode == Mode.PATTERN);
+            pianoRoll.invalidate();
+            mode.select(this);
+        }
+    }
+
+    private void setNoteSelect() {
+        if (selection.isEmpty()) {
+            selection.addNoteOnBar(0, 0, 1.0);
+        } else {
+            while (selection.getNotes().size() > 1) {
+                selection.removeNote(selection.getNotes().get(selection.getNotes().size() - 1));
+            }
+        }
+        pianoRoll.scrollToSelection();
+    }
+
+    private void setPatternSelect() {
+        if (pattern.isEmpty()) {
+            setNoteSelect();
+        } else {
+            selection.clearNotes();
+            selection.addChartNotes(pattern);
+            pianoRoll.scrollToSelection();
+        }
+    }
+
+    private void exitPianoRoll() {
+        if (prevSelectedButton == null) {
+            prevSelectedButton = btnModeNote;
+        }
+        prevSelectedButton.focus();
+    }
+
+    private void preview(MidiChart chart) {
+        if (!chart.isEmpty()) {
+            chart = chart.clone();
+            chart.timeShiftToStart();
+            onPreview(chart);
+        }
     }
 
     @Override
     public void onAttached() {
-        selection.addNoteOnBar(0, 0, 1.0);
+        btnModeNote = addWidget(new TopMenuButton(MIDI_BUTTON_ICONS.getView(0, 0, 12, 12).clone()) {
+            @Override
+            public void onClick() {
+                setMode(Mode.NOTE);
+                pianoRoll.activate();
+            }
+        }).setTooltip("Place notes");
+        btnModeNote.setPosition(5, 5);
 
-        this.addWidget(new MidiPianoRollWidget().setBounds(5, 5, getWidth()-10, getHeight()-10));
+        btnModeSelect = addWidget(new TopMenuButton(MIDI_BUTTON_ICONS.getView(12, 0, 12, 12).clone()) {
+            @Override
+            public void onClick() {
+                setMode(Mode.SELECT);
+                pianoRoll.activate();
+            }
+        }).setTooltip("Select note pattern");
+        btnModeSelect.setPosition(18, 5);
+
+        btnModePattern = addWidget(new TopMenuButton(MIDI_BUTTON_ICONS.getView(24, 0, 12, 12).clone()) {
+            @Override
+            public void onClick() {
+                setMode(Mode.PATTERN);
+                pianoRoll.activate();
+            }
+        }).setTooltip("Place note pattern");
+        btnModePattern.setPosition(31, 5);
+
+        pianoRoll = this.addWidget(new MidiPianoRollWidget());
+        pianoRoll.setBounds(5, 18, getWidth()-10, getHeight()-23);
+
+        applyMode();
         super.onAttached();
     }
 
@@ -118,12 +228,18 @@ public abstract class MidiChartDialog extends MapWidgetMenu {
                 return; // Reached left chart limit
             }
             selection.timeShift(numTimeSteps);
+            if (mode == Mode.PATTERN) {
+                pattern.timeShift(numTimeSteps);
+            }
             scrollToSelection();
             invalidate();
         }
 
         public void pitchShiftSelection(int numPitchClasses) {
             selection.pitchShift(numPitchClasses);
+            if (mode == Mode.PATTERN) {
+                pattern.pitchShift(numPitchClasses);
+            }
             scrollToSelection();
             invalidate();
         }
@@ -132,15 +248,18 @@ public abstract class MidiChartDialog extends MapWidgetMenu {
         public void onDraw() {
             int numPitchValues = getHeight() / 4;
             int baseY = getHeight() / 2;
-
-            // Figure out what pitch classes are selected based on the selected notes
-            Set<Integer> selectedPitchClasses = new HashSet<>();
-            for (MidiNote selectedNote : selection.getNotes()) {
-                selectedPitchClasses.add(selectedNote.pitchClass());
-            }
+            final boolean active = isActivated();
 
             // Draw the background of the piano roll
             {
+                // Figure out what pitch classes are selected based on the selected notes
+                Set<Integer> selectedPitchClasses = new HashSet<>();
+                if (active) {
+                    for (MidiNote selectedNote : selection.getNotes()) {
+                        selectedPitchClasses.add(selectedNote.pitchClass());
+                    }
+                }
+
                 final MidiTimeSignature signature = chart.getParameters().timeSignature();
                 for (int i = -numPitchValues; i <= numPitchValues; i++) {
                     int pitch = i + startPitchClass;
@@ -164,31 +283,84 @@ public abstract class MidiChartDialog extends MapWidgetMenu {
                 }
             }
 
+            // Draw the notes on top
             {
-                int numTimeSteps = getNumTimeSteps();
-
                 // Draw the selected notes
-                for (MidiNote note : selection.getChartVisibleNotes(startTimeStepIndex, numTimeSteps)) {
-                    int noteX = 7 + (note.timeStepIndex() - startTimeStepIndex) * 3;
-                    int noteY = baseY - (note.pitchClass() - startPitchClass) * 2;
-                    if (noteY >= -1 && noteY < getHeight()) {
+                if (active) {
+                    drawAllNotes(selection, note -> {
                         if (chart.containsNote(note)) {
-                            PianoRendering.NOTE_SELECTED.draw(view, noteX, noteY);
+                            return PianoRendering.NOTE_NONE;
+                        }
+
+                        if (mode == Mode.SELECT && pattern.containsNote(note)) {
+                            return PianoRendering.NOTE_PATTERN_SELECTED;
                         } else {
-                            PianoRendering.NOTE_INACTIVE.draw(view, noteX, noteY);
+                            return PianoRendering.NOTE_INACTIVE;
+                        }
+                    });
+                }
+
+                // Draw the current pattern
+                if (mode == Mode.SELECT || mode == Mode.PATTERN) {
+                    drawAllNotes(pattern, note -> {
+                        if (chart.containsNote(note)) {
+                            return PianoRendering.NOTE_NONE;
+                        }
+
+                        if (active && selection.containsNote(note)) {
+                            return PianoRendering.NOTE_NONE;
+                        } else {
+                            return PianoRendering.NOTE_PATTERN_DEFAULT;
+                        }
+                    });
+                }
+
+                // Draw the notes of the chart
+                drawAllNotes(chart, note -> {
+                    if (active) {
+                        // In pattern selection mode we draw these things differently
+                        if (mode == Mode.SELECT) {
+                            if (pattern.containsNote(note)) {
+                                if (selection.containsNote(note)) {
+                                    return PianoRendering.NOTE_PATTERN_SELECTED;
+                                } else {
+                                    return PianoRendering.NOTE_PATTERN_OVERLAP;
+                                }
+                            }
+                        }
+
+                        // In the other modes, only selection matters
+                        if (selection.containsNote(note)) {
+                            return PianoRendering.NOTE_SELECTED;
                         }
                     }
-                }
+                    return PianoRendering.NOTE_DEFAULT;
+                });
+            }
+        }
 
-                // Draw the notes
-                for (MidiNote note : chart.getChartVisibleNotes(startTimeStepIndex, numTimeSteps)) {
-                    int noteX = 7 + (note.timeStepIndex() - startTimeStepIndex) * 3;
-                    int noteY = baseY - (note.pitchClass() - startPitchClass) * 2;
-                    if (noteY >= -1 && noteY < getHeight() && !selection.containsNote(note)) {
-                        PianoRendering.NOTE_DEFAULT.draw(view, noteX, noteY);
-                    }
+        private void drawAllNotes(MidiChart chart, Function<MidiNote, MidiChartDialog.NoteColors> colorsFunc) {
+            int numTimeSteps = getNumTimeSteps();
+            for (MidiNote note : chart.getChartVisibleNotes(startTimeStepIndex, numTimeSteps)) {
+                drawNote(note, colorsFunc);
+            }
+        }
+
+        private void drawNote(MidiNote note, Function<MidiNote, MidiChartDialog.NoteColors> colorsFunc) {
+            int baseY = getHeight() / 2;
+            int noteX = 7 + (note.timeStepIndex() - startTimeStepIndex) * 3;
+            int noteY = baseY - (note.pitchClass() - startPitchClass) * 2;
+            if (noteY >= -1 && noteY < getHeight()) {
+                MidiChartDialog.NoteColors colors = colorsFunc.apply(note);
+                if (colors != PianoRendering.NOTE_NONE) {
+                    colors.draw(view, noteX, noteY);
                 }
             }
+        }
+
+        @Override
+        public void onFocus() {
+            this.activate(); // Makes things easier. Avoids back button exiting dialog.
         }
 
         @Override
@@ -202,15 +374,166 @@ public abstract class MidiChartDialog extends MapWidgetMenu {
             } else if (event.getKey() == MapPlayerInput.Key.DOWN) {
                 pitchShiftSelection(-1);
             } else if (event.getKey() == MapPlayerInput.Key.ENTER) {
-                if (chart.containsAllNotes(selection.getNotes())) {
-                    chart.removeChartNotes(selection);
-                } else {
-                    chart.addChartNotes(selection);
-                }
+                mode.activate(MidiChartDialog.this);
                 invalidate();
                 onChartChanged(chart);
+            } else if (event.getKey() == MapPlayerInput.Key.BACK) {
+                exitPianoRoll();
+            }
+        }
+    }
+
+    /**
+     * Operating mode of the chart dialog
+     */
+    public enum Mode {
+        /** Places or removes individual notes freely */
+        NOTE(dialog -> { dialog.setNoteSelect(); dialog.pattern.clearNotes(); },
+             dialog -> {
+                 if (dialog.chart.toggleChartNotes(dialog.selection)) {
+                     dialog.preview(dialog.selection);
+                 }
+             }),
+        /** Selects one or more notes (ghosts) for use as a pattern */
+        SELECT(MidiChartDialog::setNoteSelect,
+               dialog -> {
+                   if (dialog.pattern.toggleChartNotes(dialog.selection)) {
+                       dialog.preview(dialog.pattern);
+                   }
+               }),
+        /** Uses selection as a pattern for placing or removing multiple notes */
+        PATTERN(MidiChartDialog::setPatternSelect,
+                dialog -> {
+                    if (dialog.chart.toggleChartNotes(dialog.selection)) {
+                        dialog.preview(dialog.selection);
+                    }
+                });
+
+        private final Consumer<MidiChartDialog> selectAction;
+        private final Consumer<MidiChartDialog> activateAction;
+
+        Mode(Consumer<MidiChartDialog> selectAction, Consumer<MidiChartDialog> activateAction) {
+            this.selectAction = selectAction;
+            this.activateAction = activateAction;
+        }
+
+        public void select(MidiChartDialog dialog) {
+            selectAction.accept(dialog);
+        }
+
+        public void activate(MidiChartDialog dialog) {
+            activateAction.accept(dialog);
+        }
+    }
+
+    /**
+     * One of the top menu buttons. Can optionally be set to be selected by default,
+     * as a select button.
+     */
+    private abstract class TopMenuButton extends MapWidget {
+        private MapTexture icon;
+        private boolean selected = false;
+        private boolean buttonDown = false;
+        private final MapWidgetTooltip tooltip = new MapWidgetTooltip();
+
+        public TopMenuButton(MapTexture icon) {
+            this.icon = icon;
+            this.setSize(icon.getWidth(), icon.getHeight());
+            this.setFocusable(true);
+        }
+
+        public abstract void onClick();
+
+        public TopMenuButton setTooltip(String text) {
+            this.tooltip.setText(text);
+            return this;
+        }
+
+        public TopMenuButton setSelected(boolean selected) {
+            if (this.selected != selected) {
+                this.selected = selected;
+                this.invalidate();
+            }
+            return this;
+        }
+
+        public TopMenuButton setIcon(MapTexture icon) {
+            this.icon = icon;
+            this.invalidate();
+            return this;
+        }
+
+        @Override
+        public void onFocus() {
+            addWidget(tooltip);
+            prevSelectedButton = this; // So that we come back to it from the piano roll
+        }
+
+        @Override
+        public void onBlur() {
+            removeWidget(tooltip);
+            buttonDown = false;
+        }
+
+        @Override
+        public void onDraw() {
+            byte edgeColor, topRim, background, bottomRim;
+
+            if (isFocused()) {
+                // Lighter purple color
+                edgeColor = MapColorPalette.COLOR_BLACK;
+                topRim = MapColorPalette.getColor(216, 76, 178);
+                background = MapColorPalette.getColor(186, 65, 153);
+                bottomRim = MapColorPalette.getColor(152, 53, 125);
+            } else {
+                // Darker purple color
+                edgeColor = MapColorPalette.COLOR_BLACK;
+                topRim = MapColorPalette.getColor(142, 109, 208);
+                background = MapColorPalette.getColor(116, 89, 170);
+                bottomRim = MapColorPalette.getColor(97, 63, 148);
+            }
+
+            // If pressed down, invert top/bottom rim to make an indent effect
+            if (selected || buttonDown) {
+                byte b = topRim;
+                topRim = bottomRim;
+                bottomRim = b;
+            }
+
+            // Draw background using lines
+            view.fillRectangle(2, 2, getWidth()-4, getHeight()-4, background);
+            view.drawRectangle(0, 0, getWidth(), getHeight(), edgeColor);
+            view.drawLine(1, 1, getWidth()-2, 1, topRim);
+            view.drawLine(1, 2, 1, getHeight()-3, topRim);
+            view.drawLine(getWidth()-2, 2, getWidth()-2, getHeight()-3, bottomRim);
+            view.drawLine(1, getHeight()-2, getWidth()-2, getHeight()-2, bottomRim);
+
+            // Draw icon
+            view.draw(icon, 0, 0);
+        }
+
+        @Override
+        public void onKeyPressed(MapKeyEvent event) {
+            if (event.getKey() == MapPlayerInput.Key.ENTER) {
+                if (!buttonDown) {
+                    buttonDown = true;
+                    invalidate();
+                    onClick();
+                }
             } else {
                 super.onKeyPressed(event);
+            }
+        }
+
+        @Override
+        public void onKeyReleased(MapKeyEvent event) {
+            if (event.getKey() == MapPlayerInput.Key.ENTER) {
+                if (buttonDown) {
+                    buttonDown = false;
+                    invalidate();
+                }
+            } else {
+                super.onKeyReleased(event);
             }
         }
     }
@@ -241,7 +564,7 @@ public abstract class MidiChartDialog extends MapWidgetMenu {
                 .grid_note(84, 92, 116).grid_beat(18, 21, 30).grid_measure(153, 127, 76).build();
         /** The colors of the white keys that sit between the black keys (pressed) */
         public static final PianoKeyColors COLORS_WHITE_KEY_PRESSED = PianoKeyColors.builder()
-                .key_top(180, 180, 180).key_btm(112, 112, 112).grid_bg(25, 93, 131)
+                .key_top(25, 93, 131).key_btm(44, 109, 186).grid_bg(25, 93, 131)
                 .grid_note(44, 109, 186).grid_beat(32, 42, 100).grid_measure(150, 154, 64).build();
 
         /* Defines unique key drawing routines */
@@ -293,6 +616,8 @@ public abstract class MidiChartDialog extends MapWidgetMenu {
                 WHITE_KEY_HALF_TOP
         };
 
+        /** Does not draw anything */
+        public static final NoteColors NOTE_NONE = NoteColors.builder().build();
         /** Defines the colors for drawing a non-selected note */
         public static final NoteColors NOTE_DEFAULT = NoteColors.builder()
                 .top(255, 64, 64).btm(220, 55, 55).build();
@@ -302,6 +627,15 @@ public abstract class MidiChartDialog extends MapWidgetMenu {
         /** Defines the colors for drawing the cursor, which is a note that is not active / not played */
         public static final NoteColors NOTE_INACTIVE = NoteColors.builder()
                 .top(211, 217, 220).btm(199, 199, 199).build();
+        /** Defines the colors for drawing a note that is part of a pattern in pattern selection mode */
+        public static final NoteColors NOTE_PATTERN_DEFAULT = NoteColors.builder()
+                .top(54, 168, 176).btm(36, 161, 161).build();
+        /** Defines the colors for drawing a note that is part of a pattern that the cursor is also at */
+        public static final NoteColors NOTE_PATTERN_SELECTED = NoteColors.builder()
+                .top(77, 238, 250).btm(66, 205, 215).build();
+        /** Defines the colors for drawing a note that is part of a pattern that a real note is also at*/
+        public static final NoteColors NOTE_PATTERN_OVERLAP = NoteColors.builder()
+                .top(25, 204, 127).btm(56, 178, 127).build();
 
         private static class BlackPianoKey extends PianoKey {
             public BlackPianoKey(PianoKeyColors colors_idle, PianoKeyColors colors_pressed) {
@@ -444,8 +778,8 @@ public abstract class MidiChartDialog extends MapWidgetMenu {
         }
 
         public static class Builder {
-            public byte TOP;
-            public byte BTM;
+            public byte TOP = MapColorPalette.COLOR_TRANSPARENT;
+            public byte BTM = MapColorPalette.COLOR_TRANSPARENT;
 
             public Builder top(int r, int g, int b) {
                 TOP = MapColorPalette.getColor(r, g, b);
