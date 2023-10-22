@@ -129,13 +129,20 @@ public class EffectLoopPlayerController implements LibraryComponent, TrainCarts.
             final EffectLoop.Time zero_duration = EffectLoop.Time.ZERO;
             final List<EffectLoop> asyncRunning = new ArrayList<>();
             long lastTime = System.nanoTime();
+            long parkUntil = lastTime + INTERVAL;
             while (!stopping) {
-                LockSupport.parkNanos(INTERVAL - (System.nanoTime() - lastTime));
+                LockSupport.parkNanos(parkUntil - System.nanoTime());
 
                 // Measure time elapsed since previous loop
                 long now = System.nanoTime();
                 EffectLoop.Time elapsedTime = EffectLoop.Time.nanos(now - lastTime);
                 lastTime = now;
+
+                // Advance
+                parkUntil += INTERVAL;
+                if (now >= (parkUntil + INTERVAL)) {
+                    parkUntil = now; // Avoid racking up a huge delay
+                }
 
                 // Run all effect loops
                 {
