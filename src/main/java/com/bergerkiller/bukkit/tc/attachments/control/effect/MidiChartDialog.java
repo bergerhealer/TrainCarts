@@ -3,20 +3,22 @@ package com.bergerkiller.bukkit.tc.attachments.control.effect;
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
+import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
-import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiChart;
+import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiChartParameters;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiNote;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiTimeSignature;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetTooltip;
 
 import java.util.HashSet;
@@ -69,10 +71,13 @@ public abstract class MidiChartDialog extends MapWidgetMenu {
     public abstract List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>> getPreviewEffects();
 
     public MidiChartDialog setChart(MidiChart chart) {
-        chart = chart.withChartParameters(p -> p.withBPM(DebugUtil.getIntValue("bpm", 95)));
         this.chart = chart;
-        this.selection = MidiChart.empty(chart.getParameters());
-        this.pattern = MidiChart.empty(chart.getParameters());
+        this.selection = this.selection.withChartParameters(chart.getParameters());
+        this.pattern = this.pattern.withChartParameters(chart.getParameters());
+        this.stopPreview();
+        if (this.pianoRoll != null) {
+            this.pianoRoll.invalidate();
+        }
         return this;
     }
 
@@ -250,7 +255,21 @@ public abstract class MidiChartDialog extends MapWidgetMenu {
                 setPlaying(currentPreviewTime != null);
             }
         }).setTooltip("Play chart")
-          .setPosition(61, 5);
+          .setPosition(getWidth() - 30, 5);
+
+        addWidget(new TopMenuButton(MIDI_BUTTON_ICONS.getView(72, 0, 12, 12).clone()) {
+            @Override
+            public void onClick() {
+                MidiChartDialog.this.addWidget(new ChartSettingsDialog() {
+                    @Override
+                    public void onParamsChanged(MidiChartParameters params) {
+                        setChart(chart.withChartParameters(params));
+                        onChartChanged(chart);
+                    }
+                }).setParams(chart.getParameters());
+            }
+        }).setTooltip("Chart settings")
+          .setPosition(getWidth() - 17, 5);
 
         pianoRoll = this.addWidget(new MidiPianoRollWidget());
         pianoRoll.setBounds(5, 19, getWidth()-10, getHeight()-24);
@@ -569,6 +588,146 @@ public abstract class MidiChartDialog extends MapWidgetMenu {
 
         public void activate(MidiChartDialog dialog) {
             activateAction.accept(dialog);
+        }
+    }
+
+    private static abstract class ChartSettingsDialog extends MapWidgetMenu {
+        private MidiChartParameters params = MidiChartParameters.DEFAULT;
+
+        public ChartSettingsDialog() {
+            this.setBounds(10, 22, 98, 88);
+            this.setBackgroundColor(MapColorPalette.getColor(138, 152, 180));
+        }
+
+        public abstract void onParamsChanged(MidiChartParameters params);
+
+        public MidiChartParameters getParams() {
+            return params;
+        }
+
+        public ChartSettingsDialog setParams(MidiChartParameters params) {
+            this.params = params;
+            this.invalidate();
+            return this;
+        }
+
+        @Override
+        public void onAttached() {
+            super.onAttached();
+
+            final int num_x_offset = 40;
+            int y_pos = 12;
+
+            // Time signature
+            {
+                MapWidgetText label = new MapWidgetText();
+                label.setFont(MapFont.TINY);
+                label.setText("- Time Signature -");
+                label.setPosition(15, 5);
+                label.setColor(MapColorPalette.getColor(115, 108, 18));
+                this.addWidget(label);
+            }
+
+            // Beats per measure
+            addWidget(new MapWidgetNumberBox() {
+                @Override
+                public void onAttached() {
+                    setRange(1, 16);
+                    setIncrement(1);
+                    setInitialValue(params.timeSignature().beatsPerMeasure());
+                    super.onAttached();
+                }
+
+                @Override
+                public void onResetValue() {
+                    setValue(4);
+                }
+
+                @Override
+                public void onValueChangeEnd() {
+                    params = params.withTimeSignature(MidiTimeSignature.of(
+                            (int) getValue(), params.timeSignature().noteValue()));
+                    onParamsChanged(params);
+                }
+            }.setBounds(num_x_offset, y_pos, getWidth() - num_x_offset, 13));
+            addLabel(5, y_pos + 1, "Beats per");
+            addLabel(5, y_pos + 7, "measure");
+            y_pos += 16;
+
+            // Note Value
+            addWidget(new MapWidgetNumberBox() {
+                @Override
+                public void onAttached() {
+                    setRange(1, 16);
+                    setIncrement(1);
+                    setTextPrefix("1/");
+                    setInitialValue(params.timeSignature().noteValue());
+                    super.onAttached();
+                }
+
+                @Override
+                public void onResetValue() {
+                    setValue(4);
+                }
+
+                @Override
+                public void onValueChangeEnd() {
+                    params = params.withTimeSignature(MidiTimeSignature.of(
+                            params.timeSignature().beatsPerMeasure(), (int) getValue()));
+                    onParamsChanged(params);
+                }
+            }).setBounds(num_x_offset, y_pos, getWidth() - num_x_offset, 13);
+            addLabel(5, y_pos + 4, "Note value");
+            y_pos += 20;
+
+            // BPM
+            addWidget(new MapWidgetNumberBox() {
+                @Override
+                public void onAttached() {
+                    setRange(1, 10000);
+                    setIncrement(1);
+                    setInitialValue(params.bpm());
+                    super.onAttached();
+                }
+
+                @Override
+                public void onResetValue() {
+                    setValue(120);
+                }
+
+                @Override
+                public void onValueChangeEnd() {
+                    params = params.withBPM((int) getValue());
+                    onParamsChanged(params);
+                }
+            }).setBounds(num_x_offset, y_pos, getWidth() - num_x_offset, 13);
+            addLabel(5, y_pos + 1, "Beats per");
+            addLabel(5, y_pos + 7, "minute");
+            y_pos += 17;
+
+            // Pitch classes
+            addWidget(new MapWidgetNumberBox() {
+                @Override
+                public void onAttached() {
+                    setRange(1, 192);
+                    setIncrement(1);
+                    setInitialValue(params.pitchClasses());
+                    super.onAttached();
+                }
+
+                @Override
+                public void onResetValue() {
+                    setValue(12);
+                }
+
+                @Override
+                public void onValueChangeEnd() {
+                    params = params.withPitchClasses((int) getValue());
+                    onParamsChanged(params);
+                }
+            }).setBounds(num_x_offset, y_pos, getWidth() - num_x_offset, 13);
+            addLabel(5, y_pos + 1, "Pitch");
+            addLabel(5, y_pos + 7, "classes");
         }
     }
 

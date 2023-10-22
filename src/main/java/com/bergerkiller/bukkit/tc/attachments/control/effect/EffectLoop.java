@@ -244,6 +244,22 @@ public interface EffectLoop {
             return (int) division;
         }
 
+        /**
+         * Adjusts this time duration when changing BPM of a chart, as if
+         * changing playback speed.
+         *
+         * @param fromBPM Current BPM
+         * @param toBPM New BPM
+         * @return Updated Time
+         */
+        public Time adjustBPM(int fromBPM, int toBPM) {
+            if (fromBPM == toBPM) {
+                return this;
+            } else {
+                return nanos((nanos * fromBPM) / toBPM);
+            }
+        }
+
         @Override
         public boolean equals(Object o) {
             if (o == this) {

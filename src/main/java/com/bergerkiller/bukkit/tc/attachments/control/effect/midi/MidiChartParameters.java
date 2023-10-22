@@ -178,23 +178,6 @@ public final class MidiChartParameters {
     }
 
     /**
-     * Adjusts the timestamp so that it stays in the same time step, when changing from one
-     * set of chart parameters to another.
-     *
-     * @param time Timestamp
-     * @param from MidiChartParameters the timestamp was in
-     * @param to MidiChartParameters the timestamp should be in
-     * @return Adjusted timestamp
-     */
-    public static EffectLoop.Time preserveTimeStep(EffectLoop.Time time, MidiChartParameters from, MidiChartParameters to) {
-        if (from.timeStep.equals(to.timeStep)) {
-            return time;
-        } else {
-            return EffectLoop.Time.nanos((time.nanos * to.timeStep.nanos) / from.timeStep.nanos);
-        }
-    }
-
-    /**
      * Gets the number of pitch classes. This is the amount of pitch values that
      * exist to double or halve the frequency of a sound.
      *

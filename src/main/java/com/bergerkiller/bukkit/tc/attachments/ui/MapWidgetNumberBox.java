@@ -27,6 +27,7 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
     private int _holdEnterProgress = 0;
     private int _holdEnterMaximum = 15;
     private String _textOverride = null;
+    private String _textPrefix = "";
     private final MapWidgetArrow nav_decr = new MapWidgetArrow(BlockFace.WEST);
     private final MapWidgetArrow nav_incr = new MapWidgetArrow(BlockFace.EAST);
 
@@ -47,6 +48,13 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
     public void setTextOverride(String text) {
         if (!LogicUtil.bothNullOrEqual(this._textOverride, text)) {
             this._textOverride = text;
+            this.invalidate();
+        }
+    }
+
+    public void setTextPrefix(String textPrefix) {
+        if (!LogicUtil.bothNullOrEqual(this._textPrefix, textPrefix)) {
+            this._textPrefix = textPrefix;
             this.invalidate();
         }
     }
@@ -326,7 +334,7 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
                 onValueChangeEnd();
             } else if (event.getKey() == MapPlayerInput.Key.RIGHT) {
                 stopArrowFocus(true);
-                nav_incr.stopFocus();
+                onValueChangeEnd();
             }
         }
     }
@@ -349,7 +357,16 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
      * @return value text
      */
     public String getValueText() {
-        return Util.stringifyNumberBoxValue(getValue());
+        String s;
+        if (_incr == 1.0) {
+            s = Integer.toString((int) getValue());
+        } else {
+            s = Util.stringifyNumberBoxValue(getValue());
+        }
+        if (!_textPrefix.isEmpty()) {
+            s = _textPrefix + s;
+        }
+        return s;
     }
 
     @Override
