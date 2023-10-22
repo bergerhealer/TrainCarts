@@ -87,9 +87,10 @@ public class EffectLoopPlayerController implements LibraryComponent, TrainCarts.
      * returns false. This method can be called asynchronously.
      *
      * @param loop EffectLoop
+     * @param runMode Run Mode
      */
-    private void schedule(EffectLoop loop) {
-        if (loop.runMode() == EffectLoop.RunMode.SYNCHRONOUS) {
+    private void schedule(EffectLoop loop, EffectLoop.RunMode runMode) {
+        if (runMode == EffectLoop.RunMode.SYNCHRONOUS) {
             startPendingSync.add(loop);
         } else {
             asyncWorker.schedule(loop);
@@ -97,7 +98,7 @@ public class EffectLoopPlayerController implements LibraryComponent, TrainCarts.
     }
 
     private static class AsyncWorker {
-        private static final long INTERVAL = 10_000_000L;
+        private static final long INTERVAL = 25_000_000L;
         private final Queue<EffectLoop> startPendingAsync = new ConcurrentLinkedQueue<>();
         private final Thread effectLoopThread;
         private volatile boolean stopping = false;
@@ -174,9 +175,9 @@ public class EffectLoopPlayerController implements LibraryComponent, TrainCarts.
         }
 
         @Override
-        public void play(EffectLoop loop) {
+        public void play(EffectLoop loop, EffectLoop.RunMode runMode) {
             if (semaphore.tryAcquire()) {
-                schedule(new EffectLoopWrap(this, loop));
+                schedule(new EffectLoopWrap(this, loop), runMode);
             }
         }
 
@@ -195,11 +196,6 @@ public class EffectLoopPlayerController implements LibraryComponent, TrainCarts.
         public EffectLoopWrap(EffectLoopPlayer player, EffectLoop loop) {
             this.player = player;
             this.base = loop;
-        }
-
-        @Override
-        public RunMode runMode() {
-            return base.runMode();
         }
 
         @Override

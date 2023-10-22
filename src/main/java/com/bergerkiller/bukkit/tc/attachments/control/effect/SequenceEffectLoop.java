@@ -8,7 +8,6 @@ package com.bergerkiller.bukkit.tc.attachments.control.effect;
  * returns the total duration of the loop.
  */
 public abstract class SequenceEffectLoop implements EffectLoop {
-    private RunMode runMode = RunMode.ASYNCHRONOUS;
     private long nanosElapsed = 0;
 
     /**
@@ -23,20 +22,6 @@ public abstract class SequenceEffectLoop implements EffectLoop {
      *         False when the effect loop has finished.
      */
     public abstract boolean advance(long prevNanos, long currNanos);
-
-    @Override
-    public RunMode runMode() {
-        return runMode;
-    }
-
-    /**
-     * Sets a different run mode. Has no effect if the loop is already playing
-     *
-     * @param runMode New run mode
-     */
-    public void setRunMode(RunMode runMode) {
-        this.runMode = runMode;
-    }
 
     @Override
     public boolean advance(Time dt, Time duration, boolean loop) {

@@ -2,6 +2,9 @@ package com.bergerkiller.bukkit.tc.attachments.control.effect;
 
 import com.bergerkiller.bukkit.tc.TrainCarts;
 
+import java.util.Collection;
+import java.util.function.Predicate;
+
 /**
  * Plays a sequence of effects over time. Can be played by the  {@link EffectLoop.Player}.
  * Retrieve one using {@link TrainCarts#createEffectLoopPlayer()}. Every player instance
@@ -14,23 +17,10 @@ public interface EffectLoop {
      */
     EffectLoop NONE = new EffectLoop() {
         @Override
-        public RunMode runMode() {
-            return RunMode.SYNCHRONOUS;
-        }
-
-        @Override
         public boolean advance(Time dt, Time duration, boolean loop) {
             return false;
         }
     };
-
-    /**
-     * Gets the running mode of this EffectLoop. This controls whether the loop
-     * is run asynchronously or synchronously on the main thread.
-     *
-     * @return RunMode
-     */
-    RunMode runMode();
 
     /**
      * Advances the effect loop by a certain amount of time in seconds.
@@ -61,6 +51,17 @@ public interface EffectLoop {
     }
 
     /**
+     * Changes the behavior of {@link #advance(Time, Time, boolean)} so it only continued
+     * playing when the predicate returns true
+     *
+     * @param check Check called every advance() to see if playing should continue
+     * @return new EffectLoop that includes the check
+     */
+    default EffectLoop withConditionalAdvance(Predicate<EffectLoop> check) {
+        return withAdvance((base, dt, duration, loop) -> check.test(base) && base.advance(dt, duration, loop));
+    }
+
+    /**
      * Changes the speed of {@link #advance(Time, Time, boolean)}. If speed is (close to) zero,
      * returns {@link #NONE} as nothing would play in that case.
      *
@@ -76,6 +77,19 @@ public interface EffectLoop {
         } else {
             return withAdvance((base, dt, duration, loop) -> base.advance(dt.multiply(speed), duration.multiply(speed), loop));
         }
+    }
+
+    /**
+     * Groups multiple effect loops together to be played as a single, synchronized effect loop.
+     * Can be used when wanting to handle {@link #advance(Time, Time, boolean)} for multiple
+     * effects playing at the same time.
+     *
+     * @param effectLoops Group of effect loops to group into one. Input collection is not
+     *                    stored and can be modified after without problems.
+     * @return Group of effect loops that play as one
+     */
+    static EffectLoop group(Collection<EffectLoop> effectLoops) {
+        return new EffectLoopGroup(effectLoops);
     }
 
     /**
@@ -109,8 +123,20 @@ public interface EffectLoop {
          * loop is synchronous.
          *
          * @param loop EffectLoop to play
+         * @param runMode Running mode (synchronous or asynchronous)
          */
-        void play(EffectLoop loop);
+        void play(EffectLoop loop, EffectLoop.RunMode runMode);
+
+        /**
+         * Starts playing the EffectLoop instance specified asynchronously. Will stop
+         * playing when the instance {@link EffectLoop#advance(Time, Time, boolean)}
+         * returns false.
+         *
+         * @param loop EffectLoop to play asynchronously
+         */
+        default void play(EffectLoop loop) {
+            play(loop, RunMode.ASYNCHRONOUS);
+        }
     }
 
     /**

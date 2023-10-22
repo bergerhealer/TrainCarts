@@ -10,11 +10,6 @@ class EffectLoopAdvanceModifier implements EffectLoop {
     }
 
     @Override
-    public RunMode runMode() {
-        return base.runMode();
-    }
-
-    @Override
     public boolean advance(Time dt, Time duration, boolean loop) {
         return modifier.advance(base, dt, duration, loop);
     }
