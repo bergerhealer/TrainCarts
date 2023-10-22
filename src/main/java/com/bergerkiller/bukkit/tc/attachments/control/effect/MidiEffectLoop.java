@@ -3,7 +3,9 @@ package com.bergerkiller.bukkit.tc.attachments.control.effect;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiChart;
-import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiChartParameters;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Plays a sequence of speed (pitch) and volume values over time,
@@ -11,15 +13,19 @@ import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiChartParam
  * infinitely.
  */
 public class MidiEffectLoop extends SequenceEffectLoop {
-    private AttachmentNameLookup.NameGroup<Attachment.EffectAttachment> effects = AttachmentNameLookup.NameGroup.none();
-    private MidiChart chart = new MidiChart(MidiChartParameters.DEFAULT);
+    private List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>> effects = Collections.emptyList();
+    private MidiChart chart = MidiChart.empty();
 
-    public AttachmentNameLookup.NameGroup<Attachment.EffectAttachment> getEffects() {
+    public List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>> getEffects() {
         return effects;
     }
 
-    public void setEffects(AttachmentNameLookup.NameGroup<Attachment.EffectAttachment> effects) {
+    public void setEffects(List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>> effects) {
         this.effects = effects;
+    }
+
+    public void setEffects(AttachmentNameLookup.NameGroup<Attachment.EffectAttachment> effects) {
+        this.effects = Collections.singletonList(effects);
     }
 
     public MidiChart getChart() {
@@ -32,7 +38,6 @@ public class MidiEffectLoop extends SequenceEffectLoop {
 
     @Override
     public boolean advance(long prevNanos, long currNanos) {
-        chart.forNotesInRange(prevNanos, currNanos, n -> n.play(effects));
-        return true;
+        return chart.forNotesInRange(prevNanos, currNanos, n -> effects.forEach(n::play));
     }
 }

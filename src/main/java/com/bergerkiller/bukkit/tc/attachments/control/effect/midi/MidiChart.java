@@ -2,6 +2,8 @@ package com.bergerkiller.bukkit.tc.attachments.control.effect.midi;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
+import com.bergerkiller.bukkit.tc.utils.Effect;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -135,10 +137,17 @@ public final class MidiChart implements Cloneable {
 
     /**
      * Shifts all notes backwards in time so that the first note is played at t=0
+     *
+     * @return Amount of time that has been shifted
      */
-    public void timeShiftToStart() {
+    public EffectLoop.Time timeShiftToStart() {
         if (!isEmpty()) {
-            timeShift(-getNotes().get(0).timeStepIndex());
+            MidiNote firstNote = getNotes().get(0);
+            EffectLoop.Time shifted = EffectLoop.Time.nanos(firstNote.timeStepTimestampNanos);
+            timeShift(-firstNote.timeStepIndex());
+            return shifted;
+        } else {
+            return EffectLoop.Time.ZERO;
         }
     }
 

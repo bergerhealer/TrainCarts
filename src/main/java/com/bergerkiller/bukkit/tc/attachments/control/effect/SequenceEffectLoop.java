@@ -23,6 +23,16 @@ public abstract class SequenceEffectLoop implements EffectLoop {
      */
     public abstract boolean advance(long prevNanos, long currNanos);
 
+    /**
+     * Gets the amount of time that has elapsed playing this sequence. If looping,
+     * this elapsed time goes up to that point then goes back to 0 to play again.
+     *
+     * @return Amount of nanoseconds into this sequence that have elapsed
+     */
+    public long nanosElapsed() {
+        return nanosElapsed;
+    }
+
     @Override
     public boolean advance(Time dt, Time duration, boolean loop) {
         long prev_time_nanos = this.nanosElapsed;

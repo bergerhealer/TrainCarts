@@ -6,7 +6,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 
 /**
- * Dialog asking whether or not it is OK to delete an animation
+ * Dialog asking whether it is OK to delete an attachment
  */
 public class ConfirmAttachmentDeleteDialog extends MapWidgetMenu {
 
