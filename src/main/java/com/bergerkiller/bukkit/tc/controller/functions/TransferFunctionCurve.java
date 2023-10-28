@@ -1,5 +1,11 @@
 package com.bergerkiller.bukkit.tc.controller.functions;
 
+import com.bergerkiller.bukkit.common.map.MapCanvas;
+import com.bergerkiller.bukkit.common.map.MapColorPalette;
+import com.bergerkiller.bukkit.common.map.MapFont;
+import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionDialog;
+import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
+
 import java.util.Arrays;
 
 /**
@@ -324,6 +330,15 @@ public class TransferFunctionCurve implements TransferFunction, Cloneable {
     @Override
     public TransferFunctionCurve clone() {
         return new TransferFunctionCurve(v.clone());
+    }
+
+    @Override
+    public void drawPreview(MapWidgetTransferFunctionItem widget, MapCanvas view) {
+        view.draw(MapFont.MINECRAFT, 0, 0, MapColorPalette.COLOR_RED, "Curve");
+    }
+
+    @Override
+    public void makeDialog(MapWidgetTransferFunctionDialog dialog) {
     }
 
     @FunctionalInterface

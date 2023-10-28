@@ -122,6 +122,9 @@ public class MapWidgetScroller extends MapWidget {
      * horizontally and vertically if needed.
      */
     public void scrollIntoView() {
+        if (display == null) {
+            return;
+        }
         MapWidget focused = display.getFocusedWidget();
         if (focused == null || !isContained(focused)) {
             return;
@@ -262,6 +265,21 @@ public class MapWidgetScroller extends MapWidget {
         for (MapWidget c : w.getWidgets()) {
             setClipParentRecursive(c);
         }
+    }
+
+    /**
+     * Re-calculates the size of the scrollable portion inside this scroller.
+     * Should be called when widgets are removed or moved.
+     */
+    public void recalculateContainerSize() {
+        int w = 0, h = 0;
+        for (MapWidget child : container.getWidgets()) {
+            int cw = child.getX() + child.getWidth();
+            int ch = child.getY() + child.getHeight();
+            w = Math.max(w, cw);
+            h = Math.max(h, ch);
+        }
+        container.setSize(w, h);
     }
 
     private void adjustContainerSize(MapWidget child) {
