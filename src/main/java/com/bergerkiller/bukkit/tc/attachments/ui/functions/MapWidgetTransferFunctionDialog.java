@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionConstant;
 
 import java.util.function.Consumer;
+import java.util.logging.Level;
 
 /**
  * Displays the configuration of a {@link TransferFunction}
@@ -64,8 +65,16 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
     private void navigate(TransferFunctionNav nav) {
         this.nav = nav;
         this.clearWidgets();
-        if (getDisplay() != null) {
-            this.nav.function.makeDialog(this);
+        if (this.nav != null && getDisplay() != null) {
+            this.deactivate();
+            try {
+                this.nav.function.openDialog(this);
+            } catch (Throwable t) {
+                display.getPlugin().getLogger().log(Level.SEVERE, "Failed to open function dialog", t);
+                close();
+                return;
+            }
+            this.activate();
         }
     }
 
@@ -83,15 +92,13 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
 
     @Override
     public void onAttached() {
-        if (this.nav != null) {
-            this.nav.function.makeDialog(this);
-        }
+        navigate(this.nav);
         super.onAttached();
     }
 
     @Override
     public void onKeyPressed(MapKeyEvent event) {
-        if (event.getKey() == MapPlayerInput.Key.BACK && this.isActivated()) {
+        if (exitOnBack && event.getKey() == MapPlayerInput.Key.BACK && this.isActivated()) {
             if (nav.parent != null) {
                 navigate(nav.parent);
                 display.playSound(SoundEffect.CLICK, 1.0f, 0.6f);

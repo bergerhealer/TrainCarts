@@ -15,6 +15,11 @@ import java.util.List;
 public class TransferFunctionList implements TransferFunction, Cloneable {
     private final List<TransferFunction> functions = new ArrayList<>();
 
+    // These make sure it remembers the scroll position / focused item when exiting the
+    // menu (to configure something) and going back. It's not persistent.
+    private int lastSelectedFunctionIndex = -1;
+    private int lastScrollPosition = 0;
+
     public List<TransferFunction> getFunctions() {
         return Collections.unmodifiableList(functions);
     }
@@ -69,7 +74,19 @@ public class TransferFunctionList implements TransferFunction, Cloneable {
     }
 
     @Override
-    public void makeDialog(MapWidgetTransferFunctionDialog dialog) {
-        dialog.addWidget(new MapWidgetTransferFunctionList(dialog, this));
+    public void openDialog(MapWidgetTransferFunctionDialog dialog) {
+        dialog.addWidget(new MapWidgetTransferFunctionList(dialog, this) {
+            @Override
+            public void onSelectedItemChanged() {
+                lastSelectedFunctionIndex = getSelectedItemIndex();
+            }
+
+            @Override
+            public void onTick() {
+                super.onTick();
+                lastScrollPosition = getVScroll();
+            }
+        }.setSelectedItemIndex(this.lastSelectedFunctionIndex)
+         .setVScroll(lastScrollPosition));
     }
 }

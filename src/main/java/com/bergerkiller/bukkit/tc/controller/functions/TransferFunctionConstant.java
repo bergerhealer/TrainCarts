@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.controller.functions;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 
@@ -44,6 +45,11 @@ public final class TransferFunctionConstant implements TransferFunction {
     }
 
     @Override
-    public void makeDialog(MapWidgetTransferFunctionDialog dialog) {
+    public void openDialog(MapWidgetTransferFunctionDialog dialog) {
+        dialog.addWidget(new MapWidgetButton() {
+            @Override
+            public void onActivate() {
+            }
+        }.setText("Click").setBounds(5, 5, 80, 13));
     }
 }

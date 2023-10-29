@@ -45,7 +45,7 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
      * @param dialog Dialog widget to which other widgets should be added to configure it.
      *               Is empty initially.
      */
-    void makeDialog(MapWidgetTransferFunctionDialog dialog);
+    void openDialog(MapWidgetTransferFunctionDialog dialog);
 
     TransferFunction clone();
 }

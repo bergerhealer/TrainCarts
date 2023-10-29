@@ -15,6 +15,7 @@ public class MapWidgetMenu extends MapWidgetWindow {
     protected MapWidgetAttachmentNode attachment;
     protected byte labelColor = MapColorPalette.COLOR_GREEN;
     protected boolean playSoundWhenBackClosed = false;
+    protected boolean exitOnBack = true;
 
     public MapWidgetMenu() {
         this.setDepthOffset(4);
@@ -25,6 +26,16 @@ public class MapWidgetMenu extends MapWidgetWindow {
         this.attachment = attachment;
     }
 
+    /**
+     * Sets whether this menu dialog is closed when the user presses the back button, and this widget
+     * is activated
+     *
+     * @param exitOnBack True to exit when BACK is pressed
+     */
+    public void setExitOnBack(boolean exitOnBack) {
+        this.exitOnBack = exitOnBack;
+    }
+
     @Override
     public void onAttached() {
         super.onAttached();
@@ -33,7 +44,7 @@ public class MapWidgetMenu extends MapWidgetWindow {
 
     @Override
     public void onKeyPressed(MapKeyEvent event) {
-        if (event.getKey() == Key.BACK && this.isActivated()) {
+        if (exitOnBack && event.getKey() == Key.BACK && this.isActivated()) {
             if (playSoundWhenBackClosed) {
                 display.playSound(SoundEffect.CLICK, 1.0f, 0.6f);
             }

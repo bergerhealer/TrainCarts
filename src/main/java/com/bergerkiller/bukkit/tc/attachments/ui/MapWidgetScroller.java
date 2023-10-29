@@ -98,6 +98,17 @@ public class MapWidgetScroller extends MapWidget {
     }
 
     /**
+     * Sets the current horizontal scroll position
+     *
+     * @param scroll New position
+     * @return this
+     */
+    public MapWidgetScroller setHScroll(int scroll) {
+        container.setPosition(-scroll, container.getY());
+        return this;
+    }
+
+    /**
      * Gets the maximum vertical scroll position.
      * Returns 0 if there is no vertical scrolling.
      *
@@ -117,11 +128,34 @@ public class MapWidgetScroller extends MapWidget {
     }
 
     /**
+     * Sets the current vertical scroll position
+     *
+     * @param scroll New position
+     * @return this
+     */
+    public MapWidgetScroller setVScroll(int scroll) {
+        container.setPosition(container.getX(), -scroll);
+        return this;
+    }
+
+    /**
      * If a child widget added to this widgets {@link #getContainer() container} is
      * focused, ensures that this widget is maximally visible. Scrolls the container
      * horizontally and vertically if needed.
      */
     public void scrollIntoView() {
+        scrollIntoView(true);
+    }
+
+    /**
+     * If a child widget added to this widgets {@link #getContainer() container} is
+     * focused, ensures that this widget is maximally visible. Scrolls the container
+     * horizontally and vertically if needed.
+     *
+     * @param instant Whether to scroll instantly to make the currently focused widget
+     *                optimally visible. If false, does a single smooth scrolling step.
+     */
+    public void scrollIntoView(boolean instant) {
         if (display == null) {
             return;
         }
@@ -192,8 +226,10 @@ public class MapWidgetScroller extends MapWidget {
 
         if (dx != 0 || dy != 0) {
             // Make scrolling smoother instead of instant
-            dx = smoothenScrollDelta(dx);
-            dy = smoothenScrollDelta(dy);
+            if (!instant) {
+                dx = smoothenScrollDelta(dx);
+                dy = smoothenScrollDelta(dy);
+            }
 
             container.setPosition(container.getX() + dx, container.getY() + dy);
             onScrolled();
@@ -215,7 +251,7 @@ public class MapWidgetScroller extends MapWidget {
 
     @Override
     public void onTick() {
-        scrollIntoView();
+        scrollIntoView(false);
     }
 
     /**
@@ -244,6 +280,7 @@ public class MapWidgetScroller extends MapWidget {
     @Override
     public void onAttached() {
         container.getWidgets().forEach(this::adjustContainerSize);
+        scrollIntoView(true);
     }
 
     @Override
@@ -257,7 +294,7 @@ public class MapWidgetScroller extends MapWidget {
         // Handle key like normal. Might change navigation.
         super.onKeyPressed(event);
         // Make sure all is visible
-        this.scrollIntoView();
+        this.scrollIntoView(false);
     }
 
     private void setClipParentRecursive(MapWidget w) {

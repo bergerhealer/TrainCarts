@@ -1,20 +1,42 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.functions;
 
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetScroller;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionList;
 
+/**
+ * Shows a {@link TransferFunctionList} and interactive controls to make changes to it
+ */
 public class MapWidgetTransferFunctionList extends MapWidgetScroller {
     private static final int ROW_HEIGHT = 14;
     private final MapWidgetTransferFunctionDialog dialog;
     private final TransferFunctionList list;
+    private int onOpenSelectedIndex = -1;
 
     public MapWidgetTransferFunctionList(MapWidgetTransferFunctionDialog dialog, TransferFunctionList list) {
         this.dialog = dialog;
         this.list = list;
         this.setBounds(5, 9, dialog.getWidth() - 10, dialog.getHeight() - 20);
         this.setScrollPadding(10);
+    }
+
+    public void onSelectedItemChanged() {
+    }
+
+    public int getSelectedItemIndex() {
+        MapWidget w = display.getFocusedWidget();
+        if (w instanceof MapWidgetTransferFunctionItem) {
+            return list.indexOf(((MapWidgetTransferFunctionItem) w).getFunction());
+        } else {
+            return -1;
+        }
+    }
+
+    public MapWidgetTransferFunctionList setSelectedItemIndex(int index) {
+        onOpenSelectedIndex = index;
+        return this;
     }
 
     @Override
@@ -27,6 +49,10 @@ public class MapWidgetTransferFunctionList extends MapWidgetScroller {
         }
 
         addInitialItemPlaceholder();
+
+        if (onOpenSelectedIndex != -1 && onOpenSelectedIndex < getContainer().getWidgetCount()) {
+            getContainer().getWidget(onOpenSelectedIndex).focus();
+        }
 
         super.onAttached();
     }
@@ -54,25 +80,16 @@ public class MapWidgetTransferFunctionList extends MapWidgetScroller {
                     dialog.markChanged();
                 }
             }
+
+            @Override
+            public void onFocus() {
+                super.onFocus();
+                onSelectedItemChanged();
+            }
         };
         item.addButton(MapWidgetTransferFunctionItem.ButtonIcon.CONFIGURE, MapWidgetTransferFunctionItem::configure)
             .addButton(MapWidgetTransferFunctionItem.ButtonIcon.MOVE, MapWidgetTransferFunctionItem::startMove)
-            .addButton(MapWidgetTransferFunctionItem.ButtonIcon.ADD, i -> {
-                dialog.createNew(newFunction -> {
-                    // Insert a new item below this item
-                    int newItemIndex = list.indexOf(i.getFunction());
-                    if (newItemIndex == -1) {
-                        newItemIndex = list.size();
-                    } else {
-                        newItemIndex++;
-                    }
-                    list.add(newItemIndex, newFunction);
-                    MapWidgetTransferFunctionItem newItem = addContainerWidget(createItem(newFunction));
-                    recalcBounds();
-                    newItem.focus();
-                    dialog.markChanged();
-                });
-            })
+            .addButton(MapWidgetTransferFunctionItem.ButtonIcon.ADD, i -> addNewItem(list.indexOf(i.getFunction())))
             .addButton(MapWidgetTransferFunctionItem.ButtonIcon.REMOVE, i -> {
                 int itemIndex = list.indexOf(i.getFunction());
                 if (itemIndex != -1) {
@@ -106,18 +123,46 @@ public class MapWidgetTransferFunctionList extends MapWidgetScroller {
         return item;
     }
 
+    private void addNewItem(final int index) {
+        dialog.createNew(newFunction -> {
+            // Insert a new item below this item
+            int newItemIndex = index;
+            if (newItemIndex == -1) {
+                newItemIndex = list.size();
+            } else if (newItemIndex < list.size()) {
+                newItemIndex++;
+            }
+            if (list.isEmpty()) {
+                getContainer().clearWidgets();
+            }
+            list.add(newItemIndex, newFunction);
+            MapWidgetTransferFunctionItem newItem = addContainerWidget(createItem(newFunction));
+            recalcBounds();
+            newItem.focus();
+            dialog.markChanged();
+        });
+    }
+
     private void addInitialItemPlaceholder() {
         if (list.isEmpty()) {
             // Add a default item that initializes a new function when activated
             // Used for empty lists.
-            // TODO: Implement
+            getContainer().clearWidgets();
+            addContainerWidget(new MapWidgetButton() {
+                @Override
+                public void onActivate() {
+                    addNewItem(0);
+                }
+            }.setText("Set Function").setBounds(0, 0, getWidth(), 13)).focus();
         }
     }
 
     private void recalcBounds() {
-        for (MapWidget w : this.getContainer().getWidgets()) {
-            MapWidgetTransferFunctionItem item = (MapWidgetTransferFunctionItem) w;
-            calcBounds(w, list.indexOf(item.getFunction()));
+        if (!list.isEmpty()) {
+            for (MapWidget w : this.getContainer().getWidgets()) {
+                MapWidgetTransferFunctionItem item = (MapWidgetTransferFunctionItem) w;
+                calcBounds(w, list.indexOf(item.getFunction()));
+            }
         }
         super.recalculateContainerSize();
     }

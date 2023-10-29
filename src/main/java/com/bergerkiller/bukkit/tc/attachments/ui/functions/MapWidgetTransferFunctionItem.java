@@ -56,6 +56,7 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
 
     public void startMove() {
         moving = true;
+        dialog.setExitOnBack(false);
         this.invalidate();
     }
 
@@ -97,6 +98,7 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
                 onMoveDown();
             } else if (event.getKey() == MapPlayerInput.Key.BACK || event.getKey() == MapPlayerInput.Key.ENTER) {
                 moving = false;
+                dialog.setExitOnBack(true);
                 invalidate();
             }
         } else if (event.getKey() == MapPlayerInput.Key.LEFT && isFocused()) {
