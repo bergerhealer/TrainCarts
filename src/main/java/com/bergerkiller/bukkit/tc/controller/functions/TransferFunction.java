@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.functions;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
@@ -15,6 +16,25 @@ import java.util.function.DoubleUnaryOperator;
  * @see #map(double)
  */
 public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
+
+    /**
+     * Gets the serializer that is responsible for loading/saving this transfer function.
+     * Should be the same instance that was registered in the {@link TransferFunctionRegistry}
+     *
+     * @return Serializer
+     */
+    Serializer<? extends TransferFunction> getSerializer();
+
+    /**
+     * Gets the transfer function registry that stores all supported transfer function types.
+     * Use this to register a new transfer function type.
+     *
+     * @return Transfer Function Registry
+     */
+    static TransferFunctionRegistry getRegistry() {
+        return TransferFunctionRegistry.INSTANCE;
+    }
+
     /**
      * Maps the input value to an output value based on this transfer function.
      * For time-based transfer functions it assumes this method is called every tick.
@@ -48,4 +68,77 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
     void openDialog(MapWidgetTransferFunctionDialog dialog);
 
     TransferFunction clone();
+
+    /**
+     * Loads or creates transfer functions of a certain type
+     *
+     * @param <T> Transfer Function Type
+     */
+    interface Serializer<T extends TransferFunction> {
+        /** Field in the Configuration that stores the {@link #typeId()} */
+        String TYPE_FIELD = "type";
+
+        /**
+         * Gets a unique type id that identifies this type of transfer function.
+         * Is important for persistent serialization/de-serialization.
+         *
+         * @return Type Id
+         */
+        String typeId();
+
+        /**
+         * Gets the title displayed for this serializer when it is listed
+         * in the new transfer function selection menu
+         *
+         * @return Title
+         */
+        String title();
+
+        /**
+         * Creates a new blank slate instance of this Transfer Function
+         *
+         * @param host TransferFunctionHost that will contain this transfer function
+         * @return New Transfer Function instance
+         */
+        T createNew(TransferFunctionHost host);
+
+        /**
+         * Creates a new instance of this Transfer Function by loading it from
+         * a YAML configuration
+         *
+         * @param host TransferFunctionHost that contains this transfer function
+         * @param config Configuration to load from
+         * @return New Transfer Function instance
+         */
+        T load(TransferFunctionHost host, ConfigurationNode config);
+
+        /**
+         * Saves a transfer function instance to a YAML configuration.
+         * The {@link #typeId()} has already been saved.
+         *
+         * @param host TransferFunctionHost that contains this transfer function
+         * @param config Configuration to save to
+         * @param function Transfer Function to save
+         */
+        void save(TransferFunctionHost host, ConfigurationNode config, T function);
+    }
+
+    /**
+     * Input for a transfer function to use. Used by {@link TransferFunctionInput}
+     */
+    interface Input {
+        /** Name of this input */
+        String name();
+
+        /**
+         * Gets whether this input is still valid, that is, registered internally.
+         * If the input was removed it is no longer valid.
+         *
+         * @return True if valid
+         */
+        boolean valid();
+
+        /** Current value of this input. Multi-thread safe */
+        double value();
+    }
 }

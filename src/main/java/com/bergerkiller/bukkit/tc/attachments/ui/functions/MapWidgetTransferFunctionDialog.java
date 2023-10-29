@@ -2,11 +2,14 @@ package com.bergerkiller.bukkit.tc.attachments.ui.functions;
 
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
+import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetScroller;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
-import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionConstant;
+import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -15,14 +18,16 @@ import java.util.logging.Level;
  * Displays the configuration of a {@link TransferFunction}
  */
 public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
+    private final TransferFunctionHost host;
     private TransferFunction root;
     private TransferFunctionNav nav;
 
-    public MapWidgetTransferFunctionDialog(TransferFunction rootFunction) {
+    public MapWidgetTransferFunctionDialog(TransferFunctionHost host, TransferFunction rootFunction) {
         this.setBackgroundColor(MapColorPalette.getColor(72, 108, 152));
         this.setBounds(7, 17, 128 - 14, 105);
         this.setPositionAbsolute(true);
 
+        this.host = host;
         this.root = rootFunction;
         this.nav = new TransferFunctionNav(null, rootFunction);
     }
@@ -39,6 +44,16 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
      */
     public void markChanged() {
         onChanged(root);
+    }
+
+    /**
+     * Gets the host this dialog is shown for. This provides information about available
+     * inputs and such.
+     *
+     * @return TransferFunctionHost
+     */
+    public TransferFunctionHost getHost() {
+        return host;
     }
 
     /**
@@ -86,8 +101,12 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
      * @param action Consumer for the new transfer function
      */
     public void createNew(Consumer<TransferFunction> action) {
-        //TODO: Implement
-        action.accept(new TransferFunctionConstant(0.0));
+        this.addWidget(new FunctionTypeSelectorMenu() {
+            @Override
+            public void onSelected(TransferFunction function) {
+                action.accept(function);
+            }
+        });
     }
 
     @Override
@@ -118,6 +137,65 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
             this.parent = parent;
             this.function = function;
             this.depth = (parent != null) ? (parent.depth + 1) : 0;
+        }
+    }
+
+    /**
+     * Selects a transfer function type to be created
+     */
+    private abstract class FunctionTypeSelectorMenu extends MapWidgetMenu {
+        private final byte ITEM_BG_DEFAULT = MapColorPalette.getColor(199, 199, 199);
+        private final byte ITEM_BG_FOCUS = MapColorPalette.getColor(255, 252, 245);
+        private final int ROW_HEIGHT = 11;
+
+        public FunctionTypeSelectorMenu() {
+            setBounds(12, 5, 88, 88);
+            setBackgroundColor(MapColorPalette.getColor(164, 168, 184));
+        }
+
+        public abstract void onSelected(TransferFunction function);
+
+        @Override
+        public void onAttached() {
+            this.addWidget(new MapWidgetScroller() {
+                @Override
+                public void onAttached() {
+                    int y = 0;
+                    for (TransferFunction.Serializer<?> serializer : host.getRegistry().all()) {
+                        addContainerWidget(new Item(serializer).setBounds(0, y, getWidth(), ROW_HEIGHT+1));
+                        y += ROW_HEIGHT;
+                    }
+                    super.onAttached();
+                }
+            }).setScrollPadding(ROW_HEIGHT / 2)
+              .setBounds(4, 4, getWidth() - 8, getHeight() - 8);
+
+            super.onAttached();
+        }
+
+        private class Item extends MapWidget {
+            private final TransferFunction.Serializer<?> serializer;
+
+            public Item(TransferFunction.Serializer<?> serializer) {
+                this.serializer = serializer;
+                this.setFocusable(true);
+            }
+
+            @Override
+            public void onActivate() {
+                close();
+                onSelected(serializer.createNew(host));
+            }
+
+            @Override
+            public void onDraw() {
+                view.drawRectangle(0, 0, getWidth(), getHeight(), MapColorPalette.COLOR_BLACK);
+                view.fillRectangle(1, 1, getWidth() - 2, getHeight() - 2,
+                        isFocused() ? ITEM_BG_FOCUS : ITEM_BG_DEFAULT);
+                view.draw(MapFont.MINECRAFT, 2, 2,
+                        isFocused() ? MapColorPalette.COLOR_BLUE : MapColorPalette.COLOR_BLACK,
+                        serializer.title());
+            }
         }
     }
 }

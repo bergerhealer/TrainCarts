@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.functions;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
@@ -8,6 +9,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunc
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Describes how an input value is transformed into an output value using a curve,
@@ -15,6 +17,60 @@ import java.util.Arrays;
  * curve are clamped and set to the value at those ends.
  */
 public class TransferFunctionCurve implements TransferFunction, Cloneable {
+    public static final Serializer<TransferFunctionCurve> SERIALIZER = new Serializer<TransferFunctionCurve>() {
+        @Override
+        public String typeId() {
+            return "CURVE_GRAPH";
+        }
+
+        @Override
+        public String title() {
+            return "Curve Graph";
+        }
+
+        @Override
+        public TransferFunctionCurve createNew(TransferFunctionHost host) {
+            return empty();
+        }
+
+        @Override
+        public TransferFunctionCurve load(TransferFunctionHost host, ConfigurationNode config) {
+            TransferFunctionCurve curve = empty();
+            for (String value : config.getList("values", String.class)) {
+                int sep = value.indexOf('=');
+                if (sep != -1) {
+                    int inputEnd = sep;
+                    int outputStart = sep + 1;
+                    while (inputEnd > 0 && value.charAt(inputEnd) == ' ') {
+                        inputEnd--;
+                    }
+                    while (outputStart < value.length() && value.charAt(outputStart) == ' ') {
+                        outputStart++;
+                    }
+
+                    String inputTxt = value.substring(0, inputEnd).trim();
+                    String outputTxt = value.substring(outputStart).trim();
+                    try {
+                        double input = Double.parseDouble(inputTxt);
+                        double output = Double.parseDouble(outputTxt);
+                        curve.add(input, output);
+                    } catch (NumberFormatException ex) { /* ignore */ }
+                }
+            }
+            return curve;
+        }
+
+        @Override
+        public void save(TransferFunctionHost host, ConfigurationNode config, TransferFunctionCurve curve) {
+            if (!curve.isEmpty()) {
+                List<String> values = config.getList("values", String.class);
+                for (int i = 0; i < curve.size(); i++) {
+                    values.add(curve.getInput(i) + " = " + curve.getOutput(i));
+                }
+            }
+        }
+    };
+
     /** Stores the inputs, followed by the outputs. Length is always a multiple of two. */
     private double[] v;
     /** Tracks the previous input sent to {@link #map(double)} */
@@ -37,6 +93,11 @@ public class TransferFunctionCurve implements TransferFunction, Cloneable {
 
     private TransferFunctionCurve(double[] v) {
         this.v = v;
+    }
+
+    @Override
+    public Serializer<? extends TransferFunction> getSerializer() {
+        return SERIALIZER;
     }
 
     /**
@@ -335,7 +396,7 @@ public class TransferFunctionCurve implements TransferFunction, Cloneable {
 
     @Override
     public void drawPreview(MapWidgetTransferFunctionItem widget, MapCanvas view) {
-        view.draw(MapFont.MINECRAFT, 0, 0, MapColorPalette.COLOR_RED, "Curve");
+        view.draw(MapFont.MINECRAFT, 2, 3, MapColorPalette.COLOR_GREEN, "Curve");
     }
 
     @Override
