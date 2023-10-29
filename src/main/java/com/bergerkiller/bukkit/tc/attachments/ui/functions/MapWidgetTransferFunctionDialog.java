@@ -89,7 +89,14 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
                 close();
                 return;
             }
-            this.activate();
+
+            // If no widgets were added, automatically close the dialog again and go back
+            if (nav.parent != null && this.getWidgetCount() == 0) {
+                display.playSound(SoundEffect.EXTINGUISH);
+                navigate(nav.parent);
+            } else {
+                this.activate();
+            }
         }
     }
 
@@ -162,8 +169,10 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
                 public void onAttached() {
                     int y = 0;
                     for (TransferFunction.Serializer<?> serializer : host.getRegistry().all()) {
-                        addContainerWidget(new Item(serializer).setBounds(0, y, getWidth(), ROW_HEIGHT+1));
-                        y += ROW_HEIGHT;
+                        if (serializer.isListed()) {
+                            addContainerWidget(new Item(serializer).setBounds(0, y, getWidth(), ROW_HEIGHT + 1));
+                            y += ROW_HEIGHT;
+                        }
                     }
                     super.onAttached();
                 }

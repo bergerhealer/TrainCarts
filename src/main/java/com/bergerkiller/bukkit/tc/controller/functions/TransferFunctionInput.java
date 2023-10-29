@@ -67,6 +67,11 @@ public class TransferFunctionInput implements TransferFunction {
     }
 
     @Override
+    public boolean isBooleanOutput() {
+        return input.isBool();
+    }
+
+    @Override
     public TransferFunction clone() {
         return new TransferFunctionInput(input);
     }
@@ -92,6 +97,11 @@ public class TransferFunctionInput implements TransferFunction {
         @Override
         public String name() {
             return name;
+        }
+
+        @Override
+        public boolean isBool() {
+            return false;
         }
 
         @Override

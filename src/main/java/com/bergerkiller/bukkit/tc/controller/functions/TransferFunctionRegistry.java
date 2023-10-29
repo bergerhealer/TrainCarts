@@ -25,6 +25,8 @@ public class TransferFunctionRegistry {
         register(TransferFunctionInput.SERIALIZER);
         register(TransferFunctionCurve.SERIALIZER);
         register(TransferFunctionList.SERIALIZER);
+        register(TransferFunctionIdentity.SERIALIZER);
+        register(TransferFunctionConditional.SERIALIZER);
     }
 
     /**

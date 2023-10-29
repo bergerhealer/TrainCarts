@@ -36,6 +36,16 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
     }
 
     /**
+     * Gets an identity transfer function singleton instance. This transfer function is
+     * a no-op that simply returns the input.
+     *
+     * @return Identity transfer function
+     */
+    static TransferFunction identity() {
+        return TransferFunctionIdentity.INSTANCE;
+    }
+
+    /**
      * Maps the input value to an output value based on this transfer function.
      * For time-based transfer functions it assumes this method is called every tick.
      *
@@ -44,10 +54,22 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
      */
     double map(double input);
 
+    /**
+     * Gets whether the output of this transfer function is a boolean. That is,
+     * {@link #map(double)} return 1.0 for true and 0.0 for false.
+     *
+     * @return True if map() returns a boolean output
+     */
+    default boolean isBooleanOutput() {
+        return false;
+    }
+
     @Override
     default double applyAsDouble(double v) {
         return map(v);
     }
+
+    TransferFunction clone();
 
     /**
      * Draws a non-interactive preview that shows up behind the navigation menu.
@@ -66,8 +88,6 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
      *               Is empty initially.
      */
     void openDialog(MapWidgetTransferFunctionDialog dialog);
-
-    TransferFunction clone();
 
     /**
      * Loads or creates transfer functions of a certain type
@@ -93,6 +113,16 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
          * @return Title
          */
         String title();
+
+        /**
+         * Gets whether this transfer function is listed in the 'create new transfer function'
+         * dialog.
+         *
+         * @return True if listed (default)
+         */
+        default boolean isListed() {
+            return true;
+        }
 
         /**
          * Creates a new blank slate instance of this Transfer Function
@@ -129,6 +159,15 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
     interface Input {
         /** Name of this input */
         String name();
+
+        /**
+         * Gets whether this input is a boolean input. A boolean input returns 1.0 for true and
+         * 0.0 for false. For conditional transfer functions this method signals whether to show
+         * the comparator controls.
+         *
+         * @return True if this input is a boolean input, False if not
+         */
+        boolean isBool();
 
         /**
          * Gets whether this input is still valid, that is, registered internally.

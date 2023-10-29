@@ -106,6 +106,11 @@ public class TransferFunctionList implements TransferFunction, Cloneable {
     }
 
     @Override
+    public boolean isBooleanOutput() {
+        return !functions.isEmpty() && functions.get(functions.size() - 1).isBooleanOutput();
+    }
+
+    @Override
     public TransferFunctionList clone() {
         TransferFunctionList copy = new TransferFunctionList();
         for (TransferFunction func : functions) {

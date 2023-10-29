@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.functions;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 
 import java.util.List;
@@ -45,5 +46,25 @@ public interface TransferFunctionHost extends TrainCarts.Provider {
             }
         }
         return null;
+    }
+
+    /**
+     * Loads a Transfer Function from configuration
+     *
+     * @param config Configuration to load
+     * @return Loaded TransferFunction
+     */
+    default TransferFunction loadFunction(ConfigurationNode config) {
+        return getRegistry().load(this, config);
+    }
+
+    /**
+     * Saves a Transfer Function to configuration
+     *
+     * @param function Transfer Function to save
+     * @return Saved Configuration
+     */
+    default ConfigurationNode saveFunction(TransferFunction function) {
+        return getRegistry().save(this, function);
     }
 }
