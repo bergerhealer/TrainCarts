@@ -75,8 +75,8 @@ public final class TransferFunctionConstant implements TransferFunction {
 
     @Override
     public void drawPreview(MapWidgetTransferFunctionItem widget, MapCanvas view) {
-        view.draw(MapFont.MINECRAFT, 2, 3, MapColorPalette.COLOR_GREEN,
-                "=" + output + " [constant]");
+        view.draw(MapFont.MINECRAFT, 0, 3, MapColorPalette.COLOR_GREEN,
+                output + " [constant]");
     }
 
     @Override

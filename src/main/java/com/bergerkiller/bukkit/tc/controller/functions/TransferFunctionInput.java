@@ -79,7 +79,7 @@ public class TransferFunctionInput implements TransferFunction {
     @Override
     public void drawPreview(MapWidgetTransferFunctionItem widget, MapCanvas view) {
         byte color = input.valid() ? MapColorPalette.COLOR_GREEN : MapColorPalette.COLOR_RED;
-        view.draw(MapFont.MINECRAFT, 2, 3, color, "=" + input.name() + " [input]");
+        view.draw(MapFont.MINECRAFT, 0, 3, color, input.name() + " [input]");
     }
 
     @Override

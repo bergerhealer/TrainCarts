@@ -396,7 +396,7 @@ public class TransferFunctionCurve implements TransferFunction, Cloneable {
 
     @Override
     public void drawPreview(MapWidgetTransferFunctionItem widget, MapCanvas view) {
-        view.draw(MapFont.MINECRAFT, 2, 3, MapColorPalette.COLOR_GREEN, "Curve");
+        view.draw(MapFont.MINECRAFT, 0, 3, MapColorPalette.COLOR_GREEN, "Curve");
     }
 
     @Override
