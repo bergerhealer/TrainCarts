@@ -19,7 +19,7 @@ import java.util.logging.Level;
  */
 public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
     private final TransferFunctionHost host;
-    private TransferFunction root;
+    private TransferFunction.Holder<TransferFunction> root;
     private TransferFunctionNav nav;
 
     public MapWidgetTransferFunctionDialog(TransferFunctionHost host, TransferFunction rootFunction) {
@@ -28,8 +28,8 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
         this.setPositionAbsolute(true);
 
         this.host = host;
-        this.root = rootFunction;
-        this.nav = new TransferFunctionNav(null, rootFunction);
+        this.root = TransferFunction.Holder.of(rootFunction);
+        this.nav = new TransferFunctionNav(null, this.root);
     }
 
     /**
@@ -43,7 +43,7 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
      * Should be called by menu dialogs when changes are made to a transfer function
      */
     public void markChanged() {
-        onChanged(root);
+        onChanged(root.getFunction());
     }
 
     /**
@@ -57,12 +57,25 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
     }
 
     /**
+     * Replaces the current function being configured in this dialog with a new one.
+     * The menu is updated to reflect the new function.
+     *
+     * @param newFunction Function to replace the current function in this dialog with
+     */
+    public void setFunction(TransferFunction newFunction) {
+        if (nav != null) {
+            nav.function.setFunction(newFunction);
+            navigate(nav); // Navigate to same dialog
+        }
+    }
+
+    /**
      * Navigates to a new transfer function. The back button will return back to this
      * current function.
      *
-     * @param function Function to navigate to
+     * @param function Function Holder to navigate to
      */
-    public void navigate(TransferFunction function) {
+    public void navigate(TransferFunction.Holder<TransferFunction> function) {
         // Some checks
         if (nav != null) {
             if (nav.function == function) {
@@ -83,7 +96,7 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
         if (this.nav != null && getDisplay() != null) {
             this.deactivate();
             try {
-                this.nav.function.openDialog(this);
+                this.nav.function.getFunction().openDialog(this);
             } catch (Throwable t) {
                 display.getPlugin().getLogger().log(Level.SEVERE, "Failed to open function dialog", t);
                 close();
@@ -137,10 +150,10 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
 
     private static class TransferFunctionNav {
         public final TransferFunctionNav parent;
-        public final TransferFunction function;
+        public final TransferFunction.Holder<TransferFunction>  function;
         public final int depth;
 
-        public TransferFunctionNav(TransferFunctionNav parent, TransferFunction function) {
+        public TransferFunctionNav(TransferFunctionNav parent, TransferFunction.Holder<TransferFunction> function) {
             this.parent = parent;
             this.function = function;
             this.depth = (parent != null) ? (parent.depth + 1) : 0;
@@ -168,8 +181,18 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
                 @Override
                 public void onAttached() {
                     int y = 0;
+                    boolean addedInput = false;
                     for (TransferFunction.Serializer<?> serializer : host.getRegistry().all()) {
                         if (serializer.isListed()) {
+                            // Only add the very first input transform function, listed as "input"
+                            if (serializer.isInput()) {
+                                if (addedInput) {
+                                    continue;
+                                } else {
+                                    addedInput = true;
+                                }
+                            }
+
                             addContainerWidget(new Item(serializer).setBounds(0, y, getWidth(), ROW_HEIGHT + 1));
                             y += ROW_HEIGHT;
                         }
@@ -203,7 +226,7 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
                         isFocused() ? ITEM_BG_FOCUS : ITEM_BG_DEFAULT);
                 view.draw(MapFont.MINECRAFT, 2, 2,
                         isFocused() ? MapColorPalette.COLOR_BLUE : MapColorPalette.COLOR_BLACK,
-                        serializer.title());
+                        serializer.isInput() ? "Input" : serializer.title());
             }
         }
     }

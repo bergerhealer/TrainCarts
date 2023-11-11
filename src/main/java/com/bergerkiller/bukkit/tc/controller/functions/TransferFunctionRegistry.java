@@ -1,6 +1,9 @@
 package com.bergerkiller.bukkit.tc.controller.functions;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.tc.controller.functions.inputs.TransferFunctionInput;
+import com.bergerkiller.bukkit.tc.controller.functions.inputs.TransferFunctionInputProperty;
+import com.bergerkiller.bukkit.tc.controller.functions.inputs.TransferFunctionInputSpeed;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,7 +25,8 @@ public class TransferFunctionRegistry {
     public TransferFunctionRegistry() {
         // Register all the default traincarts types
         register(TransferFunctionConstant.SERIALIZER);
-        register(TransferFunctionInput.SERIALIZER);
+        register(TransferFunctionInputSpeed.SERIALIZER);
+        register(TransferFunctionInputProperty.SERIALIZER);
         register(TransferFunctionCurve.SERIALIZER);
         register(TransferFunctionList.SERIALIZER);
         register(TransferFunctionIdentity.SERIALIZER);

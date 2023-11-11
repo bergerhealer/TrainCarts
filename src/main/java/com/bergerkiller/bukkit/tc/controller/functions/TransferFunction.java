@@ -90,6 +90,36 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
     void openDialog(MapWidgetTransferFunctionDialog dialog);
 
     /**
+     * Holds a single TransferFunction. Class can be used to swap an instance of a transfer
+     * function.
+     *
+     * @param <T> Transfer Function Type
+     */
+    class Holder<T extends TransferFunction> {
+        protected T function;
+
+        protected Holder(T function) {
+            this.function = function;
+        }
+
+        public T getFunction() {
+            return function;
+        }
+
+        public void setFunction(T function) {
+            this.function = function;
+        }
+
+        public boolean isIdentity() {
+            return getFunction() == TransferFunction.identity();
+        }
+
+        public static <T extends TransferFunction> Holder<T> of(T function) {
+            return new Holder<T>(function);
+        }
+    }
+
+    /**
      * Loads or creates transfer functions of a certain type
      *
      * @param <T> Transfer Function Type
@@ -125,6 +155,15 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
         }
 
         /**
+         * Gets whether this transfer function is a type of input
+         *
+         * @return True if it is an input
+         */
+        default boolean isInput() {
+            return false;
+        }
+
+        /**
          * Creates a new blank slate instance of this Transfer Function
          *
          * @param host TransferFunctionHost that will contain this transfer function
@@ -151,33 +190,5 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
          * @param function Transfer Function to save
          */
         void save(TransferFunctionHost host, ConfigurationNode config, T function);
-    }
-
-    /**
-     * Input for a transfer function to use. Used by {@link TransferFunctionInput}
-     */
-    interface Input {
-        /** Name of this input */
-        String name();
-
-        /**
-         * Gets whether this input is a boolean input. A boolean input returns 1.0 for true and
-         * 0.0 for false. For conditional transfer functions this method signals whether to show
-         * the comparator controls.
-         *
-         * @return True if this input is a boolean input, False if not
-         */
-        boolean isBool();
-
-        /**
-         * Gets whether this input is still valid, that is, registered internally.
-         * If the input was removed it is no longer valid.
-         *
-         * @return True if valid
-         */
-        boolean valid();
-
-        /** Current value of this input. Multi-thread safe */
-        double value();
     }
 }

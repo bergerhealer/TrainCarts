@@ -68,7 +68,7 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
     }
 
     public TransferFunction getFunction() {
-        return item.function();
+        return item.getFunction();
     }
 
     public MapWidgetTransferFunctionItem setShowFunctionMode(boolean show) {
@@ -85,7 +85,7 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
     }
 
     public void configure() {
-        dialog.navigate(getFunction());
+        dialog.navigate(item);
     }
 
     public void startMove() {
@@ -123,7 +123,7 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
         int newIndex = item.mode().ordinal() + incr;
         if (newIndex >= 0 && newIndex < values.length) {
             TransferFunctionList.Item oldItem = item;
-            item = new TransferFunctionList.Item(values[newIndex], item.function());
+            item = new TransferFunctionList.Item(values[newIndex], item.getFunction());
             onFunctionModeChanged(oldItem, item);
             invalidate();
         }

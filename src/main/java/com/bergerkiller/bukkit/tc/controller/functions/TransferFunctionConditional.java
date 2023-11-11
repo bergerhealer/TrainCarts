@@ -31,45 +31,45 @@ public class TransferFunctionConditional implements TransferFunction {
         public TransferFunctionConditional load(TransferFunctionHost host, ConfigurationNode config) {
             TransferFunctionConditional conditional = new TransferFunctionConditional();
             if (config.isNode("left")) {
-                conditional.leftInput = host.loadFunction(config.getNode("left"));
+                conditional.leftInput.setFunction(host.loadFunction(config.getNode("left")));
             }
             conditional.rightInput = config.getOrDefault("right", conditional.rightInput);
             conditional.operator = config.getOrDefault("operator", conditional.operator);
             if (config.isNode("falseOutput")) {
-                conditional.falseOutput = host.loadFunction(config.getNode("falseOutput"));
+                conditional.falseOutput.setFunction(host.loadFunction(config.getNode("falseOutput")));
             }
             if (config.isNode("trueOutput")) {
-                conditional.trueOutput = host.loadFunction(config.getNode("trueOutput"));
+                conditional.trueOutput.setFunction(host.loadFunction(config.getNode("trueOutput")));
             }
             return conditional;
         }
 
         @Override
         public void save(TransferFunctionHost host, ConfigurationNode config, TransferFunctionConditional conditional) {
-            if (conditional.leftInput != TransferFunction.identity()) {
-                config.set("left", host.saveFunction(conditional.leftInput));
+            if (!conditional.leftInput.isIdentity()) {
+                config.set("left", host.saveFunction(conditional.leftInput.getFunction()));
             }
             config.set("right", conditional.rightInput);
             config.set("operator", conditional.operator);
-            if (conditional.falseOutput != TransferFunction.identity()) {
-                config.set("falseOutput", host.saveFunction(conditional.falseOutput));
+            if (!conditional.falseOutput.isIdentity()) {
+                config.set("falseOutput", host.saveFunction(conditional.falseOutput.getFunction()));
             }
-            if (conditional.trueOutput != TransferFunction.identity()) {
-                config.set("trueOutput", host.saveFunction(conditional.trueOutput));
+            if (!conditional.trueOutput.isIdentity()) {
+                config.set("trueOutput", host.saveFunction(conditional.trueOutput.getFunction()));
             }
         }
     };
 
     /** Left-hand side of the comparator operation. Supports functions. Input is passed to it. */
-    private TransferFunction leftInput = TransferFunction.identity();
+    private final TransferFunction.Holder<TransferFunction> leftInput = TransferFunction.Holder.of(TransferFunction.identity());
     /** Right-hand side of the comparator operation */
     private double rightInput = 0.0;
     /** Operator to use when comparing the left and right hand inputs */
     private Operator operator = Operator.GREATER_EQUAL_THAN;
     /** Function to call when the condition is false. Input is passed to it. */
-    private TransferFunction falseOutput = TransferFunction.identity();
+    private final TransferFunction.Holder<TransferFunction> falseOutput = TransferFunction.Holder.of(TransferFunction.identity());
     /** Function to call when the condition is true. Input is passed to it. */
-    private TransferFunction trueOutput = TransferFunction.identity();
+    private final TransferFunction.Holder<TransferFunction> trueOutput = TransferFunction.Holder.of(TransferFunction.identity());
 
     @Override
     public Serializer<? extends TransferFunction> getSerializer() {
@@ -78,12 +78,12 @@ public class TransferFunctionConditional implements TransferFunction {
 
     @Override
     public double map(double input) {
-        boolean result = operator.compare(leftInput.map(input), rightInput);
-        return (result ? trueOutput : falseOutput).map(input);
+        boolean result = operator.compare(leftInput.getFunction().map(input), rightInput);
+        return (result ? trueOutput : falseOutput).getFunction().map(input);
     }
 
     public void setLeftInput(TransferFunction input) {
-        this.leftInput = input;
+        this.leftInput.setFunction(input);
     }
 
     public void setRightInput(double input) {
@@ -95,21 +95,21 @@ public class TransferFunctionConditional implements TransferFunction {
     }
 
     public void setFalseOutput(TransferFunction output) {
-        this.falseOutput = output;
+        this.falseOutput.setFunction(output);
     }
 
     public void setTrueOutput(TransferFunction output) {
-        this.trueOutput = output;
+        this.trueOutput.setFunction(output);
     }
 
     @Override
     public TransferFunctionConditional clone() {
         TransferFunctionConditional copy = new TransferFunctionConditional();
-        copy.leftInput = this.leftInput.clone();
+        copy.leftInput.setFunction(this.leftInput.getFunction().clone());
         copy.rightInput = this.rightInput;
         copy.operator = this.operator;
-        copy.falseOutput = this.falseOutput.clone();
-        copy.trueOutput = this.trueOutput.clone();
+        copy.falseOutput.setFunction(this.falseOutput.getFunction().clone());
+        copy.trueOutput.setFunction(this.trueOutput.getFunction().clone());
         return copy;
     }
 

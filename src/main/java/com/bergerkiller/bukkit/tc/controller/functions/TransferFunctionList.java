@@ -48,7 +48,7 @@ public class TransferFunctionList implements TransferFunction, Cloneable {
                 List<ConfigurationNode> savedConfigs = new ArrayList<>(list.size());
                 TransferFunctionRegistry registry = host.getRegistry();
                 for (Item item : list.getItems()) {
-                    ConfigurationNode functionConfig = registry.save(host, item.function());
+                    ConfigurationNode functionConfig = registry.save(host, item.getFunction());
                     if (item.mode() != FunctionMode.ASSIGN) {
                         functionConfig.set("functionMode", item.mode());
                     }
@@ -121,7 +121,7 @@ public class TransferFunctionList implements TransferFunction, Cloneable {
 
     @Override
     public boolean isBooleanOutput() {
-        return !items.isEmpty() && items.get(items.size() - 1).function().isBooleanOutput();
+        return !items.isEmpty() && items.get(items.size() - 1).getFunction().isBooleanOutput();
     }
 
     @Override
@@ -158,13 +158,12 @@ public class TransferFunctionList implements TransferFunction, Cloneable {
     /**
      * A single processed function in a list
      */
-    public static class Item implements Cloneable {
+    public static class Item extends TransferFunction.Holder<TransferFunction> implements Cloneable {
         private final FunctionMode mode;
-        private final TransferFunction function;
 
         public Item(FunctionMode mode, TransferFunction function) {
+            super(function);
             this.mode = mode;
-            this.function = function;
         }
 
         /**
@@ -174,15 +173,6 @@ public class TransferFunctionList implements TransferFunction, Cloneable {
          */
         public FunctionMode mode() {
             return mode;
-        }
-
-        /**
-         * Gets the function that is called
-         *
-         * @return Transfer Function
-         */
-        public TransferFunction function() {
-            return function;
         }
 
         /**

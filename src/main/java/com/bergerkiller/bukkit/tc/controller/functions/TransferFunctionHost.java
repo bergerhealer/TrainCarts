@@ -2,8 +2,9 @@ package com.bergerkiller.bukkit.tc.controller.functions;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-
-import java.util.List;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.functions.inputs.TransferFunctionInput;
+import com.bergerkiller.bukkit.tc.properties.CartProperties;
 
 /**
  * Owns transfer functions. Provides information about what inputs
@@ -20,33 +21,33 @@ public interface TransferFunctionHost extends TrainCarts.Provider {
     TransferFunctionRegistry getRegistry();
 
     /**
-     * Gets a List of all supported transfer function inputs
+     * Registers a (new) input to be kept updated regularly. The input referenced source was
+     * already used before, the existing source is returned instead of the input source.
+     * Caller should right afterwards register itself as a recipient for the returned
+     * referenced source. Not multithread-safe.
      *
-     * @return Inputs
+     * @param source ReferencedSource to keep updated
+     * @return ReferencedSource result that should be used to read the input
      */
-    List<TransferFunction.Input> getInputs();
+    TransferFunctionInput.ReferencedSource registerInputSource(TransferFunctionInput.ReferencedSource source);
 
     /**
-     * Looks up an input for transfer function by name. If this input is not
-     * available (in this context) then null is returned.
+     * Gets the MinecartMember cart properties of the cart thats owns this transfer function.
+     * If no member is known, returns null.
      *
-     * @param name Name of the input
-     * @return Transfer function input by this name, or null if it does not
-     *         exist or is not available (infinite recursion)
+     * @return Properties, null if not available or known
      */
-    default TransferFunction.Input findInput(String name) {
-        for (TransferFunction.Input input : getInputs()) {
-            if (name.equals(input.name())) {
-                return input;
-            }
-        }
-        for (TransferFunction.Input input : getInputs()) {
-            if (name.equalsIgnoreCase(input.name())) {
-                return input;
-            }
-        }
-        return null;
+    default CartProperties getCartProperties() {
+        MinecartMember<?> member = getMember();
+        return member == null ? null : member.getProperties();
     }
+
+    /**
+     * Gets the MinecartMember that owns this transfer function. Inputs are about this member.
+     *
+     * @return Member, null if not available or known
+     */
+    MinecartMember<?> getMember();
 
     /**
      * Loads a Transfer Function from configuration
