@@ -6,6 +6,7 @@ import java.util.Set;
 
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.api.IDoubleProperty;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
 
 /**
@@ -73,7 +74,7 @@ public abstract class FieldBackedStandardCartProperty<T> extends FieldBackedProp
      * Provides read access to a primitive double property. Prevents unneeded boxing
      * of primitive property values.
      */
-    public static abstract class StandardDouble extends FieldBackedStandardCartProperty<java.lang.Double> {
+    public static abstract class StandardDouble extends FieldBackedStandardCartProperty<java.lang.Double> implements IDoubleProperty {
 
         /**
          * @return default property value
@@ -103,13 +104,33 @@ public abstract class FieldBackedStandardCartProperty<T> extends FieldBackedProp
          * @param properties Cart Properties to read from
          * @return current property value
          */
+        @Override
         public final double getDouble(CartProperties properties) {
             return getDataDouble(CartInternalData.get(properties));
         }
 
         @Override
+        public final double getDouble(TrainProperties properties) {
+            if (properties.isEmpty()) {
+                return this.getDoubleDefault();
+            } else {
+                return getDouble(properties.get(0));
+            }
+        }
+
+        @Override
         public java.lang.Double getDefault() {
             return java.lang.Double.valueOf(getDoubleDefault());
+        }
+
+        @Override
+        public Double get(CartProperties properties) {
+            return java.lang.Double.valueOf(getDouble(properties));
+        }
+
+        @Override
+        public Double get(TrainProperties properties) {
+            return java.lang.Double.valueOf(getDouble(properties));
         }
 
         @Override
