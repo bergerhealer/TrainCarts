@@ -120,7 +120,7 @@ public enum PowerState {
                 if (sideKey != null) {
                     BlockData updated = fromBlockInfo.setState(sideKey, "side");
                     if (fromBlockInfo != updated) {
-                        WorldUtil.setBlockData(fromBlock, updated);
+                        WorldUtil.setBlockDataFast(fromBlock, updated);
                     }
                 }
             }
