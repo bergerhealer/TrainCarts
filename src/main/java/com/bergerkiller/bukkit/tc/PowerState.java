@@ -120,6 +120,10 @@ public enum PowerState {
                 if (sideKey != null) {
                     BlockData updated = fromBlockInfo.setState(sideKey, "side");
                     if (fromBlockInfo != updated) {
+                        // Note: do not use setBlockData() because we don't want to fire block physics
+                        // When block physics fire and adjacent to a redstone wire is another wire also
+                        // with a sign next to it, then it 'ping pongs' back and forth crashing the server.
+                        // Repro setup: [sign] [wire] [wire] [sign]
                         WorldUtil.setBlockDataFast(fromBlock, updated);
                     }
                 }
