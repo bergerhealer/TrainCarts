@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.rails;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -674,7 +673,12 @@ public final class RailLookup {
          * @return True if the text of the two signs are identical
          */
         public boolean hasIdenticalText(TrackedSign other) {
-            return Arrays.equals(this.sign.getLines(), other.sign.getLines());
+            for (int i = 0; i < 4; i++) {
+                if (!this.getLine(i).equals(other.getLine(i))) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         @Override
@@ -1114,7 +1118,9 @@ public final class RailLookup {
                     }
 
                     if (sign.signBlock.equals(signBlock)) {
-                        lines.addAll(Arrays.asList(sign.sign.getLines()));
+                        for (int i = 0; i < 4; i++) {
+                            lines.add(sign.getLine(i));
+                        }
                         found = true;
                         signBlock = signBlock.getRelative(BlockFace.DOWN);
                         break;
