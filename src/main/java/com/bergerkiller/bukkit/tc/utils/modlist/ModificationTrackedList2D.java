@@ -33,6 +33,16 @@ public class ModificationTrackedList2D<E> extends AbstractList<E> implements Mod
         }
     }
 
+    public void removeList(List<E> list) {
+        for (Iterator<List<E>> iter = lists.iterator(); iter.hasNext();) {
+            if (iter.next() == list) {
+                iter.remove();
+                this.modCount++;
+                break;
+            }
+        }
+    }
+
     @Override
     public int getModCount() {
         return this.modCount;

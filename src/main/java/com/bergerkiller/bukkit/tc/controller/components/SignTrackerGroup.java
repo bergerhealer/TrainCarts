@@ -118,6 +118,10 @@ public class SignTrackerGroup extends SignTracker {
     public void onMemberRemoved(MinecartMember<?> member) {
         removeDetectorRegionsOf(member);
         updatePosition();
+
+        // Remove this here. If we are inside refresh() then it properly detects the modification
+        // next iteration, instead of lingering and causing errors.
+        this.liveActiveSigns.removeList(member.getSignTracker().liveActiveSigns);
     }
 
     private void removeDetectorRegionsOf(MinecartMember<?> member) {
