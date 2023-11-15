@@ -224,23 +224,24 @@ public abstract class SignTracker {
 
                 // Ask SignAction (if available) whether we should trigger a change here
                 SignAction action = currActiveSign.sign.getAction();
+                boolean fireEvents = true;
                 if (action != null && newActiveSign.sign.getAction() == action) {
                     SignActionEvent event = newActiveSign.sign.createEvent(SignActionType.NONE);
-                    if (!action.signTextChanged(event)) {
-                        // Silent update
-                        currActiveSign.sign = newActiveSign.sign;
-                        continue;
-                    }
+                    fireEvents = action.signTextChanged(event);
                 }
 
                 // Fire events of removing the old sign
-                onSignChange(currActiveSign, false);
+                if (fireEvents) {
+                    onSignChange(currActiveSign, false);
+                }
 
                 // Update sign
                 currActiveSign.sign = newActiveSign.sign;
 
                 // Fire enter event (again)
-                onSignChange(currActiveSign, true);
+                if (fireEvents) {
+                    onSignChange(currActiveSign, true);
+                }
             }
 
             // If list changed, restart from the beginning
