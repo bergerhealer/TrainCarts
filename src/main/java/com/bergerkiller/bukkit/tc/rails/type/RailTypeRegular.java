@@ -447,6 +447,11 @@ public class RailTypeRegular extends RailTypeHorizontal {
         }
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName();
+    }
+
     protected String getRailsTexturePath(Rails rails, String name) {
         if (rails.isCurve()) {
             return "com/bergerkiller/bukkit/tc/textures/rails/regular_curved_" + name + ".png";

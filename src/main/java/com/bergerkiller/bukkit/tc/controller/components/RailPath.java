@@ -999,13 +999,13 @@ public class RailPath {
 
         @Override
         public String toString() {
-            return (this.relative ? "{r_pos={" : "{a_pos={") +
+            return (this.relative ? "{rel_pos={" : "{pos={") +
                     MathUtil.round(posX, 4) + "/" +
                     MathUtil.round(posY, 4) + "/" +
-                    MathUtil.round(posZ, 4) + "},mot={" +
+                    MathUtil.round(posZ, 4) + "}, mot={" +
                     MathUtil.round(motX, 4) + "/" +
                     MathUtil.round(motY, 4) + "/" +
-                    MathUtil.round(motZ, 4) + "},f=" +
+                    MathUtil.round(motZ, 4) + "}, f=" +
                     this.getMotionFace().name() + "}";
         }
 

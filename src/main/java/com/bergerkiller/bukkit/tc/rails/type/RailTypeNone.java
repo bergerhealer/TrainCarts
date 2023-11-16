@@ -101,4 +101,9 @@ public class RailTypeNone extends RailType {
             return RailLogicGround.INSTANCE;
         }
     }
+
+    @Override
+    public String toString() {
+        return "NONE";
+    }
 }

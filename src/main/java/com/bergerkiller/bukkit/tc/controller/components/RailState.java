@@ -433,8 +433,10 @@ public class RailState {
 
     @Override
     public String toString() {
+        String pos_str = this._position.toString();
+        pos_str = pos_str.substring(1, pos_str.length() - 1); // trim {}
         return "{rail=" + this._railPiece.toString() +
-                ", pos=" + this._position + "}";
+                ", " + pos_str + "}";
     }
 
     /**

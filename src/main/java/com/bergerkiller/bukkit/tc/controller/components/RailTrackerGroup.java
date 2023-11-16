@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -579,6 +580,22 @@ public class RailTrackerGroup extends RailTracker {
             this.rails.addAll(result.rails);
         }
 
+        // If debug logging is enabled, log when the search fails for some reason
+        if (TCConfig.logTrainSplitting && result.status != RailFinderResult.Status.OK) {
+            Logger logger = owner.getTrainCarts().getLogger();
+            logger.warning("Train '" + owner.getProperties().getTrainName() + "' split apart because: " +
+                    result.status.getReason());
+            logger.warning("Search start: " + result.failSearchStart);
+            logger.warning("Search end: " + result.failSearchEnd);
+            if (result.nextMemberIndex >= 0) {
+                MinecartMember<?> member = owner.get(result.nextMemberIndex);
+                Location mloc = member.getEntity().getLocation();
+                logger.warning("Cart that could not be reached: cart #" + (result.nextMemberIndex + 1) +
+                        " of " + owner.size() + " at " +
+                        "x=" + mloc.getX() + " y=" + mloc.getY() + " z=" + mloc.getZ());
+            }
+        }
+
         // Apply found rails to the members themselves
         // Use a somewhat complex iteration scheme to avoid get(index)
         // LinkedList does not like the use of indices
@@ -639,6 +656,9 @@ public class RailTrackerGroup extends RailTracker {
 
             RailState nextPos = nextMember.discoverRail();
             if (nextPos.railType() == RailType.NONE) {
+                result.status = RailFinderResult.Status.DERAILED;
+                result.failSearchStart = moveInfo.state;
+                result.failSearchEnd = nextPos;
                 result.endIsDerailed = true;
                 return result;
             }
@@ -694,6 +714,9 @@ public class RailTrackerGroup extends RailTracker {
                             // with the other cart and we abort. The next test will try the other direction
                             // and hopefully correct this.
                             if (curr_distance > ERR_EPSILON && curr_distance > (0.5 * initial_distance)) {
+                                result.status = RailFinderResult.Status.DIVERGING;
+                                result.failSearchStart = p.state;
+                                result.failSearchEnd = nextPos;
                                 break;
                             }
 
@@ -722,7 +745,10 @@ public class RailTrackerGroup extends RailTracker {
                         maximumDistanceBlocks = currInfo.member.getMaximumBlockDistance(nextMember);
                         isFirstBlock = true;
                         if (nextPos.railType() == RailType.NONE) {
+                            result.status = RailFinderResult.Status.DERAILED;
                             result.endIsDerailed = true;
+                            result.failSearchStart = p.state;
+                            result.failSearchEnd = nextPos;
                             break; // member is derailed
                         }
                     } else {
@@ -734,12 +760,20 @@ public class RailTrackerGroup extends RailTracker {
                             result.rails.add(new TrackedRail(nextMember, p, false));
                             nrCachedRails++;
                         }
-                        if (++moveLimitCtr > maximumDistanceBlocks || !p.moveFull()) {
+                        moveLimitCtr++;
+                        if (moveLimitCtr > maximumDistanceBlocks || !p.moveFull()) {
                             // Remove all cached rails - rails iteration failed
                             while (nrCachedRails > 0) {
                                 nrCachedRails--;
                                 result.rails.remove(result.rails.size() - 1);
                             }
+
+                            result.status = (moveLimitCtr > maximumDistanceBlocks)
+                                    ? RailFinderResult.Status.LIMIT_REACHED : RailFinderResult.Status.END_OF_TRACK;
+                            result.failSearchStart = result.rails.isEmpty()
+                                    ? p.state : result.rails.get(result.rails.size() - 1).state;
+                            result.failSearchEnd = p.state;
+
                             break; // out of track
                         }
                     }
@@ -750,16 +784,45 @@ public class RailTrackerGroup extends RailTracker {
     }
 
     public static class RailFinderResult {
+        public Status status;
         public List<TrackedRail> rails;
         public int numMembers;
         public int nextMemberIndex;
         public boolean endIsDerailed;
+        public RailState failSearchStart;
+        public RailState failSearchEnd;
 
         public RailFinderResult(int nextMemberIndex, List<TrackedRail> buffer) {
+            this.status = Status.OK;
             this.rails = buffer;
             this.numMembers = 0;
             this.nextMemberIndex = nextMemberIndex;
             this.endIsDerailed = false;
+            this.failSearchStart = null;
+            this.failSearchEnd = null;
+        }
+
+        public enum Status {
+            /** All members were found on the rails */
+            OK("OK"),
+            /** Member could not be found because path is diverging away from the next member */
+            DIVERGING("Path moving away from the next cart in the chain"),
+            /** Member could not be found because it is derailed (not on rails) */
+            DERAILED("Next cart is derailed"),
+            /** Reached the rail iteration limit before finding the next member */
+            LIMIT_REACHED("Maximum distance reached searching next cart"),
+            /** Reached end of rail iteration, never encountering the rail the next member is on */
+            END_OF_TRACK("End of the rails reached before finding next cart");
+
+            private final String reason;
+
+            Status(String reason) {
+                this.reason = reason;
+            }
+
+            public String getReason() {
+                return reason;
+            }
         }
     }
 }

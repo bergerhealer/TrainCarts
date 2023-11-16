@@ -196,6 +196,27 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
+    @CommandMethod("train debug splitting <enabled>")
+    @CommandDescription("Sets whether messages are logged when trains split apart")
+    private void commandDebugSetSplitDebugEnabled(
+            final CommandSender sender,
+            final @Argument("enabled") boolean enabled
+    ) {
+        TCConfig.logTrainSplitting = enabled;
+        commandDebugCheckSplitDebugEnabled(sender);
+    }
+
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
+    @CommandMethod("train debug splitting")
+    @CommandDescription("Checks whether messages are logged when trains split apart")
+    private void commandDebugCheckSplitDebugEnabled(
+            final CommandSender sender
+    ) {
+        sender.sendMessage(ChatColor.GREEN + "Logging messages when trains split apart: " +
+                (TCConfig.logTrainSplitting ? "ENABLED" : (ChatColor.RED + "DISABLED")));
+    }
+
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
     @CommandMethod("train debug fix signs")
     @CommandDescription("Forcibly recalculates all cached sign information near the player")
     private void commandDebugCheckWheelTracker(
