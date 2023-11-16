@@ -139,6 +139,13 @@ public class SignActionDestination extends SignAction {
 
         // Use next destination on route if one is used, otherwise use the fourth line for it
         String nextOnRoute = cart.getNextDestinationOnRoute();
+
+        // If this sign does not declare a destination of itself, and the cart has a destination
+        // that is not part of the route, assume that the route should be restarted anyways.
+        if (nextOnRoute.isEmpty() && newDestination == null && !cart.getDestinationRoute().isEmpty()) {
+            nextOnRoute = cart.getDestinationRoute().get(0);
+        }
+
         return nextOnRoute.isEmpty() ? newDestination : nextOnRoute;
     }
 
