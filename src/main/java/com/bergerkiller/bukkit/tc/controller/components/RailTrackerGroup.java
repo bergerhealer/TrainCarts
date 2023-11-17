@@ -591,7 +591,7 @@ public class RailTrackerGroup extends RailTracker {
                 MinecartMember<?> member = owner.get(result.nextMemberIndex);
                 Location mloc = member.getEntity().getLocation();
                 logger.warning("Cart that could not be reached: cart #" + (result.nextMemberIndex + 1) +
-                        " of " + owner.size() + " at " +
+                        " of " + owner.size() + " [" + member.getEntity().getUniqueId() + "] at " +
                         "x=" + mloc.getX() + " y=" + mloc.getY() + " z=" + mloc.getZ());
             }
         }
