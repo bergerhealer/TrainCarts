@@ -1,11 +1,10 @@
 package com.bergerkiller.bukkit.tc.signactions.mutex;
 
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -13,44 +12,45 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import org.bukkit.entity.Player;
 
-public class MutexZone {
+public abstract class MutexZone {
     public final OfflineBlock signBlock;
     public final boolean signFront;
-    public final IntVector3 start;
-    public final IntVector3 end;
     public final String statement;
     public final MutexZoneSlot slot;
     public final MutexZoneSlotType type;
-    private final OrientedBoundingBox bb;
     private Boolean leversDown = null; // Avoids excessive block access
 
-    private MutexZone(OfflineBlock signBlock, boolean signFront, IntVector3 start, IntVector3 end, MutexZoneSlotType type, String name, String statement) {
+    protected MutexZone(OfflineBlock signBlock, boolean signFront, MutexZoneSlotType type, String name, String statement) {
         this.signBlock = signBlock;
         this.signFront = signFront;
         this.statement = statement;
-        this.start = start;
-        this.end = end;
-        this.bb = OrientedBoundingBox.naturalFromTo(new Vector(start.x, start.y, start.z),
-                                                    new Vector(end.x + 1.0, end.y + 1.0, end.z + 1.0));
         this.slot = MutexZoneCache.findSlot(name, this);
         this.type = type;
     }
 
-    public boolean containsBlock(IntVector3 block) {
-        return block.x >= start.x && block.y >= start.y && block.z >= start.z &&
-               block.x <= end.x && block.y <= end.y && block.z <= end.z;
-    }
+    public abstract boolean containsBlock(IntVector3 block);
+    public abstract boolean containsBlock(Block block);
+    public abstract boolean isNearby(IntVector3 block, int radius);
+    public abstract void forAllContainedChunks(ChunkCoordConsumer action);
+    public abstract long showDebugColorSeed();
+    public abstract void showDebug(Player player, Color color);
 
-    public boolean containsBlock(Block block) {
-        return block.getX() >= start.x && block.getY() >= start.y && block.getZ() >= start.z &&
-               block.getX() <= end.x && block.getY() <= end.y && block.getZ() <= end.z;
-    }
-
-    public boolean isNearby(IntVector3 block, int radius) {
-        return block.x>=(start.x-radius) && block.y>=(start.y-radius) && block.z>=(start.z-radius) &&
-               block.x<=(end.x + radius) && block.y<=(end.y + radius) && block.z<=(end.z + radius);
-    }
+    /**
+     * Performs a hit collision test from a starting position moving into the direction motion vector
+     * specified. Taken from OrientedBoundingBox in BKCommonLib, without the rotating part.
+     *
+     * @param posX
+     * @param posY
+     * @param posZ
+     * @param motX
+     * @param motY
+     * @param motZ
+     * @return Distance to this mutex zone's bounding box. or {@link Double#MAX_VALUE} if not hit
+     */
+    public abstract double hitTest(double posX, double posY, double posZ,
+                                   double motX, double motY, double motZ);
 
     public Block getSignBlock() {
         return this.signBlock.getLoadedBlock();
@@ -97,25 +97,12 @@ public class MutexZone {
         }
     }
 
-    public static MutexZone create(OfflineWorld world, IntVector3 signPosition, boolean isFrontText, MutexSignMetadata metadata) {
-        return new MutexZone(world.getBlockAt(signPosition), isFrontText, metadata.start, metadata.end, metadata.type, metadata.name, metadata.statement);
+    public static MutexZone createCuboid(OfflineWorld world, IntVector3 signPosition, boolean isFrontText, MutexSignMetadata metadata) {
+        return new MutexZoneCuboid(world.getBlockAt(signPosition), isFrontText, metadata.start, metadata.end, metadata.type, metadata.name, metadata.statement);
     }
 
-    /**
-     * Performs a hit collision test from a starting position moving into the direction motion vector
-     * specified. Taken from OrientedBoundingBox in BKCommonLib, without the rotating part.
-     *
-     * @param posX
-     * @param posY
-     * @param posZ
-     * @param motX
-     * @param motY
-     * @param motZ
-     * @return Distance to this mutex zone's bounding box. or {@link Double#MAX_VALUE} if not hit
-     */
-    public double hitTest(double posX, double posY, double posZ,
-                          double motX, double motY, double motZ
-    ) {
-        return bb.hitTest(posX, posY, posZ, motX, motY, motZ);
+    @FunctionalInterface
+    public interface ChunkCoordConsumer {
+        void accept(int cx, int cz);
     }
 }

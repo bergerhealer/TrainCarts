@@ -105,49 +105,37 @@ public class MutexZoneCacheWorld {
         MutexZone[] singleZone = new MutexZone[] {zone};
 
         // Register in all the chunks
-        int chunkMinX = zone.start.getChunkX();
-        int chunkMaxX = zone.end.getChunkX();
-        int chunkMinZ = zone.start.getChunkZ();
-        int chunkMaxZ = zone.end.getChunkZ();
-        for (int cz = chunkMinZ; cz <= chunkMaxZ; cz++) {
-            for (int cx = chunkMinX; cx <= chunkMaxX; cx++) {
-                long key = MathUtil.longHashToLong(cx, cz);
-                MutexZone[] atChunk = byChunk.get(key);
-                if (atChunk == null) {
-                    byChunk.put(key, singleZone);
-                } else {
-                    int len = atChunk.length;
-                    atChunk = Arrays.copyOf(atChunk, len + 1);
-                    atChunk[len] = zone;
-                    byChunk.put(key, atChunk);
-                }
+        zone.forAllContainedChunks((cx, cz) -> {
+            long key = MathUtil.longHashToLong(cx, cz);
+            MutexZone[] atChunk = byChunk.get(key);
+            if (atChunk == null) {
+                byChunk.put(key, singleZone);
+            } else {
+                int len = atChunk.length;
+                atChunk = Arrays.copyOf(atChunk, len + 1);
+                atChunk[len] = zone;
+                byChunk.put(key, atChunk);
             }
-        }
+        });
     }
 
     public MutexZone removeAtSign(IntVector3 signPosition, boolean front) {
         MutexZone zone = bySignPosition.remove(new SignSidePositionKey(signPosition, front));
         if (zone != null) {
             // De-register in all the chunks
-            int chunkMinX = zone.start.getChunkX();
-            int chunkMaxX = zone.end.getChunkX();
-            int chunkMinZ = zone.start.getChunkZ();
-            int chunkMaxZ = zone.end.getChunkZ();
-            for (int cz = chunkMinZ; cz <= chunkMaxZ; cz++) {
-                for (int cx = chunkMinX; cx <= chunkMaxX; cx++) {
-                    long key = MathUtil.longHashToLong(cx, cz);
-                    MutexZone[] atChunk = byChunk.remove(key);
-                    if (atChunk != null && (atChunk.length > 1 || atChunk[0] != zone)) {
-                        // Remove the mutex zone from the array and put back the new array
-                        for (int i = atChunk.length-1; i >= 0; --i) {
-                            if (atChunk[i] == zone) {
-                                atChunk = LogicUtil.removeArrayElement(atChunk, i);
-                            }
+            zone.forAllContainedChunks((cx, cz) -> {
+                long key = MathUtil.longHashToLong(cx, cz);
+                MutexZone[] atChunk = byChunk.remove(key);
+                if (atChunk != null && (atChunk.length > 1 || atChunk[0] != zone)) {
+                    // Remove the mutex zone from the array and put back the new array
+                    for (int i = atChunk.length-1; i >= 0; --i) {
+                        if (atChunk[i] == zone) {
+                            atChunk = LogicUtil.removeArrayElement(atChunk, i);
                         }
-                        byChunk.put(key, atChunk);
                     }
+                    byChunk.put(key, atChunk);
                 }
-            }
+            });
         }
         return zone;
     }

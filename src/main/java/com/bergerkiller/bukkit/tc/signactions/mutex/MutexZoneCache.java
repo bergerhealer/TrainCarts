@@ -79,7 +79,7 @@ public class MutexZoneCache {
     }
 
     private static void addMutexSign(OfflineWorld world, IntVector3 signPosition, boolean isFrontText, MutexSignMetadata metadata) {
-        forWorld(world).add(MutexZone.create(world, signPosition, isFrontText, metadata));
+        forWorld(world).add(MutexZone.createCuboid(world, signPosition, isFrontText, metadata));
     }
 
     private static void removeMutexSign(OfflineWorld world, IntVector3 signPosition, boolean frontText) {

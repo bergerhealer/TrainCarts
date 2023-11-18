@@ -74,6 +74,15 @@ public class DebugToolUtil {
         showLineParticles(viewer, color, x2, y2, z1, x2, y2, z2);
     }
 
+    public static void showCubeParticles(Player player, Color color, double x1, double y1, double z1, double x2, double y2, double z2) {
+        showFaceParticles(player, color, x1, y1, z1, x2, y1, z2);
+        showFaceParticles(player, color, x1, y2, z1, x2, y2, z2);
+        showLineParticles(player, color, x1, y1, z1, x1, y2, z1);
+        showLineParticles(player, color, x2, y1, z1, x2, y2, z1);
+        showLineParticles(player, color, x1, y1, z2, x1, y2, z2);
+        showLineParticles(player, color, x2, y1, z2, x2, y2, z2);
+    }
+
     public static void showLineParticles(Player viewer, Color color, Vector p1, Vector p2) {
         showLineParticles(viewer, color, p1.getX(), p1.getY(), p1.getZ(), p2.getX(), p2.getY(), p2.getZ());
     }

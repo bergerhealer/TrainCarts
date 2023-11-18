@@ -18,7 +18,6 @@ import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -58,41 +57,18 @@ public class DebugTool {
                 Random r = new Random();
                 for (MutexZone zone : zones) {
                     if (zone.slot.isAnonymous()) {
-                        r.setSeed(MathUtil.longHashToLong(zone.start.hashCode(), zone.end.hashCode()));
+                        r.setSeed(zone.showDebugColorSeed());
                     } else {
                         r.setSeed(zone.slot.getName().hashCode());
                     }
                     java.awt.Color awt_color = java.awt.Color.getHSBColor(r.nextFloat(), 1.0f, 1.0f);
                     Color color = Color.fromRGB(awt_color.getRed(), awt_color.getGreen(), awt_color.getBlue());
-                    double x1 = zone.start.x;
-                    double y1 = zone.start.y;
-                    double z1 = zone.start.z;
-                    double x2 = zone.end.x + 1.0;
-                    double y2 = zone.end.y + 1.0;
-                    double z2 = zone.end.z + 1.0;
-                    cube(color, x1, y1, z1, x2, y2, z2);
+                    zone.showDebug(player, color);
                 }
 
                 if (--life == 0) {
                     this.stop();
                 }
-            }
-
-            void cube(Color color, double x1, double y1, double z1, double x2, double y2, double z2) {
-                face(color, x1, y1, z1, x2, y1, z2);
-                face(color, x1, y2, z1, x2, y2, z2);
-                line(color, x1, y1, z1, x1, y2, z1);
-                line(color, x2, y1, z1, x2, y2, z1);
-                line(color, x1, y1, z2, x1, y2, z2);
-                line(color, x2, y1, z2, x2, y2, z2);
-            }
-
-            void face(Color color, double x1, double y1, double z1, double x2, double y2, double z2) {
-                DebugToolUtil.showFaceParticles(player, color, x1, y1, z1, x2, y2, z2);
-            }
-
-            void line(Color color, double x1, double y1, double z1, double x2, double y2, double z2) {
-                DebugToolUtil.showLineParticles(player, color, x1, y1, z1, x2, y2, z2);
             }
         }.start(1, PARTICLE_INTERVAL);
     }
@@ -107,6 +83,18 @@ public class DebugTool {
             }
         }
         return false;
+    }
+
+    public static void showCube(Player player, Color color, double x1, double y1, double z1, double x2, double y2, double z2) {
+        DebugToolUtil.showCubeParticles(player, color, x1, y1, z1, x2, y2, z2);
+    }
+
+    public static void showFace(Player player, Color color, double x1, double y1, double z1, double x2, double y2, double z2) {
+        DebugToolUtil.showFaceParticles(player, color, x1, y1, z1, x2, y2, z2);
+    }
+
+    public static void showLine(Player player, Color color, double x1, double y1, double z1, double x2, double y2, double z2) {
+        DebugToolUtil.showLineParticles(player, color, x1, y1, z1, x2, y2, z2);
     }
 
     /**
