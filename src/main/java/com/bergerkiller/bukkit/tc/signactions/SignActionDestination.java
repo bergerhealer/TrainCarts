@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -11,6 +12,7 @@ import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 public class SignActionDestination extends SignAction {
@@ -151,6 +153,23 @@ public class SignActionDestination extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
+        // Check destination by this name already exists. If it does, fail building, and tell the
+        // person where it's at
+        if (!event.getLine(2).isEmpty()) {
+            PathNode node = event.getTrainCarts().getPathProvider().getWorld(event.getWorld()).getNodeByName(event.getLine(2));
+            if (node != null) {
+                event.getPlayer().sendMessage(ChatColor.RED + "Destination with name '" + event.getLine(2) +
+                        "' already exists on this world!");
+                ChatText text = ChatText.fromMessage(ChatColor.RED + "Find it at ");
+                ChatText command = ChatText.fromMessage(ChatColor.WHITE.toString() + ChatColor.UNDERLINE + "[" +
+                        node.location.x + " / " + node.location.y + " / " + node.location.z + "]");
+                command.setClickableSuggestedCommand("/tp @p " + node.location.x + " " + node.location.y + " " + node.location.z);
+                text.append(command);
+                text.sendTo(event.getPlayer());
+                return false;
+            }
+        }
+
         SignBuildOptions opt = SignBuildOptions.create()
                 .setPermission(Permission.BUILD_DESTINATION)
                 .setName(event.isCartSign() ? "cart destination" : "train destination")
