@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.properties.standard.fieldbacked;
 
+import java.util.List;
 import java.util.Set;
 
 import org.bukkit.Material;
@@ -79,6 +80,7 @@ public abstract class FieldBackedProperty<T> implements IProperty<T> {
         public boolean allowPlayerManualMovement;
         public boolean allowMobManualMovement;
         public boolean realtimePhysics;
+        public List<String> activeSavedTrainSpawnLimits;
 
         public static TrainInternalData get(TrainProperties properties) {
             return properties.getStandardPropertiesHolder().data;

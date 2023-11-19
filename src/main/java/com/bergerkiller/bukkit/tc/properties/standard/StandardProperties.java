@@ -214,6 +214,12 @@ public class StandardProperties {
     public static final DefaultConfigSyntheticProperty DEFAULT_CONFIG = new DefaultConfigSyntheticProperty();
 
     /**
+     * Saved train names that contain spawn limits that this train is part of with a single
+     * count. An empty list means this train does not partake in any spawn limits.
+     */
+    public static final ActiveSavedTrainSpawnLimits ACTIVE_SAVED_TRAIN_SPAWN_LIMITS = new ActiveSavedTrainSpawnLimits();
+
+    /**
      * When the orientation to spawn a train with is locked, this property stores per cart the orientation
      * the cart should have. This makes sure that when the train is saved again in the future, the train
      * isn't reversed when it was saved while moving backwards.<br>

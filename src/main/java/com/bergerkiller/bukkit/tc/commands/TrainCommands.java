@@ -665,6 +665,25 @@ public class TrainCommands {
     }
 
     @CommandTargetTrain
+    @CommandMethod("train activespawnlimits clear")
+    @CommandDescription("Makes this train stop taking part in active saved train spawn limits")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_SPAWNLIMIT)
+    private void commandClearActiveSpawnLimits(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        List<String> activeLimits = properties.get(StandardProperties.ACTIVE_SAVED_TRAIN_SPAWN_LIMITS);
+        if (activeLimits.isEmpty()) {
+            sender.sendMessage(ChatColor.YELLOW + "This train is not counted in any saved train spawn limits");
+            return;
+        }
+        properties.set(StandardProperties.ACTIVE_SAVED_TRAIN_SPAWN_LIMITS, Collections.emptyList());
+        for (String savedTrainName : activeLimits) {
+            sender.sendMessage(ChatColor.GREEN + "This train is no longer counted in the spawn limits of " + savedTrainName);
+        }
+    }
+
+    @CommandTargetTrain
     @CommandMethod("train <property> <value>")
     @CommandDescription("Updates the value of a property of a train by name")
     private void commandCart(

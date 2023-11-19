@@ -137,6 +137,7 @@ public class Localization extends LocalizationEnum {
     public static final Localization CHEST_SPAWN_NORAIL_LOOK = new Localization("chest.spawn.noraillook", ChatColor.RED + "Train can not be spawned, not looking at any rail or too far away");
     public static final Localization CHEST_SPAWN_RAILTOOSHORT = new Localization("chest.spawn.railtooshort", ChatColor.RED + "Train can not be spawned, rails not long enough to fit the train");
     public static final Localization CHEST_SPAWN_BLOCKED = new Localization("chest.spawn.blocked", ChatColor.RED + "Train can not be spawned, no space on rails because another train is in the way");
+    public static final Localization CHEST_SPAWN_LIMIT_REACHED = new Localization("chest.spawn.limitreached", ChatColor.RED + "Train can not be spawned, the maximum number of spawns was reached");
 
     // signs
     public static final Localization SIGN_NO_PERMISSION = new Localization("sign.noperm", ChatColor.RED + "You do not have permission to use this sign! [%0%]");

@@ -256,6 +256,11 @@ public class TrainChestItemUtil {
             return SpawnResult.FAIL_EMPTY;
         }
 
+        // Check not reached limit
+        if (group.isExceedingSpawnLimit()) {
+            return SpawnResult.FAIL_LIMIT_REACHED;
+        }
+
         // Check clicked rails Block is actually a rail
         BlockFace orientation = FaceUtil.getDirection(player.getEyeLocation().getDirection());
         RailType clickedRailType = RailType.getType(clickedBlock);
@@ -360,6 +365,11 @@ public class TrainChestItemUtil {
             return SpawnResult.FAIL_EMPTY;
         }
 
+        // Check not reached limit
+        if (group.isExceedingSpawnLimit()) {
+            return SpawnResult.FAIL_LIMIT_REACHED;
+        }
+
         // Find locations to spawn at
         SpawnableGroup.SpawnLocationList locationList = group.findSpawnLocations(state, SpawnableGroup.SpawnMode.DEFAULT);
         if (locationList == null) {
@@ -392,7 +402,8 @@ public class TrainChestItemUtil {
         FAIL_NORAIL_LOOK(Localization.CHEST_SPAWN_NORAIL_LOOK),
         FAIL_RAILTOOSHORT(Localization.CHEST_SPAWN_RAILTOOSHORT),
         FAIL_BLOCKED(Localization.CHEST_SPAWN_BLOCKED),
-        FAIL_NO_PERM(Localization.SPAWN_FORBIDDEN_CONTENTS);
+        FAIL_NO_PERM(Localization.SPAWN_FORBIDDEN_CONTENTS),
+        FAIL_LIMIT_REACHED(Localization.CHEST_SPAWN_LIMIT_REACHED);
 
         private final Localization locale;
 

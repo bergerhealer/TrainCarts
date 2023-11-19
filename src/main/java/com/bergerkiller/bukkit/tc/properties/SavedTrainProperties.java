@@ -177,7 +177,7 @@ public class SavedTrainProperties implements TrainCarts.Provider, SavedAttachmen
      * @return SpawnableGroup
      */
     public SpawnableGroup toSpawnableGroup() {
-        return SpawnableGroup.fromConfig(traincarts, getConfig());
+        return SpawnableGroup.fromConfig(this);
     }
 
     public List<ConfigurationNode> getCarts() {
@@ -213,6 +213,52 @@ public class SavedTrainProperties implements TrainCarts.Provider, SavedAttachmen
             }
         }
         return totalLength;
+    }
+
+    /**
+     * Gets the maximum number of times this saved train can be spawned on the server.
+     * Returns -1 if there is no limit.
+     *
+     * @return Spawn Limit
+     */
+    public int getSpawnLimit() {
+        return entry.isRemoved() ? -1 : entry.getConfig().getOrDefault("spawnLimit", -1);
+    }
+
+    /**
+     * Sets the maximum number of times this saved train can be spawned on the server.
+     * A negative limit will allow for unlimited number of spawns.
+     *
+     * @param limit New spawn limit to set
+     */
+    public void setSpawnLimit(int limit) {
+        if (!entry.isRemoved()) {
+            if (limit >= 0) {
+                entry.getWritableConfig().set("spawnLimit", limit);
+            } else {
+                entry.getWritableConfig().remove("spawnLimit");
+            }
+        }
+    }
+
+    /**
+     * Calculates the total number of trains that have been spawned making use of this configured
+     * spawn limit.
+     *
+     * @return Current spawn count
+     * @see #getSpawnLimit()
+     */
+    public int getSpawnLimitCurrentCount() {
+        if (entry.isRemoved()) {
+            return 0;
+        }
+        int count = 0;
+        for (TrainProperties properties : TrainPropertiesStore.getAll()) {
+            if (properties.get(StandardProperties.ACTIVE_SAVED_TRAIN_SPAWN_LIMITS).contains(getName())) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private static int getNumberOfSeatAttachmentsRecurse(ConfigurationNode attachmentConfig) {

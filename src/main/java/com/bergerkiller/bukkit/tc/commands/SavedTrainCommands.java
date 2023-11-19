@@ -338,6 +338,59 @@ public class SavedTrainCommands {
         }
     }
 
+    @CommandMethod("savedtrain <savedtrainname> spawnlimit unlimited")
+    @CommandDescription("Disables any set spawn limit, allowing the saved train to be spawned an unlimited number of times")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_SPAWNLIMIT)
+    private void commandSetUnlimitedSpawnLimit(
+            final CommandSender sender,
+            final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain
+    ) {
+        commandSetSpawnLimit(sender, savedTrain, -1);
+    }
+
+    @CommandMethod("savedtrain <savedtrainname> spawnlimit <limit>")
+    @CommandDescription("Sets the maximum number of times this saved train can be spawned using spawn signs or spawn chest")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_SPAWNLIMIT)
+    private void commandSetSpawnLimit(
+            final CommandSender sender,
+            final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain,
+            final @Argument("limit") int spawnLimit
+    ) {
+        savedTrain.setSpawnLimit(spawnLimit);
+
+        sender.sendMessage(ChatColor.GREEN + "Saved train '" + ChatColor.WHITE + savedTrain.getName() +
+                ChatColor.GREEN + "' now has a spawn limit of " +
+                ((spawnLimit >= 0) ? (ChatColor.WHITE.toString() + spawnLimit) : (ChatColor.RED + "UNLIMITED")));
+        if (spawnLimit >= 0) {
+            int current = savedTrain.getSpawnLimitCurrentCount();
+            ChatColor numberColor = (current >= spawnLimit) ? ChatColor.RED : ChatColor.WHITE;
+            sender.sendMessage(ChatColor.GREEN + "This train has been spawned " + numberColor +
+                    savedTrain.getSpawnLimitCurrentCount() + ChatColor.GREEN + " times so far");
+        }
+    }
+
+    @CommandMethod("savedtrain <savedtrainname> spawnlimit")
+    @CommandDescription("Gets the currently configured saved train spawn limit and how many trains have spawned")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_SPAWNLIMIT)
+    private void commandGetSpawnLimit(
+            final CommandSender sender,
+            final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain
+    ) {
+        int spawnLimit = savedTrain.getSpawnLimit();
+        sender.sendMessage(ChatColor.GREEN + "Saved train '" + ChatColor.WHITE + savedTrain.getName() +
+                ChatColor.GREEN + "' has a spawn limit of " +
+                ((spawnLimit >= 0) ? (ChatColor.WHITE.toString() + spawnLimit) : (ChatColor.RED + "UNLIMITED")));
+        if (spawnLimit >= 0) {
+            int current = savedTrain.getSpawnLimitCurrentCount();
+            ChatColor numberColor = (current >= spawnLimit) ? ChatColor.RED : ChatColor.WHITE;
+            sender.sendMessage(ChatColor.GREEN + "This train has been spawned " + numberColor +
+                    savedTrain.getSpawnLimitCurrentCount() + ChatColor.GREEN + " times so far");
+        }
+    }
+
     @CommandMethod("savedtrain <savedtrainname> delete|remove")
     @CommandDescription("Deletes a saved train permanently")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)

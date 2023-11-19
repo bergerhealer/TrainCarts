@@ -3,10 +3,12 @@ package com.bergerkiller.bukkit.tc.properties;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.BasicModularConfiguration;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.ModularConfigurationEntry;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.ModularConfigurationFile;
@@ -236,18 +238,23 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
             throw new IllegalNameException("Name starts with a digit");
         }
 
-        // Back up previous claims information
+        // Back up previous information that should be kept
         List<String> claims = Collections.emptyList();
+        int spawnLimit = -1;
         {
             ModularConfigurationEntry<SavedTrainProperties> entry = container.getIfExists(name);
-            if (entry != null && entry.getConfig().contains("claims")) {
-                claims = new ArrayList<>(entry.getConfig().getList("claims", String.class));
+            if (entry != null) {
+                if (entry.getConfig().contains("claims")) {
+                    claims = new ArrayList<>(entry.getConfig().getList("claims", String.class));
+                }
+                spawnLimit = entry.getConfig().getOrDefault("spawnLimit", -1);
             }
         }
 
         // Store the entry
         ModularConfigurationEntry<SavedTrainProperties> entry = container.add(name, config);
         entry.getWritableConfig().set("claims", claims);
+        entry.getWritableConfig().set("spawnLimit", (spawnLimit >= 0) ? spawnLimit : null);
         return entry.get();
     }
 
@@ -483,6 +490,7 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
             {
                 config.set(KEY_SAVED_NAME, entry.getName());
             }
+            StandardProperties.ACTIVE_SAVED_TRAIN_SPAWN_LIMITS.writeToConfig(config, Optional.empty());
         }
 
         @Override

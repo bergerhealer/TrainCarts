@@ -106,6 +106,11 @@ public class SignActionSpawn extends SignAction {
                 return null;
             }
 
+            // Make sure it does not exceed spawn limits
+            if (spawnable.isExceedingSpawnLimit()) {
+                return null;
+            }
+
             // Find the movement direction vector on the rails
             // This, and the inverted vector, are the two directions in which can be spawned
             Vector railDirection;

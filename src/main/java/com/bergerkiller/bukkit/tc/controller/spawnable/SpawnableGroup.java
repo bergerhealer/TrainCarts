@@ -3,8 +3,10 @@ package com.bergerkiller.bukkit.tc.controller.spawnable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import com.bergerkiller.bukkit.tc.Permission;
+import com.bergerkiller.bukkit.tc.properties.SavedTrainProperties;
 import com.bergerkiller.bukkit.tc.properties.defaults.DefaultProperties;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -38,7 +40,7 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
  */
 public class SpawnableGroup implements TrainCarts.Provider {
     private final TrainCarts plugin;
-    private final List<SpawnableMember> members = new ArrayList<SpawnableMember>();
+    private final List<SpawnableMember> members = new ArrayList<>();
     private final ConfigurationNode config;
     private CenterMode centerMode = CenterMode.NONE;
 
@@ -182,6 +184,67 @@ public class SpawnableGroup implements TrainCarts.Provider {
             cartConfigList.add(this.members.get(i).getConfig().clone());
         }
         return fullConfig;
+    }
+
+    /**
+     * Gets an unmodifiable List of saved train properties that impose a spawn limit
+     * when this train is spawned.
+     *
+     * @return List of saved train properties that contain spawn limits that this spawned group
+     *         takes part in.
+     */
+    public List<SavedTrainProperties> getActiveSavedTrainSpawnLimits() {
+        Optional<List<String>> names = StandardProperties.ACTIVE_SAVED_TRAIN_SPAWN_LIMITS.readFromConfig(this.config);
+        if (names.isPresent()) {
+            List<SavedTrainProperties> propsList = new ArrayList<>(names.get().size());
+            for (String name : names.get()) {
+                SavedTrainProperties props = getTrainCarts().getSavedTrains().getProperties(name);
+                if (props != null && props.getSpawnLimit() >= 0) {
+                    propsList.add(props);
+                }
+            }
+            return Collections.unmodifiableList(propsList);
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Checks any active saved train spawn limits to see if, currently, the number of already spawned
+     * trains is at the configured limit. Returns true if this spawnable group should not be spawned
+     * because it would exceed a set spawn limit.
+     *
+     * @return True if spawning this group would exceed saved train spawn limits
+     */
+    public boolean isExceedingSpawnLimit() {
+        Optional<List<String>> names = StandardProperties.ACTIVE_SAVED_TRAIN_SPAWN_LIMITS.readFromConfig(this.config);
+        if (names.isPresent()) {
+            for (String name : names.get()) {
+                SavedTrainProperties props = getTrainCarts().getSavedTrains().getProperties(name);
+                if (props == null) {
+                    continue;
+                }
+                int limit = props.getSpawnLimit();
+                if (limit >= 0 && props.getSpawnLimitCurrentCount() >= limit) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private int applyConfig(SavedTrainProperties savedTrainProperties) {
+        int numAddedCarts = (savedTrainProperties == null || savedTrainProperties.isEmpty())
+                ? 0 : applyConfig(savedTrainProperties.getConfig());
+
+        // If these saved train properties apply a spawn limit, add the saved train properties name
+        // to the active spawn limits property of this train.
+        if (numAddedCarts > 0 && savedTrainProperties.getSpawnLimit() >= 0) {
+            StandardProperties.ACTIVE_SAVED_TRAIN_SPAWN_LIMITS.addSavedTrainToConfig(
+                    this.config, savedTrainProperties.getName());
+        }
+
+        return numAddedCarts;
     }
 
     private int applyConfig(ConfigurationNode savedConfig) {
@@ -557,6 +620,18 @@ public class SpawnableGroup implements TrainCarts.Provider {
     }
 
     /**
+     * Creates a SpawnableGroup from the full contents of saved train properties
+     *
+     * @param savedTrainProperties Saved Train Properties from the saved train properties store
+     * @return spawnable group
+     */
+    public static SpawnableGroup fromConfig(SavedTrainProperties savedTrainProperties) {
+        SpawnableGroup result = new SpawnableGroup(savedTrainProperties.getTrainCarts());
+        result.applyConfig(savedTrainProperties);
+        return result;
+    }
+
+    /**
      * Creates a SpawnableGroup from the full contents of saved train properties, 
      * either from a real train or from the saved properties store.
      *
@@ -650,8 +725,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
             String name = plugin.getSavedTrains().findName(typesText.substring(typeTextIdx));
             if (name != null && (name.length() > 1 || findVanillaCartType(c) == null)) {
                 typeTextIdx += name.length() - 1;
-                ConfigurationNode savedTrainConfig = plugin.getSavedTrains().getConfig(name);
-                countAdded += result.applyConfig(savedTrainConfig);
+                countAdded += result.applyConfig(plugin.getSavedTrains().getProperties(name));
             } else {
                 EntityType type = findVanillaCartType(c);
                 if (type != null) {
