@@ -24,6 +24,11 @@ public class SignActionPathingMutex extends SignAction {
 
     @Override
     public void predictPathFinding(SignActionEvent info, PathPredictEvent prediction) {
+        // Make sure sign is actually 'seen'
+        if (!info.isEnterActivated() || !info.isPowered()) {
+            return;
+        }
+
         // Ensure sign is registered
         final MutexZonePath path = MutexZoneCache.getOrCreatePathingMutex(info.getTrackedSign(), prediction.group(),
             prediction.railState().positionOfflineBlock().getPosition(), opt -> loadOptions(info, opt));
