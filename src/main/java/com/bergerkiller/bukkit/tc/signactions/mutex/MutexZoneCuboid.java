@@ -3,8 +3,13 @@ package com.bergerkiller.bukkit.tc.signactions.mutex;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.debug.DebugTool;
+import com.bergerkiller.bukkit.tc.debug.DebugToolUtil;
 import org.bukkit.Color;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -27,15 +32,14 @@ public class MutexZoneCuboid extends MutexZone {
     }
 
     @Override
-    public boolean containsBlock(IntVector3 block) {
-        return block.x >= start.x && block.y >= start.y && block.z >= start.z &&
-               block.x <= end.x && block.y <= end.y && block.z <= end.z;
+    protected void addToWorld(MutexZoneCacheWorld world) {
+        world.bySignPosition.put(MutexZoneCacheWorld.SignSidePositionKey.ofZone(this), this);
     }
 
     @Override
-    public boolean containsBlock(Block block) {
-        return block.getX() >= start.x && block.getY() >= start.y && block.getZ() >= start.z &&
-               block.getX() <= end.x && block.getY() <= end.y && block.getZ() <= end.z;
+    public boolean containsBlock(IntVector3 block) {
+        return block.x >= start.x && block.y >= start.y && block.z >= start.z &&
+               block.x <= end.x && block.y <= end.y && block.z <= end.z;
     }
 
     @Override
@@ -64,13 +68,21 @@ public class MutexZoneCuboid extends MutexZone {
 
     @Override
     public void showDebug(Player player, Color color) {
-        double x1 = start.x;
-        double y1 = start.y;
-        double z1 = start.z;
-        double x2 = end.x + 1.0;
-        double y2 = end.y + 1.0;
-        double z2 = end.z + 1.0;
-        DebugTool.showCube(player, color, x1, y1, z1, x2, y2, z2);
+        DebugToolUtil.showCubeParticles(player, color,
+                start.x, start.y, start.z,
+                end.x + 1.0, end.y + 1.0, end.z + 1.0);
+    }
+
+    @Override
+    protected void setLeversDown(boolean down) {
+        Block signBlock = getSignBlock();
+        if (signBlock != null) {
+            signBlock.getChunk();
+            BlockData data = WorldUtil.getBlockData(signBlock);
+            if (MaterialUtil.ISSIGN.get(data)) {
+                BlockUtil.setLeversAroundBlock(signBlock.getRelative(data.getAttachedFace()), down);
+            }
+        }
     }
 
     @Override

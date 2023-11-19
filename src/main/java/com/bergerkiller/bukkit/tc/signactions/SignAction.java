@@ -70,6 +70,7 @@ public abstract class SignAction {
         register(new SignActionSound());
         register(new SignActionSkip());
         register(new SignActionMutex());
+        register(new SignActionPathingMutex());
         register(new SignActionFlip());
         register(new SignActionAnimate());
 

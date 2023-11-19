@@ -4,9 +4,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.UnaryOperator;
 
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import org.bukkit.World;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
@@ -23,8 +30,11 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 public class MutexZoneCacheWorld {
     private static final MutexZone[] NO_ZONES = new MutexZone[0];
     private final OfflineWorld world;
-    private final Map<SignSidePositionKey, MutexZone> bySignPosition = new HashMap<>();
+    protected final Map<SignSidePositionKey, MutexZone> bySignPosition = new HashMap<>();
+    protected final Map<PathingSignKey, MutexZonePath> byPathingKey = new HashMap<>();
     private final LongHashMap<MutexZone[]> byChunk = new LongHashMap<>();
+    private final Set<MutexZone> newZonesLive = new HashSet<>();
+    private List<MutexZone> newZones = Collections.emptyList();
 
     public MutexZoneCacheWorld(OfflineWorld world) {
         this.world = world;
@@ -39,7 +49,7 @@ public class MutexZoneCacheWorld {
     }
 
     public MovingPoint track(IntVector3 blockPosition) {
-        return new MovingPoint(blockPosition.getChunkX(), blockPosition.getChunkZ());
+        return new MovingPoint(byChunk::get, blockPosition.getChunkX(), blockPosition.getChunkZ());
     }
 
     public MutexZone find(IntVector3 position) {
@@ -52,6 +62,17 @@ public class MutexZoneCacheWorld {
             }
         }
         return null;
+    }
+
+    /**
+     * Gets a List of all mutex zones that have been added since the previous tick.
+     * This List can be used during train updates to identify new mutex zones, and register
+     * their presence inside them.
+     *
+     * @return List of new mutex zones
+     */
+    public List<MutexZone> getNewZones() {
+        return newZones;
     }
 
     public boolean isMutexZoneNearby(IntVector3 block, int radius) {
@@ -99,8 +120,31 @@ public class MutexZoneCacheWorld {
     }
 
     public void add(MutexZone zone) {
-        bySignPosition.put(new SignSidePositionKey(zone.signBlock.getPosition(), zone.signFront), zone);
+        zone.addToWorld(this);
+        newZonesLive.add(zone);
+        mapToChunks(zone, false);
+    }
 
+    protected void remove(MutexZone zone) {
+        // Remove from the 'new zones' tracking as well
+        {
+            newZonesLive.remove(zone);
+            int newZoneIdx = newZones.indexOf(zone);
+            if (newZoneIdx != -1) {
+                List<MutexZone> copy = new ArrayList<>(newZones);
+                copy.remove(newZoneIdx);
+                newZones = copy;
+            }
+        }
+
+        unmapFromChunks(zone);
+    }
+
+    protected void addNewChunks(MutexZone zone) {
+        mapToChunks(zone, true);
+    }
+
+    private void mapToChunks(MutexZone zone, boolean checkDuplicates) {
         // Usually only one zone sits in a chunk. This optimizes that case.
         MutexZone[] singleZone = new MutexZone[] {zone};
 
@@ -110,7 +154,7 @@ public class MutexZoneCacheWorld {
             MutexZone[] atChunk = byChunk.get(key);
             if (atChunk == null) {
                 byChunk.put(key, singleZone);
-            } else {
+            } else if (!checkDuplicates || !isChunkInArray(atChunk, zone)) {
                 int len = atChunk.length;
                 atChunk = Arrays.copyOf(atChunk, len + 1);
                 atChunk[len] = zone;
@@ -119,30 +163,89 @@ public class MutexZoneCacheWorld {
         });
     }
 
+    private void unmapFromChunks(MutexZone zone) {
+        zone.forAllContainedChunks((cx, cz) -> {
+            long key = MathUtil.longHashToLong(cx, cz);
+            MutexZone[] atChunk = byChunk.remove(key);
+            if (atChunk != null && (atChunk.length > 1 || atChunk[0] != zone)) {
+                // Remove the mutex zone from the array and put back the new array
+                for (int i = atChunk.length-1; i >= 0; --i) {
+                    if (atChunk[i] == zone) {
+                        atChunk = LogicUtil.removeArrayElement(atChunk, i);
+                    }
+                }
+                byChunk.put(key, atChunk);
+            }
+        });
+    }
+
+    private boolean isChunkInArray(MutexZone[] zones, MutexZone zone) {
+        for (MutexZone zoneInZones : zones) {
+            if (zoneInZones == zone) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public MutexZone removeAtSign(IntVector3 signPosition, boolean front) {
         MutexZone zone = bySignPosition.remove(new SignSidePositionKey(signPosition, front));
         if (zone != null) {
             // De-register in all the chunks
-            zone.forAllContainedChunks((cx, cz) -> {
-                long key = MathUtil.longHashToLong(cx, cz);
-                MutexZone[] atChunk = byChunk.remove(key);
-                if (atChunk != null && (atChunk.length > 1 || atChunk[0] != zone)) {
-                    // Remove the mutex zone from the array and put back the new array
-                    for (int i = atChunk.length-1; i >= 0; --i) {
-                        if (atChunk[i] == zone) {
-                            atChunk = LogicUtil.removeArrayElement(atChunk, i);
-                        }
-                    }
-                    byChunk.put(key, atChunk);
-                }
-            });
+            remove(zone);
         }
         return zone;
     }
 
+    public MutexZonePath getOrCreatePathingMutex(
+            RailLookup.TrackedSign sign,
+            MinecartGroup group,
+            IntVector3 initialBlock,
+            UnaryOperator<MutexZonePath.OptionsBuilder> optionsBuilder
+    ) {
+        // Find existing
+        MutexZonePath path = byPathingKey.get(new PathingSignKey(sign, group));
+        if (path != null) {
+            return path;
+        }
+
+        // Create new
+        path = new MutexZonePath(sign, group, initialBlock,
+                optionsBuilder.apply(MutexZonePath.createOptions()));
+        add(path);
+        return path;
+    }
+
     public void clear() {
         bySignPosition.clear();
+        byPathingKey.clear();
         byChunk.clear();
+    }
+
+    public void onTick() {
+        if (byPathingKey.isEmpty()) {
+            return;
+        }
+
+        // Expire pathing mutex zones that haven't been visited by the owning group in some time
+        int expireTick = CommonUtil.getServerTicks() - 2;
+        for (Iterator<MutexZonePath> iter = byPathingKey.values().iterator(); iter.hasNext();) {
+            MutexZonePath zonePath = iter.next();
+            if (zonePath.isExpired(expireTick)) {
+                iter.remove();
+                remove(zonePath);
+            }
+        }
+
+        // Track all mutex zones that have been newly added since previous tick
+        // Trains look at these every tick to see if they are inside them, since
+        // normally they only look from the head of the train onwards.
+        if (newZonesLive.isEmpty()) {
+            newZones = Collections.emptyList();
+        } else {
+            newZones = new ArrayList<>(newZonesLive);
+            newZonesLive.clear();
+        }
     }
 
     /**
@@ -150,16 +253,18 @@ public class MutexZoneCacheWorld {
      * at chunk boundaries. Should be used when querying the mutex zones along a trail of rail
      * blocks that don't change chunk coordinates often.
      */
-    public final class MovingPoint {
+    public static final class MovingPoint {
+        private final MutexZoneByChunkGetter byChunkGetter;
         private int chunkX;
         private int chunkZ;
         private MutexZone[] chunkZones;
 
-        private MovingPoint(int chunkX, int chunkZ) {
+        public MovingPoint(MutexZoneByChunkGetter byChunkGetter, int chunkX, int chunkZ) {
+            this.byChunkGetter = byChunkGetter;
             this.chunkX = chunkX;
             this.chunkZ = chunkZ;
 
-            MutexZone[] zones = byChunk.get(chunkX, chunkZ);
+            MutexZone[] zones = byChunkGetter.getAt(chunkX, chunkZ);
             this.chunkZones = (zones == null) ? NO_ZONES : zones;
         }
 
@@ -283,7 +388,7 @@ public class MutexZoneCacheWorld {
             if (cx != this.chunkX || cz != this.chunkZ) {
                 this.chunkX = cx;
                 this.chunkZ = cz;
-                MutexZone[] zones = byChunk.get(cx, cz);
+                MutexZone[] zones = byChunkGetter.getAt(cx, cz);
                 if (zones == null) {
                     zones = NO_ZONES;
                 }
@@ -308,13 +413,18 @@ public class MutexZoneCacheWorld {
 
             for (int cz = -1; cz <= 1; cz++) {
                 for (int cx = -1; cx <= 1; cx++) {
-                    if ((cx != 0 || cz != 0) && byChunk.contains(this.chunkX + cx, this.chunkZ + cz)) {
+                    if ((cx != 0 || cz != 0) && byChunkGetter.getAt(this.chunkX + cx, this.chunkZ + cz) != null) {
                         return true;
                     }
                 }
             }
             return false;
         }
+    }
+
+    @FunctionalInterface
+    public interface MutexZoneByChunkGetter {
+        MutexZone[] getAt(int cx, int cz);
     }
 
     /**
@@ -330,9 +440,34 @@ public class MutexZoneCacheWorld {
         }
     }
 
-    private static class SignSidePositionKey {
+    protected static class PathingSignKey {
+        public final Object uniqueKey;
+        public final MinecartGroup group;
+
+        public PathingSignKey(RailLookup.TrackedSign sign, MinecartGroup group) {
+            this.uniqueKey = sign.getUniqueKey();
+            this.group = group;
+        }
+
+        @Override
+        public int hashCode() {
+            return uniqueKey.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            PathingSignKey other = (PathingSignKey) o;
+            return uniqueKey.equals(other.uniqueKey) && group == other.group;
+        }
+    }
+
+    protected static class SignSidePositionKey {
         public final IntVector3 position;
         public final boolean front;
+
+        public static SignSidePositionKey ofZone(MutexZone zone) {
+            return new SignSidePositionKey(zone.signBlock.getPosition(), zone.signFront);
+        }
 
         public SignSidePositionKey(IntVector3 position, boolean front) {
             this.position = position;

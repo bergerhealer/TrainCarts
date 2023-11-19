@@ -85,18 +85,6 @@ public class DebugTool {
         return false;
     }
 
-    public static void showCube(Player player, Color color, double x1, double y1, double z1, double x2, double y2, double z2) {
-        DebugToolUtil.showCubeParticles(player, color, x1, y1, z1, x2, y2, z2);
-    }
-
-    public static void showFace(Player player, Color color, double x1, double y1, double z1, double x2, double y2, double z2) {
-        DebugToolUtil.showFaceParticles(player, color, x1, y1, z1, x2, y2, z2);
-    }
-
-    public static void showLine(Player player, Color color, double x1, double y1, double z1, double x2, double y2, double z2) {
-        DebugToolUtil.showLineParticles(player, color, x1, y1, z1, x2, y2, z2);
-    }
-
     /**
      * Called when a player interacts with a block using a (stick) debug item
      * 

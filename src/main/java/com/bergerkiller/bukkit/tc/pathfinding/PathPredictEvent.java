@@ -10,8 +10,12 @@ import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
- * Event passed to {@link PathRoutingHandler#predict(event)} to let a handler predict
+ * Event passed to {@link PathRoutingHandler#predict(PathPredictEvent)} to let a handler predict
  * where a train will go upon landing on this routing node. Track switchers should configure
  * a switched {@link RailPath.Position} based on the properties of the train/member entering it.
  * Speed traps and blockers should configure a speed limit to use on the piece of track.
@@ -19,9 +23,11 @@ import com.bergerkiller.bukkit.tc.controller.components.RailState;
 public class PathPredictEvent {
     private final PathProvider provider;
     private final RailState railState;
+    private RailPath railPath;
     private final MinecartMember<?> member;
     private RailPath.Position nextPosition;
     private double speedLimit;
+    private List<ActiveBlockHandler> newBlockHandlers = Collections.emptyList();
 
     public PathPredictEvent(PathProvider provider, RailState railState, MinecartMember<?> member) {
         this.provider = provider;
@@ -29,6 +35,18 @@ public class PathPredictEvent {
         this.member = member;
         this.nextPosition = null;
         this.speedLimit = Double.MAX_VALUE;
+    }
+
+    /**
+     * Resets this prediction event, so that it can be used again for a new rail position
+     *
+     * @param railPath Current Rail Path for the event
+     */
+    public void resetToInitialState(RailPath railPath) {
+        this.railPath = railPath;
+        this.setSpeedLimit(Double.MAX_VALUE);
+        this.setSwitchedPosition(null);
+        this.newBlockHandlers = Collections.emptyList();
     }
 
     /**
@@ -82,6 +100,15 @@ public class PathPredictEvent {
      */
     public RailState railState() {
         return this.railState;
+    }
+
+    /**
+     * Gets the rail path currently being moved over
+     *
+     * @return rail path details
+     */
+    public RailPath railPath() {
+        return this.railPath;
     }
 
     /**
@@ -192,5 +219,53 @@ public class PathPredictEvent {
         if (speedLimit < this.speedLimit) {
             this.speedLimit = speedLimit;
         }
+    }
+
+    /**
+     * Tracks all the rail blocks encountered from the current state position, up to the
+     * maximum distance specified or when the handler callback returns false.
+     *
+     * @param handler BlockHandler receiving updated
+     * @param maxDistance Maximum distance the block may contain
+     */
+    public void trackBlock(BlockHandler handler, double maxDistance) {
+        if (newBlockHandlers.isEmpty()) {
+            newBlockHandlers = new ArrayList<>();
+        }
+        newBlockHandlers.add(new ActiveBlockHandler(handler, maxDistance));
+    }
+
+    public boolean hasNewBlockTrackers() {
+        return !newBlockHandlers.isEmpty();
+    }
+
+    public List<ActiveBlockHandler> getNewBlockTrackers() {
+        return newBlockHandlers;
+    }
+
+    public static class ActiveBlockHandler {
+        public final BlockHandler handler;
+        public final double maxDistance;
+
+        public ActiveBlockHandler(BlockHandler handler, double maxDistance) {
+            this.handler = handler;
+            this.maxDistance = maxDistance;
+        }
+    }
+
+    /**
+     * Handles a block section of track ahead of the current track position being predicted.
+     * The callback of this handler is called for every track piece encountered.
+     */
+    public interface BlockHandler {
+        /**
+         * Navigates additional rails. Should return false to stop navigating the current
+         * block section of track.
+         *
+         * @param event Event with current track state information
+         * @param distance Distance navigated since the start of the block
+         * @return True to continue navigating the current block, False to abort
+         */
+        boolean update(PathPredictEvent event, double distance);
     }
 }

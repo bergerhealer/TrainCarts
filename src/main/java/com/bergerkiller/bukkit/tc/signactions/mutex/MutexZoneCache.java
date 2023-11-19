@@ -8,15 +8,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.offline.OfflineWorldMap;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSign;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignMetadataHandler;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 
 public class MutexZoneCache {
     private static final OfflineWorldMap<MutexZoneCacheWorld> cachesByWorld = new OfflineWorldMap<>();
@@ -76,6 +79,16 @@ public class MutexZoneCache {
 
     public static void deinit(TrainCarts plugin) {
         plugin.getOfflineSigns().unregisterHandler(MutexSignMetadata.class);
+    }
+
+    public static MutexZonePath getOrCreatePathingMutex(
+            RailLookup.TrackedSign sign,
+            MinecartGroup group,
+            IntVector3 initialBlock,
+            UnaryOperator<MutexZonePath.OptionsBuilder> optionsBuilder
+    ) {
+        return forWorld(OfflineWorld.of(sign.sign.getWorld()))
+                .getOrCreatePathingMutex(sign, group, initialBlock, optionsBuilder);
     }
 
     private static void addMutexSign(OfflineWorld world, IntVector3 signPosition, boolean isFrontText, MutexSignMetadata metadata) {
@@ -187,5 +200,8 @@ public class MutexZoneCache {
                 slotsList.get(i).onTick();
             }
         }
+
+        // Remove expired pathing zones
+        cachesByWorld.values().forEach(MutexZoneCacheWorld::onTick);
     }
 }

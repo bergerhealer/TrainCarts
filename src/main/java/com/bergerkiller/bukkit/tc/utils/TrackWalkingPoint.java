@@ -10,7 +10,11 @@ import com.bergerkiller.bukkit.tc.pathfinding.PathPredictEvent;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -118,7 +122,7 @@ public class TrackWalkingPoint {
         this.predictor = (member == null) ? null : new Predictor(this.state, member);
         if (member != null) {
             // Initialize the predictor state
-            this.predictor.predict();
+            this.predictor.predict(this.movedTotal, this.currentRailPath);
         }
     }
 
@@ -132,6 +136,17 @@ public class TrackWalkingPoint {
     public double getPredictedSpeedLimit() {
         Predictor predictor = this.predictor;
         return (predictor == null) ? Double.MAX_VALUE : predictor.event.getSpeedLimit();
+    }
+
+    /**
+     * If a block was encountered that must be tracked, returns the remaining amount
+     * of distance until we get beyond this current block.
+     *
+     * @return predicted remaining block distance
+     */
+    public double getPredictedRemainingBlockDistance() {
+        Predictor predictor = this.predictor;
+        return (predictor == null) ? 0.0 : Math.max(0.0, predictor.maxPredictorEndDistance - this.movedTotal);
     }
 
     /**
@@ -376,7 +391,7 @@ public class TrackWalkingPoint {
 
         // Update predictor so the speed limit / switched position is updated
         if (predictor != null) {
-            predictor.predict();
+            predictor.predict(this.movedTotal, this.currentRailPath);
         }
 
         return true;
@@ -454,15 +469,57 @@ public class TrackWalkingPoint {
 
     private static class Predictor {
         public final PathPredictEvent event;
+        private List<BlockPredictor> activeBlockPredictors = Collections.emptyList();
+        private double maxPredictorEndDistance = 0.0;
 
         public Predictor(RailState railState, MinecartMember<?> member) {
             this.event = new PathPredictEvent(member.getTrainCarts().getPathProvider(), railState, member);
         }
 
-        public void predict() {
-            this.event.setSpeedLimit(Double.MAX_VALUE);
-            this.event.setSwitchedPosition(null);
+        public void predict(double currentDistance, RailPath currentRailPath) {
+            this.event.resetToInitialState(currentRailPath);
             this.event.provider().predictRoutingHandler(this.event);
+
+            // Process active block predictors. Remove when they return false, or distance is beyond the max.
+            boolean predictorsRemoved = false;
+            for (Iterator<BlockPredictor> iter = activeBlockPredictors.iterator(); iter.hasNext();) {
+                BlockPredictor blockPredictor = iter.next();
+                if (!blockPredictor.handler.update(event, currentDistance - blockPredictor.startDistance)
+                    || currentDistance >= blockPredictor.endDistance) {
+                    iter.remove();
+                    predictorsRemoved = true;
+                }
+            }
+            if (predictorsRemoved) {
+                maxPredictorEndDistance = 0.0;
+                for (BlockPredictor blockPredictor : activeBlockPredictors) {
+                    maxPredictorEndDistance = Math.max(maxPredictorEndDistance, blockPredictor.endDistance);
+                }
+            }
+
+            // Register newly added trackers
+            if (event.hasNewBlockTrackers()) {
+                if (activeBlockPredictors.isEmpty()) {
+                    activeBlockPredictors = new ArrayList<>();
+                }
+                for (PathPredictEvent.ActiveBlockHandler activeHandler : event.getNewBlockTrackers()) {
+                    BlockPredictor blockPredictor = new BlockPredictor(currentDistance, activeHandler);
+                    activeBlockPredictors.add(blockPredictor);
+                    maxPredictorEndDistance = Math.max(maxPredictorEndDistance, blockPredictor.endDistance);
+                }
+            }
+        }
+    }
+
+    private static class BlockPredictor {
+        public final PathPredictEvent.BlockHandler handler;
+        public final double startDistance;
+        public final double endDistance;
+
+        public BlockPredictor(double currentDistance, PathPredictEvent.ActiveBlockHandler activeHandler) {
+            this.handler = activeHandler.handler;
+            this.startDistance = currentDistance;
+            this.endDistance = startDistance + activeHandler.maxDistance;
         }
     }
 

@@ -2,7 +2,10 @@ package com.bergerkiller.bukkit.tc.controller.components;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.tc.utils.BlockIterator;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -498,6 +501,29 @@ public class RailPath {
                 }
             }
             return moved;
+        }
+    }
+
+    /**
+     * Iterates all full block positions encountered while navigating along this rail path
+     * Some blocks might be encountered more than once.
+     *
+     * @param railsBlock Rails block this path is for
+     * @param blockConsumer Consumer for receiving all full block position coordinates
+     */
+    public void forAllBlocks(IntVector3 railsBlock, Consumer<IntVector3> blockConsumer) {
+        boolean first = true;
+        for (Segment segment : segments) {
+            BlockIterator iter = new BlockIterator(segment, railsBlock);
+            if (iter.next()) {
+                if (first) {
+                    blockConsumer.accept(iter.block());
+                }
+                while (iter.next()) {
+                    blockConsumer.accept(iter.block());
+                }
+            }
+            first = false;
         }
     }
 

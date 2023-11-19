@@ -87,6 +87,14 @@ public class ObstacleTracker implements TrainStatusProvider {
         // Increment mutex tick counter every tick this is called
         ++tickCounter;
 
+        // Before proceeding, register this train in any new mutex zones that it is inside
+        // As the train already went well into the zone, it cannot be stopped anymore.
+        // But we do want the train to hard-enter it, so that other trains are prevented from
+        // entering too.
+        for (MutexZone newMutexZone : group.head().railLookup().getMutexZones().getNewZones()) {
+            hardEnterNewMutexZoneIfInside(newMutexZone);
+        }
+
         // Calculate the amount of distance ahead of the train we have to look for other
         // trains or mutex zones or any other type of obstacle. This is calculated based
         // on the maximum projected movement the train will have this tick. This is the
@@ -202,6 +210,72 @@ public class ObstacleTracker implements TrainStatusProvider {
             } else {
                 // Slow down gradually
                 this.waitDistanceLastSpeedLimit = baseSpeedLimitThisTick - deceleration;
+            }
+        }
+    }
+
+    /**
+     * Hard-enters mutex zones that this train is already inside
+     *
+     * @param newMutexZone New mutex zone
+     */
+    private void hardEnterNewMutexZoneIfInside(MutexZone newMutexZone) {
+        // Go by all members, check if this zone is at all nearby
+        // This avoids expensive calculations for trains far away from this new mutex zone
+        boolean isNearby = false;
+        for (MinecartMember<?> member : group) {
+            IntVector3 blockPos = member.getRailTracker().getState().positionOfflineBlock().getPosition();
+            int radius = (int) (3.0 * (double) member.getEntity().getWidth());
+            if (newMutexZone.isNearby(blockPos, radius)) {
+                isNearby = true;
+                break;
+            }
+        }
+        if (!isNearby) {
+            return;
+        }
+
+        // Iterate all rails of group
+        List<RailTracker.TrackedRail> rails = group.getRailTracker().getRailInformation();
+        if (rails.isEmpty()) {
+            return; // Meh.
+        }
+
+        // Initialize a moving point with the presumed first encountered chunk
+        final MutexZone[] zones = new MutexZone[] { newMutexZone };
+        RailPath.Position firstPosition = rails.get(0).state.position();
+        MutexZoneCacheWorld.MovingPoint movingPoint = new MutexZoneCacheWorld.MovingPoint((cx, cz) -> zones,
+                MathUtil.toChunk(firstPosition.posX), MathUtil.toChunk(firstPosition.posZ));
+
+        // Train is near to this mutex zone. Go by all block positions covered by this train,
+        // and check whether it is inside this mutex zone
+        boolean isInsideZone = false;
+        for (RailTracker.TrackedRail rail : rails) {
+            if (rail.state.railPiece().isNone()) {
+                continue;
+            }
+
+            RailPath path = rail.getPath();
+            RailPath.Position start = path.getStartPosition();
+            RailPath.Position end = path.getEndPosition();
+            start.makeAbsolute(rail.state.railBlock());
+            end.makeAbsolute(rail.state.railBlock());
+            MutexZoneCacheWorld.MutexZoneResult result = movingPoint.get(start, end);
+            if (result != null && result.zone == newMutexZone && result.distance <= 0.0) {
+                isInsideZone = true;
+                break;
+            }
+        }
+        if (!isInsideZone) {
+            return;
+        }
+
+        // If actually inside the zone, enter the zone with this group
+        newMutexZone.onUsed(group);
+        MutexZoneSlot.EnteredGroup entered = newMutexZone.slot.track(group, 0.0);
+        for (RailTracker.TrackedRail rail : rails) {
+            if (!rail.state.railPiece().isNone()) {
+                entered.enter(newMutexZone.type, rail.state.railPiece().blockPosition(), true);
             }
         }
     }
@@ -362,6 +436,7 @@ public class ObstacleTracker implements TrainStatusProvider {
         MutexZone currentMutex = null;
         MutexZoneSlot.EnteredGroup currentMutexGroup = null;
         boolean currentMutexHard = false;
+        double currentMutexSpacing = 0.0;
 
         // Mutex zones that have been (soft-) entered
         public List<MutexZone> enteredMutexZones = Collections.emptyList();
@@ -411,7 +486,7 @@ public class ObstacleTracker implements TrainStatusProvider {
                 iter.setFollowPredictedPath(group.head());
             }
 
-            while (iter.movedTotal <= checkDistance && iter.moveFull()) {
+            while ((iter.movedTotal <= (checkDistance + currentMutexSpacing) || iter.getPredictedRemainingBlockDistance() > 0.0) && iter.moveFull()) {
                 // The distance traveled from the physical front of the cart
                 // The first iteration will likely have a negative distance
                 double distanceFromFront = iter.movedTotal - selfCartOffset;
@@ -427,6 +502,7 @@ public class ObstacleTracker implements TrainStatusProvider {
                     if (currentMutex != null && !currentMutex.containsBlock(iter.state.positionOfflineBlock().getPosition())) {
                         // Exited the mutex zone
                         currentMutex = null;
+                        currentMutexSpacing = 0.0;
                     }
 
                     // If the current rail block imposes a speed limit, set that right now
@@ -461,7 +537,9 @@ public class ObstacleTracker implements TrainStatusProvider {
                                     accept = checkForNewMutexes && (distanceToMutex < mutexSoftDistance);
                                 }
                                 if (accept) {
+                                    newMutexResult.zone.onUsed(group);
                                     currentMutex = newMutexResult.zone;
+                                    currentMutexSpacing = currentMutex.getSpacing(group);
                                     currentMutexGroup = newMutexResult.zone.slot.track(group, distanceToMutex);
                                     currentMutexHard = currentMutexGroup.distanceToMutex <= mutexHardDistance;
                                 }
@@ -562,6 +640,8 @@ public class ObstacleTracker implements TrainStatusProvider {
 
                         // Resume
                         currentMutex = otherMutex.zone;
+                        currentMutexSpacing = currentMutex.getSpacing(group);
+                        otherMutex.zone.onUsed(group);
                     }
 
                     // Update
@@ -594,7 +674,7 @@ public class ObstacleTracker implements TrainStatusProvider {
                 enteredMutexZones.add(currentMutex);
             }
 
-            double currentMutexDistance = currentMutexGroup.distanceToMutex;
+            double currentMutexDistance = currentMutexGroup.distanceToMutex - currentMutexSpacing;
             if (result.isOccupied()) {
                 // Add the mutex zone as a new obstacle, if there is no other obstacle closerby
                 // This also protects against a large amount of obstacles with the OCCUPIED_DISCOVER result
@@ -611,6 +691,7 @@ public class ObstacleTracker implements TrainStatusProvider {
                 // Hard occupied, we can stop checking this mutex or mutexes in general
                 currentMutex = null;
                 currentMutexGroup = null;
+                currentMutexSpacing = 0.0;
                 return false;
             } else if (result.isConflict()) {
                 // Mutex broke! Just keep on moving and hope the problem "solves" itself...

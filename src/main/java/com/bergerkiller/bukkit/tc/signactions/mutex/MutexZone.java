@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.signactions.mutex;
 
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -7,10 +8,6 @@ import org.bukkit.block.Block;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import org.bukkit.entity.Player;
 
@@ -30,12 +27,25 @@ public abstract class MutexZone {
         this.type = type;
     }
 
+    protected abstract void addToWorld(MutexZoneCacheWorld world);
+
     public abstract boolean containsBlock(IntVector3 block);
-    public abstract boolean containsBlock(Block block);
     public abstract boolean isNearby(IntVector3 block, int radius);
     public abstract void forAllContainedChunks(ChunkCoordConsumer action);
     public abstract long showDebugColorSeed();
     public abstract void showDebug(Player player, Color color);
+    protected abstract void setLeversDown(boolean down);
+
+    /**
+     * Gets the amount of additional spacing trains should keep between themselves
+     * and this mutex zone
+     *
+     * @param group Group for which spacing is requested
+     * @return Extra spacing
+     */
+    public double getSpacing(MinecartGroup group) {
+        return 0.0;
+    }
 
     /**
      * Performs a hit collision test from a starting position moving into the direction motion vector
@@ -87,14 +97,15 @@ public abstract class MutexZone {
             }
         }
 
-        Block signBlock = getSignBlock();
-        if (signBlock != null) {
-            signBlock.getChunk();
-            BlockData data = WorldUtil.getBlockData(signBlock);
-            if (MaterialUtil.ISSIGN.get(data)) {
-                BlockUtil.setLeversAroundBlock(signBlock.getRelative(data.getAttachedFace()), down);
-            }
-        }
+        setLeversDown(down);
+    }
+
+    /**
+     * Called every tick while a certain member of a train is using it
+     *
+     * @param group Group
+     */
+    public void onUsed(MinecartGroup group) {
     }
 
     public static MutexZone createCuboid(OfflineWorld world, IntVector3 signPosition, boolean isFrontText, MutexSignMetadata metadata) {
