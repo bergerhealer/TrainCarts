@@ -9,6 +9,8 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.tc.Localization;
+import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -274,7 +276,14 @@ public abstract class SignAction {
             }
 
             // Inform about use of RC when not supported
-            if (!action.canSupportRC() && info.isRCSign()) {
+            // Deny building the sign with RC if player lacks permission for this
+            if (action.canSupportRC()) {
+                if (info.isRCSign() && !Permission.BUILD_REMOTE_CONTROL.has(info.getPlayer())) {
+                    Localization.SIGN_NO_RC_PERMISSION.message(info.getPlayer());
+                    info.getHeader().setMode(SignActionMode.TRAIN);
+                    info.setLine(0, info.getHeader().toString());
+                }
+            } else if (info.isRCSign()) {
                 info.getPlayer().sendMessage(ChatColor.RED + "This sign does not support remote control!");
                 info.getHeader().setMode(SignActionMode.TRAIN);
                 info.setLine(0, info.getHeader().toString());

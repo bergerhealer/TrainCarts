@@ -141,6 +141,7 @@ public class Localization extends LocalizationEnum {
 
     // signs
     public static final Localization SIGN_NO_PERMISSION = new Localization("sign.noperm", ChatColor.RED + "You do not have permission to use this sign! [%0%]");
+    public static final Localization SIGN_NO_RC_PERMISSION = new Localization("sign.noremotecontrolperm", ChatColor.RED + "You do not have permission to use the remote control sign feature!");
 
     // animate command
     public static final Localization COMMAND_ANIMATE_SUCCESS = new Localization("command.animate.success", ChatColor.GREEN + "Now playing animation " + ChatColor.YELLOW + "%0%" +
