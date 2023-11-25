@@ -148,8 +148,9 @@ class FirstPersonSpectatedEntityPlayerSitting extends FirstPersonSpectatedEntity
         fakeMount.setUseMinecartInterpolation(seat.isMinecartInterpolation());
 
         // Put the entity on a fake mount that we move around at an offset
-        double y_offset = VirtualEntity.ARMORSTAND_BUTT_OFFSET + VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT;
-        fakeMount.setRelativeOffset(0.0, -y_offset, 0.0);
+        fakeMount.setByViewerPositionAdjustment((viewer, pos) -> {
+            pos.setY(pos.getY() - viewer.getArmorStandButtOffset() - VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT);
+        });
         fakeMount.updatePosition(baseTransform);
         fakeMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
         fakeMount.getMetaData().set(EntityHandle.DATA_NO_GRAVITY, true);

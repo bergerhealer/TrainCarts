@@ -191,6 +191,16 @@ public interface AttachmentViewer extends TrainCarts.Provider {
     }
 
     /**
+     * Gets the offset at which a player sits on a surface. Mounts must be adjusted to take this
+     * into account.
+     *
+     * @return ArmorStand butt offset. Game version-dependent.
+     */
+    default double getArmorStandButtOffset() {
+        return evaluateGameVersion(">=", "1.20.2") ? 0.0 : 0.27;
+    }
+
+    /**
      * Resets the glow color of an entity
      *
      * @param entityUUID Entity UUID

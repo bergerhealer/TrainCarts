@@ -513,7 +513,7 @@ public abstract class SeatedEntity {
         mount.setEntityType(EntityType.ARMOR_STAND);
         mount.setSyncMode(SyncMode.SEAT);
         mount.setUseMinecartInterpolation(seat.isMinecartInterpolation());
-        mount.setRelativeOffset(0.0, -VirtualEntity.ARMORSTAND_BUTT_OFFSET, 0.0);
+        mount.setByViewerPositionAdjustment((viewer, pos) -> pos.setY(pos.getY() - viewer.getArmorStandButtOffset()));
         mount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
         mount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
         mount.getMetaData().set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (

@@ -61,7 +61,11 @@ public class VirtualEntity extends VirtualSpawnableObject {
     public static final double PLAYER_SIT_CHICKEN_BUTT_OFFSET = -0.62;
     /**
      * The height offset above which a butt rests on top of a MARKER armor stand
+     *
+     * @deprecated Use {@link AttachmentViewer#getArmorStandButtOffset()} instead, as this is now
+     *             game-version dependent.
      */
+    @Deprecated
     public static final double ARMORSTAND_BUTT_OFFSET = 0.27;
 
     private final int entityId;
@@ -77,6 +81,7 @@ public class VirtualEntity extends VirtualSpawnableObject {
     private double liveVel;
     private double syncVel;
     private Vector relativePos = new Vector();
+    private ByViewerPositionAdjustment byViewerPositionAdjustment = null;
     private EntityType entityType = EntityType.CHICKEN;
     private boolean entityTypeIsMinecart = false;
     private boolean respawnOnPitchFlip = false;
@@ -188,6 +193,10 @@ public class VirtualEntity extends VirtualSpawnableObject {
 
     public void addRelativeOffset(double dx, double dy, double dz) {
         MathUtil.addToVector(relativePos, dx, dy, dz);
+    }
+
+    public void setByViewerPositionAdjustment(ByViewerPositionAdjustment adjustment) {
+        this.byViewerPositionAdjustment = adjustment;
     }
 
     public void setSyncMode(SyncMode mode) {
@@ -412,6 +421,13 @@ public class VirtualEntity extends VirtualSpawnableObject {
 
         //System.out.println("SPAWN " + this.syncAbsX + "/" + this.syncAbsY + "/" + this.syncAbsZ + " ID=" + this.entityUUID);
 
+        // Position to spawn at
+        Vector spawnPos = this.syncAbsPos.clone();
+        if (byViewerPositionAdjustment != null) {
+            byViewerPositionAdjustment.adjust(viewer, spawnPos);
+        }
+        spawnPos.subtract(motion);
+
         // Create a spawn packet appropriate for the type of entity being spawned
         if (isLivingEntity()) {
             // Spawn living entity
@@ -419,9 +435,9 @@ public class VirtualEntity extends VirtualSpawnableObject {
             spawnPacket.setEntityId(this.entityId);
             spawnPacket.setEntityUUID(this.entityUUID);
             spawnPacket.setEntityType(this.entityType);
-            spawnPacket.setPosX(this.syncAbsPos.getX() - motion.getX());
-            spawnPacket.setPosY(this.syncAbsPos.getY() - motion.getY());
-            spawnPacket.setPosZ(this.syncAbsPos.getZ() - motion.getZ());
+            spawnPacket.setPosX(spawnPos.getX());
+            spawnPacket.setPosY(spawnPos.getY());
+            spawnPacket.setPosZ(spawnPos.getZ());
             spawnPacket.setMotX(motion.getX());
             spawnPacket.setMotY(motion.getY());
             spawnPacket.setMotZ(motion.getZ());
@@ -435,9 +451,9 @@ public class VirtualEntity extends VirtualSpawnableObject {
             spawnPacket.setEntityId(this.entityId);
             spawnPacket.setEntityUUID(this.entityUUID);
             spawnPacket.setEntityType(this.entityType);
-            spawnPacket.setPosX(this.syncAbsPos.getX() - motion.getX());
-            spawnPacket.setPosY(this.syncAbsPos.getY() - motion.getY());
-            spawnPacket.setPosZ(this.syncAbsPos.getZ() - motion.getZ());
+            spawnPacket.setPosX(spawnPos.getX());
+            spawnPacket.setPosY(spawnPos.getY());
+            spawnPacket.setPosZ(spawnPos.getZ());
             spawnPacket.setMotX(motion.getX());
             spawnPacket.setMotY(motion.getY());
             spawnPacket.setMotZ(motion.getZ());
@@ -537,9 +553,22 @@ public class VirtualEntity extends VirtualSpawnableObject {
 
         // When an absolute update is required, send a teleport packet and refresh the synchronized position instantly
         if (absolute || largeChange) {
-            broadcast(PacketPlayOutEntityTeleportHandle.createNew(this.entityId,
-                    this.liveAbsPos.getX(), this.liveAbsPos.getY(), this.liveAbsPos.getZ(),
-                    this.liveYaw, this.livePitch, false));
+            if (byViewerPositionAdjustment != null) {
+                // Different position for every player, potentially
+                Vector pos = new Vector();
+                for (AttachmentViewer viewer : getViewers()) {
+                    MathUtil.setVector(pos, liveAbsPos);
+                    byViewerPositionAdjustment.adjust(viewer, pos);
+                    viewer.send(PacketPlayOutEntityTeleportHandle.createNew(this.entityId,
+                            pos.getX(), pos.getY(), pos.getZ(),
+                            this.liveYaw, this.livePitch, false));
+                }
+            } else {
+                // Same packet for everyone
+                broadcast(PacketPlayOutEntityTeleportHandle.createNew(this.entityId,
+                        this.liveAbsPos.getX(), this.liveAbsPos.getY(), this.liveAbsPos.getZ(),
+                        this.liveYaw, this.livePitch, false));
+            }
             syncPositionSilent();
             refreshHeadRotation();
             return;
@@ -887,5 +916,18 @@ public class VirtualEntity extends VirtualSpawnableObject {
                 }
             } catch (IllegalArgumentException ex) { /* ignore */ }
         }
+    }
+
+    /**
+     * Callback that adjusts the position of this virtual entity based on the type
+     * of viewer that views it. This allows for different offsets to be specified
+     * for different Minecraft client versions, for example.<br>
+     * <br>
+     * This requires the adjustment to be a constant, as relative updates are not
+     * forwarded to this function.
+     */
+    @FunctionalInterface
+    public interface ByViewerPositionAdjustment {
+        void adjust(AttachmentViewer viewer, Vector position);
     }
 }

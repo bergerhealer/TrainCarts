@@ -30,6 +30,7 @@ public class PacketQueue implements AttachmentViewer, me.m56738.smoothcoasters.a
     private final Player player;
     private final VehicleMountController vmc; // cached
     private final PlayerGameInfo playerGameInfo;
+    private final double armorStandButtOffset;
     private final CircularFIFOQueue<CommonPacket> queue;
     private volatile Thread thread;
 
@@ -74,6 +75,7 @@ public class PacketQueue implements AttachmentViewer, me.m56738.smoothcoasters.a
         this.playerGameInfo = PlayerGameInfo.of(player);
         this.queue = CircularFIFOQueue.forward(this::processPacket);
         this.thread = null;
+        this.armorStandButtOffset = AttachmentViewer.super.getArmorStandButtOffset();
     }
 
     protected PacketQueue(TrainCarts plugin, Player player, PlayerGameInfo playerGameInfo, CircularFIFOQueue<CommonPacket> queue) {
@@ -84,6 +86,7 @@ public class PacketQueue implements AttachmentViewer, me.m56738.smoothcoasters.a
         this.queue = queue;
         this.queue.setWakeCallback(this::startProcessingPackets);
         this.thread = null;
+        this.armorStandButtOffset = AttachmentViewer.super.getArmorStandButtOffset();
     }
 
     @Override
@@ -99,6 +102,11 @@ public class PacketQueue implements AttachmentViewer, me.m56738.smoothcoasters.a
     @Override
     public boolean evaluateGameVersion(String operand, String rightSide) {
         return playerGameInfo.evaluateVersion(operand, rightSide);
+    }
+
+    @Override
+    public double getArmorStandButtOffset() {
+        return armorStandButtOffset;
     }
 
     @Override
