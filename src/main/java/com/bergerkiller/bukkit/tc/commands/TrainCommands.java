@@ -337,6 +337,8 @@ public class TrainCommands {
             final TrainProperties trainProperties,
             final @Flag(value="seat", parserName="trainSeatAttachments") AttachmentsByName<CartAttachmentSeat> seatAttachments
     ) {
+        seatAttachments.validate(); // Fail early
+
         if (!trainProperties.isLoaded()) {
             sender.sendMessage(ChatColor.RED + "Can not eject the train: it is not loaded");
             return;
@@ -528,6 +530,8 @@ public class TrainCommands {
             final @Flag(value="replay", description="Stops and replays the effect") boolean replay,
             final @Flag(value="stop", description="Stops playing the effect") boolean stop
     ) {
+        effectAttachments.validate(); // Fail early
+
         Attachment.EffectAttachment.EffectOptions opt = Attachment.EffectAttachment.EffectOptions.of(
                 LogicUtil.fixNull(volume, 1.0),
                 LogicUtil.fixNull(speed, 1.0));

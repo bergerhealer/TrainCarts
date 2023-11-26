@@ -190,6 +190,8 @@ public class CartCommands {
             final @Flag(value="replay", description="Stops and replays the effect") boolean replay,
             final @Flag(value="stop", description="Stops playing the effect") boolean stop
     ) {
+        effectAttachments.validate(); // Fail early
+
         Attachment.EffectAttachment.EffectOptions opt = Attachment.EffectAttachment.EffectOptions.of(
                 LogicUtil.fixNull(volume, 1.0),
                 LogicUtil.fixNull(speed, 1.0));
@@ -331,6 +333,8 @@ public class CartCommands {
             final CartProperties cartProperties,
             final @Flag(value="seat", parserName="cartSeatAttachments") AttachmentsByName<CartAttachmentSeat> seatAttachments
     ) {
+        seatAttachments.validate(); // Fail early
+
         MinecartMember<?> member = cartProperties.getHolder();
         if (member == null || member.isUnloaded()) {
             sender.sendMessage(ChatColor.RED + "Can not eject the cart: it is not loaded");
