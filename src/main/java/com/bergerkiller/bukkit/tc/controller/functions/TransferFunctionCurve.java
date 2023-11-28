@@ -5,7 +5,6 @@ import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
-import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 
 import java.util.Arrays;
@@ -405,7 +404,7 @@ public class TransferFunctionCurve implements TransferFunction, Cloneable {
     }
 
     @Override
-    public void openDialog(MapWidgetTransferFunctionDialog dialog) {
+    public void openDialog(Dialog dialog) {
         dialog.addWidget(new MapWidgetButton() {
             @Override
             public void onActivate() {

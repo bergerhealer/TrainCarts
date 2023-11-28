@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
@@ -57,6 +58,30 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
     }
 
     public void configure() {
+        // If it can't be edited, sound a hiss and do nothing more
+        if (getFunction().openDialogMode() == TransferFunction.DialogMode.NONE) {
+            display.playSound(SoundEffect.EXTINGUISH);
+            return;
+        }
+
+        // If inline, add fake window over the top of this widget and activate to focus them
+        // If no widgets are added, cancel (with a sound)
+        if (getFunction().openDialogMode() == TransferFunction.DialogMode.INLINE) {
+            InlineDialog inlineDialog = new InlineDialog();
+            updateInlineDialogBounds(inlineDialog);
+            this.addWidget(inlineDialog);
+            getFunction().openDialog(inlineDialog);
+            if (inlineDialog.getWidgetCount() == 0) {
+                inlineDialog.close();
+                display.playSound(SoundEffect.EXTINGUISH);
+            } else {
+                // Hides UI and focuses widgets that are children of the inline dialog
+                this.activate();
+            }
+
+            return;
+        }
+
         // If already displayed inside a transfer function dialog, navigate that dialog
         // to the new item. Otherwise, open a new dialog and edit it inside of that.
         MapWidgetTransferFunctionDialog dialog = getCurrentDialog();
@@ -114,10 +139,16 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
         view.fillRectangle(1, 1, getWidth() - 2, getHeight() - 2,
                 moving ? COLOR_BG_MOVING : (isFocused() ? COLOR_BG_FOCUSED : COLOR_BG_DEFAULT));
 
-        MapCanvas previewView = view.getView(2, 1, getWidth() - 2, getHeight() - 2);
-        getFunction().drawPreview(this, previewView);
+        if (!isActivated()) {
+            MapCanvas previewView = view.getView(2, 1, getWidth() - 2, getHeight() - 2);
+            getFunction().drawPreview(this, previewView);
 
-        drawUI();
+            drawUI();
+        }
+    }
+
+    protected void updateInlineDialogBounds(InlineDialog dialog) {
+        dialog.setBounds(1, 1, getWidth() - 2, getHeight() - 2);
     }
 
     protected void drawUI() {
@@ -156,6 +187,43 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
             buttons.get(selButtonIdx).action.run();
         } else {
             super.onKeyPressed(event);
+        }
+    }
+
+    protected class InlineDialog extends MapWidget implements TransferFunction.Dialog {
+
+        @Override
+        public MapWidget getWidget() {
+            return this;
+        }
+
+        @Override
+        public TransferFunctionHost getHost() {
+            return host;
+        }
+
+        @Override
+        public void setFunction(TransferFunction function) {
+            MapWidgetTransferFunctionItem.this.function.setFunction(function);
+        }
+
+        @Override
+        public void markChanged() {
+            setFunction(function.getFunction());
+        }
+
+        public void close() {
+            this.removeWidget();
+            MapWidgetTransferFunctionItem.this.focus();
+        }
+
+        @Override
+        public void onKeyPressed(MapKeyEvent event) {
+            if (event.getKey() == MapPlayerInput.Key.BACK) {
+                close();
+            } else {
+                super.onKeyPressed(event);
+            }
         }
     }
 

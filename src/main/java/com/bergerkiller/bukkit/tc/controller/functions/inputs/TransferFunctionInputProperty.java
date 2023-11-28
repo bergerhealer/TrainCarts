@@ -86,7 +86,7 @@ public class TransferFunctionInputProperty extends TransferFunctionInput {
     }
 
     @Override
-    public void openDialog(MapWidgetTransferFunctionDialog dialog) {
+    public void openDialog(Dialog dialog) {
         super.openDialog(dialog);
     }
 

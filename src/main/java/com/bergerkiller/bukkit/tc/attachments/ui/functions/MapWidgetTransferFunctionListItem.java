@@ -151,10 +151,17 @@ public class MapWidgetTransferFunctionListItem extends MapWidgetTransferFunction
             }
         }
 
-        MapCanvas previewView = view.getView(MODE_WIDTH + 3, 1, getWidth() - 2, getHeight() - 2);
-        getFunction().drawPreview(this, previewView);
+        if (!isActivated()) {
+            MapCanvas previewView = view.getView(MODE_WIDTH + 3, 1, getWidth() - 2, getHeight() - 2);
+            getFunction().drawPreview(this, previewView);
 
-        drawUI();
+            drawUI();
+        }
+    }
+
+    @Override
+    protected void updateInlineDialogBounds(InlineDialog dialog) {
+        dialog.setBounds(MODE_WIDTH + 2, 1, getWidth() - MODE_WIDTH - 4, getHeight() - 2);
     }
 
     @Override

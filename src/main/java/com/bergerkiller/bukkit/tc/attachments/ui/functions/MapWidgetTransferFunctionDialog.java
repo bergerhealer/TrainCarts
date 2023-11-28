@@ -17,7 +17,7 @@ import java.util.logging.Level;
 /**
  * Displays the configuration of a {@link TransferFunction}
  */
-public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
+public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu implements TransferFunction.Dialog {
     private final TransferFunctionHost host;
     private TransferFunction.Holder<TransferFunction> root;
     private TransferFunctionNav nav;
@@ -42,6 +42,7 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
     /**
      * Should be called by menu dialogs when changes are made to a transfer function
      */
+    @Override
     public void markChanged() {
         onChanged(root.getFunction());
     }
@@ -52,8 +53,14 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
      *
      * @return TransferFunctionHost
      */
+    @Override
     public TransferFunctionHost getHost() {
         return host;
+    }
+
+    @Override
+    public MapWidget getWidget() {
+        return this; // To satisfy TransferFunction.Display
     }
 
     /**
@@ -62,8 +69,13 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
      *
      * @param newFunction Function to replace the current function in this dialog with
      */
+    @Override
     public void setFunction(TransferFunction newFunction) {
         if (nav != null) {
+            if (nav.function.getFunction() == newFunction) {
+                markChanged();
+                return;
+            }
             nav.function.setFunction(newFunction);
             navigate(nav); // Navigate to same dialog
         }
@@ -91,6 +103,11 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu {
     }
 
     private void navigate(TransferFunctionNav nav) {
+        if (nav.function.getFunction().openDialogMode() != TransferFunction.DialogMode.WINDOW) {
+            throw new IllegalArgumentException("Cannot navigate: function dialog mode is " +
+                    nav.function.getFunction().openDialogMode());
+        }
+
         this.nav = nav;
         this.clearWidgets();
         if (this.nav != null && getDisplay() != null) {

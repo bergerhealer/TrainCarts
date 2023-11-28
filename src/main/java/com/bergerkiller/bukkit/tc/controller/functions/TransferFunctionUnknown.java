@@ -4,8 +4,6 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
-import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
-import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 
 import java.util.Collections;
@@ -72,11 +70,12 @@ class TransferFunctionUnknown implements TransferFunction {
     }
 
     @Override
-    public void openDialog(MapWidgetTransferFunctionDialog dialog) {
-        dialog.addWidget(new MapWidgetText())
-                .setText((error ? "Load Error [" : "Unknown [") + typeId + "]")
-                .setColor(MapColorPalette.COLOR_RED)
-                .setBounds(5, 5, dialog.getWidth() - 10, 15);
+    public void openDialog(Dialog dialog) {
+    }
+
+    @Override
+    public DialogMode openDialogMode() {
+        return DialogMode.NONE;
     }
 
     @Override

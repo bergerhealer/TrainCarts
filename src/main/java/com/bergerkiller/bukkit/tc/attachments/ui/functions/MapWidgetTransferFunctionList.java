@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.ui.functions;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetScroller;
+import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionList;
 
 /**
@@ -94,6 +95,7 @@ public class MapWidgetTransferFunctionList extends MapWidgetScroller {
                 onSelectedItemChanged();
             }
         };
+
         item.addButton(MapWidgetTransferFunctionItem.ButtonIcon.CONFIGURE, item::configure)
             .addButton(MapWidgetTransferFunctionItem.ButtonIcon.MOVE,  item::startMove)
             .addButton(MapWidgetTransferFunctionItem.ButtonIcon.ADD, () -> addNewItem(list.indexOf(item.getItem())))

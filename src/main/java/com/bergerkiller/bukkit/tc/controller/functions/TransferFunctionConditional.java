@@ -4,7 +4,6 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
-import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 
 /**
@@ -132,8 +131,7 @@ public class TransferFunctionConditional implements TransferFunction {
     }
 
     @Override
-    public void openDialog(MapWidgetTransferFunctionDialog dialog) {
-
+    public void openDialog(Dialog dialog) {
     }
 
     /**

@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.controller.functions;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 
@@ -97,14 +98,90 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
     /**
      * Fills a menu dialog with contents for configuring this transfer function
      *
-     * @param dialog Dialog widget to which other widgets should be added to configure it.
-     *               Is empty initially.
+     * @param dialog Dialog context information. Is {@link MapWidgetTransferFunctionDialog}
+     *               if {@link #openDialogMode()} is WINDOW.
      */
-    void openDialog(MapWidgetTransferFunctionDialog dialog);
+    void openDialog(Dialog dialog);
+
+    /**
+     * Gets whether {@link #openDialog(Dialog)} opens a dialog
+     * inline of where the item is edited. If INLINE, no dialog window is opened.
+     * Default is WINDOW, opening the configuration in a dialog window.
+     * To now allow for any configuration, return NONE.
+     *
+     * @return Whether the dialog to configure this transfer function is opened inline
+     */
+    default DialogMode openDialogMode() {
+        return DialogMode.WINDOW;
+    }
+
+    /**
+     * Dialog context information for {@link #openDialog(Dialog)}
+     */
+    interface Dialog {
+        /**
+         * Gets the dialog widget to which other widgets should be added to configure it.
+         * Is empty initially. If {@link #openDialogMode()} is <i>WINDOW</i> then this
+         * dialog widget is a {@link MapWidgetTransferFunctionDialog}
+         *
+         * @return Parent widget
+         */
+        MapWidget getWidget();
+
+        /**
+         * Gets the TransferFunctionHost that provides context information
+         * @return TransferFunctionHost
+         */
+        TransferFunctionHost getHost();
+
+        /**
+         * Changes the instance of the transfer function. Can be used to swap out the
+         * transfer function with something new when configuration radically changes.
+         *
+         * @param function New transfer function to set
+         */
+        void setFunction(TransferFunction function);
+
+        /**
+         * Sends a signal that the existing transfer function instance has changed.
+         * Same as calling {@link #setFunction(TransferFunction)} with the current
+         * instance.
+         */
+        void markChanged();
+
+        /**
+         * Same as {@link #getWidget()}.addWidget()
+         *
+         * @param widget Widget to add
+         * @return Added widget
+         * @param <T> Widget type
+         */
+        default <T extends MapWidget> T addWidget(T widget) {
+            return getWidget().addWidget(widget);
+        }
+
+        /**
+         * Same as {@link #getWidget()}.getWidth()
+         *
+         * @return dialog width
+         */
+        default int getWidth() {
+            return getWidget().getWidth();
+        }
+
+        /**
+         * Same as {@link #getWidget()}.getHeight()
+         *
+         * @return dialog height
+         */
+        default int getHeight() {
+            return getWidget().getHeight();
+        }
+    }
 
     /**
      * Holds a single TransferFunction. Class can be used to swap an instance of a transfer
-     * function.
+     * function, or to be notified of the function being changed.
      *
      * @param <T> Transfer Function Type
      */
@@ -156,6 +233,18 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
         public static <T extends TransferFunction> Holder<T> of(T function) {
             return new Holder<T>(function);
         }
+    }
+
+    /**
+     * Mode of opening a dialog configuring this transfer function
+     */
+    enum DialogMode {
+        /** No window is opened at all. This transfer function has no configuration. */
+        NONE,
+        /** Configuration is opened inline, in the transfer function item (preview area) */
+        INLINE,
+        /** The window is navigated to show this function, or a window is popped open to configure it */
+        WINDOW
     }
 
     /**

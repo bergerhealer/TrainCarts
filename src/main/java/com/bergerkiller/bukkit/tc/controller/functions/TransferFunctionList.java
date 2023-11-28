@@ -149,12 +149,11 @@ public class TransferFunctionList implements TransferFunction, Cloneable {
 
     @Override
     public void drawPreview(MapWidgetTransferFunctionItem widget, MapCanvas view) {
-
     }
 
     @Override
-    public void openDialog(MapWidgetTransferFunctionDialog dialog) {
-        dialog.addWidget(new MapWidgetTransferFunctionList(dialog, this) {
+    public void openDialog(Dialog dialog) {
+        dialog.addWidget(new MapWidgetTransferFunctionList((MapWidgetTransferFunctionDialog) dialog, this) {
             @Override
             public void onSelectedItemChanged() {
                 lastSelectedFunctionIndex = getSelectedItemIndex();

@@ -4,7 +4,6 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
-import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 
 /**
@@ -73,7 +72,11 @@ class TransferFunctionIdentity implements TransferFunction {
     }
 
     @Override
-    public void openDialog(MapWidgetTransferFunctionDialog dialog) {
-        /* Adds nothing. Also doesn't open anything as a result */
+    public void openDialog(Dialog dialog) {
+    }
+
+    @Override
+    public DialogMode openDialogMode() {
+        return DialogMode.NONE;
     }
 }

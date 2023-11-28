@@ -71,7 +71,7 @@ public abstract class TransferFunctionInput implements TransferFunction {
     protected abstract TransferFunctionInput cloneInput();
 
     @Override
-    public void openDialog(MapWidgetTransferFunctionDialog dialog) {
+    public void openDialog(Dialog dialog) {
         // Inputs by default show a selection button to switch between different categories of
         // input transforms. Changing this button will change the entire instance of the transfer
         // function.
