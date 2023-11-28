@@ -1,13 +1,18 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.Station;
 import com.bergerkiller.bukkit.tc.actions.GroupActionWaitStationRouting;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
+import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
+import com.bergerkiller.bukkit.tc.pathfinding.PathPredictEvent;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import org.bukkit.block.BlockFace;
@@ -113,6 +118,46 @@ public class SignActionStation extends SignAction {
                 station.waitTrain(station.getDelay());
             }
             station.launchTo(station.getInstruction());
+        }
+    }
+
+    @Override
+    public void predictPathFinding(SignActionEvent info, PathPredictEvent prediction) {
+        // Parse the components of the station config we actually care about (performance)
+        Station.StationConfig stationConfig = new Station.StationConfig();
+        stationConfig.setAutoModeUsingSign(info);
+        if (!stationConfig.isAutoRouting()) {
+            return;
+        }
+
+        stationConfig.setInstructionUsingSign(info);
+        if (stationConfig.getInstruction() != BlockFace.SELF) {
+            return;
+        }
+
+        PathNode node = PathNode.getOrCreate(info.getRails());
+        if (node == null) {
+            return;
+        }
+
+        node.addSwitcher();
+        if (info.getTrainCarts().getPathProvider().isProcessing()) {
+            // Train should wait until this is done. Polls every tick.
+            prediction.setSpeedLimit(0.0);
+            return;
+        }
+
+        // Continue with path finding if a valid destination is specified
+        // If the current node denotes the destination - don't switch!
+        String destination = prediction.group().getProperties().getDestination();
+        if (!LogicUtil.nullOrEmpty(destination) && !node.containsName(destination)) {
+            PathConnection conn = node.findConnection(destination);
+            if (conn != null) {
+                RailJunction junction = info.findJunction(conn.junctionName);
+                if (junction != null) {
+                    prediction.setSwitchedJunction(junction);
+                }
+            }
         }
     }
 

@@ -564,6 +564,28 @@ public class Station {
         }
 
         /**
+         * Checks the fourth line of the sign and sets automatic launching modes using this
+         * information, as well as an optional launch speed (if set).
+         *
+         * @param info Sign information to use
+         */
+        public void setAutoModeUsingSign(SignActionEvent info) {
+            // Parse the (next) launch direction and launch force (speed) on the fourth line
+            for (String part : info.getLine(3).split(" ")) {
+                if (part.equalsIgnoreCase("route")) {
+                    setAutoRouting(true);
+                } else {
+                    Direction direction = Direction.parse(part);
+                    if (direction != Direction.NONE) {
+                        setNextDirection(direction);
+                    } else {
+                        setLaunchSpeed(parseLaunchForce(part, info));
+                    }
+                }
+            }
+        }
+
+        /**
          * Checks the redstone levels on different sides of the sign to decide
          * the station instruction to perform
          * 
@@ -681,18 +703,7 @@ public class Station {
             config.setDelay(ParseUtil.parseTime(info.getLine(2)));
 
             // Parse the (next) launch direction and launch force (speed) on the fourth line
-            for (String part : info.getLine(3).split(" ")) {
-                if (part.equalsIgnoreCase("route")) {
-                    config.setAutoRouting(true);
-                } else {
-                    Direction direction = Direction.parse(part);
-                    if (direction != Direction.NONE) {
-                        config.setNextDirection(direction);
-                    } else {
-                        config.setLaunchSpeed(parseLaunchForce(part, info));
-                    }
-                }
-            }
+            config.setAutoModeUsingSign(info);
 
             // Use redstone around the sign to decide an instruction
             config.setInstructionUsingSign(info);
