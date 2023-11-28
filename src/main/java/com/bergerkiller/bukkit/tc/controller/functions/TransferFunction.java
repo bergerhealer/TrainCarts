@@ -64,6 +64,18 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
         return false;
     }
 
+    /**
+     * Gets whether the output of this transfer function is a constant value for the same
+     * inputs. If so, {@link #map(double)} can be called and is guaranteed to return the
+     * same output value every time for the same inputs.
+     *
+     * @return True if the output of this transfer function is always the same for the
+     *         same inputs.
+     */
+    default boolean isPure() {
+        return false;
+    }
+
     @Override
     default double applyAsDouble(double v) {
         return map(v);

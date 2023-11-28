@@ -58,6 +58,11 @@ class TransferFunctionIdentity implements TransferFunction {
     }
 
     @Override
+    public boolean isPure() {
+        return true;
+    }
+
+    @Override
     public TransferFunction clone() {
         return INSTANCE;
     }

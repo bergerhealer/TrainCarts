@@ -120,6 +120,20 @@ public class TransferFunctionList implements TransferFunction, Cloneable {
     }
 
     @Override
+    public boolean isPure() {
+        for (int i = items.size() - 1; i >= 0; --i) {
+            Item item = items.get(i);
+            if (!item.getFunction().isPure()) {
+                return false;
+            } else if (item.mode() == FunctionMode.ASSIGN) {
+                break; // Assigned. None of the other items are used.
+            }
+        }
+
+        return true;
+    }
+
+    @Override
     public boolean isBooleanOutput() {
         return !items.isEmpty() && items.get(items.size() - 1).getFunction().isBooleanOutput();
     }

@@ -82,6 +82,13 @@ public class TransferFunctionConditional implements TransferFunction {
         return (result ? trueOutput : falseOutput).getFunction().map(input);
     }
 
+    @Override
+    public boolean isPure() {
+        return leftInput.getFunction().isPure()
+                && falseOutput.getFunction().isPure()
+                && trueOutput.getFunction().isPure();
+    }
+
     public void setLeftInput(TransferFunction input) {
         this.leftInput.setFunction(input);
     }

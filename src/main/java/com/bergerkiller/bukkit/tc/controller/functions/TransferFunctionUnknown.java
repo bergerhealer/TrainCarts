@@ -62,6 +62,11 @@ class TransferFunctionUnknown implements TransferFunction {
     }
 
     @Override
+    public boolean isPure() {
+        return true;
+    }
+
+    @Override
     public void drawPreview(MapWidgetTransferFunctionItem widget, MapCanvas view) {
         view.draw(MapFont.MINECRAFT, 2, 2, MapColorPalette.COLOR_RED, "Unknown [" + typeId + "]");
     }

@@ -69,6 +69,11 @@ public final class TransferFunctionConstant implements TransferFunction {
     }
 
     @Override
+    public boolean isPure() {
+        return true;
+    }
+
+    @Override
     public TransferFunction clone() {
         return new TransferFunctionConstant(output);
     }

@@ -377,6 +377,11 @@ public class TransferFunctionCurve implements TransferFunction, Cloneable {
         return v[len+index-1] * (1.0 - theta) + v[len+index] * theta;
     }
 
+    @Override
+    public boolean isPure() {
+        return true;
+    }
+
     /**
      * Sends all input-output mapping entries to the consumer specified
      *
