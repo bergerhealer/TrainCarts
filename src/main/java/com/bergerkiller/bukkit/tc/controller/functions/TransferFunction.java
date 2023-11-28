@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 
+import java.util.function.Consumer;
 import java.util.function.DoubleUnaryOperator;
 
 /**
@@ -126,6 +127,32 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
             return getFunction() == TransferFunction.identity();
         }
 
+        /**
+         * Returns a new Holder that calls the change listener specified whenever
+         * {@link #setFunction(TransferFunction)} is called.
+         *
+         * @param onChanged Callback for after the function is changed
+         * @return new Holder that calls the callback when the function is changed
+         */
+        public Holder<T> withChangeListener(Consumer<T> onChanged) {
+            final Holder<T> orig = this;
+            return new Holder<T>(function) {
+                @Override
+                public void setFunction(T function) {
+                    super.setFunction(function);
+                    orig.setFunction(function);
+                    onChanged.accept(function);
+                }
+            };
+        }
+
+        /**
+         * Wraps a TransferFunction as a Holder
+         *
+         * @param function Function
+         * @return Holder
+         * @param <T> Transfer Function type
+         */
         public static <T extends TransferFunction> Holder<T> of(T function) {
             return new Holder<T>(function);
         }

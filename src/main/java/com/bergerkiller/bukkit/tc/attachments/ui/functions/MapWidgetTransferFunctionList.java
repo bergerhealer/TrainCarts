@@ -9,7 +9,6 @@ import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionList;
  * Shows a {@link TransferFunctionList} and interactive controls to make changes to it
  */
 public class MapWidgetTransferFunctionList extends MapWidgetScroller {
-    private static final int ROW_HEIGHT = 14;
     private final MapWidgetTransferFunctionDialog dialog;
     private final TransferFunctionList list;
     private int onOpenSelectedIndex = -1;
@@ -26,8 +25,8 @@ public class MapWidgetTransferFunctionList extends MapWidgetScroller {
 
     public int getSelectedItemIndex() {
         MapWidget w = display.getFocusedWidget();
-        if (w instanceof MapWidgetTransferFunctionItem) {
-            return list.indexOf(((MapWidgetTransferFunctionItem) w).getItem());
+        if (w instanceof MapWidgetTransferFunctionListItem) {
+            return list.indexOf(((MapWidgetTransferFunctionListItem) w).getItem());
         } else {
             return -1;
         }
@@ -42,7 +41,7 @@ public class MapWidgetTransferFunctionList extends MapWidgetScroller {
     public void onAttached() {
         int index = 0;
         for (TransferFunctionList.Item listItem : list.getItems()) {
-            MapWidgetTransferFunctionItem item = createItem(listItem);
+            MapWidgetTransferFunctionListItem item = createItem(listItem);
             calcBounds(item, index++);
             addContainerWidget(item);
         }
@@ -56,8 +55,8 @@ public class MapWidgetTransferFunctionList extends MapWidgetScroller {
         super.onAttached();
     }
 
-    private MapWidgetTransferFunctionItem createItem(TransferFunctionList.Item listItem) {
-        MapWidgetTransferFunctionItem item = new MapWidgetTransferFunctionItem(dialog, listItem) {
+    private MapWidgetTransferFunctionListItem createItem(TransferFunctionList.Item listItem) {
+        final MapWidgetTransferFunctionListItem item = new MapWidgetTransferFunctionListItem(dialog.getHost(), listItem) {
             @Override
             public void onMoveUp() {
                 int currIndex = list.indexOf(getItem());
@@ -95,15 +94,15 @@ public class MapWidgetTransferFunctionList extends MapWidgetScroller {
                 onSelectedItemChanged();
             }
         };
-        item.addButton(MapWidgetTransferFunctionItem.ButtonIcon.CONFIGURE, MapWidgetTransferFunctionItem::configure)
-            .addButton(MapWidgetTransferFunctionItem.ButtonIcon.MOVE, MapWidgetTransferFunctionItem::startMove)
-            .addButton(MapWidgetTransferFunctionItem.ButtonIcon.ADD, i -> addNewItem(list.indexOf(i.getItem())))
-            .addButton(MapWidgetTransferFunctionItem.ButtonIcon.REMOVE, i -> {
-                int itemIndex = list.indexOf(i.getItem());
+        item.addButton(MapWidgetTransferFunctionItem.ButtonIcon.CONFIGURE, item::configure)
+            .addButton(MapWidgetTransferFunctionItem.ButtonIcon.MOVE,  item::startMove)
+            .addButton(MapWidgetTransferFunctionItem.ButtonIcon.ADD, () -> addNewItem(list.indexOf(item.getItem())))
+            .addButton(MapWidgetTransferFunctionItem.ButtonIcon.REMOVE, () -> {
+                int itemIndex = list.indexOf(item.getItem());
                 if (itemIndex != -1) {
                     // Remove the item at this index
                     list.remove(itemIndex);
-                    MapWidgetTransferFunctionList.this.getContainer().removeWidget(i);
+                    MapWidgetTransferFunctionList.this.getContainer().removeWidget(item);
                     addInitialItemPlaceholder();
                     recalcBounds();
                     dialog.markChanged();
@@ -116,7 +115,7 @@ public class MapWidgetTransferFunctionList extends MapWidgetScroller {
                     if (itemIndex >= 0) {
                         TransferFunctionList.Item newSelListItem = list.get(itemIndex);
                         for (MapWidget w : getContainer().getWidgets()) {
-                            if (((MapWidgetTransferFunctionItem) w).getItem() == newSelListItem) {
+                            if (((MapWidgetTransferFunctionListItem) w).getItem() == newSelListItem) {
                                 w.focus();
                                 found = true;
                                 break;
@@ -146,7 +145,7 @@ public class MapWidgetTransferFunctionList extends MapWidgetScroller {
             TransferFunctionList.Item newListItem = new TransferFunctionList.Item(
                     TransferFunctionList.FunctionMode.ASSIGN, newFunction);
             list.add(newItemIndex, newListItem);
-            MapWidgetTransferFunctionItem newItem = addContainerWidget(createItem(newListItem));
+            MapWidgetTransferFunctionListItem newItem = addContainerWidget(createItem(newListItem));
             recalcBounds();
             newItem.focus();
             dialog.markChanged();
@@ -170,7 +169,7 @@ public class MapWidgetTransferFunctionList extends MapWidgetScroller {
     private void recalcBounds() {
         if (!list.isEmpty()) {
             for (MapWidget w : this.getContainer().getWidgets()) {
-                MapWidgetTransferFunctionItem item = (MapWidgetTransferFunctionItem) w;
+                MapWidgetTransferFunctionListItem item = (MapWidgetTransferFunctionListItem) w;
                 calcBounds(w, list.indexOf(item.getItem()));
             }
         }
@@ -181,6 +180,7 @@ public class MapWidgetTransferFunctionList extends MapWidgetScroller {
         if (index == -1) {
             throw new IllegalArgumentException("Index is -1");
         }
-        widget.setBounds(0, ROW_HEIGHT * index, getWidth(), ROW_HEIGHT + 1);
+        widget.setBounds(0, (MapWidgetTransferFunctionItem.HEIGHT - 1) * index,
+                         getWidth(), MapWidgetTransferFunctionItem.HEIGHT);
     }
 }
