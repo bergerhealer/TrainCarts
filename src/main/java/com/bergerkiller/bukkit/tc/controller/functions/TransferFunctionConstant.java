@@ -4,7 +4,6 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
-import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 
@@ -80,8 +79,8 @@ public final class TransferFunctionConstant implements TransferFunction {
 
     @Override
     public void drawPreview(MapWidgetTransferFunctionItem widget, MapCanvas view) {
-        view.draw(MapFont.MINECRAFT, 0, 3, MapColorPalette.COLOR_GREEN,
-                output + " [constant]");
+        view.draw(MapFont.MINECRAFT, 0, 3, widget.defaultColor(MapColorPalette.COLOR_GREEN),
+                Double.toString(output));
     }
 
     @Override

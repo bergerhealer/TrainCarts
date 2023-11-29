@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.controller.functions;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
+import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
@@ -18,6 +19,10 @@ import java.util.function.DoubleUnaryOperator;
  * @see #map(double)
  */
 public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
+    /**
+     * The color code used to show a function preview when it is the default ('unset')
+     */
+    byte DEFAULT_FUNCTION_COLOR = MapColorPalette.getColor(100, 100, 100);
 
     /**
      * Gets the serializer that is responsible for loading/saving this transfer function.
@@ -150,6 +155,11 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
         void markChanged();
 
         /**
+         * Closes the dialog, finishing the editing of the function
+         */
+        void finish();
+
+        /**
          * Same as {@link #getWidget()}.addWidget()
          *
          * @param widget Widget to add
@@ -187,6 +197,7 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
      */
     class Holder<T extends TransferFunction> {
         protected T function;
+        protected boolean isDefault = false;
 
         protected Holder(T function) {
             this.function = function;
@@ -196,12 +207,28 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
             return function;
         }
 
-        public void setFunction(T function) {
+        public final void setFunction(T function) {
+            setFunction(function, false);
+        }
+
+        public void setFunction(T function, boolean isDefault) {
             this.function = function;
+            this.isDefault = isDefault;
         }
 
         public boolean isIdentity() {
             return getFunction() == TransferFunction.identity();
+        }
+
+        /**
+         * Gets whether this function is a default function. A default function is not
+         * written to configuration, and is inferred from there being no (null) function
+         * stored in the configuration.
+         *
+         * @return True if this function is the default function
+         */
+        public boolean isDefault() {
+            return isDefault;
         }
 
         /**
@@ -215,9 +242,9 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
             final Holder<T> orig = this;
             return new Holder<T>(function) {
                 @Override
-                public void setFunction(T function) {
-                    super.setFunction(function);
-                    orig.setFunction(function);
+                public void setFunction(T function, boolean isDefault) {
+                    super.setFunction(function, isDefault);
+                    orig.setFunction(function, isDefault);
                     onChanged.accept(function);
                 }
             };

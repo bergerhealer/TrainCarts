@@ -25,6 +25,7 @@ public class TransferFunctionRegistry {
     public TransferFunctionRegistry() {
         // Register all the default traincarts types
         register(TransferFunctionConstant.SERIALIZER);
+        register(TransferFunctionBoolean.SERIALIZER);
         register(TransferFunctionInputSpeed.SERIALIZER);
         register(TransferFunctionInputProperty.SERIALIZER);
         register(TransferFunctionCurve.SERIALIZER);

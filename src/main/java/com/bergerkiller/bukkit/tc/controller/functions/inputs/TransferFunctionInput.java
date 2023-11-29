@@ -63,7 +63,7 @@ public abstract class TransferFunctionInput implements TransferFunction {
         TransferFunctionInput copy = cloneInput();
         if (!copy.source.equals(source)) {
             copy.source = source;
-            copy.source.addRecipient(this);
+            copy.source.addRecipient(copy);
         }
         return copy;
     }

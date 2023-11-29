@@ -14,6 +14,8 @@ import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Displays the preview of a function, above which optional buttons can be drawn (if focused)
@@ -26,16 +28,19 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
     protected static final byte COLOR_BG_MOVING = MapColorPalette.getColor(247, 233, 163);
 
     protected final List<Button> buttons = new ArrayList<>();
-    private final TransferFunctionHost host;
-    private final TransferFunction.Holder<TransferFunction> function;
+    protected final TransferFunctionHost host;
+    protected final TransferFunction.Holder<TransferFunction> function;
     protected boolean moving;
     protected int selButtonIdx = 0; // -1 = function mode
 
     public MapWidgetTransferFunctionItem(TransferFunctionHost host, TransferFunction.Holder<TransferFunction> function) {
         this.host = host;
-        this.function = function;
+        this.function = function.withChangeListener(this::onChangedInternal);
         this.setFocusable(true);
         this.setSize(128 - 14 - 10 /* default of a List */, HEIGHT);
+    }
+
+    protected void onChangedInternal(TransferFunction function) {
     }
 
     public void onMoveUp() {
@@ -48,8 +53,61 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
         return function.getFunction();
     }
 
+    /**
+     * Gets whether the current function displayed is the default function for this field.
+     * This property can change the appearance when drawing the summary.
+     *
+     * @return True if the function is the default
+     */
+    public boolean isDefault() {
+        return function.isDefault();
+    }
+
+    /**
+     * If {@link #isDefault()} is true, returns a default color to use.
+     * Otherwise, returns the input color.
+     *
+     * @param color Input color
+     * @return Color, or default color if the function is the default
+     */
+    public byte defaultColor(byte color) {
+        return isDefault() ? TransferFunction.DEFAULT_FUNCTION_COLOR : color;
+    }
+
     public MapWidgetTransferFunctionItem addConfigureButton() {
         return addButton(ButtonIcon.CONFIGURE, this::configure);
+    }
+
+    /**
+     * Updates the buttons of this widget. This is done in a way to preserve the
+     * currently selected button. Buttons should be added in the callback.
+     *
+     * @param addActions Action that populates new buttons
+     */
+    public void updateButtons(Consumer<MapWidgetTransferFunctionItem> addActions) {
+        ButtonIcon prevSelectedIcon = null;
+        if (selButtonIdx >= 0 && selButtonIdx < buttons.size()) {
+            prevSelectedIcon = buttons.get(selButtonIdx).icon;
+        }
+
+        buttons.clear();
+        addActions.accept(this);
+        invalidate();
+
+        // Try to select the exact same button icon, again
+        if (prevSelectedIcon != null) {
+            for (int i = 0; i < buttons.size(); i++) {
+                if (buttons.get(i).icon == prevSelectedIcon) {
+                    selButtonIdx = i;
+                    return; // Found!
+                }
+            }
+        }
+
+        // If this fails, simply select the same button index again (stay within range)
+        if (selButtonIdx >= buttons.size()) {
+            selButtonIdx = buttons.size() - 1;
+        }
     }
 
     public MapWidgetTransferFunctionItem addButton(ButtonIcon icon, Runnable action) {
@@ -72,7 +130,7 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
             this.addWidget(inlineDialog);
             getFunction().openDialog(inlineDialog);
             if (inlineDialog.getWidgetCount() == 0) {
-                inlineDialog.close();
+                inlineDialog.finish();
                 display.playSound(SoundEffect.EXTINGUISH);
             } else {
                 // Hides UI and focuses widgets that are children of the inline dialog
@@ -212,7 +270,8 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
             setFunction(function.getFunction());
         }
 
-        public void close() {
+        @Override
+        public void finish() {
             this.removeWidget();
             MapWidgetTransferFunctionItem.this.focus();
         }
@@ -220,7 +279,7 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
         @Override
         public void onKeyPressed(MapKeyEvent event) {
             if (event.getKey() == MapPlayerInput.Key.BACK) {
-                close();
+                finish();
             } else {
                 super.onKeyPressed(event);
             }
