@@ -90,6 +90,7 @@ public class Localization extends LocalizationEnum {
     public static final Localization SPAWN_DISALLOWED_TYPE = new Localization("spawn.type.notallowed", ChatColor.RED + "You do not have permission to create minecarts of type %0%");
     public static final Localization SPAWN_DISALLOWED_INVENTORY = new Localization("spawn.inventoryitems.notallowed", ChatColor.RED + "You do not have permission to create minecarts with pre-existing inventory items");
     public static final Localization SPAWN_FORBIDDEN_CONTENTS = new Localization("spawn.forbiddencontents", ChatColor.RED + "The train configuration cannot be spawned because the train contains things you have no permission to use or spawn");
+    public static final Localization SPAWN_MAX_PER_WORLD = new Localization("spawn.maxperworld", ChatColor.RED + "Cannot spawn because the maximum number of Minecarts on this world has been reached!");
 
     public static final Localization SELECT_DESTINATION = new Localization("select.destination", ChatColor.YELLOW + "You have selected " + ChatColor.WHITE + "%0%" + ChatColor.YELLOW + " as your destination!");
     public static final Localization TICKET_EXPIRED = new Localization("ticket.expired", ChatColor.RED + "Your ticket for %0% is expired");

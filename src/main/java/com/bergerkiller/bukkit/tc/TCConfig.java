@@ -115,6 +115,8 @@ public class TCConfig {
     public static boolean allowSchematicAttachment = true;
     public static int maxCommandSelectorValues = 128;
     public static int maxConcurrentEffectLoops = 20;
+    public static double spawnSignCooldown = -1.0;
+    public static int maxCartsPerWorld = -1;
     public static String currencyFormat;
     public static Set<Material> allowedBlockBreakTypes = new HashSet<>();
     public static ConfiguredWorldSet enabledWorlds = new ConfiguredWorldSet();
@@ -664,6 +666,16 @@ public class TCConfig {
             }
             maxConcurrentEffectLoops = max;
         }
+
+        config.setHeader("spawnSignCooldown", "\nCooldown in seconds between spawn sign spawns");
+        config.addHeader("spawnSignCooldown", "Spawns are skipped/cancelled when spawning faster than this");
+        config.addHeader("spawnSignCooldown", "A value of -1 disables this cooldown (default)");
+        spawnSignCooldown = config.get("spawnSignCooldown", -1.0);
+
+        config.setHeader("maxCartsPerWorld", "\nMaximum number of TrainCarts minecarts allowed per world");
+        config.addHeader("maxCartsPerWorld", "If there are more than this number, no more minecarts can be placed/spawned");
+        config.addHeader("maxCartsPerWorld", "A value of -1 disables this limit (default)");
+        maxCartsPerWorld = config.get("maxCartsPerWorld", -1);
     }
 
     public static void putParsers(String key, ItemParser[] parsersArr) {

@@ -583,6 +583,11 @@ public class TCListener implements Listener {
         ////    return true;
         //}
 
+        if (MinecartGroupStore.isPerWorldSpawnLimitReached(at, 1)) {
+            Localization.SPAWN_MAX_PER_WORLD.message(player);
+            return false;
+        }
+
         MinecartMemberStore.spawnBy(plugin, at, player);
         return false;
 

@@ -1,11 +1,13 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
@@ -18,15 +20,19 @@ import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 import org.bukkit.ChatColor;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class SignActionSpawn extends SignAction {
-    
+    private static Map<OfflineBlock, Long> cooldownSpawnTimesBySign = new HashMap<>();
+
     @Override
     public boolean match(SignActionEvent info) {
         return SpawnSign.isValid(info);
@@ -108,7 +114,30 @@ public class SignActionSpawn extends SignAction {
 
             // Make sure it does not exceed spawn limits
             if (spawnable.isExceedingSpawnLimit()) {
+                spawnSign.showFailParticles(Color.RED);
                 return null;
+            }
+
+            // Make sure it does not exceed per-world spawn limits
+            if (MinecartGroupStore.isPerWorldSpawnLimitReached(
+                    spawnSign.getLocation().getLoadedBlock(),
+                    spawnable.getMembers().size())
+            ) {
+                spawnSign.showFailParticles(Color.ORANGE);
+                return null;
+            }
+
+            // Make sure it does not exceed a spawn sign cooldown
+            if (TCConfig.spawnSignCooldown >= 0.0) {
+                Long lastSpawnTime = cooldownSpawnTimesBySign.get(spawnSign.getLocation());
+                long cooldown = (long) (TCConfig.spawnSignCooldown * 1000.0);
+                long now = System.currentTimeMillis();
+                if (lastSpawnTime != null && ((now - lastSpawnTime) < cooldown)) {
+                    spawnSign.showFailParticles(Color.YELLOW);
+                    return null;
+                }
+
+                cooldownSpawnTimesBySign.put(spawnSign.getLocation(), now);
             }
 
             // Find the movement direction vector on the rails
@@ -229,6 +258,7 @@ public class SignActionSpawn extends SignAction {
 
             // If still no spawn locations could be found, fail
             if (spawnLocations == null) {
+                spawnSign.showFailParticles(Color.BLUE);
                 return null; // Failed
             }
 
@@ -237,6 +267,7 @@ public class SignActionSpawn extends SignAction {
 
             // Check that the area isn't occupied by another train
             if (spawnLocations.isOccupied()) {
+                spawnSign.showFailParticles(Color.PURPLE);
                 return null; // Occupied
             }
 

@@ -212,7 +212,9 @@ public class SpawnableGroup implements TrainCarts.Provider {
     /**
      * Checks any active saved train spawn limits to see if, currently, the number of already spawned
      * trains is at the configured limit. Returns true if this spawnable group should not be spawned
-     * because it would exceed a set spawn limit.
+     * because it would exceed a set spawn limit.<br>
+     * <br>
+     * <b>Does not check the per-world minecart limit</b>
      *
      * @return True if spawning this group would exceed saved train spawn limits
      */

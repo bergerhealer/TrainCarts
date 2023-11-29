@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 
 import org.bukkit.Location;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 
@@ -22,6 +23,7 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
     private static final long serialVersionUID = 1;
     protected static ImplicitlySharedSet<MinecartGroup> groups = new ImplicitlySharedSet<MinecartGroup>();
     protected static boolean hasPhysicsChanges = false;
+    private static long lastMaxPerWorldLogTimestamp = 0;
 
     /**
      * Called onPhysics for all Minecart entities who didn't get ticked in the previous run.
@@ -136,6 +138,56 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         groups.add(group);
         GroupCreateEvent.call(group);
         group.onGroupCreated();
+    }
+
+    /**
+     * If a per-world spawn limit is configured, checks how many TrainCarts minecarts are spawned
+     * on the world, and whether the number of carts specified would exceed that limit.
+     *
+     * @param at Where the cart is spawned. Location is logged if needed.
+     * @param numberOfCartsToSpawn Number of carts to spawn
+     * @return True if the limit was reached and spawning should not be permitted, False otherwise
+     */
+    public static boolean isPerWorldSpawnLimitReached(Block at, int numberOfCartsToSpawn) {
+        return isPerWorldSpawnLimitReached(at.getLocation(), numberOfCartsToSpawn);
+    }
+
+    /**
+     * If a per-world spawn limit is configured, checks how many TrainCarts minecarts are spawned
+     * on the world, and whether the number of carts specified would exceed that limit.
+     *
+     * @param at Where the cart is spawned. Location is logged if needed.
+     * @param numberOfCartsToSpawn Number of carts to spawn
+     * @return True if the limit was reached and spawning should not be permitted, False otherwise
+     */
+    public static boolean isPerWorldSpawnLimitReached(Location at, int numberOfCartsToSpawn) {
+        if (TCConfig.maxCartsPerWorld < 0) {
+            return false;
+        }
+
+        int countSpawned = 0;
+        try (ImplicitlySharedSet<MinecartGroup> groups_copy = groups.clone()) {
+            for (MinecartGroup group : groups_copy) {
+                if (!group.isUnloaded() && group.getWorld() == at.getWorld()) {
+                    countSpawned += group.size();
+                }
+            }
+        }
+        if ((countSpawned + numberOfCartsToSpawn) <= TCConfig.maxCartsPerWorld) {
+            return false;
+        }
+
+        // Exceeds the limit. Write this to the server log with a 30-second cooldown to avoid log spam
+        long now = System.currentTimeMillis();
+        if (lastMaxPerWorldLogTimestamp == 0 || ((now - lastMaxPerWorldLogTimestamp) > 30000)) {
+            TrainCarts.plugin.getLogger().warning("Could not spawn " + numberOfCartsToSpawn + " carts in world '" +
+                    at.getWorld().getName() + "' at x=" + at.getBlockX() + " y=" + at.getBlockY() + " z=" + at.getBlockZ() +
+                    " because it exceeds limit " +
+                    "(" + (countSpawned + numberOfCartsToSpawn) + "/" + TCConfig.maxCartsPerWorld + ")");
+            lastMaxPerWorldLogTimestamp = now;
+        }
+
+        return true;
     }
 
     public static MinecartGroup spawn(SpawnableGroup spawnableGroup, List<Location> spawnLocations) {

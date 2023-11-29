@@ -3,9 +3,14 @@ package com.bergerkiller.bukkit.tc.signactions.spawner;
 import java.util.Locale;
 import java.util.UUID;
 
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.PlayerUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
@@ -26,6 +31,9 @@ import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import org.bukkit.block.Sign;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 
 public class SpawnSign {
     private final TrainCarts plugin;
@@ -338,6 +346,23 @@ public class SpawnSign {
                 // And now assign the chunks
                 this.chunks = new_chunks;
                 this.num_chunks_loaded = this.chunks.size();
+            }
+        }
+    }
+
+    /**
+     * Shows spawn failure particles at the spawn sign location, of a certain color.
+     * Also sounds a 'hiss'.
+     *
+     * @param color Color of the particles
+     */
+    public void showFailParticles(Color color) {
+        Vector pos = MathUtil.addToVector(location.getPosition().toVector(), 0.5, 0.5, 0.5);
+        Location loc = pos.toLocation(getWorld());
+        for (Entity e : WorldUtil.getNearbyEntities(loc, 64.0, 64.0, 64.0)) {
+            if (e instanceof Player) {
+                PlayerUtil.spawnDustParticles((Player) e, pos, color);
+                PlayerUtil.playSound((Player) e, loc, SoundEffect.EXTINGUISH, 0.2f, 1.0f);
             }
         }
     }
