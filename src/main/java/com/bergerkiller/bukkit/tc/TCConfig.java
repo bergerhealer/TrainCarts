@@ -685,10 +685,10 @@ public class TCConfig {
             cartLimits.setHeader("maxCartsPerWorld", "Maximum number of TrainCarts minecarts allowed per world");
             cartLimits.addHeader("maxCartsPerWorld", "If there are more than this number, no more minecarts can be placed/spawned");
             cartLimits.addHeader("maxCartsPerWorld", "A value of -1 disables this limit (default)");
-            maxCartsPerWorld = config.get("maxCartsPerWorld", -1);
+            maxCartsPerWorld = cartLimits.get("maxCartsPerWorld", -1);
 
             config.setHeader("countUnloaded", "\nWhether to include unloaded trains/carts in the maxCartsPerWorld limit");
-            maxCartsPerWorldCountUnloaded = config.get("countUnloaded", false);
+            maxCartsPerWorldCountUnloaded = cartLimits.get("countUnloaded", false);
         }
     }
 
