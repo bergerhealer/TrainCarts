@@ -687,7 +687,7 @@ public class TCConfig {
             cartLimits.addHeader("maxCartsPerWorld", "A value of -1 disables this limit (default)");
             maxCartsPerWorld = cartLimits.get("maxCartsPerWorld", -1);
 
-            config.setHeader("countUnloaded", "\nWhether to include unloaded trains/carts in the maxCartsPerWorld limit");
+            cartLimits.setHeader("countUnloaded", "\nWhether to include unloaded trains/carts in the maxCartsPerWorld limit");
             maxCartsPerWorldCountUnloaded = cartLimits.get("countUnloaded", false);
         }
     }
