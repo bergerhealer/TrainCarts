@@ -62,9 +62,11 @@ import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 
 public class SignController implements LibraryComponent, Listener {
+    private static final int MAX_REDSTONE_UPDATES_PER_TICK = 100000; // Purely to avoid a server crash
     private final TrainCarts plugin;
     private final SignControllerWorld NONE = new SignControllerWorld(this); // Dummy
     private final IdentityHashMap<World, SignControllerWorld> byWorld = new IdentityHashMap<>();
+    private int pendingRedstoneUpdatesThisTick = 0;
     private final FastTrackedUpdateSet<Entry> pendingRedstoneUpdates = new FastTrackedUpdateSet<Entry>();
     private final FastTrackedUpdateSet<Entry> ignoreRedstoneUpdates = new FastTrackedUpdateSet<Entry>();
     private final boolean blockPhysicsFireForSigns;
@@ -563,6 +565,16 @@ public class SignController implements LibraryComponent, Listener {
      * event.
      */
     private void updateRedstoneNow(Entry entry) {
+        // If there are too many updates this tick, skip the updates entirely and log what
+        // blocks are involved.
+        pendingRedstoneUpdatesThisTick++;
+        if (pendingRedstoneUpdatesThisTick >= MAX_REDSTONE_UPDATES_PER_TICK) {
+            Block b = entry.sign.getBlock();
+            plugin.getLogger().warning("Too many Redstone updates! Skipped sign at world=" + b.getWorld().getName() +
+                    " x=" + b.getX() + " y=" + b.getY() + " z=" + b.getZ());
+            return;
+        }
+
         // Lever-triggered changes are ignored for one tick
         if (entry.ignoreRedstoneUpdateTracker.isSet()) {
             return;
@@ -1070,6 +1082,7 @@ public class SignController implements LibraryComponent, Listener {
 
         @Override
         public void run() {
+            pendingRedstoneUpdatesThisTick = 0;
             pendingRedstoneUpdates.forEachAndClear(SignController.this::updateRedstoneNow);
             ignoreRedstoneUpdates.clear();
             cleanupUnloaded();
