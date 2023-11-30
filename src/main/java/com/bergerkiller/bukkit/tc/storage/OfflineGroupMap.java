@@ -41,8 +41,16 @@ public class OfflineGroupMap implements Iterable<OfflineGroup> {
         return this.groups.iterator();
     }
 
-    public int size() {
+    public int totalGroupCount() {
         return this.groups.size();
+    }
+
+    public int totalMemberCount() {
+        int count = 0;
+        for (OfflineGroup group : groups) {
+            count += group.members.length;
+        }
+        return count;
     }
 
     public boolean isEmpty() {

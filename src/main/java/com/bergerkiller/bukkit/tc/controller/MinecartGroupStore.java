@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.events.GroupLinkEvent;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 
+import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
@@ -172,6 +173,9 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
                     countSpawned += group.size();
                 }
             }
+        }
+        if (TCConfig.maxCartsPerWorldCountUnloaded) {
+            countSpawned += OfflineGroupManager.getStoredMemberCount(at.getWorld());
         }
         if ((countSpawned + numberOfCartsToSpawn) <= TCConfig.maxCartsPerWorld) {
             return false;

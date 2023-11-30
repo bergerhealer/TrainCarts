@@ -472,7 +472,7 @@ public class OfflineGroupManager {
                     for (Map.Entry<OfflineWorld, OfflineGroupMapImpl> entry : managers.entrySet()) {
                         StreamUtil.writeUUID(stream, entry.getKey().getUniqueId());
 
-                        stream.writeInt(entry.getValue().size());
+                        stream.writeInt(entry.getValue().totalGroupCount());
                         for (OfflineGroup wg : entry.getValue()) wg.writeTo(stream);
                     }
                 }
@@ -511,6 +511,13 @@ public class OfflineGroupManager {
         return containedMinecarts.contains(uniqueId);
     }
 
+    public static int getStoredMemberCount(World world) {
+        synchronized (managers) {
+            OfflineGroupMapImpl map = managers.get(world);
+            return (map == null) ? 0 : map.totalMemberCount();
+        }
+    }
+
     public static int getStoredCount() {
         return containedTrains.size();
     }
@@ -520,7 +527,7 @@ public class OfflineGroupManager {
         synchronized (managers) {
             for (OfflineGroupMapImpl map : managers.values()) {
                 if (map.canRestoreGroups()) {
-                    count += map.size();
+                    count += map.totalGroupCount();
                 }
             }
         }
@@ -614,7 +621,7 @@ public class OfflineGroupManager {
             // While refreshing, ignore incoming Chunk Load events
             // We do not want the group map to change concurrently!
             isRefreshingGroups = true;
-            List<OfflineGroup> groupsBuffer = new ArrayList<>(this.size());
+            List<OfflineGroup> groupsBuffer = new ArrayList<>(this.totalGroupCount());
             try {
                 // Keep refreshing until no new chunks are being loaded
                 // Why? Keepchunksloaded trains can cause other trains to load

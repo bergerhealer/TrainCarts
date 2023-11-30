@@ -117,6 +117,7 @@ public class TCConfig {
     public static int maxConcurrentEffectLoops = 20;
     public static double spawnSignCooldown = -1.0;
     public static int maxCartsPerWorld = -1;
+    public static boolean maxCartsPerWorldCountUnloaded = false;
     public static String currencyFormat;
     public static Set<Material> allowedBlockBreakTypes = new HashSet<>();
     public static ConfiguredWorldSet enabledWorlds = new ConfiguredWorldSet();
@@ -672,10 +673,23 @@ public class TCConfig {
         config.addHeader("spawnSignCooldown", "A value of -1 disables this cooldown (default)");
         spawnSignCooldown = config.get("spawnSignCooldown", -1.0);
 
-        config.setHeader("maxCartsPerWorld", "\nMaximum number of TrainCarts minecarts allowed per world");
-        config.addHeader("maxCartsPerWorld", "If there are more than this number, no more minecarts can be placed/spawned");
-        config.addHeader("maxCartsPerWorld", "A value of -1 disables this limit (default)");
-        maxCartsPerWorld = config.get("maxCartsPerWorld", -1);
+        {
+            ConfigurationNode cartLimits = config.getNode("cartLimits");
+            cartLimits.setHeader("\nLimits of the amount of carts on the server");
+
+            if (config.contains("maxCartsPerWorld")) {
+                cartLimits.set("maxCartsPerWorld", config.get("maxCartsPerWorld"));
+                config.remove("maxCartsPerWorld");
+            }
+
+            cartLimits.setHeader("maxCartsPerWorld", "Maximum number of TrainCarts minecarts allowed per world");
+            cartLimits.addHeader("maxCartsPerWorld", "If there are more than this number, no more minecarts can be placed/spawned");
+            cartLimits.addHeader("maxCartsPerWorld", "A value of -1 disables this limit (default)");
+            maxCartsPerWorld = config.get("maxCartsPerWorld", -1);
+
+            config.setHeader("countUnloaded", "\nWhether to include unloaded trains/carts in the maxCartsPerWorld limit");
+            maxCartsPerWorldCountUnloaded = config.get("countUnloaded", false);
+        }
     }
 
     public static void putParsers(String key, ItemParser[] parsersArr) {
