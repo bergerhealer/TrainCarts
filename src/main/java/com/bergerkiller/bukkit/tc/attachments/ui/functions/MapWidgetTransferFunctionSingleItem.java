@@ -3,8 +3,6 @@ package com.bergerkiller.bukkit.tc.attachments.ui.functions;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 
-import java.util.function.Supplier;
-
 /**
  * Configures a transfer function as a single item, that is expected to be stored as a single
  * entry in the configuration. Includes a mechanism to reset it to the defaults (=remove)

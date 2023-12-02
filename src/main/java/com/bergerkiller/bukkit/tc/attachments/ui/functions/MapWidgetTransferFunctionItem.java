@@ -15,7 +15,6 @@ import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 /**
  * Displays the preview of a function, above which optional buttons can be drawn (if focused)
