@@ -85,6 +85,7 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu impl
             }
             nav.function.setFunction(newFunction);
             navigate(nav); // Navigate to same dialog
+            markChanged();
         }
     }
 
