@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.functions;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 
@@ -10,6 +11,26 @@ import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
  */
 public abstract class MapWidgetTransferFunctionSingleItem extends MapWidgetTransferFunctionItem {
     private boolean functionWasDefault = false;
+    private boolean ignoreChanges = false;
+
+    public MapWidgetTransferFunctionSingleItem(TransferFunctionHost host, ConfigurationNode functionConfig) {
+        super(host, TransferFunction.Holder.of(
+                (functionConfig != null) ? host.loadFunction(functionConfig)
+                                         : TransferFunction.identity()));
+
+        // Set to default function (using callback) if no configuration exists
+        // Can't do this inside the super() constructor call sadly
+        if (functionConfig == null) {
+            ignoreChanges = true;
+            try {
+                this.function.setFunction(createDefault(), true);
+            } finally {
+                ignoreChanges = false;
+            }
+        }
+
+        updateButtons();
+    }
 
     public MapWidgetTransferFunctionSingleItem(TransferFunctionHost host, TransferFunction.Holder<TransferFunction> function) {
         super(host, function);
@@ -22,7 +43,7 @@ public abstract class MapWidgetTransferFunctionSingleItem extends MapWidgetTrans
      *
      * @param function New function it was changed into
      */
-    public abstract void onChanged(TransferFunction function);
+    public abstract void onChanged(TransferFunction.Holder<TransferFunction> function);
 
     /**
      * Creates a new instance of the default transfer function for this menu item.
@@ -33,7 +54,10 @@ public abstract class MapWidgetTransferFunctionSingleItem extends MapWidgetTrans
     public abstract TransferFunction createDefault();
 
     @Override
-    protected void onChangedInternal(TransferFunction function) {
+    protected void onChangedInternal(TransferFunction.Holder<TransferFunction> function) {
+        if (ignoreChanges) {
+            return;
+        }
         updateButtons();
         onChanged(function);
     }

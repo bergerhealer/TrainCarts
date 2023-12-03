@@ -11,6 +11,13 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
+import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
+import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionSingleConfigItem;
+import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionSingleItem;
+import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
+import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionBoolean;
+import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionConstant;
+import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,10 +39,6 @@ public class MapWidgetSequencerEffect extends MapWidget {
     private final Type type;
     private final List<Button> buttons = new ArrayList<>();
 
-    public MapWidgetSequencerEffect() {
-        this(Type.MIDI, "Effect");
-    }
-
     public MapWidgetSequencerEffect(Type type, String name) {
         this(type.createConfig(name));
     }
@@ -51,10 +54,17 @@ public class MapWidgetSequencerEffect extends MapWidget {
         }));
         this.buttons.add(new Button(Icon.EFFECT_NAME, "Effect", () -> {
             // Open a dialog to select a different effect name to target
+            getScroller().addWidget(new MapWidgetSequencerEffectSelector(getScroller().getEffectNames()) {
+                @Override
+                public void onSelected(String effectName) {
+                    config.set("effect", effectName);
+                    MapWidgetSequencerEffect.this.invalidate();
+                }
+            });
         }));
         this.buttons.add(new Button(Icon.SETTINGS, "Settings", () -> {
             // Open a dialog to configure the general settings (active / volume / pitch)
-
+            getScroller().addWidget(new ConfigureDialog());
         }));
         this.buttons.add(new Button(Icon.DELETE, "Delete", () -> {
             // Open a dialog to confirm deletion
@@ -117,7 +127,7 @@ public class MapWidgetSequencerEffect extends MapWidget {
         view.getView(1, 1, getWidth() - 2, getHeight() - 2)
                 .draw(MapFont.MINECRAFT, 1, 1,
                         focused ? EFFECT_COLOR_FOCUSED : EFFECT_COLOR_DEFAULT,
-                        config.getOrDefault("effectName", ""));
+                        config.getOrDefault("effect", ""));
 
         // Buttons
         if (focused) {
@@ -147,6 +157,47 @@ public class MapWidgetSequencerEffect extends MapWidget {
         }
 
         super.onKeyPressed(event);
+    }
+
+    private class ConfigureDialog extends MapWidgetMenu {
+
+        public ConfigureDialog() {
+            this.setPositionAbsolute(true);
+            this.setBounds(14, 30, 100, 82);
+            this.setBackgroundColor(MapColorPalette.getColor(72, 108, 152));
+            this.labelColor = MapColorPalette.COLOR_BLACK;
+        }
+
+        @Override
+        public void onAttached() {
+            final TransferFunctionHost host = getScroller().getTransferFunctionHost();
+
+            addLabel(5, 5, "Active");
+            addWidget(new MapWidgetTransferFunctionSingleConfigItem(host, config, "active") {
+                @Override
+                public TransferFunction createDefault() {
+                    return TransferFunctionBoolean.TRUE;
+                }
+            }).setBounds(5, 12, 90, MapWidgetTransferFunctionItem.HEIGHT);
+
+            addLabel(5, 29, "Volume");
+            addWidget(new MapWidgetTransferFunctionSingleConfigItem(host, config, "volume") {
+                @Override
+                public TransferFunction createDefault() {
+                    return new TransferFunctionConstant(1.0);
+                }
+            }).setBounds(5, 36, 90, MapWidgetTransferFunctionItem.HEIGHT);
+
+            addLabel(5, 53, "Pitch");
+            addWidget(new MapWidgetTransferFunctionSingleConfigItem(host, config, "pitch") {
+                @Override
+                public TransferFunction createDefault() {
+                    return new TransferFunctionConstant(1.0);
+                }
+            }).setBounds(5, 60, 90, MapWidgetTransferFunctionItem.HEIGHT);
+
+            super.onAttached();
+        }
     }
 
     private static class ConfirmEffectDeleteDialog extends MapWidgetMenu {
@@ -207,7 +258,8 @@ public class MapWidgetSequencerEffect extends MapWidget {
         EFFECT_NAME,
         SETTINGS,
         DELETE,
-        MIDI;
+        MIDI,
+        SIMPLE;
 
         private final MapTexture unfocusedImage;
         private final MapTexture focusedImage;
@@ -234,7 +286,8 @@ public class MapWidgetSequencerEffect extends MapWidget {
      * Type of effect loop
      */
     public enum Type {
-        MIDI(Icon.MIDI);
+        MIDI(Icon.MIDI),
+        SIMPLE(Icon.SIMPLE);
 
         private final Icon icon;
 
@@ -246,10 +299,10 @@ public class MapWidgetSequencerEffect extends MapWidget {
             return icon;
         }
 
-        public ConfigurationNode createConfig(String name) {
+        public ConfigurationNode createConfig(String effectName) {
             ConfigurationNode config = new ConfigurationNode();
             config.set("type", name());
-            config.set("effectName", name);
+            config.set("effect", effectName);
             return config;
         }
 

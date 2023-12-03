@@ -39,7 +39,7 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
         this.setSize(128 - 14 - 10 /* default of a List */, HEIGHT);
     }
 
-    protected void onChangedInternal(TransferFunction function) {
+    protected void onChangedInternal(TransferFunction.Holder<TransferFunction> function) {
     }
 
     public void onMoveUp() {

@@ -1,10 +1,14 @@
 package com.bergerkiller.bukkit.tc.attachments.control.sequencer;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -21,16 +25,23 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
     private static final int TOP_HEADER_HEIGHT = 8;
     private final MapWidgetSequencerScroller scroller;
     private final Mode mode;
+    private final ConfigurationNode config;
     private final List<MapWidgetSequencerEffect> effects = new ArrayList<>();
     private HeaderTitle headerTitle;
     private HeaderButton configureButton, addEffectButton;
-    private double duration = 1.0;
+    private double duration;
 
-    public MapWidgetSequencerEffectGroup(MapWidgetSequencerScroller scroller, Mode mode) {
+    public MapWidgetSequencerEffectGroup(MapWidgetSequencerScroller scroller, Mode mode, ConfigurationNode config) {
         this.scroller = scroller;
         this.mode = mode;
+        this.config = config;
+        this.duration = config.getOrDefault("duration", 0.0);
         this.setClipParent(true);
         this.updateBounds();
+
+        for (ConfigurationNode effectConfig : config.getNodeList("effects")) {
+            addEffect(new MapWidgetSequencerEffect(effectConfig));
+        }
     }
 
     /**
@@ -41,6 +52,10 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
      */
     public MapWidgetSequencerEffectGroup addEffect(MapWidgetSequencerEffect effect) {
         this.effects.add(effect);
+        if (!effect.getConfig().hasParent()) {
+            //TODO: Replace with getNodeList(path, false) when BKCommonLib 1.20.2-v3 or later is a hard-depend
+            this.config.getList("effects").add(effect.getConfig());
+        }
         if (this.duration > 0.0) {
             addEffectWidget(effect);
         }
@@ -59,7 +74,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
         if (effectIndex != -1) {
             boolean wasFocused = effect.isFocused();
             this.effects.remove(effectIndex);
-            effect.getConfig().remove(); // Remove from node list
+            effect.getConfig().remove(); // Remove from effects node list
 
             if (this.duration > 0.0) {
                 this.removeWidget(effect);
@@ -94,6 +109,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
         if (this.duration != duration) {
             boolean effectsVisibleChanged = (this.duration <= 0.0) != (duration <= 0.0);
             this.duration = duration;
+            this.config.set("duration", duration > 0.0 ? duration : null);
             if (effectsVisibleChanged) {
                 if (addEffectButton != null) {
                     addEffectButton.setEnabled(duration > 0.0);
@@ -141,7 +157,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
         configureButton = addWidget(new HeaderButton(0, 19, 35, 7) {
             @Override
             public void onActivate() {
-
+                scroller.addWidget(new ConfigureDialog());
             }
         });
         configureButton.setPosition(getWidth() - 43, 0);
@@ -149,16 +165,71 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
         addEffectButton = addWidget(new HeaderButton(35, 19, 7, 7) {
             @Override
             public void onActivate() {
-                // Ask what effect name and type of effect to add
-                // TODO: Implement this
-
-                // Reset focus index to 0
-                scroller.effectSelButtonIndex = 0;
-                addEffect(new MapWidgetSequencerEffect());
+                // Ask what effect to target
+                scroller.addWidget(new MapWidgetSequencerEffectSelector(scroller.getEffectNames()) {
+                    @Override
+                    public void onSelected(String effectName) {
+                        // Ask what type of effect to add
+                        // TODO: Implement this
+                        scroller.effectSelButtonIndex = 0;
+                        addEffect(new MapWidgetSequencerEffect(MapWidgetSequencerEffect.Type.SIMPLE, effectName));
+                    }
+                });
             }
         });
         addEffectButton.setEnabled(duration > 0.0);
         addEffectButton.setPosition(getWidth() - 7, 0);
+    }
+
+    private class ConfigureDialog extends MapWidgetMenu {
+
+        public ConfigureDialog() {
+            setBackgroundColor(MapColorPalette.getColor(52, 90, 180));
+            setPositionAbsolute(true);
+            setBounds(26, 38, 76, 56);
+        }
+
+        @Override
+        public void onAttached() {
+            addLabel(16, 6, "Duration (s):");
+            addWidget(new MapWidgetNumberBox() {
+                @Override
+                public void onAttached() {
+                    setRange(0.0, 100000.0);
+                    setIncrement(0.01);
+                    setInitialValue(duration);
+                    setTextOverride(duration > 0.0 ? null : "Off");
+                    super.onAttached();
+                }
+
+                @Override
+                public void onValueChanged() {
+                    setDuration(getValue());
+                    setTextOverride(getValue() > 0.0 ? null : "Off");
+                }
+            }).setBounds(5, 13, 66, 11);
+
+            addLabel(11, 29, "Interrupt Play:");
+            addWidget(new MapWidgetButton() {
+                @Override
+                public void onAttached() {
+                    updateText();
+                    super.onAttached();
+                }
+
+                @Override
+                public void onActivate() {
+                    config.set("interrupt", !config.getOrDefault("interrupt", false));
+                    updateText();
+                }
+
+                private void updateText() {
+                    setText(config.getOrDefault("interrupt", false) ? "Yes" : "No");
+                }
+            }).setBounds(12, 36, 52, 12);
+
+            super.onAttached();
+        }
     }
 
     private class HeaderTitle extends MapWidget {
@@ -177,7 +248,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
                 byte color = MapColorPalette.getColor(128, 128, 128);
                 view.draw(mode.icon(), 3, 1, color);
                 view.draw(MapFont.TINY, 12, 1, color,
-                        mode.title() + " [OFF]");
+                        mode.title() + "  [OFF]");
             }
         }
     }

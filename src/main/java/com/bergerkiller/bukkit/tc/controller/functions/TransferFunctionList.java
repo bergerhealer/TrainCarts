@@ -68,7 +68,7 @@ public class TransferFunctionList implements TransferFunction, Cloneable {
 
     @Override
     public Serializer<? extends TransferFunction> getSerializer() {
-        return null;
+        return SERIALIZER;
     }
 
     public List<Item> getItems() {
@@ -175,7 +175,7 @@ public class TransferFunctionList implements TransferFunction, Cloneable {
         private final FunctionMode mode;
 
         public Item(FunctionMode mode, TransferFunction function) {
-            super(function);
+            super(function, false);
             this.mode = mode;
         }
 

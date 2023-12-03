@@ -199,8 +199,9 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
         protected T function;
         protected boolean isDefault = false;
 
-        protected Holder(T function) {
+        protected Holder(T function, boolean isDefault) {
             this.function = function;
+            this.isDefault = isDefault;
         }
 
         public T getFunction() {
@@ -238,14 +239,14 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
          * @param onChanged Callback for after the function is changed
          * @return new Holder that calls the callback when the function is changed
          */
-        public Holder<T> withChangeListener(Consumer<T> onChanged) {
+        public Holder<T> withChangeListener(Consumer<Holder<T>> onChanged) {
             final Holder<T> orig = this;
-            return new Holder<T>(function) {
+            return new Holder<T>(function, isDefault) {
                 @Override
                 public void setFunction(T function, boolean isDefault) {
                     super.setFunction(function, isDefault);
                     orig.setFunction(function, isDefault);
-                    onChanged.accept(function);
+                    onChanged.accept(this);
                 }
             };
         }
@@ -258,7 +259,19 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
          * @param <T> Transfer Function type
          */
         public static <T extends TransferFunction> Holder<T> of(T function) {
-            return new Holder<T>(function);
+            return new Holder<T>(function, false);
+        }
+
+        /**
+         * Wraps a TransferFunction as a Holder, potentailly a default value
+         *
+         * @param function Function
+         * @param isDefault Whether this function is the default value (no config)
+         * @return Holder
+         * @param <T> Transfer Function type
+         */
+        public static <T extends TransferFunction> Holder<T> of(T function, boolean isDefault) {
+            return new Holder<T>(function, isDefault);
         }
     }
 
