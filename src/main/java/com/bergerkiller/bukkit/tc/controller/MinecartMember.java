@@ -1488,13 +1488,17 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             return false;
         }
 
+        CollisionMode mode = this.getGroup().getProperties().getCollisionMode(e);
+        if (mode == CollisionMode.CANCEL) {
+            return false;
+        }
+
         // Verify that the entity is actually inside the bounding box of this entity
         // This involves a complicated rotated box intersection test
         if (!this.isModelIntersectingWith(e)) {
             return false;
         }
 
-        CollisionMode mode = this.getGroup().getProperties().getCollisionMode(e);
         if (!mode.execute(this, e)) {
             return false;
         }
@@ -1636,17 +1640,21 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         MinecartMember<?> other = MinecartMemberStore.getFromEntity(entity);
         if (other != null) {
             // Have to do both ways around!
-            return this.isModelIntersectingWith_impl(entity)
-                    && other.isModelIntersectingWith_impl(this.entity.getEntity());
+            return this.isModelIntersectingWith_impl(other.entity.getWrappedHandle())
+                    && other.isModelIntersectingWith_impl(this.entity.getWrappedHandle());
         } else {
             return this.isModelIntersectingWith_impl(entity);
         }
     }
 
     private final boolean isModelIntersectingWith_impl(Entity entity) {
+        return isModelIntersectingWith_impl(EntityHandle.fromBukkit(entity));
+    }
+
+    private final boolean isModelIntersectingWith_impl(EntityHandle entityHandle) {
         // We lack a proper bounding box collision test
         // Instead we do a poor man's method of probing various points on the entity
-        AxisAlignedBBHandle aabb = EntityHandle.fromBukkit(entity).getBoundingBox();
+        AxisAlignedBBHandle aabb = entityHandle.getBoundingBox();
         double[] xval = { aabb.getMinX(), 0.5 * (aabb.getMinX() + aabb.getMaxX()), aabb.getMaxX() };
         double[] yval = { aabb.getMinY(), 0.5 * (aabb.getMinY() + aabb.getMaxY()), aabb.getMaxY() };
         double[] zval = { aabb.getMinZ(), 0.5 * (aabb.getMinZ() + aabb.getMaxZ()), aabb.getMaxZ() };
