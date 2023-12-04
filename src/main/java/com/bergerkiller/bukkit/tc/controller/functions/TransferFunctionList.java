@@ -2,6 +2,8 @@ package com.bergerkiller.bukkit.tc.controller.functions;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
+import com.bergerkiller.bukkit.common.map.MapColorPalette;
+import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionList;
@@ -149,6 +151,14 @@ public class TransferFunctionList implements TransferFunction, Cloneable {
 
     @Override
     public void drawPreview(MapWidgetTransferFunctionItem widget, MapCanvas view) {
+        byte color = widget.defaultColor(MapColorPalette.COLOR_GREEN);
+
+        view.drawLine(0, 3, 6, 3, color);
+        view.drawLine(0, 5, 6, 5, color);
+        view.drawLine(0, 7, 6, 7, color);
+        view.drawLine(0, 9, 6, 9, color);
+        view.draw(MapFont.MINECRAFT, 8, 3, color,
+                "[" + items.size() + (items.size() == 1 ? " step]" : " steps]"));
     }
 
     @Override

@@ -10,10 +10,13 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
+import com.bergerkiller.bukkit.tc.attachments.control.effect.MidiChartDialog;
+import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiChart;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionSingleConfigItem;
-import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionSingleItem;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionBoolean;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionConstant;
@@ -22,6 +25,7 @@ import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Supplier;
 
 /**
  * A single effect shown in a {@link MapWidgetSequencerEffectGroup}
@@ -51,10 +55,16 @@ public class MapWidgetSequencerEffect extends MapWidget {
         this.type = Type.fromConfig(config);
         this.buttons.add(new Button(type.icon(), "Configure " + type.name().toLowerCase(Locale.ENGLISH), () -> {
             // Configure the effect loop type
+            type.openConfigurationDialog(
+                    getGroupList(),
+                    MapWidgetSequencerEffect.this.config,
+                    () -> getGroupList().getEffectAttachments(
+                            MapWidgetSequencerEffect.this.config.getOrDefault("effect", ""))
+            );
         }));
         this.buttons.add(new Button(Icon.EFFECT_NAME, "Effect", () -> {
             // Open a dialog to select a different effect name to target
-            getScroller().addWidget(new MapWidgetSequencerEffectSelector(getScroller().getEffectNames()) {
+            getGroupList().addWidget(new MapWidgetSequencerEffectSelector(getGroupList().getEffectNames()) {
                 @Override
                 public void onSelected(String effectName) {
                     config.set("effect", effectName);
@@ -64,11 +74,11 @@ public class MapWidgetSequencerEffect extends MapWidget {
         }));
         this.buttons.add(new Button(Icon.SETTINGS, "Settings", () -> {
             // Open a dialog to configure the general settings (active / volume / pitch)
-            getScroller().addWidget(new ConfigureDialog());
+            getGroupList().addWidget(new ConfigureDialog());
         }));
         this.buttons.add(new Button(Icon.DELETE, "Delete", () -> {
             // Open a dialog to confirm deletion
-            getScroller().addWidget(new ConfirmEffectDeleteDialog() {
+            getGroupList().addWidget(new ConfirmEffectDeleteDialog() {
                 @Override
                 public void onConfirmDelete() {
                     // Actually delete this effect
@@ -94,22 +104,22 @@ public class MapWidgetSequencerEffect extends MapWidget {
         }
     }
 
-    private MapWidgetSequencerScroller getScroller() {
+    private MapWidgetSequencerEffectGroupList getGroupList() {
         for (MapWidget w = getParent(); w != null; w = w.getParent()) {
-            if (w instanceof MapWidgetSequencerScroller) {
-                return (MapWidgetSequencerScroller) w;
+            if (w instanceof MapWidgetSequencerEffectGroupList) {
+                return (MapWidgetSequencerEffectGroupList) w;
             }
         }
-        throw new IllegalStateException("Effect not added to a scroller widget");
+        throw new IllegalStateException("Effect not added to a effect group list widget");
     }
 
     private int getSelButtonIndex() {
-        return Math.min(buttons.size() - 1, getScroller().effectSelButtonIndex);
+        return Math.min(buttons.size() - 1, getGroupList().effectSelButtonIndex);
     }
 
     private void setSelButtonIndex(int newIndex) {
         if (newIndex >= 0 && newIndex < buttons.size()) {
-            getScroller().effectSelButtonIndex = newIndex;
+            getGroupList().effectSelButtonIndex = newIndex;
             invalidate();
         }
     }
@@ -170,7 +180,7 @@ public class MapWidgetSequencerEffect extends MapWidget {
 
         @Override
         public void onAttached() {
-            final TransferFunctionHost host = getScroller().getTransferFunctionHost();
+            final TransferFunctionHost host = getGroupList().getTransferFunctionHost();
 
             addLabel(5, 5, "Active");
             addWidget(new MapWidgetTransferFunctionSingleConfigItem(host, config, "active") {
@@ -282,21 +292,56 @@ public class MapWidgetSequencerEffect extends MapWidget {
         }
     }
 
+    @FunctionalInterface
+    public interface ConfigureEffectHandler {
+        void openConfigurationDialog(
+                final MapWidget parent,
+                final ConfigurationNode config,
+                final Supplier<List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>>> effectsGetter);
+    }
+
     /**
      * Type of effect loop
      */
-    public enum Type {
-        MIDI(Icon.MIDI),
-        SIMPLE(Icon.SIMPLE);
+    public enum Type implements ConfigureEffectHandler {
+        MIDI(Icon.MIDI, (parent, config, effectsGetter) -> {
+            MidiChartDialog dialog = new MidiChartDialog() {
+                @Override
+                public void onChartChanged(MidiChart chart) {
+                    config.set("chart", chart.toYaml());
+                }
+
+                @Override
+                public List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>> getPreviewEffects() {
+                    return effectsGetter.get();
+                }
+            };
+            dialog.setChart(MidiChart.fromYaml(config.getNode("chart")));
+            parent.addWidget(dialog);
+        }),
+        SIMPLE(Icon.SIMPLE, (parent, config, effectsGetter) -> {
+
+        });
 
         private final Icon icon;
+        private final ConfigureEffectHandler configureHandler;
 
-        Type(Icon icon) {
+        Type(Icon icon, ConfigureEffectHandler configureHandler) {
             this.icon = icon;
+            this.configureHandler = configureHandler;
         }
 
         public Icon icon() {
             return icon;
+        }
+
+        @Override
+        public void openConfigurationDialog(
+                final MapWidget parent,
+                final ConfigurationNode config,
+                final Supplier<List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>>> effectsGetter
+        ) {
+            configureHandler.openConfigurationDialog(parent, config, effectsGetter);
         }
 
         public ConfigurationNode createConfig(String effectName) {

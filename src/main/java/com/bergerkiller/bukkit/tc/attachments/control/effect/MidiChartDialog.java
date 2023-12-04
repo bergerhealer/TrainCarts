@@ -48,8 +48,7 @@ public abstract class MidiChartDialog extends MapWidgetMenu {
     private volatile int previewCtr = 0;
     private volatile EffectLoop.Time currentPreviewTime = null; // Null if not playing
 
-    public MidiChartDialog(MapWidgetAttachmentNode attachment) {
-        this.setAttachment(attachment);
+    public MidiChartDialog() {
         this.setPositionAbsolute(true);
         this.setBounds(5, 5, 118, 116);
         this.setBackgroundColor(MapColorPalette.getColor(16, 16, 128));

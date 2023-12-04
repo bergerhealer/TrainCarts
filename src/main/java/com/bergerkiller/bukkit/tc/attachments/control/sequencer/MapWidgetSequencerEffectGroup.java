@@ -23,7 +23,7 @@ import java.util.List;
 public class MapWidgetSequencerEffectGroup extends MapWidget {
     private static final NumberFormat DURATION_FORMAT = Util.createNumberFormat(1, 4);
     private static final int TOP_HEADER_HEIGHT = 8;
-    private final MapWidgetSequencerScroller scroller;
+    private final MapWidgetSequencerEffectGroupList groupList;
     private final Mode mode;
     private final ConfigurationNode config;
     private final List<MapWidgetSequencerEffect> effects = new ArrayList<>();
@@ -31,8 +31,8 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
     private HeaderButton configureButton, addEffectButton;
     private double duration;
 
-    public MapWidgetSequencerEffectGroup(MapWidgetSequencerScroller scroller, Mode mode, ConfigurationNode config) {
-        this.scroller = scroller;
+    public MapWidgetSequencerEffectGroup(MapWidgetSequencerEffectGroupList groupList, Mode mode, ConfigurationNode config) {
+        this.groupList = groupList;
         this.mode = mode;
         this.config = config;
         this.duration = config.getOrDefault("duration", 0.0);
@@ -143,9 +143,9 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
         int newHeight = TOP_HEADER_HEIGHT + ((duration <= 0.0 || effects.isEmpty())
                 ? 0 : (effects.size() * (MapWidgetSequencerEffect.HEIGHT - 1) + 1));
         boolean heightChanged = (this.getHeight() != newHeight);
-        this.setBounds(0, getY(), scroller.getWidth(), newHeight);
+        this.setBounds(0, getY(), groupList.getWidth(), newHeight);
         if (heightChanged) {
-            scroller.recalculateContainerSize();
+            groupList.recalculateContainerSize();
         }
     }
 
@@ -157,7 +157,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
         configureButton = addWidget(new HeaderButton(0, 19, 35, 7) {
             @Override
             public void onActivate() {
-                scroller.addWidget(new ConfigureDialog());
+                groupList.addWidget(new ConfigureDialog());
             }
         });
         configureButton.setPosition(getWidth() - 43, 0);
@@ -166,13 +166,13 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
             @Override
             public void onActivate() {
                 // Ask what effect to target
-                scroller.addWidget(new MapWidgetSequencerEffectSelector(scroller.getEffectNames()) {
+                groupList.addWidget(new MapWidgetSequencerEffectSelector(groupList.getEffectNames()) {
                     @Override
                     public void onSelected(String effectName) {
                         // Ask what type of effect to add
                         // TODO: Implement this
-                        scroller.effectSelButtonIndex = 0;
-                        addEffect(new MapWidgetSequencerEffect(MapWidgetSequencerEffect.Type.SIMPLE, effectName));
+                        groupList.effectSelButtonIndex = 0;
+                        addEffect(new MapWidgetSequencerEffect(MapWidgetSequencerEffect.Type.MIDI, effectName));
                     }
                 });
             }

@@ -2,6 +2,8 @@ package com.bergerkiller.bukkit.tc.attachments.control.sequencer;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetScroller;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 
@@ -9,13 +11,13 @@ import java.util.List;
 
 /**
  * Scroller widget that stores the three different {@link MapWidgetSequencerEffectGroup}
- * widgets.
+ * widgets. Also contains the main abstract methods for information required.
  */
-public abstract class MapWidgetSequencerScroller extends MapWidgetScroller {
+public abstract class MapWidgetSequencerEffectGroupList extends MapWidgetScroller {
     public MapWidgetSequencerEffectGroup startGroup, loopGroup, stopGroup;
     protected int effectSelButtonIndex = 0; // Used by MapWidgetSequencerEffect
 
-    public MapWidgetSequencerScroller() {
+    public MapWidgetSequencerEffectGroupList() {
         this.setScrollPadding(15);
     }
 
@@ -36,6 +38,14 @@ public abstract class MapWidgetSequencerScroller extends MapWidgetScroller {
      * @return Transfer Function Host
      */
     public abstract TransferFunctionHost getTransferFunctionHost();
+
+    /**
+     * Gets the effect attachments that have the name specified
+     *
+     * @param name Name assigned to the effect attachments
+     * @return Named group of effect attachments matching this name
+     */
+    public abstract List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>> getEffectAttachments(String name);
 
     @Override
     public void onAttached() {
