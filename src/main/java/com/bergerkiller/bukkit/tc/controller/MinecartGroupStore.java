@@ -300,6 +300,12 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
             if (m1.isDerailed() || m2.isDerailed()) {
                 return false;
             }
+
+            //Would the resulting train be too long?
+            if (TCConfig.maxCartsPerTrain >= 0 && (g1.size() + g2.size()) > TCConfig.maxCartsPerTrain) {
+                return false;
+            }
+
             //Can the two groups bind?
             TrainProperties prop1 = g1.getProperties();
             TrainProperties prop2 = g2.getProperties();

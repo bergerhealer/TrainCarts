@@ -7,6 +7,7 @@ import java.util.logging.Level;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -257,6 +258,11 @@ public class TrainChestItemUtil {
             return SpawnResult.FAIL_EMPTY;
         }
 
+        // Check not too long
+        if (TCConfig.maxCartsPerTrain >= 0 && group.getMembers().size() > TCConfig.maxCartsPerTrain) {
+            return SpawnResult.FAIL_TOO_LONG;
+        }
+
         // Check not reached limit
         if (group.isExceedingSpawnLimit()) {
             return SpawnResult.FAIL_LIMIT_REACHED;
@@ -371,6 +377,11 @@ public class TrainChestItemUtil {
             return SpawnResult.FAIL_EMPTY;
         }
 
+        // Check not too long
+        if (TCConfig.maxCartsPerTrain >= 0 && group.getMembers().size() > TCConfig.maxCartsPerTrain) {
+            return SpawnResult.FAIL_TOO_LONG;
+        }
+
         // Check not reached limit
         if (group.isExceedingSpawnLimit()) {
             return SpawnResult.FAIL_LIMIT_REACHED;
@@ -415,7 +426,8 @@ public class TrainChestItemUtil {
         FAIL_BLOCKED(Localization.CHEST_SPAWN_BLOCKED),
         FAIL_NO_PERM(Localization.SPAWN_FORBIDDEN_CONTENTS),
         FAIL_LIMIT_REACHED(Localization.CHEST_SPAWN_LIMIT_REACHED),
-        FAIL_MAX_PER_WORLD(Localization.SPAWN_MAX_PER_WORLD);
+        FAIL_MAX_PER_WORLD(Localization.SPAWN_MAX_PER_WORLD),
+        FAIL_TOO_LONG(Localization.SPAWN_TOO_LONG);
 
         private final Localization locale;
 

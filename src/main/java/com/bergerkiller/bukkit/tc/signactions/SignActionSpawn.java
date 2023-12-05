@@ -112,6 +112,12 @@ public class SignActionSpawn extends SignAction {
                 return null;
             }
 
+            // Make sure it is not too long
+            if (TCConfig.maxCartsPerTrain >= 0 && spawnable.getMembers().size() > TCConfig.maxCartsPerTrain) {
+                spawnSign.showFailParticles(Color.MAROON);
+                return null;
+            }
+
             // Make sure it does not exceed spawn limits
             if (spawnable.isExceedingSpawnLimit()) {
                 spawnSign.showFailParticles(Color.RED);

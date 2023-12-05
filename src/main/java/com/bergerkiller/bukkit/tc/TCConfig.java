@@ -117,6 +117,7 @@ public class TCConfig {
     public static int maxConcurrentEffectLoops = 20;
     public static double spawnSignCooldown = -1.0;
     public static int maxCartsPerWorld = -1;
+    public static int maxCartsPerTrain = -1;
     public static boolean maxCartsPerWorldCountUnloaded = false;
     public static String currencyFormat;
     public static Set<Material> allowedBlockBreakTypes = new HashSet<>();
@@ -689,6 +690,12 @@ public class TCConfig {
 
             cartLimits.setHeader("countUnloaded", "\nWhether to include unloaded trains/carts in the maxCartsPerWorld limit");
             maxCartsPerWorldCountUnloaded = cartLimits.get("countUnloaded", false);
+
+            cartLimits.setHeader("maxCartsPerTrain", "Maximum number of carts that can be joined together in a train");
+            cartLimits.addHeader("maxCartsPerTrain", "Linking does not happen when it would exceed this limit,");
+            cartLimits.addHeader("maxCartsPerTrain", "and trains longer than this cannot be spawned");
+            cartLimits.addHeader("maxCartsPerTrain", "A value of -1 disables this limit, allowing any length (default)");
+            maxCartsPerTrain = cartLimits.get("maxCartsPerTrain", -1);
         }
     }
 
