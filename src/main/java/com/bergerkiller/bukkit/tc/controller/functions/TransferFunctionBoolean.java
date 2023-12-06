@@ -24,7 +24,7 @@ public class TransferFunctionBoolean implements TransferFunction {
 
         @Override
         public String title() {
-            return "True/False";
+            return "Yes/No";
         }
 
         @Override

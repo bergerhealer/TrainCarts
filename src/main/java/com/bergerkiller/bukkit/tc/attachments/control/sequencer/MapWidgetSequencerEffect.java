@@ -10,10 +10,6 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
-import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
-import com.bergerkiller.bukkit.tc.attachments.control.effect.MidiChartDialog;
-import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiChart;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionSingleConfigItem;
@@ -25,7 +21,6 @@ import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.function.Supplier;
 
 /**
  * A single effect shown in a {@link MapWidgetSequencerEffectGroup}
@@ -40,10 +35,10 @@ public class MapWidgetSequencerEffect extends MapWidget {
     public static final int HEIGHT = 11;
 
     private final ConfigurationNode config;
-    private final Type type;
+    private final SequencerType type;
     private final List<Button> buttons = new ArrayList<>();
 
-    public MapWidgetSequencerEffect(Type type, String name) {
+    public MapWidgetSequencerEffect(SequencerType type, String name) {
         this(type.createConfig(name));
     }
 
@@ -52,15 +47,15 @@ public class MapWidgetSequencerEffect extends MapWidget {
         this.setClipParent(true);
 
         this.config = config;
-        this.type = Type.fromConfig(config);
-        this.buttons.add(new Button(type.icon(), "Configure " + type.name().toLowerCase(Locale.ENGLISH), () -> {
+        this.type = SequencerType.fromConfig(config);
+        this.buttons.add(new Button(type.icon(false), type.icon(true), "Configure " + type.name().toLowerCase(Locale.ENGLISH), () -> {
             // Configure the effect loop type
-            type.openConfigurationDialog(
+            type.openConfigurationDialog(new SequencerType.OpenDialogArguments(
                     getGroupList(),
                     MapWidgetSequencerEffect.this.config,
                     () -> getGroupList().getEffectAttachments(
                             MapWidgetSequencerEffect.this.config.getOrDefault("effect", ""))
-            );
+            ));
         }));
         this.buttons.add(new Button(Icon.EFFECT_NAME, "Effect", () -> {
             // Open a dialog to select a different effect name to target
@@ -145,8 +140,8 @@ public class MapWidgetSequencerEffect extends MapWidget {
             int x = getWidth() - 1;
             for (int i = buttons.size() - 1; i >= 0; --i) {
                 Button b = buttons.get(i);
-                x -= b.icon.width() + 1;
-                view.draw(b.icon.image(i == selButtonIndex), x, 2);
+                x -= b.width() + 1;
+                view.draw(b.icon(i == selButtonIndex), x, 2);
             }
         }
     }
@@ -253,14 +248,31 @@ public class MapWidgetSequencerEffect extends MapWidget {
     }
 
     private static class Button {
-        public final Icon icon;
+        public final MapTexture iconDefault, iconFocused;
         public final String title;
         public final Runnable action;
 
         public Button(Icon icon, String title, Runnable action) {
-            this.icon = icon;
+            this(icon.image(false), icon.image(true), title, action);
+        }
+
+        public Button(MapTexture iconDefault, MapTexture iconFocused, String title, Runnable action) {
+            this.iconDefault = iconDefault;
+            this.iconFocused = iconFocused;
             this.title = title;
             this.action = action;
+        }
+
+        public int width() {
+            return iconDefault.getWidth();
+        }
+
+        public int height() {
+            return iconDefault.getHeight();
+        }
+
+        public MapTexture icon(boolean focused) {
+            return focused ? iconFocused : iconDefault;
         }
     }
 
@@ -289,80 +301,6 @@ public class MapWidgetSequencerEffect extends MapWidget {
 
         public MapTexture image(boolean focused) {
             return focused ? focusedImage : unfocusedImage;
-        }
-    }
-
-    @FunctionalInterface
-    public interface ConfigureEffectHandler {
-        void openConfigurationDialog(
-                final MapWidget parent,
-                final ConfigurationNode config,
-                final Supplier<List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>>> effectsGetter);
-    }
-
-    /**
-     * Type of effect loop
-     */
-    public enum Type implements ConfigureEffectHandler {
-        MIDI(Icon.MIDI, (parent, config, effectsGetter) -> {
-            MidiChartDialog dialog = new MidiChartDialog() {
-                @Override
-                public void onChartChanged(MidiChart chart) {
-                    config.set("chart", chart.toYaml());
-                }
-
-                @Override
-                public List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>> getPreviewEffects() {
-                    return effectsGetter.get();
-                }
-            };
-            dialog.setChart(MidiChart.fromYaml(config.getNode("chart")));
-            parent.addWidget(dialog);
-        }),
-        SIMPLE(Icon.SIMPLE, (parent, config, effectsGetter) -> {
-
-        });
-
-        private final Icon icon;
-        private final ConfigureEffectHandler configureHandler;
-
-        Type(Icon icon, ConfigureEffectHandler configureHandler) {
-            this.icon = icon;
-            this.configureHandler = configureHandler;
-        }
-
-        public Icon icon() {
-            return icon;
-        }
-
-        @Override
-        public void openConfigurationDialog(
-                final MapWidget parent,
-                final ConfigurationNode config,
-                final Supplier<List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>>> effectsGetter
-        ) {
-            configureHandler.openConfigurationDialog(parent, config, effectsGetter);
-        }
-
-        public ConfigurationNode createConfig(String effectName) {
-            ConfigurationNode config = new ConfigurationNode();
-            config.set("type", name());
-            config.set("effect", effectName);
-            return config;
-        }
-
-        public static Type fromConfig(ConfigurationNode config) {
-            String typeName = config.getOrDefault("type", String.class, null);
-            if (typeName != null) {
-                typeName = typeName.toUpperCase(Locale.ENGLISH);
-                for (Type type : values()) {
-                    if (typeName.equals(type.name())) {
-                        return type;
-                    }
-                }
-            }
-
-            return MIDI; // Fallback
         }
     }
 }

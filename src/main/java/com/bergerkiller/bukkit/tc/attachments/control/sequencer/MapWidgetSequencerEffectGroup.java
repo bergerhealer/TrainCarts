@@ -12,7 +12,6 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionSingleConfigItem;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
-import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionBoolean;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionConstant;
 
 import java.text.NumberFormat;
@@ -177,7 +176,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
                         // Ask what type of effect to add
                         // TODO: Implement this
                         groupList.effectSelButtonIndex = 0;
-                        addEffect(new MapWidgetSequencerEffect(MapWidgetSequencerEffect.Type.MIDI, effectName));
+                        addEffect(new MapWidgetSequencerEffect(SequencerType.MIDI, effectName));
                     }
                 });
             }
