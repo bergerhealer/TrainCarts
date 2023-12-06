@@ -9,6 +9,11 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
+import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
+import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionSingleConfigItem;
+import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
+import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionBoolean;
+import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionConstant;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -184,14 +189,15 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
     private class ConfigureDialog extends MapWidgetMenu {
 
         public ConfigureDialog() {
-            setBackgroundColor(MapColorPalette.getColor(52, 90, 180));
             setPositionAbsolute(true);
-            setBounds(26, 38, 76, 56);
+            setBounds(14, 30, 100, 78);
+            setBackgroundColor(MapColorPalette.getColor(72, 108, 152));
+            labelColor = MapColorPalette.COLOR_BLACK;
         }
 
         @Override
         public void onAttached() {
-            addLabel(16, 6, "Duration (s):");
+            addLabel(5, 6, "Duration (s):");
             addWidget(new MapWidgetNumberBox() {
                 @Override
                 public void onAttached() {
@@ -209,7 +215,15 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
                 }
             }).setBounds(5, 13, 66, 11);
 
-            addLabel(11, 29, "Interrupt Play:");
+            addLabel(5,  27, "Playback Speed:");
+            addWidget(new MapWidgetTransferFunctionSingleConfigItem(groupList.getTransferFunctionHost(), config, "speed") {
+                @Override
+                public TransferFunction createDefault() {
+                    return new TransferFunctionConstant(1.0);
+                }
+            }).setBounds(5, 34, getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
+
+            addLabel(5, 53, "Interrupt Play:");
             addWidget(new MapWidgetButton() {
                 @Override
                 public void onAttached() {
@@ -226,7 +240,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
                 private void updateText() {
                     setText(config.getOrDefault("interrupt", false) ? "Yes" : "No");
                 }
-            }).setBounds(12, 36, 52, 12);
+            }).setBounds(5, 60, 52, 12);
 
             super.onAttached();
         }

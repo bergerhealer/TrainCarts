@@ -172,10 +172,10 @@ public class MapWidgetSequencerEffect extends MapWidget {
     private class ConfigureDialog extends MapWidgetMenu {
 
         public ConfigureDialog() {
-            this.setPositionAbsolute(true);
-            this.setBounds(14, 30, 100, 82);
-            this.setBackgroundColor(MapColorPalette.getColor(72, 108, 152));
-            this.labelColor = MapColorPalette.COLOR_BLACK;
+            setPositionAbsolute(true);
+            setBounds(14, 30, 100, 82);
+            setBackgroundColor(MapColorPalette.getColor(72, 108, 152));
+            labelColor = MapColorPalette.COLOR_BLACK;
         }
 
         @Override
@@ -188,7 +188,7 @@ public class MapWidgetSequencerEffect extends MapWidget {
                 public TransferFunction createDefault() {
                     return TransferFunctionBoolean.TRUE;
                 }
-            }).setBounds(5, 12, 90, MapWidgetTransferFunctionItem.HEIGHT);
+            }).setBounds(5, 12, getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
 
             addLabel(5, 29, "Volume");
             addWidget(new MapWidgetTransferFunctionSingleConfigItem(host, config, "volume") {
@@ -196,7 +196,7 @@ public class MapWidgetSequencerEffect extends MapWidget {
                 public TransferFunction createDefault() {
                     return new TransferFunctionConstant(1.0);
                 }
-            }).setBounds(5, 36, 90, MapWidgetTransferFunctionItem.HEIGHT);
+            }).setBounds(5, 36, getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
 
             addLabel(5, 53, "Pitch");
             addWidget(new MapWidgetTransferFunctionSingleConfigItem(host, config, "pitch") {
@@ -204,7 +204,7 @@ public class MapWidgetSequencerEffect extends MapWidget {
                 public TransferFunction createDefault() {
                     return new TransferFunctionConstant(1.0);
                 }
-            }).setBounds(5, 60, 90, MapWidgetTransferFunctionItem.HEIGHT);
+            }).setBounds(5, 60, getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
 
             super.onAttached();
         }
