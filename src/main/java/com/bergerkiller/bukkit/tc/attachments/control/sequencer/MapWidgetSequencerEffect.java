@@ -53,7 +53,7 @@ public class MapWidgetSequencerEffect extends MapWidget {
             type.openConfigurationDialog(new SequencerType.OpenDialogArguments(
                     getGroupList(),
                     MapWidgetSequencerEffect.this.config,
-                    () -> getGroupList().getEffectAttachments(
+                    getGroupList().createEffectSink(
                             MapWidgetSequencerEffect.this.config.getOrDefault("effect", ""))
             ));
         }));

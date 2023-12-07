@@ -668,6 +668,76 @@ public interface Attachment extends AttachmentNameLookup.Supplier {
     }
 
     /**
+     * A sink for playing (or stopping playback of) effects. Effect attachments
+     * are sinks.
+     */
+    interface EffectSink {
+        EffectSink DISABLED_EFFECT_SINK = new EffectSink() {
+            @Override
+            public void playEffect(EffectAttachment.EffectOptions options) {
+            }
+
+            @Override
+            public void stopEffect() {
+            }
+        };
+
+        /**
+         * Plays the effect. Is possibly called asynchronously, so the implementation must ensure the
+         * operation is thread-safe.
+         *
+         * @param options Options that change how the effect is played
+         */
+        void playEffect(EffectAttachment.EffectOptions options);
+
+        /**
+         * Stops playing this effect, if possible. Is possibly called asynchronously, so the implementation
+         * must ensure the operation is thread-safe.
+         */
+        void stopEffect();
+
+        /**
+         * Forwards effect play and stop instructions to a named group of effect attachments
+         *
+         * @param effectAttachments Named group of effect attachments
+         * @return Sink forwarding play/stop to this named group
+         */
+        static EffectSink combineEffects(AttachmentNameLookup.NameGroup<Attachment.EffectAttachment> effectAttachments) {
+            return new EffectSink() {
+                @Override
+                public void playEffect(EffectAttachment.EffectOptions options) {
+                    effectAttachments.forEach(e -> e.playEffect(options));
+                }
+
+                @Override
+                public void stopEffect() {
+                    effectAttachments.forEach(EffectAttachment::stopEffect);
+                }
+            };
+        }
+
+        /**
+         * Forwards effect play and stop instructions to a collection of named groups of effect attachments
+         *
+         * @param effectAttachments Collection of named groups of effect attachments
+         * @return Sink forwarding play/stop to these named groups
+         */
+        static EffectSink combineEffects(Collection<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>> effectAttachments) {
+            return new EffectSink() {
+                @Override
+                public void playEffect(EffectAttachment.EffectOptions options) {
+                    effectAttachments.forEach(n -> n.forEach(e -> e.playEffect(options)));
+                }
+
+                @Override
+                public void stopEffect() {
+                    effectAttachments.forEach(n -> n.forEach(EffectAttachment::stopEffect));
+                }
+            };
+        }
+    }
+
+    /**
      * A type of attachment that produces some sort of effect. An effect can be
      * sound, particles or some other thing triggered through packets.<br>
      * <br>
@@ -685,20 +755,12 @@ public interface Attachment extends AttachmentNameLookup.Supplier {
      *     <li>The volume of the effect</li>
      * </ul>
      */
-    interface EffectAttachment extends Attachment {
+    interface EffectAttachment extends Attachment, EffectSink {
 
-        /**
-         * Plays the effect. Is possibly called asynchronously, so the implementation must ensure the
-         * operation is thread-safe.
-         *
-         * @param options Options that change how the effect is played
-         */
+        @Override
         void playEffect(EffectOptions options);
 
-        /**
-         * Stops playing this effect, if possible. Is possibly called asynchronously, so the implementation
-         * must ensure the operation is thread-safe.
-         */
+        @Override
         void stopEffect();
 
         /**

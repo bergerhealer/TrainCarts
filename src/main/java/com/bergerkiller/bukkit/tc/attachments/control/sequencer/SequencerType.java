@@ -4,15 +4,12 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
-import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.MidiChartDialog;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiChart;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Supplier;
 
 /**
  * A type of sequencer that can play an effect. These types can be selected
@@ -40,8 +37,8 @@ public abstract class SequencerType {
                 }
 
                 @Override
-                public List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>> getPreviewEffects() {
-                    return args.getEffects();
+                public Attachment.EffectSink getEffectSink() {
+                    return args.effectSink;
                 }
             };
             dialog.setChart(MidiChart.fromYaml(args.config.getNode("chart")));
@@ -122,21 +119,17 @@ public abstract class SequencerType {
         public final MapWidget parent;
         /** Configuration of this sequencer type */
         public final ConfigurationNode config;
-        /** Supplies effect attachments played. Can be used for previewing the effect. */
-        public final Supplier<List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>>> effectsGetter;
+        /** Effect Sink used for previewing the effect */
+        public final Attachment.EffectSink effectSink;
 
         public OpenDialogArguments(
                 final MapWidget parent,
                 final ConfigurationNode config,
-                final Supplier<List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>>> effectsGetter
+                final Attachment.EffectSink effectSink
         ) {
             this.parent = parent;
             this.config = config;
-            this.effectsGetter = effectsGetter;
-        }
-
-        public List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>> getEffects() {
-            return effectsGetter.get();
+            this.effectSink = effectSink;
         }
     }
 }

@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.attachments.control.sequencer;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
-import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetScroller;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 
@@ -40,12 +39,12 @@ public abstract class MapWidgetSequencerEffectGroupList extends MapWidgetScrolle
     public abstract TransferFunctionHost getTransferFunctionHost();
 
     /**
-     * Gets the effect attachments that have the name specified
+     * Creates an Effect Sink of the effect attachments that have the name specified
      *
      * @param name Name assigned to the effect attachments
-     * @return Named group of effect attachments matching this name
+     * @return Effect Sink for the group of effect attachments matching this name
      */
-    public abstract List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>> getEffectAttachments(String name);
+    public abstract Attachment.EffectSink createEffectSink(String name);
 
     @Override
     public void onAttached() {

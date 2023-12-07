@@ -11,18 +11,15 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
-import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiChart;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiChartParameters;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiNote;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiTimeSignature;
-import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetTooltip;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -62,12 +59,11 @@ public abstract class MidiChartDialog extends MapWidgetMenu {
     public abstract void onChartChanged(MidiChart chart);
 
     /**
-     * Gets a lookup of the effect attachments for which this chart should be played when
-     * previewing the chart.
+     * Gets the Effect Sink used to preview the effects played by this MIDI chart
      *
-     * @return Preview effect attachments name groups
+     * @return Preview Effect Sink
      */
-    public abstract List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>> getPreviewEffects();
+    public abstract Attachment.EffectSink getEffectSink();
 
     public MidiChartDialog setChart(MidiChart chart) {
         this.chart = chart;
@@ -147,19 +143,13 @@ public abstract class MidiChartDialog extends MapWidgetMenu {
             return;
         }
 
-        // Gather the effect sinks
-        List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>> effects = getPreviewEffects();
-        if (effects.isEmpty()) {
-            return;
-        }
-
         // Shift playback to the beginning
         chart = chart.clone();
         final EffectLoop.Time shifted = shiftToStart ? chart.timeShiftToStart() : EffectLoop.Time.ZERO;
         final MidiEffectLoop effectLoop = new MidiEffectLoop();
         final int previewId = previewCtr;
         effectLoop.setChart(chart);
-        effectLoop.setEffects(effects);
+        effectLoop.setEffectSink(getEffectSink());
         TrainCarts.plugin.createEffectLoopPlayer().play(effectLoop.withAdvance((base, dt, duration, loop) -> {
             // Abort older running loops
             if (previewId != previewCtr || !base.advance(dt, duration, loop)) {

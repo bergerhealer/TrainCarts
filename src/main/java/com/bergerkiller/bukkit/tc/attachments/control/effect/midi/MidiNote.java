@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.attachments.control.effect.midi;
 
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
-import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
 
 /**
@@ -129,10 +128,10 @@ public final class MidiNote implements Comparable<MidiNote> {
     /**
      * Plays this note
      *
-     * @param effects Effects (instruments) to activate with this note
+     * @param effectSink Effect Sink (instruments) to activate with this note
      */
-    public void play(AttachmentNameLookup.NameGroup<Attachment.EffectAttachment> effects) {
-        effects.forEach(e -> e.playEffect(optionsAdjusted));
+    public void play(Attachment.EffectSink effectSink) {
+        effectSink.playEffect(optionsAdjusted);
     }
 
     @Override

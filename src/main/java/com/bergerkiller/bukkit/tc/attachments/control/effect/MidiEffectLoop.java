@@ -1,11 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.control.effect;
 
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
-import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiChart;
-
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Plays a sequence of speed (pitch) and volume values over time,
@@ -13,19 +9,15 @@ import java.util.List;
  * infinitely.
  */
 public class MidiEffectLoop extends SequenceEffectLoop {
-    private List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>> effects = Collections.emptyList();
+    private Attachment.EffectSink effectSink = Attachment.EffectSink.DISABLED_EFFECT_SINK;
     private MidiChart chart = MidiChart.empty();
 
-    public List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>> getEffects() {
-        return effects;
+    public Attachment.EffectSink getEffectSink() {
+        return effectSink;
     }
 
-    public void setEffects(List<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>> effects) {
-        this.effects = effects;
-    }
-
-    public void setEffects(AttachmentNameLookup.NameGroup<Attachment.EffectAttachment> effects) {
-        this.effects = Collections.singletonList(effects);
+    public void setEffectSink(Attachment.EffectSink effectSink) {
+        this.effectSink = effectSink;
     }
 
     public MidiChart getChart() {
@@ -38,6 +30,6 @@ public class MidiEffectLoop extends SequenceEffectLoop {
 
     @Override
     public boolean advance(long prevNanos, long currNanos) {
-        return chart.forNotesInRange(prevNanos, currNanos, n -> effects.forEach(n::play));
+        return chart.forNotesInRange(prevNanos, currNanos, n -> n.play(effectSink));
     }
 }
