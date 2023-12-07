@@ -47,16 +47,16 @@ public class TransferFunctionList implements TransferFunction, Cloneable {
         @Override
         public void save(TransferFunctionHost host, ConfigurationNode config, TransferFunctionList list) {
             if (!list.isEmpty()) {
-                List<ConfigurationNode> savedConfigs = new ArrayList<>(list.size());
+                //TODO: Replace with getNodeList(path, false) when BKCommonLib 1.20.2-v3 or later is a hard-depend
+                List<Object> effectConfigs = config.getList("functions");
                 TransferFunctionRegistry registry = host.getRegistry();
                 for (Item item : list.getItems()) {
                     ConfigurationNode functionConfig = registry.save(host, item.getFunction());
                     if (item.mode() != FunctionMode.ASSIGN) {
                         functionConfig.set("functionMode", item.mode());
                     }
-                    savedConfigs.add(functionConfig);
+                    effectConfigs.add(functionConfig);
                 }
-                config.setNodeList("functions", savedConfigs);
             }
         }
     };
