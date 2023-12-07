@@ -9,16 +9,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiChart;
  * infinitely.
  */
 public class MidiEffectLoop extends SequenceEffectLoop {
-    private Attachment.EffectSink effectSink = Attachment.EffectSink.DISABLED_EFFECT_SINK;
     private MidiChart chart = MidiChart.empty();
-
-    public Attachment.EffectSink getEffectSink() {
-        return effectSink;
-    }
-
-    public void setEffectSink(Attachment.EffectSink effectSink) {
-        this.effectSink = effectSink;
-    }
 
     public MidiChart getChart() {
         return chart;
@@ -30,6 +21,7 @@ public class MidiEffectLoop extends SequenceEffectLoop {
 
     @Override
     public boolean advance(long prevNanos, long currNanos) {
+        final Attachment.EffectSink effectSink = getEffectSink();
         return chart.forNotesInRange(prevNanos, currNanos, n -> n.play(effectSink));
     }
 }

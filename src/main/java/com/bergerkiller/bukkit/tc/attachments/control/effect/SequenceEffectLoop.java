@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.control.effect;
 
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+
 /**
  * A basic EffectLoop implementation for a sequence of effects played,
  * that optionally repeats (loops). Can be stopped with a stop method.
@@ -8,7 +10,26 @@ package com.bergerkiller.bukkit.tc.attachments.control.effect;
  * returns the total duration of the loop.
  */
 public abstract class SequenceEffectLoop implements EffectLoop {
+    private Attachment.EffectSink effectSink = Attachment.EffectSink.DISABLED_EFFECT_SINK;
     private long nanosElapsed = 0;
+
+    /**
+     * Gets the effect sink used to play effects part of this sequence
+     *
+     * @return Effect Sink
+     */
+    public Attachment.EffectSink getEffectSink() {
+        return effectSink;
+    }
+
+    /**
+     * Sets the effect sink used to play effects part of this sequence
+     *
+     * @param effectSink Effect Sink
+     */
+    public void setEffectSink(Attachment.EffectSink effectSink) {
+        this.effectSink = effectSink;
+    }
 
     /**
      * Advances this sequence from a previous timestamp in nanoseconds to

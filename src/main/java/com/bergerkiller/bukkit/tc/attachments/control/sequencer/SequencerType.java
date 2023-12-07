@@ -7,6 +7,8 @@ import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.MidiChartDialog;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.MidiEffectLoop;
+import com.bergerkiller.bukkit.tc.attachments.control.effect.SimpleEffectLoop;
+import com.bergerkiller.bukkit.tc.attachments.control.effect.SimpleEffectLoopDialog;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiChart;
 
 import java.util.Comparator;
@@ -29,12 +31,15 @@ public abstract class SequencerType {
     public static final SequencerType SIMPLE = register(new SequencerType("Simple", MapWidgetSequencerEffect.Icon.SIMPLE) {
         @Override
         public void openConfigurationDialog(OpenDialogArguments args) {
-
+            args.parent.addWidget(new SimpleEffectLoopDialog(args.config));
         }
 
         @Override
         public EffectLoop createEffectLoop(ConfigurationNode config, Attachment.EffectSink effectSink) {
-            return EffectLoop.NONE;
+            SimpleEffectLoop effectLoop = new SimpleEffectLoop();
+            effectLoop.setEffectSink(effectSink);
+            effectLoop.setDelay(EffectLoop.Time.seconds(config.getOrDefault("delay", 0.0)));
+            return effectLoop;
         }
     });
     public static final SequencerType MIDI = register(new SequencerType("MIDI", MapWidgetSequencerEffect.Icon.MIDI) {

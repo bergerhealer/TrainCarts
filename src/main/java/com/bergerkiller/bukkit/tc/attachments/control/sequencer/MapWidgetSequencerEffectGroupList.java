@@ -2,7 +2,9 @@ package com.bergerkiller.bukkit.tc.attachments.control.sequencer;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetScroller;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 
@@ -14,10 +16,12 @@ import java.util.List;
  */
 public abstract class MapWidgetSequencerEffectGroupList extends MapWidgetScroller {
     public MapWidgetSequencerEffectGroup startGroup, loopGroup, stopGroup;
-    protected int effectSelButtonIndex = 0; // Used by MapWidgetSequencerEffect
+    protected int effectSelButtonIndex = 1; // Used by MapWidgetSequencerEffect
+    private final EffectLoop.Player previewEffectLoopPlayer;
 
     public MapWidgetSequencerEffectGroupList() {
         this.setScrollPadding(15);
+        previewEffectLoopPlayer = TrainCarts.plugin.getEffectLoopPlayerController().createPlayer(20);
     }
 
     public abstract ConfigurationNode getConfig();
@@ -45,6 +49,15 @@ public abstract class MapWidgetSequencerEffectGroupList extends MapWidgetScrolle
      * @return Effect Sink for the group of effect attachments matching this name
      */
     public abstract Attachment.EffectSink createEffectSink(String name);
+
+    /**
+     * Gets the effect loop player that can be used to preview effect loops in the UI
+     *
+     * @return EffectLoop preview player
+     */
+    public EffectLoop.Player getPreviewEffectLoopPlayer() {
+        return previewEffectLoopPlayer;
+    }
 
     @Override
     public void onAttached() {

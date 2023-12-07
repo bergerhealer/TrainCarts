@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionSingleConfigItem;
@@ -17,6 +18,7 @@ import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionBoolean;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionConstant;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
+import com.bergerkiller.bukkit.tc.controller.global.EffectLoopPlayerController;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,13 +51,17 @@ public class MapWidgetSequencerEffect extends MapWidget {
 
         this.config = config;
         this.type = SequencerType.fromConfig(config);
+        this.buttons.add(new Button(Icon.PREVIEW, "Preview", () -> {
+            EffectLoop effectLoop = type.createEffectLoop(config, getGroupList().createEffectSink(getEffectName()));
+            getGroupList().getPreviewEffectLoopPlayer().play(effectLoop);
+        }));
         this.buttons.add(new Button(type.icon(false), type.icon(true), "Configure " + type.name().toLowerCase(Locale.ENGLISH), () -> {
             // Configure the effect loop type
             type.openConfigurationDialog(new SequencerType.OpenDialogArguments(
                     getGroupList(),
                     MapWidgetSequencerEffect.this.config,
                     getGroupList().createEffectSink(
-                            MapWidgetSequencerEffect.this.config.getOrDefault("effect", ""))
+                            MapWidgetSequencerEffect.this.getEffectName())
             ));
         }));
         this.buttons.add(new Button(Icon.EFFECT_NAME, "Effect", () -> {
@@ -105,6 +111,10 @@ public class MapWidgetSequencerEffect extends MapWidget {
         }
     }
 
+    public String getEffectName() {
+        return config.getOrDefault("effect", "");
+    }
+
     private MapWidgetSequencerEffectGroupList getGroupList() {
         for (MapWidget w = getParent(); w != null; w = w.getParent()) {
             if (w instanceof MapWidgetSequencerEffectGroupList) {
@@ -148,7 +158,7 @@ public class MapWidgetSequencerEffect extends MapWidget {
         view.getView(1, 1, getWidth() - 2, getHeight() - 2)
                 .draw(MapFont.MINECRAFT, 1, 1,
                         focused ? EFFECT_COLOR_FOCUSED : EFFECT_COLOR_DEFAULT,
-                        config.getOrDefault("effect", ""));
+                        getEffectName());
 
         // Buttons
         if (focused) {
@@ -293,6 +303,7 @@ public class MapWidgetSequencerEffect extends MapWidget {
     }
 
     public enum Icon {
+        PREVIEW,
         EFFECT_NAME,
         SETTINGS,
         DELETE,
