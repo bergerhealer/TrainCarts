@@ -4,12 +4,17 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.MidiChartDialog;
+import com.bergerkiller.bukkit.tc.attachments.control.effect.MidiEffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiChart;
 
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * A type of sequencer that can play an effect. These types can be selected
@@ -25,6 +30,11 @@ public abstract class SequencerType {
         @Override
         public void openConfigurationDialog(OpenDialogArguments args) {
 
+        }
+
+        @Override
+        public EffectLoop createEffectLoop(ConfigurationNode config, Attachment.EffectSink effectSink) {
+            return EffectLoop.NONE;
         }
     });
     public static final SequencerType MIDI = register(new SequencerType("MIDI", MapWidgetSequencerEffect.Icon.MIDI) {
@@ -43,6 +53,14 @@ public abstract class SequencerType {
             };
             dialog.setChart(MidiChart.fromYaml(args.config.getNode("chart")));
             args.parent.addWidget(dialog);
+        }
+
+        @Override
+        public EffectLoop createEffectLoop(ConfigurationNode config, Attachment.EffectSink effectSink) {
+            MidiEffectLoop effectLoop = new MidiEffectLoop();
+            effectLoop.setEffectSink(effectSink);
+            effectLoop.setChart(MidiChart.fromYaml(config.getNode("chart")));
+            return effectLoop;
         }
     });
 
@@ -63,6 +81,16 @@ public abstract class SequencerType {
      */
     public abstract void openConfigurationDialog(OpenDialogArguments args);
 
+    /**
+     * Creates a new EffectLoop instance of this type of sequencer, loading it from the configuration
+     * specified. The effects are played through the effect sink specified.
+     *
+     * @param config Configuration for this sequencer type
+     * @param effectSink Effect Sink to control (instruments)
+     * @return new EffectLoop
+     */
+    public abstract EffectLoop createEffectLoop(ConfigurationNode config, Attachment.EffectSink effectSink);
+
     public String name() {
         return name;
     }
@@ -76,6 +104,12 @@ public abstract class SequencerType {
         config.set("type", name());
         config.set("effect", effectName);
         return config;
+    }
+
+    public static List<SequencerType> all() {
+        return types.values().stream()
+                .sorted(Comparator.comparing(SequencerType::name))
+                .collect(Collectors.toList());
     }
 
     public static SequencerType fromConfig(ConfigurationNode config) {

@@ -166,6 +166,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
         });
         configureButton.setPosition(getWidth() - 43, 0);
 
+        //TODO: Ugly indentation
         addEffectButton = addWidget(new HeaderButton(35, 19, 7, 7) {
             @Override
             public void onActivate() {
@@ -174,9 +175,13 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
                     @Override
                     public void onSelected(String effectName) {
                         // Ask what type of effect to add
-                        // TODO: Implement this
-                        groupList.effectSelButtonIndex = 0;
-                        addEffect(new MapWidgetSequencerEffect(SequencerType.MIDI, effectName));
+                        groupList.addWidget(new MapWidgetSequencerTypeSelector() {
+                            @Override
+                            public void onSelected(SequencerType type) {
+                                groupList.effectSelButtonIndex = 0;
+                                addEffect((new MapWidgetSequencerEffect(type, effectName)).focusOnActivate());
+                            }
+                        });
                     }
                 });
             }

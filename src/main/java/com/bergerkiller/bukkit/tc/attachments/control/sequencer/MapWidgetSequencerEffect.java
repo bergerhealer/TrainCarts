@@ -37,6 +37,7 @@ public class MapWidgetSequencerEffect extends MapWidget {
     private final ConfigurationNode config;
     private final SequencerType type;
     private final List<Button> buttons = new ArrayList<>();
+    private boolean focusOnActivate = false;
 
     public MapWidgetSequencerEffect(SequencerType type, String name) {
         this(type.createConfig(name));
@@ -93,6 +94,11 @@ public class MapWidgetSequencerEffect extends MapWidget {
         return config;
     }
 
+    public MapWidgetSequencerEffect focusOnActivate() {
+        this.focusOnActivate = true;
+        return this;
+    }
+
     public void remove() {
         if (getParent() instanceof MapWidgetSequencerEffectGroup) {
             ((MapWidgetSequencerEffectGroup) getParent()).removeEffect(this);
@@ -116,6 +122,16 @@ public class MapWidgetSequencerEffect extends MapWidget {
         if (newIndex >= 0 && newIndex < buttons.size()) {
             getGroupList().effectSelButtonIndex = newIndex;
             invalidate();
+        }
+    }
+
+    @Override
+    public void onAttached() {
+        super.onAttached();
+
+        if (focusOnActivate) {
+            focusOnActivate = false;
+            this.focus();
         }
     }
 
