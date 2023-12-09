@@ -8,6 +8,11 @@ minecraft/
 logs/
 hashtest
 
+# krita temp files
+*.kra
+*.kra~
+*.png~
+
 # netbeans
 nbproject/
 nbactions.xml
