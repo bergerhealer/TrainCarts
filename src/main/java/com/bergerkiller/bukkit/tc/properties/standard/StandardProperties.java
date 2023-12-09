@@ -162,6 +162,11 @@ public class StandardProperties {
         }
 
         @Override
+        public boolean isListed() {
+            return false; // I see no use listing it
+        }
+
+        @Override
         public Optional<Boolean> readFromConfig(ConfigurationNode config) {
             return Util.getConfigOptional(config, "requirePoweredMinecart", boolean.class);
         }

@@ -121,6 +121,7 @@ public class TransferFunctionInputSequencerPlayState extends TransferFunctionInp
             public void onSelectedItemChanged() {
                 if (!loading && getSelectedIndex() >= 0 && getSelectedIndex() < Mode.values().length) {
                     setMode(Mode.values()[getSelectedIndex()]);
+                    updateSource(dialog.getHost());
                     dialog.markChanged();
                 }
             }

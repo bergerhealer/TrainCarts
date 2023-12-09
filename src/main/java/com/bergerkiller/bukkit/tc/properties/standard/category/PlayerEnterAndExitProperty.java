@@ -33,6 +33,11 @@ public final class PlayerEnterAndExitProperty implements ICartProperty<Boolean> 
     }
 
     @Override
+    public boolean isListed() {
+        return false;
+    }
+
+    @Override
     public Boolean getDefault() {
         return Boolean.TRUE;
     }

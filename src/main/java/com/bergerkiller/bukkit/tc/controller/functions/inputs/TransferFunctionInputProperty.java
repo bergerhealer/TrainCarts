@@ -4,7 +4,8 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
-import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionDialog;
+import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
@@ -13,8 +14,13 @@ import com.bergerkiller.bukkit.tc.properties.api.IDoubleProperty;
 import com.bergerkiller.bukkit.tc.properties.api.IProperty;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 public class TransferFunctionInputProperty extends TransferFunctionInput {
-    public static final TransferFunction.Serializer<TransferFunctionInput> SERIALIZER = new TransferFunction.Serializer<TransferFunctionInput>() {
+    public static final TransferFunction.Serializer<TransferFunctionInputProperty> SERIALIZER = new TransferFunction.Serializer<TransferFunctionInputProperty>() {
         @Override
         public String typeId() {
             return "INPUT-PROPERTY";
@@ -31,23 +37,41 @@ public class TransferFunctionInputProperty extends TransferFunctionInput {
         }
 
         @Override
-        public TransferFunctionInput createNew(TransferFunctionHost host) {
-            TransferFunctionInputProperty property = new TransferFunctionInputProperty();
-            property.updateSource(host);
-            return property;
+        public TransferFunctionInputProperty createNew(TransferFunctionHost host) {
+            TransferFunctionInputProperty propertyInput = new TransferFunctionInputProperty(StandardProperties.SPEEDLIMIT);
+            propertyInput.updateSource(host);
+            return propertyInput;
         }
 
         @Override
-        public TransferFunctionInput load(TransferFunctionHost host, ConfigurationNode config) {
-            TransferFunctionInputProperty property = new TransferFunctionInputProperty();
-            property.updateSource(host);
-            return property;
+        public TransferFunctionInputProperty load(TransferFunctionHost host, ConfigurationNode config) {
+            IProperty<?> property = host.getTrainCarts().getPropertyRegistry().byListedName()
+                    .get(config.getOrDefault("property", ""));
+
+            TransferFunctionInputProperty propertyInput = new TransferFunctionInputProperty(property);
+            propertyInput.updateSource(host);
+            return propertyInput;
         }
 
         @Override
-        public void save(TransferFunctionHost host, ConfigurationNode config, TransferFunctionInput function) {
+        public void save(TransferFunctionHost host, ConfigurationNode config, TransferFunctionInputProperty function) {
+            config.set("property", function.getProperty().getListedName());
         }
     };
+
+    private IProperty<?> property;
+
+    public TransferFunctionInputProperty(IProperty<?> property) {
+        this.property = property;
+    }
+
+    public IProperty<?> getProperty() {
+        return property;
+    }
+
+    public void setProperty(IProperty<?> property) {
+        this.property = property;
+    }
 
     @Override
     public TransferFunction.Serializer<? extends TransferFunction> getSerializer() {
@@ -56,28 +80,23 @@ public class TransferFunctionInputProperty extends TransferFunctionInput {
 
     @Override
     public ReferencedSource createSource(TransferFunctionHost host) {
-        CartProperties properties = host.getCartProperties();
-        if (properties == null) {
-            return ReferencedSource.NONE;
+        if (property != null) {
+            CartProperties properties = host.getCartProperties();
+            if (properties != null) {
+                Function<CartProperties, ReferencedSource> creator = getPropertySourceCreator(property);
+                if (creator != null) {
+                    return creator.apply(properties);
+                }
+            }
         }
 
-        IProperty<?> property = StandardProperties.SPEEDLIMIT;
-
-        if (property instanceof IDoubleProperty) {
-            return new PropertySourceDouble(properties, (IDoubleProperty) property);
-        } else if (property.getDefault() instanceof Double) {
-            return new PropertySourceDoubleBoxed(properties, (IProperty<Double>) property);
-        } else if (property.getDefault() instanceof Boolean) {
-            return new PropertySourceBool(properties, (IProperty<Boolean>) property);
-        } else {
-            // Unknown
-            return ReferencedSource.NONE;
-        }
+        // Unknown / not supported
+        return ReferencedSource.NONE;
     }
 
     @Override
     protected TransferFunctionInput cloneInput() {
-        return new TransferFunctionInputProperty();
+        return new TransferFunctionInputProperty(property);
     }
 
     @Override
@@ -88,6 +107,70 @@ public class TransferFunctionInputProperty extends TransferFunctionInput {
     @Override
     public void openDialog(Dialog dialog) {
         super.openDialog(dialog);
+
+        dialog.addWidget(new MapWidgetSelectionBox() {
+            private List<ListedProperty> properties = Collections.emptyList();
+            private boolean loading = false;
+
+            @Override
+            public void onAttached() {
+                properties = TrainCarts.plugin.getPropertyRegistry().byListedName().entrySet().stream()
+                        .map(e -> new ListedProperty(e.getKey(), e.getValue()))
+                        .filter(p -> getPropertySourceCreator(p.property) != null)
+                        .sorted()
+                        .collect(Collectors.toList());
+
+                loading = true;
+                for (ListedProperty listedProperty : properties) {
+                    addItem(listedProperty.name);
+                    if (listedProperty.property == property) {
+                        setSelectedIndex(getItemCount() - 1);
+                    }
+                }
+                super.onAttached();
+                loading = false;
+            }
+
+            @Override
+            public void onSelectedItemChanged() {
+                if (!loading && getSelectedIndex() >= 0 && getSelectedIndex() < properties.size()) {
+                    TransferFunctionInputProperty.this.setProperty(properties.get(getSelectedIndex()).property);
+                    updateSource(dialog.getHost());
+                    dialog.markChanged();
+                }
+            }
+        }).setBounds(4, 18, dialog.getWidth() - 8, 11);
+    }
+
+    private static Function<CartProperties, ReferencedSource> getPropertySourceCreator(IProperty<?> property) {
+        if (!property.isListed()) {
+            // Cannot be used
+            return null;
+        } else if (property instanceof IDoubleProperty) {
+            return properties -> new PropertySourceDouble(properties, (IDoubleProperty) property);
+        } else if (property.getDefault() instanceof Double) {
+            return properties -> new PropertySourceDoubleBoxed(properties, (IProperty<Double>) property);
+        } else if (property.getDefault() instanceof Boolean) {
+            return properties -> new PropertySourceBool(properties, (IProperty<Boolean>) property);
+        } else {
+            // Unknown
+            return null;
+        }
+    }
+
+    private static class ListedProperty implements Comparable<ListedProperty> {
+        public final String name;
+        public final IProperty<?> property;
+
+        public ListedProperty(String listedName, IProperty<?> property) {
+            this.name = listedName;
+            this.property = property;
+        }
+
+        @Override
+        public int compareTo(ListedProperty listedProperty) {
+            return this.name.compareTo(listedProperty.name);
+        }
     }
 
     // For boolean properties. 1 is true, 0 is false.

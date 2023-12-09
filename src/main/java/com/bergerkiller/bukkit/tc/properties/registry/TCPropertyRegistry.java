@@ -58,7 +58,9 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
 
     // All registered properties and their metadata
     private final Map<IProperty<Object>, PropertyDetails<Object>> properties = new HashMap<>();
+    private final Map<String, IProperty<Object>> propertiesByListedName = new HashMap<>();
     private Collection<IProperty<Object>> cachedPropertiesAll = null; // Lazily initialized on first use
+    private Map<String, IProperty<Object>> cachedPropertiesByListedName = null; // Lazily initialized on first use
 
     // Used during lookup by name
     private final Map<String, PropertyParserElement<?>> parsersByName = new HashMap<>();
@@ -113,17 +115,19 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
         PropertyDetails<Object> previous = properties.put(details.property, details);
 
         // Invalidate
-        cachedPropertiesAll = null;
+        invalidateCachedCollections();
 
         // Unregister a previous property that is overridden
         if (previous != null) {
-            previous.parsers.forEach(this::unregisterParser);
-            previous.conditions.forEach(this::unregisterCondition);
+            onPropertyRemoved(previous);
         }
 
         // Register new property
         details.parsers.forEach(this::registerParser);
         details.conditions.forEach(this::registerCondition);
+        if (details.property.isListed()) {
+            propertiesByListedName.put(details.listedName, details.property);
+        }
 
         // Register cloud commands declared inside the property
         if (this.commands.isEnabled()) {
@@ -148,10 +152,21 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
     public void unregister(IProperty<?> property) {
         PropertyDetails<Object> removed = properties.remove(property);
         if (removed != null) {
-            removed.parsers.forEach(this::unregisterParser);
+            onPropertyRemoved(removed);
+            invalidateCachedCollections();
+        }
+    }
 
-            // Invalidate
-            cachedPropertiesAll = null;
+    private void invalidateCachedCollections() {
+        cachedPropertiesAll = null;
+        cachedPropertiesByListedName = null;
+    }
+
+    private void onPropertyRemoved(PropertyDetails<Object> details) {
+        details.parsers.forEach(this::unregisterParser);
+        details.conditions.forEach(this::unregisterCondition);
+        if (details.property.isListed()) {
+            propertiesByListedName.remove(details.listedName, details.property);
         }
     }
 
@@ -168,6 +183,15 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
             cachedPropertiesAll = all = Collections.unmodifiableCollection(new ArrayList<>(properties.keySet()));
         }
         return all;
+    }
+
+    @Override
+    public Map<String, IProperty<Object>> byListedName() {
+        Map<String, IProperty<Object>> byListedName = cachedPropertiesByListedName;
+        if (byListedName == null) {
+            cachedPropertiesByListedName = byListedName = Collections.unmodifiableMap(new HashMap<>(propertiesByListedName));
+        }
+        return byListedName;
     }
 
     private void registerCondition(PropertySelectorConditionElement<?> condition) {
@@ -341,6 +365,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
      */
     private static class PropertyDetails<T> {
         public final IProperty<T> property;
+        public final String listedName;
         public final List<PropertyParserElement<T>> parsers;
         public final List<PropertySelectorConditionElement<T>> conditions;
 
@@ -348,6 +373,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
                 List<PropertySelectorConditionElement<T>> conditions
         ) {
             this.property = property;
+            this.listedName = property.getListedName();
             this.parsers = parsers;
             this.conditions = conditions;
         }

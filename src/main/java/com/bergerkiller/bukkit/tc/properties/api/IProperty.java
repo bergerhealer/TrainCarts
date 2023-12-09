@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.properties.api;
 
+import java.util.Locale;
 import java.util.Optional;
 
 import org.bukkit.command.CommandSender;
@@ -148,7 +149,33 @@ public interface IProperty<T> {
                 return name;
             }
         }
-        return this.getClass().getSimpleName();
+        String name = this.getClass().getSimpleName().toLowerCase(Locale.ENGLISH);
+        if (name.endsWith("property")) {
+            name = name.substring(0, name.length() - 8);
+        }
+        return name;
+    }
+
+    /**
+     * Gets the name of this property. Is used when listing this property, such as in
+     * Transfer Function property input selection menus.<br>
+     * <br>
+     * By default returns {@link #getPermissionName()}
+     *
+     * @return Listed (display) name of this property
+     */
+    default String getListedName() {
+        return getPermissionName();
+    }
+
+    /**
+     * Gets whether this property is listed in selector menus. If this property
+     * combines multiple other properties, or is uninteresting, should return false.
+     *
+     * @return True if this property is listed in selector menus
+     */
+    default boolean isListed() {
+        return true;
     }
 
     /**

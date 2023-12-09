@@ -78,6 +78,11 @@ public final class PlayerEnterProperty implements ICartProperty<Boolean> {
     }
 
     @Override
+    public String getListedName() {
+        return "playerenter";
+    }
+
+    @Override
     public boolean hasPermission(CommandSender sender, String name) {
         return Permission.PROPERTY_PLAYERENTER.has(sender);
     }

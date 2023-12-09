@@ -78,6 +78,11 @@ public final class PlayerExitProperty implements ICartProperty<Boolean> {
     }
 
     @Override
+    public String getListedName() {
+        return "playerexit";
+    }
+
+    @Override
     public boolean hasPermission(CommandSender sender, String name) {
         return Permission.PROPERTY_PLAYEREXIT.has(sender);
     }

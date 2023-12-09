@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.properties.api;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -165,6 +166,15 @@ public interface IPropertyRegistry {
      * @return unmodifiable list of all properties
      */
     Collection<IProperty<Object>> all();
+
+    /**
+     * Gets an unmodifiable mapping of all registered properties, mapped
+     * to their listed name. This listed name is what is shown in selectors
+     * when selecting properties.
+     *
+     * @return unmodifiable mapping of all properties, mapped to their listed name
+     */
+    Map<String, IProperty<Object>> byListedName();
 
     /**
      * Registers a new property

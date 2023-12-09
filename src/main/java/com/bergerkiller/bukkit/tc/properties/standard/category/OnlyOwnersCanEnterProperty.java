@@ -79,6 +79,11 @@ public final class OnlyOwnersCanEnterProperty extends FieldBackedStandardCartPro
     }
 
     @Override
+    public boolean isListed() {
+        return false; // I see no use listing it
+    }
+
+    @Override
     public boolean hasPermission(CommandSender sender, String name) {
         return Permission.PROPERTY_ONLYOWNERSCANENTER.has(sender);
     }
