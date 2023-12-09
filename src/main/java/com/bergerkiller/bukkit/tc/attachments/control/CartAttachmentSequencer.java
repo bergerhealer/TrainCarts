@@ -492,7 +492,9 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
             // higher up the chain aborts playback.
             if (mode == SequencerMode.LOOP && !stopRequested) {
                 long remainder = curr_time_nanos - durationNanos;
-                this.nanosElapsed = remainder;
+                if (remainder >= durationNanos) {
+                    remainder %= durationNanos;
+                }
                 advanceAllEffects(prev_time_nanos, durationNanos);
                 advanceAllEffects(0, remainder);
                 return EffectLoop.Time.ZERO;
