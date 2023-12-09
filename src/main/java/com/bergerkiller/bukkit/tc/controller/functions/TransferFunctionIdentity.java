@@ -24,7 +24,7 @@ class TransferFunctionIdentity implements TransferFunction {
         }
 
         @Override
-        public boolean isListed() {
+        public boolean isListed(TransferFunctionHost host) {
             return false;
         }
 

@@ -22,7 +22,7 @@ public class TransferFunctionInputProperty extends TransferFunctionInput {
 
         @Override
         public String title() {
-            return "Input Property";
+            return "In: Property";
         }
 
         @Override

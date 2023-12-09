@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.functions.inputs;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSequencer;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionDialog;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
@@ -84,7 +85,7 @@ public abstract class TransferFunctionInput implements TransferFunction {
                 serializers.clear();
                 loading = true;
                 for (TransferFunction.Serializer<?> serializer : dialog.getHost().getRegistry().all()) {
-                    if (serializer.isListed() && serializer.isInput()) {
+                    if (serializer.isListed(dialog.getHost()) && serializer.isInput()) {
                         serializers.add(serializer);
                         addItem(serializer.title());
                         if (serializer == TransferFunctionInput.this.getSerializer()) {
@@ -190,6 +191,18 @@ public abstract class TransferFunctionInput implements TransferFunction {
          * Called every tick
          */
         public void onTick() {
+        }
+
+        /**
+         * Whether {@link #onTick()} is called (asynchronously) before the effect sequences are
+         * updated in the {@link CartAttachmentSequencer}. Only relevant for referenced sources
+         * that read from the sequencer.
+         *
+         * @return True if {@link #onTick()} is called before the effects are updated.
+         *         False if {@link #onTick()} is called on the main thread. (default)
+         */
+        public boolean isTickedDuringPlay() {
+            return false;
         }
 
         /**

@@ -35,7 +35,7 @@ public abstract class MapWidgetTransferFunctionTypeSelectorDialog extends MapWid
                         int y = 0;
                         boolean addedInput = false;
                         for (TransferFunction.Serializer<?> serializer : host.getRegistry().all()) {
-                            if (serializer.isListed()) {
+                            if (serializer.isListed(host)) {
                                 // Only add the very first input transform function, listed as "input"
                                 if (serializer.isInput()) {
                                     if (addedInput) {

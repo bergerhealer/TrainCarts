@@ -314,11 +314,12 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
 
         /**
          * Gets whether this transfer function is listed in the 'create new transfer function'
-         * dialog.
+         * dialog. The input host can be queried to test compatibility.
          *
+         * @param host TransferFunctionHost that will contain this transfer function
          * @return True if listed (default)
          */
-        default boolean isListed() {
+        default boolean isListed(TransferFunctionHost host) {
             return true;
         }
 

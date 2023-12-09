@@ -70,7 +70,17 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
                 }
 
                 @Override
+                public boolean isSequencer() {
+                    return true;
+                }
+
+                @Override
                 public MinecartMember<?> getMember() {
+                    return null;
+                }
+
+                @Override
+                public Attachment getAttachment() {
                     return null;
                 }
 
@@ -122,7 +132,7 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
     public CartAttachmentSequencer() {
         sequencerGroups = new EnumMap<>(SequencerMode.class);
         for (SequencerMode mode : SequencerMode.values()) {
-            sequencerGroups.put(mode, new SequencerGroup(mode));
+            sequencerGroups.put(mode, new SequencerGroup(this, mode));
         }
         currentGroup = sequencerGroups.get(SequencerMode.START);
     }
@@ -139,8 +149,26 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
     @Override
     public void onLoad(ConfigurationNode config) {
         for (SequencerMode mode : SequencerMode.values()) {
-            sequencerGroups.get(mode).load(this, config.getNodeIfExists(mode.configKey()));
+            sequencerGroups.get(mode).load(config.getNodeIfExists(mode.configKey()));
         }
+    }
+
+    /**
+     * Gets the current play options of last {@link #playEffect(EffectOptions)} invocation
+     *
+     * @return Play Options
+     */
+    public EffectOptions getCurrentPlayOptions() {
+        return playOptions;
+    }
+
+    /**
+     * Gets how far along playback has progressed. 0.0 is the beginning, 1.0 is the end.
+     *
+     * @return Play progression
+     */
+    public double getProgression() {
+        return Math.min(1.0, (double) currentGroup.nanosElapsed / (double) currentGroup.duration.nanos);
     }
 
     @Override
@@ -215,9 +243,12 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
     public void onTick() {
         functionHost.sources.removeIf(s -> {
             if (s.hasRecipients()) {
-                s.onTick();
+                if (!s.isTickedDuringPlay()) {
+                    s.onTick();
+                }
                 return false;
             } else {
+                functionHost.onSourceRemoved(s);
                 return true; // Remove
             }
         });
@@ -243,6 +274,7 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
 
     public class SequencerTransferFunctionHost implements TransferFunctionHost {
         private final List<TransferFunctionInput.ReferencedSource> sources = new ArrayList<>();
+        private List<TransferFunctionInput.ReferencedSource> sourcesTickedDuringPlay = Collections.emptyList();
 
         @Override
         public TrainCarts getTrainCarts() {
@@ -254,15 +286,43 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
             return TransferFunction.getRegistry();
         }
 
+        public void tickPlaySources() {
+            sourcesTickedDuringPlay.forEach(TransferFunctionInput.ReferencedSource::onTick);
+        }
+
+        public void onSourceRemoved(TransferFunctionInput.ReferencedSource source) {
+            int idx = sourcesTickedDuringPlay.indexOf(source);
+            if (idx != -1) {
+                List<TransferFunctionInput.ReferencedSource> newList = new ArrayList<>(sourcesTickedDuringPlay);
+                newList.remove(idx);
+                sourcesTickedDuringPlay = newList;
+            }
+        }
+
         @Override
         public TransferFunctionInput.ReferencedSource registerInputSource(TransferFunctionInput.ReferencedSource source) {
             int index = sources.indexOf(source);
             if (index == -1) {
                 sources.add(source);
+                if (source.isTickedDuringPlay()) {
+                    List<TransferFunctionInput.ReferencedSource> newList = new ArrayList<>(sourcesTickedDuringPlay);
+                    newList.add(source);
+                    sourcesTickedDuringPlay = newList;
+                }
                 return source;
             } else {
                 return sources.get(index);
             }
+        }
+
+        @Override
+        public boolean isSequencer() {
+            return true;
+        }
+
+        @Override
+        public Attachment getAttachment() {
+            return CartAttachmentSequencer.this;
         }
 
         @Override
@@ -277,6 +337,7 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
      */
     public static class SequencerGroup implements Tickable {
         private final ConfigLoadedValue<TransferFunction> speedFunction = new ConfigLoadedValue<>(new TransferFunctionConstant(1.0));
+        private final CartAttachmentSequencer sequencer;
         private final SequencerMode mode;
         private EffectLoop.Time duration = EffectLoop.Time.ZERO;
         private long nanosElapsed = 0;
@@ -284,7 +345,8 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
         private final Map<ConfigurationNode, SequencerEffect> effectsByConfig = new IdentityHashMap<>();
         private List<SequencerEffect> effects = Collections.emptyList();
 
-        public SequencerGroup(SequencerMode mode) {
+        public SequencerGroup(CartAttachmentSequencer sequencer, SequencerMode mode) {
+            this.sequencer = sequencer;
             this.mode = mode;
         }
 
@@ -292,7 +354,7 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
             return mode;
         }
 
-        public void load(CartAttachmentSequencer sequencer, ConfigurationNode config) {
+        public void load(ConfigurationNode config) {
             // Reset if there is no configuration
             if (config == null || config.isEmpty()) {
                 speedFunction.reset();
@@ -382,6 +444,7 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
             }
 
             // Update transfer functions
+            sequencer.functionHost.tickPlaySources();
             double speed = speedFunction.get().map(0.0);
             effects.forEach(SequencerEffect::updateEffectLoop);
 

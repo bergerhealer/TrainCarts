@@ -21,7 +21,7 @@ public class TransferFunctionInputSpeed extends TransferFunctionInput {
 
         @Override
         public String title() {
-            return "Input Speed";
+            return "In: Move Speed";
         }
 
         @Override
@@ -65,7 +65,7 @@ public class TransferFunctionInputSpeed extends TransferFunctionInput {
 
     @Override
     public void drawPreview(MapWidgetTransferFunctionItem widget, MapCanvas view) {
-        view.draw(MapFont.MINECRAFT, 0, 3, MapColorPalette.COLOR_GREEN, "Speed [input]");
+        view.draw(MapFont.MINECRAFT, 0, 3, MapColorPalette.COLOR_GREEN, "<Move Speed>");
     }
 
     @Override
