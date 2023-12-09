@@ -25,7 +25,6 @@ import com.bergerkiller.bukkit.tc.controller.functions.inputs.TransferFunctionIn
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.IdentityHashMap;
@@ -33,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Plays a sequence of effects in a loop. Supports a mechanism for a pre-loop start and post-loop stop
@@ -98,7 +98,12 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
 
                 @Override
                 public List<String> getEffectNames() {
-                    return Arrays.asList("bell");
+                    return attachment.getAttachmentConfig().liveAttachmentsOfType(CartAttachmentSequencer.class).stream()
+                            .flatMap(s -> s.findAllEffectAttachments().stream())
+                            .flatMap(e -> e.getNames().stream())
+                            .sorted()
+                            .distinct()
+                            .collect(Collectors.toList());
                 }
 
                 @Override
@@ -268,7 +273,24 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
         if (name.isEmpty()) {
             return AttachmentNameLookup.NameGroup.none();
         } else {
+            //TODO: Option for all of cart / attachments below sequencer
             return AttachmentNameLookup.NameGroup.of(rootParent, name, EffectAttachment.class);
+        }
+    }
+
+    private List<EffectAttachment> findAllEffectAttachments() {
+        //TODO: Option for all of cart / attachments below sequencer
+        List<EffectAttachment> result = new ArrayList<>();
+        fillChildEffectAttachments(result, rootParent);
+        return result;
+    }
+
+    private void fillChildEffectAttachments(List<EffectAttachment> result, Attachment root) {
+        if (root instanceof EffectAttachment && root != this) {
+            result.add((EffectAttachment) root);
+        }
+        for (Attachment child : root.getChildren()) {
+            fillChildEffectAttachments(result, child);
         }
     }
 
