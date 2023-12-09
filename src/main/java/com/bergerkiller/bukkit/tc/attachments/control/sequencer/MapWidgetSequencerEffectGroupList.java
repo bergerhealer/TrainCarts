@@ -62,12 +62,9 @@ public abstract class MapWidgetSequencerEffectGroupList extends MapWidgetScrolle
     @Override
     public void onAttached() {
         ConfigurationNode config = getConfig();
-        startGroup = addContainerWidget(new MapWidgetSequencerEffectGroup(
-                this, MapWidgetSequencerEffectGroup.Mode.START, config.getNode("start")));
-        loopGroup = addContainerWidget(new MapWidgetSequencerEffectGroup(
-                this, MapWidgetSequencerEffectGroup.Mode.LOOP, config.getNode("loop")));
-        stopGroup = addContainerWidget(new MapWidgetSequencerEffectGroup(
-                this, MapWidgetSequencerEffectGroup.Mode.STOP, config.getNode("stop")));
+        startGroup = addContainerWidget(new MapWidgetSequencerEffectGroup(this, SequencerMode.START));
+        loopGroup = addContainerWidget(new MapWidgetSequencerEffectGroup(this, SequencerMode.LOOP));
+        stopGroup = addContainerWidget(new MapWidgetSequencerEffectGroup(this, SequencerMode.STOP));
         recalculateContainerSize();
     }
 

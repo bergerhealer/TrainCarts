@@ -817,6 +817,17 @@ public interface Attachment extends AttachmentNameLookup.Supplier {
             }
 
             /**
+             * Multiplies volume and speed with a multiplier
+             *
+             * @param multVolume Volume multiplier
+             * @param multSpeed Speed multiplier
+             * @return Updated EffectOptions
+             */
+            public EffectOptions multiply(double multVolume, double multSpeed) {
+                return new EffectOptions(this.volume * multVolume, this.speed * multSpeed);
+            }
+
+            /**
              * Retrieves Effect Options for playing an effect at a certain volume
              * and speed (sound pitch).
              *

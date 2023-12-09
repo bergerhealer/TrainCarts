@@ -20,6 +20,10 @@ public interface EffectLoop {
         public boolean advance(Time dt, Time duration, boolean loop) {
             return false;
         }
+
+        @Override
+        public void resetToBeginning() {
+        }
     };
 
     /**
@@ -39,6 +43,13 @@ public interface EffectLoop {
      *         False when the effect loop has finished.
      */
     boolean advance(Time dt, Time duration, boolean loop);
+
+    /**
+     * Resets the playback position back to the beginning. This resets the effect
+     * loop to the state of when it was first created, so it can be played again.
+     */
+    default void resetToBeginning() {
+    }
 
     /**
      * Changes the behavior of {@link #advance(Time, Time, boolean)} using a modifier function.

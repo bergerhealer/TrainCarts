@@ -6,9 +6,10 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.MidiChartDialog;
-import com.bergerkiller.bukkit.tc.attachments.control.effect.MidiEffectLoop;
-import com.bergerkiller.bukkit.tc.attachments.control.effect.SimpleEffectLoop;
-import com.bergerkiller.bukkit.tc.attachments.control.effect.SimpleEffectLoopDialog;
+import com.bergerkiller.bukkit.tc.attachments.control.effect.MidiScheduledEffectLoop;
+import com.bergerkiller.bukkit.tc.attachments.control.effect.ScheduledEffectLoop;
+import com.bergerkiller.bukkit.tc.attachments.control.effect.SimpleScheduledEffectLoop;
+import com.bergerkiller.bukkit.tc.attachments.control.effect.SimpleScheduledEffectLoopDialog;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiChart;
 
 import java.util.Comparator;
@@ -31,12 +32,12 @@ public abstract class SequencerType {
     public static final SequencerType SIMPLE = register(new SequencerType("Simple", MapWidgetSequencerEffect.Icon.SIMPLE) {
         @Override
         public void openConfigurationDialog(OpenDialogArguments args) {
-            args.parent.addWidget(new SimpleEffectLoopDialog(args.config));
+            args.parent.addWidget(new SimpleScheduledEffectLoopDialog(args.config));
         }
 
         @Override
-        public EffectLoop createEffectLoop(ConfigurationNode config, Attachment.EffectSink effectSink) {
-            SimpleEffectLoop effectLoop = new SimpleEffectLoop();
+        public ScheduledEffectLoop createEffectLoop(ConfigurationNode config, Attachment.EffectSink effectSink) {
+            SimpleScheduledEffectLoop effectLoop = new SimpleScheduledEffectLoop();
             effectLoop.setEffectSink(effectSink);
             effectLoop.setDelay(EffectLoop.Time.seconds(config.getOrDefault("delay", 0.0)));
             return effectLoop;
@@ -48,7 +49,7 @@ public abstract class SequencerType {
             MidiChartDialog dialog = new MidiChartDialog() {
                 @Override
                 public void onChartChanged(MidiChart chart) {
-                    args.config.set("chart", chart.toYaml());
+                    args.config.setTo(chart.toYaml());
                 }
 
                 @Override
@@ -56,15 +57,16 @@ public abstract class SequencerType {
                     return args.effectSink;
                 }
             };
-            dialog.setChart(MidiChart.fromYaml(args.config.getNode("chart")));
+            dialog.setChart(MidiChart.fromYaml(args.config));
+            dialog.setDuration(args.duration);
             args.parent.addWidget(dialog);
         }
 
         @Override
-        public EffectLoop createEffectLoop(ConfigurationNode config, Attachment.EffectSink effectSink) {
-            MidiEffectLoop effectLoop = new MidiEffectLoop();
+        public ScheduledEffectLoop createEffectLoop(ConfigurationNode config, Attachment.EffectSink effectSink) {
+            MidiScheduledEffectLoop effectLoop = new MidiScheduledEffectLoop();
             effectLoop.setEffectSink(effectSink);
-            effectLoop.setChart(MidiChart.fromYaml(config.getNode("chart")));
+            effectLoop.setChart(MidiChart.fromYaml(config));
             return effectLoop;
         }
     });
@@ -87,14 +89,14 @@ public abstract class SequencerType {
     public abstract void openConfigurationDialog(OpenDialogArguments args);
 
     /**
-     * Creates a new EffectLoop instance of this type of sequencer, loading it from the configuration
+     * Creates a new ScheduledEffectLoop instance of this type of sequencer, loading it from the configuration
      * specified. The effects are played through the effect sink specified.
      *
      * @param config Configuration for this sequencer type
      * @param effectSink Effect Sink to control (instruments)
      * @return new EffectLoop
      */
-    public abstract EffectLoop createEffectLoop(ConfigurationNode config, Attachment.EffectSink effectSink);
+    public abstract ScheduledEffectLoop createEffectLoop(ConfigurationNode config, Attachment.EffectSink effectSink);
 
     public String name() {
         return name;
@@ -108,6 +110,7 @@ public abstract class SequencerType {
         ConfigurationNode config = new ConfigurationNode();
         config.set("type", name());
         config.set("effect", effectName);
+        config.getNode("config");
         return config;
     }
 
@@ -158,16 +161,20 @@ public abstract class SequencerType {
         public final MapWidget parent;
         /** Configuration of this sequencer type */
         public final ConfigurationNode config;
+        /** Total duration set for the effect to play */
+        public final EffectLoop.Time duration;
         /** Effect Sink used for previewing the effect */
         public final Attachment.EffectSink effectSink;
 
         public OpenDialogArguments(
                 final MapWidget parent,
                 final ConfigurationNode config,
+                final EffectLoop.Time duration,
                 final Attachment.EffectSink effectSink
         ) {
             this.parent = parent;
             this.config = config;
+            this.duration = duration;
             this.effectSink = effectSink;
         }
     }

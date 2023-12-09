@@ -217,5 +217,10 @@ public class EffectLoopPlayerController implements LibraryComponent, TrainCarts.
             player.onEffectLoopDone();
             return false;
         }
+
+        @Override
+        public void resetToBeginning() {
+            base.resetToBeginning();
+        }
     }
 }

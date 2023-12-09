@@ -8,10 +8,10 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 /**
  * Configures the options of a simple effect loop
  */
-public class SimpleEffectLoopDialog extends MapWidgetMenu {
+public class SimpleScheduledEffectLoopDialog extends MapWidgetMenu {
     private final ConfigurationNode config;
 
-    public SimpleEffectLoopDialog(ConfigurationNode config) {
+    public SimpleScheduledEffectLoopDialog(ConfigurationNode config) {
         this.config = config;
         setPositionAbsolute(true);
         setBounds(39, 40, 70, 30);

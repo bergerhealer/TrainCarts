@@ -13,4 +13,9 @@ class EffectLoopAdvanceModifier implements EffectLoop {
     public boolean advance(Time dt, Time duration, boolean loop) {
         return modifier.advance(base, dt, duration, loop);
     }
+
+    @Override
+    public void resetToBeginning() {
+        base.resetToBeginning();
+    }
 }

@@ -5,7 +5,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 /**
  * Simple effect loop. Plays the effect once, with an optional start delay.
  */
-public class SimpleEffectLoop extends SequenceEffectLoop {
+public class SimpleScheduledEffectLoop extends ScheduledEffectLoopBase {
     private long nanosDelay = 0;
 
     /**

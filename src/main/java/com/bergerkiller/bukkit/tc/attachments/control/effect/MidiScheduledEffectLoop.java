@@ -8,7 +8,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.effect.midi.MidiChart;
  * based on a certain BPM and play duration. Can optionally be set to loop
  * infinitely.
  */
-public class MidiEffectLoop extends SequenceEffectLoop {
+public class MidiScheduledEffectLoop extends ScheduledEffectLoopBase {
     private MidiChart chart = MidiChart.empty();
 
     public MidiChart getChart() {

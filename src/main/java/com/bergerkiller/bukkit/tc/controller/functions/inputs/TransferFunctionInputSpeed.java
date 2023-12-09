@@ -75,12 +75,12 @@ public class TransferFunctionInputSpeed extends TransferFunctionInput {
 
     private static class SpeedReferencedSource extends ReferencedSource {
         private final Vector prevPosition;
-        private final Vector prevForward;
+        //private final Vector prevForward;
         private boolean first = true;
 
         public SpeedReferencedSource() {
             this.prevPosition = new Vector();
-            this.prevForward = new Vector();
+            //this.prevForward = new Vector();
         }
 
         @Override
@@ -88,12 +88,19 @@ public class TransferFunctionInputSpeed extends TransferFunctionInput {
             if (first) {
                 first = false;
                 MathUtil.setVector(this.prevPosition, transform.toVector());
-                MathUtil.setVector(this.prevForward, transform.getRotation().forwardVector());
+                //MathUtil.setVector(this.prevForward, transform.getRotation().forwardVector());
                 // Initially 0
                 this.value = 0.0;
             } else {
                 Vector newPosition = transform.toVector();
 
+                this.value = newPosition.distance(this.prevPosition);
+                MathUtil.setVector(this.prevPosition, newPosition);
+
+                // This is the old method, which can also detect the direction, with
+                // a negative speed in one direction vs the other. Is not useful for
+                // functions where we want ABS speed.
+                /*
                 // Compute difference in position
                 Vector diff = newPosition.clone().subtract(this.prevPosition);
                 // Dot by forward vector of original transform
@@ -103,6 +110,7 @@ public class TransferFunctionInputSpeed extends TransferFunctionInput {
                 MathUtil.setVector(this.prevForward, transform.getRotation().forwardVector());
                 // Result
                 this.value = d;
+                 */
             }
         }
 

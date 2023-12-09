@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
@@ -26,26 +27,34 @@ import java.util.List;
  */
 public class MapWidgetSequencerEffectGroup extends MapWidget {
     private static final NumberFormat DURATION_FORMAT = Util.createNumberFormat(1, 4);
+    private static final ConfigurationNode EMPTY_CONFIG = new ConfigurationNode();
     private static final int TOP_HEADER_HEIGHT = 8;
     private final MapWidgetSequencerEffectGroupList groupList;
-    private final Mode mode;
-    private final ConfigurationNode config;
+    private final SequencerMode mode;
     private final List<MapWidgetSequencerEffect> effects = new ArrayList<>();
     private HeaderTitle headerTitle;
     private HeaderButton configureButton, addEffectButton;
-    private double duration;
+    private EffectLoop.Time duration;
 
-    public MapWidgetSequencerEffectGroup(MapWidgetSequencerEffectGroupList groupList, Mode mode, ConfigurationNode config) {
+    public MapWidgetSequencerEffectGroup(MapWidgetSequencerEffectGroupList groupList, SequencerMode mode) {
         this.groupList = groupList;
         this.mode = mode;
-        this.config = config;
-        this.duration = config.getOrDefault("duration", 0.0);
+        this.duration = EffectLoop.Time.seconds(readConfig().getOrDefault("duration", 0.0));
         this.setClipParent(true);
         this.updateBounds();
 
-        for (ConfigurationNode effectConfig : config.getNodeList("effects")) {
+        for (ConfigurationNode effectConfig : readConfig().getNodeList("effects")) {
             addEffect(new MapWidgetSequencerEffect(effectConfig));
         }
+    }
+
+    protected ConfigurationNode readConfig() {
+        ConfigurationNode config = groupList.getConfig().getNodeIfExists(mode.configKey());
+        return (config == null) ? EMPTY_CONFIG : config;
+    }
+
+    protected ConfigurationNode writeConfig() {
+        return groupList.getConfig().getNode(mode.configKey());
     }
 
     /**
@@ -58,9 +67,9 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
         this.effects.add(effect);
         if (!effect.getConfig().hasParent()) {
             //TODO: Replace with getNodeList(path, false) when BKCommonLib 1.20.2-v3 or later is a hard-depend
-            this.config.getList("effects").add(effect.getConfig());
+            this.writeConfig().getList("effects").add(effect.getConfig());
         }
-        if (this.duration > 0.0) {
+        if (!this.duration.isZero()) {
             addEffectWidget(effect);
         }
         this.updateBounds();
@@ -80,7 +89,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
             this.effects.remove(effectIndex);
             effect.getConfig().remove(); // Remove from effects node list
 
-            if (this.duration > 0.0) {
+            if (!this.duration.isZero()) {
                 this.removeWidget(effect);
                 for (int i = 0; i < effects.size(); i++) {
                     effects.get(i).setBounds(0, TOP_HEADER_HEIGHT + ((MapWidgetSequencerEffect.HEIGHT - 1) * i),
@@ -106,24 +115,35 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
      * Updates the duration set for this group of sequencer effects.
      * If set to 0.0 (or less), disables these effects.
      *
-     * @param duration
+     * @param duration Duration in seconds
      * @return this
      */
     public MapWidgetSequencerEffectGroup setDuration(double duration) {
-        if (this.duration != duration) {
-            boolean effectsVisibleChanged = (this.duration <= 0.0) != (duration <= 0.0);
+        return setDuration(EffectLoop.Time.seconds(Math.max(0.0, duration)));
+    }
+
+    /**
+     * Updates the duration set for this group of sequencer effects.
+     * If set to 0, disables these effects.
+     *
+     * @param duration Time duration
+     * @return this
+     */
+    public MapWidgetSequencerEffectGroup setDuration(EffectLoop.Time duration) {
+        if (!this.duration.equals(duration)) {
+            boolean effectsVisibleChanged = (this.duration.isZero() != duration.isZero());
             this.duration = duration;
-            this.config.set("duration", duration > 0.0 ? duration : null);
+            this.writeConfig().set("duration", duration.isZero()? null : duration.seconds);
             if (effectsVisibleChanged) {
                 if (addEffectButton != null) {
-                    addEffectButton.setEnabled(duration > 0.0);
+                    addEffectButton.setEnabled(!duration.isZero());
                 }
 
                 // Remove (or re-add) all the effects
                 for (MapWidgetSequencerEffect effect : this.effects) {
                     this.removeWidget(effect);
                 }
-                if (duration > 0.0) {
+                if (!duration.isZero()) {
                     this.effects.forEach(this::addEffectWidget);
                 }
 
@@ -136,6 +156,10 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
         return this;
     }
 
+    public EffectLoop.Time getDuration() {
+        return duration;
+    }
+
     private void addEffectWidget(MapWidgetSequencerEffect effect) {
         int index = this.effects.indexOf(effect);
         effect.setBounds(0, TOP_HEADER_HEIGHT + (MapWidgetSequencerEffect.HEIGHT - 1) * index,
@@ -144,7 +168,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
     }
 
     private void updateBounds() {
-        int newHeight = TOP_HEADER_HEIGHT + ((duration <= 0.0 || effects.isEmpty())
+        int newHeight = TOP_HEADER_HEIGHT + ((duration.isZero() || effects.isEmpty())
                 ? 0 : (effects.size() * (MapWidgetSequencerEffect.HEIGHT - 1) + 1));
         boolean heightChanged = (this.getHeight() != newHeight);
         this.setBounds(0, getY(), groupList.getWidth(), newHeight);
@@ -186,7 +210,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
                 });
             }
         });
-        addEffectButton.setEnabled(duration > 0.0);
+        addEffectButton.setEnabled(!duration.isZero());
         addEffectButton.setPosition(getWidth() - 7, 0);
     }
 
@@ -207,8 +231,8 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
                 public void onAttached() {
                     setRange(0.0, 100000.0);
                     setIncrement(0.01);
-                    setInitialValue(duration);
-                    setTextOverride(duration > 0.0 ? null : "Off");
+                    setInitialValue(duration.seconds);
+                    setTextOverride(duration.isZero() ? "Off" : null);
                     super.onAttached();
                 }
 
@@ -220,7 +244,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
             }).setBounds(5, 13, 66, 11);
 
             addLabel(5,  27, "Playback Speed:");
-            addWidget(new MapWidgetTransferFunctionSingleConfigItem(groupList.getTransferFunctionHost(), config, "speed") {
+            addWidget(new MapWidgetTransferFunctionSingleConfigItem(groupList.getTransferFunctionHost(), writeConfig(), "speed") {
                 @Override
                 public TransferFunction createDefault() {
                     return new TransferFunctionConstant(1.0);
@@ -237,12 +261,12 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
 
                 @Override
                 public void onActivate() {
-                    config.set("interrupt", !config.getOrDefault("interrupt", false));
+                    writeConfig().set("interrupt", !readConfig().getOrDefault("interrupt", false));
                     updateText();
                 }
 
                 private void updateText() {
-                    setText(config.getOrDefault("interrupt", false) ? "Yes" : "No");
+                    setText(readConfig().getOrDefault("interrupt", false) ? "Yes" : "No");
                 }
             }).setBounds(5, 60, 52, 12);
 
@@ -258,15 +282,15 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
 
         @Override
         public void onDraw() {
-            if (duration > 0.0) {
-                view.draw(mode.icon(), 3, 1, MapColorPalette.COLOR_RED);
-                view.draw(MapFont.TINY, 12, 1, MapColorPalette.COLOR_RED,
-                        mode.title() + "  " + DURATION_FORMAT.format(duration) + "s");
-            } else {
+            if (duration.isZero()) {
                 byte color = MapColorPalette.getColor(128, 128, 128);
                 view.draw(mode.icon(), 3, 1, color);
                 view.draw(MapFont.TINY, 12, 1, color,
                         mode.title() + "  [OFF]");
+            } else {
+                view.draw(mode.icon(), 3, 1, MapColorPalette.COLOR_RED);
+                view.draw(MapFont.TINY, 12, 1, MapColorPalette.COLOR_RED,
+                        mode.title() + "  " + DURATION_FORMAT.format(duration.seconds) + "s");
             }
         }
     }
@@ -298,32 +322,6 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
             } else {
                 view.draw(defaultImage, 0, 0);
             }
-        }
-    }
-
-    /**
-     * One of three modes that sequencer effects are stored
-     */
-    public enum Mode {
-        START("start"),
-        LOOP("loop"),
-        STOP("stop");
-
-        private final String title;
-        private final MapTexture icon;
-
-        Mode(String title) {
-            this.title = title;
-            this.icon = MapWidgetSequencerEffect.TEXTURE_ATLAS
-                    .getView(7 * ordinal(), 14, 7, 5).clone();
-        }
-
-        public String title() {
-            return title;
-        }
-
-        public MapTexture icon() {
-            return icon;
         }
     }
 }
