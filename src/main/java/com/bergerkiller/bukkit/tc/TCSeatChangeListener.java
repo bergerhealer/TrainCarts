@@ -357,6 +357,11 @@ public class TCSeatChangeListener implements Listener {
                 final Entity vehicle = event.getVehicle();
                 final Entity passenger = event.getExited();
                 CommonUtil.nextTick(() -> {
+                    // If member is dead, ignore
+                    if (member.isUnloaded()) {
+                        return;
+                    }
+
                     // Before resuming ensure that the network controller has updated
                     // This releases the entity from the seat, so that the entity can be properly teleported
                     // afterwards. It might be the Minecart got deleted after a tick so be careful here.
