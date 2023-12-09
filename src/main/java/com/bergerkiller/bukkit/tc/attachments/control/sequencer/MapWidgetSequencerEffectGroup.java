@@ -32,6 +32,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
     private final MapWidgetSequencerEffectGroupList groupList;
     private final SequencerMode mode;
     private final List<MapWidgetSequencerEffect> effects = new ArrayList<>();
+    private Header header;
     private HeaderTitle headerTitle;
     private HeaderButton configureButton, addEffectButton;
     private EffectLoop.Time duration;
@@ -71,6 +72,9 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
         }
         if (!this.duration.isZero()) {
             addEffectWidget(effect);
+        }
+        if (this.effects.size() == 1 && header != null) {
+            header.invalidate();
         }
         this.updateBounds();
         return this;
@@ -147,6 +151,10 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
                     this.effects.forEach(this::addEffectWidget);
                 }
 
+                if (header != null) {
+                    header.invalidate();
+                }
+
                 updateBounds();
             }
             if (headerTitle != null) {
@@ -179,10 +187,13 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
 
     @Override
     public void onAttached() {
-        headerTitle = addWidget(new HeaderTitle());
+        header = addWidget(new Header());
+        header.setBounds(0, 0, getWidth(), 8);
+
+        headerTitle = header.addWidget(new HeaderTitle());
         headerTitle.setBounds(0, 0, getWidth() - 43, 7);
 
-        configureButton = addWidget(new HeaderButton(0, 19, 35, 7) {
+        configureButton = header.addWidget(new HeaderButton(0, 19, 35, 7) {
             @Override
             public void onActivate() {
                 groupList.addWidget(new ConfigureDialog());
@@ -191,7 +202,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
         configureButton.setPosition(getWidth() - 43, 0);
 
         //TODO: Ugly indentation
-        addEffectButton = addWidget(new HeaderButton(35, 19, 7, 7) {
+        addEffectButton = header.addWidget(new HeaderButton(35, 19, 7, 7) {
             @Override
             public void onActivate() {
                 // Ask what effect to target
@@ -274,6 +285,28 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
         }
     }
 
+    private class Header extends MapWidget {
+        private final byte BACKGROUND_COLOR = MapColorPalette.getColor(54, 81, 114);
+
+        public Header() {
+            this.setClipParent(true);
+        }
+
+        @Override
+        public void onDraw() {
+            if (duration.isZero() || effects.isEmpty()) {
+                // No effects configured, show it as an isolated bubble
+                view.fillRectangle(2, 0, getWidth() - 2, getHeight() - 1, BACKGROUND_COLOR);
+                view.drawLine(1, 1, 1, getHeight() - 3, BACKGROUND_COLOR);
+            } else {
+                // Fill with the background color, but take out a notch top-left to give it a "tab" appearance
+                view.fillRectangle(2, 0, getWidth() - 2, getHeight(), BACKGROUND_COLOR);
+                view.drawLine(1, 1, 1, getHeight() - 1, BACKGROUND_COLOR);
+                view.drawPixel(0, getHeight() - 1, BACKGROUND_COLOR);
+            }
+        }
+    }
+
     private class HeaderTitle extends MapWidget {
 
         public HeaderTitle() {
@@ -282,16 +315,14 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
 
         @Override
         public void onDraw() {
-            if (duration.isZero()) {
-                byte color = MapColorPalette.getColor(128, 128, 128);
-                view.draw(mode.icon(), 3, 1, color);
-                view.draw(MapFont.TINY, 12, 1, color,
-                        mode.title() + "  [OFF]");
-            } else {
-                view.draw(mode.icon(), 3, 1, MapColorPalette.COLOR_RED);
-                view.draw(MapFont.TINY, 12, 1, MapColorPalette.COLOR_RED,
-                        mode.title() + "  " + DURATION_FORMAT.format(duration.seconds) + "s");
-            }
+            byte textColor = duration.isZero()
+                    ? MapColorPalette.getColor(72, 108, 152)
+                    : MapColorPalette.getColor(213, 201, 140);
+            view.draw(mode.icon(), 2, 1, textColor);
+            view.draw(MapFont.TINY, 11, 1, textColor, mode.title());
+            view.draw(MapFont.TINY, 37, 1, textColor,
+                    duration.isZero() ? "[OFF]"
+                                      : (DURATION_FORMAT.format(duration.seconds) + "s"));
         }
     }
 
