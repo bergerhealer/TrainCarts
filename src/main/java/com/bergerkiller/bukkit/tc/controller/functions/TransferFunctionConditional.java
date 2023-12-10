@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionSingleItem;
+import com.bergerkiller.bukkit.tc.utils.CachedBooleanSupplier;
 
 import java.util.function.BooleanSupplier;
 
@@ -141,9 +142,12 @@ public class TransferFunctionConditional implements TransferFunction {
 
     @Override
     public void openDialog(Dialog dialog) {
+        // Cache whether input is a boolean - won't change while this function is being configured
+        BooleanSupplier isBooleanInput = CachedBooleanSupplier.of(dialog::isBooleanInput);
+
         // Condition input
         dialog.addLabel(39, 3, MapColorPalette.COLOR_RED, "CONDITION");
-        dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), leftInput) {
+        dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), leftInput, isBooleanInput) {
             @Override
             public void onChanged(Holder<TransferFunction> function) {
                 dialog.markChanged();
@@ -164,11 +168,10 @@ public class TransferFunctionConditional implements TransferFunction {
         trueOutput
          */
 
-
         // Result true/false
         dialog.addLabel(44, dialog.getHeight() - 43, MapColorPalette.COLOR_RED, "RESULT");
         dialog.addLabel(3, dialog.getHeight() - 32, MapColorPalette.COLOR_RED, "T");
-        dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), trueOutput) {
+        dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), trueOutput, isBooleanInput) {
             @Override
             public void onChanged(Holder<TransferFunction> function) {
                 dialog.markChanged();
@@ -181,7 +184,7 @@ public class TransferFunctionConditional implements TransferFunction {
         }).setBounds(7, dialog.getHeight() - 37, dialog.getWidth() - 12, MapWidgetTransferFunctionItem.HEIGHT);
 
         dialog.addLabel(3, dialog.getHeight() - 16, MapColorPalette.COLOR_RED, "F");
-        dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), falseOutput) {
+        dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), falseOutput, isBooleanInput) {
             @Override
             public void onChanged(Holder<TransferFunction> function) {
                 dialog.markChanged();

@@ -4,6 +4,8 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 
+import java.util.function.BooleanSupplier;
+
 /**
  * Configures a transfer function as a single item, that is expected to be stored as a single
  * entry in the configuration. Includes a mechanism to reset it to the defaults (=remove)
@@ -13,10 +15,15 @@ public abstract class MapWidgetTransferFunctionSingleItem extends MapWidgetTrans
     private boolean functionWasDefault = false;
     private boolean ignoreChanges = false;
 
-    public MapWidgetTransferFunctionSingleItem(TransferFunctionHost host, ConfigurationNode functionConfig) {
+    public MapWidgetTransferFunctionSingleItem(
+            final TransferFunctionHost host,
+            final ConfigurationNode functionConfig,
+            final BooleanSupplier isBooleanInput
+    ) {
         super(host, TransferFunction.Holder.of(
                 (functionConfig != null) ? host.loadFunction(functionConfig)
-                                         : TransferFunction.identity()));
+                                         : TransferFunction.identity()),
+                isBooleanInput);
 
         // Set to default function (using callback) if no configuration exists
         // Can't do this inside the super() constructor call sadly
@@ -32,8 +39,12 @@ public abstract class MapWidgetTransferFunctionSingleItem extends MapWidgetTrans
         updateButtons();
     }
 
-    public MapWidgetTransferFunctionSingleItem(TransferFunctionHost host, TransferFunction.Holder<TransferFunction> function) {
-        super(host, function);
+    public MapWidgetTransferFunctionSingleItem(
+            final TransferFunctionHost host,
+            final TransferFunction.Holder<TransferFunction> function,
+            final BooleanSupplier isBooleanInput
+    ) {
+        super(host, function, isBooleanInput);
         updateButtons();
     }
 

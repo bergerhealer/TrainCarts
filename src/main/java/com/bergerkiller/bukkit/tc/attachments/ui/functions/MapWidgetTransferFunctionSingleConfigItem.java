@@ -4,6 +4,8 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 
+import java.util.function.BooleanSupplier;
+
 /**
  * Reads and writes a single transfer function from a config at a particular key
  */
@@ -11,8 +13,12 @@ public abstract class MapWidgetTransferFunctionSingleConfigItem extends MapWidge
     private final ConfigurationNode config;
     private final String configKey;
 
-    public MapWidgetTransferFunctionSingleConfigItem(TransferFunctionHost host, ConfigurationNode config, String configKey) {
-        super(host, config.getNodeIfExists(configKey));
+    public MapWidgetTransferFunctionSingleConfigItem(
+            final TransferFunctionHost host,
+            final ConfigurationNode config, String configKey,
+            final BooleanSupplier isBooleanInput
+    ) {
+        super(host, config.getNodeIfExists(configKey), isBooleanInput);
         this.config = config;
         this.configKey = configKey;
     }

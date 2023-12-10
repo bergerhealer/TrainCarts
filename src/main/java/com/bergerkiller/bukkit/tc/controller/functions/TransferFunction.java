@@ -155,6 +155,13 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
         void setFunction(TransferFunction function);
 
         /**
+         * Gets whether the input to the function being configured is a boolean
+         *
+         * @return True if the input is a boolean
+         */
+        boolean isBooleanInput();
+
+        /**
          * Sends a signal that the existing transfer function instance has changed.
          * Same as calling {@link #setFunction(TransferFunction)} with the current
          * instance.

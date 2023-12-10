@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
@@ -20,14 +21,14 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu impl
     private TransferFunction.Holder<TransferFunction> root;
     private TransferFunctionNav nav;
 
-    public MapWidgetTransferFunctionDialog(TransferFunctionHost host, TransferFunction rootFunction) {
+    public MapWidgetTransferFunctionDialog(TransferFunctionHost host, TransferFunction rootFunction, BooleanSupplier isBooleanInput) {
         this.setBackgroundColor(MapColorPalette.getColor(72, 108, 152));
         this.setBounds(7, 17, 128 - 14, 105);
         this.setPositionAbsolute(true);
 
         this.host = host;
         this.root = TransferFunction.Holder.of(rootFunction);
-        this.nav = new TransferFunctionNav(null, this.root);
+        this.nav = new TransferFunctionNav(null, this.root, isBooleanInput);
     }
 
     /**
@@ -89,13 +90,19 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu impl
         }
     }
 
+    @Override
+    public boolean isBooleanInput() {
+        return nav != null && nav.isBooleanInput.getAsBoolean();
+    }
+
     /**
      * Navigates to a new transfer function. The back button will return back to this
      * current function.
      *
      * @param function Function Holder to navigate to
+     * @param isBooleanInput Supplies whether the input to this function is a boolean
      */
-    public void navigate(TransferFunction.Holder<TransferFunction> function) {
+    public void navigate(TransferFunction.Holder<TransferFunction> function, BooleanSupplier isBooleanInput) {
         // Some checks
         if (nav != null) {
             if (nav.function == function) {
@@ -107,7 +114,7 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu impl
         }
 
         // Normal navigation deeper into the function tree
-        navigate(new TransferFunctionNav(nav, function));
+        navigate(new TransferFunctionNav(nav, function, isBooleanInput));
     }
 
     private void navigate(TransferFunctionNav nav) {
@@ -175,12 +182,18 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu impl
 
     private static class TransferFunctionNav {
         public final TransferFunctionNav parent;
-        public final TransferFunction.Holder<TransferFunction>  function;
+        public final TransferFunction.Holder<TransferFunction> function;
+        public final BooleanSupplier isBooleanInput;
         public final int depth;
 
-        public TransferFunctionNav(TransferFunctionNav parent, TransferFunction.Holder<TransferFunction> function) {
+        public TransferFunctionNav(
+                final TransferFunctionNav parent,
+                final TransferFunction.Holder<TransferFunction> function,
+                final BooleanSupplier isBooleanInput
+        ) {
             this.parent = parent;
             this.function = function;
+            this.isBooleanInput = isBooleanInput;
             this.depth = (parent != null) ? (parent.depth + 1) : 0;
         }
     }

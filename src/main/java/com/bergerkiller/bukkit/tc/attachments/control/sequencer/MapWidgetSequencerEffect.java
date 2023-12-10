@@ -216,7 +216,7 @@ public class MapWidgetSequencerEffect extends MapWidget {
             final TransferFunctionHost host = getGroupList().getTransferFunctionHost();
 
             addLabel(5, 5, "Active");
-            addWidget(new MapWidgetTransferFunctionSingleConfigItem(host, config, "active") {
+            addWidget(new MapWidgetTransferFunctionSingleConfigItem(host, config, "active", () -> false) {
                 @Override
                 public TransferFunction createDefault() {
                     return TransferFunctionBoolean.TRUE;
@@ -224,7 +224,7 @@ public class MapWidgetSequencerEffect extends MapWidget {
             }).setBounds(5, 12, getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
 
             addLabel(5, 29, "Volume");
-            addWidget(new MapWidgetTransferFunctionSingleConfigItem(host, config, "volume") {
+            addWidget(new MapWidgetTransferFunctionSingleConfigItem(host, config, "volume", () -> false) {
                 @Override
                 public TransferFunction createDefault() {
                     return new TransferFunctionConstant(1.0);
@@ -232,7 +232,7 @@ public class MapWidgetSequencerEffect extends MapWidget {
             }).setBounds(5, 36, getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
 
             addLabel(5, 53, "Pitch");
-            addWidget(new MapWidgetTransferFunctionSingleConfigItem(host, config, "pitch") {
+            addWidget(new MapWidgetTransferFunctionSingleConfigItem(host, config, "pitch", () -> false) {
                 @Override
                 public TransferFunction createDefault() {
                     return new TransferFunctionConstant(1.0);

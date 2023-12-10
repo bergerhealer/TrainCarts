@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.attachments.ui.functions;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetScroller;
-import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionList;
 
 /**
@@ -57,7 +56,15 @@ public class MapWidgetTransferFunctionList extends MapWidgetScroller {
     }
 
     private MapWidgetTransferFunctionListItem createItem(TransferFunctionList.Item listItem) {
-        final MapWidgetTransferFunctionListItem item = new MapWidgetTransferFunctionListItem(dialog.getHost(), listItem) {
+        final MapWidgetTransferFunctionListItem item = new MapWidgetTransferFunctionListItem(
+                dialog.getHost(),
+                listItem,
+                () -> {
+                    // Find the item that precedes this item, and get its output boolean state.
+                    int index = list.indexOf(listItem);
+                    return index != -1 && list.isBooleanOutput(index - 1, dialog::isBooleanInput);
+                }
+        ) {
             @Override
             public void onMoveUp() {
                 int currIndex = list.indexOf(getItem());

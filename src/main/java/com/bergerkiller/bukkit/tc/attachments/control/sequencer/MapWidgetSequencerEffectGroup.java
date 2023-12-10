@@ -255,7 +255,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
             }).setBounds(5, 13, 66, 11);
 
             addLabel(5,  27, "Playback Speed:");
-            addWidget(new MapWidgetTransferFunctionSingleConfigItem(groupList.getTransferFunctionHost(), writeConfig(), "speed") {
+            addWidget(new MapWidgetTransferFunctionSingleConfigItem(groupList.getTransferFunctionHost(), writeConfig(), "speed", () -> false) {
                 @Override
                 public TransferFunction createDefault() {
                     return new TransferFunctionConstant(1.0);

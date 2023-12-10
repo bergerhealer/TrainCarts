@@ -9,6 +9,8 @@ import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionList;
 import org.bukkit.block.BlockFace;
 
+import java.util.function.BooleanSupplier;
+
 /**
  * Expands the item widget with a 'mode' option, to change the operator modifier of
  * the item in the list. This is unique to items in a list.
@@ -25,8 +27,12 @@ public class MapWidgetTransferFunctionListItem extends MapWidgetTransferFunction
     private final MapWidgetArrow modeUpArrow = new MapWidgetArrow(BlockFace.SOUTH);
     private final MapWidgetArrow modeDownArrow = new MapWidgetArrow(BlockFace.NORTH);
 
-    public MapWidgetTransferFunctionListItem(TransferFunctionHost host, TransferFunctionList.Item item) {
-        super(host, item);
+    public MapWidgetTransferFunctionListItem(
+            final TransferFunctionHost host,
+            final TransferFunctionList.Item item,
+            final BooleanSupplier isBooleanInput
+    ) {
+        super(host, item, isBooleanInput);
         this.item = item;
     }
 

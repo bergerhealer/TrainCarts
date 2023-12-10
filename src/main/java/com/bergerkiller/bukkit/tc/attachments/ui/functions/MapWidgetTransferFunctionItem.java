@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 /**
@@ -29,12 +30,18 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
     protected final List<Button> buttons = new ArrayList<>();
     protected final TransferFunctionHost host;
     protected final TransferFunction.Holder<TransferFunction> function;
+    protected final BooleanSupplier isBooleanInput;
     protected boolean moving;
     protected int selButtonIdx = 0; // -1 = function mode
 
-    public MapWidgetTransferFunctionItem(TransferFunctionHost host, TransferFunction.Holder<TransferFunction> function) {
+    public MapWidgetTransferFunctionItem(
+            final TransferFunctionHost host,
+            final TransferFunction.Holder<TransferFunction> function,
+            final BooleanSupplier isBooleanInput
+    ) {
         this.host = host;
         this.function = function.withChangeListener(this::onChangedInternal);
+        this.isBooleanInput = isBooleanInput;
         this.setFocusable(true);
         this.setSize(128 - 14 - 10 /* default of a List */, HEIGHT);
     }
@@ -143,9 +150,14 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
         // to the new item. Otherwise, open a new dialog and edit it inside of that.
         MapWidgetTransferFunctionDialog dialog = getCurrentDialog();
         if (dialog != null) {
-            dialog.navigate(function);
+            dialog.navigate(function, isBooleanInput);
         } else {
-            dialog = new MapWidgetTransferFunctionDialog(host, function.getFunction()) {
+            dialog = new MapWidgetTransferFunctionDialog(host, function.getFunction(), isBooleanInput) {
+                @Override
+                public boolean isBooleanInput() {
+                    return isBooleanInput.getAsBoolean();
+                }
+
                 @Override
                 public void onChanged(TransferFunction function) {
                     MapWidgetTransferFunctionItem.this.function.setFunction(function);
@@ -262,6 +274,11 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
         @Override
         public void setFunction(TransferFunction function) {
             MapWidgetTransferFunctionItem.this.function.setFunction(function);
+        }
+
+        @Override
+        public boolean isBooleanInput() {
+            return isBooleanInput.getAsBoolean();
         }
 
         @Override

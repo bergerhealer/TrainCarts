@@ -137,10 +137,20 @@ public class TransferFunctionList implements TransferFunction, Cloneable {
         return true;
     }
 
-    @Override
-    public boolean isBooleanOutput(BooleanSupplier isBooleanInput) {
+    /**
+     * Gets whether a particular item of this list has a boolean output result.
+     * This takes the function mode of that item into account.
+     *
+     * @param index Index of the item. A value of -1 will return the result of
+     *              the isBooleanInput parameter.
+     * @param isBooleanInput Whether the input to this list is a boolean
+     * @return True if this item has a boolean output
+     */
+    public boolean isBooleanOutput(int index, BooleanSupplier isBooleanInput) {
         BooleanSupplier chain = isBooleanInput;
-        for (Item item : items) {
+        int itemCount = items.size();
+        for (int i = 0; i < itemCount; ++i) {
+            Item item = items.get(i);
             if (item.mode.booleanMode() == FunctionBooleanMode.INPUT) {
                 // Infer function output
                 final BooleanSupplier prev = chain;
@@ -150,8 +160,16 @@ public class TransferFunctionList implements TransferFunction, Cloneable {
                 final boolean result = item.mode.booleanMode().asBool();
                 chain = () -> result;
             }
+            if (i == index) {
+                break;
+            }
         }
         return chain.getAsBoolean();
+    }
+
+    @Override
+    public boolean isBooleanOutput(BooleanSupplier isBooleanInput) {
+        return isBooleanOutput(items.size() - 1, isBooleanInput);
     }
 
     @Override
