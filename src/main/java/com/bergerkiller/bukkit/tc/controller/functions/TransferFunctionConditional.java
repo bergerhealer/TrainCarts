@@ -1,11 +1,15 @@
 package com.bergerkiller.bukkit.tc.controller.functions;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
+import com.bergerkiller.bukkit.common.map.MapPlayerInput;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionItem;
 import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionSingleItem;
+import com.bergerkiller.bukkit.tc.controller.functions.ui.conditional.MapWidgetTransferFunctionConditionalHysteresis;
 import com.bergerkiller.bukkit.tc.controller.functions.ui.conditional.MapWidgetTransferFunctionConditionalOperator;
 import com.bergerkiller.bukkit.tc.utils.CachedBooleanSupplier;
 
@@ -45,7 +49,8 @@ public class TransferFunctionConditional implements TransferFunction {
             if (config.isNode("right")) {
                 conditional.setRightInput(host.loadFunction(config.getNode("right")));
             }
-            conditional.operator = config.getOrDefault("operator", conditional.operator);
+            conditional.setOperator(config.getOrDefault("operator", conditional.operator));
+            conditional.setHysteresis(config.getOrDefault("hysteresis", 0.0));
             if (config.isNode("falseOutput")) {
                 conditional.setFalseOutput(host.loadFunction(config.getNode("falseOutput")));
             }
@@ -64,6 +69,7 @@ public class TransferFunctionConditional implements TransferFunction {
                 config.set("right", host.saveFunction(conditional.rightInput.getFunction()));
             }
             config.set("operator", conditional.operator);
+            config.set("hysteresis", conditional.hysteresis != 0.0 ? conditional.hysteresis : null);
             if (!conditional.falseOutput.isDefault()) {
                 config.set("falseOutput", host.saveFunction(conditional.falseOutput.getFunction()));
             }
@@ -79,6 +85,10 @@ public class TransferFunctionConditional implements TransferFunction {
     private final TransferFunction.Holder<TransferFunction> rightInput = TransferFunction.Holder.of(TransferFunction.identity(), true);
     /** Operator to use when comparing the left and right hand inputs */
     private Operator operator = Operator.GREATER_THAN;
+    /** Optional hysteresis, requiring this much change before switching true/false states */
+    private double hysteresis = 0.0;
+    /** Keeps track of previous true/false state for handling hysteresis. Inverted default for negative hysteresis. */
+    private Boolean hysteresisLastState = null;
     /** Function to call when the condition is false. Input is passed to it. */
     private final TransferFunction.Holder<TransferFunction> falseOutput = TransferFunction.Holder.of(TransferFunction.identity(), true);
     /** Function to call when the condition is true. Input is passed to it. */
@@ -94,10 +104,25 @@ public class TransferFunctionConditional implements TransferFunction {
         boolean result;
         if (operator == Operator.BOOL) {
             result = leftInput.getFunction().map(input) != 0.0;
-        } else {
+        } else if (hysteresis == 0.0) {
+            // Simplified
             result = operator.compare(leftInput.getFunction().map(input),
                                       rightInput.getFunction().map(input));
+        } else {
+            // Initial last state is decided based on the hysteresis being positive or not
+            // Positive hysteresis (usual) will use an initial state of 'false' (off)
+            if (hysteresisLastState == null) {
+                hysteresisLastState = (this.hysteresis < 0.0);
+            }
+
+            // Uses hysteresis, which is more complicated
+            // This means the value must change enough before transitioning state
+            result = operator.compareWithHysteresis(hysteresisLastState,
+                                                    leftInput.getFunction().map(input),
+                                                    rightInput.getFunction().map(input),
+                                                    Math.abs(this.hysteresis));
         }
+        hysteresisLastState = result;
         return (result ? trueOutput : falseOutput).getFunction().map(input);
     }
 
@@ -111,6 +136,7 @@ public class TransferFunctionConditional implements TransferFunction {
     @Override
     public boolean isPure() {
         return leftInput.getFunction().isPure()
+                && (operator == Operator.BOOL || rightInput.getFunction().isPure())
                 && falseOutput.getFunction().isPure()
                 && trueOutput.getFunction().isPure();
     }
@@ -125,6 +151,10 @@ public class TransferFunctionConditional implements TransferFunction {
 
     public void setOperator(Operator operator) {
         this.operator = operator;
+    }
+
+    public void setHysteresis(double hysteresis) {
+        this.hysteresis = hysteresis;
     }
 
     public void setFalseOutput(TransferFunction output) {
@@ -156,87 +186,196 @@ public class TransferFunctionConditional implements TransferFunction {
         // Cache whether input is a boolean - won't change while this function is being configured
         BooleanSupplier isBooleanInput = CachedBooleanSupplier.of(dialog::isBooleanInput);
 
+        // Helper function that focuses the operator widget
+        final Runnable focusOperatorWidget = () -> {
+            for (MapWidget w : dialog.getWidget().getWidgets()) {
+                if (w instanceof MapWidgetTransferFunctionConditionalOperator) {
+                    w.focus();
+                    break;
+                }
+            }
+        };
+
         // Condition input
-        dialog.addLabel(39, 3, MapColorPalette.COLOR_RED, "CONDITION");
-        dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), leftInput, isBooleanInput) {
-            @Override
-            public void onChanged(Holder<TransferFunction> function) {
-                dialog.markChanged();
-            }
+        // Note: hysteresis and right-input must be done first as other functions depend on it
+        {
+            dialog.addLabel(39, 3, MapColorPalette.COLOR_RED, "CONDITION");
 
-            @Override
-            public TransferFunction createDefault() {
-                return TransferFunction.identity();
-            }
-        }).setBounds(5, 9, dialog.getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
+            // Left side input
+            dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), leftInput, isBooleanInput) {
+                @Override
+                public void onChanged(Holder<TransferFunction> function) {
+                    dialog.markChanged();
+                }
 
-        dialog.addWidget(new MapWidgetTransferFunctionConditionalOperator(operator) {
-            @Override
-            public void onOperatorChanged(Operator operator) {
-                TransferFunctionConditional.this.operator = operator;
-                dialog.markChanged();
-            }
-        }).setBounds(5, 26, 21, 13);
+                @Override
+                public TransferFunction createDefault() {
+                    return TransferFunction.identity();
+                }
 
-        dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), rightInput, isBooleanInput) {
-            @Override
-            public void onChanged(Holder<TransferFunction> function) {
-                dialog.markChanged();
-            }
+                @Override
+                public void onKeyPressed(MapKeyEvent event) {
+                    if (event.getKey() == MapPlayerInput.Key.DOWN && isFocused()) {
+                        focusOperatorWidget.run();
+                    } else {
+                        super.onKeyPressed(event);
+                    }
+                }
+            }).setBounds(5, 9, dialog.getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
 
-            @Override
-            public TransferFunction createDefault() {
-                return TransferFunction.identity();
-            }
-        }).setBounds(5, 41, dialog.getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
+            // Hysteresis
+            final MapWidgetTransferFunctionConditionalHysteresis hysteresisWidget;
+            hysteresisWidget = dialog.addWidget(new MapWidgetTransferFunctionConditionalHysteresis(hysteresis) {
+                @Override
+                public void onHysteresisChanged(double hysteresis) {
+                    TransferFunctionConditional.this.setHysteresis(hysteresis);
+                    dialog.markChanged();
+                }
+            });
+            hysteresisWidget.setBounds(dialog.getWidth() - 55, 26, 50, 13);
+
+            // Right side input
+            final MapWidgetTransferFunctionSingleItem rightInputWidget;
+            rightInputWidget = dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), rightInput, isBooleanInput) {
+                @Override
+                public void onChanged(Holder<TransferFunction> function) {
+                    dialog.markChanged();
+                }
+
+                @Override
+                public TransferFunction createDefault() {
+                    return TransferFunction.identity();
+                }
+
+                @Override
+                public void onKeyPressed(MapKeyEvent event) {
+                    if (event.getKey() == MapPlayerInput.Key.UP && isFocused()) {
+                        focusOperatorWidget.run();
+                    } else {
+                        super.onKeyPressed(event);
+                    }
+                }
+            });
+            rightInputWidget.setBounds(5, 41, dialog.getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
+
+            final Runnable operatorChangeHandler = () -> {
+                hysteresisWidget.setVisible(operator != Operator.BOOL);
+                rightInputWidget.setVisible(operator != Operator.BOOL);
+            };
+            operatorChangeHandler.run(); // Initial
+
+            // Operator
+            dialog.addWidget(new MapWidgetTransferFunctionConditionalOperator(operator) {
+                @Override
+                public void onOperatorChanged(Operator operator) {
+                    TransferFunctionConditional.this.operator = operator;
+                    operatorChangeHandler.run();
+                    dialog.markChanged();
+                }
+            }).setBounds(5, 26, 21, 13);
+        }
 
         // Result true/false
-        dialog.addLabel(44, dialog.getHeight() - 43, MapColorPalette.COLOR_RED, "RESULT");
-        dialog.addLabel(3, dialog.getHeight() - 32, MapColorPalette.COLOR_RED, "Y");
-        dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), trueOutput, isBooleanInput) {
-            @Override
-            public void onChanged(Holder<TransferFunction> function) {
-                dialog.markChanged();
-            }
+        {
+            dialog.addLabel(44, dialog.getHeight() - 44, MapColorPalette.COLOR_RED, "RESULT");
 
-            @Override
-            public TransferFunction createDefault() {
-                return TransferFunction.identity();
-            }
-        }).setBounds(7, dialog.getHeight() - 37, dialog.getWidth() - 12, MapWidgetTransferFunctionItem.HEIGHT);
+            dialog.addLabel(3, dialog.getHeight() - 33, MapColorPalette.COLOR_RED, "Y");
+            dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), trueOutput, isBooleanInput) {
+                @Override
+                public void onChanged(Holder<TransferFunction> function) {
+                    dialog.markChanged();
+                }
 
-        dialog.addLabel(3, dialog.getHeight() - 16, MapColorPalette.COLOR_RED, "N");
-        dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), falseOutput, isBooleanInput) {
-            @Override
-            public void onChanged(Holder<TransferFunction> function) {
-                dialog.markChanged();
-            }
+                @Override
+                public TransferFunction createDefault() {
+                    return TransferFunction.identity();
+                }
+            }).setBounds(7, dialog.getHeight() - 38, dialog.getWidth() - 12, MapWidgetTransferFunctionItem.HEIGHT);
 
-            @Override
-            public TransferFunction createDefault() {
-                return TransferFunction.identity();
-            }
-        }).setBounds(7, dialog.getHeight() - 21, dialog.getWidth() - 12, MapWidgetTransferFunctionItem.HEIGHT);
+            dialog.addLabel(3, dialog.getHeight() - 16, MapColorPalette.COLOR_RED, "N");
+            dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), falseOutput, isBooleanInput) {
+                @Override
+                public void onChanged(Holder<TransferFunction> function) {
+                    dialog.markChanged();
+                }
+
+                @Override
+                public TransferFunction createDefault() {
+                    return TransferFunction.identity();
+                }
+            }).setBounds(7, dialog.getHeight() - 21, dialog.getWidth() - 12, MapWidgetTransferFunctionItem.HEIGHT);
+        }
     }
 
     /**
      * Comparator operator mode
      */
     public enum Operator {
-        EQUAL("==", (l, r) -> l == r),
-        NOT_EQUAL("!=", (l, r) -> l != r),
-        GREATER_THAN(">", (l, r) -> l > r),
-        GREATER_EQUAL_THAN(">=", (l, r) -> l >= r),
-        LESSER_THAN("<", (l, r) -> l < r),
-        LESSER_EQUAL_THAN("<=", (l, r) -> l <= r),
-        BOOL("!=0", (l, r) -> l != 0.0);
+        EQUAL("==",
+                /* Condition */
+                (l, r) -> l == r,
+                /* Hysteresis Condition for false -> true */
+                (l, r, h) -> l == r,
+                /* Hysteresis Condition for true -> false */
+                (l, r, h) -> Math.abs(l - r) > h),
+        NOT_EQUAL("!=",
+                /* Condition */
+                (l, r) -> l != r,
+                /* Hysteresis Condition for false -> true */
+                (l, r, h) -> Math.abs(l - r) > h,
+                /* Hysteresis Condition for true -> false */
+                (l, r, h) -> l == r),
+        GREATER_THAN(">",
+                /* Condition */
+                (l, r) -> l > r,
+                /* Hysteresis Condition for false -> true */
+                (l, r, h) -> (l - r) > h,
+                /* Hysteresis Condition for true -> false */
+                (l, r, h) -> (r - l) >= h),
+        GREATER_EQUAL_THAN(">=",
+                /* Condition */
+                (l, r) -> l >= r,
+                /* Hysteresis Condition for false -> true */
+                (l, r, h) -> (l - r) >= h,
+                /* Hysteresis Condition for true -> false */
+                (l, r, h) -> (r - l) > h),
+        LESSER_THAN("<",
+                /* Condition */
+                (l, r) -> l < r,
+                /* Hysteresis Condition for false -> true */
+                (l, r, h) -> (r - l) > h,
+                /* Hysteresis Condition for true -> false */
+                (l, r, h) -> (l - r) >= h),
+        LESSER_EQUAL_THAN("<=",
+                /* Condition */
+                (l, r) -> l <= r,
+                /* Hysteresis Condition for false -> true */
+                (l, r, h) -> (r - l) >= h,
+                /* Hysteresis Condition for true -> false */
+                (l, r, h) -> (l - r) > h),
+        BOOL("!=0",
+                /* Condition */
+                (l, r) -> l != 0.0,
+                /* Hysteresis Condition for false -> true */
+                (l, r, h) -> l != 0.0,
+                /* Hysteresis Condition for true -> false */
+                (l, r, h) -> l == 0.0);
 
         private final String title;
         private final DoubleComparator comparator;
+        private final DoubleHysteresisComparator trueHysteresisComparator;
+        private final DoubleHysteresisComparator falseHysteresisComparator;
 
-        Operator(String title, DoubleComparator comparator) {
+        Operator(
+                String title,
+                DoubleComparator comparator,
+                DoubleHysteresisComparator trueHysteresisComparator,
+                DoubleHysteresisComparator falseHysteresisComparator
+        ) {
             this.title = title;
             this.comparator = comparator;
+            this.trueHysteresisComparator = trueHysteresisComparator;
+            this.falseHysteresisComparator = falseHysteresisComparator;
         }
 
         public String title() {
@@ -247,6 +386,14 @@ public class TransferFunctionConditional implements TransferFunction {
             return comparator.compare(left, right);
         }
 
+        public boolean compareWithHysteresis(boolean wasTrue, double left, double right, double hysteresis) {
+            if (wasTrue) {
+                return !falseHysteresisComparator.compare(left, right, hysteresis);
+            } else {
+                return trueHysteresisComparator.compare(left, right, hysteresis);
+            }
+        }
+
         public boolean hasRightHandSide() {
             return this != BOOL;
         }
@@ -255,5 +402,10 @@ public class TransferFunctionConditional implements TransferFunction {
     @FunctionalInterface
     private interface DoubleComparator {
         boolean compare(double left, double right);
+    }
+
+    @FunctionalInterface
+    private interface DoubleHysteresisComparator {
+        boolean compare(double left, double right, double hysteresis);
     }
 }

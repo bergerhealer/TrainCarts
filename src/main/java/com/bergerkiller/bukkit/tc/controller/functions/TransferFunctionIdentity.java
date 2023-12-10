@@ -75,7 +75,7 @@ class TransferFunctionIdentity implements TransferFunction {
 
     @Override
     public void drawPreview(MapWidgetTransferFunctionItem widget, MapCanvas view) {
-        view.draw(MapFont.MINECRAFT, 2, 3, MapColorPalette.COLOR_YELLOW, "<Input>");
+        view.draw(MapFont.MINECRAFT, 2, 3, MapColorPalette.COLOR_BLUE, "<Input>");
     }
 
     @Override

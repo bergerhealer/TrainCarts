@@ -14,33 +14,41 @@ import org.bukkit.block.BlockFace;
  * navigation buttons.
  */
 public abstract class MapWidgetTransferFunctionConditionalOperator extends MapWidget {
-    protected static final byte COLOR_BG_DEFAULT = MapColorPalette.getColor(199, 199, 199);
-    protected static final byte COLOR_BG_FOCUSED = MapColorPalette.getColor(255, 252, 245);
-    protected static final byte COLOR_BG_ACTIVATED = MapColorPalette.getColor(247, 233, 163);
+    private static final byte COLOR_BG_DEFAULT = MapColorPalette.getColor(199, 199, 199);
+    private static final byte COLOR_BG_FOCUSED = MapColorPalette.getColor(255, 252, 245);
+    private static final byte COLOR_BG_ACTIVATED = MapColorPalette.getColor(247, 233, 163);
 
     private final MapWidgetArrow opUpArrow = new MapWidgetArrow(BlockFace.SOUTH);
     private final MapWidgetArrow opDownArrow = new MapWidgetArrow(BlockFace.NORTH);
+    private final Connector aboveConnector = new Connector();
+    private final Connector belowConnector = new Connector();
     private TransferFunctionConditional.Operator operator;
 
     public MapWidgetTransferFunctionConditionalOperator(TransferFunctionConditional.Operator operator) {
         this.operator = operator;
         this.setFocusable(true);
+        this.setRetainChildWidgets(true);
+        this.addWidget(aboveConnector);
+        this.addWidget(belowConnector);
+        belowConnector.setVisible(operator != TransferFunctionConditional.Operator.BOOL);
     }
 
     public abstract void onOperatorChanged(TransferFunctionConditional.Operator operator);
 
     public void setOperator(TransferFunctionConditional.Operator operator) {
-        this.operator = operator;
-        this.invalidate();
+        if (this.operator != operator) {
+            this.operator = operator;
+            belowConnector.setVisible(operator != TransferFunctionConditional.Operator.BOOL);
+            onOperatorChanged(operator);
+            this.invalidate();
+        }
     }
 
     private void updateOperator(int incr) {
         TransferFunctionConditional.Operator[] values = TransferFunctionConditional.Operator.values();
         int newIndex = operator.ordinal() + incr;
         if (newIndex >= 0 && newIndex < values.length) {
-            operator = values[newIndex];
-            onOperatorChanged(operator);
-            invalidate();
+            setOperator(values[newIndex]);
         }
     }
 
@@ -48,6 +56,14 @@ public abstract class MapWidgetTransferFunctionConditionalOperator extends MapWi
         TransferFunctionConditional.Operator[] values = TransferFunctionConditional.Operator.values();
         int newIndex = operator.ordinal() + incr;
         return newIndex >= 0 && newIndex < values.length;
+    }
+
+    @Override
+    public void onBoundsChanged() {
+        aboveConnector.setPosition((getWidth() - aboveConnector.getWidth()) / 2,
+                                      -aboveConnector.getHeight());
+        belowConnector.setPosition((getWidth() - belowConnector.getWidth()) / 2,
+                                      getHeight());
     }
 
     @Override
@@ -68,13 +84,13 @@ public abstract class MapWidgetTransferFunctionConditionalOperator extends MapWi
 
     @Override
     public void onDraw() {
-        view.drawRectangle(0, 0, getWidth(), getHeight(),
-                isFocused() ? MapColorPalette.COLOR_YELLOW : MapColorPalette.COLOR_BLACK);
+        view.drawRectangle(0, 0, getWidth(), getHeight(), MapColorPalette.COLOR_BLACK);
         view.fillRectangle(1, 1, getWidth() - 2, getHeight() - 2,
                 isActivated() ? COLOR_BG_ACTIVATED : (isFocused() ? COLOR_BG_FOCUSED : COLOR_BG_DEFAULT));
 
+        byte color = isFocused() ? MapColorPalette.COLOR_BLUE : MapColorPalette.COLOR_BLACK;
         int textWidth = (int) view.calcFontSize(MapFont.MINECRAFT, operator.title()).getWidth();
-        view.draw(MapFont.MINECRAFT, (getWidth() - textWidth) / 2, 3, MapColorPalette.COLOR_RED, operator.title());
+        view.draw(MapFont.MINECRAFT, (getWidth() - textWidth + 1) / 2, 3, color, operator.title());
     }
 
     @Override
@@ -99,7 +115,7 @@ public abstract class MapWidgetTransferFunctionConditionalOperator extends MapWi
             opDownArrow.sendFocus();
             opUpArrow.stopFocus();
         } else {
-            this.deactivate();
+            this.focus();
             if (event.getKey() == MapPlayerInput.Key.LEFT || event.getKey() == MapPlayerInput.Key.RIGHT) {
                 super.onKeyPressed(event);
             }
@@ -116,5 +132,22 @@ public abstract class MapWidgetTransferFunctionConditionalOperator extends MapWi
             }
         }
         super.onKeyReleased(event);
+    }
+
+    /**
+     * Shows a little connector line between the operator and the left/right hand sides
+     */
+    private static class Connector extends MapWidget {
+
+        public Connector() {
+            this.setSize(3, 2);
+            this.setDepthOffset(-1); // Avoid arrows interfering
+        }
+
+        @Override
+        public void onDraw() {
+            view.drawLine(0, 0, 0, getHeight() - 1, MapColorPalette.COLOR_BLACK);
+            view.drawLine(2, 0, 2, getHeight() - 1, MapColorPalette.COLOR_BLACK);
+        }
     }
 }
