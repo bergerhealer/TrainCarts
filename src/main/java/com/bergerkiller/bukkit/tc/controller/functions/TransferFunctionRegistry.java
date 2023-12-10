@@ -29,7 +29,7 @@ public class TransferFunctionRegistry {
         register(TransferFunctionInputSpeed.SERIALIZER);
         register(TransferFunctionInputProperty.SERIALIZER);
         register(TransferFunctionInputSequencerPlayState.SERIALIZER);
-        register(TransferFunctionCurve.SERIALIZER);
+        //register(TransferFunctionCurve.SERIALIZER);
         register(TransferFunctionList.SERIALIZER);
         register(TransferFunctionIdentity.SERIALIZER);
         register(TransferFunctionConditional.SERIALIZER);
