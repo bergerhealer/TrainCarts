@@ -55,9 +55,11 @@ public abstract class TransferFunctionInput implements TransferFunction {
     }
 
     @Override
-    public boolean isBooleanOutput(BooleanSupplier isBooleanInput) {
-        return source.isBool();
+    public final boolean isBooleanOutput(BooleanSupplier isBooleanInput) {
+        return isBooleanOutput();
     }
+
+    public abstract boolean isBooleanOutput();
 
     @Override
     public final TransferFunctionInput clone() {
@@ -120,11 +122,6 @@ public abstract class TransferFunctionInput implements TransferFunction {
         /** Temporary value used until a proper source is set for an input */
         public static final ReferencedSource NONE = new ReferencedSource() {
             @Override
-            public boolean isBool() {
-                return false;
-            }
-
-            @Override
             public boolean equals(Object o) {
                 return this == o;
             }
@@ -145,15 +142,6 @@ public abstract class TransferFunctionInput implements TransferFunction {
         public double value() {
             return value;
         }
-
-        /**
-         * Gets whether this input is a boolean input. A boolean input returns 1.0 for true and
-         * 0.0 for false. For conditional transfer functions this method signals whether to show
-         * the comparator controls.
-         *
-         * @return True if this input is a boolean input, False if not
-         */
-        public abstract boolean isBool();
 
         /**
          * Adds a new recipient for this input

@@ -95,6 +95,11 @@ public class TransferFunctionInputProperty extends TransferFunctionInput {
     }
 
     @Override
+    public boolean isBooleanOutput() {
+        return property != null && property.getDefault() instanceof Boolean;
+    }
+
+    @Override
     protected TransferFunctionInput cloneInput() {
         return new TransferFunctionInputProperty(property);
     }
@@ -189,11 +194,6 @@ public class TransferFunctionInputProperty extends TransferFunctionInput {
         }
 
         @Override
-        public boolean isBool() {
-            return true;
-        }
-
-        @Override
         public boolean equals(Object o) {
             return o instanceof PropertySourceBool && ((PropertySourceBool) o).property == property;
         }
@@ -215,11 +215,6 @@ public class TransferFunctionInputProperty extends TransferFunctionInput {
         }
 
         @Override
-        public boolean isBool() {
-            return false;
-        }
-
-        @Override
         public boolean equals(Object o) {
             return o instanceof PropertySourceDoubleBoxed && ((PropertySourceDoubleBoxed) o).property == property;
         }
@@ -238,11 +233,6 @@ public class TransferFunctionInputProperty extends TransferFunctionInput {
         @Override
         public void onTick() {
             this.value = property.getDouble(properties);
-        }
-
-        @Override
-        public boolean isBool() {
-            return false;
         }
 
         @Override

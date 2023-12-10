@@ -63,6 +63,11 @@ public class TransferFunctionInputSpeed extends TransferFunctionInput {
     }
 
     @Override
+    public boolean isBooleanOutput() {
+        return false;
+    }
+
+    @Override
     public void drawPreview(MapWidgetTransferFunctionItem widget, MapCanvas view) {
         view.draw(MapFont.MINECRAFT, 0, 3, MapColorPalette.COLOR_GREEN, "<Move Speed>");
     }
@@ -111,11 +116,6 @@ public class TransferFunctionInputSpeed extends TransferFunctionInput {
                 this.value = d;
                  */
             }
-        }
-
-        @Override
-        public boolean isBool() {
-            return false;
         }
 
         @Override

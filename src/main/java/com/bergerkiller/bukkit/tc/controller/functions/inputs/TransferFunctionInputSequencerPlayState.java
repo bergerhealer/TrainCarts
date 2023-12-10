@@ -91,6 +91,11 @@ public class TransferFunctionInputSequencerPlayState extends TransferFunctionInp
     }
 
     @Override
+    public boolean isBooleanOutput() {
+        return false;
+    }
+
+    @Override
     public void drawPreview(MapWidgetTransferFunctionItem widget, MapCanvas view) {
         view.draw(MapFont.MINECRAFT, 0, 3, MapColorPalette.COLOR_GREEN, mode.previewTitle());
     }
@@ -146,11 +151,6 @@ public class TransferFunctionInputSequencerPlayState extends TransferFunctionInp
         }
 
         @Override
-        public boolean isBool() {
-            return false;
-        }
-
-        @Override
         public boolean equals(Object o) {
             return o instanceof EffectOptionsVolumeReferencedSource;
         }
@@ -174,11 +174,6 @@ public class TransferFunctionInputSequencerPlayState extends TransferFunctionInp
         }
 
         @Override
-        public boolean isBool() {
-            return false;
-        }
-
-        @Override
         public boolean equals(Object o) {
             return o instanceof EffectOptionsSpeedReferencedSource;
         }
@@ -199,11 +194,6 @@ public class TransferFunctionInputSequencerPlayState extends TransferFunctionInp
         @Override
         public boolean isTickedDuringPlay() {
             return true;
-        }
-
-        @Override
-        public boolean isBool() {
-            return false;
         }
 
         @Override

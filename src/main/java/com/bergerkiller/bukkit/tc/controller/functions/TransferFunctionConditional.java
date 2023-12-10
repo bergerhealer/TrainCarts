@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.tc.controller.functions.ui.conditional.MapWidgetT
 import com.bergerkiller.bukkit.tc.utils.CachedBooleanSupplier;
 
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 /**
  * Compares an input against a constant right-hand side threshold.
@@ -93,6 +94,8 @@ public class TransferFunctionConditional implements TransferFunction {
     private final TransferFunction.Holder<TransferFunction> falseOutput = TransferFunction.Holder.of(TransferFunction.identity(), true);
     /** Function to call when the condition is true. Input is passed to it. */
     private final TransferFunction.Holder<TransferFunction> trueOutput = TransferFunction.Holder.of(TransferFunction.identity(), true);
+    /** Tracks whether last time opening the dialog the left side input was a boolean or not. For automatic operator switching */
+    private Boolean leftWasBooleanOnOpen = null;
 
     @Override
     public Serializer<? extends TransferFunction> getSerializer() {
@@ -184,7 +187,35 @@ public class TransferFunctionConditional implements TransferFunction {
     @Override
     public void openDialog(Dialog dialog) {
         // Cache whether input is a boolean - won't change while this function is being configured
-        BooleanSupplier isBooleanInput = CachedBooleanSupplier.of(dialog::isBooleanInput);
+        final BooleanSupplier isBooleanInput = CachedBooleanSupplier.of(dialog::isBooleanInput);
+
+        // This method toggles the operator mode when boolean <> double input changes for the left input
+        // If an operator widget was added to the dialog, uses that to change it so that the UI changes properly
+        Consumer<Boolean> autoToggleOperator = isBool -> {
+            Operator newOperator = isBool ? Operator.BOOL : Operator.GREATER_EQUAL_THAN;
+            boolean found = false;
+            for (MapWidget w : dialog.getWidget().getWidgets()) {
+                if (w instanceof MapWidgetTransferFunctionConditionalOperator) {
+                    ((MapWidgetTransferFunctionConditionalOperator) w).setOperator(newOperator);
+                    found = true;
+                }
+            }
+            if (!found) {
+                TransferFunctionConditional.this.setOperator(newOperator);
+                dialog.markChanged();
+            }
+        };
+
+        // If last time opening this dialog the left side input was a boolean, and now it
+        // isn't, toggle the operator mode. Similarly, for going to it being a boolean.
+        // Only do this if coming from configuring the left input.
+        {
+            boolean leftSideIsBoolean = leftInput.getFunction().isBooleanOutput(isBooleanInput);
+            if (leftWasBooleanOnOpen != null && leftSideIsBoolean != leftWasBooleanOnOpen && dialog.isPreviousFunction(leftInput)) {
+                autoToggleOperator.accept(leftSideIsBoolean);
+            }
+            leftWasBooleanOnOpen = leftSideIsBoolean;
+        }
 
         // Helper function that focuses the operator widget
         final Runnable focusOperatorWidget = () -> {
@@ -205,7 +236,23 @@ public class TransferFunctionConditional implements TransferFunction {
             dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), leftInput, isBooleanInput) {
                 @Override
                 public void onChanged(Holder<TransferFunction> function) {
+                    boolean leftSideIsBoolean = function.getFunction().isBooleanOutput(isBooleanInput);
+                    if (leftSideIsBoolean != leftWasBooleanOnOpen) {
+                        autoToggleOperator.accept(leftSideIsBoolean);
+                        leftWasBooleanOnOpen = leftSideIsBoolean;
+                    }
+
                     dialog.markChanged();
+                }
+
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+
+                    // If we came from configuring this input, focus this element
+                    if (dialog.isPreviousFunction(leftInput)) {
+                        this.focus();
+                    }
                 }
 
                 @Override
@@ -248,6 +295,16 @@ public class TransferFunctionConditional implements TransferFunction {
                 }
 
                 @Override
+                public void onAttached() {
+                    super.onAttached();
+
+                    // If we came from configuring this input, focus this element
+                    if (dialog.isPreviousFunction(rightInput)) {
+                        this.focus();
+                    }
+                }
+
+                @Override
                 public void onKeyPressed(MapKeyEvent event) {
                     if (event.getKey() == MapPlayerInput.Key.UP && isFocused()) {
                         focusOperatorWidget.run();
@@ -287,6 +344,16 @@ public class TransferFunctionConditional implements TransferFunction {
                 }
 
                 @Override
+                public void onAttached() {
+                    super.onAttached();
+
+                    // If we came from configuring this result, focus this element
+                    if (dialog.isPreviousFunction(trueOutput)) {
+                        this.focus();
+                    }
+                }
+
+                @Override
                 public TransferFunction createDefault() {
                     return TransferFunction.identity();
                 }
@@ -297,6 +364,16 @@ public class TransferFunctionConditional implements TransferFunction {
                 @Override
                 public void onChanged(Holder<TransferFunction> function) {
                     dialog.markChanged();
+                }
+
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+
+                    // If we came from configuring this result, focus this element
+                    if (dialog.isPreviousFunction(falseOutput)) {
+                        this.focus();
+                    }
                 }
 
                 @Override

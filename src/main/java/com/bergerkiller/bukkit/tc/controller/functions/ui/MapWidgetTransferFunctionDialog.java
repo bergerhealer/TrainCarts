@@ -20,6 +20,7 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu impl
     private final TransferFunctionHost host;
     private TransferFunction.Holder<TransferFunction> root;
     private TransferFunctionNav nav;
+    private TransferFunction.Holder<?> prev;
 
     public MapWidgetTransferFunctionDialog(TransferFunctionHost host, TransferFunction rootFunction, BooleanSupplier isBooleanInput) {
         this.setBackgroundColor(MapColorPalette.getColor(72, 108, 152));
@@ -29,6 +30,7 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu impl
         this.host = host;
         this.root = TransferFunction.Holder.of(rootFunction);
         this.nav = new TransferFunctionNav(null, this.root, isBooleanInput);
+        this.prev = null;
     }
 
     /**
@@ -95,6 +97,11 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu impl
         return nav != null && nav.isBooleanInput.getAsBoolean();
     }
 
+    @Override
+    public boolean isPreviousFunction(TransferFunction.Holder<?> functionHolder) {
+        return prev != null && prev.isSame(functionHolder);
+    }
+
     /**
      * Navigates to a new transfer function. The back button will return back to this
      * current function.
@@ -121,6 +128,10 @@ public abstract class MapWidgetTransferFunctionDialog extends MapWidgetMenu impl
         if (nav.function.getFunction().openDialogMode() != TransferFunction.DialogMode.WINDOW) {
             throw new IllegalArgumentException("Cannot navigate: function dialog mode is " +
                     nav.function.getFunction().openDialogMode());
+        }
+
+        if (this.nav != nav) {
+            this.prev = (this.nav == null) ? null : this.nav.function;
         }
 
         this.nav = nav;

@@ -162,6 +162,16 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
         boolean isBooleanInput();
 
         /**
+         * Gets whether the previous function being configured in this dialog was
+         * the function specified. Can be used to re-focus the right widgets
+         * when the player goes 'back'.
+         *
+         * @param functionHolder Function Holder to test
+         * @return True if the previous function being configured was for this holder
+         */
+        boolean isPreviousFunction(Holder<?> functionHolder);
+
+        /**
          * Sends a signal that the existing transfer function instance has changed.
          * Same as calling {@link #setFunction(TransferFunction)} with the current
          * instance.
@@ -279,7 +289,27 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
                     orig.setFunction(function, isDefault);
                     onChanged.accept(this);
                 }
+
+                @Override
+                protected Holder<?> rootHolder() {
+                    return orig.rootHolder();
+                }
             };
+        }
+
+        /**
+         * Gets whether this holder is ultimately the same as another one.
+         * This survives wrapping with {@link #withChangeListener(Consumer)}
+         *
+         * @param other Other Holder
+         * @return True if the same
+         */
+        public final boolean isSame(Holder<?> other) {
+            return this.rootHolder() == other.rootHolder();
+        }
+
+        protected Holder<?> rootHolder() {
+            return this;
         }
 
         /**

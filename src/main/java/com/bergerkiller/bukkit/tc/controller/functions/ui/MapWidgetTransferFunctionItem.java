@@ -154,11 +154,6 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
         } else {
             dialog = new MapWidgetTransferFunctionDialog(host, function.getFunction(), isBooleanInput) {
                 @Override
-                public boolean isBooleanInput() {
-                    return isBooleanInput.getAsBoolean();
-                }
-
-                @Override
                 public void onChanged(TransferFunction function) {
                     MapWidgetTransferFunctionItem.this.function.setFunction(function);
                     MapWidgetTransferFunctionItem.this.invalidate();
@@ -279,6 +274,11 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
         @Override
         public boolean isBooleanInput() {
             return isBooleanInput.getAsBoolean();
+        }
+
+        @Override
+        public boolean isPreviousFunction(TransferFunction.Holder<?> functionHolder) {
+            return MapWidgetTransferFunctionItem.this.function.isSame(functionHolder);
         }
 
         @Override
