@@ -47,7 +47,7 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
 
         @Override
         public MapTexture getIcon(ConfigurationNode config) {
-            return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/empty.png");
+            return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/sequencer.png");
         }
 
         @Override
