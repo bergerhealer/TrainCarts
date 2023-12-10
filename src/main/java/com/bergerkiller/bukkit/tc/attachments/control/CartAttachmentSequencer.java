@@ -458,10 +458,10 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
                 return dt;
             }
 
-            // If duration is zero or no effects are defined, simply do nothing
+            // If duration is zero, simply do nothing
             // In the case of loop, pretend to be doing things while actually running a no-op
             // If looping and stop is requested, get out of this catatonic state immediately
-            if (durationNanos == 0L || effects.isEmpty()) {
+            if (durationNanos == 0L) {
                 return (stopRequested || mode != SequencerMode.LOOP) ? dt : EffectLoop.Time.ZERO;
             }
 
