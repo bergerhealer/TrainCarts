@@ -1,10 +1,12 @@
-package com.bergerkiller.bukkit.tc.attachments.ui.functions;
+package com.bergerkiller.bukkit.tc.controller.functions.ui.list;
 
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetArrow;
+import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionDialog;
+import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionItem;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionList;
 import org.bukkit.block.BlockFace;

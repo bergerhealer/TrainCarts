@@ -4,10 +4,9 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
-import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionDialog;
-import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
-import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionList;
-import com.bergerkiller.bukkit.tc.utils.CachedBooleanSupplier;
+import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionDialog;
+import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionItem;
+import com.bergerkiller.bukkit.tc.controller.functions.ui.list.MapWidgetTransferFunctionList;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -154,7 +153,7 @@ public class TransferFunctionList implements TransferFunction, Cloneable {
             if (item.mode.booleanMode() == FunctionBooleanMode.INPUT) {
                 // Infer function output
                 final BooleanSupplier prev = chain;
-                chain = CachedBooleanSupplier.of(() -> item.function.isBooleanOutput(prev));
+                chain = () -> item.function.isBooleanOutput(prev);
             } else {
                 // Always true/false
                 final boolean result = item.mode.booleanMode().asBool();

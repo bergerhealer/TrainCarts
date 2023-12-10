@@ -6,7 +6,7 @@ import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
-import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
+import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionItem;
 
 import java.text.NumberFormat;
 
@@ -27,7 +27,7 @@ public final class TransferFunctionConstant implements TransferFunction {
 
         @Override
         public TransferFunctionConstant createNew(TransferFunctionHost host) {
-            return new TransferFunctionConstant();
+            return zero();
         }
 
         @Override
@@ -45,11 +45,15 @@ public final class TransferFunctionConstant implements TransferFunction {
 
     private double output;
 
-    public TransferFunctionConstant() {
-        this(0.0);
+    public static TransferFunctionConstant zero() {
+        return new TransferFunctionConstant(0.0);
     }
 
-    public TransferFunctionConstant(double output) {
+    public static TransferFunctionConstant of(double output) {
+        return new TransferFunctionConstant(output);
+    }
+
+    private TransferFunctionConstant(double output) {
         this.output = output;
     }
 

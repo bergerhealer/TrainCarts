@@ -4,8 +4,9 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
-import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
-import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionSingleItem;
+import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionItem;
+import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionSingleItem;
+import com.bergerkiller.bukkit.tc.controller.functions.ui.conditional.MapWidgetTransferFunctionConditionalOperator;
 import com.bergerkiller.bukkit.tc.utils.CachedBooleanSupplier;
 
 import java.util.function.BooleanSupplier;
@@ -27,22 +28,29 @@ public class TransferFunctionConditional implements TransferFunction {
 
         @Override
         public TransferFunctionConditional createNew(TransferFunctionHost host) {
-            return new TransferFunctionConditional();
+            TransferFunctionConditional conditional = new TransferFunctionConditional();
+            conditional.setOperator(Operator.GREATER_THAN);
+            conditional.setRightInput(TransferFunctionConstant.zero());
+            conditional.setTrueOutput(TransferFunctionBoolean.TRUE);
+            conditional.setFalseOutput(TransferFunctionBoolean.FALSE);
+            return conditional;
         }
 
         @Override
         public TransferFunctionConditional load(TransferFunctionHost host, ConfigurationNode config) {
             TransferFunctionConditional conditional = new TransferFunctionConditional();
             if (config.isNode("left")) {
-                conditional.leftInput.setFunction(host.loadFunction(config.getNode("left")));
+                conditional.setLeftInput(host.loadFunction(config.getNode("left")));
             }
-            conditional.rightInput = config.getOrDefault("right", conditional.rightInput);
+            if (config.isNode("right")) {
+                conditional.setRightInput(host.loadFunction(config.getNode("right")));
+            }
             conditional.operator = config.getOrDefault("operator", conditional.operator);
             if (config.isNode("falseOutput")) {
-                conditional.falseOutput.setFunction(host.loadFunction(config.getNode("falseOutput")));
+                conditional.setFalseOutput(host.loadFunction(config.getNode("falseOutput")));
             }
             if (config.isNode("trueOutput")) {
-                conditional.trueOutput.setFunction(host.loadFunction(config.getNode("trueOutput")));
+                conditional.setTrueOutput(host.loadFunction(config.getNode("trueOutput")));
             }
             return conditional;
         }
@@ -52,7 +60,9 @@ public class TransferFunctionConditional implements TransferFunction {
             if (!conditional.leftInput.isDefault()) {
                 config.set("left", host.saveFunction(conditional.leftInput.getFunction()));
             }
-            config.set("right", conditional.rightInput);
+            if (!conditional.rightInput.isDefault()) {
+                config.set("right", host.saveFunction(conditional.rightInput.getFunction()));
+            }
             config.set("operator", conditional.operator);
             if (!conditional.falseOutput.isDefault()) {
                 config.set("falseOutput", host.saveFunction(conditional.falseOutput.getFunction()));
@@ -65,10 +75,10 @@ public class TransferFunctionConditional implements TransferFunction {
 
     /** Left-hand side of the comparator operation. Supports functions. Input is passed to it. */
     private final TransferFunction.Holder<TransferFunction> leftInput = TransferFunction.Holder.of(TransferFunction.identity(), true);
-    /** Right-hand side of the comparator operation */
-    private double rightInput = 0.0;
+    /** Right-hand side of the comparator operation. Supports functions. Input is passed to it. */
+    private final TransferFunction.Holder<TransferFunction> rightInput = TransferFunction.Holder.of(TransferFunction.identity(), true);
     /** Operator to use when comparing the left and right hand inputs */
-    private Operator operator = Operator.GREATER_EQUAL_THAN;
+    private Operator operator = Operator.GREATER_THAN;
     /** Function to call when the condition is false. Input is passed to it. */
     private final TransferFunction.Holder<TransferFunction> falseOutput = TransferFunction.Holder.of(TransferFunction.identity(), true);
     /** Function to call when the condition is true. Input is passed to it. */
@@ -81,12 +91,19 @@ public class TransferFunctionConditional implements TransferFunction {
 
     @Override
     public double map(double input) {
-        boolean result = operator.compare(leftInput.getFunction().map(input), rightInput);
+        boolean result;
+        if (operator == Operator.BOOL) {
+            result = leftInput.getFunction().map(input) != 0.0;
+        } else {
+            result = operator.compare(leftInput.getFunction().map(input),
+                                      rightInput.getFunction().map(input));
+        }
         return (result ? trueOutput : falseOutput).getFunction().map(input);
     }
 
     @Override
     public boolean isBooleanOutput(BooleanSupplier isBooleanInput) {
+        isBooleanInput = CachedBooleanSupplier.of(isBooleanInput);
         return trueOutput.getFunction().isBooleanOutput(isBooleanInput) &&
                falseOutput.getFunction().isBooleanOutput(isBooleanInput);
     }
@@ -102,8 +119,8 @@ public class TransferFunctionConditional implements TransferFunction {
         this.leftInput.setFunction(input);
     }
 
-    public void setRightInput(double input) {
-        this.rightInput = input;
+    public void setRightInput(TransferFunction input) {
+        this.rightInput.setFunction(input);
     }
 
     public void setOperator(Operator operator) {
@@ -122,7 +139,7 @@ public class TransferFunctionConditional implements TransferFunction {
     public TransferFunctionConditional clone() {
         TransferFunctionConditional copy = new TransferFunctionConditional();
         copy.leftInput.setFunction(this.leftInput.getFunction().clone());
-        copy.rightInput = this.rightInput;
+        copy.rightInput.setFunction(this.rightInput.getFunction().clone());
         copy.operator = this.operator;
         copy.falseOutput.setFunction(this.falseOutput.getFunction().clone());
         copy.trueOutput.setFunction(this.trueOutput.getFunction().clone());
@@ -131,13 +148,7 @@ public class TransferFunctionConditional implements TransferFunction {
 
     @Override
     public void drawPreview(MapWidgetTransferFunctionItem widget, MapCanvas view) {
-        String str = operator.title();
-        if (operator.hasRightHandSide()) {
-            str = str + rightInput + " [cond]";
-        } else {
-            str += " [cond]";
-        }
-        view.draw(MapFont.MINECRAFT, 2, 3, MapColorPalette.COLOR_GREEN, str);
+        view.draw(MapFont.MINECRAFT, 2, 3, MapColorPalette.COLOR_GREEN, "Conditional [Y:N]");
     }
 
     @Override
@@ -159,18 +170,29 @@ public class TransferFunctionConditional implements TransferFunction {
             }
         }).setBounds(5, 9, dialog.getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
 
+        dialog.addWidget(new MapWidgetTransferFunctionConditionalOperator(operator) {
+            @Override
+            public void onOperatorChanged(Operator operator) {
+                TransferFunctionConditional.this.operator = operator;
+                dialog.markChanged();
+            }
+        }).setBounds(5, 26, 21, 13);
 
-        /*
-        leftInput
-        rightInput
-        operator
-        falseOutput
-        trueOutput
-         */
+        dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), rightInput, isBooleanInput) {
+            @Override
+            public void onChanged(Holder<TransferFunction> function) {
+                dialog.markChanged();
+            }
+
+            @Override
+            public TransferFunction createDefault() {
+                return TransferFunction.identity();
+            }
+        }).setBounds(5, 41, dialog.getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
 
         // Result true/false
         dialog.addLabel(44, dialog.getHeight() - 43, MapColorPalette.COLOR_RED, "RESULT");
-        dialog.addLabel(3, dialog.getHeight() - 32, MapColorPalette.COLOR_RED, "T");
+        dialog.addLabel(3, dialog.getHeight() - 32, MapColorPalette.COLOR_RED, "Y");
         dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), trueOutput, isBooleanInput) {
             @Override
             public void onChanged(Holder<TransferFunction> function) {
@@ -183,7 +205,7 @@ public class TransferFunctionConditional implements TransferFunction {
             }
         }).setBounds(7, dialog.getHeight() - 37, dialog.getWidth() - 12, MapWidgetTransferFunctionItem.HEIGHT);
 
-        dialog.addLabel(3, dialog.getHeight() - 16, MapColorPalette.COLOR_RED, "F");
+        dialog.addLabel(3, dialog.getHeight() - 16, MapColorPalette.COLOR_RED, "N");
         dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), falseOutput, isBooleanInput) {
             @Override
             public void onChanged(Holder<TransferFunction> function) {
@@ -207,7 +229,7 @@ public class TransferFunctionConditional implements TransferFunction {
         GREATER_EQUAL_THAN(">=", (l, r) -> l >= r),
         LESSER_THAN("<", (l, r) -> l < r),
         LESSER_EQUAL_THAN("<=", (l, r) -> l <= r),
-        BOOL("!= 0", (l, r) -> l != 0.0);
+        BOOL("!=0", (l, r) -> l != 0.0);
 
         private final String title;
         private final DoubleComparator comparator;

@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.attachments.ui.functions;
+package com.bergerkiller.bukkit.tc.controller.functions.ui;
 
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;

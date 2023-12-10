@@ -1,8 +1,10 @@
-package com.bergerkiller.bukkit.tc.attachments.ui.functions;
+package com.bergerkiller.bukkit.tc.controller.functions.ui.list;
 
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetScroller;
+import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionDialog;
+import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionItem;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionList;
 
 /**

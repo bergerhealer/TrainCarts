@@ -358,7 +358,7 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
      * One of start/loop/stop modes.
      */
     public static class SequencerGroup implements Tickable {
-        private final ConfigLoadedValue<TransferFunction> speedFunction = new ConfigLoadedValue<>(new TransferFunctionConstant(1.0));
+        private final ConfigLoadedValue<TransferFunction> speedFunction = new ConfigLoadedValue<>(TransferFunctionConstant.of(1.0));
         private final CartAttachmentSequencer sequencer;
         private final SequencerMode mode;
         private EffectLoop.Time duration = EffectLoop.Time.ZERO;
@@ -524,8 +524,8 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
     public static class SequencerEffect implements EffectSink, Tickable {
         private AttachmentNameLookup.NameGroup<Attachment.EffectAttachment> effectAttachments = AttachmentNameLookup.NameGroup.none();
         private final ConfigLoadedValue<TransferFunction> activeFunction = new ConfigLoadedValue<>(TransferFunctionBoolean.TRUE);
-        private final ConfigLoadedValue<TransferFunction> volumeFunction = new ConfigLoadedValue<>(new TransferFunctionConstant(1.0));
-        private final ConfigLoadedValue<TransferFunction> pitchFunction = new ConfigLoadedValue<>(new TransferFunctionConstant(1.0));
+        private final ConfigLoadedValue<TransferFunction> volumeFunction = new ConfigLoadedValue<>(TransferFunctionConstant.of(1.0));
+        private final ConfigLoadedValue<TransferFunction> pitchFunction = new ConfigLoadedValue<>(TransferFunctionConstant.of(1.0));
         private final ConfigLoadedValue<ScheduledEffectLoop> effectLoop = new ConfigLoadedValue<>(ScheduledEffectLoop.NONE);
         private SequencerType sequencerType = null;
         private boolean active;

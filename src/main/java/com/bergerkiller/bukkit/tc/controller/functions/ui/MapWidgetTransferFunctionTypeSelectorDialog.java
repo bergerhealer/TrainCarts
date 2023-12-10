@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.attachments.ui.functions;
+package com.bergerkiller.bukkit.tc.controller.functions.ui;
 
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;

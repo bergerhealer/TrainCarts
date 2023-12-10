@@ -12,8 +12,8 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.ScheduledEffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
-import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
-import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionSingleConfigItem;
+import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionItem;
+import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionSingleConfigItem;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionBoolean;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionConstant;
@@ -227,7 +227,7 @@ public class MapWidgetSequencerEffect extends MapWidget {
             addWidget(new MapWidgetTransferFunctionSingleConfigItem(host, config, "volume", () -> false) {
                 @Override
                 public TransferFunction createDefault() {
-                    return new TransferFunctionConstant(1.0);
+                    return TransferFunctionConstant.of(1.0);
                 }
             }).setBounds(5, 36, getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
 
@@ -235,7 +235,7 @@ public class MapWidgetSequencerEffect extends MapWidget {
             addWidget(new MapWidgetTransferFunctionSingleConfigItem(host, config, "pitch", () -> false) {
                 @Override
                 public TransferFunction createDefault() {
-                    return new TransferFunctionConstant(1.0);
+                    return TransferFunctionConstant.of(1.0);
                 }
             }).setBounds(5, 60, getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
 

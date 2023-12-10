@@ -10,8 +10,8 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
-import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
-import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionSingleConfigItem;
+import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionItem;
+import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionSingleConfigItem;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionConstant;
 
@@ -258,7 +258,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
             addWidget(new MapWidgetTransferFunctionSingleConfigItem(groupList.getTransferFunctionHost(), writeConfig(), "speed", () -> false) {
                 @Override
                 public TransferFunction createDefault() {
-                    return new TransferFunctionConstant(1.0);
+                    return TransferFunctionConstant.of(1.0);
                 }
             }).setBounds(5, 34, getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
 

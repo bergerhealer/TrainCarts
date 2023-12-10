@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.controller.functions.inputs;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSequencer;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
-import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionDialog;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 
