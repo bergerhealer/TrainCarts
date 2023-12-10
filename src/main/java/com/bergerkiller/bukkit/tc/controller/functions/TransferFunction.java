@@ -3,10 +3,13 @@ package com.bergerkiller.bukkit.tc.controller.functions;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
+import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.DoubleUnaryOperator;
 
@@ -65,9 +68,13 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
      * Gets whether the output of this transfer function is a boolean. That is,
      * {@link #map(double)} return 1.0 for true and 0.0 for false.
      *
+     * @param isBooleanInput Whether the input to this function is a boolean, too.
+     *                       Functions that can return the input can infer from that.
+     *                       If not needed to come to an answer, don't call it to
+     *                       save on computation.
      * @return True if map() returns a boolean output
      */
-    default boolean isBooleanOutput() {
+    default boolean isBooleanOutput(BooleanSupplier isBooleanInput) {
         return false;
     }
 
@@ -186,6 +193,23 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
          */
         default int getHeight() {
             return getWidget().getHeight();
+        }
+
+        /**
+         * Adds a tiny-font label somewhere on the dialog
+         *
+         * @param x X-position
+         * @param y Y-position
+         * @param color Text color of the label
+         * @param text Text of the label
+         */
+        default void addLabel(int x, int y, byte color, String text) {
+            MapWidgetText label = new MapWidgetText();
+            label.setFont(MapFont.TINY);
+            label.setText(text);
+            label.setPosition(x, y);
+            label.setColor(color);
+            this.addWidget(label);
         }
     }
 

@@ -125,29 +125,62 @@ public class MapWidgetTransferFunctionListItem extends MapWidgetTransferFunction
 
         // Draw a mode symbol, if not simply assignment
         if (item.mode() != TransferFunctionList.FunctionMode.ASSIGN) {
-            MapCanvas iconView = view.getView(MODE_WIDTH - 7, baseY - 3, 4, 6);
             switch (item.mode()) {
-                case ADD:
+                case ADD: {
+                    // +=
+                    MapCanvas iconView = view.getView(MODE_WIDTH - 7, baseY - 3, 4, 6);
                     iconView.drawLine(0, 3, 2, 3, textColor);
                     iconView.drawPixel(1, 2, textColor);
                     iconView.drawPixel(1, 4, textColor);
                     break;
-                case SUBTRACT:
+                }
+                case SUBTRACT: {
+                    // -=
+                    MapCanvas iconView = view.getView(MODE_WIDTH - 7, baseY - 3, 4, 6);
                     iconView.drawLine(0, 3, 2, 3, textColor);
                     break;
-                case MULTIPLY:
+                }
+                case MULTIPLY: {
+                    // &=
+                    MapCanvas iconView = view.getView(MODE_WIDTH - 7, baseY - 3, 4, 6);
                     iconView.drawLine(0, 1, 0, 2, textColor);
                     iconView.drawLine(2, 1, 2, 2, textColor);
                     iconView.drawPixel(1, 3, textColor);
                     iconView.drawLine(0, 4, 0, 5, textColor);
                     iconView.drawLine(2, 4, 2, 5, textColor);
                     break;
-                case DIVIDE:
+                }
+                case DIVIDE: {
+                    // /=
+                    MapCanvas iconView = view.getView(MODE_WIDTH - 7, baseY - 3, 4, 6);
                     iconView.drawPixel(3, 0, textColor);
                     iconView.drawLine(2, 1, 2, 2, textColor);
                     iconView.drawLine(1, 3, 1, 4, textColor);
                     iconView.drawPixel(0, 5, textColor);
                     break;
+                }
+                case OR: {
+                    // |=
+                    MapCanvas iconView = view.getView(MODE_WIDTH - 7, baseY - 3, 4, 7);
+                    iconView.drawLine(1, 0, 1, 6, textColor);
+                    break;
+                }
+                case AND: {
+                    // &=
+                    MapCanvas iconView = view.getView(MODE_WIDTH - 8, baseY - 3, 5, 7);
+                    iconView.drawLine(1, 0, 2, 0, textColor);
+                    iconView.drawLine(0, 1, 0, 2, textColor);
+                    iconView.drawLine(0, 4, 0, 5, textColor);
+                    iconView.drawLine(1, 6, 2, 6, textColor);
+                    iconView.drawPixel(3, 1, textColor);
+                    iconView.drawPixel(2, 2, textColor);
+                    iconView.drawPixel(1, 3, textColor);
+                    iconView.drawPixel(2, 4, textColor);
+                    iconView.drawPixel(3, 5, textColor);
+                    iconView.drawPixel(4, 4, textColor);
+                    iconView.drawPixel(4, 6, textColor);
+                    break;
+                }
             }
         }
 

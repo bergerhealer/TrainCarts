@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 
 /**
  * Reads an input from an external source. Must be further implemented based on what
@@ -55,7 +56,7 @@ public abstract class TransferFunctionInput implements TransferFunction {
     }
 
     @Override
-    public boolean isBooleanOutput() {
+    public boolean isBooleanOutput(BooleanSupplier isBooleanInput) {
         return source.isBool();
     }
 

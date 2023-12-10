@@ -6,6 +6,8 @@ import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 
+import java.util.function.BooleanSupplier;
+
 /**
  * A special identity transfer function, where map() simply returns the input.
  * Not listed, internal use only.
@@ -59,6 +61,11 @@ class TransferFunctionIdentity implements TransferFunction {
     @Override
     public boolean isPure() {
         return true;
+    }
+
+    @Override
+    public boolean isBooleanOutput(BooleanSupplier isBooleanInput) {
+        return isBooleanInput.getAsBoolean();
     }
 
     @Override

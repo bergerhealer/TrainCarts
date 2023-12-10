@@ -9,6 +9,8 @@ import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 
+import java.util.function.BooleanSupplier;
+
 /**
  * A boolean constant. Always returns either true (=1) or false (=0).
  */
@@ -70,7 +72,7 @@ public class TransferFunctionBoolean implements TransferFunction {
     }
 
     @Override
-    public boolean isBooleanOutput() {
+    public boolean isBooleanOutput(BooleanSupplier isBooleanInput) {
         return true;
     }
 

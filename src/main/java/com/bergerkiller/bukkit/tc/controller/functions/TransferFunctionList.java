@@ -7,10 +7,12 @@ import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionList;
+import com.bergerkiller.bukkit.tc.utils.CachedBooleanSupplier;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 
 /**
  * Configures a list of transfer functions that are processed in sequence
@@ -136,8 +138,20 @@ public class TransferFunctionList implements TransferFunction, Cloneable {
     }
 
     @Override
-    public boolean isBooleanOutput() {
-        return !items.isEmpty() && items.get(items.size() - 1).getFunction().isBooleanOutput();
+    public boolean isBooleanOutput(BooleanSupplier isBooleanInput) {
+        BooleanSupplier chain = isBooleanInput;
+        for (Item item : items) {
+            if (item.mode.booleanMode() == FunctionBooleanMode.INPUT) {
+                // Infer function output
+                final BooleanSupplier prev = chain;
+                chain = CachedBooleanSupplier.of(() -> item.function.isBooleanOutput(prev));
+            } else {
+                // Always true/false
+                final boolean result = item.mode.booleanMode().asBool();
+                chain = () -> result;
+            }
+        }
+        return chain.getAsBoolean();
     }
 
     @Override
@@ -218,20 +232,50 @@ public class TransferFunctionList implements TransferFunction, Cloneable {
      * The way a single item in the function list modifies the value at that point.
      */
     public enum FunctionMode {
-        ASSIGN((i, fo) -> fo),
-        MULTIPLY((i, fo) -> i * fo),
-        DIVIDE((i, fo) -> i / fo),
-        SUBTRACT((i, fo) -> i - fo),
-        ADD((i, fo) -> i + fo);
+        ASSIGN((i, fo) -> fo, FunctionBooleanMode.INPUT),
+        MULTIPLY((i, fo) -> i * fo, FunctionBooleanMode.NEVER),
+        DIVIDE((i, fo) -> i / fo, FunctionBooleanMode.NEVER),
+        SUBTRACT((i, fo) -> i - fo, FunctionBooleanMode.NEVER),
+        ADD((i, fo) -> i + fo, FunctionBooleanMode.NEVER),
+        OR((i, fo) -> (i != 0.0 || fo != 0.0) ? 1.0 : 0.0, FunctionBooleanMode.ALWAYS),
+        AND((i, fo) -> (i != 0.0 && fo != 0.0) ? 1.0 : 0.0, FunctionBooleanMode.ALWAYS);
 
         private final FunctionModeOperator operator;
+        private final FunctionBooleanMode booleanMode;
 
-        FunctionMode(FunctionModeOperator operator) {
+        FunctionMode(FunctionModeOperator operator, FunctionBooleanMode booleanMode) {
             this.operator = operator;
+            this.booleanMode = booleanMode;
+        }
+
+        public FunctionBooleanMode booleanMode() {
+            return booleanMode;
         }
 
         public double apply(double input, double functionOutput) {
             return operator.apply(input, functionOutput);
+        }
+    }
+
+    /**
+     * The operator result mode for boolean inputs
+     */
+    public enum FunctionBooleanMode {
+        /** State of input is copied */
+        INPUT(false /* shouldn't be used */),
+        /** Result is always a boolean */
+        ALWAYS(true),
+        /** Result is never a boolean, always a number */
+        NEVER(false);
+
+        private final boolean asBool;
+
+        FunctionBooleanMode(boolean asBool) {
+            this.asBool = asBool;
+        }
+
+        public boolean asBool() {
+            return asBool;
         }
     }
 

@@ -5,6 +5,9 @@ import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionItem;
+import com.bergerkiller.bukkit.tc.attachments.ui.functions.MapWidgetTransferFunctionSingleItem;
+
+import java.util.function.BooleanSupplier;
 
 /**
  * Compares an input against a constant right-hand side threshold.
@@ -45,30 +48,30 @@ public class TransferFunctionConditional implements TransferFunction {
 
         @Override
         public void save(TransferFunctionHost host, ConfigurationNode config, TransferFunctionConditional conditional) {
-            if (!conditional.leftInput.isIdentity()) {
+            if (!conditional.leftInput.isDefault()) {
                 config.set("left", host.saveFunction(conditional.leftInput.getFunction()));
             }
             config.set("right", conditional.rightInput);
             config.set("operator", conditional.operator);
-            if (!conditional.falseOutput.isIdentity()) {
+            if (!conditional.falseOutput.isDefault()) {
                 config.set("falseOutput", host.saveFunction(conditional.falseOutput.getFunction()));
             }
-            if (!conditional.trueOutput.isIdentity()) {
+            if (!conditional.trueOutput.isDefault()) {
                 config.set("trueOutput", host.saveFunction(conditional.trueOutput.getFunction()));
             }
         }
     };
 
     /** Left-hand side of the comparator operation. Supports functions. Input is passed to it. */
-    private final TransferFunction.Holder<TransferFunction> leftInput = TransferFunction.Holder.of(TransferFunction.identity());
+    private final TransferFunction.Holder<TransferFunction> leftInput = TransferFunction.Holder.of(TransferFunction.identity(), true);
     /** Right-hand side of the comparator operation */
     private double rightInput = 0.0;
     /** Operator to use when comparing the left and right hand inputs */
     private Operator operator = Operator.GREATER_EQUAL_THAN;
     /** Function to call when the condition is false. Input is passed to it. */
-    private final TransferFunction.Holder<TransferFunction> falseOutput = TransferFunction.Holder.of(TransferFunction.identity());
+    private final TransferFunction.Holder<TransferFunction> falseOutput = TransferFunction.Holder.of(TransferFunction.identity(), true);
     /** Function to call when the condition is true. Input is passed to it. */
-    private final TransferFunction.Holder<TransferFunction> trueOutput = TransferFunction.Holder.of(TransferFunction.identity());
+    private final TransferFunction.Holder<TransferFunction> trueOutput = TransferFunction.Holder.of(TransferFunction.identity(), true);
 
     @Override
     public Serializer<? extends TransferFunction> getSerializer() {
@@ -79,6 +82,12 @@ public class TransferFunctionConditional implements TransferFunction {
     public double map(double input) {
         boolean result = operator.compare(leftInput.getFunction().map(input), rightInput);
         return (result ? trueOutput : falseOutput).getFunction().map(input);
+    }
+
+    @Override
+    public boolean isBooleanOutput(BooleanSupplier isBooleanInput) {
+        return trueOutput.getFunction().isBooleanOutput(isBooleanInput) &&
+               falseOutput.getFunction().isBooleanOutput(isBooleanInput);
     }
 
     @Override
@@ -132,6 +141,57 @@ public class TransferFunctionConditional implements TransferFunction {
 
     @Override
     public void openDialog(Dialog dialog) {
+        // Condition input
+        dialog.addLabel(39, 3, MapColorPalette.COLOR_RED, "CONDITION");
+        dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), leftInput) {
+            @Override
+            public void onChanged(Holder<TransferFunction> function) {
+                dialog.markChanged();
+            }
+
+            @Override
+            public TransferFunction createDefault() {
+                return TransferFunction.identity();
+            }
+        }).setBounds(5, 9, dialog.getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
+
+
+        /*
+        leftInput
+        rightInput
+        operator
+        falseOutput
+        trueOutput
+         */
+
+
+        // Result true/false
+        dialog.addLabel(44, dialog.getHeight() - 43, MapColorPalette.COLOR_RED, "RESULT");
+        dialog.addLabel(3, dialog.getHeight() - 32, MapColorPalette.COLOR_RED, "T");
+        dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), trueOutput) {
+            @Override
+            public void onChanged(Holder<TransferFunction> function) {
+                dialog.markChanged();
+            }
+
+            @Override
+            public TransferFunction createDefault() {
+                return TransferFunction.identity();
+            }
+        }).setBounds(7, dialog.getHeight() - 37, dialog.getWidth() - 12, MapWidgetTransferFunctionItem.HEIGHT);
+
+        dialog.addLabel(3, dialog.getHeight() - 16, MapColorPalette.COLOR_RED, "F");
+        dialog.addWidget(new MapWidgetTransferFunctionSingleItem(dialog.getHost(), falseOutput) {
+            @Override
+            public void onChanged(Holder<TransferFunction> function) {
+                dialog.markChanged();
+            }
+
+            @Override
+            public TransferFunction createDefault() {
+                return TransferFunction.identity();
+            }
+        }).setBounds(7, dialog.getHeight() - 21, dialog.getWidth() - 12, MapWidgetTransferFunctionItem.HEIGHT);
     }
 
     /**
