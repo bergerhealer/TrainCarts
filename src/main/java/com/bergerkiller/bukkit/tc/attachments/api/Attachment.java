@@ -312,7 +312,7 @@ public interface Attachment extends AttachmentNameLookup.Supplier {
      */
     default void addChild(Attachment child) {
         this.getInternalState().children.add(child);
-        child.getInternalState().parent = this;
+        child.getInternalState().assignParent(child, this);
     }
 
     /**
@@ -324,7 +324,7 @@ public interface Attachment extends AttachmentNameLookup.Supplier {
      */
     default void addChild(int index, Attachment child) {
         this.getInternalState().children.add(index, child);
-        child.getInternalState().parent = this;
+        child.getInternalState().assignParent(child, this);
     }
 
     /**
@@ -336,7 +336,7 @@ public interface Attachment extends AttachmentNameLookup.Supplier {
      */
     default boolean removeChild(Attachment child) {
         if (this.getInternalState().children.remove(child)) {
-            child.getInternalState().parent = null;
+            child.getInternalState().makeNewSubtree(child);
             return true;
         } else {
             return false;
@@ -375,6 +375,16 @@ public interface Attachment extends AttachmentNameLookup.Supplier {
      */
     default Attachment getParent() {
         return this.getInternalState().parent;
+    }
+
+    /**
+     * Gets the root parent of this attachment. This is the same as calling
+     * {@link #getParent()} recursively until no more parent remains.
+     *
+     * @return Root parent controller
+     */
+    default Attachment getRootParent() {
+        return this.getInternalState().rootParent;
     }
 
     /**

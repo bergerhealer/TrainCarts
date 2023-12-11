@@ -43,6 +43,11 @@ public class AttachmentInternalState {
     protected Plugin plugin = null;
 
     /**
+     * Root parent of the attachment. This attachment has no parent.
+     */
+    protected Attachment rootParent = null;
+
+    /**
      * Parent of the attachment
      */
     protected Attachment parent = null;
@@ -197,6 +202,25 @@ public class AttachmentInternalState {
     private void resetEffectsAndAnimations() {
         this.animations.clear();
         this.currentAnimation = null;
+    }
+
+    protected void assignParent(Attachment self, Attachment parent) {
+        this.parent = parent;
+        this.rootParent = parent.getRootParent();
+        updateRootParentOfChildrenRecurse(self, this.rootParent);
+    }
+
+    protected void makeNewSubtree(Attachment self) {
+        this.parent = null;
+        this.rootParent = self;
+        updateRootParentOfChildrenRecurse(self, self);
+    }
+
+    private static void updateRootParentOfChildrenRecurse(Attachment attachment, Attachment rootParent) {
+        for (Attachment child : attachment.getChildren()) {
+            child.getInternalState().rootParent = rootParent;
+            updateRootParentOfChildrenRecurse(child, rootParent);
+        }
     }
 
     /**

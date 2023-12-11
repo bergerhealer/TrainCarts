@@ -64,7 +64,7 @@ public interface AttachmentManager {
     /**
      * Creates a new attachment by loading it from configuration.
      * No further operations, such as attaching it, are performed yet.
-     * 
+     *
      * @param attachmentConfig Attachment Configuration
      * @return created attachment
      */
@@ -75,6 +75,7 @@ public interface AttachmentManager {
         Attachment attachment = attachmentType.createController(config);
         AttachmentInternalState state = attachment.getInternalState();
         state.manager = this;
+        state.rootParent = attachment; // Until assigned to a parent, is its own root
         state.onLoad(this.getClass(), attachmentType, config);
 
         for (AttachmentConfig childAttachmentConfig : attachmentConfig.children()) {
