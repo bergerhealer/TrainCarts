@@ -21,25 +21,28 @@ import java.util.function.Predicate;
  * also be created for subtrees of attachments.
  */
 public class AttachmentNameLookup {
-    public static final AttachmentNameLookup EMPTY = new AttachmentNameLookup(Collections.emptyMap());
+    public static final AttachmentNameLookup EMPTY = new AttachmentNameLookup(Collections.emptyList(), Collections.emptyMap());
     static {
         EMPTY.invalidate(); // Not backed by anything so is invalid
     }
 
-    private final Map<String, List<Attachment>> attachments;
+    private final List<Attachment> all;
+    private final Map<String, List<Attachment>> byName;
     private final List<String> names;
     private boolean valid = true;
 
     private AttachmentNameLookup(AttachmentNameLookup original) {
-        this.attachments = original.attachments;
+        this.all = original.all;
+        this.byName = original.byName;
         this.names = original.names;
         this.valid = original.valid;
     }
 
-    private AttachmentNameLookup(Map<String, List<Attachment>> attachments) {
-        this.attachments = attachments;
-        this.names = attachments.isEmpty() ? Collections.emptyList()
-                : Collections.unmodifiableList(new ArrayList<>(attachments.keySet()));
+    private AttachmentNameLookup(List<Attachment> all, Map<String, List<Attachment>> byName) {
+        this.all = all;
+        this.byName = byName;
+        this.names = byName.isEmpty() ? Collections.emptyList()
+                : Collections.unmodifiableList(new ArrayList<>(byName.keySet()));
     }
 
     private static void makeListsImmutable(Map<String, List<Attachment>> attachments) {
@@ -48,13 +51,14 @@ public class AttachmentNameLookup {
         }
     }
 
-    private static void fill(Map<String, List<Attachment>> attachments, Attachment attachment) {
+    private static void fill(List<Attachment> all, Map<String, List<Attachment>> attachments, Attachment attachment) {
         for (String name : attachment.getNames()) {
             attachments.computeIfAbsent(name, n -> new ArrayList<>(4)).add(attachment);
         }
+        all.add(attachment);
         //TODO: This recursion could maybe cause a stack overflow - maybe use a flattened view instead?
         for (Attachment child : attachment.getChildren()) {
-            fill(attachments, child);
+            fill(all, attachments, child);
         }
     }
 
@@ -92,7 +96,7 @@ public class AttachmentNameLookup {
      * @return Names
      */
     public List<String> names(Predicate<Attachment> filter) {
-        return attachments.entrySet().stream()
+        return byName.entrySet().stream()
                 .filter(e -> filterAttachments(e.getValue(), filter))
                 .map(Map.Entry::getKey)
                 .collect(StreamUtil.toUnmodifiableList());
@@ -106,7 +110,7 @@ public class AttachmentNameLookup {
      * @return List of attachments matching this name
      */
     public List<Attachment> get(String name) {
-        return attachments.getOrDefault(name, Collections.emptyList());
+        return byName.getOrDefault(name, Collections.emptyList());
     }
 
     /**
@@ -162,6 +166,38 @@ public class AttachmentNameLookup {
         return attachments;
     }
 
+    /**
+     * Gets an unmodifiable List of attachments that are of the specified Class type.
+     *
+     * @param type Type of attachment
+     * @return List of attachments matching this name
+     * @param <T> Attachment Type
+     */
+    public <T extends Attachment> List<T> allOfType(Class<T> type) {
+        //noinspection unchecked
+        return (List<T>) all(type::isInstance);
+    }
+
+    /**
+     * Gets an unmodifiable list of all attachments below the root attachment(s) queried,
+     * named or not, that match a specified predicate.
+     *
+     * @return List of all attachments
+     */
+    public List<Attachment> all(Predicate<Attachment> filter) {
+        return all.stream().filter(filter).collect(StreamUtil.toUnmodifiableList());
+    }
+
+    /**
+     * Gets an unmodifiable list of all attachments below the root attachment(s) queried,
+     * named or not.
+     *
+     * @return List of all attachments
+     */
+    public List<Attachment> all() {
+        return all;
+    }
+
     private static boolean filterAttachments(List<Attachment> attachments, Predicate<Attachment> filter) {
         for (Attachment attachment : attachments) {
             if (filter.test(attachment)) {
@@ -180,9 +216,10 @@ public class AttachmentNameLookup {
      */
     public static AttachmentNameLookup create(Attachment root) {
         Map<String, List<Attachment>> attachments = new HashMap<>();
-        fill(attachments, root);
+        List<Attachment> all = new ArrayList<>();
+        fill(all, attachments, root);
         makeListsImmutable(attachments);
-        return new AttachmentNameLookup(attachments);
+        return new AttachmentNameLookup(Collections.unmodifiableList(all), attachments);
     }
 
     /**
@@ -192,39 +229,30 @@ public class AttachmentNameLookup {
      * @return Merged view
      */
     public static AttachmentNameLookup merge(Collection<AttachmentNameLookup> nameLookups) {
-        // Go by all lookups and clone the map of the first one that is non-empty
-        Map<String, List<Attachment>> result = Collections.emptyMap();
-        AttachmentNameLookup first = null;
+        // Some optimizations
+        if (nameLookups.isEmpty()) {
+            return AttachmentNameLookup.EMPTY;
+        } else if (nameLookups.size() == 1) {
+            return nameLookups.iterator().next();
+        }
+
+        // Go by all lookups and merge them into one collection
+        Map<String, List<Attachment>> resultByName = new HashMap<>(32);
+        List<Attachment> resultAll = new ArrayList<>(64);
         for (AttachmentNameLookup lookup : nameLookups) {
-            if (lookup.attachments.isEmpty()) {
-                continue;
-            }
-
-            if (first == null) {
-                first = lookup;
-            } else {
-                // Initialize a new modifiable hashmap
-                if (result.isEmpty()) {
-                    result = new HashMap<>(first.attachments);
-                    for (Map.Entry<String, List<Attachment>> e : result.entrySet()) {
-                        e.setValue(new ArrayList<>(e.getValue()));
-                    }
-                }
-                // Merge into it
-                for (Map.Entry<String, List<Attachment>> e : lookup.attachments.entrySet()) {
-                    result.computeIfAbsent(e.getKey(), n -> new ArrayList<>()).addAll(e.getValue());
+            // Merge into the by-name mapping
+            if (!lookup.byName.isEmpty()) {
+                for (Map.Entry<String, List<Attachment>> e : lookup.byName.entrySet()) {
+                    resultByName.computeIfAbsent(e.getKey(), n -> new ArrayList<>()).addAll(e.getValue());
                 }
             }
+
+            // Merge All
+            resultAll.addAll(lookup.all);
         }
 
-        // If only one non-empty element existed, just return that same one
-        // Otherwise, create a new immutable view of the results we've gathered
-        if (first != null && result.isEmpty()) {
-            return new AttachmentNameLookupMerged(first, nameLookups);
-        } else {
-            makeListsImmutable(result);
-            return new AttachmentNameLookupMerged(result, nameLookups);
-        }
+        makeListsImmutable(resultByName);
+        return new AttachmentNameLookupMerged(Collections.unmodifiableList(resultAll), resultByName, nameLookups);
     }
 
     /**
@@ -242,10 +270,11 @@ public class AttachmentNameLookup {
         }
 
         private AttachmentNameLookupMerged(
-                Map<String, List<Attachment>> attachments,
+                List<Attachment> all,
+                Map<String, List<Attachment>> byName,
                 Collection<AttachmentNameLookup> originalLookups
         ) {
-            super(attachments);
+            super(all, byName);
             this.originalLookups = originalLookups;
         }
 
@@ -323,6 +352,9 @@ public class AttachmentNameLookup {
         }
 
         private NameGroup(Supplier lookupSupplier, String name, Class<T> type) {
+            if (lookupSupplier == null) {
+                throw new IllegalArgumentException("Lookup Supplier is null");
+            }
             this.lookupSupplier = lookupSupplier;
             this.name = name;
             this.type = type;
