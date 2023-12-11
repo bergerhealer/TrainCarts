@@ -66,6 +66,14 @@ public interface TransferFunctionHost extends TrainCarts.Provider {
     boolean isSequencer();
 
     /**
+     * Gets whether this host is part of an {@link Attachment}. If so,
+     * {@link #getAttachment()} will be available in operation.
+     *
+     * @return True if this host is an attachment
+     */
+    boolean isAttachment();
+
+    /**
      * Loads a Transfer Function from configuration
      *
      * @param config Configuration to load

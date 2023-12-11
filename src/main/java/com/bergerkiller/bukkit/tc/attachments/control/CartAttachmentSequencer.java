@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.controller.Tickable;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
@@ -75,6 +76,11 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
                 }
 
                 @Override
+                public boolean isAttachment() {
+                    return true;
+                }
+
+                @Override
                 public MinecartMember<?> getMember() {
                     return null;
                 }
@@ -115,7 +121,7 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
                 public Attachment.EffectSink createEffectSink(String name) {
                     List<AttachmentNameLookup.NameGroup<EffectAttachment>> nameGroups = new ArrayList<>();
                     for (CartAttachmentSequencer sequencer : attachment.getAttachmentsOfType(CartAttachmentSequencer.class)) {
-                        nameGroups.add(AttachmentNameLookup.NameGroup.of(sequencer, name, EffectAttachment.class));
+                        nameGroups.add(sequencer.findEffectAttachments(name));
                     }
                     return EffectSink.combineEffects(nameGroups);
                 }
@@ -127,7 +133,6 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
     private static final int STATE_PLAYING = 1;
     private static final int STATE_STOP_REQUESTED = 2;
 
-    private Attachment rootParent = this;
     private final SequencerTransferFunctionHost functionHost = new SequencerTransferFunctionHost();
     private final EnumMap<SequencerMode, SequencerGroup> sequencerGroups;
     private SequencerGroup currentGroup;
@@ -140,15 +145,6 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
             sequencerGroups.put(mode, new SequencerGroup(this, mode));
         }
         currentGroup = sequencerGroups.get(SequencerMode.START);
-    }
-
-    @Override
-    public void onAttached() {
-        Attachment rootParent = this;
-        while (rootParent.getParent() != null) {
-            rootParent = rootParent.getParent();
-        }
-        this.rootParent = rootParent;
     }
 
     @Override
@@ -269,29 +265,21 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
     public void onMove(boolean absolute) {
     }
 
+    private AttachmentNameLookup getEffectLookup() {
+        //TODO: Option for all of cart / attachments below sequencer
+        return getRootParent().getNameLookup();
+    }
+
     private AttachmentNameLookup.NameGroup<Attachment.EffectAttachment> findEffectAttachments(String name) {
         if (name.isEmpty()) {
             return AttachmentNameLookup.NameGroup.none();
         } else {
-            //TODO: Option for all of cart / attachments below sequencer
-            return AttachmentNameLookup.NameGroup.of(rootParent, name, EffectAttachment.class);
+            return AttachmentNameLookup.NameGroup.of(this::getEffectLookup, name, EffectAttachment.class);
         }
     }
 
     private List<EffectAttachment> findAllEffectAttachments() {
-        //TODO: Option for all of cart / attachments below sequencer
-        List<EffectAttachment> result = new ArrayList<>();
-        fillChildEffectAttachments(result, rootParent);
-        return result;
-    }
-
-    private void fillChildEffectAttachments(List<EffectAttachment> result, Attachment root) {
-        if (root instanceof EffectAttachment && root != this) {
-            result.add((EffectAttachment) root);
-        }
-        for (Attachment child : root.getChildren()) {
-            fillChildEffectAttachments(result, child);
-        }
+        return CommonUtil.unsafeCast(getEffectLookup().all(a -> a instanceof EffectAttachment && a != this));
     }
 
     public class SequencerTransferFunctionHost implements TransferFunctionHost {
@@ -339,6 +327,11 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
 
         @Override
         public boolean isSequencer() {
+            return true;
+        }
+
+        @Override
+        public boolean isAttachment() {
             return true;
         }
 
