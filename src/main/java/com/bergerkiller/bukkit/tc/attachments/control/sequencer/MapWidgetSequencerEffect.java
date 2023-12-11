@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.ScheduledEffectLoop;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNameSelector;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionItem;
 import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionSingleConfigItem;
@@ -69,13 +70,13 @@ public class MapWidgetSequencerEffect extends MapWidget {
         }));
         this.buttons.add(new Button(Icon.EFFECT_NAME, "Effect", () -> {
             // Open a dialog to select a different effect name to target
-            getGroupList().addWidget(new MapWidgetSequencerEffectSelector(getGroupList().getEffectNames()) {
+            getGroupList().addWidget(new MapWidgetAttachmentNameSelector(getGroupList().getEffectNames()) {
                 @Override
                 public void onSelected(String effectName) {
                     config.set("effect", effectName);
                     MapWidgetSequencerEffect.this.invalidate();
                 }
-            });
+            }.setTitle("Set Effect to play"));
         }));
         this.buttons.add(new Button(Icon.SETTINGS, "Settings", () -> {
             // Open a dialog to configure the general settings (active / volume / pitch)

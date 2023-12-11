@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.functions;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.tc.controller.functions.inputs.TransferFunctionInputSeatOccupied;
 import com.bergerkiller.bukkit.tc.controller.functions.inputs.TransferFunctionInputSequencerPlayState;
 import com.bergerkiller.bukkit.tc.controller.functions.inputs.TransferFunctionInputProperty;
 import com.bergerkiller.bukkit.tc.controller.functions.inputs.TransferFunctionInputSpeed;
@@ -29,6 +30,7 @@ public class TransferFunctionRegistry {
         register(TransferFunctionInputSpeed.SERIALIZER);
         register(TransferFunctionInputProperty.SERIALIZER);
         register(TransferFunctionInputSequencerPlayState.SERIALIZER);
+        register(TransferFunctionInputSeatOccupied.SERIALIZER);
         //register(TransferFunctionCurve.SERIALIZER);
         register(TransferFunctionList.SERIALIZER);
         register(TransferFunctionIdentity.SERIALIZER);

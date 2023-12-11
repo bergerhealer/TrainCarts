@@ -1,50 +1,65 @@
-package com.bergerkiller.bukkit.tc.attachments.control.sequencer;
+package com.bergerkiller.bukkit.tc.attachments.ui;
 
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
-import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
-import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetScroller;
-import com.bergerkiller.mountiplex.MountiplexUtil;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
- * Shows a list of effect attachments that exist. Also has one
+ * Shows a list of attachment names that exist. Also has one
  * option to set one by name, which can be used to set one that
- * doesn't exist yet. (add effect after adding it here)
+ * doesn't exist yet. (add attachment after adding it here)
+ * Optionally, an option can be included to allow for de-selecting
+ * a name (set to 'none') with a custom text.
  */
-public abstract class MapWidgetSequencerEffectSelector extends MapWidgetMenu {
+public abstract class MapWidgetAttachmentNameSelector extends MapWidgetMenu {
     private static final byte ITEM_BG_DEFAULT = MapColorPalette.getColor(199, 199, 199);
     private static final byte ITEM_BG_FOCUS = MapColorPalette.getColor(255, 252, 245);
     private static final int ROW_HEIGHT = 11;
-    private final List<String> effectNames;
+    private final List<String> attachmentNames;
+    private String title = "Set Attachment Name";
+    private String noneItemText = null; // If non-null, include
 
-    public MapWidgetSequencerEffectSelector(List<String> effectNames) {
-        this.effectNames = effectNames;
+    public MapWidgetAttachmentNameSelector(List<String> attachmentNames) {
+        this.attachmentNames = attachmentNames;
         this.setPositionAbsolute(true);
         this.setBounds(10, 20, 108, 98);
         this.setBackgroundColor(MapColorPalette.getColor(72, 108, 152));
         this.labelColor = MapColorPalette.COLOR_BLACK;
     }
 
-    public abstract void onSelected(String effectName);
+    public abstract void onSelected(String attachmentName);
+
+    public MapWidgetAttachmentNameSelector includeNone(String text) {
+        noneItemText = text;
+        return this;
+    }
+
+    public MapWidgetAttachmentNameSelector setTitle(String title) {
+        this.title = title;
+        return this;
+    }
 
     @Override
     public void onAttached() {
-        addLabel(5, 5, "Set Effect to play");
+        addLabel(5, 5, title);
 
         MapWidgetScroller scroller = this.addWidget(new MapWidgetScroller());
         scroller.setScrollPadding(10)
                 .setBounds(5, 12, getWidth() - 10, getHeight() - 17);
 
-        List<MapWidget> items = Stream.<MapWidget>concat(
-                    effectNames.stream().distinct().map(NameItem::new),
-                    MountiplexUtil.toStream(new SelectNameItem()))
-                .collect(Collectors.toList());
+        List<MapWidget> items = attachmentNames.stream()
+                .sorted().distinct().map(NameItem::new)
+                .collect(Collectors.toCollection(ArrayList::new));
+        items.add(new SelectNameItem());
+        if (noneItemText != null) {
+            items.add(new NoneNameItem());
+        }
+
         int y = 0;
         for (MapWidget item : items) {
             item.setBounds(0, y, scroller.getWidth(), ROW_HEIGHT);
@@ -56,17 +71,17 @@ public abstract class MapWidgetSequencerEffectSelector extends MapWidgetMenu {
     }
 
     private class NameItem extends MapWidget {
-        private final String effectName;
+        private final String name;
 
-        public NameItem(String effectName) {
-            this.effectName = effectName;
+        public NameItem(String name) {
+            this.name = name;
             this.setFocusable(true);
         }
 
         @Override
         public void onActivate() {
             close();
-            onSelected(effectName);
+            onSelected(name);
         }
 
         @Override
@@ -76,7 +91,7 @@ public abstract class MapWidgetSequencerEffectSelector extends MapWidgetMenu {
                     isFocused() ? ITEM_BG_FOCUS : ITEM_BG_DEFAULT);
             view.draw(MapFont.MINECRAFT, 2, 2,
                     isFocused() ? MapColorPalette.COLOR_BLUE : MapColorPalette.COLOR_BLACK,
-                    effectName);
+                    name);
         }
     }
 
@@ -88,13 +103,13 @@ public abstract class MapWidgetSequencerEffectSelector extends MapWidgetMenu {
 
         @Override
         public void onActivate() {
-            MapWidget parent = MapWidgetSequencerEffectSelector.this.getParent();
+            MapWidget parent = MapWidgetAttachmentNameSelector.this.getParent();
             close();
 
             parent.addWidget(new MapWidgetSubmitText() {
                 @Override
                 public void onAttached() {
-                    setDescription("Set Effect Attachment");
+                    setDescription("Set Name");
                     activate();
                 }
 
@@ -113,6 +128,30 @@ public abstract class MapWidgetSequencerEffectSelector extends MapWidgetMenu {
             view.draw(MapFont.MINECRAFT, 2, 2,
                     isFocused() ? MapColorPalette.COLOR_BLUE : MapColorPalette.COLOR_BLACK,
                     "<Set Name>");
+        }
+    }
+
+
+    private class NoneNameItem extends MapWidget {
+
+        public NoneNameItem() {
+            this.setFocusable(true);
+        }
+
+        @Override
+        public void onActivate() {
+            close();
+            onSelected("");
+        }
+
+        @Override
+        public void onDraw() {
+            view.drawRectangle(0, 0, getWidth(), getHeight(), MapColorPalette.COLOR_BLACK);
+            view.fillRectangle(1, 1, getWidth() - 2, getHeight() - 2,
+                    isFocused() ? ITEM_BG_FOCUS : ITEM_BG_DEFAULT);
+            view.draw(MapFont.MINECRAFT, 2, 2,
+                    isFocused() ? MapColorPalette.COLOR_BLUE : MapColorPalette.COLOR_BLACK,
+                    noneItemText);
         }
     }
 }

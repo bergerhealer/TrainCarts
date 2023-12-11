@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNameSelector;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionItem;
@@ -206,7 +207,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
             @Override
             public void onActivate() {
                 // Ask what effect to target
-                groupList.addWidget(new MapWidgetSequencerEffectSelector(groupList.getEffectNames()) {
+                groupList.addWidget(new MapWidgetAttachmentNameSelector(groupList.getEffectNames()) {
                     @Override
                     public void onSelected(String effectName) {
                         // Ask what type of effect to add
@@ -218,7 +219,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
                             }
                         });
                     }
-                });
+                }.setTitle("Set Effect to play"));
             }
         });
         addEffectButton.setEnabled(!duration.isZero());

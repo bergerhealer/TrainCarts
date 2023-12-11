@@ -87,7 +87,8 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
 
                 @Override
                 public Attachment getAttachment() {
-                    return null;
+                    List<Attachment> attachments = attachment.getAttachments();
+                    return attachments.isEmpty() ? null : attachments.get(0); // First I guess
                 }
 
                 @Override
