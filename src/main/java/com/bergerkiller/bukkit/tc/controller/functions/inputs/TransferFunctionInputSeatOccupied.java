@@ -7,9 +7,10 @@ import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
-import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentSelection;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentSelector;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNameSelector;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentSelector;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionItem;
@@ -49,21 +50,19 @@ public class TransferFunctionInputSeatOccupied extends TransferFunctionInput {
         @Override
         public TransferFunctionInputSeatOccupied load(TransferFunctionHost host, ConfigurationNode config) {
             TransferFunctionInputSeatOccupied function = new TransferFunctionInputSeatOccupied();
-            function.setNameFilter(config.getOrDefault("seatName", ""));
-            function.setRelativeToAttachment(config.getOrDefault("relativeSearch", false));
+            function.setSeatSelector(AttachmentSelector.readFromConfig(config, "seat")
+                    .withType(CartAttachmentSeat.class));
             function.updateSource(host);
             return function;
         }
 
         @Override
         public void save(TransferFunctionHost host, ConfigurationNode config, TransferFunctionInputSeatOccupied function) {
-            config.set("seatName", function.nameFilter.isEmpty() ? null : function.nameFilter);
-            config.set("relativeSearch", function.relativeToAttachment ? true : null);
+            function.getSeatSelector().writeToConfig(config, "seat");
         }
     };
 
-    private String nameFilter = "";
-    private boolean relativeToAttachment = false;
+    private AttachmentSelector<CartAttachmentSeat> seatSelector = AttachmentSelector.all(CartAttachmentSeat.class);
 
     /**
      * Sets a name filter. If set to non-empty, only seats with this name will
@@ -72,18 +71,15 @@ public class TransferFunctionInputSeatOccupied extends TransferFunctionInput {
      * @param name Seat name filter
      */
     public void setNameFilter(String name) {
-        this.nameFilter = name;
+        this.seatSelector = seatSelector.withName(name);
     }
 
-    /**
-     * Sets whether only seats that are children of 'this' attachment are considered.
-     * If false, then all attachments from the root of the attachment tree are found.
-     *
-     * @param relative True if relative to the attachment this function is assigned to,
-     *                 False if it is relative to the root of the attachment tree.
-     */
-    public void setRelativeToAttachment(boolean relative) {
-        this.relativeToAttachment = relative;
+    public void setSeatSelector( AttachmentSelector<CartAttachmentSeat> selector) {
+        this.seatSelector = selector;
+    }
+
+    public AttachmentSelector<CartAttachmentSeat> getSeatSelector() {
+        return seatSelector;
     }
 
     @Override
@@ -95,7 +91,7 @@ public class TransferFunctionInputSeatOccupied extends TransferFunctionInput {
     public ReferencedSource createSource(TransferFunctionHost host) {
         Attachment attachment = host.getAttachment();
         if (attachment != null) {
-            return new SeatOccupiedReferencedSource(attachment, relativeToAttachment, nameFilter);
+            return new SeatOccupiedReferencedSource(attachment.getSelection(seatSelector));
         } else {
             return ReferencedSource.NONE;
         }
@@ -120,6 +116,7 @@ public class TransferFunctionInputSeatOccupied extends TransferFunctionInput {
     public void openDialog(Dialog dialog) {
         super.openDialog(dialog);
 
+        // Note: this will probably be removed, and moved to the name selection dialog.
         dialog.addLabel(28, 20, MapColorPalette.COLOR_RED, "Search Strategy");
         dialog.addWidget(new MapWidgetButton() {
             @Override
@@ -130,13 +127,35 @@ public class TransferFunctionInputSeatOccupied extends TransferFunctionInput {
 
             @Override
             public void onActivate() {
-                relativeToAttachment = !relativeToAttachment;
+                int index = seatSelector.strategy().ordinal();
+                index = (index + 1) % AttachmentSelector.SearchStrategy.values().length;
+                AttachmentSelector.SearchStrategy next = AttachmentSelector.SearchStrategy.values()[index];
+                if (next == AttachmentSelector.SearchStrategy.NONE) {
+                    // Skip. Bleh code.
+                    index = (index + 1) % AttachmentSelector.SearchStrategy.values().length;
+                    next = AttachmentSelector.SearchStrategy.values()[index];
+                }
+                setSeatSelector(getSeatSelector().withStrategy(next));
+
                 dialog.markChanged();
                 updateText();
             }
 
             private void updateText() {
-                setText(relativeToAttachment ? "Seat Children" : "All Cart Seats");
+                switch (seatSelector.strategy()) {
+                    case NONE:
+                        setText("None");
+                        break;
+                    case ROOT_CHILDREN:
+                        setText("All Cart Seats");
+                        break;
+                    case CHILDREN:
+                        setText("Child Seats");
+                        break;
+                    case PARENTS:
+                        setText("Parent Seats");
+                        break;
+                }
             }
         }).setBounds(11, 26, 92, 13);
 
@@ -148,13 +167,10 @@ public class TransferFunctionInputSeatOccupied extends TransferFunctionInput {
             }
 
             @Override
-            public List<String> getSeatNames() {
+            public List<String> getSeatNames(AttachmentSelector<CartAttachmentSeat> allSelector) {
                 Attachment attachment = dialog.getHost().getAttachment();
                 if (attachment != null) {
-                    if (!relativeToAttachment) {
-                        attachment = attachment.getRootParent();
-                    }
-                    return attachment.getNameLookup().names(a -> a instanceof CartAttachmentSeat);
+                    return attachment.getSelection(allSelector).names();
                 } else {
                     return Collections.emptyList();
                 }
@@ -172,18 +188,25 @@ public class TransferFunctionInputSeatOccupied extends TransferFunctionInput {
 
         public abstract void onChanged();
 
-        public abstract List<String> getSeatNames();
+        public abstract List<String> getSeatNames(AttachmentSelector<CartAttachmentSeat> allSelector);
 
         @Override
         public void onActivate() {
-            getParent().addWidget(new MapWidgetAttachmentNameSelector(getSeatNames()) {
+            getParent().addWidget(new MapWidgetAttachmentSelector<CartAttachmentSeat>(
+                    getSeatSelector()
+            ) {
                 @Override
-                public void onSelected(String attachmentName) {
-                    nameFilter = attachmentName;
+                public List<String> getAttachmentNames(AttachmentSelector<CartAttachmentSeat> allSelector) {
+                    return getSeatNames(allSelector);
+                }
+
+                @Override
+                public void onSelected(AttachmentSelector<CartAttachmentSeat> selection) {
+                    setSeatSelector(selection);
                     onChanged();
                 }
             }.setTitle("Set Seat name")
-             .includeNone("<Any Seat>"));
+             .includeAny("<Any Seat>"));
         }
 
         @Override
@@ -194,12 +217,12 @@ public class TransferFunctionInputSeatOccupied extends TransferFunctionInput {
 
             String text;
             byte textColor;
-            if (nameFilter.isEmpty()) {
+            if (seatSelector.nameFilter().isPresent()) {
+                text = seatSelector.nameFilter().get();
+                textColor = isFocused() ? MapColorPalette.COLOR_BLUE : MapColorPalette.COLOR_BLACK;
+            } else {
                 text = "<Any Seat>";
                 textColor = MapColorPalette.getColor(128, 128, 128);
-            } else {
-                text = nameFilter;
-                textColor = isFocused() ? MapColorPalette.COLOR_BLUE : MapColorPalette.COLOR_BLACK;
             }
             int textWidth = (int) view.calcFontSize(MapFont.MINECRAFT, text).getWidth();
             view.draw(MapFont.MINECRAFT, (getWidth() - textWidth + 1) / 2, 3, textColor, text);
@@ -207,34 +230,20 @@ public class TransferFunctionInputSeatOccupied extends TransferFunctionInput {
     }
 
     private static class SeatOccupiedReferencedSource extends ReferencedSource {
-        private final Attachment attachment;
-        private final boolean relativeSearch;
-        private final String nameFilter;
-        private AttachmentNameLookup lookup = AttachmentNameLookup.EMPTY; // Fetches on first onTick()
-        private List<CartAttachmentSeat> lastSeats = Collections.emptyList();
+        private final AttachmentSelection<CartAttachmentSeat> seatSelection;
 
-        public SeatOccupiedReferencedSource(Attachment attachment, boolean relativeSearch, String nameFilter) {
-            this.attachment = attachment;
-            this.relativeSearch = relativeSearch;
-            this.nameFilter = nameFilter;
+        public SeatOccupiedReferencedSource(AttachmentSelection<CartAttachmentSeat> seatSelection) {
+            this.seatSelection = seatSelection;
         }
 
         @Override
         public void onTick() {
             // Refresh seats if changed
-            if (!lookup.isValid()) {
-                Attachment searchRoot = relativeSearch ? attachment : attachment.getRootParent();
-                lookup = searchRoot.getNameLookup();
-                if (nameFilter.isEmpty()) {
-                    lastSeats = lookup.allOfType(CartAttachmentSeat.class);
-                } else {
-                    lastSeats = lookup.getOfType(nameFilter, CartAttachmentSeat.class);
-                }
-            }
+            seatSelection.sync();
 
             // Check whether any seats are occupied, and if so, set to 1.0. Otherwise 0.0
             double result = 0.0;
-            for (CartAttachmentSeat seat : lastSeats) {
+            for (CartAttachmentSeat seat : seatSelection) {
                 if (seat.getEntity() != null) {
                     result = 1.0;
                     break;
@@ -247,8 +256,7 @@ public class TransferFunctionInputSeatOccupied extends TransferFunctionInput {
         public boolean equals(Object o) {
             if (o instanceof SeatOccupiedReferencedSource) {
                 SeatOccupiedReferencedSource other = (SeatOccupiedReferencedSource) o;
-                return this.relativeSearch == other.relativeSearch &&
-                        this.nameFilter.equals(other.nameFilter);
+                return this.seatSelection.selector().equals(other.seatSelection.selector());
             } else {
                 return false;
             }

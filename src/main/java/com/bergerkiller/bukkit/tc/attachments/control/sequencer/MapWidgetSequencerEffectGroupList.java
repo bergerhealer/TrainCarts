@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentSelector;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetScroller;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
@@ -28,11 +29,12 @@ public abstract class MapWidgetSequencerEffectGroupList extends MapWidgetScrolle
 
     /**
      * Gets the names of effect attachments that can be targeted from the sequencer
-     * attachment. No need to filter duplicates.
+     * attachment.
      *
+     * @param allSelector Selector with search strategy to find all the effects
      * @return Sequencer targetable effect attachment names
      */
-    public abstract List<String> getEffectNames();
+    public abstract List<String> getEffectNames(AttachmentSelector<Attachment.EffectAttachment> allSelector);
 
     /**
      * Gets the transfer function host. This is the source of information of
@@ -45,10 +47,10 @@ public abstract class MapWidgetSequencerEffectGroupList extends MapWidgetScrolle
     /**
      * Creates an Effect Sink of the effect attachments that have the name specified
      *
-     * @param name Name assigned to the effect attachments
+     * @param effectSelector Selector used to find the effect attachments to target
      * @return Effect Sink for the group of effect attachments matching this name
      */
-    public abstract Attachment.EffectSink createEffectSink(String name);
+    public abstract Attachment.EffectSink createEffectSink(AttachmentSelector<Attachment.EffectAttachment> effectSelector);
 
     /**
      * Gets the effect loop player that can be used to preview effect loops in the UI
@@ -61,7 +63,6 @@ public abstract class MapWidgetSequencerEffectGroupList extends MapWidgetScrolle
 
     @Override
     public void onAttached() {
-        ConfigurationNode config = getConfig();
         startGroup = addContainerWidget(new MapWidgetSequencerEffectGroup(this, SequencerMode.START));
         loopGroup = addContainerWidget(new MapWidgetSequencerEffectGroup(this, SequencerMode.LOOP));
         stopGroup = addContainerWidget(new MapWidgetSequencerEffectGroup(this, SequencerMode.STOP));

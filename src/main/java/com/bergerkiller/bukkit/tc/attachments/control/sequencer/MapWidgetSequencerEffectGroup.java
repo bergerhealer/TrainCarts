@@ -7,8 +7,10 @@ import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentSelector;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
-import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNameSelector;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentSelector;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionItem;
@@ -207,15 +209,22 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
             @Override
             public void onActivate() {
                 // Ask what effect to target
-                groupList.addWidget(new MapWidgetAttachmentNameSelector(groupList.getEffectNames()) {
+                groupList.addWidget(new MapWidgetAttachmentSelector<Attachment.EffectAttachment>(
+                        AttachmentSelector.all(Attachment.EffectAttachment.class)
+                ) {
                     @Override
-                    public void onSelected(String effectName) {
+                    public List<String> getAttachmentNames(AttachmentSelector<Attachment.EffectAttachment> allSelector) {
+                        return groupList.getEffectNames(allSelector);
+                    }
+
+                    @Override
+                    public void onSelected(AttachmentSelector<Attachment.EffectAttachment> effectSelector) {
                         // Ask what type of effect to add
                         groupList.addWidget(new MapWidgetSequencerTypeSelector() {
                             @Override
                             public void onSelected(SequencerType type) {
                                 groupList.effectSelButtonIndex = 0;
-                                addEffect((new MapWidgetSequencerEffect(type, effectName)).focusOnActivate());
+                                addEffect((new MapWidgetSequencerEffect(type, effectSelector)).focusOnActivate());
                             }
                         });
                     }

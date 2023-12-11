@@ -368,6 +368,12 @@ public interface Attachment extends AttachmentNameLookup.Supplier {
         return getManager().getNameLookup(this);
     }
 
+    @Override
+    default AttachmentNameLookup getNameLookup(AttachmentSelector.SearchStrategy strategy) {
+        return (strategy == AttachmentSelector.SearchStrategy.ROOT_CHILDREN)
+                ? getRootParent().getNameLookup() : getNameLookup();
+    }
+
     /**
      * Gets the parent controller of this controller, if one is available.
      * 
@@ -712,7 +718,7 @@ public interface Attachment extends AttachmentNameLookup.Supplier {
          * @param effectAttachments Named group of effect attachments
          * @return Sink forwarding play/stop to this named group
          */
-        static EffectSink combineEffects(AttachmentNameLookup.NameGroup<Attachment.EffectAttachment> effectAttachments) {
+        static EffectSink combineEffects(Iterable<? extends Attachment.EffectAttachment> effectAttachments) {
             return new EffectSink() {
                 @Override
                 public void playEffect(EffectAttachment.EffectOptions options) {
@@ -732,7 +738,7 @@ public interface Attachment extends AttachmentNameLookup.Supplier {
          * @param effectAttachments Collection of named groups of effect attachments
          * @return Sink forwarding play/stop to these named groups
          */
-        static EffectSink combineEffects(Collection<AttachmentNameLookup.NameGroup<Attachment.EffectAttachment>> effectAttachments) {
+        static EffectSink combineEffects(Collection<Iterable<? extends Attachment.EffectAttachment>> effectAttachments) {
             return new EffectSink() {
                 @Override
                 public void playEffect(EffectAttachment.EffectOptions options) {

@@ -5,10 +5,11 @@ import com.bergerkiller.bukkit.common.controller.Tickable;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentSelection;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentSelector;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.ScheduledEffectLoop;
@@ -33,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * Plays a sequence of effects in a loop. Supports a mechanism for a pre-loop start and post-loop stop
@@ -104,13 +104,12 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
                 }
 
                 @Override
-                public List<String> getEffectNames() {
-                    return attachment.getAttachmentConfig().liveAttachmentsOfType(CartAttachmentSequencer.class).stream()
-                            .flatMap(s -> s.findAllEffectAttachments().stream())
-                            .flatMap(e -> e.getNames().stream())
-                            .sorted()
-                            .distinct()
-                            .collect(Collectors.toList());
+                public List<String> getEffectNames(AttachmentSelector<EffectAttachment> allSelector) {
+                    return AttachmentNameLookup.Supplier.getSelection(
+                                   allSelector,
+                                   () -> attachment.getAttachmentConfig().liveAttachmentsOfType(CartAttachmentSequencer.class)
+                           )
+                           .names();
                 }
 
                 @Override
@@ -119,12 +118,11 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
                 }
 
                 @Override
-                public Attachment.EffectSink createEffectSink(String name) {
-                    List<AttachmentNameLookup.NameGroup<EffectAttachment>> nameGroups = new ArrayList<>();
-                    for (CartAttachmentSequencer sequencer : attachment.getAttachmentsOfType(CartAttachmentSequencer.class)) {
-                        nameGroups.add(sequencer.findEffectAttachments(name));
-                    }
-                    return EffectSink.combineEffects(nameGroups);
+                public EffectSink createEffectSink(AttachmentSelector<EffectAttachment> effectSelector) {
+                    return EffectSink.combineEffects(AttachmentNameLookup.Supplier.getSelection(
+                            effectSelector,
+                            () -> attachment.getAttachmentConfig().liveAttachmentsOfType(CartAttachmentSequencer.class)
+                    ));
                 }
             }).setBounds(-5, 0, 110, 70);
         }
@@ -264,23 +262,6 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
 
     @Override
     public void onMove(boolean absolute) {
-    }
-
-    private AttachmentNameLookup getEffectLookup() {
-        //TODO: Option for all of cart / attachments below sequencer
-        return getRootParent().getNameLookup();
-    }
-
-    private AttachmentNameLookup.NameGroup<Attachment.EffectAttachment> findEffectAttachments(String name) {
-        if (name.isEmpty()) {
-            return AttachmentNameLookup.NameGroup.none();
-        } else {
-            return AttachmentNameLookup.NameGroup.of(this::getEffectLookup, name, EffectAttachment.class);
-        }
-    }
-
-    private List<EffectAttachment> findAllEffectAttachments() {
-        return CommonUtil.unsafeCast(getEffectLookup().all(a -> a instanceof EffectAttachment && a != this));
     }
 
     public class SequencerTransferFunctionHost implements TransferFunctionHost {
@@ -516,7 +497,7 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
      * A single effect part of a group
      */
     public static class SequencerEffect implements EffectSink, Tickable {
-        private AttachmentNameLookup.NameGroup<Attachment.EffectAttachment> effectAttachments = AttachmentNameLookup.NameGroup.none();
+        private AttachmentSelection<EffectAttachment> effectAttachments = AttachmentSelection.none(EffectAttachment.class);
         private final ConfigLoadedValue<TransferFunction> activeFunction = new ConfigLoadedValue<>(TransferFunctionBoolean.TRUE);
         private final ConfigLoadedValue<TransferFunction> volumeFunction = new ConfigLoadedValue<>(TransferFunctionConstant.of(1.0));
         private final ConfigLoadedValue<TransferFunction> pitchFunction = new ConfigLoadedValue<>(TransferFunctionConstant.of(1.0));
@@ -560,8 +541,10 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
         }
 
         public void load(CartAttachmentSequencer sequencer, ConfigurationNode config) {
-            // Effect name to play
-            effectAttachments = sequencer.findEffectAttachments(config.getOrDefault("effect", ""));
+            // Effect to play
+            effectAttachments = sequencer.getSelection(
+                    AttachmentSelector.readFromConfig(config, "effect")
+                            .withType(EffectAttachment.class));
 
             // Active
             activeFunction.load(config.getNodeIfExists("active"), sequencer.functionHost::loadFunction);

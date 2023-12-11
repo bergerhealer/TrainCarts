@@ -10,8 +10,10 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentSelector;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.ScheduledEffectLoop;
-import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNameSelector;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentSelector;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionItem;
 import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionSingleConfigItem;
@@ -41,8 +43,8 @@ public class MapWidgetSequencerEffect extends MapWidget {
     private final List<Button> buttons = new ArrayList<>();
     private boolean focusOnActivate = false;
 
-    public MapWidgetSequencerEffect(SequencerType type, String name) {
-        this(type.createConfig(name));
+    public MapWidgetSequencerEffect(SequencerType type, AttachmentSelector<Attachment.EffectAttachment> effectSelector) {
+        this(type.createConfig(effectSelector));
     }
 
     public MapWidgetSequencerEffect(ConfigurationNode config) {
@@ -54,7 +56,7 @@ public class MapWidgetSequencerEffect extends MapWidget {
         this.buttons.add(new Button(Icon.PREVIEW, "Preview", () -> {
             ScheduledEffectLoop effectLoop = type.createEffectLoop(
                     getConfig().getNode("config"),
-                    getGroupList().createEffectSink(getEffectName()));
+                    getGroupList().createEffectSink(getEffectSelector()));
             getGroupList().getPreviewEffectLoopPlayer().play(
                     effectLoop.asEffectLoop(getGroup().getDuration()));
         }));
@@ -65,15 +67,22 @@ public class MapWidgetSequencerEffect extends MapWidget {
                     getConfig().getNode("config"),
                     getGroup().getDuration(),
                     getGroupList().createEffectSink(
-                            MapWidgetSequencerEffect.this.getEffectName())
+                            MapWidgetSequencerEffect.this.getEffectSelector())
             ));
         }));
         this.buttons.add(new Button(Icon.EFFECT_NAME, "Effect", () -> {
             // Open a dialog to select a different effect name to target
-            getGroupList().addWidget(new MapWidgetAttachmentNameSelector(getGroupList().getEffectNames()) {
+            getGroupList().addWidget(new MapWidgetAttachmentSelector<Attachment.EffectAttachment>(
+                    getEffectSelector()
+            ) {
                 @Override
-                public void onSelected(String effectName) {
-                    config.set("effect", effectName);
+                public List<String> getAttachmentNames(AttachmentSelector<Attachment.EffectAttachment> allSelector) {
+                    return getGroupList().getEffectNames(allSelector);
+                }
+
+                @Override
+                public void onSelected(AttachmentSelector<Attachment.EffectAttachment> selection) {
+                    selection.writeToConfig(config, "effect");
                     MapWidgetSequencerEffect.this.invalidate();
                 }
             }.setTitle("Set Effect to play"));
@@ -115,8 +124,9 @@ public class MapWidgetSequencerEffect extends MapWidget {
         }
     }
 
-    public String getEffectName() {
-        return config.getOrDefault("effect", "");
+    public AttachmentSelector<Attachment.EffectAttachment> getEffectSelector() {
+        return AttachmentSelector.readFromConfig(config, "effect")
+                .withType(Attachment.EffectAttachment.class);
     }
 
     private MapWidgetSequencerEffectGroup getGroup() {
@@ -168,10 +178,15 @@ public class MapWidgetSequencerEffect extends MapWidget {
                 focused ? BG_COLOR_FOCUSED : BG_COLOR_DEFAULT);
 
         // Effect name
+        AttachmentSelector<Attachment.EffectAttachment> selector = getEffectSelector();
+        String name = selector.nameFilter().orElseGet(
+                () -> selector.strategy() == AttachmentSelector.SearchStrategy.NONE
+                        ? "<None>" : "<Any>");
+
         view.getView(1, 1, getWidth() - 2, getHeight() - 2)
                 .draw(MapFont.MINECRAFT, 1, 1,
                         focused ? EFFECT_COLOR_FOCUSED : EFFECT_COLOR_DEFAULT,
-                        getEffectName());
+                        name);
 
         // Buttons
         if (focused) {

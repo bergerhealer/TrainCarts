@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentSelector;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.MidiChartDialog;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.MidiScheduledEffectLoop;
@@ -106,10 +107,10 @@ public abstract class SequencerType {
         return focused ? iconFocus : iconDefault;
     }
 
-    public ConfigurationNode createConfig(String effectName) {
+    public ConfigurationNode createConfig(AttachmentSelector<Attachment.EffectAttachment> effectSelector) {
         ConfigurationNode config = new ConfigurationNode();
         config.set("type", name());
-        config.set("effect", effectName);
+        effectSelector.writeToConfig(config, "effect");
         config.getNode("config");
         return config;
     }
