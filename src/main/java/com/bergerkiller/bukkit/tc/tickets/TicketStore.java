@@ -14,7 +14,6 @@ import org.bukkit.inventory.PlayerInventory;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
-import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
@@ -46,7 +45,6 @@ public class TicketStore {
         for (int i = 1; ticket == null; i++) {
             ticket = createTicket(baseTicket, "ticket" + i);
         }
-        ticket.setProperties(TrainProperties.getDefaultsByName("default").getConfig());
         return ticket;
     }
 
