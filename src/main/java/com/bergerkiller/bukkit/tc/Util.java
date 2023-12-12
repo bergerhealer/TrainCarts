@@ -12,6 +12,8 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.common.Common;
@@ -1757,5 +1759,114 @@ public class Util {
     }
     public static PacketPlayOutEntityEquipmentHandle createNonPlayerEquipmentPacket(int entityId, EquipmentSlot slot, ItemStack itemStack) {
         return CREATE_NON_PLAYER_EQUIPMENT_PACKET.create(entityId, slot, itemStack);
+    }
+
+    /**
+     * Filters all elements of a List. This method relies on the input list being
+     * unmodifiable itself.
+     *
+     * @param list Input List
+     * @param filter Filter Predicate
+     * @return List filtered by the input filter
+     * @param <T> List Type
+     */
+    public static <T> List<T> filterList(List<T> list, Predicate<T> filter) {
+        return filterAndMapList(list, filter, null);
+    }
+
+    /**
+     * Filters all elements of a List, then maps each value that passes the filter to a new
+     * value. Then collects all those values into a new unmodifiable List. This method
+     * relies on the input list being unmodifiable itself.
+     *
+     * @param list Input List
+     * @param filter Filter Predicate
+     * @param mapper Mapper function to a collection of results for every item. Null maps identity.
+     * @return Mapped, filtered List
+     * @param <I> Input list type
+     * @param <O> Output list type
+     */
+    @SuppressWarnings("unchecked")
+    public static <I, O> List<O> filterAndMapList(List<I> list, Predicate<I> filter, Function<I, O> mapper) {
+        return filterAndMultiMapList(list, filter, mapper == null
+                ? null :
+                i -> Collections.singletonList(mapper.apply(i)));
+    }
+
+    /**
+     * Filters all elements of a List, then maps each value that passes the filter to a new
+     * value. Then collects all those values into a new unmodifiable List. This method
+     * relies on the input list being unmodifiable itself.
+     *
+     * @param list Input List
+     * @param filter Filter Predicate
+     * @param mapper Mapper function to a collection of results for every item. Null maps identity.
+     * @return Mapped, filtered List
+     * @param <I> Input list type
+     * @param <O> Output list type
+     */
+    @SuppressWarnings("unchecked")
+    public static <I, O> List<O> filterAndMultiMapList(List<I> list, Predicate<I> filter, Function<I, Collection<O>> mapper) {
+        int numItems = list.size();
+
+        // Optimization for zero-element or one-element lists
+        if (numItems == 0) {
+            return Collections.emptyList();
+        } else if (numItems == 1) {
+            I first = list.get(0);
+            if (!filter.test(first)) {
+                return Collections.emptyList();
+            } else if (mapper != null) {
+                Collection<O> results = mapper.apply(first);
+                int numResults = results.size();
+                if (numResults == 0) {
+                    return Collections.emptyList();
+                } else if (numResults == 1) {
+                    return Collections.singletonList(results.iterator().next());
+                } else {
+                    return Collections.unmodifiableList(new ArrayList<>(results));
+                }
+            } else {
+                return Collections.singletonList((O) first);
+            }
+        }
+
+        if (mapper != null) {
+            // If a mapper was set we're creating a new list regardless.
+            List<O> result = new ArrayList<>(numItems);
+            for (int i = 0; i < numItems; i++) {
+                I input = list.get(i);
+                if (filter.test(input)) {
+                    result.addAll(mapper.apply(input));
+                }
+            }
+            return Collections.unmodifiableList(result);
+        } else {
+            // Go by all attachments at least once. It's very likely that at this point
+            // all elements will pass the filter. So only create a list copy if we find
+            // an element that should be omitted.
+            for (int i = 0; i < numItems; i++) {
+                I input = list.get(i);
+                if (!filter.test(input)) {
+                    // This one is excluded! Create a new list that excludes this attachment.
+                    // Then populate it with all remaining elements that pass the filter.
+                    List<O> result = new ArrayList<>(numItems - 1);
+                    for (int j = 0; j < i; j++) {
+                        result.add((O) list.get(j));
+                    }
+                    for (int j = i + 1; j < numItems; j++) {
+                        input = list.get(j);
+                        if (filter.test(input)) {
+                            result.add((O) input);
+                        }
+                    }
+                    // Make it unmodifiable again
+                    return Collections.unmodifiableList(result);
+                }
+            }
+
+            // Return all attachments. If a mapper was set, apply it. Otherwise, return as-is.
+            return Collections.unmodifiableList((List<O>) list);
+        }
     }
 }

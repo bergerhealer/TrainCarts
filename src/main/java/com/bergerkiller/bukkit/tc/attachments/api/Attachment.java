@@ -374,6 +374,11 @@ public interface Attachment extends AttachmentNameLookup.Supplier {
                 ? getRootParent().getNameLookup() : getNameLookup();
     }
 
+    @Override
+    default Set<Attachment> getSelfFilterOfNameLookup() {
+        return Collections.singleton(this);
+    }
+
     /**
      * Gets the parent controller of this controller, if one is available.
      * 

@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.attachments.api;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerGroup;
 
 import java.util.Optional;
@@ -31,6 +30,7 @@ public final class AttachmentSelector<T> {
     private final SearchStrategy strategy;
     private final Optional<String> nameFilter;
     private final Class<T> typeFilter;
+    private final boolean excludeSelf;
 
     /**
      * Gets an attachment selector that selects no attachments at all
@@ -50,7 +50,7 @@ public final class AttachmentSelector<T> {
      * @param <T> Type filter class
      */
     public static <T> AttachmentSelector<T> none(Class<T> typeFilter) {
-        return new AttachmentSelector<>(SearchStrategy.NONE, Optional.empty(), typeFilter);
+        return new AttachmentSelector<>(SearchStrategy.NONE, Optional.empty(), typeFilter, false);
     }
 
     /**
@@ -62,7 +62,7 @@ public final class AttachmentSelector<T> {
      * @param <T> Type filter class
      */
     public static <T> AttachmentSelector<T> all(Class<T> typeFilter) {
-        return new AttachmentSelector<>(SearchStrategy.ROOT_CHILDREN, Optional.empty(), typeFilter);
+        return new AttachmentSelector<>(SearchStrategy.ROOT_CHILDREN, Optional.empty(), typeFilter, false);
     }
 
     /**
@@ -87,7 +87,7 @@ public final class AttachmentSelector<T> {
         return strategy.selectNamed(nameFilter);
     }
 
-    private AttachmentSelector(SearchStrategy strategy, Optional<String> nameFilter, Class<T> typeFilter) {
+    private AttachmentSelector(SearchStrategy strategy, Optional<String> nameFilter, Class<T> typeFilter, boolean excludeSelf) {
         if (strategy == null) {
             throw new IllegalArgumentException("Search Strategy is null");
         }
@@ -97,6 +97,7 @@ public final class AttachmentSelector<T> {
         this.strategy = strategy;
         this.nameFilter = nameFilter;
         this.typeFilter = typeFilter;
+        this.excludeSelf = excludeSelf;
     }
 
     /**
@@ -138,13 +139,25 @@ public final class AttachmentSelector<T> {
     }
 
     /**
+     * Gets whether the attachment(s) on which is selected are excluded from
+     * the selection. When combining many attachment selections together,
+     * if the excluded attachment appears in another selection, it is also
+     * excluded there.
+     *
+     * @return True to exclude the attachment(s) on which is selected
+     */
+    public boolean isExcludingSelf() {
+        return excludeSelf;
+    }
+
+    /**
      * Changes this selector so that it selects all attachments, instead of
      * filtering by a certain attachment name.
      *
      * @return Updated AttachmentSelector
      */
     public AttachmentSelector<T> withSelectAll() {
-        return new AttachmentSelector<>(strategy, Optional.empty(), typeFilter);
+        return new AttachmentSelector<>(strategy, Optional.empty(), typeFilter, excludeSelf);
     }
 
     /**
@@ -156,9 +169,9 @@ public final class AttachmentSelector<T> {
      */
     public AttachmentSelector<T> withName(String name) {
         if (name == null || name.isEmpty()) {
-            return new AttachmentSelector<>(SearchStrategy.NONE, Optional.empty(), typeFilter);
+            return new AttachmentSelector<>(SearchStrategy.NONE, Optional.empty(), typeFilter, excludeSelf);
         } else {
-            return new AttachmentSelector<>(strategy, Optional.of(name), typeFilter);
+            return new AttachmentSelector<>(strategy, Optional.of(name), typeFilter, excludeSelf);
         }
     }
 
@@ -169,7 +182,7 @@ public final class AttachmentSelector<T> {
      * @return Updated AttachmentSelector
      */
     public AttachmentSelector<T> withStrategy(SearchStrategy strategy) {
-        return new AttachmentSelector<>(strategy, nameFilter, typeFilter);
+        return new AttachmentSelector<>(strategy, nameFilter, typeFilter, excludeSelf);
     }
 
     /**
@@ -181,7 +194,41 @@ public final class AttachmentSelector<T> {
      * @param <A> Class Type
      */
     public <A> AttachmentSelector<A> withType(Class<A> typeFilter) {
-        return new AttachmentSelector<>(strategy, nameFilter, typeFilter);
+        return new AttachmentSelector<>(strategy, nameFilter, typeFilter, excludeSelf);
+    }
+
+    /**
+     * Changes this selector so that it excludes the attachment
+     * on which is selected. By default, the selected results include
+     * this attachment.
+     *
+     * @return Updated AttachmentSelector
+     */
+    public AttachmentSelector<T> excludingSelf() {
+        return excludingSelf(true);
+    }
+
+    /**
+     * Changes this selector so that it includes the attachment
+     * on which is selected. By default, the selected results include this
+     * attachment.
+     *
+     * @return Updated AttachmentSelector
+     */
+    public AttachmentSelector<T> includingSelf() {
+        return excludingSelf(false);
+    }
+
+    /**
+     * Changes this selector so that it either includes or excludes the attachment
+     * on which is selected. By default, the selected results include this
+     * attachment.
+     *
+     * @param exclude True to exclude the self-attachment, False to include
+     * @return Updated AttachmentSelector
+     */
+    public AttachmentSelector<T> excludingSelf(boolean exclude) {
+        return new AttachmentSelector<>(strategy, nameFilter, typeFilter, exclude);
     }
 
     @Override
@@ -201,7 +248,8 @@ public final class AttachmentSelector<T> {
             AttachmentSelector<?> other = (AttachmentSelector<?>) o;
             return strategy == other.strategy &&
                     nameFilter.equals(other.nameFilter) &&
-                    typeFilter.equals(other.typeFilter);
+                    typeFilter.equals(other.typeFilter) &&
+                    excludeSelf == other.excludeSelf;
         } else {
             return false;
         }
@@ -211,7 +259,8 @@ public final class AttachmentSelector<T> {
     public String toString() {
         return "AttachmentSelector{type=" + typeFilter.getSimpleName() +
                 ", strategy=" + strategy +
-                ", name=" + (nameFilter.orElse("<any>")) + "}";
+                ", name=" + (nameFilter.orElse("<any>")) +
+                ", excludeSelf=" + excludeSelf + "}";
     }
 
     /**
@@ -311,7 +360,7 @@ public final class AttachmentSelector<T> {
 
         SearchStrategy(String caption) {
             this.caption = caption;
-            this.all = new AttachmentSelector<>(this, Optional.empty(), Attachment.class);
+            this.all = new AttachmentSelector<>(this, Optional.empty(), Attachment.class, false);
             this.iconDefault = SEARCH_STRATEGY_ICONS.getView(ordinal() * 11, 0, 11, 7).clone();
             this.iconFocused = SEARCH_STRATEGY_ICONS.getView(ordinal() * 11, 7, 11, 7).clone();
         }
@@ -356,7 +405,7 @@ public final class AttachmentSelector<T> {
             if (nameFilter == null || nameFilter.isEmpty()) {
                 return NONE.selectAll();
             } else {
-                return new AttachmentSelector<>(this, Optional.of(nameFilter), Attachment.class);
+                return new AttachmentSelector<>(this, Optional.of(nameFilter), Attachment.class, false);
             }
         }
     }

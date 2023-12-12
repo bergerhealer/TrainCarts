@@ -1,14 +1,17 @@
 package com.bergerkiller.bukkit.tc.attachments.api;
 
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
+import com.bergerkiller.bukkit.tc.Util;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -140,33 +143,7 @@ public class AttachmentNameLookup {
      * @return List of attachments matching this name
      */
     public List<Attachment> get(String name, Predicate<Attachment> filter) {
-        // Go by all attachments at least once. It's very likely that at this point
-        // all elements will pass the filter (assuming names(filter) was used before).
-        // So only create a list copy if we find an element that should be omitted.
-        List<Attachment> attachments = get(name);
-        int numAttachments = attachments.size();
-        for (int i = 0; i < numAttachments; i++) {
-            Attachment attachment = attachments.get(i);
-            if (!filter.test(attachment)) {
-                // This one is excluded! Create a new list that excludes this attachment.
-                // Then populate it with all remaining elements that pass the filter.
-                List<Attachment> result = new ArrayList<>(numAttachments - 1);
-                for (int j = 0; j < i; j++) {
-                    result.add(attachments.get(j));
-                }
-                for (int j = i + 1; j < numAttachments; j++) {
-                    attachment = attachments.get(j);
-                    if (filter.test(attachment)) {
-                        result.add(attachment);
-                    }
-                }
-                // Make it unmodifiable again
-                return Collections.unmodifiableList(result);
-            }
-        }
-
-        // All are included, return as-is
-        return attachments;
+        return Util.filterList(get(name), filter);
     }
 
     /**
@@ -189,7 +166,7 @@ public class AttachmentNameLookup {
      * @return List of all attachments
      */
     public List<Attachment> all(Predicate<Attachment> filter) {
-        return all.stream().filter(filter).collect(StreamUtil.toUnmodifiableList());
+        return Util.filterList(all, filter);
     }
 
     /**
@@ -226,44 +203,23 @@ public class AttachmentNameLookup {
      * Does not differentiate between search strategy ROOT_CHILDREN and CHILDREN.
      *
      * @param selector Attachment Selector filter
+     * @param excluding Attachments to exclude from the listing
      * @return List of Attachment Names included in the selector results
      */
-    public List<String> selectNames(AttachmentSelector<?> selector) {
+    public List<String> selectNames(AttachmentSelector<?> selector, Set<Attachment> excluding) {
         switch (selector.strategy()) {
             case NONE:
                 return Collections.emptyList();
             case PARENTS:
-                return parents.stream()
-                        .filter(selector::matches)
-                        .flatMap(a -> a.getNames().stream())
-                        .distinct()
-                        .collect(StreamUtil.toUnmodifiableList());
+                return Util.filterAndMultiMapList(parents,
+                        a -> selector.matches(a) && !excluding.contains(a),
+                        Attachment::getNames);
             default:
+                final Predicate<Attachment> filter = a -> selector.matchesExceptName(a) && !excluding.contains(a);
                 if (selector.nameFilter().isPresent()) {
-                    // More efficient to sort the single list mapped to this name
-                    // Most likely all elements will match anyway
-                    List<Attachment> values = get(selector.nameFilter().get());
-
-                    // Some optimization for no results / single result
-                    if (values.isEmpty()) {
-                        return Collections.emptyList();
-                    } else if (values.size() == 1) {
-                        Attachment single = values.get(0);
-                        if (selector.matchesExceptName(single)) {
-                            return Collections.unmodifiableList(new ArrayList<>(single.getNames()));
-                        } else {
-                            return Collections.emptyList();
-                        }
-                    }
-
-                    // Filter
-                    return values.stream()
-                            .filter(selector::matchesExceptName)
-                            .flatMap(a -> a.getNames().stream())
-                            .distinct()
-                            .collect(StreamUtil.toUnmodifiableList());
+                    return Util.filterAndMultiMapList(get(selector.nameFilter().get()), filter, Attachment::getNames);
                 } else {
-                    return names(selector::matchesExceptName);
+                    return names(filter);
                 }
         }
     }
@@ -273,21 +229,23 @@ public class AttachmentNameLookup {
      * Does not differentiate between search strategy ROOT_CHILDREN and CHILDREN.
      *
      * @param selector Attachment Selector filter
+     * @param excluding Attachments to exclude from the listing
      * @return List of Attachments that match the selector's filters
      * @param <T> Selector Attachment Type
      */
     @SuppressWarnings("unchecked")
-    public <T> List<T> selectValues(AttachmentSelector<T> selector) {
+    public <T> List<T> selectValues(AttachmentSelector<T> selector, Set<Attachment> excluding) {
         switch (selector.strategy()) {
             case NONE:
                 return Collections.emptyList();
             case PARENTS:
-                return (List<T>) parents(selector::matches);
+                return (List<T>) parents(a -> selector.matches(a) && !excluding.contains(a));
             default:
+                final Predicate<Attachment> filter = a -> selector.matchesExceptName(a) && !excluding.contains(a);
                 if (selector.nameFilter().isPresent()) {
-                    return (List<T>) get(selector.nameFilter().get(), selector::matchesExceptName);
+                    return (List<T>) get(selector.nameFilter().get(), filter);
                 } else {
-                    return (List<T>) all(selector::matchesExceptName);
+                    return (List<T>) all(filter);
                 }
         }
     }
@@ -452,6 +410,19 @@ public class AttachmentNameLookup {
         }
 
         /**
+         * Gets a set of attachments that represent the 'self' of this Supplier. If this supplier
+         * is itself an attachment, returns a singleton set of this attachment. If it's a merged
+         * result of many attachments, returns a set of all these attachments.<br>
+         * <br>
+         * This is used for handling {@link AttachmentSelector#isExcludingSelf()}.
+         *
+         * @return Set of attachments that represents 'self'
+         */
+        default Set<Attachment> getSelfFilterOfNameLookup() {
+            return Collections.emptySet();
+        }
+
+        /**
          * Selects attachments using this Attachment Supplier's
          * {@link #getNameLookup(AttachmentSelector.SearchStrategy) getNameLookup(strategy)}
          * based on an attachment selector as a filter.
@@ -481,21 +452,41 @@ public class AttachmentNameLookup {
                 final AttachmentSelector<T> selector,
                 final java.util.function.Supplier<Collection<? extends Supplier>> suppliers
         ) {
-            Supplier deferMerged = () -> {
-                // Get current list of suppliers. Optimization for empty/1-size (common)
-                Collection<? extends Supplier> currSuppliers = suppliers.get();
-                if (currSuppliers.isEmpty()) {
-                    return EMPTY;
-                } else if (currSuppliers.size() == 1) {
-                    return currSuppliers.iterator().next().getNameLookup(selector.strategy());
+            Supplier deferMerged = new Supplier() {
+                @Override
+                public AttachmentNameLookup getNameLookup() {
+                    // Get current list of suppliers. Optimization for empty/1-size (common)
+                    Collection<? extends Supplier> currSuppliers = suppliers.get();
+                    if (currSuppliers.isEmpty()) {
+                        return EMPTY;
+                    } else if (currSuppliers.size() == 1) {
+                        return currSuppliers.iterator().next().getNameLookup(selector.strategy());
+                    }
+
+                    // Perform merging
+                    List<AttachmentNameLookup> lookups = new ArrayList<>(currSuppliers.size());
+                    for (Supplier supplier : currSuppliers) {
+                        lookups.add(supplier.getNameLookup(selector.strategy()));
+                    }
+                    return AttachmentNameLookup.merge(lookups);
                 }
 
-                // Perform merging
-                List<AttachmentNameLookup> lookups = new ArrayList<>(currSuppliers.size());
-                for (Supplier supplier : currSuppliers) {
-                    lookups.add(supplier.getNameLookup(selector.strategy()));
+                @Override
+                public Set<Attachment> getSelfFilterOfNameLookup() {
+                    Collection<? extends Supplier> currSuppliers = suppliers.get();
+                    if (currSuppliers.isEmpty()) {
+                        return Collections.emptySet();
+                    } else if (currSuppliers.size() == 1) {
+                        return currSuppliers.iterator().next().getSelfFilterOfNameLookup();
+                    }
+
+                    // Perform merging
+                    Set<Attachment> excluding = new HashSet<>();
+                    for (Supplier supplier : currSuppliers) {
+                        excluding.addAll(supplier.getSelfFilterOfNameLookup());
+                    }
+                    return Collections.unmodifiableSet(excluding);
                 }
-                return AttachmentNameLookup.merge(lookups);
             };
 
             return deferMerged.getSelection(selector);
@@ -513,6 +504,7 @@ public class AttachmentNameLookup {
         private final Supplier lookupSupplier;
         private final AttachmentSelector<T> selector;
         private AttachmentNameLookup cachedLookup;
+        private Set<Attachment> cachedExcluding;
         // Regenerated on demand
         private List<T> values = null;
         private List<String> names = null;
@@ -525,6 +517,7 @@ public class AttachmentNameLookup {
                 throw new IllegalArgumentException("Attachment Selector is null");
             }
             this.lookupSupplier = lookupSupplier;
+            this.cachedExcluding = Collections.emptySet();
             this.selector = selector;
             this.cachedLookup = AttachmentNameLookup.EMPTY; // Always detects changes with sync()
             this.sync();
@@ -547,7 +540,7 @@ public class AttachmentNameLookup {
                 if ((names = this.names) != null) {
                     return names;
                 } else {
-                    return this.names = this.cachedLookup.selectNames(this.selector);
+                    return this.names = this.cachedLookup.selectNames(this.selector, this.cachedExcluding);
                 }
             }
         }
@@ -564,7 +557,7 @@ public class AttachmentNameLookup {
                 if ((values = this.values) != null) {
                     return values;
                 } else {
-                    return this.values = this.cachedLookup.selectValues(this.selector);
+                    return this.values = this.cachedLookup.selectValues(this.selector, this.cachedExcluding);
                 }
             }
         }
@@ -575,8 +568,11 @@ public class AttachmentNameLookup {
                 return false;
             } else {
                 AttachmentNameLookup lookup = lookupSupplier.getNameLookup(selector.strategy());
+                Set<Attachment> excluding = selector.isExcludingSelf()
+                        ? lookupSupplier.getSelfFilterOfNameLookup() : Collections.emptySet();
                 synchronized (this) {
                     cachedLookup = lookup;
+                    cachedExcluding = excluding;
                     values = null;
                     names = null;
                 }
