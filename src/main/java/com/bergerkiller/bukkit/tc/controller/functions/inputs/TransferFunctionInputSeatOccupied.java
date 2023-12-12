@@ -5,7 +5,6 @@ import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
-import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentSelection;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentSelector;
@@ -116,50 +115,7 @@ public class TransferFunctionInputSeatOccupied extends TransferFunctionInput {
     public void openDialog(Dialog dialog) {
         super.openDialog(dialog);
 
-        // Note: this will probably be removed, and moved to the name selection dialog.
-        dialog.addLabel(28, 20, MapColorPalette.COLOR_RED, "Search Strategy");
-        dialog.addWidget(new MapWidgetButton() {
-            @Override
-            public void onAttached() {
-                updateText();
-                super.onAttached();
-            }
-
-            @Override
-            public void onActivate() {
-                int index = seatSelector.strategy().ordinal();
-                index = (index + 1) % AttachmentSelector.SearchStrategy.values().length;
-                AttachmentSelector.SearchStrategy next = AttachmentSelector.SearchStrategy.values()[index];
-                if (next == AttachmentSelector.SearchStrategy.NONE) {
-                    // Skip. Bleh code.
-                    index = (index + 1) % AttachmentSelector.SearchStrategy.values().length;
-                    next = AttachmentSelector.SearchStrategy.values()[index];
-                }
-                setSeatSelector(getSeatSelector().withStrategy(next));
-
-                dialog.markChanged();
-                updateText();
-            }
-
-            private void updateText() {
-                switch (seatSelector.strategy()) {
-                    case NONE:
-                        setText("None");
-                        break;
-                    case ROOT_CHILDREN:
-                        setText("All Cart Seats");
-                        break;
-                    case CHILDREN:
-                        setText("Child Seats");
-                        break;
-                    case PARENTS:
-                        setText("Parent Seats");
-                        break;
-                }
-            }
-        }).setBounds(11, 26, 92, 13);
-
-        dialog.addLabel(29, 42, MapColorPalette.COLOR_RED, "Seat Name Filter");
+        dialog.addLabel(29, 21, MapColorPalette.COLOR_RED, "Monitored Seats");
         dialog.addWidget(new SeatNameWidget() {
             @Override
             public void onChanged() {
@@ -175,7 +131,7 @@ public class TransferFunctionInputSeatOccupied extends TransferFunctionInput {
                     return Collections.emptyList();
                 }
             }
-        }).setBounds(11, 48, 92, 13);
+        }).setBounds(11, 27, 92, 13);
     }
 
     private abstract class SeatNameWidget extends MapWidget {

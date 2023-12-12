@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentSelector;
 
@@ -16,24 +17,33 @@ import java.util.stream.Collectors;
  * option to set one by name, which can be used to set one that
  * doesn't exist yet. (add attachment after adding it here)
  * Optionally, an option can be included to allow for de-selecting
- * a name (set to 'none') with a custom text.
+ * a name (set to 'none') with a custom text. At the top right the
+ * player can change in what way attachments are selected (search strategy).
+ * By default this is for the entire cart.
  */
 public abstract class MapWidgetAttachmentSelector<T> extends MapWidgetMenu {
     private static final byte ITEM_BG_DEFAULT = MapColorPalette.getColor(199, 199, 199);
     private static final byte ITEM_BG_FOCUS = MapColorPalette.getColor(255, 252, 245);
     private static final int ROW_HEIGHT = 11;
+    private final boolean allowNone;
     private AttachmentSelector<T> allSelector;
+    private MapWidgetScroller scroller;
     private String title = "Set Attachment Name";
     private String anyItemText = null; // If non-null, include
 
     public MapWidgetAttachmentSelector(AttachmentSelector<T> selector) {
+        this(selector, false);
+    }
+
+    public MapWidgetAttachmentSelector(AttachmentSelector<T> selector, boolean allowNone) {
         this.setPositionAbsolute(true);
         this.setBounds(10, 20, 108, 98);
         this.setBackgroundColor(MapColorPalette.getColor(72, 108, 152));
         this.labelColor = MapColorPalette.COLOR_BLACK;
 
+        this.allowNone = allowNone;
         this.allSelector = selector.withSelectAll();
-        if (this.allSelector.strategy() == AttachmentSelector.SearchStrategy.NONE) {
+        if (!allowNone && this.allSelector.strategy() == AttachmentSelector.SearchStrategy.NONE) {
             this.allSelector = this.allSelector.withStrategy(AttachmentSelector.SearchStrategy.CHILDREN);
         }
     }
@@ -76,9 +86,27 @@ public abstract class MapWidgetAttachmentSelector<T> extends MapWidgetMenu {
     public void onAttached() {
         addLabel(5, 5, title);
 
-        MapWidgetScroller scroller = this.addWidget(new MapWidgetScroller());
+        scroller = this.addWidget(new MapWidgetScroller());
         scroller.setScrollPadding(10)
                 .setBounds(5, 12, getWidth() - 10, getHeight() - 17);
+
+        loadItems();
+
+        // Add last so it doesn't get initial focus
+        this.addWidget(new SearchStrategyWidget())
+                .setPosition(getWidth() - 16, 4);
+
+        super.onAttached();
+    }
+
+    private void loadItems() {
+        scroller.getContainer().clearWidgets();
+
+        // Don't show any items (empty) when NONE (disabled)
+        // Require player to focus the top-right selector button to fix this
+        if (this.allSelector.strategy() == AttachmentSelector.SearchStrategy.NONE) {
+            return;
+        }
 
         List<MapWidget> items = getAttachmentNames(allSelector).stream()
                 .sorted().distinct().map(NameItem::new)
@@ -94,8 +122,61 @@ public abstract class MapWidgetAttachmentSelector<T> extends MapWidgetMenu {
             scroller.addContainerWidget(item);
             y += ROW_HEIGHT - 1;
         }
+    }
 
-        super.onAttached();
+    private AttachmentSelector.SearchStrategy getNextStrategy(AttachmentSelector.SearchStrategy current) {
+        final AttachmentSelector.SearchStrategy[] strategies = AttachmentSelector.SearchStrategy.values();
+
+        int index = current.ordinal();
+        index = (index + 1) % strategies.length;
+        AttachmentSelector.SearchStrategy next = strategies[index];
+        if (!allowNone && next == AttachmentSelector.SearchStrategy.NONE) {
+            index = (index + 1) % strategies.length;
+            next = strategies[index];
+        }
+        return next;
+    }
+
+    private class SearchStrategyWidget extends MapWidget {
+        private final MapWidgetTooltip tooltip = new MapWidgetTooltip();
+
+        public SearchStrategyWidget() {
+            this.setFocusable(true);
+            this.setSize(11, 7);
+            tooltip.setText(allSelector.strategy().getCaption());
+        }
+
+        @Override
+        public void onAttached() {
+            super.onAttached();
+            if (allSelector.strategy() == AttachmentSelector.SearchStrategy.NONE) {
+                focus(); // Avoid breakage
+            }
+        }
+
+        @Override
+        public void onActivate() {
+            allSelector = allSelector.withStrategy(getNextStrategy(allSelector.strategy()));
+            tooltip.setText(allSelector.strategy().getCaption());
+            invalidate();
+            loadItems();
+            display.playSound(SoundEffect.CLICK_WOOD);
+        }
+
+        @Override
+        public void onFocus() {
+            addWidget(tooltip);
+        }
+
+        @Override
+        public void onBlur() {
+            removeWidget(tooltip);
+        }
+
+        @Override
+        public void onDraw() {
+            view.draw(allSelector.strategy().getIcon(isFocused()), 0, 0);
+        }
     }
 
     private class NameItem extends MapWidget {

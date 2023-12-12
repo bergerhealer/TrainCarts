@@ -1,6 +1,8 @@
 package com.bergerkiller.bukkit.tc.attachments.api;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.map.MapTexture;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerGroup;
 
@@ -287,23 +289,51 @@ public final class AttachmentSelector<T> {
         }
     }
 
+    private static final MapTexture SEARCH_STRATEGY_ICONS = MapTexture.loadPluginResource(TrainCarts.plugin,
+            "com/bergerkiller/bukkit/tc/textures/attachments/search_strategies.png");
+
     /**
      * A search strategy by which attachments are selected
      */
     public enum SearchStrategy {
         /** No attachments are returned. Ever. Used for invalid configurations. */
-        NONE,
-        /** Child attachments of the attachment */
-        CHILDREN,
+        NONE("Disabled"),
         /** All child attachments of the same attachment root. This is the default behavior. */
-        ROOT_CHILDREN,
+        ROOT_CHILDREN("All of cart"),
+        /** Child attachments of the attachment */
+        CHILDREN("Children"),
         /** Parent attachment of the attachment */
-        PARENTS;
+        PARENTS("Parents");
 
+        private final String caption;
         private final AttachmentSelector<Attachment> all;
+        private final MapTexture iconDefault, iconFocused;
 
-        SearchStrategy() {
+        SearchStrategy(String caption) {
+            this.caption = caption;
             this.all = new AttachmentSelector<>(this, Optional.empty(), Attachment.class);
+            this.iconDefault = SEARCH_STRATEGY_ICONS.getView(ordinal() * 11, 0, 11, 7).clone();
+            this.iconFocused = SEARCH_STRATEGY_ICONS.getView(ordinal() * 11, 7, 11, 7).clone();
+        }
+
+        /**
+         * Gets the caption/tooltip text displayed when this search strategy
+         * is selected
+         *
+         * @return Caption
+         */
+        public String getCaption() {
+            return caption;
+        }
+
+        /**
+         * Gets the icon for the search strategy selector button when this strategy is selected
+         *
+         * @param focused Whether the icon has focus
+         * @return Icon (11x7)
+         */
+        public MapTexture getIcon(boolean focused) {
+            return focused ? iconFocused : iconDefault;
         }
 
         /**
