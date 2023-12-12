@@ -126,7 +126,8 @@ public class MapWidgetSequencerEffect extends MapWidget {
 
     public AttachmentSelector<Attachment.EffectAttachment> getEffectSelector() {
         return AttachmentSelector.readFromConfig(config, "effect")
-                .withType(Attachment.EffectAttachment.class);
+                .withType(Attachment.EffectAttachment.class)
+                .excludingSelf();
     }
 
     private MapWidgetSequencerEffectGroup getGroup() {

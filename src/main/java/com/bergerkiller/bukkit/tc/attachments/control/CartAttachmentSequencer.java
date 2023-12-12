@@ -544,7 +544,8 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
             // Effect to play
             effectAttachments = sequencer.getSelection(
                     AttachmentSelector.readFromConfig(config, "effect")
-                            .withType(EffectAttachment.class));
+                            .withType(EffectAttachment.class)
+                            .excludingSelf());
 
             // Active
             activeFunction.load(config.getNodeIfExists("active"), sequencer.functionHost::loadFunction);
