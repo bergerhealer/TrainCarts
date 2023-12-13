@@ -359,4 +359,35 @@ public class MapWidgetSequencerEffect extends MapWidget {
             return focused ? focusedImage : unfocusedImage;
         }
     }
+
+    /**
+     * Icons used for headers. Includes a 'disabled' icon if the feature is not available.
+     */
+    public enum HeaderIcon {
+        CONFIGURE(0, 35),
+        ADD(35, 7),
+        SYNC(42, 32),
+        ASYNC(74, 32),
+        AUTOPLAY(106, 33);
+
+        private final MapTexture defaultImage, focusedImage, disabledImage;
+
+        HeaderIcon(int x, int w) {
+            defaultImage = TEXTURE_ATLAS.getView(x, 14, w, 7).clone();
+            focusedImage = TEXTURE_ATLAS.getView(x, 21, w, 7).clone();
+            disabledImage = TEXTURE_ATLAS.getView(x, 28, w, 7).clone();
+        }
+
+        public int getWidth() {
+            return defaultImage.getWidth();
+        }
+
+        public int getHeight() {
+            return defaultImage.getHeight();
+        }
+
+        public MapTexture getIcon(boolean enabled, boolean focused) {
+            return enabled ? (focused ? focusedImage : defaultImage) : disabledImage;
+        }
+    }
 }

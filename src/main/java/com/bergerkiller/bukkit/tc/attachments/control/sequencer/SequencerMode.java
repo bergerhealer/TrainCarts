@@ -19,7 +19,7 @@ public enum SequencerMode {
         this.title = title;
         this.configKey=  configKey;
         this.icon = MapWidgetSequencerEffect.TEXTURE_ATLAS
-                .getView(7 * ordinal(), 14, 7, 5).clone();
+                .getView(7 * ordinal(), 35, 7, 5).clone();
     }
 
     public String title() {

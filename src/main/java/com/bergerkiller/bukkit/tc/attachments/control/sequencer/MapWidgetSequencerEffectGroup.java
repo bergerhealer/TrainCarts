@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.attachments.control.sequencer;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
-import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.tc.Util;
@@ -29,6 +28,7 @@ import java.util.List;
  * effect loops in that case.
  */
 public class MapWidgetSequencerEffectGroup extends MapWidget {
+    protected static final byte BACKGROUND_COLOR = MapColorPalette.getColor(54, 81, 114);
     private static final NumberFormat DURATION_FORMAT = Util.createNumberFormat(1, 4);
     private static final ConfigurationNode EMPTY_CONFIG = new ConfigurationNode();
     private static final int TOP_HEADER_HEIGHT = 8;
@@ -196,7 +196,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
         headerTitle = header.addWidget(new HeaderTitle());
         headerTitle.setBounds(0, 0, getWidth() - 43, 7);
 
-        configureButton = header.addWidget(new HeaderButton(0, 19, 35, 7) {
+        configureButton = header.addWidget(new HeaderButton(MapWidgetSequencerEffect.HeaderIcon.CONFIGURE) {
             @Override
             public void onActivate() {
                 groupList.addWidget(new ConfigureDialog());
@@ -205,7 +205,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
         configureButton.setPosition(getWidth() - 43, 0);
 
         //TODO: Ugly indentation
-        addEffectButton = header.addWidget(new HeaderButton(35, 19, 7, 7) {
+        addEffectButton = header.addWidget(new HeaderButton(MapWidgetSequencerEffect.HeaderIcon.ADD) {
             @Override
             public void onActivate() {
                 // Ask what effect to target
@@ -296,8 +296,6 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
     }
 
     private class Header extends MapWidget {
-        private final byte BACKGROUND_COLOR = MapColorPalette.getColor(54, 81, 114);
-
         public Header() {
             this.setClipParent(true);
         }
@@ -340,15 +338,13 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
      * The configure / add effect buttons
      */
     private static abstract class HeaderButton extends MapWidget {
-        private final MapTexture defaultImage, focusedImage, disabledImage;
+        private final MapWidgetSequencerEffect.HeaderIcon icon;
 
-        public HeaderButton(int atlas_x, int atlas_y, int w, int h) {
+        public HeaderButton(MapWidgetSequencerEffect.HeaderIcon icon) {
             this.setFocusable(true);
             this.setClipParent(true);
-            this.setSize(w, h);
-            this.defaultImage = MapWidgetSequencerEffect.TEXTURE_ATLAS.getView(atlas_x, atlas_y, w, h).clone();
-            this.focusedImage = MapWidgetSequencerEffect.TEXTURE_ATLAS.getView(atlas_x, atlas_y + h, w, h).clone();
-            this.disabledImage = MapWidgetSequencerEffect.TEXTURE_ATLAS.getView(atlas_x, atlas_y + 2 * h, w, h).clone();
+            this.setSize(icon.getWidth(), icon.getHeight());
+            this.icon = icon;
         }
 
         @Override
@@ -356,13 +352,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
 
         @Override
         public void onDraw() {
-            if (!isEnabled()) {
-                view.draw(disabledImage, 0, 0);
-            } else if (isFocused()) {
-                view.draw(focusedImage, 0, 0);
-            } else {
-                view.draw(defaultImage, 0, 0);
-            }
+            view.draw(icon.getIcon(isEnabled(), isFocused()), 0, 0);
         }
     }
 }

@@ -53,6 +53,13 @@ public abstract class MapWidgetSequencerEffectGroupList extends MapWidgetScrolle
     public abstract Attachment.EffectSink createEffectSink(AttachmentSelector<Attachment.EffectAttachment> effectSelector);
 
     /**
+     * Gets the current playing status of the sequencer being configured
+     *
+     * @return Playing status
+     */
+    public abstract SequencerPlayStatus getPlayStatus();
+
+    /**
      * Gets the effect loop player that can be used to preview effect loops in the UI
      *
      * @return EffectLoop preview player
@@ -63,6 +70,7 @@ public abstract class MapWidgetSequencerEffectGroupList extends MapWidgetScrolle
 
     @Override
     public void onAttached() {
+        addContainerWidget(new MapWidgetSequencerTopHeader()).setSize(getWidth(), 7);
         startGroup = addContainerWidget(new MapWidgetSequencerEffectGroup(this, SequencerMode.START));
         loopGroup = addContainerWidget(new MapWidgetSequencerEffectGroup(this, SequencerMode.LOOP));
         stopGroup = addContainerWidget(new MapWidgetSequencerEffectGroup(this, SequencerMode.STOP));

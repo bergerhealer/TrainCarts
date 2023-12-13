@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.ScheduledEffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.control.sequencer.MapWidgetSequencerEffectGroupList;
 import com.bergerkiller.bukkit.tc.attachments.control.sequencer.SequencerMode;
+import com.bergerkiller.bukkit.tc.attachments.control.sequencer.SequencerPlayStatus;
 import com.bergerkiller.bukkit.tc.attachments.control.sequencer.SequencerType;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -121,8 +122,27 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
                 public EffectSink createEffectSink(AttachmentSelector<EffectAttachment> effectSelector) {
                     return EffectSink.combineEffects(AttachmentNameLookup.Supplier.getSelection(
                             effectSelector,
-                            () -> attachment.getAttachmentConfig().liveAttachmentsOfType(CartAttachmentSequencer.class)
+                            () -> attachment.getAttachmentsOfType(CartAttachmentSequencer.class)
                     ));
+                }
+
+                @Override
+                public SequencerPlayStatus getPlayStatus() {
+                    List<CartAttachmentSequencer> sequencers = attachment.getAttachmentsOfType(CartAttachmentSequencer.class);
+                    if (sequencers.isEmpty()) {
+                        return SequencerPlayStatus.STOPPED_AUTOMATIC;
+                    } else if (sequencers.size() == 1) {
+                        return sequencers.get(0).getPlayStatus();
+                    }
+
+                    // Return result of first one, unless one of them is playing
+                    for (CartAttachmentSequencer sequencer : sequencers) {
+                        SequencerPlayStatus playStatus = sequencer.getPlayStatus();
+                        if (playStatus.isPlaying()) {
+                            return playStatus;
+                        }
+                    }
+                    return sequencers.get(0).getPlayStatus();
                 }
             }).setBounds(-5, 0, 110, 70);
         }
@@ -135,8 +155,12 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
     private final SequencerTransferFunctionHost functionHost = new SequencerTransferFunctionHost();
     private final EnumMap<SequencerMode, SequencerGroup> sequencerGroups;
     private SequencerGroup currentGroup;
+    private EffectLoop.RunMode runMode = EffectLoop.RunMode.ASYNCHRONOUS;
+    private final ConfigLoadedValue<TransferFunction> autoplayFunction = new ConfigLoadedValue<>(TransferFunctionBoolean.FALSE);
     private final AtomicInteger playState = new AtomicInteger(STATE_NOT_PLAYING);
     private EffectOptions playOptions = EffectOptions.DEFAULT;
+    private SequencerPlayStatus autoPlayStatus = SequencerPlayStatus.STOPPED_AUTOMATIC;
+    private SequencerPlayStatus playStatus = SequencerPlayStatus.STOPPED_AUTOMATIC;
 
     public CartAttachmentSequencer() {
         sequencerGroups = new EnumMap<>(SequencerMode.class);
@@ -148,9 +172,17 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
 
     @Override
     public void onLoad(ConfigurationNode config) {
+        runMode = config.getOrDefault("runMode", EffectLoop.RunMode.ASYNCHRONOUS);
+        autoplayFunction.load(config.getNodeIfExists("autoplay"), functionHost::loadFunction);
         for (SequencerMode mode : SequencerMode.values()) {
             sequencerGroups.get(mode).load(config.getNodeIfExists(mode.configKey()));
         }
+    }
+
+    @Override
+    public void onDetached() {
+        autoPlayStatus = SequencerPlayStatus.STOPPED_AUTOMATIC;
+        updatePlayStatus(SequencerPlayStatus.STOPPED_AUTOMATIC);
     }
 
     /**
@@ -171,64 +203,40 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
         return Math.min(1.0, (double) currentGroup.nanosElapsed / (double) currentGroup.duration.nanos);
     }
 
+    /**
+     * Gets the current sequencer play status. This indicates whether the sequencer is playing
+     * or stopping, and whether this was a manual operation (called play/stop effect) or that
+     * autoplay was responsible.
+     *
+     * @return Current playing status of this sequencer
+     */
+    public SequencerPlayStatus getPlayStatus() {
+        return playStatus;
+    }
+
     @Override
     public void playEffect(EffectOptions options) {
         playOptions = options;
-        int prevState = playState.getAndSet(STATE_PLAYING);
-        if (prevState == STATE_NOT_PLAYING) {
-            // Schedule an EffectLoop to be played, updating this attachment
-            TrainCarts.plugin.getEffectLoopPlayerController().createPlayer().play(new EffectLoop() {
-                @Override
-                public boolean advance(Time dt, Time duration, boolean loop) {
-                    // If a stop was requested, process the stop sequence
-                    // Once all groups have played, clean up the effect loop
-                    int currState = playState.get();
-                    if (currState == STATE_NOT_PLAYING) {
-                        return false; // Bug?
-                    } else if (currState == STATE_STOP_REQUESTED) {
-                        while (true) {
-                            // Advance current group. Interrupt non-STOP groups.
-                            dt = currentGroup.advance(dt, currentGroup.mode() != SequencerMode.STOP);
-                            if (dt.isZero()) {
-                                return true; // Not done yet with this group
-                            }
-
-                            // Advance to next group. If this is the STOP group, shut down the effect loop
-                            // It's possible that during this time play() was called again, in which case it restarts
-                            if (currentGroup.mode() == SequencerMode.STOP) {
-                                return !playState.compareAndSet(STATE_STOP_REQUESTED, STATE_NOT_PLAYING);
-                            }
-
-                            // Next group (start/loop -> stop)
-                            currentGroup = sequencerGroups.get(SequencerMode.STOP);
-                            currentGroup.resetToBeginning();
-                        }
-                    }
-
-                    // Playing state
-                    while (true) {
-                        // Advance current group. Interrupt STOP groups.
-                        dt = currentGroup.advance(dt, currentGroup.mode() == SequencerMode.STOP);
-                        if (dt.isZero()) {
-                            return true; // Not done yet with this group (or is LOOP)
-                        }
-
-                        // Go from STOP -> START, and from START -> LOOP
-                        if (currentGroup.mode() == SequencerMode.STOP) {
-                            currentGroup = sequencerGroups.get(SequencerMode.START);
-                        } else {
-                            currentGroup = sequencerGroups.get(SequencerMode.LOOP);
-                        }
-                        currentGroup.resetToBeginning();
-                    }
-                }
-            });
-        }
+        updatePlayStatus(SequencerPlayStatus.PLAYING_MANUAL);
     }
 
     @Override
     public void stopEffect() {
-        playState.set(STATE_STOP_REQUESTED);
+        updatePlayStatus(SequencerPlayStatus.STOPPED_MANUAL);
+    }
+
+    private void updatePlayStatus(SequencerPlayStatus status) {
+        playStatus = status;
+        if (status.isPlaying()) {
+            int prevState = playState.getAndSet(STATE_PLAYING);
+            if (prevState == STATE_NOT_PLAYING) {
+                // Schedule an EffectLoop to be played, updating this attachment
+                EffectLoop.Player player = TrainCarts.plugin.getEffectLoopPlayerController().createPlayer(5);
+                (new ActiveEffectLoop(player, runMode)).play();
+            }
+        } else {
+            playState.compareAndSet(STATE_PLAYING, STATE_STOP_REQUESTED);
+        }
     }
 
     @Override
@@ -241,6 +249,15 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
 
     @Override
     public void onTick() {
+        SequencerPlayStatus currAutoPlayStatus = autoplayFunction.get().map(0.0) != 0.0
+                ? SequencerPlayStatus.PLAYING_AUTOMATIC : SequencerPlayStatus.STOPPED_AUTOMATIC;
+        if (autoPlayStatus != currAutoPlayStatus) {
+            autoPlayStatus = currAutoPlayStatus;
+            updatePlayStatus(currAutoPlayStatus);
+        }
+
+        sequencerGroups.values().forEach(SequencerGroup::onTick);
+
         functionHost.sources.removeIf(s -> {
             if (s.hasRecipients()) {
                 if (!s.isTickedDuringPlay()) {
@@ -252,7 +269,6 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
                 return true; // Remove
             }
         });
-        sequencerGroups.values().forEach(SequencerGroup::onTick);
     }
 
     @Override
@@ -262,6 +278,97 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
 
     @Override
     public void onMove(boolean absolute) {
+    }
+
+    private class ActiveEffectLoop implements EffectLoop {
+        private final EffectLoop.Player player;
+        private final RunMode runMode;
+        private boolean stopped;
+
+        public ActiveEffectLoop(EffectLoop.Player player, RunMode runMode) {
+            this.player = player;
+            this.runMode = runMode;
+            this.stopped = false;
+        }
+
+        public void play() {
+            player.play(this, this.runMode);
+        }
+
+        @Override
+        public boolean advance(Time dt, Time duration, boolean loop) {
+            // Just to be sure. Probably this extra check isn't needed.
+            if (stopped) {
+                return false;
+            }
+
+            // If done playing, remove
+            if (!advanceGroups(dt)) {
+                stopped = true;
+                return false;
+            }
+
+            // If the running mode differs from this effect loop, cancel this one
+            // and start another one with the right running mode. Don't touch the
+            // play state.
+            RunMode currentMode = CartAttachmentSequencer.this.runMode;
+            if (currentMode != runMode) {
+                // Cancel this current effect loop instance
+                stopped = true;
+
+                // Start this effect loop again, but this time, with the right run mode
+                (new ActiveEffectLoop(this.player, currentMode)).play();
+
+                return false;
+            }
+
+            // Still playing
+            return true;
+        }
+
+        public boolean advanceGroups(Time dt) {
+            // If a stop was requested, process the stop sequence
+            // Once all groups have played, clean up the effect loop
+            int currState = playState.get();
+            if (currState == STATE_NOT_PLAYING) {
+                return false; // Bug?
+            } else if (currState == STATE_STOP_REQUESTED) {
+                while (true) {
+                    // Advance current group. Interrupt non-STOP groups.
+                    dt = currentGroup.advance(dt, currentGroup.mode() != SequencerMode.STOP);
+                    if (dt.isZero()) {
+                        return true; // Not done yet with this group
+                    }
+
+                    // Advance to next group. If this is the STOP group, shut down the effect loop
+                    // It's possible that during this time play() was called again, in which case it restarts
+                    if (currentGroup.mode() == SequencerMode.STOP) {
+                        return !playState.compareAndSet(STATE_STOP_REQUESTED, STATE_NOT_PLAYING);
+                    }
+
+                    // Next group (start/loop -> stop)
+                    currentGroup = sequencerGroups.get(SequencerMode.STOP);
+                    currentGroup.resetToBeginning();
+                }
+            }
+
+            // Playing state
+            while (true) {
+                // Advance current group. Interrupt STOP groups.
+                dt = currentGroup.advance(dt, currentGroup.mode() == SequencerMode.STOP);
+                if (dt.isZero()) {
+                    return true; // Not done yet with this group (or is LOOP)
+                }
+
+                // Go from STOP -> START, and from START -> LOOP
+                if (currentGroup.mode() == SequencerMode.STOP) {
+                    currentGroup = sequencerGroups.get(SequencerMode.START);
+                } else {
+                    currentGroup = sequencerGroups.get(SequencerMode.LOOP);
+                }
+                currentGroup.resetToBeginning();
+            }
+        }
     }
 
     public class SequencerTransferFunctionHost implements TransferFunctionHost {
