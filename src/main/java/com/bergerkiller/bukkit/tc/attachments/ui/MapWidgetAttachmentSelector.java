@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentSelection;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentSelector;
 
 import java.util.ArrayList;
@@ -189,6 +190,7 @@ public abstract class MapWidgetAttachmentSelector<T> extends MapWidgetMenu {
 
         @Override
         public void onActivate() {
+            display.playSound(SoundEffect.CLICK);
             close();
             onSelected(allSelector.withName(name));
         }
@@ -212,7 +214,7 @@ public abstract class MapWidgetAttachmentSelector<T> extends MapWidgetMenu {
 
         @Override
         public void onActivate() {
-            MapWidget parent = MapWidgetAttachmentSelector.this.getParent();
+            final MapWidget parent = MapWidgetAttachmentSelector.this.getParent();
             close();
 
             parent.addWidget(new MapWidgetSubmitText() {
@@ -224,6 +226,9 @@ public abstract class MapWidgetAttachmentSelector<T> extends MapWidgetMenu {
 
                 @Override
                 public void onAccept(String text) {
+                    if (parent.getDisplay() != null) {
+                        parent.getDisplay().playSound(SoundEffect.CLICK);
+                    }
                     onSelected(allSelector.withName(text.trim()));
                 }
             });
@@ -248,6 +253,7 @@ public abstract class MapWidgetAttachmentSelector<T> extends MapWidgetMenu {
 
         @Override
         public void onActivate() {
+            display.playSound(SoundEffect.CLICK);
             close();
             onSelected(allSelector);
         }

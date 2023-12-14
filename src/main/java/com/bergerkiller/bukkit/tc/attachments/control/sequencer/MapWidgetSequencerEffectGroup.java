@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentSelector;
@@ -199,6 +200,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
         configureButton = header.addWidget(new HeaderButton(MapWidgetSequencerEffect.HeaderIcon.CONFIGURE) {
             @Override
             public void onActivate() {
+                display.playSound(SoundEffect.PISTON_EXTEND);
                 groupList.addWidget(new ConfigureDialog());
             }
         });
@@ -209,6 +211,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
             @Override
             public void onActivate() {
                 // Ask what effect to target
+                display.playSound(SoundEffect.PISTON_EXTEND);
                 groupList.addWidget(new MapWidgetAttachmentSelector<Attachment.EffectAttachment>(
                         AttachmentSelector.all(Attachment.EffectAttachment.class)
                 ) {

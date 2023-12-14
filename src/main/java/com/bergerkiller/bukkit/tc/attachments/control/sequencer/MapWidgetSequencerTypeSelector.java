@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.control.sequencer;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetScroller;
 
@@ -52,6 +53,7 @@ public abstract class MapWidgetSequencerTypeSelector extends MapWidgetMenu {
 
         @Override
         public void onActivate() {
+            display.playSound(SoundEffect.CLICK);
             close();
             onSelected(type);
         }

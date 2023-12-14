@@ -60,6 +60,16 @@ public abstract class MapWidgetSequencerEffectGroupList extends MapWidgetScrolle
     public abstract SequencerPlayStatus getPlayStatus();
 
     /**
+     * Sends an instruction to start the sequencer
+     */
+    public abstract void startPlaying();
+
+    /**
+     * Sends an instruction to stop the sequencer
+     */
+    public abstract void stopPlaying();
+
+    /**
      * Gets the effect loop player that can be used to preview effect loops in the UI
      *
      * @return EffectLoop preview player
@@ -86,6 +96,9 @@ public abstract class MapWidgetSequencerEffectGroupList extends MapWidgetScrolle
         for (MapWidget w : this.getContainer().getWidgets()) {
             w.setPosition(0, y);
             y += w.getHeight() + 2;
+            if (w instanceof MapWidgetSequencerTopHeader) {
+                y++;
+            }
         }
         super.recalculateContainerSize();
     }

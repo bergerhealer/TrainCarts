@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentSelector;
@@ -62,6 +63,7 @@ public class MapWidgetSequencerEffect extends MapWidget {
         }));
         this.buttons.add(new Button(type.icon(false), type.icon(true), "Configure " + type.name().toLowerCase(Locale.ENGLISH), () -> {
             // Configure the effect loop type
+            display.playSound(SoundEffect.PISTON_EXTEND);
             type.openConfigurationDialog(new SequencerType.OpenDialogArguments(
                     getGroupList(),
                     getConfig().getNode("config"),
@@ -72,6 +74,7 @@ public class MapWidgetSequencerEffect extends MapWidget {
         }));
         this.buttons.add(new Button(Icon.EFFECT_NAME, "Effect", () -> {
             // Open a dialog to select a different effect name to target
+            display.playSound(SoundEffect.PISTON_EXTEND);
             getGroupList().addWidget(new MapWidgetAttachmentSelector<Attachment.EffectAttachment>(
                     getEffectSelector()
             ) {
@@ -89,14 +92,19 @@ public class MapWidgetSequencerEffect extends MapWidget {
         }));
         this.buttons.add(new Button(Icon.SETTINGS, "Settings", () -> {
             // Open a dialog to configure the general settings (active / volume / pitch)
+            display.playSound(SoundEffect.PISTON_EXTEND);
             getGroupList().addWidget(new ConfigureDialog());
         }));
         this.buttons.add(new Button(Icon.DELETE, "Delete", () -> {
             // Open a dialog to confirm deletion
+            display.playSound(SoundEffect.PISTON_EXTEND);
             getGroupList().addWidget(new ConfirmEffectDeleteDialog() {
                 @Override
                 public void onConfirmDelete() {
                     // Actually delete this effect
+                    if (MapWidgetSequencerEffect.this.display != null) {
+                        MapWidgetSequencerEffect.this.display.playSound(SoundEffect.EXTINGUISH);
+                    }
                     MapWidgetSequencerEffect.this.remove();
                 }
 
@@ -366,9 +374,11 @@ public class MapWidgetSequencerEffect extends MapWidget {
     public enum HeaderIcon {
         CONFIGURE(0, 35),
         ADD(35, 7),
-        SYNC(42, 32),
-        ASYNC(74, 32),
-        AUTOPLAY(106, 33);
+        SYNC(42, 31),
+        ASYNC(73, 31),
+        AUTOPLAY(104, 40),
+        PLAY(144, 23),
+        STOP(167, 23);
 
         private final MapTexture defaultImage, focusedImage, disabledImage;
 

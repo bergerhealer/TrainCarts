@@ -144,7 +144,19 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
                     }
                     return sequencers.get(0).getPlayStatus();
                 }
-            }).setBounds(-5, 0, 110, 70);
+
+                @Override
+                public void startPlaying() {
+                    attachment.getAttachmentsOfType(CartAttachmentSequencer.class)
+                            .forEach(a -> a.playEffect(EffectOptions.DEFAULT));
+                }
+
+                @Override
+                public void stopPlaying() {
+                    attachment.getAttachmentsOfType(CartAttachmentSequencer.class)
+                            .forEach(CartAttachmentSequencer::stopEffect);
+                }
+            }).setBounds(-5, 1, 110, 81);
         }
     };
 

@@ -42,6 +42,41 @@ public class MapWidgetSequencerTopHeader extends MapWidget {
         final MapWidgetSequencerEffectGroupList groupList = getGroupList();
 
         this.addWidget(new Button() {
+            private boolean wasPlaying = false;
+
+            @Override
+            public void onAttached() {
+                SequencerPlayStatus playStatus = getGroupList().getPlayStatus();
+                updateIcon(playStatus);
+                wasPlaying = playStatus.isPlaying();
+            }
+
+            @Override
+            public void onActivate() {
+                MapWidgetSequencerEffectGroupList groupList = getGroupList();
+                if (groupList.getPlayStatus().isPlaying()) {
+                    groupList.stopPlaying();
+                } else {
+                    groupList.startPlaying();
+                }
+            }
+
+            @Override
+            public void onTick() {
+                SequencerPlayStatus playStatus = getGroupList().getPlayStatus();
+                if (playStatus.isPlaying() != wasPlaying) {
+                    wasPlaying = playStatus.isPlaying();
+                    updateIcon(playStatus);
+                }
+            }
+
+            public void updateIcon(SequencerPlayStatus playStatus) {
+                setIcon(playStatus.isPlaying() ? MapWidgetSequencerEffect.HeaderIcon.STOP
+                        : MapWidgetSequencerEffect.HeaderIcon.PLAY);
+            }
+        }).setPosition(83, 0);
+
+        this.addWidget(new Button() {
             @Override
             public void onAttached() {
                 updateIcon(getCurrentMode());
@@ -72,10 +107,11 @@ public class MapWidgetSequencerTopHeader extends MapWidget {
         this.addWidget(new Button() {
             @Override
             public void onActivate() {
+                display.playSound(SoundEffect.PISTON_EXTEND);
                 groupList.addWidget(new ConfigureAutoPlayDialog());
             }
         }).setIcon(MapWidgetSequencerEffect.HeaderIcon.AUTOPLAY)
-          .setPosition(38, 0);
+          .setPosition(39, 0);
     }
 
     @Override
