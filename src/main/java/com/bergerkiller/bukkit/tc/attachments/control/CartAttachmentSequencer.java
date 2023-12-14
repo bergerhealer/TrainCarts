@@ -13,7 +13,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentSelector;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.ScheduledEffectLoop;
-import com.bergerkiller.bukkit.tc.attachments.control.sequencer.MapWidgetSequencerEffectGroupList;
+import com.bergerkiller.bukkit.tc.attachments.control.sequencer.MapWidgetSequencerConfigurationMenu;
 import com.bergerkiller.bukkit.tc.attachments.control.sequencer.SequencerMode;
 import com.bergerkiller.bukkit.tc.attachments.control.sequencer.SequencerPlayStatus;
 import com.bergerkiller.bukkit.tc.attachments.control.sequencer.SequencerType;
@@ -98,7 +98,7 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
                 }
             };
 
-            tab.addWidget(new MapWidgetSequencerEffectGroupList() {
+            tab.addWidget(new MapWidgetSequencerConfigurationMenu() {
                 @Override
                 public ConfigurationNode getConfig() {
                     return attachment.getConfig();

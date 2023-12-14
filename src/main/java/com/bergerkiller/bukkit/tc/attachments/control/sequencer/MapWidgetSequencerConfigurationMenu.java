@@ -15,12 +15,12 @@ import java.util.List;
  * Scroller widget that stores the three different {@link MapWidgetSequencerEffectGroup}
  * widgets. Also contains the main abstract methods for information required.
  */
-public abstract class MapWidgetSequencerEffectGroupList extends MapWidgetScroller {
+public abstract class MapWidgetSequencerConfigurationMenu extends MapWidgetScroller {
     public MapWidgetSequencerEffectGroup startGroup, loopGroup, stopGroup;
     protected int effectSelButtonIndex = 1; // Used by MapWidgetSequencerEffect
     private final EffectLoop.Player previewEffectLoopPlayer;
 
-    public MapWidgetSequencerEffectGroupList() {
+    public MapWidgetSequencerConfigurationMenu() {
         this.setScrollPadding(15);
         previewEffectLoopPlayer = TrainCarts.plugin.getEffectLoopPlayerController().createPlayer(20);
     }

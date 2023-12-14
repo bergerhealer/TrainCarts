@@ -57,30 +57,30 @@ public class MapWidgetSequencerEffect extends MapWidget {
         this.buttons.add(new Button(Icon.PREVIEW, "Preview", () -> {
             ScheduledEffectLoop effectLoop = type.createEffectLoop(
                     getConfig().getNode("config"),
-                    getGroupList().createEffectSink(getEffectSelector()));
-            getGroupList().getPreviewEffectLoopPlayer().play(
+                    getMenu().createEffectSink(getEffectSelector()));
+            getMenu().getPreviewEffectLoopPlayer().play(
                     effectLoop.asEffectLoop(getGroup().getDuration()));
         }));
         this.buttons.add(new Button(type.icon(false), type.icon(true), "Configure " + type.name().toLowerCase(Locale.ENGLISH), () -> {
             // Configure the effect loop type
             display.playSound(SoundEffect.PISTON_EXTEND);
             type.openConfigurationDialog(new SequencerType.OpenDialogArguments(
-                    getGroupList(),
+                    getMenu(),
                     getConfig().getNode("config"),
                     getGroup().getDuration(),
-                    getGroupList().createEffectSink(
+                    getMenu().createEffectSink(
                             MapWidgetSequencerEffect.this.getEffectSelector())
             ));
         }));
         this.buttons.add(new Button(Icon.EFFECT_NAME, "Effect", () -> {
             // Open a dialog to select a different effect name to target
             display.playSound(SoundEffect.PISTON_EXTEND);
-            getGroupList().addWidget(new MapWidgetAttachmentSelector<Attachment.EffectAttachment>(
+            getMenu().addWidget(new MapWidgetAttachmentSelector<Attachment.EffectAttachment>(
                     getEffectSelector()
             ) {
                 @Override
                 public List<String> getAttachmentNames(AttachmentSelector<Attachment.EffectAttachment> allSelector) {
-                    return getGroupList().getEffectNames(allSelector);
+                    return getMenu().getEffectNames(allSelector);
                 }
 
                 @Override
@@ -93,12 +93,12 @@ public class MapWidgetSequencerEffect extends MapWidget {
         this.buttons.add(new Button(Icon.SETTINGS, "Settings", () -> {
             // Open a dialog to configure the general settings (active / volume / pitch)
             display.playSound(SoundEffect.PISTON_EXTEND);
-            getGroupList().addWidget(new ConfigureDialog());
+            getMenu().addWidget(new ConfigureDialog());
         }));
         this.buttons.add(new Button(Icon.DELETE, "Delete", () -> {
             // Open a dialog to confirm deletion
             display.playSound(SoundEffect.PISTON_EXTEND);
-            getGroupList().addWidget(new ConfirmEffectDeleteDialog() {
+            getMenu().addWidget(new ConfirmEffectDeleteDialog() {
                 @Override
                 public void onConfirmDelete() {
                     // Actually delete this effect
@@ -147,22 +147,22 @@ public class MapWidgetSequencerEffect extends MapWidget {
         throw new IllegalStateException("Effect not added to a effect group widget");
     }
 
-    private MapWidgetSequencerEffectGroupList getGroupList() {
+    private MapWidgetSequencerConfigurationMenu getMenu() {
         for (MapWidget w = getParent(); w != null; w = w.getParent()) {
-            if (w instanceof MapWidgetSequencerEffectGroupList) {
-                return (MapWidgetSequencerEffectGroupList) w;
+            if (w instanceof MapWidgetSequencerConfigurationMenu) {
+                return (MapWidgetSequencerConfigurationMenu) w;
             }
         }
         throw new IllegalStateException("Effect not added to a effect group list widget");
     }
 
     private int getSelButtonIndex() {
-        return Math.min(buttons.size() - 1, getGroupList().effectSelButtonIndex);
+        return Math.min(buttons.size() - 1, getMenu().effectSelButtonIndex);
     }
 
     private void setSelButtonIndex(int newIndex) {
         if (newIndex >= 0 && newIndex < buttons.size()) {
-            getGroupList().effectSelButtonIndex = newIndex;
+            getMenu().effectSelButtonIndex = newIndex;
             invalidate();
         }
     }
@@ -238,7 +238,7 @@ public class MapWidgetSequencerEffect extends MapWidget {
 
         @Override
         public void onAttached() {
-            final TransferFunctionHost host = getGroupList().getTransferFunctionHost();
+            final TransferFunctionHost host = getMenu().getTransferFunctionHost();
 
             addLabel(5, 5, "Active");
             addWidget(new MapWidgetTransferFunctionSingleConfigItem(host, config, "active", () -> false) {

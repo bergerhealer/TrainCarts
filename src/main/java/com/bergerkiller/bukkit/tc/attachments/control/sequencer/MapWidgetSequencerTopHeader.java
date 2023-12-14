@@ -28,10 +28,10 @@ public class MapWidgetSequencerTopHeader extends MapWidget {
         this.setClipParent(true);
     }
 
-    private MapWidgetSequencerEffectGroupList getGroupList() {
+    private MapWidgetSequencerConfigurationMenu getMenu() {
         for (MapWidget w = getParent(); w != null; w = w.getParent()) {
-            if (w instanceof MapWidgetSequencerEffectGroupList) {
-                return (MapWidgetSequencerEffectGroupList) w;
+            if (w instanceof MapWidgetSequencerConfigurationMenu) {
+                return (MapWidgetSequencerConfigurationMenu) w;
             }
         }
         throw new IllegalStateException("Effect not added to a effect group list widget");
@@ -39,31 +39,30 @@ public class MapWidgetSequencerTopHeader extends MapWidget {
 
     @Override
     public void onAttached() {
-        final MapWidgetSequencerEffectGroupList groupList = getGroupList();
+        final MapWidgetSequencerConfigurationMenu menu = getMenu();
 
         this.addWidget(new Button() {
             private boolean wasPlaying = false;
 
             @Override
             public void onAttached() {
-                SequencerPlayStatus playStatus = getGroupList().getPlayStatus();
+                SequencerPlayStatus playStatus = menu.getPlayStatus();
                 updateIcon(playStatus);
                 wasPlaying = playStatus.isPlaying();
             }
 
             @Override
             public void onActivate() {
-                MapWidgetSequencerEffectGroupList groupList = getGroupList();
-                if (groupList.getPlayStatus().isPlaying()) {
-                    groupList.stopPlaying();
+                if (menu.getPlayStatus().isPlaying()) {
+                    menu.stopPlaying();
                 } else {
-                    groupList.startPlaying();
+                    menu.startPlaying();
                 }
             }
 
             @Override
             public void onTick() {
-                SequencerPlayStatus playStatus = getGroupList().getPlayStatus();
+                SequencerPlayStatus playStatus = menu.getPlayStatus();
                 if (playStatus.isPlaying() != wasPlaying) {
                     wasPlaying = playStatus.isPlaying();
                     updateIcon(playStatus);
@@ -83,14 +82,14 @@ public class MapWidgetSequencerTopHeader extends MapWidget {
             }
 
             private EffectLoop.RunMode getCurrentMode() {
-                return groupList.getConfig().getOrDefault("runMode", EffectLoop.RunMode.ASYNCHRONOUS);
+                return menu.getConfig().getOrDefault("runMode", EffectLoop.RunMode.ASYNCHRONOUS);
             }
 
             @Override
             public void onActivate() {
                 EffectLoop.RunMode mode = getCurrentMode();
                 mode = EffectLoop.RunMode.values()[(mode.ordinal() + 1) % EffectLoop.RunMode.values().length];
-                groupList.getConfig().set("runMode", mode);
+                menu.getConfig().set("runMode", mode);
                 updateIcon(mode);
                 display.playSound(SoundEffect.CLICK);
             }
@@ -108,7 +107,7 @@ public class MapWidgetSequencerTopHeader extends MapWidget {
             @Override
             public void onActivate() {
                 display.playSound(SoundEffect.PISTON_EXTEND);
-                groupList.addWidget(new ConfigureAutoPlayDialog());
+                menu.addWidget(new ConfigureAutoPlayDialog());
             }
         }).setIcon(MapWidgetSequencerEffect.HeaderIcon.AUTOPLAY)
           .setPosition(39, 0);
@@ -132,12 +131,12 @@ public class MapWidgetSequencerTopHeader extends MapWidget {
 
         @Override
         public void onAttached() {
-            final MapWidgetSequencerEffectGroupList groupList = getGroupList();
+            final MapWidgetSequencerConfigurationMenu menu = getMenu();
 
             addLabel(5, 5, "Play Automatically:");
             addWidget(new MapWidgetTransferFunctionSingleConfigItem(
-                    groupList.getTransferFunctionHost(),
-                    groupList.getConfig(),
+                    menu.getTransferFunctionHost(),
+                    menu.getConfig(),
                     "autoplay",
                     () -> false
             ) {
@@ -189,7 +188,7 @@ public class MapWidgetSequencerTopHeader extends MapWidget {
         }
 
         private void updatePlayStatus() {
-            SequencerPlayStatus playStatus = getGroupList().getPlayStatus();
+            SequencerPlayStatus playStatus = getMenu().getPlayStatus();
             if (playStatus != lastPlayStatus) {
                 lastPlayStatus = playStatus;
                 invalidate();

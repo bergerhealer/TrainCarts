@@ -33,7 +33,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
     private static final NumberFormat DURATION_FORMAT = Util.createNumberFormat(1, 4);
     private static final ConfigurationNode EMPTY_CONFIG = new ConfigurationNode();
     private static final int TOP_HEADER_HEIGHT = 8;
-    private final MapWidgetSequencerEffectGroupList groupList;
+    private final MapWidgetSequencerConfigurationMenu menu;
     private final SequencerMode mode;
     private final List<MapWidgetSequencerEffect> effects = new ArrayList<>();
     private Header header;
@@ -41,8 +41,8 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
     private HeaderButton configureButton, addEffectButton;
     private EffectLoop.Time duration;
 
-    public MapWidgetSequencerEffectGroup(MapWidgetSequencerEffectGroupList groupList, SequencerMode mode) {
-        this.groupList = groupList;
+    public MapWidgetSequencerEffectGroup(MapWidgetSequencerConfigurationMenu menu, SequencerMode mode) {
+        this.menu = menu;
         this.mode = mode;
         this.duration = EffectLoop.Time.seconds(readConfig().getOrDefault("duration", 0.0));
         this.setClipParent(true);
@@ -54,12 +54,12 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
     }
 
     protected ConfigurationNode readConfig() {
-        ConfigurationNode config = groupList.getConfig().getNodeIfExists(mode.configKey());
+        ConfigurationNode config = menu.getConfig().getNodeIfExists(mode.configKey());
         return (config == null) ? EMPTY_CONFIG : config;
     }
 
     protected ConfigurationNode writeConfig() {
-        return groupList.getConfig().getNode(mode.configKey());
+        return menu.getConfig().getNode(mode.configKey());
     }
 
     /**
@@ -183,9 +183,9 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
         int newHeight = TOP_HEADER_HEIGHT + ((duration.isZero() || effects.isEmpty())
                 ? 0 : (effects.size() * (MapWidgetSequencerEffect.HEIGHT - 1) + 1));
         boolean heightChanged = (this.getHeight() != newHeight);
-        this.setBounds(0, getY(), groupList.getWidth(), newHeight);
+        this.setBounds(0, getY(), menu.getWidth(), newHeight);
         if (heightChanged) {
-            groupList.recalculateContainerSize();
+            menu.recalculateContainerSize();
         }
     }
 
@@ -201,7 +201,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
             @Override
             public void onActivate() {
                 display.playSound(SoundEffect.PISTON_EXTEND);
-                groupList.addWidget(new ConfigureDialog());
+                menu.addWidget(new ConfigureDialog());
             }
         });
         configureButton.setPosition(getWidth() - 43, 0);
@@ -212,21 +212,21 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
             public void onActivate() {
                 // Ask what effect to target
                 display.playSound(SoundEffect.PISTON_EXTEND);
-                groupList.addWidget(new MapWidgetAttachmentSelector<Attachment.EffectAttachment>(
+                menu.addWidget(new MapWidgetAttachmentSelector<Attachment.EffectAttachment>(
                         AttachmentSelector.all(Attachment.EffectAttachment.class)
                 ) {
                     @Override
                     public List<String> getAttachmentNames(AttachmentSelector<Attachment.EffectAttachment> allSelector) {
-                        return groupList.getEffectNames(allSelector);
+                        return menu.getEffectNames(allSelector);
                     }
 
                     @Override
                     public void onSelected(AttachmentSelector<Attachment.EffectAttachment> effectSelector) {
                         // Ask what type of effect to add
-                        groupList.addWidget(new MapWidgetSequencerTypeSelector() {
+                        menu.addWidget(new MapWidgetSequencerTypeSelector() {
                             @Override
                             public void onSelected(SequencerType type) {
-                                groupList.effectSelButtonIndex = 0;
+                                menu.effectSelButtonIndex = 0;
                                 addEffect((new MapWidgetSequencerEffect(type, effectSelector)).focusOnActivate());
                             }
                         });
@@ -268,7 +268,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
             }).setBounds(5, 13, 66, 11);
 
             addLabel(5,  27, "Playback Speed:");
-            addWidget(new MapWidgetTransferFunctionSingleConfigItem(groupList.getTransferFunctionHost(), writeConfig(), "speed", () -> false) {
+            addWidget(new MapWidgetTransferFunctionSingleConfigItem(menu.getTransferFunctionHost(), writeConfig(), "speed", () -> false) {
                 @Override
                 public TransferFunction createDefault() {
                     return TransferFunctionConstant.of(1.0);
