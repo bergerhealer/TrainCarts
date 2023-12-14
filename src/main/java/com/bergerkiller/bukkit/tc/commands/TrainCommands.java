@@ -337,8 +337,6 @@ public class TrainCommands {
             final TrainProperties trainProperties,
             final @Flag(value="seat", parserName="trainSeatAttachments") AttachmentsByName<CartAttachmentSeat> seatAttachments
     ) {
-        seatAttachments.validate(); // Fail early
-
         if (!trainProperties.isLoaded()) {
             sender.sendMessage(ChatColor.RED + "Can not eject the train: it is not loaded");
             return;
@@ -347,6 +345,7 @@ public class TrainCommands {
 
         if (seatAttachments != null) {
             // Query seat to eject by name
+            seatAttachments.validate(); // Fail early
             Commands.ejectSeats(sender, seatAttachments);
         } else {
             // All seats of train

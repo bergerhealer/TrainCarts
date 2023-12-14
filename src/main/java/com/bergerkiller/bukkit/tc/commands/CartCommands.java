@@ -333,8 +333,6 @@ public class CartCommands {
             final CartProperties cartProperties,
             final @Flag(value="seat", parserName="cartSeatAttachments") AttachmentsByName<CartAttachmentSeat> seatAttachments
     ) {
-        seatAttachments.validate(); // Fail early
-
         MinecartMember<?> member = cartProperties.getHolder();
         if (member == null || member.isUnloaded()) {
             sender.sendMessage(ChatColor.RED + "Can not eject the cart: it is not loaded");
@@ -343,6 +341,7 @@ public class CartCommands {
 
         if (seatAttachments != null) {
             // Query seat to eject by name
+            seatAttachments.validate(); // Fail early
             Commands.ejectSeats(sender, seatAttachments);
         } else {
             // All seats of cart
