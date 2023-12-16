@@ -41,7 +41,7 @@ public abstract class DebugParticles {
 
     private static DebugParticles createFor(Player player) {
         if (CommonCapabilities.HAS_DISPLAY_ENTITY && PlayerGameInfo.of(player).evaluateVersion(">=", "1.20")) {
-            return new DebugParticlesLegacy(player); //TODO: Implement
+            return new DebugParticlesDisplay(player);
         } else {
             return new DebugParticlesLegacy(player);
         }
