@@ -4,15 +4,18 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionItem;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunctionHost;
 import org.bukkit.util.Vector;
 
 public class TransferFunctionInputSpeed extends TransferFunctionInput {
-    public static final Serializer<TransferFunctionInput> SERIALIZER = new Serializer<TransferFunctionInput>() {
+    public static final Serializer<TransferFunctionInputSpeed> SERIALIZER = new Serializer<TransferFunctionInputSpeed>() {
         @Override
         public String typeId() {
             return "INPUT-SPEED";
@@ -29,23 +32,31 @@ public class TransferFunctionInputSpeed extends TransferFunctionInput {
         }
 
         @Override
-        public TransferFunctionInput createNew(TransferFunctionHost host) {
+        public TransferFunctionInputSpeed createNew(TransferFunctionHost host) {
             TransferFunctionInputSpeed speed = new TransferFunctionInputSpeed();
             speed.updateSource(host);
             return speed;
         }
 
         @Override
-        public TransferFunctionInput load(TransferFunctionHost host, ConfigurationNode config) {
+        public TransferFunctionInputSpeed load(TransferFunctionHost host, ConfigurationNode config) {
             TransferFunctionInputSpeed speed = new TransferFunctionInputSpeed();
+            speed.setMode(config.getOrDefault("mode", Mode.TRAIN));
             speed.updateSource(host);
             return speed;
         }
 
         @Override
-        public void save(TransferFunctionHost host, ConfigurationNode config, TransferFunctionInput function) {
+        public void save(TransferFunctionHost host, ConfigurationNode config, TransferFunctionInputSpeed function) {
+            config.set("mode", function.mode);
         }
     };
+
+    private Mode mode = Mode.TRAIN;
+
+    public void setMode(Mode mode) {
+        this.mode = mode;
+    }
 
     @Override
     public Serializer<? extends TransferFunction> getSerializer() {
@@ -54,7 +65,16 @@ public class TransferFunctionInputSpeed extends TransferFunctionInput {
 
     @Override
     public ReferencedSource createSource(TransferFunctionHost host) {
-        return new SpeedReferencedSource();
+        if (mode == Mode.TRAIN) {
+            MinecartMember<?> member = host.getMember();
+            if (member != null) {
+                return new TrainSpeedReferencedSource(member);
+            } else {
+                return ReferencedSource.NONE;
+            }
+        } else {
+            return new AttachmentSpeedReferencedSource();
+        }
     }
 
     @Override
@@ -75,14 +95,54 @@ public class TransferFunctionInputSpeed extends TransferFunctionInput {
     @Override
     public void openDialog(Dialog dialog) {
         super.openDialog(dialog);
+
+        dialog.addLabel(5, 20, MapColorPalette.COLOR_RED, "Speed of:");
+        dialog.addWidget(new MapWidgetButton() {
+            @Override
+            public void onAttached() {
+                updateText();
+                super.onAttached();
+            }
+
+            @Override
+            public void onActivate() {
+                display.playSound(SoundEffect.CLICK);
+                mode = Mode.values()[(mode.ordinal() + 1) % Mode.values().length];
+                updateSource(dialog.getHost());
+                updateText();
+                dialog.markChanged();
+            }
+
+            private void updateText() {
+                setText(mode.name());
+            }
+        }).setBounds(5, 27, 70, 13);
     }
 
-    private static class SpeedReferencedSource extends ReferencedSource {
+    private static class TrainSpeedReferencedSource extends ReferencedSource {
+        private final MinecartMember<?> member;
+
+        public TrainSpeedReferencedSource(MinecartMember<?> member) {
+            this.member = member;
+        }
+
+        @Override
+        public void onTick() {
+            this.value = member.isUnloaded() ? 0.0 : member.getRealSpeedLimited();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return o instanceof TrainSpeedReferencedSource;
+        }
+    }
+
+    private static class AttachmentSpeedReferencedSource extends ReferencedSource {
         private final Vector prevPosition;
         //private final Vector prevForward;
         private boolean first = true;
 
-        public SpeedReferencedSource() {
+        public AttachmentSpeedReferencedSource() {
             this.prevPosition = new Vector();
             //this.prevForward = new Vector();
         }
@@ -120,7 +180,12 @@ public class TransferFunctionInputSpeed extends TransferFunctionInput {
 
         @Override
         public boolean equals(Object o) {
-            return o instanceof SpeedReferencedSource;
+            return o instanceof AttachmentSpeedReferencedSource;
         }
+    }
+
+    public enum Mode {
+        TRAIN,
+        ATTACHMENT
     }
 }
