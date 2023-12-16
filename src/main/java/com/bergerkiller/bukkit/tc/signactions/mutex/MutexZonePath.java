@@ -5,9 +5,9 @@ import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.debug.particles.DebugParticles;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import org.bukkit.Color;
 import org.bukkit.entity.Player;
@@ -170,9 +170,10 @@ public class MutexZonePath extends MutexZone {
 
     @Override
     public void showDebug(Player player, Color color) {
+        DebugParticles particles = DebugParticles.of(player);
         for (IntVector3 block : blocks) {
             Vector pos = MathUtil.addToVector(block.toVector(), 0.5, 0.5, 0.5);
-            PlayerUtil.spawnDustParticles(player, pos, color);
+            particles.point(color, pos);
 
             // Too laggy.
             /*

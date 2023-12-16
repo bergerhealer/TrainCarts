@@ -12,7 +12,6 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
@@ -47,30 +46,17 @@ public class DebugTool {
             return;
         }
 
-        final int PARTICLE_DURATION = 100;
-        final int PARTICLE_INTERVAL = 4;
-        new Task(traincarts) {
-            int life = PARTICLE_DURATION / PARTICLE_INTERVAL;
-
-            @Override
-            public void run() {
-                Random r = new Random();
-                for (MutexZone zone : zones) {
-                    if (zone.slot.isAnonymous()) {
-                        r.setSeed(zone.showDebugColorSeed());
-                    } else {
-                        r.setSeed(zone.slot.getName().hashCode());
-                    }
-                    java.awt.Color awt_color = java.awt.Color.getHSBColor(r.nextFloat(), 1.0f, 1.0f);
-                    Color color = Color.fromRGB(awt_color.getRed(), awt_color.getGreen(), awt_color.getBlue());
-                    zone.showDebug(player, color);
-                }
-
-                if (--life == 0) {
-                    this.stop();
-                }
+        Random r = new Random();
+        for (MutexZone zone : zones) {
+            if (zone.slot.isAnonymous()) {
+                r.setSeed(zone.showDebugColorSeed());
+            } else {
+                r.setSeed(zone.slot.getName().hashCode());
             }
-        }.start(1, PARTICLE_INTERVAL);
+            java.awt.Color awt_color = java.awt.Color.getHSBColor(r.nextFloat(), 1.0f, 1.0f);
+            Color color = Color.fromRGB(awt_color.getRed(), awt_color.getGreen(), awt_color.getBlue());
+            zone.showDebug(player, color);
+        }
     }
 
     public static boolean updateToolItem(Player player, ItemStack item) {

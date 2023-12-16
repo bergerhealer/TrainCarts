@@ -8,8 +8,7 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
-import com.bergerkiller.bukkit.tc.debug.DebugTool;
-import com.bergerkiller.bukkit.tc.debug.DebugToolUtil;
+import com.bergerkiller.bukkit.tc.debug.particles.DebugParticles;
 import org.bukkit.Color;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -68,7 +67,7 @@ public class MutexZoneCuboid extends MutexZone {
 
     @Override
     public void showDebug(Player player, Color color) {
-        DebugToolUtil.showCubeParticles(player, color,
+        DebugParticles.of(player).cube(color,
                 start.x, start.y, start.z,
                 end.x + 1.0, end.y + 1.0, end.z + 1.0);
     }
