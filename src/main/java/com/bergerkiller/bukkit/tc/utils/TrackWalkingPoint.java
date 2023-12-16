@@ -470,6 +470,7 @@ public class TrackWalkingPoint {
     private static class Predictor {
         public final PathPredictEvent event;
         private List<BlockPredictor> activeBlockPredictors = Collections.emptyList();
+        private Set<Object> usedBlockPredictorTokens = Collections.emptySet();
         private double maxPredictorEndDistance = 0.0;
 
         public Predictor(RailState railState, MinecartMember<?> member) {
@@ -502,7 +503,13 @@ public class TrackWalkingPoint {
                 if (activeBlockPredictors.isEmpty()) {
                     activeBlockPredictors = new ArrayList<>();
                 }
+                if (usedBlockPredictorTokens.isEmpty()) {
+                    usedBlockPredictorTokens = new HashSet<>();
+                }
                 for (PathPredictEvent.ActiveBlockHandler activeHandler : event.getNewBlockTrackers()) {
+                    if (!usedBlockPredictorTokens.add(activeHandler.token)) {
+                        continue;
+                    }
                     BlockPredictor blockPredictor = new BlockPredictor(currentDistance, activeHandler);
                     activeBlockPredictors.add(blockPredictor);
                     maxPredictorEndDistance = Math.max(maxPredictorEndDistance, blockPredictor.endDistance);

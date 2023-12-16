@@ -226,13 +226,15 @@ public class PathPredictEvent {
      * maximum distance specified or when the handler callback returns false.
      *
      * @param handler BlockHandler receiving updated
+     * @param token Unique token for this handler. This ensures that if the same object
+     *              is encountered twice, no infinite loop can occur
      * @param maxDistance Maximum distance the block may contain
      */
-    public void trackBlock(BlockHandler handler, double maxDistance) {
+    public void trackBlock(BlockHandler handler, Object token, double maxDistance) {
         if (newBlockHandlers.isEmpty()) {
             newBlockHandlers = new ArrayList<>();
         }
-        newBlockHandlers.add(new ActiveBlockHandler(handler, maxDistance));
+        newBlockHandlers.add(new ActiveBlockHandler(handler, token, maxDistance));
     }
 
     public boolean hasNewBlockTrackers() {
@@ -245,10 +247,12 @@ public class PathPredictEvent {
 
     public static class ActiveBlockHandler {
         public final BlockHandler handler;
+        public final Object token;
         public final double maxDistance;
 
-        public ActiveBlockHandler(BlockHandler handler, double maxDistance) {
+        public ActiveBlockHandler(BlockHandler handler, Object token, double maxDistance) {
             this.handler = handler;
+            this.token = token;
             this.maxDistance = maxDistance;
         }
     }

@@ -42,7 +42,7 @@ public class SignActionPathingMutex extends SignAction {
                 path.addBlock(p.railState().positionOfflineBlock().getPosition());
             });
             return true;
-        }, path.getMaxDistance());
+        }, path, path.getMaxDistance());
     }
 
     private MutexZonePath.OptionsBuilder loadOptions(SignActionEvent info, MutexZonePath.OptionsBuilder opt) {
