@@ -168,11 +168,17 @@ public abstract class RailTracker {
 
         @Override
         public String toString() {
+            RailPath.Position pos = state.position();
+            if (getPath().isEmpty()) {
+                return "POS{x=" + pos.posX + ",y=" + pos.posY + ",z=" + pos.posZ + "} "
+                        + "RAIL" + state.railPiece().blockPosition() + " "
+                        + "EMPTY PATH";
+            }
+
             RailPath.Position start = getPath().getStartPosition();
             RailPath.Position end = getPath().getEndPosition();
             start.makeAbsolute(state.railBlock());
             end.makeAbsolute(state.railBlock());
-            RailPath.Position pos = state.position();
             return "POS{x=" + pos.posX + ",y=" + pos.posY + ",z=" + pos.posZ + "} "
                    + "RAIL" + state.railPiece().blockPosition() + " "
                    + "START{x=" + start.posX + ",y=" + start.posY + ",z=" + start.posZ + "} "

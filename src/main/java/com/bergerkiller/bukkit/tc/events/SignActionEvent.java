@@ -541,25 +541,38 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
             // Prefer junctions that have already been selected (assert from rail path)
             RailState state = RailState.getSpawnState(rail);
             RailPath path = state.loadRailLogic().getPath();
-            RailPath.Position p0 = path.getStartPosition();
-            RailPath.Position p1 = path.getEndPosition();
-            double min_dist = Double.MAX_VALUE;
-            for (RailJunction junc : rail.getJunctions()) {
-                if (junc.name().equals(fromJunction.name())) {
-                    continue;
-                }
-                if (junc.position().relative) {
-                    p0.makeRelative(rail.block());
-                    p1.makeRelative(rail.block());
-                } else {
-                    p0.makeAbsolute(rail.block());
-                    p1.makeAbsolute(rail.block());
-                }
-                double dist_sq = Math.min(p0.distanceSquared(junc.position()),
-                                          p1.distanceSquared(junc.position()));
-                if (dist_sq < min_dist) {
-                    min_dist = dist_sq;
+            if (path.isEmpty()) {
+                // Empty path, no idea how to solve it. Just pick one of the other
+                // junctions that isn't the same as from junction blindly.
+                for (RailJunction junc : rail.getJunctions()) {
+                    if (junc.name().equals(fromJunction.name())) {
+                        continue;
+                    }
+
                     fromJunction = junc;
+                    break;
+                }
+            } else {
+                RailPath.Position p0 = path.getStartPosition();
+                RailPath.Position p1 = path.getEndPosition();
+                double min_dist = Double.MAX_VALUE;
+                for (RailJunction junc : rail.getJunctions()) {
+                    if (junc.name().equals(fromJunction.name())) {
+                        continue;
+                    }
+                    if (junc.position().relative) {
+                        p0.makeRelative(rail.block());
+                        p1.makeRelative(rail.block());
+                    } else {
+                        p0.makeAbsolute(rail.block());
+                        p1.makeAbsolute(rail.block());
+                    }
+                    double dist_sq = Math.min(p0.distanceSquared(junc.position()),
+                            p1.distanceSquared(junc.position()));
+                    if (dist_sq < min_dist) {
+                        min_dist = dist_sq;
+                        fromJunction = junc;
+                    }
                 }
             }
 

@@ -256,6 +256,10 @@ public class ObstacleTracker implements TrainStatusProvider {
             }
 
             RailPath path = rail.getPath();
+            if (path.isEmpty()) {
+                continue;
+            }
+
             RailPath.Position start = path.getStartPosition();
             RailPath.Position end = path.getEndPosition();
             start.makeAbsolute(rail.state.railBlock());
