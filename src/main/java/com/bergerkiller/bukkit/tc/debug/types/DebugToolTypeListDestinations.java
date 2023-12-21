@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.block.Block;
@@ -32,6 +33,7 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
 public class DebugToolTypeListDestinations extends DebugToolTrackWalkerType {
     private final String destination;
+    private int maxDestinations = 5;
 
     public DebugToolTypeListDestinations() {
         this.destination = null;
@@ -39,6 +41,23 @@ public class DebugToolTypeListDestinations extends DebugToolTrackWalkerType {
 
     public DebugToolTypeListDestinations(String destination) {
         this.destination = destination;
+    }
+
+    public DebugToolTypeListDestinations setMaxDestinations(int limit) {
+        this.maxDestinations = limit;
+        return this;
+    }
+
+    @Override
+    public void loadMetadata(CommonTagCompound metadata) {
+        if (metadata.containsKey("maxDestinations")) {
+            maxDestinations = metadata.getValue("maxDestinations", 5);
+        }
+    }
+
+    @Override
+    public void saveMetadata(CommonTagCompound metadata) {
+        metadata.putValue("maxDestinations", maxDestinations);
     }
 
     @Override
@@ -140,7 +159,7 @@ public class DebugToolTypeListDestinations extends DebugToolTrackWalkerType {
         }
     }
 
-    private static void debugListRoutesFrom(TrainCarts trainCarts, Player player, RailState state, String destinationName, boolean reroute, double initialDistance) {
+    private void debugListRoutesFrom(TrainCarts trainCarts, Player player, RailState state, String destinationName, boolean reroute, double initialDistance) {
         PathProvider provider = trainCarts.getPathProvider();
 
         // Check early
@@ -252,7 +271,7 @@ public class DebugToolTypeListDestinations extends DebugToolTrackWalkerType {
                 MathUtil.round(totalDistance, 1) + ChatColor.GREEN + " blocks");
     }
 
-    private static void debugListAllRoutes(Player player, PathNode node, Block railBlock, double initialDistance) {
+    private void debugListAllRoutes(Player player, PathNode node, Block railBlock, double initialDistance) {
         MessageBuilder message = new MessageBuilder();
         message.gray("Node ").white(DebugToolUtil.coordinates(node.location.x, node.location.y, node.location.z));
         message.gray(" reached after ").white(MathUtil.round(initialDistance, 1)).gray(" blocks").newLine();
@@ -294,12 +313,14 @@ public class DebugToolTypeListDestinations extends DebugToolTrackWalkerType {
             message.append(chatcolor, "- ");
             message.setIndent(2);
             message.setSeparator(ChatColor.GRAY, " / ");
-            int limit = 5;
+            int limit = maxDestinations;
             for (PathConnection destination : destinations) {
-                message.append(chatcolor,
-                        "[", MathUtil.round(destination.distance, 1), "] ",
-                        destination.destination.getDisplayName());
-                if (--limit == 0) {
+                if (limit > 0) {
+                    message.append(chatcolor,
+                            "[", MathUtil.round(destination.distance, 1), "] ",
+                            destination.destination.getDisplayName());
+                }
+                if (--limit < 0) {
                     message.append(chatcolor, "...");
                     break;
                 }

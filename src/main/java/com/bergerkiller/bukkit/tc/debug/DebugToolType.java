@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.debug;
 
+import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -72,7 +73,9 @@ public interface DebugToolType {
      */
     default void giveToPlayer(Player player) {
         ItemStack item = ItemUtil.createItem(Material.STICK, 1);
-        ItemUtil.getMetaTag(item, true).putValue("TrainCartsDebug", this.getIdentifier());
+        CommonTagCompound metadata = ItemUtil.getMetaTag(item, true);
+        metadata.putValue("TrainCartsDebug", this.getIdentifier());
+        saveMetadata(metadata);
         ItemUtil.setDisplayName(item, this.getTitle());
         ItemUtil.addLoreName(item, this.getDescription());
 
@@ -89,5 +92,22 @@ public interface DebugToolType {
         // Display a message to the player to explain what it is
         player.sendMessage(ChatColor.GREEN + "Given a " + this.getTitle());
         player.sendMessage(ChatColor.YELLOW + this.getDescription());
+    }
+
+    /**
+     * Loads metadata stored in an item into this tool instance
+     *
+     * @param metadata Item Metadata
+     */
+    default void loadMetadata(CommonTagCompound metadata) {
+    }
+
+    /**
+     * Saves metadata stored in this tool into the metadata of an item
+     *
+     * @param metadata Item Metadata
+     * @see #giveToPlayer(Player)
+     */
+    default void saveMetadata(CommonTagCompound metadata) {
     }
 }

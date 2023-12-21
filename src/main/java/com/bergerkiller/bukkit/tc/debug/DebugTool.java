@@ -111,6 +111,9 @@ public class DebugTool {
             return true;
         }
 
+        // Load metadata
+        match.get().loadMetadata(tag);
+
         // Left click check
         if (!isRightClick && !match.get().handlesLeftClick()) {
             return false;

@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.debug;
 
 import java.util.Collection;
 
+import cloud.commandframework.annotations.Flag;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
@@ -121,6 +122,18 @@ public class DebugCommands {
             final Player player
     ) {
         (new DebugToolTypeTrackDistance()).giveToPlayer(player);
+    }
+
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
+    @CommandMethod("train debug destinations")
+    @CommandDescription("Get a debug stick item to visually display the possible path finding routes")
+    private void commandDebugDestinationAll(
+            final Player player,
+            final @Flag("max-destinations") Integer maxDestinations
+    ) {
+        (new DebugToolTypeListDestinations())
+                .setMaxDestinations(maxDestinations != null ? maxDestinations : 5)
+                .giveToPlayer(player);
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
