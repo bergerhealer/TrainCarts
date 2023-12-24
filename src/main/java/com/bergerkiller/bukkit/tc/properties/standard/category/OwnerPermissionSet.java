@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
+import com.bergerkiller.bukkit.tc.properties.api.IStringSetProperty;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
@@ -30,7 +31,7 @@ import cloud.commandframework.annotations.specifier.FlagYielding;
 /**
  * Set of permission names which players need to modify a cart
  */
-public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Set<String>> {
+public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Set<String>> implements IStringSetProperty {
 
     /**
      * Appends owner permission details of a cart or train to
@@ -255,6 +256,11 @@ public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Se
     }
 
     @Override
+    public String getListedName() {
+        return "owner perms";
+    }
+
+    @Override
     public Set<String> getData(CartInternalData data) {
         return data.ownerPermissions;
     }
@@ -276,6 +282,6 @@ public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Se
 
     @Override
     public Set<String> get(TrainProperties properties) {
-        return FieldBackedStandardCartProperty.combineCartValues(properties, this);
+        return TrainInternalData.get(properties).ownerPermissions.update(properties, this);
     }
 }

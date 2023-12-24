@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
+import com.bergerkiller.bukkit.tc.properties.api.IStringSetProperty;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
@@ -26,12 +27,11 @@ import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.annotations.specifier.FlagYielding;
-import cloud.commandframework.annotations.specifier.Greedy;
 
 /**
  * A simple set of tags that can be used to mark and switch carts or trains
  */
-public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<String>> {
+public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<String>> implements IStringSetProperty {
 
     @CommandTargetTrain
     @CommandMethod("train tags")
@@ -257,6 +257,11 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
     }
 
     @Override
+    public String getListedName() {
+        return "tags";
+    }
+
+    @Override
     public Set<String> getData(CartInternalData data) {
         return data.tags;
     }
@@ -278,6 +283,6 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
 
     @Override
     public Set<String> get(TrainProperties properties) {
-        return FieldBackedStandardCartProperty.combineCartValues(properties, this);
+        return TrainInternalData.get(properties).tags.update(properties, this);
     }
 }

@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
+import com.bergerkiller.bukkit.tc.properties.api.IStringSetProperty;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -32,7 +33,7 @@ import cloud.commandframework.annotations.specifier.FlagYielding;
 /**
  * Set of usernames of owners of a cart who have permission to edit it
  */
-public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<String>> {
+public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<String>> implements IStringSetProperty {
 
     /**
      * Appends owner and owner permission details of a cart or train to
@@ -296,6 +297,11 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
     }
 
     @Override
+    public String getListedName() {
+        return "owners";
+    }
+
+    @Override
     public Set<String> getData(CartInternalData data) {
         return data.owners;
     }
@@ -317,6 +323,6 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
 
     @Override
     public Set<String> get(TrainProperties properties) {
-        return FieldBackedStandardCartProperty.combineCartValues(properties, this);
+        return TrainInternalData.get(properties).owners.update(properties, this);
     }
 }
