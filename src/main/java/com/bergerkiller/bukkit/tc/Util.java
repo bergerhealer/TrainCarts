@@ -463,10 +463,10 @@ public class Util {
     }
 
     public static boolean matchText(Collection<String> textValues, String expression) {
-        if (textValues.isEmpty() || expression.isEmpty()) {
-            return false;
-        } else if (expression.startsWith("!")) {
+        if (expression.startsWith("!")) {
             return !matchText(textValues, expression.substring(1));
+        } else if (expression.isEmpty() || textValues.isEmpty()) {
+            return false;
         } else {
             String[] elements = expression.split("\\*");
             boolean first = expression.startsWith("*");
