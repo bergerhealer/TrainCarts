@@ -16,7 +16,7 @@ import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 public class TransferFunctionInputProperty extends TransferFunctionInput {
@@ -49,28 +49,39 @@ public class TransferFunctionInputProperty extends TransferFunctionInput {
                     .get(config.getOrDefault("property", ""));
 
             TransferFunctionInputProperty propertyInput = new TransferFunctionInputProperty(property);
+            propertyInput.property.load(config);
             propertyInput.updateSource(host);
             return propertyInput;
         }
 
         @Override
         public void save(TransferFunctionHost host, ConfigurationNode config, TransferFunctionInputProperty function) {
-            config.set("property", function.getProperty().getListedName());
+            config.set("property", function.property.name);
+            if (function.property.exists()) {
+                function.property.save(config);
+            }
         }
     };
 
-    private IProperty<?> property;
+    private ListedProperty property;
 
     public TransferFunctionInputProperty(IProperty<?> property) {
+        this(ListedProperty.of(property));
+    }
+
+    private TransferFunctionInputProperty(ListedProperty property) {
+        if (property == null) {
+            throw new IllegalArgumentException("Listed Property cannot be null");
+        }
         this.property = property;
     }
 
     public IProperty<?> getProperty() {
-        return property;
+        return property.property;
     }
 
     public void setProperty(IProperty<?> property) {
-        this.property = property;
+        this.property = ListedProperty.of(property);
     }
 
     @Override
@@ -80,13 +91,10 @@ public class TransferFunctionInputProperty extends TransferFunctionInput {
 
     @Override
     public ReferencedSource createSource(TransferFunctionHost host) {
-        if (property != null) {
+        if (property.canCreateSource()) {
             CartProperties properties = host.getCartProperties();
             if (properties != null) {
-                Function<CartProperties, ReferencedSource> creator = getPropertySourceCreator(property);
-                if (creator != null) {
-                    return creator.apply(properties);
-                }
+                return property.createSource(properties);
             }
         }
 
@@ -96,7 +104,7 @@ public class TransferFunctionInputProperty extends TransferFunctionInput {
 
     @Override
     public boolean isBooleanOutput() {
-        return property != null && property.getDefault() instanceof Boolean;
+        return property.isBooleanOutput();
     }
 
     @Override
@@ -120,15 +128,15 @@ public class TransferFunctionInputProperty extends TransferFunctionInput {
             @Override
             public void onAttached() {
                 properties = TrainCarts.plugin.getPropertyRegistry().byListedName().entrySet().stream()
-                        .map(e -> new ListedProperty(e.getKey(), e.getValue()))
-                        .filter(p -> getPropertySourceCreator(p.property) != null)
+                        .map(e -> ListedProperty.of(e.getKey(), e.getValue()))
+                        .filter(ListedProperty::canCreateSource)
                         .sorted()
                         .collect(Collectors.toList());
 
                 loading = true;
                 for (ListedProperty listedProperty : properties) {
                     addItem(listedProperty.name);
-                    if (listedProperty.property == property) {
+                    if (listedProperty.property == property.property) {
                         setSelectedIndex(getItemCount() - 1);
                     }
                 }
@@ -147,34 +155,76 @@ public class TransferFunctionInputProperty extends TransferFunctionInput {
         }).setBounds(4, 18, dialog.getWidth() - 8, 11);
     }
 
-    private static Function<CartProperties, ReferencedSource> getPropertySourceCreator(IProperty<?> property) {
-        if (!property.isListed()) {
-            // Cannot be used
-            return null;
-        } else if (property instanceof IDoubleProperty) {
-            return properties -> new PropertySourceDouble(properties, (IDoubleProperty) property);
-        } else if (property.getDefault() instanceof Double) {
-            return properties -> new PropertySourceDoubleBoxed(properties, (IProperty<Double>) property);
-        } else if (property.getDefault() instanceof Boolean) {
-            return properties -> new PropertySourceBool(properties, (IProperty<Boolean>) property);
-        } else {
-            // Unknown
-            return null;
-        }
-    }
-
-    private static class ListedProperty implements Comparable<ListedProperty> {
+    private static class ListedProperty implements Comparable<ListedProperty>, Cloneable {
         public final String name;
         public final IProperty<?> property;
+        private final BiFunction<CartProperties, IProperty<?>, ReferencedSource> sourceCreator;
 
-        public ListedProperty(String listedName, IProperty<?> property) {
+        @SuppressWarnings("unchecked")
+        public <T extends IProperty<?>> ListedProperty(
+                final String listedName,
+                final T property,
+                final BiFunction<CartProperties, T, ReferencedSource> sourceCreator
+        ) {
             this.name = listedName;
             this.property = property;
+            this.sourceCreator = (BiFunction<CartProperties, IProperty<?>, ReferencedSource>) sourceCreator;
+        }
+
+        public boolean exists() {
+            return property != null;
+        }
+
+        public boolean canCreateSource() {
+            return sourceCreator != null;
+        }
+
+        public ReferencedSource createSource(CartProperties properties) {
+            return sourceCreator.apply(properties, this.property);
+        }
+
+        public boolean isBooleanOutput() {
+            return exists() && property.getDefault() instanceof Boolean;
+        }
+
+        public void load(ConfigurationNode config) {
+        }
+
+        public void save(ConfigurationNode config) {
         }
 
         @Override
         public int compareTo(ListedProperty listedProperty) {
             return this.name.compareTo(listedProperty.name);
+        }
+
+        @Override
+        public ListedProperty clone() {
+            return this; // By default no mutable data is stored
+        }
+
+        public static ListedProperty of(IProperty<?> property) {
+            return of(property == null ? "" : property.getListedName(), property);
+        }
+
+        @SuppressWarnings("unchecked")
+        public static ListedProperty of(String name, IProperty<?> property) {
+            if (property == null) {
+                // Property not found / invalid config / not set
+                return new ListedProperty(name, null, null);
+            } else if (!property.isListed()) {
+                // Cannot be used
+                return new ListedProperty(name, property, null);
+            } else if (property instanceof IDoubleProperty) {
+                return new ListedProperty(name, (IDoubleProperty) property, PropertySourceDouble::new);
+            } else if (property.getDefault() instanceof Double) {
+                return new ListedProperty(name, (IProperty<Double>) property, PropertySourceDoubleBoxed::new);
+            } else if (property.getDefault() instanceof Boolean) {
+                return new ListedProperty(name, (IProperty<Boolean>) property, PropertySourceBool::new);
+            } else {
+                // Unknown
+                return new ListedProperty(name, property, null);
+            }
         }
     }
 
