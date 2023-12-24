@@ -228,6 +228,55 @@ public interface TransferFunction extends DoubleUnaryOperator, Cloneable {
             label.setColor(color);
             this.addWidget(label);
         }
+
+        /**
+         * Creates a new Dialog that wraps a different widget. All other methods are proxied
+         * from this original dialog. This can be used when a part of the original dialog's
+         * space is used to show a smaller (part of a-) dialog.
+         *
+         * @param widget Widget to wrap. Width/height/etc. will be of this widget.
+         * @return Updated Dialog
+         */
+        default Dialog wrapWidget(final MapWidget widget) {
+            final Dialog original = this;
+            return new Dialog() {
+
+                @Override
+                public MapWidget getWidget() {
+                    return widget;
+                }
+
+                @Override
+                public TransferFunctionHost getHost() {
+                    return original.getHost();
+                }
+
+                @Override
+                public void setFunction(TransferFunction function) {
+                    original.setFunction(function);
+                }
+
+                @Override
+                public boolean isBooleanInput() {
+                    return original.isBooleanInput();
+                }
+
+                @Override
+                public boolean isPreviousFunction(Holder<?> functionHolder) {
+                    return original.isPreviousFunction(functionHolder);
+                }
+
+                @Override
+                public void markChanged() {
+                    original.markChanged();
+                }
+
+                @Override
+                public void finish() {
+                    original.finish();
+                }
+            };
+        }
     }
 
     /**
