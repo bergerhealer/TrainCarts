@@ -213,7 +213,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
                 // Ask what effect to target
                 display.playSound(SoundEffect.PISTON_EXTEND);
                 menu.addWidget(new MapWidgetAttachmentSelector<Attachment.EffectAttachment>(
-                        AttachmentSelector.all(Attachment.EffectAttachment.class)
+                        AttachmentSelector.all(Attachment.EffectAttachment.class).excludingSelf()
                 ) {
                     @Override
                     public List<String> getAttachmentNames(AttachmentSelector<Attachment.EffectAttachment> allSelector) {
