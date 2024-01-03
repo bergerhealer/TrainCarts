@@ -808,6 +808,9 @@ public class TrainCarts extends PluginBase {
         // Cleans up unused cached rail types over time to avoid memory leaks
         cacheCleanupTask = new CacheCleanupTask(this).start(1, 1);
 
+        // Clean up the cache right now, so that all rails are recalculated
+        RailLookup.forceRecalculation();
+
         // Refreshes mutex signs with trains on it to release state again
         mutexZoneUpdateTask = new MutexZoneUpdateTask(this).start(1, 1);
 
