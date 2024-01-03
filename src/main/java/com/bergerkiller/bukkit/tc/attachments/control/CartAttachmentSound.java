@@ -459,17 +459,23 @@ public class CartAttachmentSound extends CartAttachment implements Attachment.Ef
 
             // Check viewer is part of a member at all
             MinecartMember<?> member = MinecartMemberStore.getFromEntity(viewer.getPlayer().getVehicle());
-            if (member == null) {
+            if (member == null || member.isUnloaded()) {
+                return true;
+            }
+
+            // Get member the sound attachment is in. If unloaded or unavailable, assume viewer isn't in it
+            MinecartMember<?> soundMember = sound.getMember();
+            if (soundMember == null || soundMember.isUnloaded()) {
                 return true;
             }
 
             switch (config.perspectiveMode) {
                 case CART:
-                    return member != sound.getMember();
+                    return member != soundMember;
                 case TRAIN:
-                    return member.getGroup() != sound.getMember().getGroup();
+                    return member.getGroup() != soundMember.getGroup();
                 case SEAT:
-                    if (member == sound.getMember()) {
+                    if (member == soundMember) {
                         // Check seat attachment parents of this attachment if it has this player
                         for (Attachment a = sound.getParent(); a != null; a = a.getParent()) {
                             if (a instanceof CartAttachmentSeat && ((CartAttachmentSeat) a).getEntity() == viewer.getPlayer()) {

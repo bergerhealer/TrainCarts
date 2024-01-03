@@ -163,6 +163,7 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
     private static final int STATE_NOT_PLAYING = 0;
     private static final int STATE_PLAYING = 1;
     private static final int STATE_STOP_REQUESTED = 2;
+    private static final int STATE_IMMEDIATE_STOP_REQUESTED = 3;
 
     private final SequencerTransferFunctionHost functionHost = new SequencerTransferFunctionHost();
     private final EnumMap<SequencerMode, SequencerGroup> sequencerGroups;
@@ -193,8 +194,7 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
 
     @Override
     public void onDetached() {
-        autoPlayStatus = SequencerPlayStatus.STOPPED_AUTOMATIC;
-        updatePlayStatus(SequencerPlayStatus.STOPPED_AUTOMATIC);
+        immediateStop();
     }
 
     /**
@@ -251,6 +251,13 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
         }
     }
 
+    private void immediateStop() {
+        autoPlayStatus = SequencerPlayStatus.STOPPED_AUTOMATIC;
+        playStatus = SequencerPlayStatus.STOPPED_AUTOMATIC;
+        playState.compareAndSet(STATE_PLAYING, STATE_IMMEDIATE_STOP_REQUESTED);
+        playState.compareAndSet(STATE_STOP_REQUESTED, STATE_IMMEDIATE_STOP_REQUESTED);
+    }
+
     @Override
     public void makeVisible(Player viewer) {
     }
@@ -261,6 +268,17 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
 
     @Override
     public void onTick() {
+        // Disable the sequencer completely when the cart unloads. Reset all state.
+        {
+            MinecartMember<?> member = getMember();
+            if (member == null || member.isUnloaded()) {
+                if (playStatus.isPlaying()) {
+                    immediateStop();
+                }
+                return;
+            }
+        }
+
         SequencerPlayStatus currAutoPlayStatus = autoplayFunction.get().map(0.0) != 0.0
                 ? SequencerPlayStatus.PLAYING_AUTOMATIC : SequencerPlayStatus.STOPPED_AUTOMATIC;
         if (autoPlayStatus != currAutoPlayStatus) {
@@ -344,6 +362,14 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
             int currState = playState.get();
             if (currState == STATE_NOT_PLAYING) {
                 return false; // Bug?
+            } else if (currState == STATE_IMMEDIATE_STOP_REQUESTED) {
+                // Hard reset to a stopped state at the end of playback
+                currentGroup = sequencerGroups.get(SequencerMode.START);
+                currentGroup.resetToBeginning();
+
+                // Try again next update if it went from immediate stop to something else
+                return !playState.compareAndSet(STATE_IMMEDIATE_STOP_REQUESTED, STATE_NOT_PLAYING) &&
+                       !playState.compareAndSet(STATE_STOP_REQUESTED, STATE_NOT_PLAYING);
             } else if (currState == STATE_STOP_REQUESTED) {
                 while (true) {
                     // Advance current group. Interrupt non-STOP groups.
@@ -355,7 +381,8 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
                     // Advance to next group. If this is the STOP group, shut down the effect loop
                     // It's possible that during this time play() was called again, in which case it restarts
                     if (currentGroup.mode() == SequencerMode.STOP) {
-                        return !playState.compareAndSet(STATE_STOP_REQUESTED, STATE_NOT_PLAYING);
+                        return !playState.compareAndSet(STATE_STOP_REQUESTED, STATE_NOT_PLAYING) &&
+                               !playState.compareAndSet(STATE_IMMEDIATE_STOP_REQUESTED, STATE_NOT_PLAYING);
                     }
 
                     // Next group (start/loop -> stop)
