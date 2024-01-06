@@ -481,23 +481,35 @@ public class OfflineGroupManager {
     }
 
     /**
-     * Stores the information of a group in this offline storage system
+     * Saves the full representation of a train to an offline group represention.
+     * This offline group can then be stored into this manager. It will hold
+     * no references to the original MinecartGroup.
      *
-     * @param group to store
+     * @param group Loaded MinecartGroup
+     * @return OfflineGroup, or null if the group is invalid and cannot be saved
      */
-    public static void storeGroup(MinecartGroup group) {
+    public static OfflineGroup saveGroup(MinecartGroup group) {
         if (group == null || !group.isValid()) {
-            return;
+            return null;
         }
         final World world = group.getWorld();
         if (world == null) {
-            return;
+            return null;
         }
+        return new OfflineGroup(group);
+    }
+
+    /**
+     * Stores the information of a group in this offline storage system
+     *
+     * @param group OfflineGroup to store
+     * @see #saveGroup(MinecartGroup)
+     */
+    public static void storeGroup(OfflineGroup group) {
         synchronized (managers) {
-            OfflineGroup wg = new OfflineGroup(group);
-            OfflineGroupMapImpl map = get(world);
-            wg.updateLoadedChunks(map);
-            map.add(wg);
+            OfflineGroupMapImpl map = get(group.world);
+            group.updateLoadedChunks(map);
+            map.add(group);
         }
     }
 

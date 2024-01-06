@@ -43,6 +43,7 @@ import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CartLockOrientation;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SlowdownMode;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
+import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
 import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
@@ -643,11 +644,16 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             // Event
             GroupUnloadEvent.call(this);
 
+            // Save current state to an offline representation
+            OfflineGroup offlineGroup = OfflineGroupManager.saveGroup(this);
+
             // Stop tracking
             unregisterFromServer();
 
             // Store the group offline
-            OfflineGroupManager.storeGroup(this);
+            if (offlineGroup != null) {
+                OfflineGroupManager.storeGroup(offlineGroup);
+            }
 
             // Unload. CancelLocationChange must be false otherwise saving position desync occurs!
             this.stop(false);
