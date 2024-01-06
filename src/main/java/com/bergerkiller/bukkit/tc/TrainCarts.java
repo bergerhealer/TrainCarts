@@ -845,7 +845,7 @@ public class TrainCarts extends PluginBase {
         CommonUtil.nextTick(new Runnable() {
             public void run() {
                 for (World world : WorldUtil.getWorlds()) {
-                    offlineGroupManager.removeBuggedMinecarts(world);
+                    OfflineGroupManager.removeBuggedMinecarts(world);
                 }
             }
         });
