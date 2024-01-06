@@ -102,7 +102,7 @@ public class OfflineGroup {
         return this.loadedChunks.size() == this.chunks.size();
     }
 
-    protected boolean updateLoadedChunks(OfflineGroupMap offlineMap) {
+    protected boolean updateLoadedChunks(OfflineGroupWorld offlineMap) {
         this.loadedChunks.clear();
 
         World world = this.world.getLoadedWorld();

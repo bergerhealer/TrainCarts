@@ -19,16 +19,17 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Maps all the Offline Groups to chunk coordinates, allowing faster chunk access for restoring trains
+ * Maps all the Offline Groups to chunk coordinates, allowing faster chunk access for restoring trains.
+ * This is per offline Minecraft world.
  */
-public class OfflineGroupMap implements Iterable<OfflineGroup> {
+public class OfflineGroupWorld implements Iterable<OfflineGroup> {
     private final OfflineWorld world;
     private Set<OfflineGroup> groups = new HashSet<>();
     private LongHashMap<HashSet<OfflineGroup>> groupmap = new LongHashMap<>();
     private Set<UUID> minecartEntityUUIDsBeingDestroyed = new HashSet<>();
     private boolean isDuringWorldUnloadEvent = false;
 
-    public OfflineGroupMap(OfflineWorld world) {
+    public OfflineGroupWorld(OfflineWorld world) {
         this.world = world;
     }
 
