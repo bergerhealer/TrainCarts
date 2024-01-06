@@ -692,7 +692,14 @@ public final class RailLookup {
          * tracking key can be added. A unique key is required to prevent one tracked sign
          * overwriting another during tracking by trains.<br>
          * <br>
-         * This key should not change during the lifetime of this TrackedSign
+         * This key should not change during the lifetime of this TrackedSign.<br>
+         * <br>
+         * Custom plugins can also register a supplier for the {@link TrackedSignLookup}
+         * so that this tracked sign can be retrieved from the unique key. This is important
+         * when restoring activated signs when trains reload (at server restart). Custom
+         * key types can be registered there too, to make them persistently serialized.
+         * If the key type is not String or UUID, a serializer for the key should be registered
+         * too.
          *
          * @return unique key
          */
@@ -1053,14 +1060,14 @@ public final class RailLookup {
         protected final TrainCarts plugin;
         protected final SignChangeTracker tracker;
         protected final BlockFace facing;
-        private final RealSignKey key;
+        private final TrackedSignLookup.RealSignKey key;
 
         private TrackedRealSignBase(TrainCarts plugin, SignChangeTracker tracker, RailPiece rail, boolean front) {
             super(tracker.getSign(), tracker.getBlock(), rail);
             this.plugin = plugin;
             this.facing = tracker.getFacing();
             this.tracker = tracker;
-            this.key = new RealSignKey(signBlock, front);
+            this.key = new TrackedSignLookup.RealSignKey(OfflineBlock.of(signBlock), front);
         }
 
         @Override
@@ -1193,40 +1200,6 @@ public final class RailLookup {
         @Override
         public void setLine(int index, String line) throws IndexOutOfBoundsException {
             this.tracker.setBackLine(index, line);
-        }
-    }
-
-    private static final class RealSignKey {
-        private final Block block;
-        private final boolean front;
-        private final int hashCode;
-
-        public RealSignKey(Block block, boolean front) {
-            this.block = block;
-            this.front = front;
-            this.hashCode = block.hashCode();
-        }
-
-        @Override
-        public int hashCode() {
-            return hashCode;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (o == this) {
-                return true;
-            } else if (o instanceof RealSignKey) {
-                RealSignKey other = (RealSignKey) o;
-                return this.block.equals(other.block) && this.front == other.front;
-            } else {
-                return false;
-            }
-        }
-
-        @Override
-        public String toString() {
-            return "RealSign{block=" + block + " side=" + (front ? "front" : "back") + "}";
         }
     }
 }

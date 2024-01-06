@@ -58,6 +58,7 @@ import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.category.PaperPlayerViewDistanceProperty;
 import com.bergerkiller.bukkit.tc.properties.standard.category.PaperTrackingRangeProperty;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
+import com.bergerkiller.bukkit.tc.rails.TrackedSignLookup;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionDetector;
@@ -114,6 +115,7 @@ public class TrainCarts extends PluginBase {
     private TrainUpdateController trainUpdateController = new TrainUpdateController(this);
     private final TCSelectorHandlerRegistry selectorHandlerRegistry = new TCSelectorHandlerRegistry(this);
     private final OfflineSignStore offlineSignStore = new OfflineSignStore(this);
+    private final TrackedSignLookup trackedSignLookup = new TrackedSignLookup(this);
     private final SignController signController = new SignController(this);
     private final PacketQueueMap packetQueueMap = new PacketQueueMap(this);
     private ResourcePackModelListing modelListing = new ResourcePackModelListing(); // Uninitialized
@@ -316,6 +318,18 @@ public class TrainCarts extends PluginBase {
      */
     public OfflineSignStore getOfflineSigns() {
         return this.offlineSignStore;
+    }
+
+    /**
+     * Gets the tracked sign lookup register. This is the bridge between a serialized
+     * sign unique key and the live tracked sign it represents. Plugins can register
+     * their custom sign implementations here, making metadata mapped ot them
+     * persistent.
+     *
+     * @return Tracked Sign lookup
+     */
+    public TrackedSignLookup getTrackedSignLookup() {
+        return trackedSignLookup;
     }
 
     /**
