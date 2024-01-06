@@ -44,7 +44,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
     private boolean isRefreshingGroups = false;
     private Map<String, OfflineGroup> containedTrains = new HashMap<>();
     private HashSet<UUID> containedMinecarts = new HashSet<>();
-    private final OfflineWorldMap<OfflineGroupWorldImpl> worlds = new OfflineWorldMap<OfflineGroupWorldImpl>();
+    private final OfflineWorldMap<OfflineGroupWorldLiveImpl> worlds = new OfflineWorldMap<OfflineGroupWorldLiveImpl>();
 
     public OfflineGroupManager(TrainCarts plugin) {
         this.plugin = plugin;
@@ -55,21 +55,21 @@ public class OfflineGroupManager implements TrainCarts.Provider {
         return plugin;
     }
 
-    private OfflineGroupWorldImpl get(OfflineWorld world) {
+    private OfflineGroupWorldLiveImpl get(OfflineWorld world) {
         // Note: computeIfAbsent bug!
-        OfflineGroupWorldImpl map = worlds.get(world);
+        OfflineGroupWorldLiveImpl map = worlds.get(world);
         if (map == null) {
-            map = new OfflineGroupWorldImpl(this, world);
+            map = new OfflineGroupWorldLiveImpl(this, world);
             worlds.put(world, map);
         }
         return map;
     }
 
-    private OfflineGroupWorldImpl get(World world) {
+    private OfflineGroupWorldLiveImpl get(World world) {
         // Note: computeIfAbsent bug!
-        OfflineGroupWorldImpl map = worlds.get(world);
+        OfflineGroupWorldLiveImpl map = worlds.get(world);
         if (map == null) {
-            map = new OfflineGroupWorldImpl(this, OfflineWorld.of(world));
+            map = new OfflineGroupWorldLiveImpl(this, OfflineWorld.of(world));
             worlds.put(world, map);
         }
         return map;
@@ -84,7 +84,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
         }
 
         synchronized (this) {
-            final OfflineGroupWorldImpl map = get(world);
+            final OfflineGroupWorldLiveImpl map = get(world);
 
             // Mark as handling the world unload event
             // This makes sure it doesn't try to restore the trains we are
@@ -94,7 +94,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
                 groupsOnWorld.forEach(MinecartGroup::unload);
 
                 // Reset loaded chunk count for OfflineGroups to 0
-                map.values().forEach(group -> group.updateLoadedChunks(map));
+                map.getGroups().forEach(group -> group.updateLoadedChunks(map));
             } finally {
                 map.setIsDuringWorldUnloadEvent(false);
             }
@@ -108,7 +108,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
             return;
         }
 
-        OfflineGroupWorldImpl map = worlds.get(chunk.getWorld());
+        OfflineGroupWorldLiveImpl map = worlds.get(chunk.getWorld());
         if (map != null && map.canRestoreGroups()) {
             if (map.isEmpty()) {
                 worlds.remove(chunk.getWorld());
@@ -158,7 +158,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
         }
 
         // Remove the chunk from all known OfflineGroups
-        OfflineGroupWorld map = worlds.get(chunk.getWorld());
+        OfflineGroupWorldLive map = worlds.get(chunk.getWorld());
         if (map != null) {
             if (map.isEmpty()) {
                 worlds.remove(chunk.getWorld());
@@ -195,7 +195,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
     }
 
     public synchronized void refresh(World world) {
-        OfflineGroupWorldImpl map = worlds.get(world);
+        OfflineGroupWorldLiveImpl map = worlds.get(world);
         if (map != null) {
             if (map.isEmpty()) {
                 worlds.remove(world);
@@ -206,13 +206,33 @@ public class OfflineGroupManager implements TrainCarts.Provider {
     }
 
     /**
+     * Takes a snapshot of all offline groups and members currently stored inside this
+     * offline group manager. The returned object can be safely used from any thread.
+     *
+     * @return Immutable snapshot of all groups and members in this manager at this time
+     */
+    public synchronized List<OfflineGroupWorld> createSnapshot() {
+        List<OfflineGroupWorld> worldSnapshots = new ArrayList<>(worlds.size());
+        Iterator<OfflineGroupWorldLiveImpl> iter = worlds.values().iterator();
+        while (iter.hasNext()) {
+            OfflineGroupWorldLive world = iter.next();
+            if (world.isEmpty()) {
+                iter.remove(); // Clean up empty worlds
+            } else {
+                worldSnapshots.add(world.createSnapshot());
+            }
+        }
+        return Collections.unmodifiableList(worldSnapshots);
+    }
+
+    /**
      * Asynchronously forces all chunks kept loaded to be loaded.
      * In the future, once the chunks are loaded, will restore the
      * associated trains.
      *
      * @return List of chunks to keep loaded mapped to the group that does
      */
-    public Map<OfflineGroup, List<ForcedChunk>> getForceLoadedChunks() {
+    public synchronized Map<OfflineGroup, List<ForcedChunk>> getForceLoadedChunks() {
         Map<OfflineGroup, List<ForcedChunk>> chunks = new HashMap<>();
         for (World world : WorldUtil.getWorlds()) {
             chunks.putAll(getForceLoadedChunks(world));
@@ -231,9 +251,9 @@ public class OfflineGroupManager implements TrainCarts.Provider {
      */
     public synchronized Map<OfflineGroup, List<ForcedChunk>> getForceLoadedChunks(World world) {
         Map<OfflineGroup, List<ForcedChunk>> chunks = new HashMap<>();
-        OfflineGroupWorld map = worlds.get(world);
+        OfflineGroupWorldLive map = worlds.get(world);
         if (map != null && !map.isEmpty() && map.canRestoreGroups()) {
-            for (OfflineGroup group : map.values()) {
+            for (OfflineGroup group : map.getGroups()) {
                 TrainProperties prop = TrainProperties.get(group.name);
                 if (prop == null || !prop.isKeepingChunksLoaded()) {
                     continue;
@@ -274,7 +294,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
         }
 
         // Find the group manager for this world
-        OfflineGroupWorld map;
+        OfflineGroupWorldLive map;
         synchronized (this) {
             map = worlds.get(group.world);
             if (map == null) {
@@ -327,13 +347,13 @@ public class OfflineGroupManager implements TrainCarts.Provider {
 
         // Get a list of all offline groups on this world
         final List<OfflineGroup> offlineGroups;
-        final OfflineGroupWorld map;
+        final OfflineGroupWorldLive map;
         synchronized (this) {
             map = worlds.get(world);
             if (map == null) {
                 offlineGroups = Collections.emptyList();
             } else {
-                offlineGroups = new ArrayList<>(map.values());
+                offlineGroups = new ArrayList<>(map.getGroups());
             }
         }
 
@@ -471,7 +491,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
                 for (int worldIdx = 0; worldIdx < worldcount; worldIdx++) {
                     OfflineWorld world = OfflineWorld.of(StreamUtil.readUUID(stream));
                     final int groupcount = stream.readInt();
-                    OfflineGroupWorld map = get(world);
+                    OfflineGroupWorldLive map = get(world);
 
                     // Read all the groups contained
                     for (int groupIdx = 0; groupIdx < groupcount; groupIdx++) {
@@ -505,7 +525,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
         new DataWriter(filename) {
             public void write(DataOutputStream stream) throws IOException {
                 //clear empty worlds
-                Iterator<OfflineGroupWorldImpl> iter = worlds.values().iterator();
+                Iterator<OfflineGroupWorldLiveImpl> iter = worlds.values().iterator();
                 while (iter.hasNext()) {
                     if (iter.next().isEmpty()) {
                         iter.remove();
@@ -514,7 +534,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
 
                 //Write it
                 stream.writeInt(worlds.size());
-                for (Map.Entry<OfflineWorld, OfflineGroupWorldImpl> entry : worlds.entrySet()) {
+                for (Map.Entry<OfflineWorld, OfflineGroupWorldLiveImpl> entry : worlds.entrySet()) {
                     StreamUtil.writeUUID(stream, entry.getKey().getUniqueId());
 
                     stream.writeInt(entry.getValue().totalGroupCount());
@@ -550,7 +570,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
      * @see #saveGroup(MinecartGroup)
      */
     public synchronized void storeGroup(OfflineGroup group) {
-        OfflineGroupWorldImpl map = get(group.world);
+        OfflineGroupWorldLiveImpl map = get(group.world);
         group.updateLoadedChunks(map);
         map.add(group);
     }
@@ -566,7 +586,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
     }
 
     public synchronized int getStoredMemberCount(World world) {
-        OfflineGroupWorldImpl map = worlds.get(world);
+        OfflineGroupWorldLiveImpl map = worlds.get(world);
         return (map == null) ? 0 : map.totalMemberCount();
     }
 
@@ -576,7 +596,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
 
     public synchronized int getStoredCountInLoadedWorlds() {
         int count = 0;
-        for (OfflineGroupWorldImpl map : worlds.values()) {
+        for (OfflineGroupWorldLiveImpl map : worlds.values()) {
             if (map.canRestoreGroups()) {
                 count += map.totalGroupCount();
             }
@@ -594,7 +614,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
     }
 
     public synchronized void rename(String oldtrainname, String newtrainname) {
-        for (OfflineGroupWorld map : worlds.values()) {
+        for (OfflineGroupWorldLive map : worlds.values()) {
             for (OfflineGroup group : map) {
                 if (group.name.equals(oldtrainname)) {
                     map.remove(group);
@@ -607,7 +627,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
 
     public synchronized void removeMember(UUID memberUUID) {
         if (containedMinecarts.remove(memberUUID)) {
-            for (OfflineGroupWorld map : worlds.values()) {
+            for (OfflineGroupWorldLive map : worlds.values()) {
                 if (map.removeCart(memberUUID)) {
                     break;
                 }
@@ -616,7 +636,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
     }
 
     public synchronized void removeGroup(String groupName) {
-        for (OfflineGroupWorld map : worlds.values()) {
+        for (OfflineGroupWorldLive map : worlds.values()) {
             OfflineGroup group = map.remove(groupName);
             if (group != null) {
                 break;
@@ -625,8 +645,8 @@ public class OfflineGroupManager implements TrainCarts.Provider {
     }
 
     public synchronized OfflineGroup findGroup(String groupName) {
-        for (OfflineGroupWorld map : worlds.values()) {
-            for (OfflineGroup group : map.values()) {
+        for (OfflineGroupWorldLive map : worlds.values()) {
+            for (OfflineGroup group : map.getGroups()) {
                 if (group.name.equals(groupName)) {
                     return group;
                 }
@@ -647,9 +667,9 @@ public class OfflineGroupManager implements TrainCarts.Provider {
         return null;
     }
 
-    private static final class OfflineGroupWorldImpl extends OfflineGroupWorld {
+    private static final class OfflineGroupWorldLiveImpl extends OfflineGroupWorldLive {
 
-        public OfflineGroupWorldImpl(OfflineGroupManager manager, OfflineWorld world) {
+        public OfflineGroupWorldLiveImpl(OfflineGroupManager manager, OfflineWorld world) {
             super(manager, world);
         }
 
@@ -671,7 +691,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
 
                     // Go by all groups and try to restore them
                     groupsBuffer.clear();
-                    groupsBuffer.addAll(this.values());
+                    groupsBuffer.addAll(this.getGroups());
                     for (OfflineGroup group : groupsBuffer) {
                         if (group.updateLoadedChunks(this)) {
                             restoreGroup(group);

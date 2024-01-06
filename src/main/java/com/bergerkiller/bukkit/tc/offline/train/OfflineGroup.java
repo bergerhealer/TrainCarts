@@ -139,7 +139,7 @@ public final class OfflineGroup {
         }
     }
 
-    protected boolean updateLoadedChunks(OfflineGroupWorld offlineMap) {
+    protected boolean updateLoadedChunks(OfflineGroupWorldLive offlineMap) {
         this.loadedChunks.clear();
 
         World world = this.world.getLoadedWorld();
