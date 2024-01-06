@@ -344,7 +344,7 @@ public class GlobalCommands {
             final CommandSender sender,
             final TrainCarts plugin
     ) {
-        plugin.save(false);
+        plugin.save(TrainCarts.SaveMode.COMMAND);
         sender.sendMessage(ChatColor.YELLOW + "TrainCarts' information has been saved to file.");
     }
 

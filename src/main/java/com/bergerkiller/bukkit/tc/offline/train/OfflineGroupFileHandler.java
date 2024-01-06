@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.config.TempFileOutputStream;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -43,10 +44,10 @@ class OfflineGroupFileHandler {
         }.read();
     }
 
-    public void save(boolean autosave) {
+    public void save(TrainCarts.SaveMode saveMode) {
         // Wait for previous auto-save to complete
         if (!currentSaveOperation.isDone()) {
-            if (autosave) {
+            if (saveMode != TrainCarts.SaveMode.SHUTDOWN) {
                 return; // Skip saving this time, previous auto-save is still going on for some reason
             } else if (!waitForSaveCompletion()) {
                 return; // Auto-save got stuck
@@ -56,10 +57,18 @@ class OfflineGroupFileHandler {
         // On the main thread, collect all OfflineGroups and OfflineMembers of these groups
         // at this current time for all worlds. This is information that won't change
         // asynchronously.
+        // During auto-save also save all currently loaded trains. In case the server crashes
+        // there is at least a 'chance' of these trains being recovered
+        final List<OfflineGroupWorld> worlds;
+        if (saveMode == TrainCarts.SaveMode.SHUTDOWN) {
+            worlds = manager.createSnapshot();
+        } else {
+            worlds = OfflineGroupWorld.mergeSnapshots(manager.createSnapshot(),
+                                                      OfflineGroupManager.saveAllGroups());
+        }
+
         // Then in an asynchronous task write all data to disk. Use a TempFileOutputStream
         // so an interrupted write won't corrupt the file.
-        final File destinationFile = manager.getTrainCarts().getDataFile("trains.groupdata");
-        final List<OfflineGroupWorld> worlds = manager.createSnapshot();
         currentSaveOperation = CommonUtil.runCheckedAsync(() -> {
             try (TempFileOutputStream fileStream = new TempFileOutputStream(dataFile);
                  DataOutputStream stream = new DataOutputStream(fileStream)
@@ -79,10 +88,13 @@ class OfflineGroupFileHandler {
                 }
             };
             task.start();
+        }).exceptionally(t -> {
+            manager.getTrainCarts().getLogger().log(Level.SEVERE, "Failed to save offline group data to disk", t);
+            return null;
         });
 
         // If not auto-saving, wait for saving to complete
-        if (!autosave) {
+        if (saveMode == TrainCarts.SaveMode.SHUTDOWN) {
             waitForSaveCompletion();
         }
     }

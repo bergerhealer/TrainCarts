@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -500,8 +501,8 @@ public class OfflineGroupManager implements TrainCarts.Provider {
         fileHandler.load();
     }
 
-    public void save(boolean autosave) {
-        fileHandler.save(autosave);
+    public void save(TrainCarts.SaveMode saveMode) {
+        fileHandler.save(saveMode);
     }
 
     public synchronized void deinit() {
@@ -527,6 +528,23 @@ public class OfflineGroupManager implements TrainCarts.Provider {
             return null;
         }
         return new OfflineGroup(group);
+    }
+
+    /**
+     * Saves all loaded trains on the server
+     *
+     * @return List of offline groups per world
+     * @see #saveGroup(MinecartGroup)
+     */
+    public static List<OfflineGroupWorld> saveAllGroups() {
+        Map<OfflineWorld, List<OfflineGroup>> worlds = new IdentityHashMap<>();
+        for (MinecartGroup group : MinecartGroupStore.getGroups().cloneAsIterable()) {
+            OfflineGroup offlineGroup = saveGroup(group);
+            if (offlineGroup != null) {
+                worlds.computeIfAbsent(offlineGroup.world, w -> new ArrayList<>()).add(offlineGroup);
+            }
+        }
+        return OfflineGroupWorld.snapshot(worlds);
     }
 
     /**

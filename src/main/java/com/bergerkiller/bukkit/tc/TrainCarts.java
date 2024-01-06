@@ -1067,7 +1067,7 @@ public class TrainCarts extends PluginBase {
         }
 
         //save all data to disk (autosave=false)
-        save(false);
+        save(SaveMode.SHUTDOWN);
 
         // Disable path provider before de-initializing path nodes / sign actions
         if (this.pathProvider != null) {
@@ -1126,8 +1126,12 @@ public class TrainCarts extends PluginBase {
 
     /**
      * Saves all traincarts related information to file
+     *
+     * @param saveMode Mode of saving
      */
-    public void save(boolean autosave) {
+    public void save(SaveMode saveMode) {
+        boolean autosave = saveMode.isAutoSave();
+
         //Save properties
         TrainProperties.save(autosave);
 
@@ -1155,7 +1159,7 @@ public class TrainCarts extends PluginBase {
         routeManager.save(autosave);
 
         // Save train information
-        offlineGroupManager.save(autosave);
+        offlineGroupManager.save(saveMode);
     }
 
     private void enableOfflineSignHandlers() {
@@ -1229,7 +1233,7 @@ public class TrainCarts extends PluginBase {
 
         @Override
         public void run() {
-            ((TrainCarts) this.getPlugin()).save(true);
+            ((TrainCarts) this.getPlugin()).save(SaveMode.AUTOSAVE);
         }
     }
 
@@ -1338,9 +1342,25 @@ public class TrainCarts extends PluginBase {
     }
 
     /**
+     * Mode traincarts can save in
+     */
+    public enum SaveMode {
+        /** Save that runs periodically in the background. Only saves deltas */
+        AUTOSAVE,
+        /** Forceful save-all requested using a command */
+        COMMAND,
+        /** Save that occurs on shutdown */
+        SHUTDOWN;
+
+        public boolean isAutoSave() {
+            return this == AUTOSAVE;
+        }
+    }
+
+    /**
      * Designates a Class to be making a TrainCarts plugin instance accessible
      */
-    public static interface Provider {
+    public interface Provider {
 
         /**
          * Gets the TrainCarts main plugin instance. From here all of TrainCarts' API
