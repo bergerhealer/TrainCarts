@@ -49,13 +49,7 @@ public class OfflineGroupWorldLive extends OfflineGroupWorld {
      * @return Snapshot OfflineGroupWorld
      */
     public OfflineGroupWorld createSnapshot() {
-        final List<OfflineGroup> snapshotGroups = Collections.unmodifiableList(new ArrayList<>(groups));
-        return new OfflineGroupWorld(this.world) {
-            @Override
-            public Collection<OfflineGroup> getGroups() {
-                return snapshotGroups;
-            }
-        };
+        return snapshot(world, groups);
     }
 
     public void add(OfflineGroup group) {

@@ -2,8 +2,11 @@ package com.bergerkiller.bukkit.tc.offline.train;
 
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * A collection of offline groups stored on a particular World
@@ -50,5 +53,15 @@ public abstract class OfflineGroupWorld implements Iterable<OfflineGroup> {
             count += group.members.length;
         }
         return count;
+    }
+
+    public static OfflineGroupWorld snapshot(OfflineWorld world, Collection<OfflineGroup> groups) {
+        final List<OfflineGroup> snapshotGroups = Collections.unmodifiableList(new ArrayList<>(groups));
+        return new OfflineGroupWorld(world) {
+            @Override
+            public Collection<OfflineGroup> getGroups() {
+                return snapshotGroups;
+            }
+        };
     }
 }

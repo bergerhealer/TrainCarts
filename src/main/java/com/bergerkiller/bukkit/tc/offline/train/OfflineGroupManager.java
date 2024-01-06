@@ -1,13 +1,10 @@
 package com.bergerkiller.bukkit.tc.offline.train;
 
 import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
-import com.bergerkiller.bukkit.common.config.DataReader;
-import com.bergerkiller.bukkit.common.config.DataWriter;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.offline.OfflineWorldMap;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -24,9 +21,6 @@ import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -39,6 +33,7 @@ import java.util.logging.Level;
  */
 public class OfflineGroupManager implements TrainCarts.Provider {
     private final TrainCarts plugin;
+    private final OfflineGroupFileHandler fileHandler;
     Long lastUnloadChunk = null;
     private boolean chunkLoadReq = false;
     private boolean isRefreshingGroups = false;
@@ -48,6 +43,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
 
     public OfflineGroupManager(TrainCarts plugin) {
         this.plugin = plugin;
+        this.fileHandler = new OfflineGroupFileHandler(this);
     }
 
     @Override
@@ -223,6 +219,36 @@ public class OfflineGroupManager implements TrainCarts.Provider {
             }
         }
         return Collections.unmodifiableList(worldSnapshots);
+    }
+
+    /**
+     * Loads all groups in all worlds specified. Call from {@link OfflineGroupFileHandler}
+     *
+     * @param worlds Worlds with groups to load
+     */
+    synchronized void load(List<OfflineGroupWorld> worlds) {
+        int totalgroups = 0;
+        int totalmembers = 0;
+        int worldcount = worlds.size();
+        for (OfflineGroupWorld world : worlds) {
+            OfflineGroupWorldLive liveWorld = get(world.getWorld());
+            for (OfflineGroup group : world.getGroups()) {
+                // Register the new offline group within (this) Manager
+                liveWorld.add(group);
+                totalmembers += group.members.length;
+                totalgroups++;
+            }
+        }
+
+        String msg = totalgroups + " Train";
+        if (totalgroups == 1) msg += " has";
+        else msg += "s have";
+        msg += " been loaded in " + worldcount + " world";
+        if (worldcount != 1) msg += "s";
+        msg += ". (" + totalmembers + " Minecart";
+        if (totalmembers != 1) msg += "s";
+        msg += ")";
+        plugin.log(Level.INFO, msg);
     }
 
     /**
@@ -470,78 +496,18 @@ public class OfflineGroupManager implements TrainCarts.Provider {
         }
     }
 
+    public void load() {
+        fileHandler.load();
+    }
+
+    public void save(boolean autosave) {
+        fileHandler.save(autosave);
+    }
+
     public synchronized void deinit() {
         worlds.clear();
         containedMinecarts.clear();
         containedTrains.clear();
-    }
-
-    /**
-     * Loads the buffered groups from file
-     *
-     * @param filename - The groupdata file to read from
-     */
-    public synchronized void init(String filename) {
-        deinit();
-        new DataReader(filename) {
-            public void read(DataInputStream stream) throws IOException {
-                int totalgroups = 0;
-                int totalmembers = 0;
-                final int worldcount = stream.readInt();
-                for (int worldIdx = 0; worldIdx < worldcount; worldIdx++) {
-                    OfflineWorld world = OfflineWorld.of(StreamUtil.readUUID(stream));
-                    final int groupcount = stream.readInt();
-                    OfflineGroupWorldLive map = get(world);
-
-                    // Read all the groups contained
-                    for (int groupIdx = 0; groupIdx < groupcount; groupIdx++) {
-                        OfflineGroup wg = OfflineGroupFileHandler.readLegacyGroup(stream, world);
-
-                        // Register the new offline group within (this) Manager
-                        map.add(wg);
-                        totalmembers += wg.members.length;
-                        totalgroups++;
-                    }
-                }
-                String msg = totalgroups + " Train";
-                if (totalgroups == 1) msg += " has";
-                else msg += "s have";
-                msg += " been loaded in " + worldcount + " world";
-                if (worldcount != 1) msg += "s";
-                msg += ". (" + totalmembers + " Minecart";
-                if (totalmembers != 1) msg += "s";
-                msg += ")";
-                plugin.log(Level.INFO, msg);
-            }
-        }.read();
-    }
-
-    /**
-     * Saves the buffered groups to file
-     *
-     * @param filename - The groupdata file to write to
-     */
-    public synchronized void save(String filename) {
-        new DataWriter(filename) {
-            public void write(DataOutputStream stream) throws IOException {
-                //clear empty worlds
-                Iterator<OfflineGroupWorldLiveImpl> iter = worlds.values().iterator();
-                while (iter.hasNext()) {
-                    if (iter.next().isEmpty()) {
-                        iter.remove();
-                    }
-                }
-
-                //Write it
-                stream.writeInt(worlds.size());
-                for (Map.Entry<OfflineWorld, OfflineGroupWorldLiveImpl> entry : worlds.entrySet()) {
-                    StreamUtil.writeUUID(stream, entry.getKey().getUniqueId());
-
-                    stream.writeInt(entry.getValue().totalGroupCount());
-                    for (OfflineGroup wg : entry.getValue()) wg.writeTo(stream);
-                }
-            }
-        }.write();
     }
 
     /**

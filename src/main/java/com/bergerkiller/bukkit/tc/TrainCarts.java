@@ -821,7 +821,7 @@ public class TrainCarts extends PluginBase {
                 "savedTrainModules");
 
         //Load groups
-        offlineGroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
+        offlineGroupManager.load();
 
         //Convert Minecarts
         MinecartMemberStore.convertAllAutomatically(this);
@@ -1155,9 +1155,7 @@ public class TrainCarts extends PluginBase {
         routeManager.save(autosave);
 
         // Save train information
-        if (!autosave) {
-            offlineGroupManager.save(getDataFolder() + File.separator + "trains.groupdata");
-        }
+        offlineGroupManager.save(autosave);
     }
 
     private void enableOfflineSignHandlers() {
