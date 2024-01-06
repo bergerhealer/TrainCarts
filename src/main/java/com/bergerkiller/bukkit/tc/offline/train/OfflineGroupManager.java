@@ -483,8 +483,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
 
                         // Read all the groups contained
                         for (int groupIdx = 0; groupIdx < groupcount; groupIdx++) {
-                            OfflineGroup wg = OfflineGroup.readFrom(stream);
-                            wg.world = world;
+                            OfflineGroup wg = OfflineGroupFileHandler.readLegacyGroup(stream, world);
 
                             // Register the new offline group within (this) Manager
                             map.add(wg);
@@ -616,9 +615,8 @@ public class OfflineGroupManager implements TrainCarts.Provider {
             for (OfflineGroupWorld map : worlds.values()) {
                 for (OfflineGroup group : map) {
                     if (group.name.equals(oldtrainname)) {
-                        group.name = newtrainname;
-                        containedTrains.remove(oldtrainname);
-                        containedTrains.put(newtrainname, group);
+                        map.remove(group);
+                        map.add(group.withName(newtrainname));
                         return;
                     }
                 }
@@ -682,7 +680,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
 
         public void restoreGroup(OfflineGroup group) {
             this.remove(group);
-            group.create(manager.plugin, group.world.getLoadedWorld());
+            group.create(manager.plugin);
         }
 
         public void refreshGroups() {

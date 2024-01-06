@@ -66,11 +66,11 @@ public class OfflineGroupWorld implements Iterable<OfflineGroup> {
 
     public void add(OfflineGroup group) {
         this.groups.add(group);
-        for (long chunk : group.chunks) {
+        group.forAllChunks(chunk -> {
             if (!group.loadedChunks.contains(chunk)) {
                 getOrCreateChunk(chunk).add(group);
             }
-        }
+        });
     }
 
     public void setIsDuringWorldUnloadEvent(boolean isDuringWorldUnloadEvent) {
@@ -161,7 +161,7 @@ public class OfflineGroupWorld implements Iterable<OfflineGroup> {
 
     public void remove(OfflineGroup group) {
         this.groups.remove(group);
-        for (long chunk : group.chunks) {
+        group.forAllChunks(chunk -> {
             Set<OfflineGroup> groups = getOrCreateChunk(chunk);
             if (groups != null) {
                 groups.remove(group);
@@ -169,29 +169,29 @@ public class OfflineGroupWorld implements Iterable<OfflineGroup> {
                     this.groupmap.remove(chunk);
                 }
             }
-        }
+        });
     }
 
     public boolean removeCart(UUID memberUUID) {
         for (OfflineGroup group : groups) {
             for (OfflineMember member : group.members) {
                 if (member.entityUID.equals(memberUUID)) {
+                    // Create a new list of members that excludes the removed cart
+                    ArrayList<OfflineMember> newMembers = new ArrayList<>();
+                    for (OfflineMember m : group.members) {
+                        if (!m.entityUID.equals(memberUUID)) {
+                            newMembers.add(m);
+                        }
+                    }
+
                     // Undo previous registration
                     remove(group);
-                    // Remove this member from the group
-                    {
-                        ArrayList<OfflineMember> members = new ArrayList<>();
-                        for (OfflineMember m : group.members) {
-                            if (!m.entityUID.equals(memberUUID)) {
-                                members.add(m);
-                            }
-                        }
-                        group.members = members.toArray(new OfflineMember[0]);
+
+                    // Add a new group with the updated members, if the list isn't empty
+                    if (!newMembers.isEmpty()) {
+                        add(new OfflineGroup(group.name, group.world, newMembers, (cgroup, cmember) -> cmember));
                     }
-                    group.genChunks();
-                    if (group.members.length > 0) {
-                        add(group);
-                    }
+
                     // Finished
                     return true;
                 }

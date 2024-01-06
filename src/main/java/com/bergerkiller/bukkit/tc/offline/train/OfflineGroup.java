@@ -7,17 +7,18 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet.LongIterator;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.actions.MemberActionLaunch;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import org.bukkit.World;
 
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.LongConsumer;
 import java.util.logging.Level;
 
 /**
@@ -25,50 +26,71 @@ import java.util.logging.Level;
  * Also adds functions to handle multiple members at once
  * Also adds functions to write and load from/to file
  */
-public class OfflineGroup {
+public final class OfflineGroup {
+    // These fields are immutable
+    public final String name;
+    public final OfflineWorld world;
+    public final OfflineMember[] members;
     public final LongHashSet chunks;
+
+    // These are modified at runtime
     public final LongHashSet loadedChunks;
-    public OfflineMember[] members;
-    public String name;
-    public OfflineWorld world;
     private boolean loaded;
     public boolean isBeingRemoved = false;
 
     public OfflineGroup(MinecartGroup group) {
-        this(group.size());
-        for (int i = 0; i < members.length; i++) {
-            this.members[i] = new OfflineMember(this, group.get(i));
-        }
-        this.name = group.getProperties().getTrainName();
-        this.world = OfflineWorld.of(group.getWorld());
-        this.loaded = false;
-        if (group.getActions().getCurrentAction() instanceof MemberActionLaunch) {
-            double vel = ((MemberActionLaunch) group.getActions().getCurrentAction()).getTargetVelocity();
-            for (OfflineMember member : this.members) {
-                member.setVelocity(vel);
-            }
-        }
-        this.genChunks();
+        this(group.getProperties().getTrainName(),
+             OfflineWorld.of(group.getWorld()),
+             group,
+             OfflineMember::new);
     }
 
-    private OfflineGroup(int memberCount) {
-        this.members = new OfflineMember[memberCount];
+    <T> OfflineGroup(
+            final String name,
+            final OfflineWorld world,
+            final Collection<T> memberData,
+            final BiFunction<OfflineGroup, T, OfflineMember> memberCtor
+    ) {
+        this.name = name;
+        this.world = world;
+        this.members = new OfflineMember[memberData.size()];
+        {
+            int index = 0;
+            for (T member : memberData) {
+                this.members[index++] = memberCtor.apply(this, member);
+            }
+        }
+
         // Obtain an average of the amount of elements to store for chunks
         // Assume that each member adds 5 chunks every 10 carts
-        final int chunkCount = 25 + (int) ((double) (5 / 10) * (double) memberCount);
+        final int chunkCount = 25 + (int) ((double) (5 / 10) * (double) members.length);
         this.chunks = new LongHashSet(chunkCount);
         this.loadedChunks = new LongHashSet(chunkCount);
         this.loaded = false;
+
+        // Initialize the chunks that must be loaded for this offline group to load in
+        for (OfflineMember wm : members) {
+            for (int x = wm.cx - 2; x <= wm.cx + 2; x++) {
+                for (int z = wm.cz - 2; z <= wm.cz + 2; z++) {
+                    this.chunks.add(MathUtil.longHashToLong(x, z));
+                }
+            }
+        }
     }
 
-    public static OfflineGroup readFrom(DataInputStream stream) throws IOException {
-        OfflineGroup wg = new OfflineGroup(stream.readInt());
-        for (int i = 0; i < wg.members.length; i++) {
-            wg.members[i] = OfflineMember.readFrom(wg, stream);
-        }
-        wg.name = stream.readUTF();
-        wg.genChunks();
-        return wg;
+    // Renames the group
+    private OfflineGroup(OfflineGroup original, String newName) {
+        this.chunks = original.chunks;
+        this.loadedChunks = original.loadedChunks;
+        this.members = original.members;
+        this.name = newName;
+        this.world = original.world;
+        this.loaded = original.loaded;
+        this.isBeingRemoved = original.isBeingRemoved;
+    }
+
+    public OfflineGroup withName(String newName) {
+        return new OfflineGroup(this, newName);
     }
 
     /**
@@ -102,35 +124,37 @@ public class OfflineGroup {
         return this.loadedChunks.size() == this.chunks.size();
     }
 
+    public void forAllChunks(ChunkCoordConsumer action) {
+        final LongIterator iter = this.chunks.longIterator();
+        while (iter.hasNext()) {
+            long chunk = iter.next();
+            action.accept(MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk));
+        }
+    }
+
+    public void forAllChunks(LongConsumer action) {
+        final LongIterator iter = this.chunks.longIterator();
+        while (iter.hasNext()) {
+            action.accept(iter.next());
+        }
+    }
+
     protected boolean updateLoadedChunks(OfflineGroupWorld offlineMap) {
         this.loadedChunks.clear();
 
         World world = this.world.getLoadedWorld();
         if (world != null && offlineMap.canRestoreGroups()) {
-            final LongIterator iter = this.chunks.longIterator();
-            while (iter.hasNext()) {
-                long chunk = iter.next();
+            forAllChunks(chunk -> {
                 if (WorldUtil.isChunkEntitiesLoaded(world, MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk))) {
                     this.loadedChunks.add(chunk);
                 }
-            }
+            });
             if (offlineMap.getManager().lastUnloadChunk != null) {
                 this.loadedChunks.remove(offlineMap.getManager().lastUnloadChunk);
             }
             return this.testFullyLoaded();
         } else {
             return false;
-        }
-    }
-
-    public void genChunks() {
-        this.chunks.clear();
-        for (OfflineMember wm : this.members) {
-            for (int x = wm.cx - 2; x <= wm.cx + 2; x++) {
-                for (int z = wm.cz - 2; z <= wm.cz + 2; z++) {
-                    this.chunks.add(MathUtil.longHashToLong(x, z));
-                }
-            }
         }
     }
 
@@ -142,11 +166,7 @@ public class OfflineGroup {
      */
     public List<ForcedChunk> forceLoadChunks(World world) {
         List<ForcedChunk> chunks = new ArrayList<>();
-        final LongIterator iter = this.chunks.longIterator();
-        while (iter.hasNext()) {
-            long chunk = iter.next();
-            chunks.add(WorldUtil.forceChunkLoaded(world, MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk)));
-        }
+        forAllChunks((cx, cz) -> chunks.add(WorldUtil.forceChunkLoaded(world, cx, cz)));
         return chunks;
     }
 
@@ -154,13 +174,13 @@ public class OfflineGroup {
      * Tries to find all Minecarts based on their UID and creates a new group
      *
      * @param traincarts TrainCarts plugin instance
-     * @param world to find the Minecarts in
      * @return An array of Minecarts
      */
-    public MinecartGroup create(TrainCarts traincarts, World world) {
+    public MinecartGroup create(TrainCarts traincarts) {
         ArrayList<MinecartMember<?>> rval = new ArrayList<>(this.members.length);
         int missingNo = 0;
         int cx = 0, cz = 0;
+        World world = this.world.getLoadedWorld();
         for (OfflineMember member : this.members) {
             MinecartMember<?> mm = member.create(traincarts, world);
             if (mm != null) {
@@ -193,5 +213,10 @@ public class OfflineGroup {
             member.writeTo(stream);
         }
         stream.writeUTF(this.name);
+    }
+
+    @FunctionalInterface
+    public interface ChunkCoordConsumer {
+        void accept(int cx, int cz);
     }
 }

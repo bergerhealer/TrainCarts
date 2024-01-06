@@ -6,6 +6,8 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.actions.MemberActionLaunch;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
@@ -17,7 +19,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.util.Vector;
 
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.UUID;
@@ -26,51 +27,53 @@ import java.util.logging.Level;
 /**
  * Contains the information to get and restore a Minecart
  */
-public class OfflineMember {
-    public double motX, motZ;
-    public UUID entityUID;
-    public int cx, cz;
+public final class OfflineMember {
     public final OfflineGroup group;
+    public final UUID entityUID;
+    public final int cx, cz;
+    public final double motX, motZ;
 
-    private OfflineMember(OfflineGroup group) {
+    OfflineMember(OfflineGroup group, UUID entityUID, int cx, int cz, double motX, double motZ) {
         this.group = group;
+        this.entityUID = entityUID;
+        this.cx = cx;
+        this.cz = cz;
+        this.motX = motX;
+        this.motZ = motZ;
     }
 
-    public OfflineMember(OfflineGroup group, MinecartMember<?> instance) {
-        this(group);
+    public OfflineMember(OfflineGroup offlineGroup, MinecartMember<?> instance) {
+        this.group = offlineGroup;
+
         CommonEntity<?> entity = instance.getEntity();
-        this.motX = entity.vel.getX();
-        this.motZ = entity.vel.getZ();
         this.entityUID = entity.getUniqueId();
         this.cx = entity.loc.x.chunk();
         this.cz = entity.loc.z.chunk();
-    }
 
-    public static OfflineMember readFrom(OfflineGroup group, DataInputStream stream) throws IOException {
-        OfflineMember wm = new OfflineMember(group);
-        wm.entityUID = new UUID(stream.readLong(), stream.readLong());
-        wm.motX = stream.readDouble();
-        wm.motZ = stream.readDouble();
-        wm.cx = stream.readInt();
-        wm.cz = stream.readInt();
-        return wm;
+        MinecartGroup group = instance.getGroup();
+        if (group.getActions().getCurrentAction() instanceof MemberActionLaunch) {
+            // Simulate as if the launch has completed
+            // TODO: Remove this
+            double velMagn = ((MemberActionLaunch) group.getActions().getCurrentAction()).getTargetVelocity();
+            Vector vel = entity.getVelocity();
+            double ls = vel.lengthSquared();
+            if (ls < 1e-20) {
+                this.motX = velMagn;
+                this.motZ = 0.0;
+            } else {
+                vel = vel.multiply(MathUtil.getNormalizationFactorLS(ls) * velMagn);
+                this.motX = vel.getX();
+                this.motZ = vel.getZ();
+            }
+        } else {
+            // Use current cart velocity
+            this.motX = entity.vel.getX();
+            this.motZ = entity.vel.getZ();
+        }
     }
 
     public boolean isMoving() {
         return Math.abs(motX) >= CommonEntity.MIN_MOVE_SPEED || Math.abs(motZ) >= CommonEntity.MIN_MOVE_SPEED;
-    }
-
-    public void setVelocity(double velocity) {
-        Vector vel = new Vector(this.motX, 0.0, this.motZ);
-        double ls = vel.lengthSquared();
-        if (ls < 1e-20) {
-            this.motX = velocity;
-            this.motZ = 0.0;
-        } else {
-            vel = vel.multiply(MathUtil.getNormalizationFactorLS(ls) * velocity);
-            this.motX = vel.getX();
-            this.motZ = vel.getZ();
-        }
     }
 
     public Minecart findEntity(Chunk chunk, boolean markChunkDirty) {

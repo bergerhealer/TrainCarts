@@ -163,14 +163,10 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             return CompletableFuture.completedFuture(false);
         }
 
-        List<ForcedChunk> chunksOfTrain = new ArrayList<>();
-        World world = group.world.getLoadedWorld();
+        final List<ForcedChunk> chunksOfTrain = new ArrayList<>();
+        final World world = group.world.getLoadedWorld();
         if (world != null) {
-            for (long chunk : group.chunks) {
-                chunksOfTrain.add(WorldUtil.forceChunkLoaded(world,
-                        MathUtil.longHashMsw(chunk),
-                        MathUtil.longHashLsw(chunk)));
-            }
+            group.forAllChunks((cx, cz) -> chunksOfTrain.add(WorldUtil.forceChunkLoaded(world, cx, cz)));
         }
         CompletableFuture<Void> whenAllChunkEntitiesLoaded;
         whenAllChunkEntitiesLoaded = loadChunkFutureWithFutureProvider(traincarts, chunksOfTrain);
