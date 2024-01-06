@@ -55,7 +55,7 @@ public class OfflineGroupWorldLive extends OfflineGroupWorld {
     public void add(OfflineGroup group) {
         this.groups.add(group);
         group.forAllChunks(chunk -> {
-            if (!group.loadedChunks.contains(chunk)) {
+            if (!group.getLoadedChunks().contains(chunk)) {
                 getOrCreateChunk(chunk).add(group);
             }
         });
@@ -210,7 +210,7 @@ public class OfflineGroupWorldLive extends OfflineGroupWorld {
         Set<OfflineGroup> rval = this.groupmap.remove(chunk);
         if (rval != null) {
             for (OfflineGroup group : rval) {
-                group.loadedChunks.add(chunk);
+                group.getLoadedChunks().add(chunk);
             }
         }
         return rval;

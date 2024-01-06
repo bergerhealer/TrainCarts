@@ -31,10 +31,10 @@ public final class OfflineGroup {
     public final String name;
     public final OfflineWorld world;
     public final OfflineMember[] members;
-    public final LongHashSet chunks;
 
-    // These are modified at runtime
-    public final LongHashSet loadedChunks;
+    // These are modified/lazily generated at runtime
+    private LongHashSet chunks = null;
+    private LongHashSet loadedChunks = null;
     private boolean loaded;
     public boolean isBeingRemoved = false;
 
@@ -60,31 +60,16 @@ public final class OfflineGroup {
                 this.members[index++] = memberCtor.apply(this, member);
             }
         }
-
-        // Obtain an average of the amount of elements to store for chunks
-        // Assume that each member adds 5 chunks every 10 carts
-        final int chunkCount = 25 + (int) ((double) (5 / 10) * (double) members.length);
-        this.chunks = new LongHashSet(chunkCount);
-        this.loadedChunks = new LongHashSet(chunkCount);
         this.loaded = false;
-
-        // Initialize the chunks that must be loaded for this offline group to load in
-        for (OfflineMember wm : members) {
-            for (int x = wm.cx - 2; x <= wm.cx + 2; x++) {
-                for (int z = wm.cz - 2; z <= wm.cz + 2; z++) {
-                    this.chunks.add(MathUtil.longHashToLong(x, z));
-                }
-            }
-        }
     }
 
     // Renames the group
     private OfflineGroup(OfflineGroup original, String newName) {
-        this.chunks = original.chunks;
-        this.loadedChunks = original.loadedChunks;
-        this.members = original.members;
         this.name = newName;
         this.world = original.world;
+        this.members = original.members;
+        this.chunks = original.chunks;
+        this.loadedChunks = original.loadedChunks;
         this.loaded = original.loaded;
         this.isBeingRemoved = original.isBeingRemoved;
     }
@@ -105,6 +90,48 @@ public final class OfflineGroup {
         return this.loaded;
     }
 
+    public LongHashSet getChunks() {
+        LongHashSet chunks = this.chunks;
+        if (chunks == null) {
+            // Obtain an average of the amount of elements to store for chunks
+            // Assume that each member adds 5 chunks every 10 carts
+            final int chunkCount = 25 + (int) ((double) (5 / 10) * (double) members.length);
+            chunks = new LongHashSet(chunkCount);
+            for (OfflineMember wm : members) {
+                for (int x = wm.cx - 2; x <= wm.cx + 2; x++) {
+                    for (int z = wm.cz - 2; z <= wm.cz + 2; z++) {
+                        chunks.add(MathUtil.longHashToLong(x, z));
+                    }
+                }
+            }
+            this.chunks = chunks;
+        }
+        return chunks;
+    }
+
+    public LongHashSet getLoadedChunks() {
+        LongHashSet loadedChunks = this.loadedChunks;
+        if (loadedChunks == null) {
+            this.loadedChunks = loadedChunks = new LongHashSet(getChunks().size());
+        }
+        return loadedChunks;
+    }
+
+    public void forAllChunks(ChunkCoordConsumer action) {
+        final LongIterator iter = getChunks().longIterator();
+        while (iter.hasNext()) {
+            long chunk = iter.next();
+            action.accept(MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk));
+        }
+    }
+
+    public void forAllChunks(LongConsumer action) {
+        final LongIterator iter = getChunks().longIterator();
+        while (iter.hasNext()) {
+            action.accept(iter.next());
+        }
+    }
+
     public boolean isMoving() {
         for (OfflineMember member : members) {
             if (member.isMoving()) {
@@ -121,36 +148,22 @@ public final class OfflineGroup {
             return false;
         }
 
-        return this.loadedChunks.size() == this.chunks.size();
-    }
-
-    public void forAllChunks(ChunkCoordConsumer action) {
-        final LongIterator iter = this.chunks.longIterator();
-        while (iter.hasNext()) {
-            long chunk = iter.next();
-            action.accept(MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk));
-        }
-    }
-
-    public void forAllChunks(LongConsumer action) {
-        final LongIterator iter = this.chunks.longIterator();
-        while (iter.hasNext()) {
-            action.accept(iter.next());
-        }
+        return this.getLoadedChunks().size() == this.getChunks().size();
     }
 
     protected boolean updateLoadedChunks(OfflineGroupWorldLive offlineMap) {
-        this.loadedChunks.clear();
+        final LongHashSet loadedChunks = getLoadedChunks();
+        loadedChunks.clear();
 
         World world = this.world.getLoadedWorld();
         if (world != null && offlineMap.canRestoreGroups()) {
             forAllChunks(chunk -> {
                 if (WorldUtil.isChunkEntitiesLoaded(world, MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk))) {
-                    this.loadedChunks.add(chunk);
+                    loadedChunks.add(chunk);
                 }
             });
             if (offlineMap.getManager().lastUnloadChunk != null) {
-                this.loadedChunks.remove(offlineMap.getManager().lastUnloadChunk);
+                loadedChunks.remove(offlineMap.getManager().lastUnloadChunk);
             }
             return this.testFullyLoaded();
         } else {

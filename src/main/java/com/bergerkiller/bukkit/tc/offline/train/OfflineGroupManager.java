@@ -163,7 +163,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
                 Set<OfflineGroup> groupset = map.getFromChunk(chunk);
                 if (groupset != null) {
                     for (OfflineGroup group : groupset) {
-                        group.loadedChunks.remove(MathUtil.longHashToLong(chunk.getX(), chunk.getZ()));
+                        group.getLoadedChunks().remove(MathUtil.longHashToLong(chunk.getX(), chunk.getZ()));
                     }
                 }
             }
