@@ -13,9 +13,9 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
-import com.bergerkiller.bukkit.tc.storage.OfflineGroup;
-import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
-import com.bergerkiller.bukkit.tc.storage.OfflineMember;
+import com.bergerkiller.bukkit.tc.offline.train.OfflineGroup;
+import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.offline.train.OfflineMember;
 import com.bergerkiller.bukkit.tc.utils.BoundingRange;
 
 /**

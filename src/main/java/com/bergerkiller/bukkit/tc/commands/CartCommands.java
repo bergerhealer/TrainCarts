@@ -25,8 +25,8 @@ import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
-import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
-import com.bergerkiller.bukkit.tc.storage.OfflineMember;
+import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.offline.train.OfflineMember;
 
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;

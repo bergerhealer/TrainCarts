@@ -30,7 +30,7 @@ import com.bergerkiller.bukkit.tc.debug.types.DebugToolTypeListDestinations;
 import com.bergerkiller.bukkit.tc.debug.types.DebugToolTypeRails;
 import com.bergerkiller.bukkit.tc.debug.types.DebugToolTypeTrackDistance;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
-import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.EventListenerHook;
 import com.bergerkiller.bukkit.tc.utils.PlayerVelocityController;
 

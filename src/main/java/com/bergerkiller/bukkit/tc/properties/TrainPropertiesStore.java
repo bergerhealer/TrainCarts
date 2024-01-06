@@ -11,7 +11,7 @@ import com.bergerkiller.bukkit.tc.properties.defaults.DefaultPropertiesLookup;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
-import com.bergerkiller.bukkit.tc.storage.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
 
 import org.bukkit.entity.Player;
 

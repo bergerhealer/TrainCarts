@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.storage;
+package com.bergerkiller.bukkit.tc.offline.train;
 
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
