@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
@@ -37,7 +38,7 @@ import java.util.logging.Level;
  * from offline-stored data.
  */
 public class OfflineGroupManager {
-    public static Long lastUnloadChunk = null;
+    static Long lastUnloadChunk = null;
     private static boolean chunkLoadReq = false;
     private static boolean isRefreshingGroups = false;
     private static Map<String, OfflineGroup> containedTrains = new HashMap<>();
@@ -122,6 +123,32 @@ public class OfflineGroupManager {
     }
 
     public static void unloadChunk(Chunk chunk) {
+        // This chunk is still referenced in existing groups
+        // Make sure to mark this chunks as unloaded, as at this point Bukkit still
+        // says it is not.
+        long chunkCoordLong = MathUtil.longHashToLong(chunk.getX(), chunk.getZ());
+        lastUnloadChunk = Long.valueOf(chunkCoordLong);
+
+        // Check no trains are keeping the chunk loaded
+        World chunkWorld = chunk.getWorld();
+        for (MinecartGroup group : MinecartGroup.getGroups().cloneAsIterable()) {
+            if (group.isInChunk(chunkWorld, chunkCoordLong)) {
+                unloadChunkForGroup(group, chunk);
+            }
+        }
+
+        // Double-check
+        for (Entity entity : WorldUtil.getEntities(chunk)) {
+            if (entity instanceof Minecart) {
+                MinecartMember<?> member = MinecartMemberStore.getFromEntity(entity);
+                if (member == null || !member.isInteractable()) {
+                    continue;
+                }
+                unloadChunkForGroup(member.getGroup(), chunk);
+            }
+        }
+
+        // Remove the chunk from all known OfflineGroups
         synchronized (managers) {
             OfflineGroupWorld map = managers.get(chunk.getWorld());
             if (map != null) {
@@ -136,6 +163,21 @@ public class OfflineGroupManager {
                     }
                 }
             }
+        }
+
+        // At this point unloading is done, and we can stop tracking the unloaded chunk
+        lastUnloadChunk = null;
+    }
+
+    private static void unloadChunkForGroup(MinecartGroup group, Chunk chunk) {
+        if (group.canUnload()) {
+            group.unload();
+        } else if (group.getChunkArea().containsChunk(chunk.getX(), chunk.getZ()))  {
+            group.getTrainCarts().log(Level.SEVERE, "Chunk " + chunk.getX() + "/" + chunk.getZ() +
+                    " of group " + group.getProperties().getTrainName() + " unloaded unexpectedly!");
+        } else {
+            group.getTrainCarts().log(Level.SEVERE, "Chunk " + chunk.getX() + "/" + chunk.getZ() +
+                    " of group " + group.getProperties().getTrainName() + " unloaded because chunk area wasn't up to date!");
         }
     }
 

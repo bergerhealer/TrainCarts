@@ -36,7 +36,6 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -118,43 +117,7 @@ public class TCListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onChunkUnload(ChunkUnloadEvent event) {
-        // This chunk is still referenced, ensure that it is really gone
-        long chunkCoordLong = MathUtil.longHashToLong(event.getChunk().getX(), event.getChunk().getZ());
-        OfflineGroupManager.lastUnloadChunk = Long.valueOf(chunkCoordLong);
-
-        // Check no trains are keeping the chunk loaded
-        World chunkWorld = event.getWorld();
-        for (MinecartGroup group : MinecartGroup.getGroups().cloneAsIterable()) {
-            if (group.isInChunk(chunkWorld, chunkCoordLong)) {
-                unloadChunkForGroup(group, event.getChunk());
-            }
-        }
-
-        // Double-check
-        for (Entity entity : WorldUtil.getEntities(event.getChunk())) {
-            if (entity instanceof Minecart) {
-                MinecartMember<?> member = MinecartMemberStore.getFromEntity(entity);
-                if (member == null || !member.isInteractable()) {
-                    continue;
-                }
-                unloadChunkForGroup(member.getGroup(), event.getChunk());
-            }
-        }
-
         OfflineGroupManager.unloadChunk(event.getChunk());
-        OfflineGroupManager.lastUnloadChunk = null;
-    }
-
-    private void unloadChunkForGroup(MinecartGroup group, Chunk chunk) {
-        if (group.canUnload()) {
-            group.unload();
-        } else if (group.getChunkArea().containsChunk(chunk.getX(), chunk.getZ()))  {
-            plugin.log(Level.SEVERE, "Chunk " + chunk.getX() + "/" + chunk.getZ() +
-                    " of group " + group.getProperties().getTrainName() + " unloaded unexpectedly!");
-        } else {
-            plugin.log(Level.SEVERE, "Chunk " + chunk.getX() + "/" + chunk.getZ() +
-                    " of group " + group.getProperties().getTrainName() + " unloaded because chunk area wasn't up to date!");
-        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
