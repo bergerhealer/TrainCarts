@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.offline.sign;
 
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
+import com.bergerkiller.bukkit.tc.Util;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -20,11 +21,10 @@ class OfflineSignStoreUpgradeV1ToV2 {
 
     public static DataInputStream upgrade(DataInputStream stream) throws IOException {
         ByteArrayOutputStream outByteStream = new ByteArrayOutputStream();
-        OfflineSignStore.writeVariableLengthInt(outByteStream, 2); // V2
+        Util.writeVariableLengthInt(outByteStream, 2); // V2
         while (stream.available() > 0) {
             // Read metadata bytes
-            byte[] encodedData = new byte[OfflineSignStore.readVariableLengthInt(stream)];
-            stream.readFully(encodedData);
+            byte[] encodedData = Util.readByteArray(stream);
 
             // Decode just the legacy OfflineSign data and metadata that is put after
             OfflineBlock signBlock;
@@ -53,8 +53,7 @@ class OfflineSignStoreUpgradeV1ToV2 {
             byte[] upgradedData = encodeMetadata(signBlock, signLines, metadataContents);
 
             // Write the v2 format to the output stream
-            OfflineSignStore.writeVariableLengthInt(outByteStream, upgradedData.length);
-            outByteStream.write(upgradedData);
+            Util.writeByteArray(outByteStream, upgradedData);
         }
 
         return new DataInputStream(new ByteArrayInputStream(outByteStream.toByteArray()));

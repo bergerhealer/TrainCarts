@@ -1,5 +1,10 @@
 package com.bergerkiller.bukkit.tc;
 
+import java.io.DataInputStream;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1868,5 +1873,87 @@ public class Util {
             // Return all attachments. If a mapper was set, apply it. Otherwise, return as-is.
             return Collections.unmodifiableList((List<O>) list);
         }
+    }
+
+    /**
+     * Reads the variable length of a byte array, followed by all the bytes of that
+     * byte array.
+     *
+     * @param stream Input Stream
+     * @return Read Byte Array
+     * @throws IOException
+     */
+    public static byte[] readByteArray(InputStream stream) throws IOException {
+        byte[] data = new byte[readVariableLengthInt(stream)];
+        if (stream instanceof DataInputStream) {
+            ((DataInputStream) stream).readFully(data);
+        } else {
+            // Workaround
+            int remaining = data.length;
+            int offset = 0;
+            while (remaining > 0) {
+                int numRead = stream.read(data, offset, remaining);
+                if (numRead <= 0) {
+                    throw new EOFException(); // Eh?
+                }
+                offset += numRead;
+                remaining -= numRead;
+            }
+        }
+        return data;
+    }
+
+    /**
+     * Writes the length of a byte array followed by the byte array itself
+     *
+     * @param stream Output Stream
+     * @param array Byte Array to write
+     * @throws IOException
+     */
+    public static void writeByteArray(OutputStream stream, byte[] array) throws IOException {
+        writeVariableLengthInt(stream, array.length);
+        stream.write(array);
+    }
+
+    /**
+     * Reads a variable length int from an input stream. Reads as many bytes as needed
+     * to read the full number. Reads fewer bytes for smaller numbers.
+     *
+     * @param stream Input Stream
+     * @return Integer
+     * @throws IOException
+     */
+    public static int readVariableLengthInt(InputStream stream) throws IOException {
+        // Read bytes as 7-bit chunks and keep reading/or-ing while the 8th bit is set
+        int value = 0;
+        int b;
+        do {
+            b = stream.read();
+            if (b == -1) {
+                throw new EOFException("Unexpected end of stream");
+            }
+            value <<= 7;
+            value |= (b & 0x7F);
+        } while ((b & 0x80) != 0);
+
+        return value;
+    }
+
+    /**
+     * Writes a variable length int to an output stream. Writes more bytes for larger
+     * numbers.
+     *
+     * @param stream Output Stream
+     * @param value Integer to write
+     * @throws IOException
+     */
+    public static void writeVariableLengthInt(OutputStream stream, int value) throws IOException {
+        // Get the number of 7-bit chunks to encode the number with some bit magic
+        int numExtraBits = ((Integer.SIZE - Integer.numberOfLeadingZeros(value)) / 7) * 7;
+        while (numExtraBits > 0) {
+            stream.write(0x80 | ((value >> numExtraBits) & 0x7F));
+            numExtraBits -= 7;
+        }
+        stream.write(value & 0x7F);
     }
 }

@@ -9,8 +9,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -30,6 +28,7 @@ import java.util.stream.Collectors;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -1387,7 +1386,7 @@ public class OfflineSignStore {
                     stream.readUTF(); // Handler metadata type
 
                     // Check data version, perform migration if needed
-                    int metadataVersion = readVariableLengthInt(stream);
+                    int metadataVersion = Util.readVariableLengthInt(stream);
                     if (metadataVersion == this.handlerEntry.handler.getMetadataVersion()) {
                         // Decode metadata itself
                         this.metadata = this.handlerEntry.handler.onDecode(stream, this.sign);
@@ -1440,7 +1439,7 @@ public class OfflineSignStore {
                                 stream.writeUTF(this.handlerEntry.metadataTypeName);
 
                                 // Encode data version using variable length encoding
-                                writeVariableLengthInt(stream, this.handlerEntry.handler.getMetadataVersion());
+                                Util.writeVariableLengthInt(stream, this.handlerEntry.handler.getMetadataVersion());
 
                                 // Encode the metadata itself
                                 this.handlerEntry.handler.onEncode(stream, this.sign, this.metadata);
@@ -1663,7 +1662,7 @@ public class OfflineSignStore {
         }
 
         private void load(DataInputStream stream) throws IOException {
-            int versionCode = readVariableLengthInt(stream);
+            int versionCode = Util.readVariableLengthInt(stream);
 
             // Upgrade from V1 to v2, recurse try again
             if (versionCode == 1) {
@@ -1682,8 +1681,7 @@ public class OfflineSignStore {
 
             while (stream.available() > 0) {
                 // Read metadata bytes
-                byte[] encodedData = new byte[readVariableLengthInt(stream)];
-                stream.readFully(encodedData);
+                byte[] encodedData = Util.readByteArray(stream);
 
                 // Decode just the sign metadata bit
                 OfflineSign sign;
@@ -1713,12 +1711,11 @@ public class OfflineSignStore {
                 try (FileOutputStream f_stream = new FileOutputStream(tmpFile);
                      DataOutputStream stream = new DataOutputStream(f_stream))
                 {
-                    writeVariableLengthInt(stream, 2); // Version 2
+                    Util.writeVariableLengthInt(stream, 2); // Version 2
                     for (OfflineMetadataEntry<?> entry : allEntries.cloneAsIterable()) {
                         byte[] encodedData = entry.encodeMetadata();
                         if (encodedData != null) {
-                            writeVariableLengthInt(stream, encodedData.length);
-                            stream.write(encodedData);
+                            Util.writeByteArray(stream, encodedData);
                         } else {
                             encodeFailures.add(entry);
                         }
@@ -1791,31 +1788,5 @@ public class OfflineSignStore {
 
         // Failed :(
         throw new IOException("Atomic move from " + fromFile + " to " + toFile + " failed");
-    }
-
-    static int readVariableLengthInt(InputStream stream) throws IOException {
-        // Read bytes as 7-bit chunks and keep reading/or-ing while the 8th bit is set
-        int value = 0;
-        int b;
-        do {
-            b = stream.read();
-            if (b == -1) {
-                throw new EOFException("Unexpected end of stream");
-            }
-            value <<= 7;
-            value |= (b & 0x7F);
-        } while ((b & 0x80) != 0);
-
-        return value;
-    }
-
-    static void writeVariableLengthInt(OutputStream stream, int value) throws IOException {
-        // Get the number of 7-bit chunks to encode the number with some bit magic
-        int numExtraBits = ((Integer.SIZE - Integer.numberOfLeadingZeros(value)) / 7) * 7;
-        while (numExtraBits > 0) {
-            stream.write(0x80 | ((value >> numExtraBits) & 0x7F));
-            numExtraBits -= 7;
-        }
-        stream.write(value & 0x7F);
     }
 }
