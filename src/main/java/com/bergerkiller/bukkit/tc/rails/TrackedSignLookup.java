@@ -5,7 +5,6 @@ import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
-import com.bergerkiller.mountiplex.reflection.util.InputTypeMap;
 import org.bukkit.block.Block;
 
 import java.io.ByteArrayInputStream;
@@ -19,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.WeakHashMap;
 import java.util.logging.Level;
 
 /**
@@ -29,10 +29,30 @@ public final class TrackedSignLookup implements TrainCarts.Provider {
     private final TrainCarts plugin;
     private final List<SignSupplier> suppliers = new ArrayList<>();
     private final Map<String, RegisteredKeySerializer> serializersById = new HashMap<>();
-    private final InputTypeMap<RegisteredKeySerializer> serializersByType = new InputTypeMap<>();
+    private final WeakHashMap<Class<?>, RegisteredKeySerializer> serializersByType = new WeakHashMap<>();
+
+    /**
+     * This serializer is stored in the serializersByType mapping for Class key types
+     * that lack a serializer
+     */
+    private static final RegisteredKeySerializer MISSING_SERIALIZER = new RegisteredKeySerializer(null, null) {
+        @Override
+        public byte[] serialize(TrainCarts plugin, Object uniqueKey) {
+            return null;
+        }
+    };
 
     public TrackedSignLookup(TrainCarts plugin) {
         this.plugin = plugin;
+
+        // When unknown keys are decoded, encode them back the exact same way
+        // This is for when plugin-provided keys aren't available and data still lingers
+        serializersByType.put(UnknownSignKey.class, new RegisteredKeySerializer(null, null) {
+            @Override
+            public byte[] serialize(TrainCarts plugin, Object uniqueKey) {
+                return ((UnknownSignKey) uniqueKey).data;
+            }
+        });
 
         // TrainCarts default serializers for some types
         registerSerializer("tc-realsign", new RealSignKeySerializer());
@@ -107,25 +127,22 @@ public final class TrackedSignLookup implements TrainCarts.Provider {
             return null; // Eh?
         }
 
+        // Find a registered serializer for this key type. Also check if this unique key
+        // is maybe a subclass of a registered type.
+        // If not found, map it to MISSING_SERIALIZER for faster lookup next time.
         RegisteredKeySerializer registered = serializersByType.get(uniqueKey.getClass());
-        if (registered != null) {
-            try {
-                try (ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
-                    try (DataOutputStream dataStream = new DataOutputStream(stream)) {
-                        dataStream.writeUTF(registered.id);
-                        registered.serializer.write(dataStream, uniqueKey);
-                    }
-                    return stream.toByteArray();
+        if (registered == null) {
+            registered = MISSING_SERIALIZER;
+            Class<?> type = uniqueKey.getClass();
+            for (Map.Entry<Class<?>, RegisteredKeySerializer> mapped : serializersByType.entrySet()) {
+                if (mapped.getKey().isAssignableFrom(type)) {
+                    registered = mapped.getValue();
+                    break;
                 }
-            } catch (Throwable t) {
-                plugin.getLogger().log(Level.SEVERE, "Failed to serialize unique sign key " +
-                        uniqueKey.getClass().getName(), t);
             }
-        } else if (uniqueKey instanceof UnknownSignKey) {
-            return ((UnknownSignKey) uniqueKey).data;
+            serializersByType.put(type, registered);
         }
-
-        return null;
+        return registered.serialize(plugin, uniqueKey);
     }
 
     /**
@@ -187,9 +204,14 @@ public final class TrackedSignLookup implements TrainCarts.Provider {
      * @param serializer Key Serializer to register
      */
     public void registerSerializer(String id, KeySerializer<?> serializer) {
+        Class<?> keyType = serializer.getKeyType();
         RegisteredKeySerializer registered = new RegisteredKeySerializer(id, serializer);
         serializersById.put(id, registered);
-        serializersByType.put(serializer.getKeyType(), registered);
+        serializersByType.put(keyType, registered);
+
+        // Remove all classes mapped to the MISSING_SERIALIZER as those may have become invalid
+        // after registering this new type. They're regenerated.
+        serializersByType.values().removeIf(s -> s == MISSING_SERIALIZER);
     }
 
     /**
@@ -198,13 +220,10 @@ public final class TrackedSignLookup implements TrainCarts.Provider {
      * @param id ID of the key type that was previously registered
      */
     public void unregisterSerializer(String id) {
-        if (serializersById.remove(id) != null) {
-            // Regenerate
-            serializersByType.clear();
-            for (RegisteredKeySerializer registered : serializersById.values()) {
-                serializersByType.put(registered.serializer.getKeyType(), registered);
-            }
-        }
+        serializersById.remove(id);
+        // Note: do not unregister the by-class mapping. We might find this key still in use
+        //       in TrainCarts somewhere, so we must be able to serialize those still.
+        //       It's a weak-keyed hashmap, so this is no big deal.
     }
 
     private static class RegisteredKeySerializer {
@@ -215,6 +234,22 @@ public final class TrackedSignLookup implements TrainCarts.Provider {
         public RegisteredKeySerializer(String id, KeySerializer<?> serializer) {
             this.id = id;
             this.serializer = (KeySerializer<Object>) serializer;
+        }
+
+        public byte[] serialize(TrainCarts plugin, Object uniqueKey) {
+            try {
+                try (ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
+                    try (DataOutputStream dataStream = new DataOutputStream(stream)) {
+                        dataStream.writeUTF(id);
+                        serializer.write(dataStream, uniqueKey);
+                    }
+                    return stream.toByteArray();
+                }
+            } catch (Throwable t) {
+                plugin.getLogger().log(Level.SEVERE, "Failed to serialize unique sign key " +
+                        uniqueKey.getClass().getName(), t);
+                return null;
+            }
         }
     }
 
