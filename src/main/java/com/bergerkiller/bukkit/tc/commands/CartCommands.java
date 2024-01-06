@@ -25,7 +25,6 @@ import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
-import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.offline.train.OfflineMember;
 
 import cloud.commandframework.annotations.Argument;
@@ -68,7 +67,7 @@ public class CartCommands {
         MinecartMember<?> member = properties.getHolder();
         if (member == null) {
             CartPropertiesStore.remove(properties.getUUID());
-            OfflineGroupManager.removeMember(properties.getUUID());
+            properties.getTrainCarts().getOfflineGroups().removeMember(properties.getUUID());
         } else {
             member.onDie(true);
         }
@@ -157,7 +156,7 @@ public class CartCommands {
     ) {
         // Check this first, as we cannot load the chunks of an unloaded train
         {
-            OfflineMember member = OfflineGroupManager.findMember(properties.getTrainProperties().getTrainName(), properties.getUUID());
+            OfflineMember member = properties.getTrainCarts().getOfflineGroups().findMember(properties.getTrainProperties().getTrainName(), properties.getUUID());
             if (member != null && !member.group.world.isLoaded()) {
                 player.sendMessage(ChatColor.RED + "Cart is on a world that is not loaded");
                 return;

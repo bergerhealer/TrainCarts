@@ -114,6 +114,7 @@ public class TrainCarts extends PluginBase {
     private TrainLocator trainLocator;
     private TrainUpdateController trainUpdateController = new TrainUpdateController(this);
     private final TCSelectorHandlerRegistry selectorHandlerRegistry = new TCSelectorHandlerRegistry(this);
+    private final OfflineGroupManager offlineGroupManager = new OfflineGroupManager(this);
     private final OfflineSignStore offlineSignStore = new OfflineSignStore(this);
     private final TrackedSignLookup trackedSignLookup = new TrackedSignLookup(this);
     private final SignController signController = new SignController(this);
@@ -308,6 +309,15 @@ public class TrainCarts extends PluginBase {
      */
     public TrainUpdateController getTrainUpdateController() {
         return this.trainUpdateController;
+    }
+
+    /**
+     * Gets the information about all train groups and member that have unloaded
+     *
+     * @return offline group manager
+     */
+    public OfflineGroupManager getOfflineGroups() {
+        return this.offlineGroupManager;
     }
 
     /**
@@ -811,7 +821,7 @@ public class TrainCarts extends PluginBase {
                 "savedTrainModules");
 
         //Load groups
-        OfflineGroupManager.init(this, getDataFolder() + File.separator + "trains.groupdata");
+        offlineGroupManager.init(getDataFolder() + File.separator + "trains.groupdata");
 
         //Convert Minecarts
         MinecartMemberStore.convertAllAutomatically(this);
@@ -835,7 +845,7 @@ public class TrainCarts extends PluginBase {
         CommonUtil.nextTick(new Runnable() {
             public void run() {
                 for (World world : WorldUtil.getWorlds()) {
-                    OfflineGroupManager.removeBuggedMinecarts(world);
+                    offlineGroupManager.removeBuggedMinecarts(world);
                 }
             }
         });
@@ -851,10 +861,10 @@ public class TrainCarts extends PluginBase {
         log(Level.INFO, "Restoring trains and loading nearby chunks...");
         {
             // Check chunks that are already loaded first
-            OfflineGroupManager.refresh(this);
+            offlineGroupManager.refresh();
 
             // Get all chunks to be kept loaded and load them right now
-            preloadChunks(OfflineGroupManager.getForceLoadedChunks());
+            preloadChunks(offlineGroupManager.getForceLoadedChunks());
         }
 
         //Activate all detector regions with trains that are on it
@@ -882,7 +892,7 @@ public class TrainCarts extends PluginBase {
 
         // Destroy all trains after initializing if specified
         if (TCConfig.destroyAllOnShutdown) {
-            OfflineGroupManager.destroyAllAsync(false).thenAccept(count -> {
+            offlineGroupManager.destroyAllAsync(false).thenAccept(count -> {
                 getLogger().info("[DestroyOnShutdown] Destroyed " + count + " trains");
             });
         }
@@ -1071,7 +1081,7 @@ public class TrainCarts extends PluginBase {
         Statement.deinit();
         SignAction.deinit();
         ItemAnimation.deinit();
-        OfflineGroupManager.deinit();
+        offlineGroupManager.deinit();
         RailLookup.clear();
         this.signController.disable();
 
@@ -1146,7 +1156,7 @@ public class TrainCarts extends PluginBase {
 
         // Save train information
         if (!autosave) {
-            OfflineGroupManager.save(getDataFolder() + File.separator + "trains.groupdata");
+            offlineGroupManager.save(getDataFolder() + File.separator + "trains.groupdata");
         }
     }
 

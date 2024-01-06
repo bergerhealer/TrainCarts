@@ -76,7 +76,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         }
 
         // Rename the offline group
-        OfflineGroupManager.rename(properties.getTrainName(), newTrainName);
+        properties.getTrainCarts().getOfflineGroups().rename(properties.getTrainName(), newTrainName);
 
         // Keep for later
         ConfigurationNode oldConfig = properties.getConfig();
@@ -485,7 +485,7 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
 
         // Delete properties from the configuration when the train no longer exists
         for (TrainProperties prop : trainProperties.values()) {
-            if (!prop.hasHolder() && !OfflineGroupManager.contains(prop.getTrainName())) {
+            if (!prop.hasHolder() && !prop.getTrainCarts().getOfflineGroups().contains(prop.getTrainName())) {
                 config.remove(prop.getTrainName());
                 continue;
             }

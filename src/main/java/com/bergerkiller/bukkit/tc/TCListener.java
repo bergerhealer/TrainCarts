@@ -29,7 +29,6 @@ import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.offline.train.OfflineGroup;
-import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
@@ -117,21 +116,21 @@ public class TCListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onChunkUnload(ChunkUnloadEvent event) {
-        OfflineGroupManager.unloadChunk(event.getChunk());
+        plugin.getOfflineGroups().unloadChunk(event.getChunk());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onChunkLoadEntities(ChunkLoadEntitiesEvent event) {
-        OfflineGroupManager.loadChunk(plugin, event.getChunk());
+        plugin.getOfflineGroups().loadChunk(event.getChunk());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onWorldLoad(WorldLoadEvent event) {
         // Refresh the groups on this world
-        OfflineGroupManager.refresh(plugin, event.getWorld());
+        plugin.getOfflineGroups().refresh(event.getWorld());
 
         // Start loading the chunks kept loaded by trains with property keep chunks loaded
-        Map<OfflineGroup, List<ForcedChunk>> chunks = OfflineGroupManager.getForceLoadedChunks(event.getWorld());
+        Map<OfflineGroup, List<ForcedChunk>> chunks = plugin.getOfflineGroups().getForceLoadedChunks(event.getWorld());
         if (!chunks.isEmpty()) {
             plugin.log(Level.INFO, "Restoring trains and loading nearby chunks on world " + event.getWorld().getName() + "...");
             plugin.preloadChunks(chunks);
@@ -140,7 +139,7 @@ public class TCListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onWorldUnload(WorldUnloadEvent event) {
-        OfflineGroupManager.unloadWorld(event.getWorld());
+        plugin.getOfflineGroups().unloadWorld(event.getWorld());
         if (Bukkit.getPluginManager().isPluginEnabled("LightAPI")) {
             disableLightAPIWorld(event.getWorld());
         }
@@ -191,7 +190,7 @@ public class TCListener implements Listener {
             }
 
             if (EntityHandle.fromBukkit(event.getEntity()).isDestroyed()) {
-                OfflineGroupManager.removeMember(entityUUID);
+                plugin.getOfflineGroups().removeMember(entityUUID);
             } else {
                 MinecartMember<?> member = MinecartMemberStore.getFromEntity(event.getEntity());
                 if (member == null) {
@@ -213,7 +212,7 @@ public class TCListener implements Listener {
                 // For the next tick: update the storage system to restore trains here and there
                 CommonUtil.nextTick(new Runnable() {
                     public void run() {
-                        OfflineGroupManager.refresh(plugin);
+                        plugin.getOfflineGroups().refresh();
                     }
                 });
             }

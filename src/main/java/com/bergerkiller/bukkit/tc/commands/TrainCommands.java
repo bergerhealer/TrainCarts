@@ -32,7 +32,6 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.offline.train.OfflineGroup;
-import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
 
@@ -158,7 +157,7 @@ public class TrainCommands {
         MinecartGroup group = properties.getHolder();
         CompletableFuture<Boolean> future;
         if (group == null) {
-            future = OfflineGroupManager.destroyGroupAsync(properties.getTrainName());
+            future = properties.getTrainCarts().getOfflineGroups().destroyGroupAsync(properties.getTrainName());
         } else {
             group.destroy();
             future = CompletableFuture.completedFuture(Boolean.TRUE);
@@ -262,7 +261,7 @@ public class TrainCommands {
     ) {
         // Check this first, as we cannot load the chunks of an unloaded train
         {
-            OfflineGroup group = OfflineGroupManager.findGroup(properties.getTrainName());
+            OfflineGroup group = properties.getTrainCarts().getOfflineGroups().findGroup(properties.getTrainName());
             if (group != null && !group.world.isLoaded()) {
                 player.sendMessage(ChatColor.RED + "Train is on a world that is not loaded");
                 return;

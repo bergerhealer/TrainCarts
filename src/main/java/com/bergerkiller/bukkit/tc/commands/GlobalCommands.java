@@ -137,7 +137,7 @@ public class GlobalCommands {
                 // Get properties: ensures that ALL trains are listed
                 group.getProperties();
             }
-            count += OfflineGroupManager.getStoredCountInLoadedWorlds();
+            count += plugin.getOfflineGroups().getStoredCountInLoadedWorlds();
             int minecartCount = 0;
             for (World world : WorldUtil.getWorlds()) {
                 for (org.bukkit.entity.Entity e : WorldUtil.getEntities(world)) {
@@ -194,14 +194,15 @@ public class GlobalCommands {
     @CommandDescription("Destroys all trains on the server or world")
     private void commandDestroyAll(
             final CommandSender sender,
+            final TrainCarts plugin,
             final @Flag("world") World world,
             final @Flag(value="vanilla",
                         description="Whether to destroy non-Traincarts vanilla Minecarts too") boolean destroyVanilla
     ) {
         // Destroy all trains on the entire server (or on one world)
         CompletableFuture<Integer> future = (world == null)
-                ? OfflineGroupManager.destroyAllAsync(destroyVanilla)
-                : OfflineGroupManager.destroyAllAsync(world, destroyVanilla);
+                ? plugin.getOfflineGroups().destroyAllAsync(destroyVanilla)
+                : plugin.getOfflineGroups().destroyAllAsync(world, destroyVanilla);
         future.thenAccept(count -> {
             sender.sendMessage(ChatColor.RED.toString() + count + " (visible) trains have been destroyed!");  
         });
@@ -741,7 +742,7 @@ public class GlobalCommands {
                 }
 
                 // Check if train is loaded, or stored in a loaded world
-                if (!prop.hasHolder() && !OfflineGroupManager.containsInLoadedWorld(prop.getTrainName())) {
+                if (!prop.hasHolder() && !prop.getTrainCarts().getOfflineGroups().containsInLoadedWorld(prop.getTrainName())) {
                     continue;
                 }
 

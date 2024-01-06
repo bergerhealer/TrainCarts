@@ -114,8 +114,8 @@ public class OfflineGroup {
                     this.loadedChunks.add(chunk);
                 }
             }
-            if (OfflineGroupManager.lastUnloadChunk != null) {
-                this.loadedChunks.remove(OfflineGroupManager.lastUnloadChunk);
+            if (offlineMap.getManager().lastUnloadChunk != null) {
+                this.loadedChunks.remove(offlineMap.getManager().lastUnloadChunk);
             }
             return this.testFullyLoaded();
         } else {

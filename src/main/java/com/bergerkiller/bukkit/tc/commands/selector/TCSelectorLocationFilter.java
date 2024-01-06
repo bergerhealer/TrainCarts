@@ -14,7 +14,6 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.offline.train.OfflineGroup;
-import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.offline.train.OfflineMember;
 import com.bergerkiller.bukkit.tc.utils.BoundingRange;
 
@@ -127,7 +126,7 @@ class TCSelectorLocationFilter {
         }
 
         // Hard mode: check offline train storage
-        OfflineGroup offlineGroup = OfflineGroupManager.findGroup(properties.getTrainName());
+        OfflineGroup offlineGroup = properties.getTrainCarts().getOfflineGroups().findGroup(properties.getTrainName());
         return offlineGroup != null && world.getUID().equals(offlineGroup.world.getUniqueId());
     }
 
@@ -160,7 +159,7 @@ class TCSelectorLocationFilter {
             return false;
         } else {
             // Hard mode: check offline train storage
-            OfflineGroup offlineGroup = OfflineGroupManager.findGroup(properties.getTrainName());
+            OfflineGroup offlineGroup = properties.getTrainCarts().getOfflineGroups().findGroup(properties.getTrainName());
             if (offlineGroup == null) {
                 return false; // Weird!
             }

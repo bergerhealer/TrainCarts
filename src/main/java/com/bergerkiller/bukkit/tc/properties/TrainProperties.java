@@ -47,7 +47,6 @@ import com.bergerkiller.bukkit.tc.properties.standard.type.SlowdownMode;
 import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
 import com.bergerkiller.bukkit.tc.properties.standard.type.WaitOptions;
 import com.bergerkiller.bukkit.tc.offline.train.OfflineGroup;
-import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
 
 public class TrainProperties extends TrainPropertiesStore implements IProperties {
@@ -159,7 +158,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
             return CompletableFuture.completedFuture(true);
         }
         // Load all the chunks of this group to trigger a restore
-        OfflineGroup group = OfflineGroupManager.findGroup(this.trainname);
+        OfflineGroup group = getTrainCarts().getOfflineGroups().findGroup(this.trainname);
         if (group == null) {
             return CompletableFuture.completedFuture(false);
         }

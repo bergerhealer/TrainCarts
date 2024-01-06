@@ -652,7 +652,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
             // Store the group offline
             if (offlineGroup != null) {
-                OfflineGroupManager.storeGroup(offlineGroup);
+                traincarts.getOfflineGroups().storeGroup(offlineGroup);
             }
 
             // Unload. CancelLocationChange must be false otherwise saving position desync occurs!

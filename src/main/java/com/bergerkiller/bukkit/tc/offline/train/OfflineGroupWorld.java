@@ -23,14 +23,20 @@ import java.util.stream.Stream;
  * This is per offline Minecraft world.
  */
 public class OfflineGroupWorld implements Iterable<OfflineGroup> {
+    protected final OfflineGroupManager manager;
     private final OfflineWorld world;
     private Set<OfflineGroup> groups = new HashSet<>();
     private LongHashMap<HashSet<OfflineGroup>> groupmap = new LongHashMap<>();
     private Set<UUID> minecartEntityUUIDsBeingDestroyed = new HashSet<>();
     private boolean isDuringWorldUnloadEvent = false;
 
-    public OfflineGroupWorld(OfflineWorld world) {
+    public OfflineGroupWorld(OfflineGroupManager manager, OfflineWorld world) {
+        this.manager = manager;
         this.world = world;
+    }
+
+    public OfflineGroupManager getManager() {
+        return this.manager;
     }
 
     public OfflineWorld getWorld() {

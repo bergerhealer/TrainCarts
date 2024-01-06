@@ -19,7 +19,6 @@ import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardCartProperty;
 import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
-import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.offline.train.OfflineMember;
 import com.bergerkiller.bukkit.tc.utils.SoftReference;
 import org.bukkit.Bukkit;
@@ -442,7 +441,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
             return new BlockLocation(member.getEntity().getLocation().getBlock());
         } else {
             // Offline member?
-            OfflineMember omember = OfflineGroupManager.findMember(this.getTrainProperties().getTrainName(), this.getUUID());
+            OfflineMember omember = getTrainCarts().getOfflineGroups().findMember(this.getTrainProperties().getTrainName(), this.getUUID());
             if (omember == null) {
                 return null;
             } else {

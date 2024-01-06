@@ -264,10 +264,11 @@ public class DebugCommands {
     @CommandMethod("train debug fix buggedminecarts")
     @CommandDescription("Forcibly removes minecarts and trackers that have glitched out")
     private void commandFixBugged(
-            final CommandSender sender
+            final CommandSender sender,
+            final TrainCarts plugin
     ) {
         for (World world : WorldUtil.getWorlds()) {
-            OfflineGroupManager.removeBuggedMinecarts(world);
+            plugin.getOfflineGroups().removeBuggedMinecarts(world);
         }
         sender.sendMessage(ChatColor.YELLOW + "Bugged minecarts have been forcibly removed.");
     }

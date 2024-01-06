@@ -20,7 +20,6 @@ import com.bergerkiller.bukkit.tc.controller.type.*;
 import com.bergerkiller.bukkit.tc.events.MemberSpawnEvent;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
-import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.PaperRedstonePhysicsChecker;
 import com.bergerkiller.mountiplex.conversion.annotations.ConverterMethod;
 
@@ -88,7 +87,8 @@ public abstract class MinecartMemberStore {
         if (!canConvert(minecart)) {
             return false; // Base logic
         }
-        if (!TCConfig.allMinecartsAreTrainCarts && !OfflineGroupManager.containsMinecart(minecart.getUniqueId())) {
+        final TrainCarts traincarts = TrainCarts.plugin;
+        if (traincarts != null && !TCConfig.allMinecartsAreTrainCarts && !traincarts.getOfflineGroups().containsMinecart(minecart.getUniqueId())) {
             return false; // Not a known Traincarts Minecart, and the option to auto-convert all is disabled
         }
         return true;
@@ -113,7 +113,8 @@ public abstract class MinecartMemberStore {
         if (TrainCarts.isWorldDisabled(minecart.getWorld())) {
             return false; // World is disabled
         }
-        if (OfflineGroupManager.isDestroyingGroupOf((Minecart) minecart)) {
+        final TrainCarts traincarts = TrainCarts.plugin;
+        if (traincarts != null && traincarts.getOfflineGroups().isDestroyingGroupOf((Minecart) minecart)) {
             return false; // Presently destroying all minecarts, do not convert new ones during
         }
 
@@ -168,7 +169,7 @@ public abstract class MinecartMemberStore {
 
         // If not stored in the Offline store, this is a new Minecart that we need to
         // setup the default train properties for
-        if (!newController.isUnloaded() && !OfflineGroupManager.containsMinecart(entity.getUniqueId())) {
+        if (!newController.isUnloaded() && !plugin.getOfflineGroups().containsMinecart(entity.getUniqueId())) {
             newController.getGroup().getProperties().setDefault();
         }
 
