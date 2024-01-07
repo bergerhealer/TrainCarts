@@ -36,7 +36,7 @@ public final class OfflineGroup {
     private LongHashSet chunks = null;
     private LongHashSet loadedChunks = null;
     private boolean loaded;
-    public boolean isBeingRemoved = false;
+    private boolean isBeingRemoved = false;
 
     public OfflineGroup(MinecartGroup group) {
         this(group.getProperties().getTrainName(),
@@ -139,6 +139,10 @@ public final class OfflineGroup {
             }
         }
         return false;
+    }
+
+    void setBeingRemoved() {
+        this.isBeingRemoved = true;
     }
 
     public boolean testFullyLoaded() {

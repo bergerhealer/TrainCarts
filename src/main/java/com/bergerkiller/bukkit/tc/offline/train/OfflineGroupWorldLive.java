@@ -82,7 +82,7 @@ public class OfflineGroupWorldLive extends OfflineGroupWorld {
         final ChunkFutureProvider futureProvider = ChunkFutureProvider.of(TrainCarts.plugin);
 
         // This makes sure the group doesn't get restored as a train in the middle of removing
-        group.isBeingRemoved = true;
+        group.setBeingRemoved();
 
         // Set of minecart entity UUID's to find. Done when empty.
         final List<UUID> minecartEntityUUIDs = Stream.of(group.members)
