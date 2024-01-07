@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.offline.train.format;
 
 import com.bergerkiller.bukkit.tc.Util;
 
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -17,7 +16,7 @@ import java.util.Map;
 class DataBlockSerializer {
     private final List<String> values = new ArrayList<>();
     private final Map<String, Integer> valueToIndex = new HashMap<>();
-    private final ByteArrayOutputStream tempStream = new ByteArrayOutputStream(64);
+    private final DataBlock.DataBlockBuilder dataBlockBuilder = new DataBlock.DataBlockBuilder();
 
     public DataBlockSerializer() {
         reset();
@@ -28,25 +27,6 @@ class DataBlockSerializer {
         valueToIndex.clear();
         values.add("");
         valueToIndex.put("", 0);
-    }
-
-    /**
-     * Creates a new writable DataBlock, using the writer callback to generate the data contained
-     *
-     * @param name Name of the data block
-     * @param writer Writer to generate the data block data
-     * @return new DataBlock
-     * @throws IOException
-     */
-    public DataBlock createDataBlock(String name, DataBlock.DataWriter writer) throws IOException {
-        try {
-            try (DataOutputStream stream = new DataOutputStream(tempStream)) {
-                writer.write(stream);
-            }
-            return new DataBlock(this, name, tempStream.toByteArray(), new ArrayList<>());
-        } finally {
-            tempStream.reset();
-        }
     }
 
     /**
@@ -67,7 +47,7 @@ class DataBlockSerializer {
             while ((child = readDataBlock(stream)) != null) {
                 children.add(child);
             }
-            return new DataBlock(this, name, data, children);
+            return new DataBlock(dataBlockBuilder, name, data, children);
         }
     }
 

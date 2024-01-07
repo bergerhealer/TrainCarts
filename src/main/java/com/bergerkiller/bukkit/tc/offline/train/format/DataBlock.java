@@ -1,9 +1,13 @@
 package com.bergerkiller.bukkit.tc.offline.train.format;
 
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
+
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,8 +20,8 @@ import java.util.List;
 public class DataBlock {
     private static final byte[] NO_DATA = new byte[0];
 
-    /** Compresses string tokens used in data blocks or the data itself */
-    private final DataBlockSerializer serializer;
+    /** Is shared between all data blocks to efficiently serialize data */
+    private final DataBlockBuilder dataBlockBuilder;
     /** Name of this data block */
     public final String name;
     /** Data of this data block */
@@ -44,11 +48,11 @@ public class DataBlock {
      * @return new DataBlock
      */
     public static DataBlock create(String name) {
-        return new DataBlock(new DataBlockSerializer(), name, NO_DATA, new ArrayList<>());
+        return new DataBlock(new DataBlockBuilder(), name, NO_DATA, new ArrayList<>());
     }
 
-    DataBlock(DataBlockSerializer serializer, String name, byte[] data, List<DataBlock> children) {
-        this.serializer = serializer;
+    DataBlock(DataBlockBuilder dataBlockBuilder, String name, byte[] data, List<DataBlock> children) {
+        this.dataBlockBuilder = dataBlockBuilder;
         this.name = name;
         this.data = data;
         this.children = children;
@@ -61,7 +65,7 @@ public class DataBlock {
      * @throws IOException
      */
     public void writeTo(DataOutputStream stream) throws IOException {
-        serializer.reset();
+        DataBlockSerializer serializer = new DataBlockSerializer();
         serializer.writeDataBlock(stream, this);
     }
 
@@ -97,7 +101,7 @@ public class DataBlock {
      * @return Added DataBlock child
      */
     public DataBlock addChild(String name) {
-        DataBlock child = new DataBlock(serializer, name, NO_DATA, new ArrayList<>());
+        DataBlock child = new DataBlock(dataBlockBuilder, name, NO_DATA, new ArrayList<>());
         this.children.add(child);
         return child;
     }
@@ -112,7 +116,7 @@ public class DataBlock {
      * @return Added DataBlock child
      */
     public DataBlock addChild(String name, DataWriter writer) throws IOException {
-        DataBlock child = serializer.createDataBlock(name, writer);
+        DataBlock child = dataBlockBuilder.create(name, writer);
         this.children.add(child);
         return child;
     }
@@ -144,5 +148,25 @@ public class DataBlock {
     @FunctionalInterface
     public interface DataWriter {
         void write(DataOutputStream stream) throws IOException;
+    }
+
+    static final class DataBlockBuilder {
+        private WeakReference<ByteArrayOutputStream> stream = LogicUtil.nullWeakReference();
+
+        public DataBlock create(String name, DataWriter writer) throws IOException {
+            ByteArrayOutputStream tempByteArrayStream = this.stream.get();
+            if (tempByteArrayStream == null) {
+                tempByteArrayStream = new ByteArrayOutputStream(64);
+                this.stream = new WeakReference<>(tempByteArrayStream);
+            }
+            try {
+                try (DataOutputStream stream = new DataOutputStream(tempByteArrayStream)) {
+                    writer.write(stream);
+                }
+                return new DataBlock(this, name, tempByteArrayStream.toByteArray(), new ArrayList<>());
+            } finally {
+                tempByteArrayStream.reset();
+            }
+        }
     }
 }
