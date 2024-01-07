@@ -177,7 +177,7 @@ public class OfflineGroupWorldLive extends OfflineGroupWorld {
 
                     // Add a new group with the updated members, if the list isn't empty
                     if (!newMembers.isEmpty()) {
-                        add(new OfflineGroup(group.name, group.world, newMembers, (cgroup, cmember) -> cmember));
+                        add(group.withMembers(newMembers));
                     }
 
                     // Finished

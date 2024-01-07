@@ -12,12 +12,10 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import org.bukkit.World;
 
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.function.BiFunction;
 import java.util.function.LongConsumer;
 import java.util.logging.Level;
 
@@ -38,28 +36,31 @@ public final class OfflineGroup {
     private boolean loaded;
     private boolean isBeingRemoved = false;
 
-    public OfflineGroup(MinecartGroup group) {
+    public static OfflineGroup save(MinecartGroup group) {
+        try {
+            return new OfflineGroup(group);
+        } catch (IOException ex) {
+            throw new RuntimeException("Unexpected IO Exception", ex);
+        }
+    }
+
+    private OfflineGroup(MinecartGroup group) throws IOException {
         this(group.getProperties().getTrainName(),
              OfflineWorld.of(group.getWorld()),
              group,
              OfflineMember::new);
     }
 
+    // Constructor used for loading from data
     <T> OfflineGroup(
             final String name,
             final OfflineWorld world,
             final Collection<T> memberData,
-            final BiFunction<OfflineGroup, T, OfflineMember> memberCtor
-    ) {
+            final MemberFactory<T> memberFactory
+    ) throws IOException {
         this.name = name;
         this.world = world;
-        this.members = new OfflineMember[memberData.size()];
-        {
-            int index = 0;
-            for (T member : memberData) {
-                this.members[index++] = memberCtor.apply(this, member);
-            }
-        }
+        this.members = memberFactory.createMany(this, memberData);
         this.loaded = false;
     }
 
@@ -76,6 +77,14 @@ public final class OfflineGroup {
 
     public OfflineGroup withName(String newName) {
         return new OfflineGroup(this, newName);
+    }
+
+    public OfflineGroup withMembers(List<OfflineMember> newMembers) {
+        try {
+            return new OfflineGroup(name, world, newMembers, (cgroup, cmember) -> cmember);
+        } catch (IOException ex) {
+            throw new RuntimeException("Unexpected io exception", ex);
+        }
     }
 
     /**
@@ -221,19 +230,22 @@ public final class OfflineGroup {
         return MinecartGroup.create(this.name, rval.toArray(new MinecartMember[0]));
     }
 
-    /*
-     * Read and write functions used internally
-     */
-    public void writeTo(DataOutputStream stream) throws IOException {
-        stream.writeInt(members.length);
-        for (OfflineMember member : members) {
-            member.writeTo(stream);
-        }
-        stream.writeUTF(this.name);
-    }
-
     @FunctionalInterface
     public interface ChunkCoordConsumer {
         void accept(int cx, int cz);
+    }
+
+    @FunctionalInterface
+    public interface MemberFactory<T> {
+        OfflineMember create(OfflineGroup group, T data) throws IOException;
+
+        default OfflineMember[] createMany(OfflineGroup group, Collection<T> data) throws IOException {
+            int index = 0;
+            OfflineMember[] members = new OfflineMember[data.size()];
+            for (T member : data) {
+                members[index++] = create(group, member);
+            }
+            return members;
+        }
     }
 }

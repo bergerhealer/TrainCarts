@@ -19,8 +19,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.util.Vector;
 
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -31,14 +29,15 @@ public final class OfflineMember {
     public final OfflineGroup group;
     public final UUID entityUID;
     public final int cx, cz;
-    public final double motX, motZ;
+    public final double motX, motY, motZ;
 
-    OfflineMember(OfflineGroup group, UUID entityUID, int cx, int cz, double motX, double motZ) {
+    OfflineMember(OfflineGroup group, UUID entityUID, int cx, int cz, double motX, double motY, double motZ) {
         this.group = group;
         this.entityUID = entityUID;
         this.cx = cx;
         this.cz = cz;
         this.motX = motX;
+        this.motY = motY;
         this.motZ = motZ;
     }
 
@@ -59,15 +58,18 @@ public final class OfflineMember {
             double ls = vel.lengthSquared();
             if (ls < 1e-20) {
                 this.motX = velMagn;
+                this.motY = 0.0;
                 this.motZ = 0.0;
             } else {
                 vel = vel.multiply(MathUtil.getNormalizationFactorLS(ls) * velMagn);
                 this.motX = vel.getX();
+                this.motY = vel.getY();
                 this.motZ = vel.getZ();
             }
         } else {
             // Use current cart velocity
             this.motX = entity.vel.getX();
+            this.motY = entity.vel.getY();
             this.motZ = entity.vel.getZ();
         }
     }
@@ -151,16 +153,7 @@ public final class OfflineMember {
         }
 
         // Restore velocity
-        mm.getEntity().vel.xz.set(this.motX, this.motZ);
+        mm.getEntity().setVelocity(new Vector(motX, motY, motZ));
         return mm;
-    }
-
-    public void writeTo(DataOutputStream stream) throws IOException {
-        stream.writeLong(entityUID.getMostSignificantBits());
-        stream.writeLong(entityUID.getLeastSignificantBits());
-        stream.writeDouble(motX);
-        stream.writeDouble(motZ);
-        stream.writeInt(cx);
-        stream.writeInt(cz);
     }
 }

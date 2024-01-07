@@ -527,7 +527,7 @@ public class OfflineGroupManager implements TrainCarts.Provider {
         if (world == null) {
             return null;
         }
-        return new OfflineGroup(group);
+        return OfflineGroup.save(group);
     }
 
     /**

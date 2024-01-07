@@ -3,19 +3,14 @@ package com.bergerkiller.bukkit.tc.offline.train;
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.TempFileOutputStream;
-import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -38,7 +33,7 @@ class OfflineGroupFileHandler {
         new DataReader(dataFile) {
             @Override
             public void read(DataInputStream stream) throws IOException {
-                List<OfflineGroupWorld> worlds = readAllGroups(stream);
+                List<OfflineGroupWorld> worlds = OfflineGroupFileFormatModern.readAllWorlds(stream);
                 manager.load(worlds);
             }
         }.read();
@@ -74,7 +69,7 @@ class OfflineGroupFileHandler {
                  DataOutputStream stream = new DataOutputStream(fileStream)
             ) {
                 try {
-                    writeAllGroups(worlds, stream);
+                    OfflineGroupFileFormatModern.writeAllWorlds(stream, worlds);
                 } catch (Throwable t) {
                     fileStream.close(false);
                     throw t;
@@ -99,37 +94,6 @@ class OfflineGroupFileHandler {
         }
     }
 
-    private List<OfflineGroupWorld> readAllGroups(DataInputStream stream) throws IOException {
-        List<OfflineGroupWorld> worlds = new ArrayList<>();
-        final int worldcount = stream.readInt();
-        for (int worldIdx = 0; worldIdx < worldcount; worldIdx++) {
-            OfflineWorld world = OfflineWorld.of(StreamUtil.readUUID(stream));
-            final int groupcount = stream.readInt();
-
-            // Read all the groups contained
-            List<OfflineGroup> groups = new ArrayList<>(groupcount);
-            for (int groupIdx = 0; groupIdx < groupcount; groupIdx++) {
-                groups.add(readLegacyGroup(stream, world));
-            }
-
-            // Done with world
-            worlds.add(OfflineGroupWorld.snapshot(world, groups));
-        }
-        return worlds;
-    }
-
-    private void writeAllGroups(List<OfflineGroupWorld> worlds, DataOutputStream stream) throws IOException {
-        // Write it in legacy format
-        stream.writeInt(worlds.size());
-        for (OfflineGroupWorld world : worlds) {
-            StreamUtil.writeUUID(stream, world.getWorld().getUniqueId());
-            stream.writeInt(world.totalGroupCount());
-            for (OfflineGroup wg : world) {
-                wg.writeTo(stream);
-            }
-        }
-    }
-
     private boolean waitForSaveCompletion() {
         try {
             currentSaveOperation.get(10, TimeUnit.SECONDS);
@@ -139,39 +103,5 @@ class OfflineGroupFileHandler {
         } catch (Throwable t) { /* already logged */ }
 
         return true;
-    }
-
-    private static OfflineGroup readLegacyGroup(DataInputStream stream, OfflineWorld world) throws IOException {
-        LegacyOfflineMemberData[] members = new LegacyOfflineMemberData[stream.readInt()];
-        for (int i = 0; i < members.length; i++) {
-            members[i] = LegacyOfflineMemberData.read(stream);
-        }
-        String name = stream.readUTF();
-
-        return new OfflineGroup(name, world, Arrays.asList(members),
-                (offlineGroup, legacyMember) -> legacyMember.toOfflineMember(offlineGroup));
-    }
-
-    public static class LegacyOfflineMemberData {
-        public final UUID entityUID;
-        public final int cx, cz;
-        public final double motX, motZ;
-
-        public static LegacyOfflineMemberData read(DataInputStream stream) throws IOException {
-            return new LegacyOfflineMemberData(stream);
-        }
-
-        private LegacyOfflineMemberData(DataInputStream stream) throws IOException {
-            entityUID = new UUID(stream.readLong(), stream.readLong());
-            motX = stream.readDouble();
-            motZ = stream.readDouble();
-            cx = stream.readInt();
-            cz = stream.readInt();
-        }
-
-        public OfflineMember toOfflineMember(OfflineGroup offlineGroup) {
-            return new OfflineMember(offlineGroup,
-                    entityUID, cx, cz, motX, motZ);
-        }
     }
 }
