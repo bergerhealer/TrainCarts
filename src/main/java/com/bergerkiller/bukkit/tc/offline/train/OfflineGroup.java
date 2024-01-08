@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.wrappers.LongHashSet.LongIterator;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import org.bukkit.World;
 
@@ -28,6 +29,7 @@ public final class OfflineGroup {
     // These fields are immutable
     public final String name;
     public final OfflineWorld world;
+    public final List<DataBlock> actions;
     public final OfflineMember[] members;
 
     // These are modified/lazily generated at runtime
@@ -47,6 +49,7 @@ public final class OfflineGroup {
     private OfflineGroup(MinecartGroup group) throws IOException {
         this(group.getProperties().getTrainName(),
              OfflineWorld.of(group.getWorld()),
+             group.getTrainCarts().getActionRegistry().saveTracker(group.getActions()),
              group,
              OfflineMember::new);
     }
@@ -55,11 +58,13 @@ public final class OfflineGroup {
     <T> OfflineGroup(
             final String name,
             final OfflineWorld world,
+            final List<DataBlock> actions,
             final Collection<T> memberData,
             final MemberFactory<T> memberFactory
     ) throws IOException {
         this.name = name;
         this.world = world;
+        this.actions = actions;
         this.members = memberFactory.createMany(this, memberData);
         this.loaded = false;
     }
@@ -73,6 +78,7 @@ public final class OfflineGroup {
         this.loadedChunks = original.loadedChunks;
         this.loaded = original.loaded;
         this.isBeingRemoved = original.isBeingRemoved;
+        this.actions = original.actions;
     }
 
     public OfflineGroup withName(String newName) {
@@ -81,7 +87,7 @@ public final class OfflineGroup {
 
     public OfflineGroup withMembers(List<OfflineMember> newMembers) {
         try {
-            return new OfflineGroup(name, world, newMembers, (cgroup, cmember) -> cmember);
+            return new OfflineGroup(name, world, actions, newMembers, (cgroup, cmember) -> cmember);
         } catch (IOException ex) {
             throw new RuntimeException("Unexpected io exception", ex);
         }
@@ -203,18 +209,18 @@ public final class OfflineGroup {
      * @return An array of Minecarts
      */
     public MinecartGroup create(TrainCarts traincarts) {
-        ArrayList<MinecartMember<?>> rval = new ArrayList<>(this.members.length);
+        ArrayList<MinecartMember<?>> groupMembers = new ArrayList<>(this.members.length);
         int missingNo = 0;
         int cx = 0, cz = 0;
         World world = this.world.getLoadedWorld();
-        for (OfflineMember member : this.members) {
-            MinecartMember<?> mm = member.create(traincarts, world);
+        for (OfflineMember offlineMember : this.members) {
+            MinecartMember<?> mm = offlineMember.create(traincarts, world);
             if (mm != null) {
-                rval.add(mm);
+                groupMembers.add(mm);
             } else {
                 missingNo++;
-                cx = member.cx;
-                cz = member.cz;
+                cx = offlineMember.cx;
+                cz = offlineMember.cz;
             }
         }
         if (missingNo > 0) {
@@ -222,12 +228,44 @@ public final class OfflineGroup {
                     "are missing near chunk [" + cx + ", " + cz + "]! (externally edited?)");
         }
         this.loaded = true;
-        if (rval.isEmpty()) {
+        if (groupMembers.isEmpty()) {
             TrainPropertiesStore.remove(this.name);
             return null;
         }
-        // Is a new group needed?
-        return MinecartGroup.create(this.name, rval.toArray(new MinecartMember[0]));
+
+        MinecartGroup group = MinecartGroup.create(this.name, groupMembers.toArray(new MinecartMember[0]));
+
+        // Initialize the group itself
+        this.load(group);
+
+        // Initialize the members of the group. Assume that all members load in and that the
+        // indices are identical.
+        for (int i = 0; i < this.members.length; i++) {
+            OfflineMember offlineMember = this.members[i];
+            MinecartMember<?> member;
+            if (i < group.size() && offlineMember.entityUID.equals(group.get(i).getEntity().getUniqueId())) {
+                member = group.get(i);
+            } else {
+                member = null;
+                for (MinecartMember<?> groupMember : group) {
+                    if (offlineMember.entityUID.equals(groupMember.getEntity().getUniqueId())) {
+                        member = groupMember;
+                        break;
+                    }
+                }
+                if (member == null) {
+                    continue;
+                }
+            }
+
+            offlineMember.load(member);
+        }
+
+        return group;
+    }
+
+    void load(MinecartGroup group) {
+        group.getTrainCarts().getActionRegistry().loadTracker(group.getActions(), actions);
     }
 
     @FunctionalInterface

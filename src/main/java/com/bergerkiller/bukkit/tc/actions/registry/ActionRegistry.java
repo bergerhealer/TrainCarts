@@ -3,8 +3,7 @@ package com.bergerkiller.bukkit.tc.actions.registry;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.actions.Action;
-import com.bergerkiller.bukkit.tc.actions.MemberAction;
+import com.bergerkiller.bukkit.tc.actions.*;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTracker;
@@ -36,6 +35,34 @@ public class ActionRegistry {
 
     public ActionRegistry(TrainCarts plugin) {
         this.plugin = plugin;
+        this.registerTrainCartsActions();
+    }
+
+    private void registerTrainCartsActions() {
+        register(MemberActionLaunch.class, new MemberActionLaunch.Serializer());
+        register(MemberActionLaunchDirection.class, new MemberActionLaunchDirection.Serializer());
+        register(MemberActionLaunchLocation.class, new MemberActionLaunchLocation.Serializer());
+        register(MemberActionWaitDistance.class, new MemberActionWaitDistance.Serializer());
+        register(MemberActionWaitLocation.class, new MemberActionWaitLocation.Serializer());
+        register(GroupActionWaitForever.class, new GroupActionWaitForever.Serializer());
+        register(GroupActionWaitTill.class, new GroupActionWaitTill.Serializer());
+        register(GroupActionWaitTicks.class, new GroupActionWaitTicks.Serializer());
+        register(GroupActionWaitDelay.class, new GroupActionWaitDelay.Serializer());
+        register(TrackedSignActionSetOutput.class, new TrackedSignActionSetOutput.Serializer(plugin));
+        register(GroupActionSizzle.class, new GroupActionSizzle.Serializer());
+    }
+
+    /**
+     * Registers a serializer for a certain action class. Only the exact action class type
+     * can be loaded and saved. Derived classes are not included. Uses the full class name
+     * as the identifier for the action.
+     *
+     * @param type Action Class
+     * @param serializer Serializer
+     * @param <T> Action Class type
+     */
+    public <T extends Action> void register(Class<T> type, Serializer<T> serializer) {
+        register(type.getName(), type, serializer);
     }
 
     /**
@@ -160,15 +187,18 @@ public class ActionRegistry {
 
         // Ask serializer to save the action. Could fail, in which case we remove the action data block
         // again to avoid trouble.
+        boolean success = false;
         try {
-            registeredAction.serializer.save(action, child);
+            success = registeredAction.serializer.save(action, child);
         } catch (Throwable t) {
-            root.children.remove(child);
             plugin.getLogger().log(Level.SEVERE, "Failed to save action " + action.getClass().getName(), t);
+        }
+        if (success) {
+            return child;
+        } else {
+            root.children.remove(child);
             return null;
         }
-
-        return child;
     }
 
     /**
@@ -231,6 +261,10 @@ public class ActionRegistry {
             }
 
             Action action = registeredAction.serializer.load(dataBlock);
+            if (action == null) {
+                return null;
+            }
+
             Action.loadElapsedTime(action, elapsedTicks, elapsedTimeMillis);
             for (String tag : tags) {
                 action.addTag(tag);
@@ -238,6 +272,7 @@ public class ActionRegistry {
             if (member != null && action instanceof MemberAction) {
                 ((MemberAction) action).setMember(member);
             }
+
             return action;
         } catch (Throwable t) {
             if (registeredAction != null) {
@@ -274,9 +309,11 @@ public class ActionRegistry {
          *
          * @param action Action to save
          * @param data DataBlock
+         * @return True if saving was successful, False if the Action should be omitted because
+         *         it could not be saved.
          * @throws IOException
          */
-        void save(T action, DataBlock data) throws IOException;
+        boolean save(T action, DataBlock data) throws IOException;
 
         /**
          * Loads in this registered action. Child data blocks in the input data

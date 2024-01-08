@@ -1,10 +1,15 @@
 package com.bergerkiller.bukkit.tc.actions;
 
+import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
+
+import java.io.DataInputStream;
+import java.io.IOException;
 
 public class MemberActionLaunchDirection extends MemberActionLaunch implements MovementAction {
     private BlockFace direction;
@@ -52,6 +57,25 @@ public class MemberActionLaunchDirection extends MemberActionLaunch implements M
         this.direction = direction;
     }
 
+    public BlockFace getDirection() {
+        return this.direction;
+    }
+
+    public void setDirectionCorrected(boolean corrected) {
+        this.directionWasCorrected = corrected;
+    }
+
+    /**
+     * Gets whether the direction was corrected using the train's current position on the track.
+     * This is done once to ensure the launch follows the same direction path along the track,
+     * even if taking curves.
+     *
+     * @return True if the direction was corrected
+     */
+    public boolean isDirectionCorrected() {
+        return directionWasCorrected;
+    }
+
     @Override
     public boolean update() {
         boolean success = super.update();
@@ -75,4 +99,41 @@ public class MemberActionLaunchDirection extends MemberActionLaunch implements M
 
         return success;
     }
+
+    public static class Serializer extends BaseSerializer<MemberActionLaunchDirection> {
+        @Override
+        public MemberActionLaunchDirection create(DataBlock data) throws IOException {
+            return new MemberActionLaunchDirection();
+        }
+    }
+
+    public static abstract class BaseSerializer<T extends MemberActionLaunchDirection> extends MemberActionLaunch.BaseSerializer<T> {
+        @Override
+        public boolean save(T action, DataBlock data) throws IOException {
+            super.save(action, data);
+
+            // Save the direction information
+            data.addChild("launch-direction", stream -> {
+                Util.writeVariableLengthInt(stream, action.getDirection().ordinal());
+                stream.writeBoolean(action.isDirectionCorrected());
+            });
+            return true;
+        }
+
+        @Override
+        public T load(DataBlock data) throws IOException {
+            T action = super.load(data);
+
+            // Load the direction information
+            try (DataInputStream stream = data.findChildOrThrow("launch-direction").readData()) {
+                int blockFaceOrd = Util.readVariableLengthInt(stream);
+                BlockFace[] faces = BlockFace.values(); // Can this change?
+                action.setDirection((blockFaceOrd >= 0 && blockFaceOrd < faces.length)
+                        ? faces[blockFaceOrd] : BlockFace.NORTH);
+                action.setDirectionCorrected(stream.readBoolean());
+            }
+
+            return action;
+        }
+    };
 }

@@ -1,9 +1,12 @@
 package com.bergerkiller.bukkit.tc.actions;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import com.bergerkiller.bukkit.tc.actions.registry.ActionRegistry;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
+import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
 
 public class GroupActionWaitForever extends GroupAction implements WaitAction {
 
@@ -21,5 +24,17 @@ public class GroupActionWaitForever extends GroupAction implements WaitAction {
     @Override
     public List<TrainStatus> getStatusInfo() {
         return Collections.singletonList(new TrainStatus.WaitingForever());
+    }
+
+    public static class Serializer implements ActionRegistry.Serializer<GroupActionWaitForever> {
+        @Override
+        public boolean save(GroupActionWaitForever action, DataBlock data) throws IOException {
+            return true;
+        }
+
+        @Override
+        public GroupActionWaitForever load(DataBlock data) throws IOException {
+            return new GroupActionWaitForever();
+        }
     }
 }

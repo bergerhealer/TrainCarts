@@ -2,14 +2,12 @@ package com.bergerkiller.bukkit.tc.offline.train;
 
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.actions.MemberActionLaunch;
-import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
 import org.bukkit.Chunk;
@@ -19,6 +17,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.util.Vector;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -30,8 +29,12 @@ public final class OfflineMember {
     public final UUID entityUID;
     public final int cx, cz;
     public final double motX, motY, motZ;
+    public final List<DataBlock> actions;
 
-    OfflineMember(OfflineGroup group, UUID entityUID, int cx, int cz, double motX, double motY, double motZ) {
+    OfflineMember(OfflineGroup group, UUID entityUID,
+                  int cx, int cz, double motX, double motY, double motZ,
+                  List<DataBlock> actions
+    ) {
         this.group = group;
         this.entityUID = entityUID;
         this.cx = cx;
@@ -39,6 +42,7 @@ public final class OfflineMember {
         this.motX = motX;
         this.motY = motY;
         this.motZ = motZ;
+        this.actions = actions;
     }
 
     public OfflineMember(OfflineGroup offlineGroup, MinecartMember<?> instance) {
@@ -48,30 +52,11 @@ public final class OfflineMember {
         this.entityUID = entity.getUniqueId();
         this.cx = entity.loc.x.chunk();
         this.cz = entity.loc.z.chunk();
+        this.motX = entity.vel.getX();
+        this.motY = entity.vel.getY();
+        this.motZ = entity.vel.getZ();
 
-        MinecartGroup group = instance.getGroup();
-        if (group.getActions().getCurrentAction() instanceof MemberActionLaunch) {
-            // Simulate as if the launch has completed
-            // TODO: Remove this
-            double velMagn = ((MemberActionLaunch) group.getActions().getCurrentAction()).getTargetVelocity();
-            Vector vel = entity.getVelocity();
-            double ls = vel.lengthSquared();
-            if (ls < 1e-20) {
-                this.motX = velMagn;
-                this.motY = 0.0;
-                this.motZ = 0.0;
-            } else {
-                vel = vel.multiply(MathUtil.getNormalizationFactorLS(ls) * velMagn);
-                this.motX = vel.getX();
-                this.motY = vel.getY();
-                this.motZ = vel.getZ();
-            }
-        } else {
-            // Use current cart velocity
-            this.motX = entity.vel.getX();
-            this.motY = entity.vel.getY();
-            this.motZ = entity.vel.getZ();
-        }
+        this.actions = instance.getTrainCarts().getActionRegistry().saveTracker(instance.getActions());
     }
 
     public boolean isMoving() {
@@ -125,7 +110,7 @@ public final class OfflineMember {
 
             // This is a bit extraordinary, so log that we could not find the entity in any nearby chunks...
             Location loc = byUUID.getLocation();
-            plugin.log(Level.WARNING, cartInfo() + " was not found in Chunk Entities, " +
+            plugin.log(Level.WARNING, this.toString() + " was not found in Chunk Entities, " +
                     "yet was found in World at " +
                     "[" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + "]");
 
@@ -136,7 +121,8 @@ public final class OfflineMember {
         return null;
     }
 
-    private String cartInfo() {
+    @Override
+    public String toString() {
         return "Cart [" + this.entityUID + "] of train '" + group.name + "' " +
                 "at chunk [" + this.cx + ", " + this.cz + "]";
     }
@@ -148,12 +134,16 @@ public final class OfflineMember {
         }
         MinecartMember<?> mm = MinecartMemberStore.convert(plugin, entity);
         if (mm == null) {
-            plugin.log(Level.WARNING, cartInfo() + "Controller creation failed!");
+            plugin.log(Level.WARNING, this.toString() + " Controller creation failed!");
             return null;
         }
 
         // Restore velocity
         mm.getEntity().setVelocity(new Vector(motX, motY, motZ));
         return mm;
+    }
+
+    void load(MinecartMember<?> member) {
+        member.getTrainCarts().getActionRegistry().loadTracker(member.getActions(), actions);
     }
 }

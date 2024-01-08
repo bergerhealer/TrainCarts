@@ -4,6 +4,11 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.function.Predicate;
+
 /**
  * Stores all the configuration parsed from a launch statement on a sign.
  * This will parse launch distance or time, and selects the launch function to use.
@@ -14,7 +19,7 @@ public class LauncherConfig implements Cloneable {
     private int _duration;
     private double _acceleration;
     private boolean _launchFunctionIsDefault = true;
-    private Class<? extends LaunchFunction> _launchFunction;
+    private Class<? extends LaunchFunction> _launchFunction = LaunchFunction.Bezier.class;
 
     /**
      * Gets whether this is a valid configuration.
@@ -52,6 +57,21 @@ public class LauncherConfig implements Cloneable {
      */
     public boolean hasAcceleration() {
         return this._acceleration > 0.0;
+    }
+
+    /**
+     * Gets the Mode this launcher configuration is in. This is either distance, duration,
+     * acceleration or invalid.
+     *
+     * @return Launcher configuration mode
+     */
+    public Mode getMode() {
+        for (Mode mode : Mode.values()) {
+            if (mode.predicate.test(this)) {
+                return mode;
+            }
+        }
+        return Mode.INVALID;
     }
 
     /**
@@ -280,5 +300,82 @@ public class LauncherConfig implements Cloneable {
         config._acceleration = -1.0;
         config._asString = ""; // invalid, because it is not configured yet
         return config;
+    }
+
+    /**
+     * Decodes a launcher configuration from previously written data
+     *
+     * @param stream Stream to read from
+     * @return Decoded Launcher configuration
+     * @throws IOException
+     * @see #writeTo(DataOutputStream)
+     */
+    public static LauncherConfig readFrom(DataInputStream stream) throws IOException {
+        // Mode selector
+        int modeOrd = Util.readVariableLengthInt(stream);
+        Mode[] modes = Mode.values();
+        Mode mode = (modeOrd >= 0 && modeOrd < modes.length) ? modes[modeOrd] : Mode.INVALID;
+
+        // Launch function type
+        int launchFunctionId = Util.readVariableLengthInt(stream);
+        Class<? extends LaunchFunction> launchFunction = (launchFunctionId == 1)
+                ? LaunchFunction.Linear.class : LaunchFunction.Bezier.class;
+
+        // Read the launcher configuration for this mode
+        LauncherConfig config = new LauncherConfig();
+        config.setFunction(launchFunction);
+        mode.read.accept(stream, config);
+        return config;
+    }
+
+    /**
+     * Encodes this launcher configuration to a stream, so it can be later read again
+     *
+     * @param stream Stream to write to
+     * @throws IOException
+     */
+    public void writeTo(DataOutputStream stream) throws IOException {
+        Mode mode = getMode();
+        Util.writeVariableLengthInt(stream, mode.ordinal());
+        Util.writeVariableLengthInt(stream, (_launchFunction == LaunchFunction.Linear.class) ? 1 : 0);
+        mode.write.accept(stream, this);
+    }
+
+    /**
+     * Mode of operation of a launch configuration
+     */
+    public enum Mode {
+        /** A launch duration was set. {@link #hasDuration()} is true. */
+        DURATION(LauncherConfig::hasDuration,
+                 (stream, config) -> config.setDuration(stream.readInt()),
+                 (stream, config) -> stream.writeInt(config.getDuration())),
+        /** A launch distance was set. {@link #hasDistance()} is true. */
+        DISTANCE(LauncherConfig::hasDistance,
+                 (stream, config) -> config.setDistance(stream.readDouble()),
+                 (stream, config) -> stream.writeDouble(config.getDistance())),
+        /** A launch acceleration was set. {@link #hasAcceleration()} is true. */
+        ACCELERATION(LauncherConfig::hasAcceleration,
+                 (stream, config) -> config.setAcceleration(stream.readDouble()),
+                 (stream, config) -> stream.writeDouble(config.getAcceleration())),
+        /** No configuration was set yet. {@link #isValid()} is false. */
+        INVALID(l -> !l.isValid(), (stream, config) -> {}, (stream, config) -> {});
+
+        private final Predicate<LauncherConfig> predicate;
+        private final IOBiFunction<DataInputStream, LauncherConfig> read;
+        private final IOBiFunction<DataOutputStream, LauncherConfig> write;
+
+        Mode(Predicate<LauncherConfig> predicate,
+             IOBiFunction<DataInputStream, LauncherConfig> read,
+             IOBiFunction<DataOutputStream, LauncherConfig> write
+        ) {
+            this.predicate = predicate;
+            this.read = read;
+            this.write = write;
+        }
+
+        @FunctionalInterface
+        private interface IOBiFunction<A, B> {
+            void accept(A a, B b) throws IOException;
+        }
     }
 }
