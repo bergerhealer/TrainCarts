@@ -42,12 +42,12 @@ class DataBlockSerializer {
             return null; // End of data blocks
         } else {
             byte[] data = Util.readByteArray(stream);
-            List<DataBlock> children = new ArrayList<>();
+            DataBlock dataBlock = new DataBlock(dataBlockBuilder, name, data);
             DataBlock child;
             while ((child = readDataBlock(stream)) != null) {
-                children.add(child);
+                dataBlock.addChild(child);
             }
-            return new DataBlock(dataBlockBuilder, name, data, children);
+            return dataBlock;
         }
     }
 
