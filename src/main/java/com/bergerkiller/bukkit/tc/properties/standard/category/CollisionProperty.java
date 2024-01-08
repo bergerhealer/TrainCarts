@@ -1,7 +1,10 @@
 package com.bergerkiller.bukkit.tc.properties.standard.category;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -437,14 +440,27 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
             if (collisionConfig.contains("block")) {
                 builder.setBlockMode(readMode(collisionConfig,"block", CollisionOptions.DEFAULT.blockMode()));
             }
+            if (collisionConfig.contains("mobs")) {
+                builder.setModeForAllMobs(readMode(collisionConfig,"mobs", null));
+            } else if (collisionConfig.contains("mob")) {
+                builder.setModeForAllMobs(readMode(collisionConfig,"mob", null));
+            }
 
-            // Mob collision modes
+            // Specialized mob collision modes
             for (CollisionMobCategory category : CollisionMobCategory.values()) {
+                CollisionMode mode;
                 if (collisionConfig.contains(category.getMobType())) {
-                    CollisionMode mode = readMode(collisionConfig, category.getMobType(), null);
-                    if (mode != null) {
-                        builder.setMobMode(category, mode);
-                    }
+                    // Singular
+                    mode = readMode(collisionConfig, category.getMobType(), null);
+                } else if (collisionConfig.contains(category.getPluralMobType())) {
+                    // Plural
+                    mode = readMode(collisionConfig, category.getPluralMobType(), null);
+                } else {
+                    continue; // Not found
+                }
+
+                if (mode != null) {
+                    builder.setMobMode(category, mode);
                 }
             }
 
@@ -463,13 +479,39 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
             ConfigurationNode collisionConfig = config.getNode("collision");
             CollisionOptions data = value.get();
 
+            // If all mob categories are set to the same value, then we write mobs: with the value,
+            // instead of bothering to write out each individual category
+            final boolean hasMobsMode;
+            {
+                List<CollisionMode> mobCollisionModes = Stream.of(CollisionMobCategory.values())
+                        .filter(CollisionMobCategory::isMobCategory)
+                        .map(data::mobMode)
+                        .distinct()
+                        .collect(Collectors.toList());
+                hasMobsMode = (mobCollisionModes.size() == 1 && mobCollisionModes.get(0) != null);
+                if (hasMobsMode) {
+                    collisionConfig.set("mobs", mobCollisionModes.get(0));
+                } else {
+                    collisionConfig.remove("mobs");
+                }
+                collisionConfig.remove("mob");
+            }
+
             for (CollisionMobCategory category : CollisionMobCategory.values()) {
-                CollisionMode mode = data.mobMode(category);
+                CollisionMode mode;
+                if (hasMobsMode && category.isMobCategory()) {
+                    mode = null; // Omit. Already written as 'mobs'
+                } else {
+                    mode = data.mobMode(category);
+                }
+
+                // Always save as singular mob type. So delete the plural one to avoid trouble.
                 if (mode != null) {
                     collisionConfig.set(category.getMobType(), mode);
                 } else {
                     collisionConfig.remove(category.getMobType());
                 }
+                collisionConfig.remove(category.getPluralMobType());
             }
 
             collisionConfig.set("players", data.playerMode());
