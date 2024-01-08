@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatusProvider;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -28,6 +29,16 @@ public abstract class ActionTracker implements TrainStatusProvider {
 
     public boolean hasAction() {
         return !this.actions.isEmpty();
+    }
+
+    /**
+     * Gets all actions that have been scheduled inside this action tracker. The front
+     * action is the one currently being run.
+     *
+     * @return Collection of scheduled actions
+     */
+    public Collection<Action> getScheduledActions() {
+        return Collections.unmodifiableCollection(actions);
     }
 
     /**

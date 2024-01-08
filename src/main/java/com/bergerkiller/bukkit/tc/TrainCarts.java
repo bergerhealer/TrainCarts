@@ -19,6 +19,8 @@ import com.bergerkiller.bukkit.neznamytabnametaghider.TabNameTagHider;
 import com.bergerkiller.bukkit.neznamytabnametaghider.TabNameTagHiderDependency;
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.common.softdependency.SoftDependency;
+import com.bergerkiller.bukkit.tc.actions.Action;
+import com.bergerkiller.bukkit.tc.actions.registry.ActionRegistry;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModelStore;
@@ -116,6 +118,7 @@ public class TrainCarts extends PluginBase {
     private final TCSelectorHandlerRegistry selectorHandlerRegistry = new TCSelectorHandlerRegistry(this);
     private final OfflineGroupManager offlineGroupManager = new OfflineGroupManager(this);
     private final OfflineSignStore offlineSignStore = new OfflineSignStore(this);
+    private final ActionRegistry actionRegistry = new ActionRegistry(this);
     private final TrackedSignLookup trackedSignLookup = new TrackedSignLookup(this);
     private final SignController signController = new SignController(this);
     private final PacketQueueMap packetQueueMap = new PacketQueueMap(this);
@@ -340,6 +343,16 @@ public class TrainCarts extends PluginBase {
      */
     public TrackedSignLookup getTrackedSignLookup() {
         return trackedSignLookup;
+    }
+
+    /**
+     * Gets the action registry. This registry contains all the {@link Action} types
+     * that are persistent. Actions that survive a train reload are registered here.
+     *
+     * @return Action Registry
+     */
+    public ActionRegistry getActionRegistry() {
+        return actionRegistry;
     }
 
     /**
