@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.offline.train.format;
 
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.tc.Util;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -9,6 +10,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -17,7 +19,7 @@ import java.util.List;
  * serializing the groupdata format in the modern way, to allow for more
  * expandable data.
  */
-public class DataBlock {
+public final class DataBlock {
     private static final byte[] NO_DATA = new byte[0];
 
     /** Is shared between all data blocks to efficiently serialize data */
@@ -48,14 +50,14 @@ public class DataBlock {
      * @return new DataBlock
      */
     public static DataBlock create(String name) {
-        return new DataBlock(new DataBlockBuilder(), name, NO_DATA, new ArrayList<>());
+        return new DataBlock(new DataBlockBuilder(), name, NO_DATA);
     }
 
-    DataBlock(DataBlockBuilder dataBlockBuilder, String name, byte[] data, List<DataBlock> children) {
+    DataBlock(DataBlockBuilder dataBlockBuilder, String name, byte[] data) {
         this.dataBlockBuilder = dataBlockBuilder;
         this.name = name;
         this.data = data;
-        this.children = children;
+        this.children = new ArrayList<>();
     }
 
     /**
@@ -85,13 +87,7 @@ public class DataBlock {
      * @return Children, empty list if none are found
      */
     public List<DataBlock> findChildren(String name) {
-        List<DataBlock> result = new ArrayList<>(children.size());
-        for (DataBlock child : children) {
-            if (child.name.equals(name)) {
-                result.add(child);
-            }
-        }
-        return result;
+        return Util.filterList(Collections.unmodifiableList(children), c -> c.name.equals(name));
     }
 
     /**
@@ -101,9 +97,7 @@ public class DataBlock {
      * @return Added DataBlock child
      */
     public DataBlock addChild(String name) {
-        DataBlock child = new DataBlock(dataBlockBuilder, name, NO_DATA, new ArrayList<>());
-        this.children.add(child);
-        return child;
+        return addChild(new DataBlock(dataBlockBuilder, name, NO_DATA));
     }
 
     /**
@@ -116,7 +110,10 @@ public class DataBlock {
      * @return Added DataBlock child
      */
     public DataBlock addChild(String name, DataWriter writer) throws IOException {
-        DataBlock child = dataBlockBuilder.create(name, writer);
+        return addChild(dataBlockBuilder.create(name, writer));
+    }
+
+    DataBlock addChild(DataBlock child) {
         this.children.add(child);
         return child;
     }
@@ -163,7 +160,7 @@ public class DataBlock {
                 try (DataOutputStream stream = new DataOutputStream(tempByteArrayStream)) {
                     writer.write(stream);
                 }
-                return new DataBlock(this, name, tempByteArrayStream.toByteArray(), new ArrayList<>());
+                return new DataBlock(this, name, tempByteArrayStream.toByteArray());
             } finally {
                 tempByteArrayStream.reset();
             }

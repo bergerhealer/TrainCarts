@@ -1772,7 +1772,7 @@ public class Util {
      *
      * @param list Input List
      * @param filter Filter Predicate
-     * @return List filtered by the input filter
+     * @return Unmodifiable List filtered by the input filter
      * @param <T> List Type
      */
     public static <T> List<T> filterList(List<T> list, Predicate<T> filter) {
@@ -1787,7 +1787,7 @@ public class Util {
      * @param list Input List
      * @param filter Filter Predicate
      * @param mapper Mapper function to a collection of results for every item. Null maps identity.
-     * @return Mapped, filtered List
+     * @return Mapped, unmodifiable filtered List
      * @param <I> Input list type
      * @param <O> Output list type
      */
@@ -1806,7 +1806,7 @@ public class Util {
      * @param list Input List
      * @param filter Filter Predicate
      * @param mapper Mapper function to a collection of results for every item. Null maps identity.
-     * @return Mapped, filtered List
+     * @return Mapped, filtered unmodifiable List
      * @param <I> Input list type
      * @param <O> Output list type
      */
