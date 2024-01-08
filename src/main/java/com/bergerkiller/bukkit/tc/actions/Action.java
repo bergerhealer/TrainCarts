@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.actions;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -72,6 +73,15 @@ public abstract class Action implements TrainStatusProvider, TrainCarts.Provider
     }
 
     /**
+     * Gets the set of tags added to this action
+     *
+     * @return Tags
+     */
+    public Set<String> getTags() {
+        return Collections.unmodifiableSet(this.tags);
+    }
+
+    /**
      * Adds a metadata tag for this action
      * 
      * @param tag
@@ -121,5 +131,26 @@ public abstract class Action implements TrainStatusProvider, TrainCarts.Provider
     @Override
     public List<TrainStatus> getStatusInfo() {
         return Collections.emptyList();
+    }
+
+    /**
+     * Loads the elapsed time of an Action. Only used when initializing a new action.
+     * Should not be called for actions that have already been scheduled.
+     *
+     * @param action Action
+     * @param elapsedTicks Number of elapsed ticks. 0 if not started.
+     * @param elapsedMillis Elapsed time in milliseconds. 0 if not started.
+     */
+    public static void loadElapsedTime(Action action, int elapsedTicks, long elapsedMillis) {
+        if (elapsedTicks > 0) {
+            action.started.set();
+            action._timeTicks = elapsedTicks;
+            action._startTimeMillis = System.currentTimeMillis() - elapsedMillis;
+        } else {
+            action.started.clear();
+            action._timeTicks = 0;
+            action._startTimeMillis = 0L;
+        }
+        action._subTicks = 1;
     }
 }
