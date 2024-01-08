@@ -1,11 +1,16 @@
 package com.bergerkiller.bukkit.tc.actions;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.tc.actions.registry.ActionRegistry;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
+import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
 import com.bergerkiller.bukkit.tc.utils.LaunchFunction;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
 
@@ -51,12 +56,7 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         this.timeoffset = 0;
         this.distanceoffset = 0.0;
 
-        try {
-            this.function = config.getFunction().newInstance();
-        } catch (Throwable t) {
-            getTrainCarts().getLogger().log(Level.SEVERE, "Unhandled error initializing launch function", t);
-            this.function = new LaunchFunction.Linear();
-        }
+        this.initFunction();
 
         // There seems to be a bug when distance is too short
         // It's unable to initiate the right launch direction then
@@ -66,6 +66,15 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
 
         this.distance = 0;
         this.lastVelocity = 0.0;
+    }
+
+    private void initFunction() {
+        try {
+            this.function = config.getFunction().newInstance();
+        } catch (Throwable t) {
+            getTrainCarts().getLogger().log(Level.SEVERE, "Unhandled error initializing launch function", t);
+            this.function = new LaunchFunction.Linear();
+        }
     }
 
     /**
@@ -224,6 +233,80 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         // when an 'energy' portion is included.
         if (successful) {
             this.getGroup().setForwardForce(this.targetvelocity / this.getGroup().getUpdateStepCount());
+        }
+    }
+
+    protected static void saveStateTo(DataOutputStream stream, MemberActionLaunch action) throws IOException {
+        stream.writeDouble(action.distanceoffset);
+        stream.writeInt(action.timeoffset);
+        stream.writeDouble(action.targetvelocity);
+        stream.writeDouble(action.targetspeedlimit);
+        stream.writeDouble(action.distance);
+        stream.writeDouble(action.lastVelocity);
+        stream.writeDouble(action.lastspeedlimit);
+        action.config.writeTo(stream);
+        stream.writeDouble(action.function.getMinimumVelocity());
+        stream.writeDouble(action.function.getMaximumVelocity());
+        stream.writeDouble(action.function.getStartVelocity());
+        stream.writeDouble(action.function.getEndVelocity());
+    }
+
+    protected static void loadStateFrom(DataInputStream stream, MemberActionLaunch action) throws IOException {
+        action.distanceoffset = stream.readDouble();
+        action.timeoffset = stream.readInt();
+        action.targetvelocity = stream.readDouble();
+        action.targetspeedlimit = stream.readDouble();
+        action.distance = stream.readDouble();
+        action.lastVelocity = stream.readDouble();
+        action.lastspeedlimit = stream.readDouble();
+        action.config = LauncherConfig.readFrom(stream);
+        action.initFunction();
+        action.function.setMinimumVelocity(stream.readDouble());
+        action.function.setMaximumVelocity(stream.readDouble());
+        action.function.setStartVelocity(stream.readDouble());
+        action.function.setEndVelocity(stream.readDouble());
+        action.function.configure(action.config);
+    }
+
+    public static class Serializer extends BaseSerializer<MemberActionLaunch> {
+        @Override
+        public MemberActionLaunch create(DataBlock data) throws IOException {
+            return new MemberActionLaunch();
+        }
+    }
+
+    /**
+     * Action registry serializer for launch actions
+     *
+     * @param <T> Launch action type
+     */
+    public static abstract class BaseSerializer<T extends MemberActionLaunch> implements ActionRegistry.Serializer<T> {
+        @Override
+        public boolean save(T action, DataBlock data) throws IOException {
+            // Save all the information common to all launch actions
+            data.addChild("launch-state", stream -> saveStateTo(stream, action));
+            return true;
+        }
+
+        /**
+         * Creates a new instance of the launch action
+         *
+         * @param data Data to load in
+         * @return new non-configured member action launch
+         * @throws IOException
+         */
+        public abstract T create(DataBlock data) throws IOException;
+
+        @Override
+        public T load(DataBlock data) throws IOException {
+            // Create an instance (depending on type)
+            T action = this.create(data);
+
+            // Load all the information common to all launch actions
+            try (DataInputStream stream = data.findChildOrThrow("launch-state").readData()) {
+                loadStateFrom(stream, action);
+            }
+            return action;
         }
     }
 }

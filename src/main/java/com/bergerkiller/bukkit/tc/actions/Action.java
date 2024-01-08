@@ -44,6 +44,15 @@ public abstract class Action implements TrainStatusProvider, TrainCarts.Provider
     }
 
     /**
+     * Gets whether this action has been started. Is true if {@link #start()} has been called
+     *
+     * @return True if this action has been started
+     */
+    public boolean hasActionStarted() {
+        return started.get();
+    }
+
+    /**
      * Gets the number of ticks that have elapsed since starting this action
      * 
      * @return elapsed ticks

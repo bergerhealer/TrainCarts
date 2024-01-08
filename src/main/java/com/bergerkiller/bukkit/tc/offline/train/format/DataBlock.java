@@ -12,6 +12,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * A single block of data which includes a name, data byte array and
@@ -88,6 +89,34 @@ public final class DataBlock {
      */
     public List<DataBlock> findChildren(String name) {
         return Util.filterList(Collections.unmodifiableList(children), c -> c.name.equals(name));
+    }
+
+    /**
+     * Finds the first child that has a certain name. Throws a runtime exception
+     * if none is found.
+     *
+     * @param name Name of the data block
+     * @return Found child
+     */
+    public DataBlock findChildOrThrow(String name) {
+        return findChild(name).orElseThrow(() -> new RuntimeException(
+                "Data '" + name + "' is missing in '" + DataBlock.this.name + "' data"));
+    }
+
+    /**
+     * Finds the first child that has a certain name. Returns an empty
+     * optional if none is found.
+     *
+     * @param name Name of the data block
+     * @return Found child, or empty if not found
+     */
+    public Optional<DataBlock> findChild(String name) {
+        for (DataBlock child : children) {
+            if (child.name.equals(name)) {
+                return Optional.of(child);
+            }
+        }
+        return Optional.empty();
     }
 
     /**

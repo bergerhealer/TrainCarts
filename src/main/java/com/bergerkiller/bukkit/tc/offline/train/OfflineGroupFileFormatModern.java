@@ -130,7 +130,9 @@ public class OfflineGroupFileFormatModern {
             return null; // Invalid
         }
 
-        return new OfflineGroup(name, world, members, OfflineGroupFileFormatModern::readMember);
+        return new OfflineGroup(name, world,
+                groupData.findChildren("action"),
+                members, OfflineGroupFileFormatModern::readMember);
     }
 
     public static void writeMember(DataBlock root, OfflineMember member) throws IOException {
@@ -159,6 +161,7 @@ public class OfflineGroupFileFormatModern {
             motZ = stream.readDouble();
         }
 
-        return new OfflineMember(group, entityUID, cx, cz, motX, motY, motZ);
+        return new OfflineMember(group, entityUID, cx, cz, motX, motY, motZ,
+                memberData.findChildren("action"));
     }
 }

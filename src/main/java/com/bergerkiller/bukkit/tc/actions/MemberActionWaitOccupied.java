@@ -15,8 +15,8 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
     private final double launchDistance;
     private final BlockFace launchDirection;
     private final Double launchVelocity;
-    private BlockFace direction;
-    private double launchforce;
+    private BlockFace direction = null;
+    private double launchforce = Double.NaN;
     private int counter = 20;
     private boolean breakCode = false;
     private TrackedSign toggleOutputOf = null;
@@ -62,8 +62,13 @@ public class MemberActionWaitOccupied extends MemberAction implements WaitAction
 
     @Override
     public void bind() {
-        this.direction = getMember().getDirection();
-        this.launchforce = this.getGroup().getAverageForce();
+        // Initialize the first time it is added to a member
+        if (this.direction == null) {
+            this.direction = getMember().getDirection();
+        }
+        if (Double.isNaN(this.launchforce)) {
+            this.launchforce = this.getGroup().getAverageForce();
+        }
     }
 
     @Override

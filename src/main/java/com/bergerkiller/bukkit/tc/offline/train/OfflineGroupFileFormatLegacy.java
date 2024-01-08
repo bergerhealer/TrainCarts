@@ -96,7 +96,11 @@ public class OfflineGroupFileFormatLegacy {
         }
         String name = stream.readUTF();
 
-        return new OfflineGroup(name, world, Arrays.asList(members),
+        return new OfflineGroup(
+                name,
+                world,
+                Collections.emptyList(),
+                Arrays.asList(members),
                 (offlineGroup, legacyMember) -> legacyMember.toOfflineMember(offlineGroup));
     }
 
@@ -119,7 +123,8 @@ public class OfflineGroupFileFormatLegacy {
 
         public OfflineMember toOfflineMember(OfflineGroup offlineGroup) {
             return new OfflineMember(offlineGroup,
-                    entityUID, cx, cz, motX, 0.0, motZ);
+                    entityUID, cx, cz, motX, 0.0, motZ,
+                    Collections.emptyList());
         }
     }
 }

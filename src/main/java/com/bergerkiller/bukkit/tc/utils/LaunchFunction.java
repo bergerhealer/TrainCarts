@@ -68,18 +68,8 @@ public abstract class LaunchFunction {
      * @param endVelocity
      */
     public final void setVelocityRange(double startVelocity, double endVelocity) {
-        this.vstart = startVelocity;
-        this.vend = endVelocity;
-        if (this.vstart < this.vmin) {
-            this.vstart = this.vmin;
-        } else if (this.vstart > this.vmax) {
-            this.vstart = this.vmax;
-        }
-        if (this.vend < this.vmin) {
-            this.vend = this.vmin;
-        } else if (this.vend > this.vmax) {
-            this.vend = this.vmax;
-        }
+        setStartVelocity(startVelocity);
+        setEndVelocity(endVelocity);
     }
 
     /**
