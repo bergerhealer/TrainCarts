@@ -162,6 +162,7 @@ public class OfflineGroupFileFormatModern {
         }
 
         return new OfflineMember(group, entityUID, cx, cz, motX, motY, motZ,
-                memberData.findChildren("action"));
+                memberData.findChildren("action"),
+                memberData.findChildren("sign"));
     }
 }

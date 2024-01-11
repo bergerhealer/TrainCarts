@@ -54,6 +54,17 @@ public final class DataBlock {
         return new DataBlock(new DataBlockBuilder(), name, NO_DATA);
     }
 
+    /**
+     * Creates a new DataBlock with data
+     *
+     * @param name Name of the root data block
+     * @param data Data
+     * @return new DataBlock
+     */
+    public static DataBlock createWithData(String name, byte[] data) {
+        return new DataBlock(new DataBlockBuilder(), name, data);
+    }
+
     DataBlock(DataBlockBuilder dataBlockBuilder, String name, byte[] data) {
         this.dataBlockBuilder = dataBlockBuilder;
         this.name = name;
@@ -140,6 +151,17 @@ public final class DataBlock {
      */
     public DataBlock addChild(String name, DataWriter writer) throws IOException {
         return addChild(dataBlockBuilder.create(name, writer));
+    }
+
+    /**
+     * Adds a child to this data block with the name specified, and data.
+     *
+     * @param name Name of the child
+     * @param data Data for the child
+     * @return Added DataBlock child
+     */
+    public DataBlock addChild(String name, byte[] data) {
+        return addChild(new DataBlock(dataBlockBuilder, name, data));
     }
 
     DataBlock addChild(DataBlock child) {

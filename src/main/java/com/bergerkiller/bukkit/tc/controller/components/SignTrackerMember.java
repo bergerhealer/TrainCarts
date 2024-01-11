@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.utils.modlist.ModificationTrackedList;
 
 import org.bukkit.block.Block;
 
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -54,6 +55,12 @@ public class SignTrackerMember extends SignTracker {
             groupRegions.add(region);
         }
         return true;
+    }
+
+    @Override
+    public void addOfflineActiveSignKey(Object signUniqueKey) {
+        super.addOfflineActiveSignKey(signUniqueKey);
+        owner.getGroup().getSignTracker().addOfflineActiveSignKey(signUniqueKey);
     }
 
     @Override
