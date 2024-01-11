@@ -20,6 +20,7 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
  * Keeps track of the active signs and detector regions from rail information
@@ -67,6 +68,19 @@ public abstract class SignTracker {
 
     protected void clearOfflineActiveSignKeys() {
         offlineLoadedActiveSignKeys = Collections.emptySet();
+    }
+
+    protected void signSkipTrackerFilterSigns(List<ActiveSign> signs) {
+        // If there's signs the train already had activated, update those in the skip tracker
+        // first. This avoids a skip rule repeating after a reload
+        if (!offlineLoadedActiveSignKeys.isEmpty() && !signs.isEmpty()) {
+            signSkipTracker.loadSigns(signs.stream()
+                    .filter(s -> offlineLoadedActiveSignKeys.contains(s.getUniqueKey()))
+                    .collect(Collectors.toList()));
+        }
+
+        // Now actually filter the signs list
+        signSkipTracker.filterSigns(signs);
     }
 
     public boolean containsSign(TrackedSign sign) {
