@@ -42,40 +42,38 @@ public class SignSkipTracker {
      * @param signs
      */
     public void loadSigns(List<SignTracker.ActiveSign> signs) {
-        if (!this.isLoaded) {
-            this.isLoaded = true;
-            this.hasSkippedSigns = false;
-            this.history.clear();
+        this.isLoaded = true;
+        this.hasSkippedSigns = false;
+        this.history.clear();
 
-            // First store all entries in history that have state=true (stored in properties)
-            // Then, add all other signs that exist
-            SignSkipOptions options = owner.getProperties().get(StandardProperties.SIGN_SKIP);
-            if (options.hasSkippedSigns()) {
-                // Signs were set to be skipped, more complicated initialization
-                for (BlockLocation signPos : options.skippedSigns()) {
-                    for (SignTracker.ActiveSign sign : signs) {
-                        Block signBlock = sign.getSign().signBlock;
-                        if (signPos.x == signBlock.getX() &&
+        // First store all entries in history that have state=true (stored in properties)
+        // Then, add all other signs that exist
+        SignSkipOptions options = owner.getProperties().get(StandardProperties.SIGN_SKIP);
+        if (options.hasSkippedSigns()) {
+            // Signs were set to be skipped, more complicated initialization
+            for (BlockLocation signPos : options.skippedSigns()) {
+                for (SignTracker.ActiveSign sign : signs) {
+                    Block signBlock = sign.getSign().signBlock;
+                    if (signPos.x == signBlock.getX() &&
                             signPos.y == signBlock.getY() &&
                             signPos.z == signBlock.getZ() &&
                             signPos.world.equals(signBlock.getWorld().getName()))
-                        {
-                            this.history.put(sign.getSign(), Boolean.TRUE);
-                            this.hasSkippedSigns = true;
-                            break;
-                        }
+                    {
+                        this.history.put(sign.getSign(), Boolean.TRUE);
+                        this.hasSkippedSigns = true;
+                        break;
                     }
                 }
-                for (SignTracker.ActiveSign sign : signs) {
-                    if (!this.history.containsKey(sign.getSign())) {
-                        this.history.put(sign.getSign(), Boolean.FALSE);
-                    }
-                }
-            } else {
-                // Simplified
-                for (SignTracker.ActiveSign sign : signs) {
+            }
+            for (SignTracker.ActiveSign sign : signs) {
+                if (!this.history.containsKey(sign.getSign())) {
                     this.history.put(sign.getSign(), Boolean.FALSE);
                 }
+            }
+        } else {
+            // Simplified
+            for (SignTracker.ActiveSign sign : signs) {
+                this.history.put(sign.getSign(), Boolean.FALSE);
             }
         }
     }
