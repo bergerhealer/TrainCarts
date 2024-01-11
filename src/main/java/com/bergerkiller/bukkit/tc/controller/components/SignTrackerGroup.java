@@ -185,6 +185,14 @@ public class SignTrackerGroup extends SignTracker {
         }
     }
 
+    @Override
+    protected void clearOfflineActiveSignKeys() {
+        super.clearOfflineActiveSignKeys();
+        for (MinecartMember<?> member : owner) {
+            member.getSignTracker().clearOfflineActiveSignKeys();
+        }
+    }
+
     /**
      * Refreshes the block space and active signs if required
      */
@@ -193,6 +201,7 @@ public class SignTrackerGroup extends SignTracker {
         {
             // No need to update anything for empty trains
             if (owner.isEmpty()) {
+                clearOfflineActiveSignKeys();
                 clear();
                 return;
             }
@@ -343,6 +352,9 @@ public class SignTrackerGroup extends SignTracker {
                     }
                 }
             }
+
+            // First time load
+            clearOfflineActiveSignKeys();
         }
     }
 }

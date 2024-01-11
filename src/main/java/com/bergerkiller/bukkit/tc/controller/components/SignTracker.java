@@ -26,6 +26,7 @@ import java.util.logging.Level;
  */
 public abstract class SignTracker {
     private static final ArrayList<ActiveSign> tmpSignBuffer = new ArrayList<>();
+    private Set<Object> offlineLoadedActiveSignKeys = Collections.emptySet();
     private final Map<Object, ActiveSign> activeSignsByKey = new LinkedHashMap<Object, ActiveSign>();
     private final ImplicitlySharedList<ActiveSign> activeSigns = new ImplicitlySharedList<>();
     protected ImplicitlySharedList<DetectorRegion> detectorRegions = new ImplicitlySharedList<>();
@@ -55,6 +56,17 @@ public abstract class SignTracker {
 
     public Collection<DetectorRegion> getActiveDetectorRegions() {
         return this.detectorRegions;
+    }
+
+    protected void addOfflineActiveSignKey(Object signUniqueKey) {
+        if (offlineLoadedActiveSignKeys.isEmpty()) {
+            offlineLoadedActiveSignKeys = new HashSet<>();
+        }
+        offlineLoadedActiveSignKeys.add(signUniqueKey);
+    }
+
+    protected void clearOfflineActiveSignKeys() {
+        offlineLoadedActiveSignKeys = Collections.emptySet();
     }
 
     public boolean containsSign(TrackedSign sign) {
@@ -202,7 +214,7 @@ public abstract class SignTracker {
             // Make sure that when adding a new one, we clone the active sign
             // The active sign might be added to more than one member, and re-using it
             // could seriously break things.
-            ActiveSign currActiveSign = activeSignsByKey.computeIfAbsent(newActiveSign.sign.getUniqueKey(),
+            ActiveSign currActiveSign = activeSignsByKey.computeIfAbsent(newActiveSign.getUniqueKey(),
                     u -> new ActiveSign(newActiveSign.sign, null));
             currActiveSign.detected = true;
 
@@ -211,14 +223,15 @@ public abstract class SignTracker {
                 currActiveSign.enterState = newActiveSign.enterState;
                 activeSigns.add(currActiveSign);
 
-                // Fire enter for new sign
-                onSignChange(currActiveSign, true);
-
+                // Fire enter for new sign (if not reloaded)
+                if (!offlineLoadedActiveSignKeys.contains(currActiveSign.getUniqueKey())) {
+                    onSignChange(currActiveSign, true);
+                }
             } else if (currActiveSign.sign != newActiveSign.sign) {
                 // If old and new signs have identical text, don't fire any events
                 if (currActiveSign.sign.hasIdenticalText(newActiveSign.sign)) {
                     // Silent update
-                    currActiveSign.sign = newActiveSign.sign;
+                    currActiveSign.setSign(newActiveSign.sign);
                     continue;
                 }
 
@@ -236,7 +249,7 @@ public abstract class SignTracker {
                 }
 
                 // Update sign
-                currActiveSign.sign = newActiveSign.sign;
+                currActiveSign.setSign(newActiveSign.sign);
 
                 // Fire enter event (again)
                 if (fireEvents) {
@@ -254,7 +267,7 @@ public abstract class SignTracker {
         if (hadSigns) {
             forEachActiveSignSafe(currActiveSign -> {
                 if (!currActiveSign.detected) {
-                    ActiveSign removed = activeSignsByKey.remove(currActiveSign.sign.getUniqueKey());
+                    ActiveSign removed = activeSignsByKey.remove(currActiveSign.getUniqueKey());
                     if (removed != null) {
                         activeSigns.remove(removed);
                     }
@@ -344,11 +357,13 @@ public abstract class SignTracker {
      */
     public static final class ActiveSign {
         private TrackedSign sign;
+        private Object uniqueKey;
         private RailState enterState;
         private boolean detected;
 
         public ActiveSign(TrackedSign sign, RailState enterState) {
             this.sign = sign;
+            this.uniqueKey = sign.getUniqueKey();
             this.enterState = enterState;
             this.detected = true;
         }
@@ -360,6 +375,21 @@ public abstract class SignTracker {
          */
         public TrackedSign getSign() {
             return sign;
+        }
+
+        private void setSign(TrackedSign sign) {
+            this.sign = sign;
+            this.uniqueKey = sign.getUniqueKey();
+        }
+
+        /**
+         * Gets the unique key of the sign. This is what is registered to
+         * uniquely identify this sign.
+         *
+         * @return Sign unique key
+         */
+        public Object getUniqueKey() {
+            return this.uniqueKey;
         }
 
         /**
