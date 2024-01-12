@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
+import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
 import org.bukkit.block.Block;
 
 import java.io.ByteArrayInputStream;
@@ -14,11 +15,15 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.logging.Level;
 
 /**
@@ -116,6 +121,55 @@ public final class TrackedSignLookup implements TrainCarts.Provider {
     }
 
     /**
+     * Serializes all the items as sign unique key based metadata
+     *
+     * @param items Items
+     * @param name Name for the resulting DataBlock
+     * @param uniqueKeyGetter Function to get the unique sign key of each item
+     * @return Unmodifiable list of serialized DataBlocks
+     * @param <T> Input List Type
+     */
+    public <T> List<DataBlock> serializeUniqueKeys(
+            final Collection<T> items,
+            final String name,
+            final Function<T, Object> uniqueKeyGetter
+    ) {
+        return serializeUniqueKeys(items, name, uniqueKeyGetter, (item, data) -> {});
+    }
+
+    /**
+     * Serializes all the items as sign unique key based metadata
+     *
+     * @param items Items
+     * @param name Name for the resulting DataBlock
+     * @param uniqueKeyGetter Function to get the unique sign key of each item
+     * @param extraMetaApplier Optional metadata applier for each DataBlock
+     * @return Unmodifiable list of serialized DataBlocks
+     * @param <T> Input List Type
+     */
+    public <T> List<DataBlock> serializeUniqueKeys(
+            final Collection<T> items,
+            final String name,
+            final Function<T, Object> uniqueKeyGetter,
+            final BiConsumer<T, DataBlock> extraMetaApplier
+    ) {
+        if (items.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<DataBlock> dataBlocks = new ArrayList<>(items.size());
+        for (T item : items) {
+            byte[] data = serializeUniqueKey(uniqueKeyGetter.apply(item));
+            if (data != null) {
+                DataBlock dataBlock = DataBlock.createWithData(name, data);
+                extraMetaApplier.accept(item, dataBlock);
+                dataBlocks.add(dataBlock);
+            }
+        }
+        return Collections.unmodifiableList(dataBlocks);
+    }
+
+    /**
      * Attempts to serialize a unique key to a byte[] array so that it can be persistently
      * stored. Returns null if the type cannot be serialized.
      *
@@ -143,6 +197,28 @@ public final class TrackedSignLookup implements TrainCarts.Provider {
             serializersByType.put(type, registered);
         }
         return registered.serialize(plugin, uniqueKey);
+    }
+
+    /**
+     * Deserializes the byte[] data of all data blocks specified into unique sign keys,
+     * and returns the deserialized items as a new unmodifiable List.
+     *
+     * @param dataBlocks Data Blocks whose data to deserialize
+     * @return Unmodifiable List of unique sign keys
+     */
+    public List<Object> deserializeUniqueKeys(List<DataBlock> dataBlocks) {
+        if (dataBlocks.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Object> uniqueKeys = new ArrayList<>(dataBlocks.size());
+        for (DataBlock dataBlock : dataBlocks) {
+            Object uniqueKey = deserializeUniqueKey(dataBlock.data);
+            if (uniqueKey != null) {
+                uniqueKeys.add(uniqueKey);
+            }
+        }
+        return Collections.unmodifiableList(uniqueKeys);
     }
 
     /**

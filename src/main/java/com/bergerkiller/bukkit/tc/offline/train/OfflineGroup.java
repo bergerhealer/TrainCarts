@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import org.bukkit.World;
 
 import java.io.IOException;
@@ -30,6 +31,7 @@ public final class OfflineGroup {
     public final String name;
     public final OfflineWorld world;
     public final List<DataBlock> actions;
+    public final List<DataBlock> skippedSigns;
     public final OfflineMember[] members;
 
     // These are modified/lazily generated at runtime
@@ -48,8 +50,16 @@ public final class OfflineGroup {
 
     private OfflineGroup(MinecartGroup group) throws IOException {
         this(group.getProperties().getTrainName(),
+             /* World */
              OfflineWorld.of(group.getWorld()),
+             /* Actions */
              group.getTrainCarts().getActionRegistry().saveTracker(group.getActions()),
+             /* Skipped Signs */
+             group.getTrainCarts().getTrackedSignLookup().serializeUniqueKeys(
+                     group.getSignTracker().getSignSkipTracker().getSkippedSigns(),
+                     "skipped-sign",
+                     RailLookup.TrackedSign::getUniqueKey),
+             /* Member List */
              group,
              OfflineMember::new);
     }
@@ -59,12 +69,14 @@ public final class OfflineGroup {
             final String name,
             final OfflineWorld world,
             final List<DataBlock> actions,
+            final List<DataBlock> skippedSigns,
             final Collection<T> memberData,
             final MemberFactory<T> memberFactory
     ) throws IOException {
         this.name = name;
         this.world = world;
         this.actions = actions;
+        this.skippedSigns = skippedSigns;
         this.members = memberFactory.createMany(this, memberData);
         this.loaded = false;
     }
@@ -79,6 +91,7 @@ public final class OfflineGroup {
         this.loaded = original.loaded;
         this.isBeingRemoved = original.isBeingRemoved;
         this.actions = original.actions;
+        this.skippedSigns = original.skippedSigns;
     }
 
     public OfflineGroup withName(String newName) {
@@ -87,7 +100,7 @@ public final class OfflineGroup {
 
     public OfflineGroup withMembers(List<OfflineMember> newMembers) {
         try {
-            return new OfflineGroup(name, world, actions, newMembers, (cgroup, cmember) -> cmember);
+            return new OfflineGroup(name, world, actions, skippedSigns, newMembers, (cgroup, cmember) -> cmember);
         } catch (IOException ex) {
             throw new RuntimeException("Unexpected io exception", ex);
         }
@@ -266,6 +279,10 @@ public final class OfflineGroup {
 
     void load(MinecartGroup group) {
         group.getTrainCarts().getActionRegistry().loadTracker(group.getActions(), actions);
+
+        for (Object signKey : group.getTrainCarts().getTrackedSignLookup().deserializeUniqueKeys(skippedSigns)) {
+            group.getSignTracker().addOfflineSkippedSignKey(signKey);
+        }
     }
 
     @FunctionalInterface

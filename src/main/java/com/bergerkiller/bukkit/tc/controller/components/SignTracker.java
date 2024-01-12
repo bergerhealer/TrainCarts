@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
  */
 public abstract class SignTracker {
     private static final ArrayList<ActiveSign> tmpSignBuffer = new ArrayList<>();
+    private Set<Object> offlineLoadedSkippedSignKeys = Collections.emptySet();
     private Set<Object> offlineLoadedActiveSignKeys = Collections.emptySet();
     private final Map<Object, ActiveSign> activeSignsByKey = new LinkedHashMap<Object, ActiveSign>();
     private final ImplicitlySharedList<ActiveSign> activeSigns = new ImplicitlySharedList<>();
@@ -46,6 +47,15 @@ public abstract class SignTracker {
     public abstract TrainCarts.Provider getOwner();
 
     /**
+     * Gets the tracker responsible for tracking what signs have been skipped
+     *
+     * @return Sign skip tracker
+     */
+    public SignSkipTracker getSignSkipTracker() {
+        return signSkipTracker;
+    }
+
+    /**
      * Gets all actively tracked signs. Can use implicit clone/copy iteration functions to
      * safely iterate the signs without causing concurrent modification exceptions.
      *
@@ -59,6 +69,13 @@ public abstract class SignTracker {
         return this.detectorRegions;
     }
 
+    public void addOfflineSkippedSignKey(Object signUniqueKey) {
+        if (offlineLoadedSkippedSignKeys.isEmpty()) {
+            offlineLoadedSkippedSignKeys = new HashSet<>();
+        }
+        offlineLoadedSkippedSignKeys.add(signUniqueKey);
+    }
+
     protected void addOfflineActiveSignKey(Object signUniqueKey) {
         if (offlineLoadedActiveSignKeys.isEmpty()) {
             offlineLoadedActiveSignKeys = new HashSet<>();
@@ -68,19 +85,38 @@ public abstract class SignTracker {
 
     protected void clearOfflineActiveSignKeys() {
         offlineLoadedActiveSignKeys = Collections.emptySet();
+        offlineLoadedSkippedSignKeys = Collections.emptySet();
     }
 
     protected void signSkipTrackerFilterSigns(List<ActiveSign> signs) {
-        // If there's signs the train already had activated, update those in the skip tracker
-        // first. This avoids a skip rule repeating after a reload
-        if (!offlineLoadedActiveSignKeys.isEmpty() && !signs.isEmpty()) {
-            signSkipTracker.loadSigns(signs.stream()
-                    .filter(s -> offlineLoadedActiveSignKeys.contains(s.getUniqueKey()))
-                    .collect(Collectors.toList()));
+        if (!signs.isEmpty()) {
+            // If there's signs the train already had activated, update those in the skip tracker
+            // first. This avoids a skip rule repeating after a reload
+            if (!offlineLoadedActiveSignKeys.isEmpty()) {
+                signSkipTracker.loadSigns(signs.stream()
+                        .filter(s -> offlineLoadedActiveSignKeys.contains(s.getUniqueKey()))
+                        .collect(Collectors.toList()));
+            } else if (!offlineLoadedSkippedSignKeys.isEmpty()) {
+                // Must initialize so that loaded = true, otherwise things reset later
+                signSkipTracker.loadSigns(Collections.emptyList());
+            }
+
+            // Sign set as skipped, must be set skipped
+            if (!offlineLoadedSkippedSignKeys.isEmpty()) {
+                for (ActiveSign sign : signs) {
+                    if (offlineLoadedSkippedSignKeys.contains(sign.getUniqueKey())) {
+                        signSkipTracker.setSkipped(sign);
+                    }
+                }
+            }
         }
 
         // Now actually filter the signs list
         signSkipTracker.filterSigns(signs);
+    }
+
+    public boolean isSkipped(TrackedSign sign) {
+        return signSkipTracker.isSkipped(sign);
     }
 
     public boolean containsSign(TrackedSign sign) {

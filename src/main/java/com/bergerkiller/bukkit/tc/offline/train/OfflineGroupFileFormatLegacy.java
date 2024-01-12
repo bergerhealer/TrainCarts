@@ -100,6 +100,7 @@ public class OfflineGroupFileFormatLegacy {
                 name,
                 world,
                 Collections.emptyList(),
+                Collections.emptyList(),
                 Arrays.asList(members),
                 (offlineGroup, legacyMember) -> legacyMember.toOfflineMember(offlineGroup));
     }
@@ -124,6 +125,7 @@ public class OfflineGroupFileFormatLegacy {
         public OfflineMember toOfflineMember(OfflineGroup offlineGroup) {
             return new OfflineMember(offlineGroup,
                     entityUID, cx, cz, motX, 0.0, motZ,
+                    Collections.emptyList(),
                     Collections.emptyList(),
                     Collections.emptyList());
         }

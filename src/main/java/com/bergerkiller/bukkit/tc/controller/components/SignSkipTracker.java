@@ -3,11 +3,9 @@ package com.bergerkiller.bukkit.tc.controller.components;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.bukkit.block.Block;
@@ -36,6 +34,42 @@ public class SignSkipTracker {
     }
 
     /**
+     * Gets whether a particular sign is being skipped. This means no events will
+     * be fired for when this particular sign is entered or left.
+     *
+     * @param sign Sign
+     * @return True if this sign is skipped
+     */
+    public boolean isSkipped(TrackedSign sign) {
+        return Boolean.TRUE.equals(history.get(sign));
+    }
+
+    /**
+     * Gets a List of all tracked signs that have been skipped
+     *
+     * @return List of skipped signs
+     */
+    public List<TrackedSign> getSkippedSigns() {
+        if (history.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return history.entrySet().stream()
+                .filter(Map.Entry::getValue)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Sets a sign as being skipped
+     *
+     * @param sign Sign
+     */
+    public void setSkipped(SignTracker.ActiveSign sign) {
+        this.history.put(sign.getSign(), Boolean.TRUE);
+        this.hasSkippedSigns = true;
+    }
+
+    /**
      * Initializes the sign skipping states. This is called when a train
      * is restored.
      * 
@@ -43,11 +77,16 @@ public class SignSkipTracker {
      */
     public void loadSigns(List<SignTracker.ActiveSign> signs) {
         this.isLoaded = true;
-        this.hasSkippedSigns = false;
         this.history.clear();
+        this.hasSkippedSigns = false;
+        if (signs.isEmpty()) {
+            return;
+        }
 
         // First store all entries in history that have state=true (stored in properties)
         // Then, add all other signs that exist
+        // This feature is no longer used in new versions of traincarts, and is here
+        // for backwards-compatibility. Will probably be removed in the near future.
         SignSkipOptions options = owner.getProperties().get(StandardProperties.SIGN_SKIP);
         if (options.hasSkippedSigns()) {
             // Signs were set to be skipped, more complicated initialization
@@ -65,16 +104,10 @@ public class SignSkipTracker {
                     }
                 }
             }
-            for (SignTracker.ActiveSign sign : signs) {
-                if (!this.history.containsKey(sign.getSign())) {
-                    this.history.put(sign.getSign(), Boolean.FALSE);
-                }
-            }
-        } else {
-            // Simplified
-            for (SignTracker.ActiveSign sign : signs) {
-                this.history.put(sign.getSign(), Boolean.FALSE);
-            }
+        }
+
+        for (SignTracker.ActiveSign sign : signs) {
+            this.history.putIfAbsent(sign.getSign(), Boolean.FALSE);
         }
     }
 
@@ -85,6 +118,7 @@ public class SignSkipTracker {
         if (this.isLoaded) {
             this.isLoaded = false;
             this.history.clear();
+            this.hasSkippedSigns = false;
         }
     }
 
@@ -160,6 +194,19 @@ public class SignSkipTracker {
             }
         }
 
+        // If options stored signs in the past, get rid of them
+        // If skip offset/count changed, update as well
+        if (options.hasSkippedSigns() || changes.countersChanged) {
+            properties.set(StandardProperties.SIGN_SKIP, SignSkipOptions.create(
+                    changes.ignoreCounter,
+                    changes.skipCounter,
+                    options.filter(),
+                    Collections.emptySet()
+            ));
+        }
+
+        // Old stuff. Skipped signs are no longer saved in properties.
+        /*
         // Save skipped signs property again when it changes
         if (changes.skippedSignsChanged) {
             // Store the signs that are skipped in history
@@ -195,6 +242,7 @@ public class SignSkipTracker {
                     options.skippedSigns()
             ));
         }
+         */
     }
 
     private static final class SkipOptionChanges {

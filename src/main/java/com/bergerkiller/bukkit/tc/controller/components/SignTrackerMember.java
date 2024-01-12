@@ -9,7 +9,6 @@ import com.bergerkiller.bukkit.tc.utils.modlist.ModificationTrackedList;
 
 import org.bukkit.block.Block;
 
-import java.util.HashSet;
 import java.util.List;
 
 /**

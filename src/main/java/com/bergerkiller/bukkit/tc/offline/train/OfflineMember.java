@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.offline.train;
 
-import com.bergerkiller.bukkit.common.collections.ImplicitlySharedList;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -10,7 +9,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.controller.components.SignTracker;
 import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
-import com.bergerkiller.bukkit.tc.rails.TrackedSignLookup;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
 import org.bukkit.Chunk;
@@ -20,8 +19,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.util.Vector;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -36,11 +33,13 @@ public final class OfflineMember {
     public final double motX, motY, motZ;
     public final List<DataBlock> actions;
     public final List<DataBlock> activeSigns;
+    public final List<DataBlock> skippedSigns;
 
     OfflineMember(OfflineGroup group, UUID entityUID,
                   int cx, int cz, double motX, double motY, double motZ,
                   List<DataBlock> actions,
-                  List<DataBlock> activeSigns
+                  List<DataBlock> activeSigns,
+                  List<DataBlock> skippedSigns
     ) {
         this.group = group;
         this.entityUID = entityUID;
@@ -51,6 +50,7 @@ public final class OfflineMember {
         this.motZ = motZ;
         this.actions = actions;
         this.activeSigns = activeSigns;
+        this.skippedSigns = skippedSigns;
     }
 
     public OfflineMember(OfflineGroup offlineGroup, MinecartMember<?> instance) {
@@ -66,22 +66,15 @@ public final class OfflineMember {
 
         this.actions = instance.getTrainCarts().getActionRegistry().saveTracker(instance.getActions());
 
-        {
-            ImplicitlySharedList<SignTracker.ActiveSign> signs = instance.getSignTracker().getActiveTrackedSigns();
-            if (signs.isEmpty()) {
-                this.activeSigns = Collections.emptyList();
-            } else {
-                TrackedSignLookup lookup = instance.getTrainCarts().getTrackedSignLookup();
-                List<DataBlock> signDataBlocks = new ArrayList<>(signs.size());
-                for (SignTracker.ActiveSign sign : signs) {
-                    byte[] data = lookup.serializeUniqueKey(sign.getUniqueKey());
-                    if (data != null) {
-                        signDataBlocks.add(DataBlock.createWithData("sign", data));
-                    }
-                }
-                this.activeSigns = Collections.unmodifiableList(signDataBlocks);
-            }
-        }
+        this.activeSigns = instance.getTrainCarts().getTrackedSignLookup().serializeUniqueKeys(
+                instance.getSignTracker().getActiveTrackedSigns(),
+                "sign",
+                SignTracker.ActiveSign::getUniqueKey);
+
+        this.skippedSigns = instance.getTrainCarts().getTrackedSignLookup().serializeUniqueKeys(
+                instance.getSignTracker().getSignSkipTracker().getSkippedSigns(),
+                "skipped-sign",
+                RailLookup.TrackedSign::getUniqueKey);
     }
 
     public boolean isMoving() {
@@ -171,11 +164,11 @@ public final class OfflineMember {
     void load(MinecartMember<?> member) {
         member.getTrainCarts().getActionRegistry().loadTracker(member.getActions(), actions);
 
-        for (DataBlock signDataBlock : activeSigns) {
-            Object signKey = member.getTrainCarts().getTrackedSignLookup().deserializeUniqueKey(signDataBlock.data);
-            if (signKey != null) {
-                member.getSignTracker().addOfflineActiveSignKey(signKey);
-            }
+        for (Object signKey : member.getTrainCarts().getTrackedSignLookup().deserializeUniqueKeys(activeSigns)) {
+            member.getSignTracker().addOfflineActiveSignKey(signKey);
+        }
+        for (Object signKey : member.getTrainCarts().getTrackedSignLookup().deserializeUniqueKeys(skippedSigns)) {
+            member.getSignTracker().addOfflineSkippedSignKey(signKey);
         }
     }
 }

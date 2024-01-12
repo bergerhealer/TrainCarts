@@ -132,6 +132,7 @@ public class OfflineGroupFileFormatModern {
 
         return new OfflineGroup(name, world,
                 groupData.findChildren("action"),
+                groupData.findChildren("skipped-sign"),
                 members, OfflineGroupFileFormatModern::readMember);
     }
 
@@ -163,6 +164,7 @@ public class OfflineGroupFileFormatModern {
 
         return new OfflineMember(group, entityUID, cx, cz, motX, motY, motZ,
                 memberData.findChildren("action"),
-                memberData.findChildren("sign"));
+                memberData.findChildren("sign"),
+                memberData.findChildren("skipped-sign"));
     }
 }
