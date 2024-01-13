@@ -3,6 +3,9 @@ package com.bergerkiller.bukkit.tc.debug;
 import java.util.Collection;
 
 import cloud.commandframework.annotations.Flag;
+import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
@@ -292,6 +295,39 @@ public class DebugCommands {
                 player.sendMessage(ChatColor.RED + "Failed to export rail cache block coordinates: " + t.error());
             }
         });
+    }
+
+    @CommandTargetTrain
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
+    @CommandMethod("train debug loading unload")
+    @CommandDescription("Forces the targeted train to unload, even if it otherwise wouldn't")
+    private void commandDebugUnloadTrain(
+            final CommandSender sender,
+            final MinecartGroup group
+    ) {
+        String name = group.getProperties().getTrainName();
+        group.unload();
+        sender.sendMessage(ChatColor.YELLOW + "Train '" + ChatColor.WHITE + name +
+                ChatColor.YELLOW + "' unloaded!");
+    }
+
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
+    @CommandMethod("train debug loading refresh")
+    @CommandDescription("Forcibly checks all unloaded trains if they can be loaded, and loads them in")
+    private void commandDebugForceLoadTrains(
+            final CommandSender sender,
+            final TrainCarts trainCarts
+    ) {
+        int loadedBefore = MinecartGroupStore.getGroups().size();
+        trainCarts.getOfflineGroups().refresh();
+        int loadedAfter = MinecartGroupStore.getGroups().size();
+        if (loadedBefore == loadedAfter) {
+            sender.sendMessage(ChatColor.YELLOW + "Forcibly refreshed trains on all worlds, no trains loaded");
+        } else {
+            sender.sendMessage(ChatColor.YELLOW + "Forcibly refreshed trains on all worlds, " +
+                    ChatColor.WHITE + (loadedAfter - loadedBefore) + ChatColor.YELLOW +
+                    " trains loaded");
+        }
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
