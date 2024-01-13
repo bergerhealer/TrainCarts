@@ -46,6 +46,7 @@ import com.bergerkiller.bukkit.tc.properties.standard.type.SlowdownMode;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.offline.train.OfflineGroup;
 import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
+import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bergerkiller.generated.net.minecraft.world.level.chunk.ChunkHandle;
@@ -696,6 +697,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
         // Just for good measure
         getActions().clear();
+
+        // Leave from all mutex zone slots
+        MutexZoneCache.unloadGroupInSlots(this);
 
         // Release chunks previously kept loaded by this train
         this.chunkArea.reset();

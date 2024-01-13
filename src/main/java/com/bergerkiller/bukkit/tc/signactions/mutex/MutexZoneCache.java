@@ -204,4 +204,13 @@ public class MutexZoneCache {
         // Remove expired pathing zones
         cachesByWorld.values().forEach(MutexZoneCacheWorld::onTick);
     }
+
+    /**
+     * Calls {@link MutexZoneSlot#unload(MinecartGroup)} for all slots
+     *
+     * @param group MinecartGroup that unloaded
+     */
+    public static void unloadGroupInSlots(MinecartGroup group) {
+        slotsList.forEach(s -> s.unload(group));
+    }
 }

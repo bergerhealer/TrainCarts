@@ -1,13 +1,22 @@
 package com.bergerkiller.bukkit.tc.signactions.mutex;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
+import com.bergerkiller.bukkit.common.offline.OfflineBlock;
+import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
@@ -108,12 +117,16 @@ public class MutexZoneSlot {
      */
     public void onTick() {
         if (!entered.isEmpty()) {
-            Iterator<EnteredGroup> iter = entered.iterator();
+            ListIterator<EnteredGroup> iter = entered.listIterator();
             boolean hasHardEnteredGroup = false;
             boolean trainsHaveLeft = false;
             while (iter.hasNext()) {
                 EnteredGroup enteredGroup = iter.next();
-                if (!enteredGroup.refresh()) {
+                if (!enteredGroup.refresh(newGroup -> {
+                    // Unloaded entered group loaded in
+                    iter.set(newGroup);
+                    swapEnteredGroup(enteredGroup, newGroup);
+                })) {
                     iter.remove();
                     swapDeactivatedEnteredGroups(enteredGroup, null);
                     trainsHaveLeft = true;
@@ -123,6 +136,90 @@ public class MutexZoneSlot {
             }
             if (trainsHaveLeft && !hasHardEnteredGroup) {
                 this.setLevers(false);
+            }
+        }
+    }
+
+    /**
+     * Unloads all MinecartGroup representations stored in this mutex zone slot
+     * that are for the group specified.
+     *
+     * @param group Group that unloaded
+     */
+    public void unload(MinecartGroup group) {
+        for (ListIterator<EnteredGroup> iter = this.entered.listIterator(); iter.hasNext();) {
+            EnteredGroup entered = iter.next();
+            if (entered.isGroup(group)) {
+                EnteredGroup unloaded = entered.unload();
+                if (entered != unloaded) {
+                    iter.set(unloaded);
+                    swapDeactivatedEnteredGroups(entered, unloaded);
+                }
+                break;
+            }
+        }
+    }
+
+    /**
+     * Saves the information of all entered groups of this mutex zone slot,
+     * including other information about this slot itself like the name.
+     *
+     * @param plugin TrainCarts main plugin instance
+     * @return DataBlock of saved slot information. Null if this mutex zone slot
+     *         had no entered groups (and thus no important information to save)
+     * @throws IOException
+     */
+    public DataBlock save(TrainCarts plugin) throws IOException {
+        if (entered.isEmpty()) {
+            return null;
+        }
+
+        DataBlock root = DataBlock.createWithData("mutex-zone-slot", stream -> {
+            stream.writeUTF(name);
+            if (isAnonymous()) {
+                // For anonymous slots, also save the mutex zone sign + front that represents it
+                if (zones.isEmpty()) {
+                    throw new IllegalStateException("Anonymous mutex zone slot has no zones!");
+                }
+                MutexZone zone = zones.get(0);
+                OfflineBlock.writeTo(stream, zone.signBlock);
+                stream.writeBoolean(zone.signFront);
+            }
+        });
+        for (EnteredGroup group : entered) {
+            saveEnteredGroup(plugin, group.unload(), root);
+        }
+        return root;
+    }
+
+    /**
+     * Loads the entered group (unloaded) data from previously saved data
+     *
+     * @param plugin TrainCarts main plugin instance
+     * @param mutexZoneSlotData Data from {@link #save()}
+     * @throws IOException
+     */
+    public void loadEnteredGroups(TrainCarts plugin, DataBlock mutexZoneSlotData) throws IOException {
+        for (DataBlock enteredGroupData : mutexZoneSlotData.findChildren("entered-group")) {
+            try {
+                UnloadedEnteredGroup unloadedEnteredGroup = loadEnteredGroup(plugin, enteredGroupData);
+                if (unloadedEnteredGroup == null) {
+                    continue;
+                }
+
+                // Make sure this entered group isn't already represented
+                boolean contained = false;
+                for (EnteredGroup otherGroup : entered) {
+                    if (otherGroup.unload().trainName.equals(unloadedEnteredGroup.trainName)) {
+                        contained = true;
+                        break;
+                    }
+                }
+                if (!contained) {
+                    entered.add(unloadedEnteredGroup);
+                }
+            } catch (Throwable t) {
+                plugin.getLogger().log(Level.SEVERE, "Failed to load mutex entered group", t);
             }
         }
     }
@@ -215,7 +312,7 @@ public class MutexZoneSlot {
             }
         }
 
-        LoadedEnteredGroup enteredGroup = new LoadedEnteredGroup(group, distanceToMutex, nowTicks);
+        LoadedEnteredGroup enteredGroup = new LoadedEnteredGroup(group, distanceToMutex, nowTicks, nowTicks);
         this.entered.add(enteredGroup);
         return enteredGroup;
     }
@@ -288,6 +385,18 @@ public class MutexZoneSlot {
         }
     }
 
+    private UnloadedEnteredGroup loadEnteredGroup(TrainCarts traincarts, DataBlock enteredGroupData) throws IOException {
+        return null;
+    }
+
+    private void saveEnteredGroup(TrainCarts traincarts, UnloadedEnteredGroup group, DataBlock root) throws IOException {
+        root.addChild("entered-group", stream -> {
+            stream.writeUTF(group.trainName);
+            stream.writeInt(group.age());
+
+        });
+    }
+
     /**
      * The result of trying to enter a mutex
      */
@@ -350,28 +459,40 @@ public class MutexZoneSlot {
         public boolean active = true;
         /** Distance from the front of the train to where this slot was first encountered */
         public double distanceToMutex;
-        /** Tracks the tick when this entered group was created. Resolves hard-hard conflicts */
-        protected final int creationTick;
-        /** Tracks the tick when this entered group last failed to enter the mutex, and returned OCCUPIED */
-        public int occupiedTick;
+        /** The rail coordinates locked by the group that have positions within the mutex */
+        protected final RailSlotMap occupiedRails;
         /**
          * Other entered groups that should be de-activated if this entered group is given green light
          * to move again. Automatically cleared when this group itself is deactivated anyway.
          */
-        protected final ArrayList<EnteredGroup> otherGroupsToDeactivate = new ArrayList<>(2);
+        protected final ArrayList<EnteredGroup> otherGroupsToDeactivate;
         /**
          * Inverse of otherGroupsToDeactivate
          */
-        protected final ArrayList<EnteredGroup> groupsDeactivatingMe = new ArrayList<>(2);
-        protected IntVector3 groupsDeactivatingMeConflictRail = null;
+        protected final ArrayList<EnteredGroup> groupsDeactivatingMe;
+        protected IntVector3 groupsDeactivatingMeConflictRail;
 
-        public EnteredGroup(double distanceToMutex, int nowTicks) {
-            this.creationTick = nowTicks;
-            this.occupiedTick = nowTicks; // Not set
+        public EnteredGroup(double distanceToMutex) {
+            this.occupiedRails = new RailSlotMap();
             this.distanceToMutex = distanceToMutex;
+            this.otherGroupsToDeactivate = new ArrayList<>(2);
+            this.groupsDeactivatingMe = new ArrayList<>(2);
+            this.groupsDeactivatingMeConflictRail = null;
+        }
+
+        protected EnteredGroup(EnteredGroup copy) {
+            this.hardEnter = copy.hardEnter;
+            this.active = copy.active;
+            this.distanceToMutex = copy.distanceToMutex;
+            this.occupiedRails = copy.occupiedRails;
+            this.otherGroupsToDeactivate = copy.otherGroupsToDeactivate;
+            this.groupsDeactivatingMe = copy.groupsDeactivatingMe;
+            this.groupsDeactivatingMeConflictRail = copy.groupsDeactivatingMeConflictRail;
         }
 
         public abstract boolean isGroup(MinecartGroup group);
+
+        public abstract String getTrainName();
 
         /**
          * Loads this entered group using the group information specified. If this entered
@@ -383,6 +504,13 @@ public class MutexZoneSlot {
         public abstract LoadedEnteredGroup load(MinecartGroup group);
 
         /**
+         * Attemps to unload this entered group, if it is a loaded entered group
+         *
+         * @return Unloaded entered group
+         */
+        public abstract UnloadedEnteredGroup unload();
+
+        /**
          * Gets the age of this entered group. This is for how many ticks this group has
          * been inside or waiting for the mutex.
          *
@@ -392,7 +520,7 @@ public class MutexZoneSlot {
 
         protected abstract boolean containsVerify(IntVector3 rail);
 
-        protected abstract boolean refresh();
+        protected abstract boolean refresh(Consumer<EnteredGroup> swap);
     }
 
     /**
@@ -401,21 +529,34 @@ public class MutexZoneSlot {
     public class LoadedEnteredGroup extends EnteredGroup {
         /** The MinecartGroup represented */
         public final MinecartGroup group;
+        /** Tracks the tick when this entered group was created. Resolves hard-hard conflicts */
+        protected final int creationTick;
         /**
          * Tick timestamp when the group last 'found' the mutex zone, updating its state
          * This tick timestamp is also stored inside occupiedRails to check whether rails are ahead of
          * the group
          */
         protected int probeTick;
-        /** The rail coordinates locked by the group that have positions within the mutex */
-        private final RailSlotMap occupiedRails = new RailSlotMap();
+        /** Tracks the tick when this entered group last failed to enter the mutex, and returned OCCUPIED */
+        public int occupiedTick;
         /** If a mutex conflict occurred, stores the event details of the conflict */
         private MutexZoneConflictEvent conflict = null;
 
-        public LoadedEnteredGroup(MinecartGroup group, double distanceToMutex, int nowTicks) {
-            super(distanceToMutex, nowTicks);
-            this.probeTick = nowTicks;
+        public LoadedEnteredGroup(MinecartGroup group, double distanceToMutex, int creationTick, int nowTicks) {
+            super(distanceToMutex);
             this.group = group;
+            this.creationTick = creationTick;
+            this.probeTick = nowTicks;
+            this.occupiedTick = nowTicks; // Not set
+        }
+
+        public LoadedEnteredGroup(MinecartGroup group, UnloadedEnteredGroup unloadedGroup) {
+            super(unloadedGroup);
+            int nowTicks = group.getObstacleTracker().getTickCounter();
+            this.group = group;
+            this.creationTick = nowTicks - unloadedGroup.age();
+            this.probeTick = nowTicks;
+            this.occupiedTick = nowTicks; // Not set
         }
 
         @Override
@@ -424,8 +565,18 @@ public class MutexZoneSlot {
         }
 
         @Override
+        public String getTrainName() {
+            return group.getProperties().getTrainName();
+        }
+
+        @Override
         public LoadedEnteredGroup load(MinecartGroup group) {
             return this;
+        }
+
+        @Override
+        public UnloadedEnteredGroup unload() {
+            return new UnloadedEnteredGroup(this);
         }
 
         @Override
@@ -450,7 +601,7 @@ public class MutexZoneSlot {
          * @return True if fully occupied
          */
         public boolean isOccupiedFully() {
-            return occupiedRails.isFullLocking();
+            return occupiedRails.isFullyLocked();
         }
 
         /**
@@ -494,7 +645,7 @@ public class MutexZoneSlot {
             }
 
             {
-                boolean wasFullyLocked = occupiedRails.isFullLocking();
+                boolean wasFullyLocked = occupiedRails.isFullyLocked();
 
                 // Make sure to register the rail at all times so we have this information
                 // This is important when resolving the order of restoring trains when a train
@@ -649,7 +800,7 @@ public class MutexZoneSlot {
         }
 
         @Override
-        protected boolean refresh() {
+        protected boolean refresh(Consumer<EnteredGroup> swap) {
             // If group unloads or is deleted weirdly, clean it up right away
             if (group.isUnloaded() || !MinecartGroupStore.getGroups().contains(group)) {
                 return false;
@@ -674,10 +825,82 @@ public class MutexZoneSlot {
         }
     }
 
+    /**
+     * A group that has entered or is approaching a mutex zone, but has unloaded.
+     * Is frozen in time until the group loads again or is removed.
+     */
+    public class UnloadedEnteredGroup extends EnteredGroup {
+        /** The name of the unloaded train this group is for */
+        public final String trainName;
+        /** Server timestamp when the original entered group was created */
+        public final int creationServerTime;
+
+        public UnloadedEnteredGroup(String trainName, double distanceToMutex, int age) {
+            super(distanceToMutex);
+            this.trainName = trainName;
+            this.creationServerTime = CommonUtil.getServerTicks() - age;
+        }
+
+        public UnloadedEnteredGroup(LoadedEnteredGroup loadedGroup) {
+            super(loadedGroup);
+            this.trainName = loadedGroup.group.getProperties().getTrainName();
+            this.creationServerTime = CommonUtil.getServerTicks() - loadedGroup.age();
+        }
+
+        @Override
+        public boolean isGroup(MinecartGroup group) {
+            return trainName.equals(group.getProperties().getTrainName());
+        }
+
+        @Override
+        public String getTrainName() {
+            return trainName;
+        }
+
+        @Override
+        public LoadedEnteredGroup load(MinecartGroup group) {
+            return new LoadedEnteredGroup(group, this);
+        }
+
+        @Override
+        public UnloadedEnteredGroup unload() {
+            return this;
+        }
+
+        @Override
+        public int age() {
+            return CommonUtil.getServerTicks() - creationServerTime;
+        }
+
+        @Override
+        protected boolean containsVerify(IntVector3 rail) {
+            return occupiedRails.isFullyLocked() || occupiedRails.isSmartLocked(rail);
+        }
+
+        @Override
+        protected boolean refresh(Consumer<EnteredGroup> swap) {
+            // If train does not exist, remove this entered group
+            TrainProperties trainsProps = TrainPropertiesStore.get(trainName);
+            if (trainsProps == null) {
+                return false;
+            }
+
+            // If loaded, restore this unloaded group into a loaded one
+            // This allows the entered group to be cleaned up if the group doesn't
+            // activate it.
+            MinecartGroup group = trainsProps.getHolder();
+            if (group != null) {
+                swap.accept(this.load(group));
+            }
+
+            return true;
+        }
+    }
+
     private final class IgnoredEnteredGroup extends LoadedEnteredGroup {
 
         public IgnoredEnteredGroup(MinecartGroup group, double distanceToMutex, int nowTicks) {
-            super(group, distanceToMutex, nowTicks);
+            super(group, distanceToMutex, nowTicks, nowTicks);
         }
 
         @Override
@@ -703,15 +926,6 @@ public class MutexZoneSlot {
         private Map<IntVector3, RailSlot> rails = INITIAL_RAILS;
         /** Last conflicting rail block */
         private RailSlot conflict = null;
-
-        /**
-         * Gets whether any of the rail slots mapped require locking the full mutex slot
-         *
-         * @return True if fully locked
-         */
-        public boolean isFullLocking() {
-            return !railsFull.isEmpty();
-        }
 
         /**
          * Gets the last rails that were visited to enter a mutex zone slot, successful or not.
@@ -785,6 +999,15 @@ public class MutexZoneSlot {
             return true;
         }
 
+        /**
+         * Gets whether any of the rail slots mapped require locking the full mutex slot
+         *
+         * @return True if fully locked
+         */
+        public boolean isFullyLocked() {
+            return !railsFull.isEmpty();
+        }
+
         public boolean isFullyLockedVerify(MinecartGroup group, int nowTicks) {
             List<RailSlot> railsFull = this.railsFull;
             if (!railsFull.isEmpty()) {
@@ -800,6 +1023,10 @@ public class MutexZoneSlot {
                 }
             }
             return false;
+        }
+
+        public boolean isSmartLocked(IntVector3 rail) {
+            return rails.containsKey(rail);
         }
 
         public boolean isSmartLockedVerify(MinecartGroup group, int nowTicks, IntVector3 rail) {

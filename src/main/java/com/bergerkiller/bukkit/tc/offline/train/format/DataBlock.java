@@ -65,6 +65,18 @@ public final class DataBlock {
         return new DataBlock(new DataBlockBuilder(), name, data);
     }
 
+    /**
+     * Creates a new DataBlock with data
+     *
+     * @param name Name of the root data block
+     * @param writer Writer for generating the data of the child
+     * @throws IOException If the writer throws one
+     * @return new DataBlock
+     */
+    public static DataBlock createWithData(String name, DataWriter writer) throws IOException {
+        return (new DataBlockBuilder()).create(name, writer);
+    }
+
     DataBlock(DataBlockBuilder dataBlockBuilder, String name, byte[] data) {
         this.dataBlockBuilder = dataBlockBuilder;
         this.name = name;
