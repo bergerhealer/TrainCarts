@@ -430,9 +430,9 @@ public interface TrainStatus {
     public static final class EnteredMutexZone implements TrainStatus {
         private final MutexZoneSlot slot;
         private final List<MutexZone> zones;
-        private final MutexZoneSlot.EnteredGroup group;
+        private final MutexZoneSlot.LoadedEnteredGroup group;
 
-        public EnteredMutexZone(MutexZoneSlot slot, List<MutexZone> zones, MutexZoneSlot.EnteredGroup group) {
+        public EnteredMutexZone(MutexZoneSlot slot, List<MutexZone> zones, MutexZoneSlot.LoadedEnteredGroup group) {
             this.slot = slot;
             this.zones = zones;
             this.group = group;

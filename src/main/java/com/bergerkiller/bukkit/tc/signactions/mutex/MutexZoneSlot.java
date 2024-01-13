@@ -115,6 +115,7 @@ public class MutexZoneSlot {
                 EnteredGroup enteredGroup = iter.next();
                 if (!enteredGroup.refresh()) {
                     iter.remove();
+                    swapDeactivatedEnteredGroups(enteredGroup, null);
                     trainsHaveLeft = true;
                 } else if (enteredGroup.hardEnter) {
                     hasHardEnteredGroup = true;
@@ -133,10 +134,10 @@ public class MutexZoneSlot {
      * @param group
      * @return entered group
      */
-    public EnteredGroup findEntered(MinecartGroup group) {
+    public LoadedEnteredGroup findEntered(MinecartGroup group) {
         for (EnteredGroup entered : this.entered) {
-            if (entered.group == group) {
-                return entered;
+            if (entered instanceof LoadedEnteredGroup && entered.isGroup(group)) {
+                return (LoadedEnteredGroup) entered;
             }
         }
         return null;
@@ -144,14 +145,14 @@ public class MutexZoneSlot {
 
     /**
      * Starts tracking the group for this zone. Must call
-     * {@link EnteredGroup#enter(MutexZoneSlotType, IntVector3, boolean)}
+     * {@link LoadedEnteredGroup#enter(MutexZoneSlotType, IntVector3, boolean)}
      * afterwards, which might result in the group being untracked again when rejected.
      *
      * @param group MinecartGroup to track
      * @param distanceToMutex Distance from the front of the group to this mutex zone
-     * @return EnteredGroup of this group
+     * @return LoadedEnteredGroup of this group
      */
-    public EnteredGroup track(MinecartGroup group, double distanceToMutex) {
+    public LoadedEnteredGroup track(MinecartGroup group, double distanceToMutex) {
         int nowTicks = group.getObstacleTracker().getTickCounter();
 
         // Verify using statements whether the group is even considered
@@ -173,11 +174,12 @@ public class MutexZoneSlot {
                     boolean wasGroupHardEntered = false;
                     boolean hasHardEnteredGroup = false;
                     for (Iterator<EnteredGroup> iter = this.entered.iterator(); iter.hasNext();) {
-                        EnteredGroup entered = iter.next();
-                        if (entered.group == group) {
+                        EnteredGroup enteredGroup = iter.next();
+                        if (enteredGroup.isGroup(group)) {
                             iter.remove();
-                            wasGroupHardEntered = entered.hardEnter;
-                        } else if (entered.hardEnter) {
+                            swapDeactivatedEnteredGroups(enteredGroup, null);
+                            wasGroupHardEntered = enteredGroup.hardEnter;
+                        } else if (enteredGroup.hardEnter) {
                             hasHardEnteredGroup = true;
                         }
                     }
@@ -193,20 +195,27 @@ public class MutexZoneSlot {
 
         // Find existing
         for (EnteredGroup enteredGroup : this.entered) {
-            if (enteredGroup.group == group) {
-                enteredGroup.deactivateByOtherGroups();
-                enteredGroup.probeTick = nowTicks;
-                if (enteredGroup.active) {
-                    enteredGroup.distanceToMutex = Math.min(enteredGroup.distanceToMutex, distanceToMutex);
-                } else {
-                    enteredGroup.active = true;
-                    enteredGroup.distanceToMutex = distanceToMutex;
+            if (enteredGroup.isGroup(group)) {
+                // Promote a non-loaded entered group to a loaded one
+                LoadedEnteredGroup loadedEnteredGroup = enteredGroup.load(group);
+                if (enteredGroup != loadedEnteredGroup) {
+                    swapEnteredGroup(enteredGroup, loadedEnteredGroup);
                 }
-                return enteredGroup;
+
+                // Return the live-entered group. Track its information.
+                loadedEnteredGroup.deactivateByOtherGroups();
+                loadedEnteredGroup.probeTick = nowTicks;
+                if (loadedEnteredGroup.active) {
+                    loadedEnteredGroup.distanceToMutex = Math.min(loadedEnteredGroup.distanceToMutex, distanceToMutex);
+                } else {
+                    loadedEnteredGroup.active = true;
+                    loadedEnteredGroup.distanceToMutex = distanceToMutex;
+                }
+                return loadedEnteredGroup;
             }
         }
 
-        EnteredGroup enteredGroup = new EnteredGroup(group, distanceToMutex, nowTicks);
+        LoadedEnteredGroup enteredGroup = new LoadedEnteredGroup(group, distanceToMutex, nowTicks);
         this.entered.add(enteredGroup);
         return enteredGroup;
     }
@@ -229,8 +238,8 @@ public class MutexZoneSlot {
         } else {
             List<MinecartGroup> result = new ArrayList<>(this.entered.size());
             for (EnteredGroup enteredGroup : this.entered) {
-                if (enteredGroup.active && enteredGroup.hardEnter) {
-                    result.add(enteredGroup.group);
+                if (enteredGroup.active && enteredGroup.hardEnter && enteredGroup instanceof LoadedEnteredGroup) {
+                    result.add(((LoadedEnteredGroup) enteredGroup).group);
                 }
             }
             return result;
@@ -248,18 +257,41 @@ public class MutexZoneSlot {
         } else {
             List<MinecartGroup> result = new ArrayList<>(this.entered.size());
             for (EnteredGroup enteredGroup : this.entered) {
-                if (enteredGroup.active) {
-                    result.add(enteredGroup.group);
+                if (enteredGroup.active && enteredGroup instanceof LoadedEnteredGroup) {
+                    result.add(((LoadedEnteredGroup) enteredGroup).group);
                 }
             }
             return result;
         }
     }
 
+    private void swapEnteredGroup(EnteredGroup toReplace, EnteredGroup replacement) {
+        swapEnteredGroup(entered, toReplace, replacement);
+        swapDeactivatedEnteredGroups(toReplace, replacement);
+    }
+
+    private void swapDeactivatedEnteredGroups(EnteredGroup toReplace, EnteredGroup replacement) {
+        for (EnteredGroup group : entered) {
+            swapEnteredGroup(group.groupsDeactivatingMe, toReplace, replacement);
+            swapEnteredGroup(group.otherGroupsToDeactivate, toReplace, replacement);
+        }
+    }
+
+    private static void swapEnteredGroup(List<EnteredGroup> groups, EnteredGroup toReplace, EnteredGroup replacement) {
+        int index = groups.indexOf(toReplace);
+        if (index != -1) {
+            if (replacement != null) {
+                groups.set(index, replacement);
+            } else {
+                groups.remove(index);
+            }
+        }
+    }
+
     /**
      * The result of trying to enter a mutex
      */
-    public static enum EnterResult {
+    public enum EnterResult {
         /** The group does not match conditions to enter/be seen by the mutex zone */
         IGNORED(false, false),
         /** The mutex zone was entered so far */
@@ -280,7 +312,7 @@ public class MutexZoneSlot {
         private final boolean occupied;
         private final boolean conflict;
 
-        private EnterResult(boolean occupied, boolean conflict) {
+        EnterResult(boolean occupied, boolean conflict) {
             this.occupied = occupied;
             this.conflict = conflict;
         }
@@ -311,79 +343,104 @@ public class MutexZoneSlot {
     /**
      * Tracks the information of a single train that has entered a mutex zone
      */
-    public class EnteredGroup {
-        /** The MinecartGroup represented */
-        public final MinecartGroup group;
+    public abstract class EnteredGroup {
         /** Whether the group has actually entered the mutex zone (true) or is about to (false) */
         public boolean hardEnter = false;
         /** Whether the group is scheduled to go into the mutex zone next, or is already */
         public boolean active = true;
         /** Distance from the front of the train to where this slot was first encountered */
         public double distanceToMutex;
+        /** Tracks the tick when this entered group was created. Resolves hard-hard conflicts */
+        protected final int creationTick;
+        /** Tracks the tick when this entered group last failed to enter the mutex, and returned OCCUPIED */
+        public int occupiedTick;
+        /**
+         * Other entered groups that should be de-activated if this entered group is given green light
+         * to move again. Automatically cleared when this group itself is deactivated anyway.
+         */
+        protected final ArrayList<EnteredGroup> otherGroupsToDeactivate = new ArrayList<>(2);
+        /**
+         * Inverse of otherGroupsToDeactivate
+         */
+        protected final ArrayList<EnteredGroup> groupsDeactivatingMe = new ArrayList<>(2);
+        protected IntVector3 groupsDeactivatingMeConflictRail = null;
+
+        public EnteredGroup(double distanceToMutex, int nowTicks) {
+            this.creationTick = nowTicks;
+            this.occupiedTick = nowTicks; // Not set
+            this.distanceToMutex = distanceToMutex;
+        }
+
+        public abstract boolean isGroup(MinecartGroup group);
+
+        /**
+         * Loads this entered group using the group information specified. If this entered
+         * group is already a loaded entered group, returns this.
+         *
+         * @param group Group
+         * @return This EnteredGroup promoted to a LoadedEnteredGroup
+         */
+        public abstract LoadedEnteredGroup load(MinecartGroup group);
+
+        /**
+         * Gets the age of this entered group. This is for how many ticks this group has
+         * been inside or waiting for the mutex.
+         *
+         * @return Age in ticks
+         */
+        public abstract int age();
+
+        protected abstract boolean containsVerify(IntVector3 rail);
+
+        protected abstract boolean refresh();
+    }
+
+    /**
+     * Entered Group of a loaded MinecartGroup. This is a potentially moving train.
+     */
+    public class LoadedEnteredGroup extends EnteredGroup {
+        /** The MinecartGroup represented */
+        public final MinecartGroup group;
         /**
          * Tick timestamp when the group last 'found' the mutex zone, updating its state
          * This tick timestamp is also stored inside occupiedRails to check whether rails are ahead of
          * the group
          */
-        private int probeTick;
-        /** Tracks the tick when this entered group was created. Resolves hard-hard conflicts */
-        private final int creationTick;
-        /** Tracks the tick when this entered group last failed to enter the mutex, and returned OCCUPIED */
-        public int occupiedTick;
+        protected int probeTick;
         /** The rail coordinates locked by the group that have positions within the mutex */
         private final RailSlotMap occupiedRails = new RailSlotMap();
         /** If a mutex conflict occurred, stores the event details of the conflict */
         private MutexZoneConflictEvent conflict = null;
-        /**
-         * Other entered groups that should be de-activated if this entered group is given green light
-         * to move again. Automatically cleared when this group itself is deactivated anyway.
-         */
-        private final ArrayList<EnteredGroup> otherGroupsToDeactivate = new ArrayList<>(2);
-        /**
-         * Inverse of otherGroupsToDeactivate
-         */
-        private final ArrayList<EnteredGroup> groupsDeactivatingMe = new ArrayList<>(2);
-        private IntVector3 groupsDeactivatingMeConflictRail = null;
 
-        public EnteredGroup(MinecartGroup group, double distanceToMutex, int nowTicks) {
+        public LoadedEnteredGroup(MinecartGroup group, double distanceToMutex, int nowTicks) {
+            super(distanceToMutex, nowTicks);
+            this.probeTick = nowTicks;
             this.group = group;
-            this.probeTick = this.creationTick = nowTicks;
-            this.occupiedTick = nowTicks; // Not set
-            this.distanceToMutex = distanceToMutex;
         }
 
-        private void deactivate(IntVector3 conflictRail) {
-            this.active = false;
-            this.occupiedRails.clearConflict(conflictRail);
-            this.occupiedTick = this.probeTick;
-            if (!this.otherGroupsToDeactivate.isEmpty()) {
-                for (EnteredGroup group : this.otherGroupsToDeactivate) {
-                    group.groupsDeactivatingMe.remove(this);
-                    if (group.groupsDeactivatingMe.isEmpty()) {
-                        group.groupsDeactivatingMeConflictRail = null;
-                    }
-                }
-                this.otherGroupsToDeactivate.clear();
-            }
+        @Override
+        public boolean isGroup(MinecartGroup group) {
+            return this.group == group;
         }
 
-        private void deactivateByOtherGroups() {
-            if (!this.groupsDeactivatingMe.isEmpty()) {
-                for (EnteredGroup g : this.groupsDeactivatingMe) {
-                    g.otherGroupsToDeactivate.remove(this);
-                }
-                this.groupsDeactivatingMe.clear();
-                this.deactivate(this.groupsDeactivatingMeConflictRail);
-                this.groupsDeactivatingMeConflictRail = null;
-            }
+        @Override
+        public LoadedEnteredGroup load(MinecartGroup group) {
+            return this;
         }
 
-        private void deactivateOtherGroup(EnteredGroup otherGroup, IntVector3 conflictRail) {
-            if (!this.otherGroupsToDeactivate.contains(otherGroup)) {
-                this.otherGroupsToDeactivate.add(otherGroup);
-                otherGroup.groupsDeactivatingMe.add(this);
-                otherGroup.groupsDeactivatingMeConflictRail = conflictRail;
-            }
+        @Override
+        public int age() {
+            return getObstacleTickCounter() - this.creationTick;
+        }
+
+        /**
+         * Gets the {@link CommonUtil#getServerTicks()} timestamp when this entered group
+         * was last probed by a Train. Used for keep-alive.
+         *
+         * @return Server tick timestamp this entered group was last probed
+         */
+        public int serverTickLastProbed() {
+            return CommonUtil.getServerTicks() + probeTick - getObstacleTickCounter();
         }
 
         /**
@@ -408,7 +465,7 @@ public class MutexZoneSlot {
         }
 
         /**
-         * If last {@link #enter(MutexZoneSlotType, IntVector3, boolean)} result was
+         * If last {@link LoadedEnteredGroup#enter(MutexZoneSlotType, IntVector3, boolean)} result was
          * {@link EnterResult#CONFLICT}, then this method returns the details
          * about that conflict.
          *
@@ -433,7 +490,7 @@ public class MutexZoneSlot {
             EnterResult successResult = EnterResult.SUCCESS;
             if (this.wasOccupiedLastTick()) {
                 successResult = (this.conflict != null) ? EnterResult.CONFLICT_ONGOING
-                                                        : EnterResult.OCCUPIED_DISCOVER;
+                        : EnterResult.OCCUPIED_DISCOVER;
             }
 
             {
@@ -476,9 +533,9 @@ public class MutexZoneSlot {
                     // the mutex gave green light to enter. If this was recently, then we ignore
                     // these checks temporarily.
                     if (enteredGroup.age() > this.age() &&
-                        tickLastHardEntered < (this.serverTickLastProbed() + 5) &&
-                        (this.creationTick == this.probeTick || this.wasOccupiedLastTick()) &&
-                        enteredGroup.containsVerify(railBlock)
+                            tickLastHardEntered < (this.serverTickLastProbed() + 5) &&
+                            (this.creationTick == this.probeTick || this.wasOccupiedLastTick()) &&
+                            enteredGroup.containsVerify(railBlock)
                     ) {
                         this.hardEnter = false;
                         this.deactivate(railBlock);
@@ -506,8 +563,17 @@ public class MutexZoneSlot {
                     // If we hard-entered, but this entered group was only just tracked, disallow the hard enter.
                     boolean hadConflict = (this.conflict != null);
                     if (hadConflict || this.creationTick == this.probeTick || !this.wasOccupiedLastTick()) {
-                        this.conflict = new MutexZoneConflictEvent(this.group, enteredGroup.group, MutexZoneSlot.this, railBlock);
-                        this.occupiedTick = this.probeTick;
+                        // If this group or the other one isn't loaded, we can't make a conflict event just yet
+                        // until the other group loads too.
+                        if (enteredGroup instanceof LoadedEnteredGroup) {
+                            this.conflict = new MutexZoneConflictEvent(
+                                    this.group,
+                                    ((LoadedEnteredGroup) enteredGroup).group,
+                                    MutexZoneSlot.this, railBlock);
+                            this.occupiedTick = this.probeTick;
+                        } else {
+                            return hadConflict ? EnterResult.CONFLICT_ONGOING : EnterResult.CONFLICT;
+                        }
                         return hadConflict ? EnterResult.CONFLICT_ONGOING : EnterResult.CONFLICT;
                     }
                 }
@@ -537,37 +603,59 @@ public class MutexZoneSlot {
             return successResult;
         }
 
-        /**
-         * Gets the age of this entered group. This is for how many ticks this group has
-         * been inside or waiting for the mutex.
-         *
-         * @return Age in ticks
-         */
-        public int age() {
-            return group.getObstacleTracker().getTickCounter() - this.creationTick;
-        }
-
-        public int serverTickLastProbed() {
-            return CommonUtil.getServerTicks() + probeTick - group.getObstacleTracker().getTickCounter();
-        }
-
         private boolean wasOccupiedLastTick() {
             return (this.probeTick - this.occupiedTick) <= 1;
         }
 
-        private boolean containsVerify(IntVector3 rail) {
-            int nowTicks = probeTick;
-            return occupiedRails.isFullyLockedVerify(group, nowTicks) ||
-                   occupiedRails.isSmartLockedVerify(group, nowTicks, rail);
+        private void deactivate(IntVector3 conflictRail) {
+            this.active = false;
+            this.occupiedRails.clearConflict(conflictRail);
+            this.occupiedTick = this.probeTick;
+            if (!this.otherGroupsToDeactivate.isEmpty()) {
+                for (EnteredGroup group : this.otherGroupsToDeactivate) {
+                    group.groupsDeactivatingMe.remove(this);
+                    if (group.groupsDeactivatingMe.isEmpty()) {
+                        group.groupsDeactivatingMeConflictRail = null;
+                    }
+                }
+                this.otherGroupsToDeactivate.clear();
+            }
         }
 
-        private boolean refresh() {
+        private void deactivateByOtherGroups() {
+            if (!this.groupsDeactivatingMe.isEmpty()) {
+                for (EnteredGroup g : this.groupsDeactivatingMe) {
+                    g.otherGroupsToDeactivate.remove(this);
+                }
+                this.groupsDeactivatingMe.clear();
+                this.deactivate(this.groupsDeactivatingMeConflictRail);
+                this.groupsDeactivatingMeConflictRail = null;
+            }
+        }
+
+        private void deactivateOtherGroup(EnteredGroup otherGroup, IntVector3 conflictRail) {
+            if (!this.otherGroupsToDeactivate.contains(otherGroup)) {
+                this.otherGroupsToDeactivate.add(otherGroup);
+                otherGroup.groupsDeactivatingMe.add(this);
+                otherGroup.groupsDeactivatingMeConflictRail = conflictRail;
+            }
+        }
+
+        @Override
+        protected boolean containsVerify(IntVector3 rail) {
+            int nowTicks = probeTick;
+            return occupiedRails.isFullyLockedVerify(group, nowTicks) ||
+                    occupiedRails.isSmartLockedVerify(group, nowTicks, rail);
+        }
+
+        @Override
+        protected boolean refresh() {
             // If group unloads or is deleted weirdly, clean it up right away
             if (group.isUnloaded() || !MinecartGroupStore.getGroups().contains(group)) {
                 return false;
             }
             // If checked recently keep it around for now
-            int nowTicks = group.getObstacleTracker().getTickCounter();
+            int nowTicks = getObstacleTickCounter();
             if ((nowTicks - probeTick) < TICK_DELAY_CLEAR_AUTOMATIC) {
                 return true;
             }
@@ -580,9 +668,13 @@ public class MutexZoneSlot {
             probeTick = nowTicks;
             return true;
         }
+
+        private int getObstacleTickCounter() {
+            return group.getObstacleTracker().getTickCounter();
+        }
     }
 
-    private final class IgnoredEnteredGroup extends EnteredGroup {
+    private final class IgnoredEnteredGroup extends LoadedEnteredGroup {
 
         public IgnoredEnteredGroup(MinecartGroup group, double distanceToMutex, int nowTicks) {
             super(group, distanceToMutex, nowTicks);

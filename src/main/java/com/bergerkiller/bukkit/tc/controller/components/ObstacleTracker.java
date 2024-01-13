@@ -276,7 +276,7 @@ public class ObstacleTracker implements TrainStatusProvider {
 
         // If actually inside the zone, enter the zone with this group
         newMutexZone.onUsed(group);
-        MutexZoneSlot.EnteredGroup entered = newMutexZone.slot.track(group, 0.0);
+        MutexZoneSlot.LoadedEnteredGroup entered = newMutexZone.slot.track(group, 0.0);
         for (RailTracker.TrackedRail rail : rails) {
             if (!rail.state.railPiece().isNone()) {
                 entered.enter(newMutexZone.type, rail.state.railPiece().blockPosition(), true);
@@ -309,7 +309,7 @@ public class ObstacleTracker implements TrainStatusProvider {
             // Add statuses
             for (Map.Entry<MutexZoneSlot, List<MutexZone>> e : zones.entrySet()) {
                 // Find EnteredGroup that matches this owner
-                EnteredGroup entered = e.getKey().findEntered(group);
+                MutexZoneSlot.LoadedEnteredGroup entered = e.getKey().findEntered(group);
                 statuses.add(new TrainStatus.EnteredMutexZone(e.getKey(), e.getValue(), entered));
             }
         }
@@ -438,7 +438,7 @@ public class ObstacleTracker implements TrainStatusProvider {
 
         // Tracks the current mutex zone the train is inside of while navigating the track
         MutexZone currentMutex = null;
-        MutexZoneSlot.EnteredGroup currentMutexGroup = null;
+        MutexZoneSlot.LoadedEnteredGroup currentMutexGroup = null;
         boolean currentMutexHard = false;
         double currentMutexSpacing = 0.0;
 
