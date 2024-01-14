@@ -196,7 +196,7 @@ public class MutexZoneSlot {
      * Loads the entered group (unloaded) data from previously saved data
      *
      * @param plugin TrainCarts main plugin instance
-     * @param mutexZoneSlotData Data from {@link #save()}
+     * @param mutexZoneSlotData Data from {@link #save(TrainCarts)}
      * @throws IOException
      */
     public void loadEnteredGroups(TrainCarts plugin, DataBlock mutexZoneSlotData) throws IOException {
@@ -961,7 +961,7 @@ public class MutexZoneSlot {
         public void clearOldRails(int nowTicks) {
             for (Iterator<RailSlot> iter = this.rails.values().iterator(); iter.hasNext();) {
                 RailSlot slot = iter.next();
-                if (slot.ticksLastProbed < nowTicks) {
+                if (slot.ticksLastProbed() < nowTicks) {
                     onSlotRemoved(slot);
                     iter.remove();
                 }
@@ -976,7 +976,7 @@ public class MutexZoneSlot {
                 conflict = null;
             }
             RailSlot slot = currRails.computeIfAbsent(railBlock, RailSlot::new);
-            boolean added = slot.isNew;
+            boolean added = slot.isNew();
             boolean wasFullLocking = slot.isFullLocking();
             slot.probe(type, nowTicks);
             if (!wasFullLocking && slot.isFullLocking()) {
@@ -1079,7 +1079,7 @@ public class MutexZoneSlot {
                 railsFull.remove(slot);
             }
         }
-        
+
         /**
          * Checks whether a particular rail block is used by a MinecartGroup
          *
@@ -1124,14 +1124,11 @@ public class MutexZoneSlot {
         private MutexZoneSlotType type;
         /** Tick timestamp when this rail slot was last probed */
         private int ticksLastProbed;
-        /** Whether this rail slot was just now created (internal logic) */
-        private boolean isNew;
 
         public RailSlot(IntVector3 rail) {
             this.rail = rail;
-            this.ticksLastProbed = 0;
+            this.ticksLastProbed = -1; // Marked new
             this.type = MutexZoneSlotType.SMART;
-            this.isNew = true;
         }
 
         private void probe(MutexZoneSlotType type, int nowTicks) {
@@ -1139,7 +1136,6 @@ public class MutexZoneSlot {
                 this.type = type;
             }
             this.ticksLastProbed = nowTicks;
-            this.isNew = false;
         }
 
         /**
@@ -1169,6 +1165,15 @@ public class MutexZoneSlot {
          */
         public boolean isFullLocking() {
             return this.type == MutexZoneSlotType.NORMAL;
+        }
+
+        /**
+         * Gets whether this slot is newly added, and has not been probed before
+         *
+         * @return True if new
+         */
+        public boolean isNew() {
+            return this.ticksLastProbed < 0;
         }
 
         /**
