@@ -557,6 +557,7 @@ public class MutexZoneSlot {
             this.creationTick = nowTicks - unloadedGroup.age();
             this.probeTick = nowTicks;
             this.occupiedTick = nowTicks; // Not set
+            this.occupiedRails.keepAlive(nowTicks); // Keep them around for this tick
         }
 
         @Override
@@ -968,6 +969,16 @@ public class MutexZoneSlot {
             }
         }
 
+        /**
+         * Keeps all existing added rails alive. This prevents rails being removed
+         * the tick after a train goes from unloaded to loaded.
+         *
+         * @param nowTicks Current tick timestamp of the obstacle tracker
+         */
+        public void keepAlive(int nowTicks) {
+            railsLive.values().forEach(slot -> slot.probe(nowTicks));
+        }
+
         public boolean add(MutexZoneSlotType type, IntVector3 railBlock, int nowTicks) {
             Map<IntVector3, RailSlot> currRails = this.rails;
             if (currRails == INITIAL_RAILS) {
@@ -1129,6 +1140,10 @@ public class MutexZoneSlot {
             this.rail = rail;
             this.ticksLastProbed = -1; // Marked new
             this.type = MutexZoneSlotType.SMART;
+        }
+
+        private void probe(int nowTicks) {
+            this.ticksLastProbed = nowTicks;
         }
 
         private void probe(MutexZoneSlotType type, int nowTicks) {
