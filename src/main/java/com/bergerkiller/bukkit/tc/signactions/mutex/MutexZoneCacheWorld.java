@@ -208,13 +208,14 @@ public class MutexZoneCacheWorld {
             UnaryOperator<MutexZonePath.OptionsBuilder> optionsBuilder
     ) {
         // Find existing
-        MutexZonePath path = byPathingKey.get(new PathingSignKey(sign, group));
+        String trainName = group.getProperties().getTrainName();
+        MutexZonePath path = byPathingKey.get(new PathingSignKey(sign, trainName));
         if (path != null) {
             return path;
         }
 
         // Create new
-        path = new MutexZonePath(sign, group, initialBlock,
+        path = new MutexZonePath(sign, trainName, initialBlock,
                 optionsBuilder.apply(MutexZonePath.createOptions()));
         add(path);
         return path;
@@ -446,11 +447,11 @@ public class MutexZoneCacheWorld {
 
     protected static class PathingSignKey {
         public final Object uniqueKey;
-        public final MinecartGroup group;
+        public final String trainName;
 
-        public PathingSignKey(RailLookup.TrackedSign sign, MinecartGroup group) {
+        public PathingSignKey(RailLookup.TrackedSign sign, String trainName) {
             this.uniqueKey = sign.getUniqueKey();
-            this.group = group;
+            this.trainName = trainName;
         }
 
         @Override
@@ -461,7 +462,7 @@ public class MutexZoneCacheWorld {
         @Override
         public boolean equals(Object o) {
             PathingSignKey other = (PathingSignKey) o;
-            return uniqueKey.equals(other.uniqueKey) && group == other.group;
+            return uniqueKey.equals(other.uniqueKey) && trainName.equals(other.trainName);
         }
     }
 

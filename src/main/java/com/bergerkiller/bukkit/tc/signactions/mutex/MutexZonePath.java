@@ -8,6 +8,8 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.debug.particles.DebugParticles;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import org.bukkit.Color;
 import org.bukkit.entity.Player;
@@ -23,7 +25,7 @@ import java.util.Set;
  */
 public class MutexZonePath extends MutexZone {
     private final RailLookup.TrackedSign sign;
-    private final MinecartGroup group;
+    private final String trainName;
     private final double spacing;
     private final double maxDistance;
     private final Set<IntVector3> blocks = new HashSet<>(128);
@@ -36,13 +38,13 @@ public class MutexZonePath extends MutexZone {
 
     protected MutexZonePath(
             RailLookup.TrackedSign sign,
-            MinecartGroup group,
+            String trainName,
             IntVector3 initialBlock,
             OptionsBuilder options
     ) {
         super(OfflineBlock.of(sign.signBlock), true /* unused */, options.type, options.name, options.statement);
         this.sign = sign;
-        this.group = group;
+        this.trainName = trainName;
         this.spacing = options.spacing;
         this.maxDistance = options.maxDistance;
         this.tickLastUsed = CommonUtil.getServerTicks();
@@ -57,24 +59,24 @@ public class MutexZonePath extends MutexZone {
     }
 
     public String getTrainName() {
-        return group.getProperties().getTrainName();
+        return trainName;
     }
 
     @Override
     protected void addToWorld(MutexZoneCacheWorld world) {
-        world.byPathingKey.put(new MutexZoneCacheWorld.PathingSignKey(sign, group), this);
+        world.byPathingKey.put(new MutexZoneCacheWorld.PathingSignKey(sign, trainName), this);
         this.world = world;
     }
 
     public void remove() {
-        if (world.byPathingKey.remove(new MutexZoneCacheWorld.PathingSignKey(sign, group), this)) {
+        if (world.byPathingKey.remove(new MutexZoneCacheWorld.PathingSignKey(sign, trainName), this)) {
             world.remove(this);
         }
     }
 
     @Override
     public double getSpacing(MinecartGroup group) {
-        return this.group == group ? 0.0 : spacing;
+        return this.trainName.equals(group.getProperties().getTrainName()) ? 0.0 : spacing;
     }
 
     /**
@@ -131,7 +133,7 @@ public class MutexZonePath extends MutexZone {
         }
 
         // If changed, and the sign is still mapped (sanity check), update chunks
-        if (chunksChanged && world.byPathingKey.get(new MutexZoneCacheWorld.PathingSignKey(sign, group)) == this) {
+        if (chunksChanged && world.byPathingKey.get(new MutexZoneCacheWorld.PathingSignKey(sign, trainName)) == this) {
             world.addNewChunks(this);
         }
     }
@@ -195,13 +197,14 @@ public class MutexZonePath extends MutexZone {
 
     @Override
     public void onUsed(MinecartGroup group) {
-        if (this.group == group) {
+        if (this.trainName.equals(group.getProperties().getTrainName())) {
             tickLastUsed = CommonUtil.getServerTicks();
         }
     }
 
     public boolean isExpired(int expireTick) {
-        return tickLastUsed < expireTick || group.isUnloaded();
+        TrainProperties properties = TrainPropertiesStore.get(trainName);
+        return properties == null || (tickLastUsed < expireTick && properties.isLoaded());
     }
 
     @Override
