@@ -17,7 +17,7 @@ import java.util.UUID;
  */
 public class OfflineGroupFileFormatModern {
 
-    public static void writeAllWorlds(DataOutputStream stream, List<OfflineGroupWorld> worlds) throws IOException {
+    public static void writeAll(DataOutputStream stream, Data data) throws IOException {
         // Write data that, if a legacy format reader would read it, would read nothing
         // But to the modern reader, it is a header for the modern format
         stream.writeInt(1);
@@ -25,14 +25,13 @@ public class OfflineGroupFileFormatModern {
         stream.writeInt(0);
 
         // Write the modern format data. First create a data block, then write it to the stream
-        DataBlock root = DataBlock.create("root");
-        for (OfflineGroupWorld world : worlds) {
-            writeWorldGroups(root, world);
+        for (OfflineGroupWorld world : data.worlds) {
+            writeWorldGroups(data.root, world);
         }
-        root.writeTo(stream);
+        data.root.writeTo(stream);
     }
 
-    public static List<OfflineGroupWorld> readAllWorlds(DataInputStream stream) throws IOException {
+    public static Data readAll(DataInputStream stream) throws IOException {
         // The legacy format would never write group data for a world that has no groups
         // It's also extremely unlikely for a world to have UUID 0.
         // Perform these reads first, and if they meet this condition, it is the
@@ -40,7 +39,7 @@ public class OfflineGroupFileFormatModern {
         // If not, it is the legacy format.
         final int worldCount = stream.readInt();
         if (worldCount == 0) {
-            return Collections.emptyList(); // Legacy format, no data
+            return new Data(Collections.emptyList()); // Legacy format, no data
         }
         final UUID firstWorldUUID = StreamUtil.readUUID(stream);
         final int firstWorldGroupCount = stream.readInt();
@@ -55,7 +54,7 @@ public class OfflineGroupFileFormatModern {
             for (int worldIdx = 1; worldIdx < worldCount; worldIdx++) {
                 worlds.add(OfflineGroupFileFormatLegacy.readWorld(stream));
             }
-            return Collections.unmodifiableList(worlds);
+            return new Data(Collections.unmodifiableList(worlds));
         }
 
         // This is for sure the modern group data format
@@ -63,13 +62,13 @@ public class OfflineGroupFileFormatModern {
         DataBlock root = DataBlock.read(stream);
         List<DataBlock> worldDataList = (root == null) ? Collections.emptyList() : root.findChildren("world");
         if (worldDataList.isEmpty()) {
-            return Collections.emptyList();
+            return new Data(Collections.emptyList(), root);
         }
         List<OfflineGroupWorld> worlds = new ArrayList<>(worldDataList.size());
         for (DataBlock worldData : worldDataList) {
             worlds.add(readWorldGroups(worldData));
         }
-        return Collections.unmodifiableList(worlds);
+        return new Data(Collections.unmodifiableList(worlds), root);
     }
 
     public static void writeWorldGroups(DataBlock root, OfflineGroupWorld world) throws IOException {
@@ -173,5 +172,20 @@ public class OfflineGroupFileFormatModern {
                 memberData.findChildren("action"),
                 memberData.findChildren("sign"),
                 memberData.findChildren("skipped-sign"));
+    }
+
+    public static final class Data {
+        public final List<OfflineGroupWorld> worlds;
+        public final DataBlock root; // Additional data can be included here
+
+        public Data(List<OfflineGroupWorld> worlds) {
+            this.worlds = worlds;
+            this.root = DataBlock.create("root");
+        }
+
+        public Data(List<OfflineGroupWorld> worlds, DataBlock root) {
+            this.worlds = worlds;
+            this.root = root;
+        }
     }
 }

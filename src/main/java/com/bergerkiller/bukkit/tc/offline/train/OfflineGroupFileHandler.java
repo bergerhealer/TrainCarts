@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.TempFileOutputStream;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -33,8 +34,9 @@ class OfflineGroupFileHandler {
         new DataReader(dataFile) {
             @Override
             public void read(DataInputStream stream) throws IOException {
-                List<OfflineGroupWorld> worlds = OfflineGroupFileFormatModern.readAllWorlds(stream);
-                manager.load(worlds);
+                OfflineGroupFileFormatModern.Data data = OfflineGroupFileFormatModern.readAll(stream);
+                manager.load(data.worlds);
+                MutexZoneCache.loadState(manager.getTrainCarts(), data.root);
             }
         }.read();
     }
@@ -62,6 +64,12 @@ class OfflineGroupFileHandler {
                                                       OfflineGroupManager.saveAllGroups());
         }
 
+        // Modern Data
+        final OfflineGroupFileFormatModern.Data data = new OfflineGroupFileFormatModern.Data(worlds);
+
+        // Save all mutex slot states
+        MutexZoneCache.saveState(manager.getTrainCarts(), data.root);
+
         // Then in an asynchronous task write all data to disk. Use a TempFileOutputStream
         // so an interrupted write won't corrupt the file.
         currentSaveOperation = CommonUtil.runCheckedAsync(() -> {
@@ -69,7 +77,7 @@ class OfflineGroupFileHandler {
                  DataOutputStream stream = new DataOutputStream(fileStream)
             ) {
                 try {
-                    OfflineGroupFileFormatModern.writeAllWorlds(stream, worlds);
+                    OfflineGroupFileFormatModern.writeAll(stream, data);
                 } catch (Throwable t) {
                     fileStream.close(false);
                     throw t;

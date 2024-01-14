@@ -64,6 +64,10 @@ public class MutexZoneCacheWorld {
         return null;
     }
 
+    public MutexZone findBySign(IntVector3 signPosition, boolean signFront) {
+        return bySignPosition.get(new SignSidePositionKey(signPosition, signFront));
+    }
+
     /**
      * Gets a List of all mutex zones that have been added since the previous tick.
      * This List can be used during train updates to identify new mutex zones, and register

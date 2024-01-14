@@ -56,6 +56,10 @@ public class MutexZonePath extends MutexZone {
         minCZ = maxCZ = initialBlock.getChunkZ();
     }
 
+    public String getTrainName() {
+        return group.getProperties().getTrainName();
+    }
+
     @Override
     protected void addToWorld(MutexZoneCacheWorld world) {
         world.byPathingKey.put(new MutexZoneCacheWorld.PathingSignKey(sign, group), this);

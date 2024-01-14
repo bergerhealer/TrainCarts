@@ -92,8 +92,21 @@ public class MutexZoneSlot {
         }
     }
 
+    public List<MutexZone> getZones() {
+        return this.zones;
+    }
+
     public boolean hasZones() {
         return !this.zones.isEmpty();
+    }
+
+    /**
+     * Gets a List of all entered groups that exist
+     *
+     * @return List of entered groups
+     */
+    public List<EnteredGroup> getEnteredGroups() {
+        return entered;
     }
 
     /**
@@ -159,70 +172,6 @@ public class MutexZoneSlot {
                     swapDeactivatedEnteredGroups(entered, unloaded);
                 }
                 break;
-            }
-        }
-    }
-
-    /**
-     * Saves the information of all entered groups of this mutex zone slot,
-     * including other information about this slot itself like the name.
-     *
-     * @param plugin TrainCarts main plugin instance
-     * @return DataBlock of saved slot information. Null if this mutex zone slot
-     *         had no entered groups (and thus no important information to save)
-     * @throws IOException
-     */
-    public DataBlock save(TrainCarts plugin) throws IOException {
-        if (entered.isEmpty()) {
-            return null;
-        }
-
-        DataBlock root = DataBlock.createWithData("mutex-zone-slot", stream -> {
-            stream.writeUTF(name);
-            if (isAnonymous()) {
-                // For anonymous slots, also save the mutex zone sign + front that represents it
-                if (zones.isEmpty()) {
-                    throw new IllegalStateException("Anonymous mutex zone slot has no zones!");
-                }
-                MutexZone zone = zones.get(0);
-                OfflineBlock.writeTo(stream, zone.signBlock);
-                stream.writeBoolean(zone.signFront);
-            }
-        });
-        for (EnteredGroup group : entered) {
-            saveEnteredGroup(plugin, group.unload(), root);
-        }
-        return root;
-    }
-
-    /**
-     * Loads the entered group (unloaded) data from previously saved data
-     *
-     * @param plugin TrainCarts main plugin instance
-     * @param mutexZoneSlotData Data from {@link #save(TrainCarts)}
-     * @throws IOException
-     */
-    public void loadEnteredGroups(TrainCarts plugin, DataBlock mutexZoneSlotData) throws IOException {
-        for (DataBlock enteredGroupData : mutexZoneSlotData.findChildren("entered-group")) {
-            try {
-                UnloadedEnteredGroup unloadedEnteredGroup = loadEnteredGroup(plugin, enteredGroupData);
-                if (unloadedEnteredGroup == null) {
-                    continue;
-                }
-
-                // Make sure this entered group isn't already represented
-                boolean contained = false;
-                for (EnteredGroup otherGroup : entered) {
-                    if (otherGroup.unload().trainName.equals(unloadedEnteredGroup.trainName)) {
-                        contained = true;
-                        break;
-                    }
-                }
-                if (!contained) {
-                    entered.add(unloadedEnteredGroup);
-                }
-            } catch (Throwable t) {
-                plugin.getLogger().log(Level.SEVERE, "Failed to load mutex entered group", t);
             }
         }
     }
@@ -386,18 +335,6 @@ public class MutexZoneSlot {
                 groups.remove(index);
             }
         }
-    }
-
-    private UnloadedEnteredGroup loadEnteredGroup(TrainCarts traincarts, DataBlock enteredGroupData) throws IOException {
-        return null;
-    }
-
-    private void saveEnteredGroup(TrainCarts traincarts, UnloadedEnteredGroup group, DataBlock root) throws IOException {
-        root.addChild("entered-group", stream -> {
-            stream.writeUTF(group.trainName);
-            stream.writeInt(group.age());
-
-        });
     }
 
     /**
@@ -844,7 +781,7 @@ public class MutexZoneSlot {
         /** Server timestamp when the original entered group was created */
         public final int creationServerTime;
 
-        public UnloadedEnteredGroup(String trainName, double distanceToMutex, int age) {
+        private UnloadedEnteredGroup(String trainName, double distanceToMutex, int age) {
             super(distanceToMutex);
             this.trainName = trainName;
             this.creationServerTime = CommonUtil.getServerTicks() - age;
@@ -854,6 +791,107 @@ public class MutexZoneSlot {
             super(loadedGroup);
             this.trainName = loadedGroup.group.getProperties().getTrainName();
             this.creationServerTime = CommonUtil.getServerTicks() - loadedGroup.age();
+        }
+
+        public void save(TrainCarts plugin, DataBlock root) {
+            DataBlock enteredGroupData;
+            try {
+                enteredGroupData = root.addChild("entered-group", stream -> {
+                    stream.writeUTF(trainName);
+                    stream.writeDouble(distanceToMutex);
+                    stream.writeInt(age());
+
+                    // List the group train names of otherGroupsToDeactivate / groupsDeactivatingMe
+                    Util.writeVariableLengthInt(stream, otherGroupsToDeactivate.size());
+                    for (EnteredGroup otherGroup : otherGroupsToDeactivate) {
+                        stream.writeUTF(otherGroup.getTrainName());
+                    }
+                    Util.writeVariableLengthInt(stream, groupsDeactivatingMe.size());
+                    for (EnteredGroup otherGroup : groupsDeactivatingMe) {
+                        stream.writeUTF(otherGroup.getTrainName());
+                    }
+                    // Conflict rail, if set
+                    stream.writeBoolean(groupsDeactivatingMeConflictRail != null);
+                    if (groupsDeactivatingMeConflictRail != null) {
+                        groupsDeactivatingMeConflictRail.write(stream);
+                    }
+                });
+            } catch (Throwable t) {
+                plugin.getLogger().log(Level.SEVERE, "Failed to save mutex entered group data of train " + trainName, t);
+                return;
+            }
+
+            // Save rails slot map as a child of the entered group
+            try {
+                occupiedRails.save(enteredGroupData);
+            } catch (Throwable t) {
+                // Undo addChild
+                root.children.remove(root.children.size() - 1);
+                plugin.getLogger().log(Level.SEVERE, "Failed to save mutex entered group rail slot data of train " + trainName, t);
+                return;
+            }
+        }
+
+        private static UnloadedEnteredGroupData loadData(TrainCarts plugin, DataBlock enteredGroupData) throws IOException {
+            final UnloadedEnteredGroup group;
+            final List<String> otherGroupsToDeactivateNames;
+            final List<String> groupsDeactivatingMeNames;
+            try (DataInputStream stream = enteredGroupData.readData()) {
+                String trainName = stream.readUTF();
+                double distanceToMutex = stream.readDouble();
+                int age = stream.readInt();
+                otherGroupsToDeactivateNames = readListOfStrings(stream);
+                groupsDeactivatingMeNames = readListOfStrings(stream);
+                IntVector3 groupsDeactivatingMeConflictRail = null;
+                if (stream.readBoolean()) {
+                    groupsDeactivatingMeConflictRail = IntVector3.read(stream);
+                }
+
+                // Create unloaded group with this data
+                group = new UnloadedEnteredGroup(trainName, distanceToMutex, age);
+                group.groupsDeactivatingMeConflictRail = groupsDeactivatingMeConflictRail;
+            }
+
+            // Load rails slot map as a child of the entered group
+            group.occupiedRails.load(enteredGroupData);
+
+            return new UnloadedEnteredGroupData(group, otherGroupsToDeactivateNames, groupsDeactivatingMeNames);
+        }
+
+        public static List<UnloadedEnteredGroup> loadAll(TrainCarts plugin, DataBlock mutexZoneSlotData) {
+            List<DataBlock> enteredGroupDataList = mutexZoneSlotData.findChildren("entered-group");
+            if (enteredGroupDataList.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            List<UnloadedEnteredGroupData> unloadedGroupDataList = new ArrayList<>(enteredGroupDataList.size());
+            for (DataBlock enteredGroupData : enteredGroupDataList) {
+                try {
+                    unloadedGroupDataList.add(loadData(plugin, enteredGroupData));
+                } catch (Throwable t) {
+                    plugin.getLogger().log(Level.SEVERE, "Failed to load mutex entered group data", t);
+                }
+            }
+
+            // Now populate otherGroupsToDeactivateNames / groupsDeactivatingMeNames
+            List<UnloadedEnteredGroup> unloadedGroups = new ArrayList<>(unloadedGroupDataList.size());
+            for (UnloadedEnteredGroupData unloadedGroupData : unloadedGroupDataList) {
+                unloadedGroups.add(unloadedGroupData.load(unloadedGroupDataList));
+            }
+            return Collections.unmodifiableList(unloadedGroups);
+        }
+
+        private static List<String> readListOfStrings(DataInputStream stream) throws IOException {
+            int count = Util.readVariableLengthInt(stream);
+            if (count <= 0) {
+                return Collections.emptyList();
+            } else {
+                List<String> result = new ArrayList<>(count);
+                for (int i = 0; i < count; i++) {
+                    result.add(stream.readUTF());
+                }
+                return Collections.unmodifiableList(result);
+            }
         }
 
         @Override
@@ -903,6 +941,44 @@ public class MutexZoneSlot {
             }
 
             return true;
+        }
+    }
+
+    private static class UnloadedEnteredGroupData {
+        public final UnloadedEnteredGroup group;
+        public final List<String> otherGroupsToDeactivateNames;
+        public final List<String> groupsDeactivatingMeNames;
+
+        public UnloadedEnteredGroupData(
+                UnloadedEnteredGroup group,
+                List<String> otherGroupsToDeactivateNames,
+                List<String> groupsDeactivatingMeNames
+        ) {
+            this.group = group;
+            this.otherGroupsToDeactivateNames = otherGroupsToDeactivateNames;
+            this.groupsDeactivatingMeNames = groupsDeactivatingMeNames;
+        }
+
+        public UnloadedEnteredGroup load(List<UnloadedEnteredGroupData> otherEnteredGroups) {
+            loadEnteredGroupList(otherGroupsToDeactivateNames, otherEnteredGroups, group.otherGroupsToDeactivate);
+            loadEnteredGroupList(groupsDeactivatingMeNames, otherEnteredGroups, group.groupsDeactivatingMe);
+            return group;
+        }
+
+        private static void loadEnteredGroupList(
+                List<String> groupNames,
+                List<UnloadedEnteredGroupData> otherEnteredGroups,
+                List<EnteredGroup> groupsTarget
+        ) {
+            groupsTarget.clear();
+            for (String name : groupNames) {
+                for (UnloadedEnteredGroupData data : otherEnteredGroups) {
+                    if (name.equals(data.group.getTrainName())) {
+                        groupsTarget.add(data.group);
+                        break;
+                    }
+                }
+            }
         }
     }
 
