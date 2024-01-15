@@ -1,5 +1,14 @@
 package com.bergerkiller.bukkit.tc.attachments.control;
 
+import com.bergerkiller.bukkit.common.map.MapColorPalette;
+import com.bergerkiller.bukkit.common.map.MapEventPropagation;
+import com.bergerkiller.bukkit.common.map.MapFont;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
+import com.bergerkiller.generated.net.minecraft.world.entity.monster.EntityShulkerHandle;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -30,6 +39,35 @@ public class CartAttachmentPlatform extends CartAttachment {
         public Attachment createController(ConfigurationNode config) {
             return new CartAttachmentPlatform();
         }
+
+        @Override
+        public void createAppearanceTab(MapWidgetTabView.Tab tab, MapWidgetAttachmentNode attachment) {
+            // Shulker box color selector
+            tab.addWidget(new MapWidgetText())
+                    .setText("Shulker Color")
+                    .setFont(MapFont.MINECRAFT)
+                    .setColor(MapColorPalette.COLOR_RED)
+                    .setBounds(15, 6, 50, 11);
+            final MapWidget boatTypeSelector = tab.addWidget(new MapWidgetSelectionBox() {
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    this.addItem(Color.DEFAULT.name());
+                    for (Color color : Color.values()) {
+                        if (color != Color.DEFAULT) {
+                            this.addItem(color.name());
+                        }
+                    }
+                    this.setSelectedItem(attachment.getConfig().getOrDefault("shulkerColor", Color.DEFAULT).name());
+                }
+
+                @Override
+                public void onSelectedItemChanged() {
+                    attachment.getConfig().set("shulkerColor", this.getSelectedItem());
+                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                }
+            }).setBounds(0, 15, 100, 12);
+        }
     };
 
     private VirtualEntity actual;
@@ -49,6 +87,7 @@ public class CartAttachmentPlatform extends CartAttachment {
         this.actual = new VirtualEntity(this.getManager());
         this.actual.setEntityType(EntityType.SHULKER);
         this.actual.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
+        this.actual.getMetaData().watch(EntityShulkerHandle.DATA_COLOR, (byte) Color.DEFAULT.ordinal());
 
         // Shulker boxes fail to move, and must be inside a vehicle to move at all
         // Handle this logic here. It seems that the position of the chicken is largely irrelevant.
@@ -57,6 +96,12 @@ public class CartAttachmentPlatform extends CartAttachment {
         this.entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
         this.entity.getMetaData().set(EntityHandle.DATA_NO_GRAVITY, true);
         this.entity.setRelativeOffset(0.0, -0.32, 0.0);
+    }
+
+    @Override
+    public void onLoad(ConfigurationNode config) {
+        Color color = config.getOrDefault("shulkerColor", Color.DEFAULT);
+        this.actual.getMetaData().set(EntityShulkerHandle.DATA_COLOR, (byte) color.ordinal());
     }
 
     @Override
@@ -108,6 +153,7 @@ public class CartAttachmentPlatform extends CartAttachment {
     public void onTransformChanged(Matrix4x4 transform) {
         this.entity.updatePosition(transform);
         this.actual.updatePosition(transform);
+        this.actual.syncMetadata();
     }
 
     @Override
@@ -122,4 +168,26 @@ public class CartAttachmentPlatform extends CartAttachment {
     public void onTick() {
     }
 
+    /**
+     * Shulker color, taken from nms EnumColor
+     */
+    public enum Color {
+        WHITE,
+        ORANGE,
+        MAGENTA,
+        LIGHT_BLUE,
+        YELLOW,
+        LIME,
+        PINK,
+        GRAY,
+        LIGHT_GRAY,
+        CYAN,
+        PURPLE,
+        BLUE,
+        BROWN,
+        GREEN,
+        RED,
+        BLACK,
+        DEFAULT
+    }
 }
