@@ -1,5 +1,8 @@
 package com.bergerkiller.bukkit.tc.signactions.mutex;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -12,6 +15,8 @@ import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import org.bukkit.World;
@@ -209,14 +214,15 @@ public class MutexZoneCacheWorld {
     ) {
         // Find existing
         String trainName = group.getProperties().getTrainName();
-        MutexZonePath path = byPathingKey.get(new PathingSignKey(sign, trainName));
+        MutexZonePath path = byPathingKey.get(PathingSignKey.of(sign.getUniqueKey(), trainName));
         if (path != null) {
             return path;
         }
 
         // Create new
-        path = new MutexZonePath(sign, trainName, initialBlock,
+        path = new MutexZonePath(group.getTrainCarts(), sign, trainName,
                 optionsBuilder.apply(MutexZonePath.createOptions()));
+        path.addBlock(initialBlock);
         add(path);
         return path;
     }
@@ -445,13 +451,38 @@ public class MutexZoneCacheWorld {
         }
     }
 
-    protected static class PathingSignKey {
+    protected static final class PathingSignKey {
         public final Object uniqueKey;
         public final String trainName;
 
-        public PathingSignKey(RailLookup.TrackedSign sign, String trainName) {
-            this.uniqueKey = sign.getUniqueKey();
+        private PathingSignKey(Object signUniqueKey, String trainName) {
+            this.uniqueKey = signUniqueKey;
             this.trainName = trainName;
+        }
+
+        public static PathingSignKey of(Object signUniqueKey, String trainName) {
+            return new PathingSignKey(signUniqueKey, trainName);
+        }
+
+        public static PathingSignKey readFrom(TrainCarts plugin, DataInputStream stream) throws IOException {
+            Object signUniqueKey = plugin.getTrackedSignLookup().deserializeUniqueKey(Util.readByteArray(stream));
+            String trainName = stream.readUTF();
+            if (signUniqueKey == null) {
+                throw new UnsupportedOperationException("Pathing Mutex Sign locked by train '" + trainName +
+                        "' is of an unknown origin (missing plugin?)");
+            }
+            return of(signUniqueKey, trainName);
+        }
+
+        public boolean writeTo(TrainCarts plugin, DataOutputStream stream) throws IOException {
+            byte[] data = plugin.getTrackedSignLookup().serializeUniqueKey(uniqueKey);
+            if (data == null) {
+                return false;
+            }
+
+            Util.writeByteArray(stream, data);
+            stream.writeUTF(trainName);
+            return true;
         }
 
         @Override

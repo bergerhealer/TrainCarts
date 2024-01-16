@@ -108,6 +108,11 @@ public abstract class MutexZone {
     public void onUsed(MinecartGroup group) {
     }
 
+    @Override
+    public String toString() {
+        return this.getClass().getSimpleName() + "{sign=" + signBlock + ",type=" + type.name() + "}";
+    }
+
     public static MutexZone createCuboid(OfflineWorld world, IntVector3 signPosition, boolean isFrontText, MutexSignMetadata metadata) {
         return new MutexZoneCuboid(world.getBlockAt(signPosition), isFrontText, metadata.start, metadata.end, metadata.type, metadata.name, metadata.statement);
     }

@@ -71,7 +71,8 @@ public final class DataBlock {
      * @param name Name of the root data block
      * @param writer Writer for generating the data of the child
      * @throws IOException If the writer throws one
-     * @return new DataBlock
+     * @return new DataBlock, or <i>null</i> if the writer throws the
+     *         {@link AbortChildException}
      */
     public static DataBlock createWithData(String name, DataWriter writer) throws IOException {
         return (new DataBlockBuilder()).create(name, writer);
@@ -159,7 +160,8 @@ public final class DataBlock {
      * @param name Name of the child
      * @param writer Writer for generating the data of the child
      * @throws IOException If the writer throws one
-     * @return Added DataBlock child
+     * @return Added DataBlock child, or <i>null</i> if aborted with
+     *         {@link AbortChildException}
      */
     public DataBlock addChild(String name, DataWriter writer) throws IOException {
         DataBlock child = addChildOrAbort(name, writer);

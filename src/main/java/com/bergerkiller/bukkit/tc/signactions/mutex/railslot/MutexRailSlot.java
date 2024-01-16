@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.signactions.mutex.railslot;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneSlotType;
 
 import java.io.DataInputStream;
@@ -17,8 +16,6 @@ import java.io.IOException;
  * as a smart mutex is stored.
  */
 public final class MutexRailSlot {
-    private static final MutexZoneSlotType[] SLOT_TYPES = MutexZoneSlotType.values();
-
     /** Rail block coordinates */
     private final IntVector3 rail;
     /** The type of mutex zone slot behavior that locked this rail slot. */
@@ -99,16 +96,12 @@ public final class MutexRailSlot {
 
     public void writeTo(DataOutputStream stream) throws IOException {
         rail.write(stream);
-        Util.writeVariableLengthInt(stream, type.ordinal());
+        type.writeTo(stream);
     }
 
     public static MutexRailSlot read(DataInputStream stream) throws IOException {
-        IntVector3 rail = IntVector3.read(stream);
-        int typeOrd = Util.readVariableLengthInt(stream);
-
-        MutexRailSlot slot = new MutexRailSlot(rail);
-        slot.type = (typeOrd >= 0 && typeOrd < SLOT_TYPES.length)
-                ? SLOT_TYPES[typeOrd] : MutexZoneSlotType.NORMAL;
+        MutexRailSlot slot = new MutexRailSlot(IntVector3.read(stream));
+        slot.type = MutexZoneSlotType.readFrom (stream);
         return slot;
     }
 }

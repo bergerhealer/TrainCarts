@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.offline.OfflineWorldMap;
+import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -85,9 +86,12 @@ public class MutexZoneCache {
      * @param root Root DataBlock to write the mutex zone state data to
      */
     public static void saveState(TrainCarts plugin, DataBlock root) {
-        DataBlock stateData = root.addChild("mutex-zones-state");
+        final DataBlock stateData = root.addChild("mutex-zones-state");
 
-        //TODO: Save pathing mutexes
+        // Save pathing mutexes
+        for (MutexZoneCacheWorld world : cachesByWorld.values()) {
+            world.byPathingKey.values().forEach(p -> p.writeTo(stateData));
+        }
 
         // Save all mutex zone slots' entered groups
         for (MutexZoneSlot slot : slotsList) {
@@ -101,7 +105,7 @@ public class MutexZoneCache {
             // Write out the slot metadata itself
             DataBlock slotData;
             try {
-                slotData = stateData.addChild("mutex-zone-slot", stream -> {
+                slotData = stateData.addChildOrAbort("mutex-zone-slot", stream -> {
                     // Mode:
                     // - 0 = slot mapped to a name. Only writes out name.
                     // - 1 = slot mapped to an ordinary (smart) mutex. Writes mutex details.
@@ -114,11 +118,11 @@ public class MutexZoneCache {
                         if (zone instanceof MutexZonePath) {
                             Util.writeVariableLengthInt(stream, 2);
 
-                            //TODO: Further implement
                             MutexZonePath pathMutex = (MutexZonePath) zone;
-                            OfflineBlock.writeTo(stream, pathMutex.signBlock);
-                            stream.writeBoolean(pathMutex.signFront);
-                            stream.writeUTF(pathMutex.getTrainName());
+                            StreamUtil.writeUUID(stream, pathMutex.signBlock.getWorldUUID());
+                            if (!pathMutex.key.writeTo(plugin, stream)) {
+                                throw new DataBlock.AbortChildException();
+                            }
                         } else {
                             Util.writeVariableLengthInt(stream, 1);
                             OfflineBlock.writeTo(stream, zone.signBlock);
@@ -146,9 +150,14 @@ public class MutexZoneCache {
      * @param root Root DataBlock optionally containing entered group data
      */
     public static void loadState(TrainCarts plugin, DataBlock root) {
-        //TODO: Load pathing mutexes
-
         root.findChild("mutex-zones-state").ifPresent(stateData -> {
+            // Load pathing mutexes
+            for (MutexZonePath pathMutex : MutexZonePath.readAll(plugin, stateData)) {
+                System.out.println("Load path mutex: " + pathMutex);
+                forWorld(pathMutex.signBlock.getWorld()).add(pathMutex);
+            }
+
+            // Load mutex slots
             for (DataBlock slotData : stateData.findChildren("mutex-zone-slot")) {
                 final MutexZoneSlot slot;
                 try (DataInputStream stream = slotData.readData()) {
@@ -178,8 +187,13 @@ public class MutexZoneCache {
                         slot = zone.slot;
                     } else if (mode == 2) {
                         // Anonymous pathing mutex for a single train at a pathing mutex sign
-                        // TODO: Implement
-                        continue;
+                        OfflineWorld world = OfflineWorld.of(StreamUtil.readUUID(stream));
+                        MutexZoneCacheWorld.PathingSignKey key = MutexZoneCacheWorld.PathingSignKey.readFrom(plugin, stream);
+                        MutexZonePath pathMutex = forWorld(world).byPathingKey.get(key);
+                        if (pathMutex == null) {
+                            continue; // Removed?
+                        }
+                        slot = pathMutex.slot;
                     } else {
                         // Unknown
                         continue;
@@ -289,7 +303,7 @@ public class MutexZoneCache {
      * @param zone
      * @return slot
      */
-    public static MutexZoneSlot findSlot(String name, MutexZone zone) {
+    public static synchronized MutexZoneSlot findSlot(String name, MutexZone zone) {
         if (name == null) {
             throw new IllegalArgumentException("Name is null");
         }
@@ -308,7 +322,7 @@ public class MutexZoneCache {
         return slot.addZone(zone);
     }
 
-    private static void removeMutexZone(MutexZone zone) {
+    private static synchronized void removeMutexZone(MutexZone zone) {
         zone.slot.removeZone(zone);
         if (!zone.slot.hasZones()) {
             if (!zone.slot.isAnonymous()) {
@@ -321,7 +335,7 @@ public class MutexZoneCache {
     /**
      * Refreshes all mutex zone slots, releasing groups that are no longer on it
      */
-    public static void refreshAll() {
+    public static synchronized void refreshAll() {
         // Note: done by index on purpose to avoid concurrent modification exceptions
         // They may occur if a zone loads/unloads as a result of a lever toggle/etc.
         if (!slotsList.isEmpty()) {
@@ -339,7 +353,7 @@ public class MutexZoneCache {
      *
      * @param group MinecartGroup that unloaded
      */
-    public static void unloadGroupInSlots(MinecartGroup group) {
+    public static synchronized void unloadGroupInSlots(MinecartGroup group) {
         slotsList.forEach(s -> s.unload(group));
     }
 }
