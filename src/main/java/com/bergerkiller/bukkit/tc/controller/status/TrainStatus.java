@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.controller.status;
 
 import java.util.List;
 
+import com.bergerkiller.bukkit.tc.signactions.mutex.railslot.MutexRailSlot;
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 
@@ -505,19 +506,19 @@ public interface TrainStatus {
 
                 if (group.active) {
                     str.append("Locked Rail Blocks:\r\n");
-                    for (MutexZoneSlot.RailSlot slot : group.getLastPath()) {
+                    for (MutexRailSlot slot : group.getLastPath()) {
                         str.append("  ");
                         slot.debugPrint(str);
                         str.append("\r\n");
                     }
                 } else {
-                    List<MutexZoneSlot.RailSlot> rails = group.getLastPath();
+                    List<MutexRailSlot> rails = group.getLastPath();
                     if (rails.isEmpty()) {
                         str.append("Waiting for Rail: Unknown\r\n");
                     } else {
                         str.append("Path taken through Mutex:\r\n");
                         for (int i = 0; i < rails.size() - 1; i++) {
-                            MutexZoneSlot.RailSlot slot = rails.get(i);
+                            MutexRailSlot slot = rails.get(i);
                             str.append("  ");
                             slot.debugPrint(str);
                             str.append("\r\n");
