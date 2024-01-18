@@ -1,9 +1,12 @@
 package com.bergerkiller.bukkit.tc.statements;
 
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+
+import java.util.Collections;
 
 public class StatementName extends Statement {
 
@@ -26,7 +29,7 @@ public class StatementName extends Statement {
     public boolean handleArray(MinecartGroup group, String[] text, SignActionEvent event) {
         TrainProperties prop = group.getProperties();
         for (String name : text) {
-            if (prop.getTrainName().equals(name)) {
+            if (Util.matchText(Collections.singletonList(prop.getTrainName()), name)) {
                 return true;
             }
         }
