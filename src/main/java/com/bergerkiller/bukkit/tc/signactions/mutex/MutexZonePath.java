@@ -68,7 +68,7 @@ public class MutexZonePath extends MutexZone {
         this.sign = sign;
         this.spacing = options.spacing;
         this.maxDistance = options.maxDistance;
-        this.tickLastUsed = CommonUtil.getServerTicks();
+        this.tickLastUsed = -1;
     }
 
     /**
@@ -317,7 +317,17 @@ public class MutexZonePath extends MutexZone {
 
     public boolean isExpired(int expireTick) {
         TrainProperties properties = TrainPropertiesStore.get(getTrainName());
-        return properties == null || (tickLastUsed < expireTick && properties.isLoaded());
+        if (properties == null) {
+            return true; // Train removed, expired instantly
+        } else if (!properties.isLoaded()) {
+            tickLastUsed = -1;
+            return false; // Wait until train loads in again
+        } else if (tickLastUsed == -1) {
+            tickLastUsed = CommonUtil.getServerTicks();
+            return false; // Loaded, track expiry again from this point
+        } else {
+            return tickLastUsed < expireTick; // Expire after not used for some time
+        }
     }
 
     @Override
