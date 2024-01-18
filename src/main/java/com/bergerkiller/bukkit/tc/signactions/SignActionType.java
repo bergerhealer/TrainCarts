@@ -1,18 +1,36 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 public enum SignActionType {
-    NONE(false, true), 
-    REDSTONE_CHANGE(true, false), 
-    REDSTONE_ON(true, false), 
-    REDSTONE_OFF(true, false),  
-    MEMBER_ENTER(false, true),  
-    MEMBER_MOVE(false, true),  
-    MEMBER_LEAVE(false, true),  
-    GROUP_ENTER(false, true),  
-    GROUP_LEAVE(false, true), 
-    MEMBER_UPDATE(false, false),  
-    GROUP_UPDATE(false, false);
-    
+    /** Placeholder for 'no action'. Never used for execute(event). */
+    NONE(false, true),
+    /** When any redstone changes occur nearby the sign */
+    REDSTONE_CHANGE(true, false),
+    /** When redstone power turns on from a previous off state */
+    REDSTONE_ON(true, false),
+    /** When redstone power turns off from a previous on state */
+    REDSTONE_OFF(true, false),
+    /** When a single cart drives on top of a sign, or is spawned on top */
+    MEMBER_ENTER(false, true),
+    /** When a single cart moves on top of a sign */
+    MEMBER_MOVE(false, true),
+    /** When a single cart is no longer on top of a sign, or is destroyed */
+    MEMBER_LEAVE(false, true),
+    /** When a train drives on top of a sign, or is spawned on top */
+    GROUP_ENTER(false, true),
+    /** When a train is no longer on top of a sign, or is destroyed */
+    GROUP_LEAVE(false, true),
+    /** When a change occurs to a single cart, such as passengers entering/leaving */
+    MEMBER_UPDATE(false, false),
+    /** When a change occurs to the train, such as passengers entering/leaving */
+    GROUP_UPDATE(false, false),
+    /** When the train unloads and is frozen in time until it loads again */
+    GROUP_UNLOAD(false, false),
+    /**
+     * When a train loads in again after having been previously unloaded.
+     * Called for all signs a train was on after a server restart.
+     */
+    GROUP_RELOAD(false, false);
+
     private final boolean redstone;
     private final boolean movement;
     

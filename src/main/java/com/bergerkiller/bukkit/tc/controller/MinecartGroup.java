@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet.LongIterator;
+import com.bergerkiller.bukkit.tc.controller.components.SignTracker;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -570,7 +571,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     @Override
     public void clear() {
         // Stop tracking
-        unregisterFromServer();
+        unregisterFromServer(false);
 
         final TrainProperties properties = this.getProperties();
         for (MinecartMember<?> mm : this.toArray()) {
@@ -648,7 +649,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             OfflineGroup offlineGroup = OfflineGroupManager.saveGroup(this);
 
             // Stop tracking
-            unregisterFromServer();
+            unregisterFromServer(true);
 
             // Store the group offline
             if (offlineGroup != null) {
@@ -682,10 +683,13 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     /**
      * Un-registers this train from the server. This disables presence in active
      * detector regions and rail lookup cache.
+     *
+     * @param unloaded Whether the train has unloaded (true) or was destroyed (false)
      */
-    private void unregisterFromServer() {
+    private void unregisterFromServer(boolean unloaded) {
         // Unload in detector regions
-        getSignTracker().unload();
+        getSignTracker().unload(unloaded ? SignTracker.ClearMode.UNLOAD
+                                         : SignTracker.ClearMode.LEAVE);
 
         // Remove from member-by-rail cache
         getRailTracker().unload();

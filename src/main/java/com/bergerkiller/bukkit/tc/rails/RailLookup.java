@@ -657,7 +657,7 @@ public final class RailLookup {
          * @see #createEvent(SignActionType)
          */
         public void executeEventForGroup(SignActionType action, MinecartGroup group, RailState enterState) {
-            if (canFireEvents() && !group.isUnloaded()) {
+            if (canFireEvents()) {
                 SignActionEvent event = createEvent(action);
                 event.setGroup(group);
                 event.overrideCartEnterState(enterState);

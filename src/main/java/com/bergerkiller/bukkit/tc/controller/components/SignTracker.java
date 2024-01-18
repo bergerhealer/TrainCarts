@@ -17,6 +17,7 @@ import com.bergerkiller.bukkit.tc.utils.modlist.ModificationTrackedList;
 import org.bukkit.block.Block;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -161,9 +162,20 @@ public abstract class SignTracker {
     }
 
     /**
-     * Clears all active signs and other Block info, resulting in leave events being fired
+     * Clears all active signs and other Block info, sending a leave event
+     * to all currently active sign actions.
      */
-    public void clear() {
+    public final void clear() {
+        clear(ClearMode.LEAVE);
+    }
+
+    /**
+     * Clears all active signs and other Block info. The clear mode controls what
+     * type of events are notified to the previously active sign actions.
+     *
+     * @param clearMode Clearing Mode
+     */
+    public void clear(ClearMode clearMode) {
         if (!activeSignsByKey.isEmpty()) {
             int maxResetIterCtr = 100; // happens more than this, infinite loop suspected
             int expectedCount = activeSignsByKey.size();
@@ -173,7 +185,7 @@ public abstract class SignTracker {
                 iter.remove();
                 activeSigns.remove(sign);
                 expectedCount--;
-                onSignChange(sign, false);
+                clearMode.eventHandler.accept(this, sign);
 
                 if (expectedCount != activeSignsByKey.size()) {
                     expectedCount = activeSignsByKey.size();
@@ -199,6 +211,13 @@ public abstract class SignTracker {
     }
 
     /**
+     * Disables any previous scheduling of an update using {@link #update()}
+     */
+    public void clearUpdates() {
+        needsUpdate.clear();
+    }
+
+    /**
      * Checks whether the Minecart Member or Group is traveling on top of a given rails block
      *
      * @param railsBlock to check
@@ -210,6 +229,8 @@ public abstract class SignTracker {
     public abstract boolean isOnRails(Block railsBlock);
 
     protected abstract void onSignChange(ActiveSign sign, boolean active);
+
+    protected abstract void onLoadedChange(ActiveSign sign, boolean loaded);
 
     protected void updateActiveSigns(Supplier<ModificationTrackedList<ActiveSign>> activeSignListSupplier) {
         int limit = 1000;
@@ -274,7 +295,9 @@ public abstract class SignTracker {
                 activeSigns.add(currActiveSign);
 
                 // Fire enter for new sign (if not reloaded)
-                if (!offlineLoadedActiveSignKeys.contains(currActiveSign.getUniqueKey())) {
+                if (offlineLoadedActiveSignKeys.contains(currActiveSign.getUniqueKey())) {
+                    onLoadedChange(currActiveSign, true);
+                } else {
                     onSignChange(currActiveSign, true);
                 }
             } else if (currActiveSign.sign != newActiveSign.sign) {
@@ -398,6 +421,24 @@ public abstract class SignTracker {
         } else {
             activeSignsByKey.put(signBlock, removed);
             return false;
+        }
+    }
+
+    /**
+     * Mode of clearing the signs of a sign tracker
+     */
+    public enum ClearMode {
+        /** Fire a GROUP_UNLOAD event for all currently active signs */
+        UNLOAD((tracker, sign) -> tracker.onLoadedChange(sign, false)),
+        /** Fire a GROUP_LEAVE and MEMBER_LEAVE event for all currently active signs */
+        LEAVE((tracker, sign) -> tracker.onSignChange(sign, false)),
+        /** Do not fire any events */
+        SILENT((tracker, sign) -> {});
+
+        private final BiConsumer<SignTracker, ActiveSign> eventHandler;
+
+        ClearMode(BiConsumer<SignTracker, ActiveSign> eventHandler) {
+            this.eventHandler = eventHandler;
         }
     }
 

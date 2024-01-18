@@ -170,5 +170,7 @@ public final class OfflineMember {
         for (Object signKey : member.getTrainCarts().getTrackedSignLookup().deserializeUniqueKeys(skippedSigns)) {
             member.getSignTracker().addOfflineSkippedSignKey(signKey);
         }
+
+        member.getSignTracker().clearUpdates();
     }
 }

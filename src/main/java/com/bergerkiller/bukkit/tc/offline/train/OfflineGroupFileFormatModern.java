@@ -146,6 +146,13 @@ public class OfflineGroupFileFormatModern {
             s.writeDouble(member.motY);
             s.writeDouble(member.motZ);
         });
+
+        // Extra metadata
+        if (memberData != null) {
+            memberData.children.addAll(member.actions);
+            memberData.children.addAll(member.activeSigns);
+            memberData.children.addAll(member.skippedSigns);
+        }
     }
 
     private static OfflineMember readMember(OfflineGroup group, DataBlock memberData) throws IOException {

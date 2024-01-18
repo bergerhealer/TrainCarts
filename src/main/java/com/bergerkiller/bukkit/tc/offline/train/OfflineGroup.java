@@ -283,6 +283,8 @@ public final class OfflineGroup {
         for (Object signKey : group.getTrainCarts().getTrackedSignLookup().deserializeUniqueKeys(skippedSigns)) {
             group.getSignTracker().addOfflineSkippedSignKey(signKey);
         }
+
+        group.getSignTracker().clearUpdates();
     }
 
     @FunctionalInterface

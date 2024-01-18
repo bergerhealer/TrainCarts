@@ -46,6 +46,11 @@ public class SignTrackerGroup extends SignTracker {
         sign.executeEventForGroup(active ? SignActionType.GROUP_ENTER : SignActionType.GROUP_LEAVE, owner);
     }
 
+    @Override
+    protected void onLoadedChange(ActiveSign sign, boolean loaded) {
+        sign.executeEventForGroup(loaded ? SignActionType.GROUP_RELOAD : SignActionType.GROUP_UNLOAD, owner);
+    }
+
     /**
      * Gets the Minecart Member part of this Group that is traveling on the
      * rails block specified.
@@ -72,19 +77,26 @@ public class SignTrackerGroup extends SignTracker {
         return owner.getRailTracker().getMemberFromRails(railsBlockPosition);
     }
 
-    @Override
-    public void clear() {
+    /**
+     * Clears all sign information of this group sign tracker
+     *
+     * @param clearMode Clearing mode, controls what type of events are sent to currently
+     *                  active signs.
+     */
+    public void clear(ClearMode clearMode) {
         for (MinecartMember<?> member : owner) {
-            member.getSignTracker().clear();
+            member.getSignTracker().clear(clearMode);
         }
-        super.clear();
-        detectorRegions.clear();
+        super.clear(clearMode);
+        detectorRegions.clear(); // Notified per member already
     }
 
     /**
      * Tells detector regions (and signs?) that the tracker owner has unloaded
+     *
+     * @param clearMode Type of sign clearing mode for {@link #clear(ClearMode)}
      */
-    public void unload() {
+    public void unload(ClearMode clearMode) {
         // Unload in detector regions
         if (!this.detectorRegions.isEmpty()) {
             for (DetectorRegion region : this.detectorRegions) {
@@ -94,7 +106,7 @@ public class SignTrackerGroup extends SignTracker {
         }
 
         // Send leave events to all signs
-        this.clear();
+        this.clear(clearMode);
 
         // Clear skip tracking data
         this.signSkipTracker.unloadSigns();

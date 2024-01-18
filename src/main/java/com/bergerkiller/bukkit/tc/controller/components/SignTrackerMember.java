@@ -63,8 +63,8 @@ public class SignTrackerMember extends SignTracker {
     }
 
     @Override
-    public void clear() {
-        super.clear();
+    public void clear(ClearMode clearMode) {
+        super.clear(clearMode);
         if (!detectorRegions.isEmpty()) {
             for (DetectorRegion region : detectorRegions.cloneAsIterable()) {
                 region.remove(owner);
@@ -82,6 +82,11 @@ public class SignTrackerMember extends SignTracker {
     @Override
     protected void onSignChange(ActiveSign sign, boolean active) {
         sign.executeEventForMember(active ? SignActionType.MEMBER_ENTER : SignActionType.MEMBER_LEAVE, owner);
+    }
+
+    @Override
+    protected void onLoadedChange(ActiveSign sign, boolean loaded) {
+        // No events are fired for carts.
     }
 
     @Override
