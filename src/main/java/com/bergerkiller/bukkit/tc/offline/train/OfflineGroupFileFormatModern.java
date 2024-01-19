@@ -110,6 +110,8 @@ public class OfflineGroupFileFormatModern {
         DataBlock groupData = root.addChild("group", s -> {
             s.writeUTF(group.name);
         });
+        groupData.children.addAll(group.actions);
+        groupData.children.addAll(group.skippedSigns);
 
         // Save all members
         for (OfflineMember member : group.members) {
@@ -148,11 +150,9 @@ public class OfflineGroupFileFormatModern {
         });
 
         // Extra metadata
-        if (memberData != null) {
-            memberData.children.addAll(member.actions);
-            memberData.children.addAll(member.activeSigns);
-            memberData.children.addAll(member.skippedSigns);
-        }
+        memberData.children.addAll(member.actions);
+        memberData.children.addAll(member.activeSigns);
+        memberData.children.addAll(member.skippedSigns);
     }
 
     private static OfflineMember readMember(OfflineGroup group, DataBlock memberData) throws IOException {

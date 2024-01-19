@@ -150,7 +150,31 @@ public final class DataBlock {
      * @return Added DataBlock child
      */
     public DataBlock addChild(String name, DataWriter writer) throws IOException {
-        return addChild(dataBlockBuilder.create(name, writer));
+        DataBlock child = addChildOrAbort(name, writer);
+        if (child == null) {
+            throw new IllegalStateException("AbortChildException thrown in addChild. Use addChildOrAbort instead!");
+        }
+        return child;
+    }
+
+    /**
+     * Adds a child to this data block with the name specified, and data.
+     * The callback should generate the data for the new data block.
+     * If the writer throws an {@link AbortChildException} then the
+     * child is not added, and null is returned.
+     *
+     * @param name Name of the child
+     * @param writer Writer for generating the data of the child
+     * @throws IOException If the writer throws one
+     * @return Added DataBlock child, or <i>null</i> if aborted with
+     *         {@link AbortChildException}
+     */
+    public DataBlock addChildOrAbort(String name, AbortableDataWriter writer) throws IOException {
+        DataBlock child = dataBlockBuilder.create(name, writer);
+        if (child == null) {
+            return null;
+        }
+        return addChild(child);
     }
 
     /**
@@ -194,14 +218,25 @@ public final class DataBlock {
     }
 
     @FunctionalInterface
-    public interface DataWriter {
+    public interface AbortableDataWriter {
+        void write(DataOutputStream stream) throws IOException, AbortChildException;
+    }
+
+    @FunctionalInterface
+    public interface DataWriter extends AbortableDataWriter {
         void write(DataOutputStream stream) throws IOException;
+    }
+
+    /**
+     * Throw this exception inside the data writer to abort adding/creating the child
+     */
+    public static final class AbortChildException extends Exception {
     }
 
     static final class DataBlockBuilder {
         private WeakReference<ByteArrayOutputStream> stream = LogicUtil.nullWeakReference();
 
-        public DataBlock create(String name, DataWriter writer) throws IOException {
+        public DataBlock create(String name, AbortableDataWriter writer) throws IOException {
             ByteArrayOutputStream tempByteArrayStream = this.stream.get();
             if (tempByteArrayStream == null) {
                 tempByteArrayStream = new ByteArrayOutputStream(64);
@@ -212,6 +247,8 @@ public final class DataBlock {
                     writer.write(stream);
                 }
                 return new DataBlock(this, name, tempByteArrayStream.toByteArray());
+            } catch (AbortChildException ex) {
+                return null;
             } finally {
                 tempByteArrayStream.reset();
             }
