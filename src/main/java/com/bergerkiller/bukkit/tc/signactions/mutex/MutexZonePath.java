@@ -12,7 +12,6 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.debug.particles.DebugParticles;
 import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
-import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import org.bukkit.Color;
 import org.bukkit.entity.Player;
@@ -23,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -46,12 +46,12 @@ public class MutexZonePath extends MutexZone {
     protected MutexZonePath(
             final TrainCarts plugin,
             final RailLookup.TrackedSign sign,
-            final String trainName,
+            final TrainProperties trainProperties,
             final OptionsBuilder options
     ) {
         this(plugin,
              OfflineBlock.of(sign.signBlock),
-             MutexZoneCacheWorld.PathingSignKey.of(sign.getUniqueKey(), trainName),
+             MutexZoneCacheWorld.PathingSignKey.of(sign.getUniqueKey(), trainProperties),
              sign, options);
     }
 
@@ -92,7 +92,10 @@ public class MutexZonePath extends MutexZone {
                 int version = Util.readVariableLengthInt(stream); // Might be useful in the future
                 if (version == 1) {
                     OfflineBlock signBlock = OfflineBlock.readFrom(stream);
-                    MutexZoneCacheWorld.PathingSignKey key = MutexZoneCacheWorld.PathingSignKey.readFrom(plugin, stream);
+                    Optional<MutexZoneCacheWorld.PathingSignKey> key = MutexZoneCacheWorld.PathingSignKey.readFrom(plugin, stream);
+                    if (!key.isPresent()) {
+                        continue; // Skip if train doesn't exist, or sign is of an unknown type
+                    }
 
                     OptionsBuilder options = createOptions();
                     options.type(MutexZoneSlotType.readFrom(stream));
@@ -100,7 +103,7 @@ public class MutexZonePath extends MutexZone {
                     options.statement(stream.readUTF());
                     options.spacing(stream.readDouble());
                     options.maxDistance(stream.readDouble());
-                    path = new MutexZonePath(plugin, signBlock, key,
+                    path = new MutexZonePath(plugin, signBlock, key.get(),
                             null, // Sign is lazily initialized when needed
                             options);
 
@@ -153,11 +156,11 @@ public class MutexZonePath extends MutexZone {
     }
 
     public String getTrainName() {
-        return key.trainName;
+        return key.trainProperties.getTrainName();
     }
 
     public boolean isByGroup(MinecartGroup group) {
-        return this.getTrainName().equals(group.getProperties().getTrainName());
+        return key.trainProperties == group.getProperties();
     }
 
     @Override
@@ -316,10 +319,9 @@ public class MutexZonePath extends MutexZone {
     }
 
     public boolean isExpired(int expireTick) {
-        TrainProperties properties = TrainPropertiesStore.get(getTrainName());
-        if (properties == null) {
+        if (key.trainProperties.isRemoved()) {
             return true; // Train removed, expired instantly
-        } else if (!properties.isLoaded()) {
+        } else if (!key.trainProperties.isLoaded()) {
             tickLastUsed = -1;
             return false; // Wait until train loads in again
         } else if (tickLastUsed == -1) {

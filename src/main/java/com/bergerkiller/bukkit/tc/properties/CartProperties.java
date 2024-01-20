@@ -54,12 +54,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
         return traincarts;
     }
 
-    /**
-     * Gets whether these cart properties have been removed. This is the case when the
-     * Minecart was removed from the server (not merely unloaded)
-     *
-     * @return True if removed
-     */
+    @Override
     public boolean isRemoved() {
         return removed;
     }

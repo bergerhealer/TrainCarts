@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.UnaryOperator;
 import java.util.logging.Level;
 
@@ -188,8 +189,12 @@ public class MutexZoneCache {
                     } else if (mode == 2) {
                         // Anonymous pathing mutex for a single train at a pathing mutex sign
                         OfflineWorld world = OfflineWorld.of(StreamUtil.readUUID(stream));
-                        MutexZoneCacheWorld.PathingSignKey key = MutexZoneCacheWorld.PathingSignKey.readFrom(plugin, stream);
-                        MutexZonePath pathMutex = forWorld(world).byPathingKey.get(key);
+                        Optional<MutexZoneCacheWorld.PathingSignKey> key = MutexZoneCacheWorld.PathingSignKey.readFrom(plugin, stream);
+                        if (!key.isPresent()) {
+                            continue; // Train removed or sign type doesn't exist
+                        }
+
+                        MutexZonePath pathMutex = forWorld(world).byPathingKey.get(key.get());
                         if (pathMutex == null) {
                             continue; // Removed?
                         }

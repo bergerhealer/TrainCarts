@@ -773,19 +773,19 @@ public class MutexZoneSlot {
      */
     public static class UnloadedEnteredGroup extends EnteredGroup {
         /** The name of the unloaded train this group is for */
-        public final String trainName;
+        public final TrainProperties trainProperties;
         /** Server timestamp when the original entered group was created */
         public final int creationServerTime;
 
-        private UnloadedEnteredGroup(String trainName, double distanceToMutex, int age) {
+        private UnloadedEnteredGroup(TrainProperties trainProperties, double distanceToMutex, int age) {
             super(distanceToMutex);
-            this.trainName = trainName;
+            this.trainProperties = trainProperties;
             this.creationServerTime = CommonUtil.getServerTicks() - age;
         }
 
         public UnloadedEnteredGroup(LoadedEnteredGroup loadedGroup) {
             super(loadedGroup);
-            this.trainName = loadedGroup.group.getProperties().getTrainName();
+            this.trainProperties = loadedGroup.group.getProperties();
             this.creationServerTime = CommonUtil.getServerTicks() - loadedGroup.age();
         }
 
@@ -793,7 +793,7 @@ public class MutexZoneSlot {
             OfflineDataBlock enteredGroupData;
             try {
                 enteredGroupData = root.addChild("entered-group", stream -> {
-                    stream.writeUTF(trainName);
+                    stream.writeUTF(getTrainName());
                     stream.writeDouble(distanceToMutex);
                     stream.writeInt(age());
 
@@ -813,7 +813,7 @@ public class MutexZoneSlot {
                     }
                 });
             } catch (Throwable t) {
-                plugin.getLogger().log(Level.SEVERE, "Failed to save mutex entered group data of train " + trainName, t);
+                plugin.getLogger().log(Level.SEVERE, "Failed to save mutex entered group data of train " + getTrainName(), t);
                 return;
             }
 
@@ -823,7 +823,7 @@ public class MutexZoneSlot {
             } catch (Throwable t) {
                 // Undo addChild
                 root.children.remove(root.children.size() - 1);
-                plugin.getLogger().log(Level.SEVERE, "Failed to save mutex entered group rail slot data of train " + trainName, t);
+                plugin.getLogger().log(Level.SEVERE, "Failed to save mutex entered group rail slot data of train " + getTrainName(), t);
                 return;
             }
         }
@@ -833,7 +833,11 @@ public class MutexZoneSlot {
             final List<String> otherGroupsToDeactivateNames;
             final List<String> groupsDeactivatingMeNames;
             try (DataInputStream stream = enteredGroupData.readData()) {
-                String trainName = stream.readUTF();
+                TrainProperties trainProperties = TrainPropertiesStore.get(stream.readUTF());
+                if (trainProperties == null) {
+                    return null; // Train no longer exists
+                }
+
                 double distanceToMutex = stream.readDouble();
                 int age = stream.readInt();
                 otherGroupsToDeactivateNames = readListOfStrings(stream);
@@ -844,7 +848,7 @@ public class MutexZoneSlot {
                 }
 
                 // Create unloaded group with this data
-                group = new UnloadedEnteredGroup(trainName, distanceToMutex, age);
+                group = new UnloadedEnteredGroup(trainProperties, distanceToMutex, age);
                 group.groupsDeactivatingMeConflictRail = groupsDeactivatingMeConflictRail;
             }
 
@@ -863,7 +867,10 @@ public class MutexZoneSlot {
             List<UnloadedEnteredGroupData> unloadedGroupDataList = new ArrayList<>(enteredGroupDataList.size());
             for (OfflineDataBlock enteredGroupData : enteredGroupDataList) {
                 try {
-                    unloadedGroupDataList.add(loadData(plugin, enteredGroupData));
+                    UnloadedEnteredGroupData data = loadData(plugin, enteredGroupData);
+                    if (data != null) {
+                        unloadedGroupDataList.add(data);
+                    }
                 } catch (Throwable t) {
                     plugin.getLogger().log(Level.SEVERE, "Failed to load mutex entered group data", t);
                 }
@@ -892,12 +899,12 @@ public class MutexZoneSlot {
 
         @Override
         public boolean isGroup(MinecartGroup group) {
-            return trainName.equals(group.getProperties().getTrainName());
+            return group.getProperties() == trainProperties;
         }
 
         @Override
         public String getTrainName() {
-            return trainName;
+            return trainProperties.getTrainName();
         }
 
         @Override
@@ -923,15 +930,14 @@ public class MutexZoneSlot {
         @Override
         protected boolean refresh(MutexZoneSlot slot, Consumer<EnteredGroup> swap) {
             // If train does not exist, remove this entered group
-            TrainProperties trainsProps = TrainPropertiesStore.get(trainName);
-            if (trainsProps == null) {
+            if (trainProperties.isRemoved()) {
                 return false;
             }
 
             // If loaded, restore this unloaded group into a loaded one
             // This allows the entered group to be cleaned up if the group doesn't
             // activate it.
-            MinecartGroup group = trainsProps.getHolder();
+            MinecartGroup group = trainProperties.getHolder();
             if (group != null) {
                 swap.accept(this.load(slot, group));
             }

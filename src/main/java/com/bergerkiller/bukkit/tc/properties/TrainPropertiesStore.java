@@ -11,12 +11,12 @@ import com.bergerkiller.bukkit.tc.properties.defaults.DefaultPropertiesLookup;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
-import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
 
 import org.bukkit.entity.Player;
 
 import java.util.*;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
  * Stores all the Train Properties available by name
@@ -484,12 +484,10 @@ public class TrainPropertiesStore extends LinkedHashSet<CartProperties> {
         }
 
         // Delete properties from the configuration when the train no longer exists
-        for (TrainProperties prop : trainProperties.values()) {
-            if (!prop.hasHolder() && !prop.getTrainCarts().getOfflineGroups().contains(prop.getTrainName())) {
-                config.remove(prop.getTrainName());
-                continue;
-            }
-        }
+        List<TrainProperties> removedTrainProperties = trainProperties.values().stream()
+                .filter(prop -> !prop.hasHolder() && !prop.getTrainCarts().getOfflineGroups().contains(prop.getTrainName()))
+                .collect(Collectors.toList());
+        removedTrainProperties.forEach(prop -> remove(prop.getTrainName()));
 
         config.save();
         hasChanges = false;

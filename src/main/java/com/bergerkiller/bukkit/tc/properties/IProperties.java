@@ -22,6 +22,16 @@ import java.util.function.Function;
 public interface IProperties extends IParsable, TrainCarts.Provider {
 
     /**
+     * Gets whether these properties have been removed. This is the case when the train
+     * or cart has been permanently destroyed. This does not return true when a train
+     * is renamed, or a train unloads.
+     *
+     * @return True if these properties have been removed. In this case the train or
+     *         cart is gone
+     */
+    boolean isRemoved();
+
+    /**
      * Gets a single property stored in this collection of properties
      * 
      * @param <T> Type of value the property has

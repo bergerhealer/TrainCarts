@@ -24,7 +24,6 @@ import com.bergerkiller.bukkit.common.chunk.ChunkFutureProvider;
 import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.CollisionMode;
@@ -57,6 +56,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     private final FieldBackedStandardTrainProperty.TrainInternalDataHolder standardProperties = new FieldBackedStandardTrainProperty.TrainInternalDataHolder();
     private final ConfigurationNode config;
     protected String trainname;
+    protected boolean removed;
 
     /**
      * Creates new TrainProperties<br>
@@ -70,6 +70,7 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
         this.traincarts = traincarts;
         this.trainname = trainname;
         this.config = config;
+        this.removed = true; // Not added to a map yet
 
         // Pre-initialize the cart configuration, if such is available
         if (config.isNode("carts")) {
@@ -105,6 +106,11 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     @Override
     public final ConfigurationNode getConfig() {
         return this.config;
+    }
+
+    @Override
+    public boolean isRemoved() {
+        return removed;
     }
 
     @Override

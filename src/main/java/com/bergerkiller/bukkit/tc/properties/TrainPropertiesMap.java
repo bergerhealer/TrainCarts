@@ -21,7 +21,7 @@ class TrainPropertiesMap {
     private Map<String, List<TrainProperties>> trainPropertiesRelaxed = new TreeMap<>();
 
     public Collection<TrainProperties> values() {
-        return trainProperties.values();
+        return Collections.unmodifiableCollection(trainProperties.values());
     }
 
     public TrainProperties get(String trainName) {
@@ -40,8 +40,10 @@ class TrainPropertiesMap {
     public void add(String trainName, TrainProperties properties) {
         TrainProperties previous = trainProperties.put(trainName, properties);
         if (previous != null) {
+            previous.removed = true;
             removeFromRelaxedMappings(trainName, previous);
         }
+        properties.removed = false;
 
         String relaxed = createRelaxedKey(trainName);
         List<TrainProperties> prevAtRelaxedKey = trainPropertiesRelaxed.put(relaxed,
@@ -56,12 +58,14 @@ class TrainPropertiesMap {
     public TrainProperties remove(String trainName) {
         TrainProperties properties = trainProperties.remove(trainName);
         if (properties != null) {
+            properties.removed = true;
             removeFromRelaxedMappings(trainName, properties);
         }
         return properties;
     }
 
     public void clear() {
+        trainProperties.values().forEach(p -> p.removed = true);
         trainProperties.clear();
         trainPropertiesRelaxed.clear();
     }

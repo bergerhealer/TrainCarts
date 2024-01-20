@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 
@@ -18,6 +19,8 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import org.bukkit.World;
 
@@ -213,14 +216,14 @@ public class MutexZoneCacheWorld {
             UnaryOperator<MutexZonePath.OptionsBuilder> optionsBuilder
     ) {
         // Find existing
-        String trainName = group.getProperties().getTrainName();
-        MutexZonePath path = byPathingKey.get(PathingSignKey.of(sign.getUniqueKey(), trainName));
+        TrainProperties trainProperties = group.getProperties();
+        MutexZonePath path = byPathingKey.get(PathingSignKey.of(sign.getUniqueKey(), trainProperties));
         if (path != null) {
             return path;
         }
 
         // Create new
-        path = new MutexZonePath(group.getTrainCarts(), sign, trainName,
+        path = new MutexZonePath(group.getTrainCarts(), sign, trainProperties,
                 optionsBuilder.apply(MutexZonePath.createOptions()));
         path.addBlock(initialBlock);
         add(path);
@@ -453,35 +456,39 @@ public class MutexZoneCacheWorld {
 
     protected static final class PathingSignKey {
         public final Object uniqueKey;
-        public final String trainName;
+        public final TrainProperties trainProperties;
 
-        private PathingSignKey(Object signUniqueKey, String trainName) {
+        private PathingSignKey(Object signUniqueKey, TrainProperties trainProperties) {
             this.uniqueKey = signUniqueKey;
-            this.trainName = trainName;
+            this.trainProperties = trainProperties;
         }
 
-        public static PathingSignKey of(Object signUniqueKey, String trainName) {
-            return new PathingSignKey(signUniqueKey, trainName);
+        public static PathingSignKey of(Object signUniqueKey, TrainProperties trainProperties) {
+            return new PathingSignKey(signUniqueKey, trainProperties);
         }
 
-        public static PathingSignKey readFrom(TrainCarts plugin, DataInputStream stream) throws IOException {
+        public static Optional<PathingSignKey> readFrom(TrainCarts plugin, DataInputStream stream) throws IOException {
             Object signUniqueKey = plugin.getTrackedSignLookup().deserializeUniqueKey(Util.readByteArray(stream));
-            String trainName = stream.readUTF();
-            if (signUniqueKey == null) {
-                throw new UnsupportedOperationException("Pathing Mutex Sign locked by train '" + trainName +
-                        "' is of an unknown origin (missing plugin?)");
+            TrainProperties trainProperties = TrainPropertiesStore.get(stream.readUTF());
+            if (signUniqueKey == null || trainProperties == null) {
+                return Optional.empty();
+            } else {
+                return Optional.of(of(signUniqueKey, trainProperties));
             }
-            return of(signUniqueKey, trainName);
         }
 
         public boolean writeTo(TrainCarts plugin, DataOutputStream stream) throws IOException {
+            if (trainProperties.isRemoved()) {
+                return false;
+            }
+
             byte[] data = plugin.getTrackedSignLookup().serializeUniqueKey(uniqueKey);
             if (data == null) {
                 return false;
             }
 
             Util.writeByteArray(stream, data);
-            stream.writeUTF(trainName);
+            stream.writeUTF(trainProperties.getTrainName());
             return true;
         }
 
@@ -493,7 +500,7 @@ public class MutexZoneCacheWorld {
         @Override
         public boolean equals(Object o) {
             PathingSignKey other = (PathingSignKey) o;
-            return uniqueKey.equals(other.uniqueKey) && trainName.equals(other.trainName);
+            return uniqueKey.equals(other.uniqueKey) && trainProperties == other.trainProperties;
         }
     }
 
