@@ -1,7 +1,7 @@
 package com.bergerkiller.bukkit.tc.actions;
 
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
+import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
@@ -102,14 +102,14 @@ public class MemberActionLaunchDirection extends MemberActionLaunch implements M
 
     public static class Serializer extends BaseSerializer<MemberActionLaunchDirection> {
         @Override
-        public MemberActionLaunchDirection create(DataBlock data) throws IOException {
+        public MemberActionLaunchDirection create(OfflineDataBlock data) throws IOException {
             return new MemberActionLaunchDirection();
         }
     }
 
     public static abstract class BaseSerializer<T extends MemberActionLaunchDirection> extends MemberActionLaunch.BaseSerializer<T> {
         @Override
-        public boolean save(T action, DataBlock data) throws IOException {
+        public boolean save(T action, OfflineDataBlock data) throws IOException {
             super.save(action, data);
 
             // Save the direction information
@@ -121,7 +121,7 @@ public class MemberActionLaunchDirection extends MemberActionLaunch implements M
         }
 
         @Override
-        public T load(DataBlock data) throws IOException {
+        public T load(OfflineDataBlock data) throws IOException {
             T action = super.load(data);
 
             // Load the direction information

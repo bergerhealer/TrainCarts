@@ -3,14 +3,11 @@ package com.bergerkiller.bukkit.tc.actions;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
-import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
+import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 import org.bukkit.Location;
-import org.bukkit.block.BlockFace;
 
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.util.UUID;
 
 public class MemberActionLaunchLocation extends MemberActionLaunchDirection implements MovementAction {
     private final Location target;
@@ -43,7 +40,7 @@ public class MemberActionLaunchLocation extends MemberActionLaunchDirection impl
 
     public static class Serializer extends MemberActionLaunchDirection.BaseSerializer<MemberActionLaunchLocation> {
         @Override
-        public boolean save(MemberActionLaunchLocation action, DataBlock data) throws IOException {
+        public boolean save(MemberActionLaunchLocation action, OfflineDataBlock data) throws IOException {
             super.save(action, data);
 
             // Save the location information
@@ -58,7 +55,7 @@ public class MemberActionLaunchLocation extends MemberActionLaunchDirection impl
         }
 
         @Override
-        public MemberActionLaunchLocation create(DataBlock data) throws IOException {
+        public MemberActionLaunchLocation create(OfflineDataBlock data) throws IOException {
             final Location target;
 
             // Load the location information

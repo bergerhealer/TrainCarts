@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.tc.offline.train;
 
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
-import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
+import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Modern group data format, which stored a flexible amount of data using the DataBlock format
+ * Modern group data format, which stored a flexible amount of data using the OfflineDataBlock format
  */
 public class OfflineGroupFileFormatModern {
 
@@ -59,21 +59,21 @@ public class OfflineGroupFileFormatModern {
 
         // This is for sure the modern group data format
         // Read all worlds
-        DataBlock root = DataBlock.read(stream);
-        List<DataBlock> worldDataList = (root == null) ? Collections.emptyList() : root.findChildren("world");
+        OfflineDataBlock root = OfflineDataBlock.read(stream);
+        List<OfflineDataBlock> worldDataList = (root == null) ? Collections.emptyList() : root.findChildren("world");
         if (worldDataList.isEmpty()) {
             return new Data(Collections.emptyList(), root);
         }
         List<OfflineGroupWorld> worlds = new ArrayList<>(worldDataList.size());
-        for (DataBlock worldData : worldDataList) {
+        for (OfflineDataBlock worldData : worldDataList) {
             worlds.add(readWorldGroups(worldData));
         }
         return new Data(Collections.unmodifiableList(worlds), root);
     }
 
-    public static void writeWorldGroups(DataBlock root, OfflineGroupWorld world) throws IOException {
+    public static void writeWorldGroups(OfflineDataBlock root, OfflineGroupWorld world) throws IOException {
         // World UUID is saved in the data block
-        DataBlock worldData = root.addChild("world", s -> {
+        OfflineDataBlock worldData = root.addChild("world", s -> {
             StreamUtil.writeUUID(s, world.getWorld().getUniqueId());
         });
 
@@ -83,7 +83,7 @@ public class OfflineGroupFileFormatModern {
         }
     }
 
-    public static OfflineGroupWorld readWorldGroups(DataBlock worldGroupData) throws IOException {
+    public static OfflineGroupWorld readWorldGroups(OfflineDataBlock worldGroupData) throws IOException {
         // World UUID is stored in the data block
         final OfflineWorld world;
         try (DataInputStream stream = worldGroupData.readData()) {
@@ -91,10 +91,10 @@ public class OfflineGroupFileFormatModern {
         }
 
         // Find all groups
-        List<DataBlock> groupListData = worldGroupData.findChildren("group");
+        List<OfflineDataBlock> groupListData = worldGroupData.findChildren("group");
 
         List<OfflineGroup> groups = new ArrayList<>(groupListData.size());
-        for (DataBlock groupData : groupListData) {
+        for (OfflineDataBlock groupData : groupListData) {
             OfflineGroup group = readGroup(groupData, world);
             if (group != null) {
                 groups.add(group);
@@ -104,9 +104,9 @@ public class OfflineGroupFileFormatModern {
         return OfflineGroupWorld.snapshot(world, groups);
     }
 
-    public static void writeGroup(DataBlock root, OfflineGroup group) throws IOException {
+    public static void writeGroup(OfflineDataBlock root, OfflineGroup group) throws IOException {
         // Name is stored in the data block
-        DataBlock groupData = root.addChild("group", s -> {
+        OfflineDataBlock groupData = root.addChild("group", s -> {
             s.writeUTF(group.name);
         });
         groupData.children.addAll(group.actions);
@@ -118,7 +118,7 @@ public class OfflineGroupFileFormatModern {
         }
     }
 
-    public static OfflineGroup readGroup(DataBlock groupData, OfflineWorld world) throws IOException {
+    public static OfflineGroup readGroup(OfflineDataBlock groupData, OfflineWorld world) throws IOException {
         // Name is stored in the data block
         final String name;
         try (DataInputStream stream = groupData.readData()) {
@@ -126,7 +126,7 @@ public class OfflineGroupFileFormatModern {
         }
 
         // Find all members
-        List<DataBlock> members = groupData.findChildren("member");
+        List<OfflineDataBlock> members = groupData.findChildren("member");
         if (members.isEmpty()) {
             return null; // Invalid
         }
@@ -137,9 +137,9 @@ public class OfflineGroupFileFormatModern {
                 members, OfflineGroupFileFormatModern::readMember);
     }
 
-    public static void writeMember(DataBlock root, OfflineMember member) throws IOException {
+    public static void writeMember(OfflineDataBlock root, OfflineMember member) throws IOException {
         // Standard data is written in the data tag itself
-        DataBlock memberData = root.addChild("member", s -> {
+        OfflineDataBlock memberData = root.addChild("member", s -> {
             StreamUtil.writeUUID(s, member.entityUID);
             s.writeInt(member.cx);
             s.writeInt(member.cz);
@@ -154,7 +154,7 @@ public class OfflineGroupFileFormatModern {
         memberData.children.addAll(member.skippedSigns);
     }
 
-    private static OfflineMember readMember(OfflineGroup group, DataBlock memberData) throws IOException {
+    private static OfflineMember readMember(OfflineGroup group, OfflineDataBlock memberData) throws IOException {
         // Standard data is included in the data tag itself
         final UUID entityUID;
         final int cx, cz;
@@ -176,14 +176,14 @@ public class OfflineGroupFileFormatModern {
 
     public static final class Data {
         public final List<OfflineGroupWorld> worlds;
-        public final DataBlock root; // Additional data can be included here
+        public final OfflineDataBlock root; // Additional data can be included here
 
         public Data(List<OfflineGroupWorld> worlds) {
             this.worlds = worlds;
-            this.root = DataBlock.create("root");
+            this.root = OfflineDataBlock.create("root");
         }
 
-        public Data(List<OfflineGroupWorld> worlds, DataBlock root) {
+        public Data(List<OfflineGroupWorld> worlds, OfflineDataBlock root) {
             this.worlds = worlds;
             this.root = root;
         }

@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
+import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.signactions.mutex.railslot.MutexRailSlot;
@@ -789,8 +789,8 @@ public class MutexZoneSlot {
             this.creationServerTime = CommonUtil.getServerTicks() - loadedGroup.age();
         }
 
-        public void save(TrainCarts plugin, DataBlock root) {
-            DataBlock enteredGroupData;
+        public void save(TrainCarts plugin, OfflineDataBlock root) {
+            OfflineDataBlock enteredGroupData;
             try {
                 enteredGroupData = root.addChild("entered-group", stream -> {
                     stream.writeUTF(trainName);
@@ -828,7 +828,7 @@ public class MutexZoneSlot {
             }
         }
 
-        private static UnloadedEnteredGroupData loadData(TrainCarts plugin, DataBlock enteredGroupData) throws IOException {
+        private static UnloadedEnteredGroupData loadData(TrainCarts plugin, OfflineDataBlock enteredGroupData) throws IOException {
             final UnloadedEnteredGroup group;
             final List<String> otherGroupsToDeactivateNames;
             final List<String> groupsDeactivatingMeNames;
@@ -854,14 +854,14 @@ public class MutexZoneSlot {
             return new UnloadedEnteredGroupData(group, otherGroupsToDeactivateNames, groupsDeactivatingMeNames);
         }
 
-        public static List<UnloadedEnteredGroup> loadAll(TrainCarts plugin, DataBlock mutexZoneSlotData) {
-            List<DataBlock> enteredGroupDataList = mutexZoneSlotData.findChildren("entered-group");
+        public static List<UnloadedEnteredGroup> loadAll(TrainCarts plugin, OfflineDataBlock mutexZoneSlotData) {
+            List<OfflineDataBlock> enteredGroupDataList = mutexZoneSlotData.findChildren("entered-group");
             if (enteredGroupDataList.isEmpty()) {
                 return Collections.emptyList();
             }
 
             List<UnloadedEnteredGroupData> unloadedGroupDataList = new ArrayList<>(enteredGroupDataList.size());
-            for (DataBlock enteredGroupData : enteredGroupDataList) {
+            for (OfflineDataBlock enteredGroupData : enteredGroupDataList) {
                 try {
                     unloadedGroupDataList.add(loadData(plugin, enteredGroupData));
                 } catch (Throwable t) {

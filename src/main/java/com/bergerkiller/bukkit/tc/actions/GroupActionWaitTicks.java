@@ -7,7 +7,7 @@ import java.util.List;
 
 import com.bergerkiller.bukkit.tc.actions.registry.ActionRegistry;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
-import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
+import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 
 public class GroupActionWaitTicks extends GroupActionWaitForever {
     private int ticks;
@@ -41,7 +41,7 @@ public class GroupActionWaitTicks extends GroupActionWaitForever {
 
     public static class Serializer implements ActionRegistry.Serializer<GroupActionWaitTicks> {
         @Override
-        public boolean save(GroupActionWaitTicks action, DataBlock data) throws IOException {
+        public boolean save(GroupActionWaitTicks action, OfflineDataBlock data) throws IOException {
             data.addChild("wait-ticks", stream -> {
                 stream.writeInt(action.getRemainingTicks());
             });
@@ -49,7 +49,7 @@ public class GroupActionWaitTicks extends GroupActionWaitForever {
         }
 
         @Override
-        public GroupActionWaitTicks load(DataBlock data) throws IOException {
+        public GroupActionWaitTicks load(OfflineDataBlock data) throws IOException {
             final int ticks;
             try (DataInputStream stream = data.findChildOrThrow("wait-ticks").readData()) {
                 ticks = stream.readInt();

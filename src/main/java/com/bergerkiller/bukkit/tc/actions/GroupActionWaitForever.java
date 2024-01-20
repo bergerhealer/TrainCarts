@@ -6,7 +6,7 @@ import java.util.List;
 
 import com.bergerkiller.bukkit.tc.actions.registry.ActionRegistry;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
-import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
+import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 
 public class GroupActionWaitForever extends GroupAction implements WaitAction {
 
@@ -28,12 +28,12 @@ public class GroupActionWaitForever extends GroupAction implements WaitAction {
 
     public static class Serializer implements ActionRegistry.Serializer<GroupActionWaitForever> {
         @Override
-        public boolean save(GroupActionWaitForever action, DataBlock data) throws IOException {
+        public boolean save(GroupActionWaitForever action, OfflineDataBlock data) throws IOException {
             return true;
         }
 
         @Override
-        public GroupActionWaitForever load(DataBlock data) throws IOException {
+        public GroupActionWaitForever load(OfflineDataBlock data) throws IOException {
             return new GroupActionWaitForever();
         }
     }

@@ -3,7 +3,7 @@ package com.bergerkiller.bukkit.tc.actions;
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.actions.registry.ActionRegistry;
-import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
+import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 import org.bukkit.Location;
 
 import java.io.DataInputStream;
@@ -42,7 +42,7 @@ public class MemberActionWaitLocation extends MemberAction implements WaitAction
 
     public static class Serializer implements ActionRegistry.Serializer<MemberActionWaitLocation> {
         @Override
-        public boolean save(MemberActionWaitLocation action, DataBlock data) throws IOException {
+        public boolean save(MemberActionWaitLocation action, OfflineDataBlock data) throws IOException {
             // Save the location information + radius to get within
             data.addChild("wait-location", stream -> {
                 Location loc = action.getTargetLocation();
@@ -56,7 +56,7 @@ public class MemberActionWaitLocation extends MemberAction implements WaitAction
         }
 
         @Override
-        public MemberActionWaitLocation load(DataBlock data) throws IOException {
+        public MemberActionWaitLocation load(OfflineDataBlock data) throws IOException {
             // Read the location information + radius to get within
             final Location target;
             final double radius;

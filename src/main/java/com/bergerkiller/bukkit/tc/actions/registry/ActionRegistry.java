@@ -9,7 +9,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTracker;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
-import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
+import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -99,11 +99,11 @@ public class ActionRegistry {
      *
      * @param tracker Action Tracker containing actions
      * @return List of data blocks to represent the actions
-     * @see #saveAction(DataBlock, Action, boolean)
+     * @see #saveAction(OfflineDataBlock, Action, boolean)
      */
-    public List<DataBlock> saveTracker(ActionTracker tracker) {
+    public List<OfflineDataBlock> saveTracker(ActionTracker tracker) {
         if (tracker.hasAction()) {
-            DataBlock root = DataBlock.create("root");
+            OfflineDataBlock root = OfflineDataBlock.create("root");
             boolean addedToMember = (tracker instanceof ActionTrackerMember);
             for (Action action : tracker.getScheduledActions()) {
                 saveAction(root, action, addedToMember);
@@ -120,7 +120,7 @@ public class ActionRegistry {
      * @param tracker Action Tracker to load
      * @param actionDataBlocks Previously saved data blocks for all actions
      */
-    public void loadTracker(ActionTracker tracker, List<DataBlock> actionDataBlocks) {
+    public void loadTracker(ActionTracker tracker, List<OfflineDataBlock> actionDataBlocks) {
         if (!actionDataBlocks.isEmpty()) {
             MinecartGroup group;
             if (tracker instanceof ActionTrackerGroup) {
@@ -131,7 +131,7 @@ public class ActionRegistry {
                 throw new IllegalArgumentException("Action tracker is invalid type: " + tracker.getClass().getName());
             }
 
-            for (DataBlock actionDataBlock : actionDataBlocks) {
+            for (OfflineDataBlock actionDataBlock : actionDataBlocks) {
                 Action action = loadAction(group, actionDataBlock);
                 if (action != null) {
                     tracker.addAction(action);
@@ -150,14 +150,14 @@ public class ActionRegistry {
      *                      added to a Group instead.
      * @return Added data block, or null if this action could not be saved
      */
-    public DataBlock saveAction(DataBlock root, Action action, boolean addedToMember) {
+    public OfflineDataBlock saveAction(OfflineDataBlock root, Action action, boolean addedToMember) {
         final RegisteredAction registeredAction = byType.get(action.getClass());
         if (registeredAction == null) {
             return null;
         }
 
         // Create child. Probably never fails.
-        DataBlock child;
+        OfflineDataBlock child;
         try {
             child = root.addChild("action", stream -> {
                 stream.writeUTF(registeredAction.id);
@@ -202,14 +202,14 @@ public class ActionRegistry {
     }
 
     /**
-     * Loads an Action from a previously serialized Action DataBlock.
+     * Loads an Action from a previously serialized Action OfflineDataBlock.
      * The action is not added to the member or group.
      *
      * @param group Group the action will be run in
-     * @param dataBlock DataBlock to load
+     * @param dataBlock OfflineDataBlock to load
      * @return Action that was loaded, or null if the data block could not be loaded
      */
-    public Action loadAction(MinecartGroup group, DataBlock dataBlock) {
+    public Action loadAction(MinecartGroup group, OfflineDataBlock dataBlock) {
         // Name identifier for the action
         RegisteredAction registeredAction = null;
         // For MemberAction that is added to a group, includes the member argument
@@ -308,22 +308,22 @@ public class ActionRegistry {
          * be saved to child data blocks, this method should do so.
          *
          * @param action Action to save
-         * @param data DataBlock
+         * @param data OfflineDataBlock
          * @return True if saving was successful, False if the Action should be omitted because
          *         it could not be saved.
          * @throws IOException
          */
-        boolean save(T action, DataBlock data) throws IOException;
+        boolean save(T action, OfflineDataBlock data) throws IOException;
 
         /**
          * Loads in this registered action. Child data blocks in the input data
          * can be used as metadata to load the action. Information such as the elapsed time
          * and the member that was set do not have to be loaded.
          *
-         * @param data DataBlock
+         * @param data OfflineDataBlock
          * @return Loaded Action, or null if the data could not be loaded
          * @throws IOException
          */
-        T load(DataBlock data) throws IOException;
+        T load(OfflineDataBlock data) throws IOException;
     }
 }

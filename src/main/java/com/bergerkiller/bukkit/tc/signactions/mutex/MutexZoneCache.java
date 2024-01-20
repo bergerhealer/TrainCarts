@@ -22,7 +22,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSign;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignMetadataHandler;
 import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
-import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
+import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 
 public class MutexZoneCache {
@@ -80,13 +80,13 @@ public class MutexZoneCache {
 
     /**
      * Saves all trains that have entered mutex zone slots at this time, encoding them as
-     * a DataBlock which can later be loaded again using {@link #loadState(TrainCarts, DataBlock)}
+     * a OfflineDataBlock which can later be loaded again using {@link #loadState(TrainCarts, OfflineDataBlock)}
      *
      * @param plugin TrainCarts plugin
-     * @param root Root DataBlock to write the mutex zone state data to
+     * @param root Root OfflineDataBlock to write the mutex zone state data to
      */
-    public static void saveState(TrainCarts plugin, DataBlock root) {
-        final DataBlock stateData = root.addChild("mutex-zones-state");
+    public static void saveState(TrainCarts plugin, OfflineDataBlock root) {
+        final OfflineDataBlock stateData = root.addChild("mutex-zones-state");
 
         // Save pathing mutexes
         for (MutexZoneCacheWorld world : cachesByWorld.values()) {
@@ -103,7 +103,7 @@ public class MutexZoneCache {
             }
 
             // Write out the slot metadata itself
-            DataBlock slotData;
+            OfflineDataBlock slotData;
             try {
                 slotData = stateData.addChildOrAbort("mutex-zone-slot", stream -> {
                     // Mode:
@@ -121,7 +121,7 @@ public class MutexZoneCache {
                             MutexZonePath pathMutex = (MutexZonePath) zone;
                             StreamUtil.writeUUID(stream, pathMutex.signBlock.getWorldUUID());
                             if (!pathMutex.key.writeTo(plugin, stream)) {
-                                throw new DataBlock.AbortChildException();
+                                throw new OfflineDataBlock.AbortChildException();
                             }
                         } else {
                             Util.writeVariableLengthInt(stream, 1);
@@ -147,9 +147,9 @@ public class MutexZoneCache {
      * last server shutdown. Discards entered groups for mutex zone slots that don't exist.
      *
      * @param plugin TrainCarts plugin
-     * @param root Root DataBlock optionally containing entered group data
+     * @param root Root OfflineDataBlock optionally containing entered group data
      */
-    public static void loadState(TrainCarts plugin, DataBlock root) {
+    public static void loadState(TrainCarts plugin, OfflineDataBlock root) {
         root.findChild("mutex-zones-state").ifPresent(stateData -> {
             // Load pathing mutexes
             for (MutexZonePath pathMutex : MutexZonePath.readAll(plugin, stateData)) {
@@ -158,7 +158,7 @@ public class MutexZoneCache {
             }
 
             // Load mutex slots
-            for (DataBlock slotData : stateData.findChildren("mutex-zone-slot")) {
+            for (OfflineDataBlock slotData : stateData.findChildren("mutex-zone-slot")) {
                 final MutexZoneSlot slot;
                 try (DataInputStream stream = slotData.readData()) {
                     // Mode:

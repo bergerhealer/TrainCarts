@@ -4,7 +4,7 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
+import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.WorldRailLookup;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneSlotType;
@@ -230,7 +230,7 @@ public class MutexRailSlotMap {
         return false;
     }
 
-    public void save(DataBlock root) throws IOException {
+    public void save(OfflineDataBlock root) throws IOException {
         root.addChild("rail-slots", stream -> {
             // Are rails set to initial or not?
             stream.writeBoolean(rails == INITIAL_RAILS);
@@ -250,7 +250,7 @@ public class MutexRailSlotMap {
         });
     }
 
-    public void load(DataBlock root) throws IOException {
+    public void load(OfflineDataBlock root) throws IOException {
         try (DataInputStream stream = root.findChildOrThrow("rail-slots").readData()) {
             boolean isSetToInitial = stream.readBoolean();
             int numRailSlots = Util.readVariableLengthInt(stream);

@@ -8,7 +8,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.controller.components.SignTracker;
-import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
+import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
@@ -31,15 +31,15 @@ public final class OfflineMember {
     public final UUID entityUID;
     public final int cx, cz;
     public final double motX, motY, motZ;
-    public final List<DataBlock> actions;
-    public final List<DataBlock> activeSigns;
-    public final List<DataBlock> skippedSigns;
+    public final List<OfflineDataBlock> actions;
+    public final List<OfflineDataBlock> activeSigns;
+    public final List<OfflineDataBlock> skippedSigns;
 
     OfflineMember(OfflineGroup group, UUID entityUID,
                   int cx, int cz, double motX, double motY, double motZ,
-                  List<DataBlock> actions,
-                  List<DataBlock> activeSigns,
-                  List<DataBlock> skippedSigns
+                  List<OfflineDataBlock> actions,
+                  List<OfflineDataBlock> activeSigns,
+                  List<OfflineDataBlock> skippedSigns
     ) {
         this.group = group;
         this.entityUID = entityUID;

@@ -5,7 +5,7 @@ import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
-import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
+import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 import org.bukkit.block.Block;
 
 import java.io.ByteArrayInputStream;
@@ -124,12 +124,12 @@ public final class TrackedSignLookup implements TrainCarts.Provider {
      * Serializes all the items as sign unique key based metadata
      *
      * @param items Items
-     * @param name Name for the resulting DataBlock
+     * @param name Name for the resulting OfflineDataBlock
      * @param uniqueKeyGetter Function to get the unique sign key of each item
      * @return Unmodifiable list of serialized DataBlocks
      * @param <T> Input List Type
      */
-    public <T> List<DataBlock> serializeUniqueKeys(
+    public <T> List<OfflineDataBlock> serializeUniqueKeys(
             final Collection<T> items,
             final String name,
             final Function<T, Object> uniqueKeyGetter
@@ -141,27 +141,27 @@ public final class TrackedSignLookup implements TrainCarts.Provider {
      * Serializes all the items as sign unique key based metadata
      *
      * @param items Items
-     * @param name Name for the resulting DataBlock
+     * @param name Name for the resulting OfflineDataBlock
      * @param uniqueKeyGetter Function to get the unique sign key of each item
-     * @param extraMetaApplier Optional metadata applier for each DataBlock
+     * @param extraMetaApplier Optional metadata applier for each OfflineDataBlock
      * @return Unmodifiable list of serialized DataBlocks
      * @param <T> Input List Type
      */
-    public <T> List<DataBlock> serializeUniqueKeys(
+    public <T> List<OfflineDataBlock> serializeUniqueKeys(
             final Collection<T> items,
             final String name,
             final Function<T, Object> uniqueKeyGetter,
-            final BiConsumer<T, DataBlock> extraMetaApplier
+            final BiConsumer<T, OfflineDataBlock> extraMetaApplier
     ) {
         if (items.isEmpty()) {
             return Collections.emptyList();
         }
 
-        List<DataBlock> dataBlocks = new ArrayList<>(items.size());
+        List<OfflineDataBlock> dataBlocks = new ArrayList<>(items.size());
         for (T item : items) {
             byte[] data = serializeUniqueKey(uniqueKeyGetter.apply(item));
             if (data != null) {
-                DataBlock dataBlock = DataBlock.createWithData(name, data);
+                OfflineDataBlock dataBlock = OfflineDataBlock.createWithData(name, data);
                 extraMetaApplier.accept(item, dataBlock);
                 dataBlocks.add(dataBlock);
             }
@@ -206,13 +206,13 @@ public final class TrackedSignLookup implements TrainCarts.Provider {
      * @param dataBlocks Data Blocks whose data to deserialize
      * @return Unmodifiable List of unique sign keys
      */
-    public List<Object> deserializeUniqueKeys(List<DataBlock> dataBlocks) {
+    public List<Object> deserializeUniqueKeys(List<OfflineDataBlock> dataBlocks) {
         if (dataBlocks.isEmpty()) {
             return Collections.emptyList();
         }
 
         List<Object> uniqueKeys = new ArrayList<>(dataBlocks.size());
-        for (DataBlock dataBlock : dataBlocks) {
+        for (OfflineDataBlock dataBlock : dataBlocks) {
             Object uniqueKey = deserializeUniqueKey(dataBlock.data);
             if (uniqueKey != null) {
                 uniqueKeys.add(uniqueKey);

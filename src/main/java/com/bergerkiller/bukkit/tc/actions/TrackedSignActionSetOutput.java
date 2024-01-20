@@ -3,7 +3,7 @@ package com.bergerkiller.bukkit.tc.actions;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.actions.registry.ActionRegistry;
-import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
+import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 
 import java.io.DataInputStream;
@@ -52,7 +52,7 @@ public class TrackedSignActionSetOutput extends Action {
         }
 
         @Override
-        public boolean save(TrackedSignActionSetOutput action, DataBlock data) throws IOException {
+        public boolean save(TrackedSignActionSetOutput action, OfflineDataBlock data) throws IOException {
             final byte[] signData = plugin.getTrackedSignLookup().serializeUniqueKey(action.getSign().getUniqueKey());
             if (signData == null) {
                 return false;
@@ -66,7 +66,7 @@ public class TrackedSignActionSetOutput extends Action {
         }
 
         @Override
-        public TrackedSignActionSetOutput load(DataBlock data) throws IOException {
+        public TrackedSignActionSetOutput load(OfflineDataBlock data) throws IOException {
             final TrackedSign sign;
             final boolean output;
             try (DataInputStream stream = data.findChildOrThrow("sign-output").readData()) {

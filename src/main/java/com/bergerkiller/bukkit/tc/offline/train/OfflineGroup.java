@@ -9,7 +9,7 @@ import com.bergerkiller.bukkit.common.wrappers.LongHashSet.LongIterator;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
+import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import org.bukkit.World;
@@ -30,8 +30,8 @@ public final class OfflineGroup {
     // These fields are immutable
     public final String name;
     public final OfflineWorld world;
-    public final List<DataBlock> actions;
-    public final List<DataBlock> skippedSigns;
+    public final List<OfflineDataBlock> actions;
+    public final List<OfflineDataBlock> skippedSigns;
     public final OfflineMember[] members;
 
     // These are modified/lazily generated at runtime
@@ -68,8 +68,8 @@ public final class OfflineGroup {
     <T> OfflineGroup(
             final String name,
             final OfflineWorld world,
-            final List<DataBlock> actions,
-            final List<DataBlock> skippedSigns,
+            final List<OfflineDataBlock> actions,
+            final List<OfflineDataBlock> skippedSigns,
             final Collection<T> memberData,
             final MemberFactory<T> memberFactory
     ) throws IOException {

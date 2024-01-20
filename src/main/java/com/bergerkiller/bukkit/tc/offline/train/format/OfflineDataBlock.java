@@ -20,7 +20,7 @@ import java.util.Optional;
  * serializing the groupdata format in the modern way, to allow for more
  * expandable data.
  */
-public final class DataBlock {
+public final class OfflineDataBlock {
     private static final byte[] NO_DATA = new byte[0];
 
     /** Is shared between all data blocks to efficiently serialize data */
@@ -30,55 +30,55 @@ public final class DataBlock {
     /** Data of this data block */
     public final byte[] data;
     /** Children added to this data block */
-    public final List<DataBlock> children;
+    public final List<OfflineDataBlock> children;
 
     /**
-     * Reads a DataBlock from an input stream
+     * Reads a OfflineDataBlock from an input stream
      *
      * @param stream Stream to read from
-     * @return DataBlock
+     * @return OfflineDataBlock
      * @throws IOException
      */
-    public static DataBlock read(DataInputStream stream) throws IOException {
-        DataBlockSerializer serializer = new DataBlockSerializer();
+    public static OfflineDataBlock read(DataInputStream stream) throws IOException {
+        OfflineDataBlockSerializer serializer = new OfflineDataBlockSerializer();
         return serializer.readDataBlock(stream);
     }
 
     /**
-     * Creates a new DataBlock
+     * Creates a new OfflineDataBlock
      *
      * @param name Name of the root data block
-     * @return new DataBlock
+     * @return new OfflineDataBlock
      */
-    public static DataBlock create(String name) {
-        return new DataBlock(new DataBlockBuilder(), name, NO_DATA);
+    public static OfflineDataBlock create(String name) {
+        return new OfflineDataBlock(new DataBlockBuilder(), name, NO_DATA);
     }
 
     /**
-     * Creates a new DataBlock with data
+     * Creates a new OfflineDataBlock with data
      *
      * @param name Name of the root data block
      * @param data Data
-     * @return new DataBlock
+     * @return new OfflineDataBlock
      */
-    public static DataBlock createWithData(String name, byte[] data) {
-        return new DataBlock(new DataBlockBuilder(), name, data);
+    public static OfflineDataBlock createWithData(String name, byte[] data) {
+        return new OfflineDataBlock(new DataBlockBuilder(), name, data);
     }
 
     /**
-     * Creates a new DataBlock with data
+     * Creates a new OfflineDataBlock with data
      *
      * @param name Name of the root data block
      * @param writer Writer for generating the data of the child
      * @throws IOException If the writer throws one
-     * @return new DataBlock, or <i>null</i> if the writer throws the
+     * @return new OfflineDataBlock, or <i>null</i> if the writer throws the
      *         {@link AbortChildException}
      */
-    public static DataBlock createWithData(String name, DataWriter writer) throws IOException {
+    public static OfflineDataBlock createWithData(String name, DataWriter writer) throws IOException {
         return (new DataBlockBuilder()).create(name, writer);
     }
 
-    DataBlock(DataBlockBuilder dataBlockBuilder, String name, byte[] data) {
+    OfflineDataBlock(DataBlockBuilder dataBlockBuilder, String name, byte[] data) {
         this.dataBlockBuilder = dataBlockBuilder;
         this.name = name;
         this.data = data;
@@ -86,13 +86,13 @@ public final class DataBlock {
     }
 
     /**
-     * Writes this DataBlock to an output stream.
+     * Writes this OfflineDataBlock to an output stream.
      *
      * @param stream Stream to write to
      * @throws IOException
      */
     public void writeTo(DataOutputStream stream) throws IOException {
-        DataBlockSerializer serializer = new DataBlockSerializer();
+        OfflineDataBlockSerializer serializer = new OfflineDataBlockSerializer();
         serializer.writeDataBlock(stream, this);
     }
 
@@ -111,7 +111,7 @@ public final class DataBlock {
      * @param name Name of the data block
      * @return Children, empty list if none are found
      */
-    public List<DataBlock> findChildren(String name) {
+    public List<OfflineDataBlock> findChildren(String name) {
         return Util.filterList(Collections.unmodifiableList(children), c -> c.name.equals(name));
     }
 
@@ -122,9 +122,9 @@ public final class DataBlock {
      * @param name Name of the data block
      * @return Found child
      */
-    public DataBlock findChildOrThrow(String name) {
+    public OfflineDataBlock findChildOrThrow(String name) {
         return findChild(name).orElseThrow(() -> new RuntimeException(
-                "Data '" + name + "' is missing in '" + DataBlock.this.name + "' data"));
+                "Data '" + name + "' is missing in '" + OfflineDataBlock.this.name + "' data"));
     }
 
     /**
@@ -134,8 +134,8 @@ public final class DataBlock {
      * @param name Name of the data block
      * @return Found child, or empty if not found
      */
-    public Optional<DataBlock> findChild(String name) {
-        for (DataBlock child : children) {
+    public Optional<OfflineDataBlock> findChild(String name) {
+        for (OfflineDataBlock child : children) {
             if (child.name.equals(name)) {
                 return Optional.of(child);
             }
@@ -147,10 +147,10 @@ public final class DataBlock {
      * Adds a child to this data block with the name specified, and no data
      *
      * @param name Name of the child
-     * @return Added DataBlock child
+     * @return Added OfflineDataBlock child
      */
-    public DataBlock addChild(String name) {
-        return addChild(new DataBlock(dataBlockBuilder, name, NO_DATA));
+    public OfflineDataBlock addChild(String name) {
+        return addChild(new OfflineDataBlock(dataBlockBuilder, name, NO_DATA));
     }
 
     /**
@@ -160,11 +160,11 @@ public final class DataBlock {
      * @param name Name of the child
      * @param writer Writer for generating the data of the child
      * @throws IOException If the writer throws one
-     * @return Added DataBlock child, or <i>null</i> if aborted with
+     * @return Added OfflineDataBlock child, or <i>null</i> if aborted with
      *         {@link AbortChildException}
      */
-    public DataBlock addChild(String name, DataWriter writer) throws IOException {
-        DataBlock child = addChildOrAbort(name, writer);
+    public OfflineDataBlock addChild(String name, DataWriter writer) throws IOException {
+        OfflineDataBlock child = addChildOrAbort(name, writer);
         if (child == null) {
             throw new IllegalStateException("AbortChildException thrown in addChild. Use addChildOrAbort instead!");
         }
@@ -180,11 +180,11 @@ public final class DataBlock {
      * @param name Name of the child
      * @param writer Writer for generating the data of the child
      * @throws IOException If the writer throws one
-     * @return Added DataBlock child, or <i>null</i> if aborted with
+     * @return Added OfflineDataBlock child, or <i>null</i> if aborted with
      *         {@link AbortChildException}
      */
-    public DataBlock addChildOrAbort(String name, AbortableDataWriter writer) throws IOException {
-        DataBlock child = dataBlockBuilder.create(name, writer);
+    public OfflineDataBlock addChildOrAbort(String name, AbortableDataWriter writer) throws IOException {
+        OfflineDataBlock child = dataBlockBuilder.create(name, writer);
         if (child == null) {
             return null;
         }
@@ -196,13 +196,13 @@ public final class DataBlock {
      *
      * @param name Name of the child
      * @param data Data for the child
-     * @return Added DataBlock child
+     * @return Added OfflineDataBlock child
      */
-    public DataBlock addChild(String name, byte[] data) {
-        return addChild(new DataBlock(dataBlockBuilder, name, data));
+    public OfflineDataBlock addChild(String name, byte[] data) {
+        return addChild(new OfflineDataBlock(dataBlockBuilder, name, data));
     }
 
-    DataBlock addChild(DataBlock child) {
+    OfflineDataBlock addChild(OfflineDataBlock child) {
         this.children.add(child);
         return child;
     }
@@ -224,7 +224,7 @@ public final class DataBlock {
         }
         if (!children.isEmpty()) {
             str.append(':');
-            for (DataBlock child : children) {
+            for (OfflineDataBlock child : children) {
                 str.append('\n');
                 child.appendToString(str, indent + 1);
             }
@@ -250,7 +250,7 @@ public final class DataBlock {
     static final class DataBlockBuilder {
         private WeakReference<ByteArrayOutputStream> stream = LogicUtil.nullWeakReference();
 
-        public DataBlock create(String name, AbortableDataWriter writer) throws IOException {
+        public OfflineDataBlock create(String name, AbortableDataWriter writer) throws IOException {
             ByteArrayOutputStream tempByteArrayStream = this.stream.get();
             if (tempByteArrayStream == null) {
                 tempByteArrayStream = new ByteArrayOutputStream(64);
@@ -260,7 +260,7 @@ public final class DataBlock {
                 try (DataOutputStream stream = new DataOutputStream(tempByteArrayStream)) {
                     writer.write(stream);
                 }
-                return new DataBlock(this, name, tempByteArrayStream.toByteArray());
+                return new OfflineDataBlock(this, name, tempByteArrayStream.toByteArray());
             } catch (AbortChildException ex) {
                 return null;
             } finally {

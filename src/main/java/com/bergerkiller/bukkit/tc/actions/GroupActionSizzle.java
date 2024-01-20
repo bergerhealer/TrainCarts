@@ -1,7 +1,7 @@
 package com.bergerkiller.bukkit.tc.actions;
 
 import com.bergerkiller.bukkit.tc.actions.registry.ActionRegistry;
-import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
+import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 
 import java.io.IOException;
 
@@ -20,12 +20,12 @@ public class GroupActionSizzle extends GroupAction {
 
     public static class Serializer implements ActionRegistry.Serializer<GroupActionSizzle> {
         @Override
-        public boolean save(GroupActionSizzle action, DataBlock data) throws IOException {
+        public boolean save(GroupActionSizzle action, OfflineDataBlock data) throws IOException {
             return true;
         }
 
         @Override
-        public GroupActionSizzle load(DataBlock data) throws IOException {
+        public GroupActionSizzle load(OfflineDataBlock data) throws IOException {
             return new GroupActionSizzle();
         }
     }

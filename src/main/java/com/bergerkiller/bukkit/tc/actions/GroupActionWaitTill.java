@@ -7,7 +7,7 @@ import java.util.List;
 
 import com.bergerkiller.bukkit.tc.actions.registry.ActionRegistry;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
-import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
+import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 
 public class GroupActionWaitTill extends GroupActionWaitForever {
     private long finishtime;
@@ -41,7 +41,7 @@ public class GroupActionWaitTill extends GroupActionWaitForever {
 
     public static class Serializer implements ActionRegistry.Serializer<GroupActionWaitTill> {
         @Override
-        public boolean save(GroupActionWaitTill action, DataBlock data) throws IOException {
+        public boolean save(GroupActionWaitTill action, OfflineDataBlock data) throws IOException {
             data.addChild("wait-till", stream -> {
                 stream.writeLong(action.getTime());
             });
@@ -49,7 +49,7 @@ public class GroupActionWaitTill extends GroupActionWaitForever {
         }
 
         @Override
-        public GroupActionWaitTill load(DataBlock data) throws IOException {
+        public GroupActionWaitTill load(OfflineDataBlock data) throws IOException {
             final long time;
             try (DataInputStream stream = data.findChildOrThrow("wait-till").readData()) {
                 time = stream.readLong();

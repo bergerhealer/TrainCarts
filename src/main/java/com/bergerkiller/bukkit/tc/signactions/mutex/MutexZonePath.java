@@ -10,7 +10,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.debug.particles.DebugParticles;
-import com.bergerkiller.bukkit.tc.offline.train.format.DataBlock;
+import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
@@ -75,17 +75,17 @@ public class MutexZonePath extends MutexZone {
      * Reads all the path mutexes stored in a root data block
      *
      * @param plugin TrainCarts plugin instance
-     * @param root Root DataBlock where path mutexes are stored as children
+     * @param root Root OfflineDataBlock where path mutexes are stored as children
      * @return List of decoded path mutexes
      */
-    public static List<MutexZonePath> readAll(TrainCarts plugin, DataBlock root) {
-        List<DataBlock> pathDataBlockList = root.findChildren("path-mutex");
+    public static List<MutexZonePath> readAll(TrainCarts plugin, OfflineDataBlock root) {
+        List<OfflineDataBlock> pathDataBlockList = root.findChildren("path-mutex");
         if (pathDataBlockList.isEmpty()) {
             return Collections.emptyList();
         }
 
         List<MutexZonePath> paths = new ArrayList<>(pathDataBlockList.size());
-        for (DataBlock pathDataBlock : pathDataBlockList) {
+        for (OfflineDataBlock pathDataBlock : pathDataBlockList) {
             // Read the mutex zone path data
             final MutexZonePath path;
             try (DataInputStream stream = pathDataBlock.readData()) {
@@ -125,14 +125,14 @@ public class MutexZonePath extends MutexZone {
         return Collections.unmodifiableList(paths);
     }
 
-    public void writeTo(DataBlock root) {
+    public void writeTo(OfflineDataBlock root) {
         try {
             root.addChildOrAbort("path-mutex", stream -> {
                 Util.writeVariableLengthInt(stream, 1); // Version
 
                 OfflineBlock.writeTo(stream, signBlock);
                 if (!key.writeTo(plugin, stream)) {
-                    throw new DataBlock.AbortChildException();
+                    throw new OfflineDataBlock.AbortChildException();
                 }
 
                 type.writeTo(stream);

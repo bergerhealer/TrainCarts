@@ -13,12 +13,12 @@ import java.util.Map;
 /**
  * Helper class for serializing and de-serializing data blocks
  */
-class DataBlockSerializer {
+class OfflineDataBlockSerializer {
     private final List<String> values = new ArrayList<>();
     private final Map<String, Integer> valueToIndex = new HashMap<>();
-    private final DataBlock.DataBlockBuilder dataBlockBuilder = new DataBlock.DataBlockBuilder();
+    private final OfflineDataBlock.DataBlockBuilder dataBlockBuilder = new OfflineDataBlock.DataBlockBuilder();
 
-    public DataBlockSerializer() {
+    public OfflineDataBlockSerializer() {
         reset();
     }
 
@@ -36,14 +36,14 @@ class DataBlockSerializer {
      * @return Decoded Data Block, or null if the end of a list of data blocks was reached
      * @throws IOException
      */
-    public DataBlock readDataBlock(DataInputStream stream) throws IOException {
+    public OfflineDataBlock readDataBlock(DataInputStream stream) throws IOException {
         String name = readString(stream);
         if (name.isEmpty()) {
             return null; // End of data blocks
         } else {
             byte[] data = Util.readByteArray(stream);
-            DataBlock dataBlock = new DataBlock(dataBlockBuilder, name, data);
-            DataBlock child;
+            OfflineDataBlock dataBlock = new OfflineDataBlock(dataBlockBuilder, name, data);
+            OfflineDataBlock child;
             while ((child = readDataBlock(stream)) != null) {
                 dataBlock.addChild(child);
             }
@@ -55,13 +55,13 @@ class DataBlockSerializer {
      * Writes a single data block, including all child data blocks, to a stream
      *
      * @param stream Stream to write to
-     * @param dataBlock DataBlock to write
+     * @param dataBlock OfflineDataBlock to write
      * @throws IOException
      */
-    public void writeDataBlock(DataOutputStream stream, DataBlock dataBlock) throws IOException {
+    public void writeDataBlock(DataOutputStream stream, OfflineDataBlock dataBlock) throws IOException {
         writeString(stream, dataBlock.name);
         Util.writeByteArray(stream, dataBlock.data);
-        for (DataBlock child : dataBlock.children) {
+        for (OfflineDataBlock child : dataBlock.children) {
             writeDataBlock(stream, child);
         }
         writeEmptyString(stream);
