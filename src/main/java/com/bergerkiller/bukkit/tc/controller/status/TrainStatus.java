@@ -153,10 +153,21 @@ public interface TrainStatus {
     /**
      * Waiting for the pathfinding module to finish calculation the new routes
      */
-    public static final class WaitingForRouting implements Waiting {
+    enum WaitingForRouting implements Waiting {
+        CALCULATING("Waiting for path finding router to finish"),
+        NO_ROUTE("Waiting infinitely because no route to destination could be found, and there is no fallback direction"),
+        NO_DESTINATION("Waiting infinitely because no destination is set, and there is no fallback direction"),
+        AT_DESTINATION("Waiting infinitely because current destination is this station");
+
+        private final String message;
+
+        WaitingForRouting(String message) {
+            this.message = message;
+        }
+
         @Override
         public String getMessage() {
-            return ChatColor.RED + "Waiting for path finding router to finish";
+            return ChatColor.RED + this.message;
         }
     }
 

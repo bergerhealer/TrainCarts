@@ -9,7 +9,6 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Station;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
@@ -22,6 +21,7 @@ public class GroupActionWaitStationRouting extends GroupAction implements WaitAc
     private final RailPiece rails;
     private final boolean trainIsCentered;
     private boolean discoveryStarted = false;
+    private TrainStatus.WaitingForRouting status = TrainStatus.WaitingForRouting.CALCULATING;
 
     public GroupActionWaitStationRouting(Station station, RailPiece rails, boolean trainIsCentered) {
         this.station = station;
@@ -36,51 +36,10 @@ public class GroupActionWaitStationRouting extends GroupAction implements WaitAc
 
     @Override
     public boolean update() {
-        // Before wasting a lot of time, check there is a train destination at all
-        String destination = getGroup().getProperties().getDestination();
-        if (destination.isEmpty()) {
-            // Fallback?
-            if (tryFallback()) {
-                return true;
-            }
-        } else if (!getTrainCarts().getPathProvider().isProcessing()) {
-            // If path finding is ready, see if this destination can be reached
-            PathNode node = getTrainCarts().getPathProvider().getWorld(rails.world())
-                    .getNodeAtRail(rails.block());
-            if (node == null && !discoveryStarted) {
-                // Not found yet, may need to be discovered. Actually, probably will need to be!
-                discoveryStarted = true;
-                getTrainCarts().getPathProvider().discoverFromRail(new BlockLocation(rails.block()));
-            } else if (node != null && !node.getNames().contains(destination)) {
-                // Node found. Is this our destination? If so, don't do anything.
-                // If it is not, try to find a route to the destination
-                PathConnection connection = node.findConnection(destination);
-                if (connection == null) {
-                    // Destination doesn't exist. Fallback?
-                    if (tryFallback()) {
-                        return true;
-                    }
-                } else {
-                    // Translate the junction information to a direction vector to launch into
-                    Vector launchVector = null;
-                    for (RailJunction junction : rails.getJunctions()) {
-                        if (junction.name().equals(connection.junctionName)) {
-                            launchVector = junction.position().getMotion();
-                            break;
-                        }
-                    }
-                    if (launchVector != null) {
-                        // Found a match! Now, do we have to center the train first?
-                        prepareLaunchTo(Util.vecToFace(launchVector, false));
-                        return true;
-                    }
-                }
-            }
-        }
-
         // If not already centered, and this is our first update, we will
-        // need to center the train first. For the remainder we're just waiting
-        // for conditions to be right.
+        // need to center the train first. As part of centering the train
+        // could activate other signs that change the current destination.
+        // So it's important centering completes first.
         if (!trainIsCentered) {
             station.centerTrain();
             station.waitTrainKeepLeversDown(0);
@@ -89,21 +48,80 @@ public class GroupActionWaitStationRouting extends GroupAction implements WaitAc
             return true;
         }
 
-        // Wait
-        return false;
+        // Before wasting a lot of time, check there is a train destination at all
+        String destination = getGroup().getProperties().getDestination();
+        if (destination.isEmpty()) {
+            // Fallback launch direction?
+            return tryFallback(TrainStatus.WaitingForRouting.NO_DESTINATION);
+        }
+
+        // While processing, wait
+        if (getTrainCarts().getPathProvider().isProcessing()) {
+            status = TrainStatus.WaitingForRouting.CALCULATING;
+            return false;
+        }
+
+        // If path finding is ready, see if this destination can be reached
+        PathNode node = getTrainCarts().getPathProvider().getWorld(rails.world())
+                .getNodeAtRail(rails.block());
+
+        // If no node was found at this rail, attempt discovering new nodes at this rail position
+        // Try this only once
+        if (node == null && !discoveryStarted) {
+            discoveryStarted = true;
+            getTrainCarts().getPathProvider().discoverFromRail(new BlockLocation(rails.block()));
+            return false;
+        }
+
+        // If node is still not found, try a fallback
+        if (node == null) {
+            return tryFallback(TrainStatus.WaitingForRouting.NO_ROUTE);
+        }
+
+        // If train is at the current destination already, wait and do nothing
+        if (node.getNames().contains(destination)) {
+            status = TrainStatus.WaitingForRouting.AT_DESTINATION;
+            return false;
+        }
+
+        // Node found. Is this our destination? If so, don't do anything.
+        // If it is not, try to find a route to the destination
+        PathConnection connection = node.findConnection(destination);
+
+        // Destination doesn't exist. Fallback?
+        if (connection == null) {
+            return tryFallback(TrainStatus.WaitingForRouting.NO_ROUTE);
+        }
+
+        // Translate the junction information to a direction vector to launch into
+        Vector launchVector = null;
+        for (RailJunction junction : rails.getJunctions()) {
+            if (junction.name().equals(connection.junctionName)) {
+                launchVector = junction.position().getMotion();
+                break;
+            }
+        }
+        if (launchVector == null) {
+            return tryFallback(TrainStatus.WaitingForRouting.NO_ROUTE);
+        }
+
+        // Found a match! Now, do we have to center the train first?
+        prepareLaunchTo(Util.vecToFace(launchVector, false));
+        return true;
     }
 
     @Override
     public List<TrainStatus> getStatusInfo() {
-        return Collections.singletonList(new TrainStatus.WaitingForRouting());
+        return Collections.singletonList(status);
     }
 
-    private boolean tryFallback() {
+    private boolean tryFallback(TrainStatus.WaitingForRouting failStatus) {
         if (station.getNextDirection() != Direction.NONE) {
             prepareLaunchTo(station.getNextDirectionFace());
             return true;
         }
 
+        status = failStatus;
         return false;
     }
 

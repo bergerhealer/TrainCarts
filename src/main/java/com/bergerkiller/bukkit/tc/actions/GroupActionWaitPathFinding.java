@@ -45,6 +45,6 @@ public class GroupActionWaitPathFinding extends GroupActionWaitForever {
 
     @Override
     public List<TrainStatus> getStatusInfo() {
-        return Collections.singletonList(new TrainStatus.WaitingForRouting());
+        return Collections.singletonList(TrainStatus.WaitingForRouting.CALCULATING);
     }
 }
