@@ -512,18 +512,45 @@ public class RailPath {
      * @param blockConsumer Consumer for receiving all full block position coordinates
      */
     public void forAllBlocks(IntVector3 railsBlock, Consumer<IntVector3> blockConsumer) {
-        boolean first = true;
+        BlockIterator iter = null;
+        IntVector3 last = null; // Avoid iterating the same block twice when moving between segments
         for (Segment segment : segments) {
-            BlockIterator iter = new BlockIterator(segment, railsBlock);
-            if (iter.next()) {
-                if (first) {
-                    blockConsumer.accept(iter.block());
-                }
-                while (iter.next()) {
-                    blockConsumer.accept(iter.block());
+            // Mostly used for vanilla rails or really short segments
+            {
+                IntVector3 containedInsideBlock = segment.containedInsideBlock;
+                if (containedInsideBlock != null) {
+                    containedInsideBlock = containedInsideBlock.add(railsBlock);
+                    if (last == null || !last.isSame(containedInsideBlock)) {
+                        last = containedInsideBlock;
+                        blockConsumer.accept(containedInsideBlock);
+                    }
+                    continue;
                 }
             }
-            first = false;
+
+            // Re-use block iterator if we can
+            if (iter == null) {
+                iter = new BlockIterator(railsBlock, segment);
+            } else {
+                iter.reset(railsBlock, segment);
+            }
+
+            // Iterate it. If we only ever run into a single block, set containedInsideBlock
+            if (iter.next()) {
+                IntVector3 firstBlock = iter.block();
+                if (last == null || !last.isSame(firstBlock)) {
+                    last = firstBlock;
+                    blockConsumer.accept(firstBlock);
+                }
+                if (iter.next()) {
+                    do {
+                        last = iter.block();
+                        blockConsumer.accept(last);
+                    } while (iter.next());
+                } else {
+                    segment.containedInsideBlock = firstBlock.subtract(railsBlock);
+                }
+            }
         }
     }
 
@@ -1272,6 +1299,20 @@ public class RailPath {
         @Deprecated
         public final Point dt_norm;
 
+        /**
+         * Used by {@link #forAllBlocks(IntVector3, Consumer)}.
+         * If this segment only encapsulates a single block, then this value is set
+         * so that next time this segment is iterated it does not waste time
+         * initializing the block iterator.
+         */
+        private IntVector3 containedInsideBlock = null;
+
+        /**
+         * Creates a new Segment
+         *
+         * @param p0 Start point
+         * @param p1 End point
+         */
         public Segment(Point p0, Point p1) {
             p_offset = new Vector(p1.x - p0.x, p1.y - p0.y, p1.z - p0.z);
             ls = p_offset.lengthSquared();
@@ -1287,6 +1328,12 @@ public class RailPath {
             }
             has_vertical_slope = mot.getY() < -1e-10 || mot.getY() > 1e-10;
             end_theta_threshold = Math.min(1e-3, 1e-4 * linv);
+
+            // Check whether p0 / p1 exist within a single block
+            // This allows for [0.0 .. 1.0] to be a single block
+            {
+                IntVector3 block = IntVector3.blockOf(p0.x, p0.y, p0.z);
+            }
 
             // Legacy stuff encoded this as Point which was just...weird
             dt = new Point(p_offset);
