@@ -237,6 +237,20 @@ public class MutexZoneCacheWorld {
     }
 
     public void onTick() {
+        updatePathingMutexes();
+
+        // Track all mutex zones that have been newly added since previous tick
+        // Trains look at these every tick to see if they are inside them, since
+        // normally they only look from the head of the train onwards.
+        if (newZonesLive.isEmpty()) {
+            newZones = Collections.emptyList();
+        } else {
+            newZones = new ArrayList<>(newZonesLive);
+            newZonesLive.clear();
+        }
+    }
+
+    private void updatePathingMutexes() {
         if (byPathingKey.isEmpty()) {
             return;
         }
@@ -249,16 +263,6 @@ public class MutexZoneCacheWorld {
                 iter.remove();
                 remove(zonePath);
             }
-        }
-
-        // Track all mutex zones that have been newly added since previous tick
-        // Trains look at these every tick to see if they are inside them, since
-        // normally they only look from the head of the train onwards.
-        if (newZonesLive.isEmpty()) {
-            newZones = Collections.emptyList();
-        } else {
-            newZones = new ArrayList<>(newZonesLive);
-            newZonesLive.clear();
         }
     }
 
