@@ -1329,12 +1329,6 @@ public class RailPath {
             has_vertical_slope = mot.getY() < -1e-10 || mot.getY() > 1e-10;
             end_theta_threshold = Math.min(1e-3, 1e-4 * linv);
 
-            // Check whether p0 / p1 exist within a single block
-            // This allows for [0.0 .. 1.0] to be a single block
-            {
-                IntVector3 block = IntVector3.blockOf(p0.x, p0.y, p0.z);
-            }
-
             // Legacy stuff encoded this as Point which was just...weird
             dt = new Point(p_offset);
             dt_norm = new Point(mot);
