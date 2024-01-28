@@ -38,9 +38,7 @@ public class SignActionPathingMutex extends SignAction {
 
         // Include all future blocks into the pathing zone
         prediction.trackBlock((p, d) -> {
-            p.railPath().forAllBlocks(p.railPiece().blockPosition(), block -> {
-                path.addBlock(p.railState().positionOfflineBlock().getPosition());
-            });
+            p.railPath().forAllBlocks(p.railPiece().blockPosition(), path::addBlock);
             return true;
         }, path, path.getMaxDistance());
     }
