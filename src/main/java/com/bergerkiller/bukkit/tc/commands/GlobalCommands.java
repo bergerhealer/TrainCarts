@@ -307,18 +307,21 @@ public class GlobalCommands {
             final @Flag(value="config", description="Reload config.yml") boolean config,
             final @Flag(value="routes", description="Reload routes.yml") boolean routes,
             final @Flag(value="defaulttrainproperties", description="Reload DefaultTrainProperties.yml") boolean defaultTrainproperties,
-            final @Flag(value="savedtrainproperties", description="Reload SavedTrainProperties.yml and modules") boolean savedTrainproperties
+            final @Flag(value="savedtrainproperties", description="Reload SavedTrainProperties.yml and modules") boolean savedTrainproperties,
+            final @Flag(value="modelstore", description="Reload SavedModels.yml and modules") boolean modelStore
     ) {
         if (!config &&
             !routes &&
             !defaultTrainproperties &&
-            !savedTrainproperties
+            !savedTrainproperties &&
+            !modelStore
         ) {
             sender.sendMessage(ChatColor.RED + "Please specify one or more configuration file to reload:");
             sender.sendMessage(ChatColor.RED + "/train globalconfig reload --config");
             sender.sendMessage(ChatColor.RED + "/train globalconfig reload --routes");
             sender.sendMessage(ChatColor.RED + "/train globalconfig reload --defaulttrainproperties");
             sender.sendMessage(ChatColor.RED + "/train globalconfig reload --savedtrainproperties");
+            sender.sendMessage(ChatColor.RED + "/train globalconfig reload --modelstore");
             return;
         }
 
@@ -333,6 +336,9 @@ public class GlobalCommands {
         }
         if (savedTrainproperties) {
             traincarts.getSavedTrains().reload();
+        }
+        if (modelStore) {
+            traincarts.getSavedAttachmentModels().reload();
         }
         sender.sendMessage(ChatColor.YELLOW + "Configuration has been reloaded!");
     }
