@@ -81,7 +81,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
         }
 
         // Special properties
-        this.expanded = this.getEditorOption("expanded", true);
+        this.expanded = this.parentAttachment == null || this.getEditorOption("expanded", true);
         if (!this.expanded && this.attachments.isEmpty()) {
             this.expanded = true;
             this.setEditorOption("expanded", true, true);
