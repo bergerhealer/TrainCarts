@@ -38,6 +38,13 @@ public class ActionTrackerGroup extends ActionTracker {
         if (action instanceof MemberActionLaunch && action.elapsedTicks() == 0) {
             MemberActionLaunch launchAction = (MemberActionLaunch) action;
             this.getOwner().setForwardForce(launchAction.getTargetVelocity());
+        } else if (action instanceof MemberActionWaitOccupied) {
+            // This action 'reads' the current speed and re-applied it after waiting is done
+            // When clearing this speed would normally be gone. So try to restore it.
+            MemberActionWaitOccupied waitOccupied = (MemberActionWaitOccupied) action;
+            if (!Double.isNaN(waitOccupied.getPostWaitLaunchForce())) {
+                this.getOwner().setForwardForce(waitOccupied.getPostWaitLaunchForce());
+            }
         }
         this.clear();
     }

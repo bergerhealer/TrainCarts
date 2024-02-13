@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
+import com.bergerkiller.bukkit.tc.actions.Action;
+import com.bergerkiller.bukkit.tc.actions.MemberActionWaitOccupied;
 import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
@@ -96,9 +98,18 @@ public class SignActionWait extends SignAction {
 
             //distance
             if (info.getGroup().isObstacleAhead(distance, true, false)) {
-                info.getGroup().getActions().clear();
-                info.getMember().getActions().addActionWaitOccupied(distance, delay, launchDistance, launchDirection, launchVelocity)
-                        .setToggleOutputOf(info.getTrackedSign());
+                // If there is a pre-existing wait action, we need to be careful
+                // Instead of having a loop of scheduled wait occupied actions, simply keep track of the max distance to look for
+                // This does not support overriding the launch direction and such though.
+                Action currentAction = info.getGroup().getActions().getCurrentAction();
+                if (currentAction instanceof MemberActionWaitOccupied) {
+                    MemberActionWaitOccupied waitOccupied = (MemberActionWaitOccupied) currentAction;
+                    waitOccupied.adjustDistance(distance);
+                } else {
+                    info.getGroup().getActions().launchReset();
+                    info.getMember().getActions().addActionWaitOccupied(distance, delay, launchDistance, launchDirection, launchVelocity)
+                            .setToggleOutputOf(info.getTrackedSign());
+                }
             }
         } else if (info.isAction(SignActionType.REDSTONE_OFF)) {
             info.setLevers(false);
