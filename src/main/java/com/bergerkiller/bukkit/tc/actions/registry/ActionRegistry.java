@@ -49,6 +49,7 @@ public class ActionRegistry {
         register(GroupActionWaitDelay.class, new GroupActionWaitDelay.Serializer());
         register(TrackedSignActionSetOutput.class, new TrackedSignActionSetOutput.Serializer(plugin));
         register(GroupActionSizzle.class, new GroupActionSizzle.Serializer());
+        register(GroupActionWaitStationRouting.class, new GroupActionWaitStationRouting.Serializer(plugin));
     }
 
     /**
