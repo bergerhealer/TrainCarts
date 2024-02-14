@@ -86,6 +86,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -104,6 +105,7 @@ public class TrainCarts extends PluginBase {
     private TCPropertyRegistry propertyRegistry;
     private TCListener listener;
     private TCPacketListener packetListener;
+    private TCSuppressSeatTeleportPacketListener suppressSeatTeleportPacketListener;
     private TCInteractionPacketListener interactionPacketListener;
     private FileConfiguration config;
     private final SpawnSignManager spawnSignManager = new SpawnSignManager(this);
@@ -869,6 +871,13 @@ public class TrainCarts extends PluginBase {
         this.register(listener = new TCListener(this));
         this.register(new TCSeatChangeListener());
         this.register(new TrainChestListener(this));
+
+        // Only registered when needed...
+        if (TCSuppressSeatTeleportPacketListener.SUPPRESS_POST_ENTER_PLAYER_POSITION_PACKET) {
+            suppressSeatTeleportPacketListener = new TCSuppressSeatTeleportPacketListener(this);
+            this.register((PacketListener) suppressSeatTeleportPacketListener, TCSuppressSeatTeleportPacketListener.LISTENED_TYPES);
+            this.register((Listener) suppressSeatTeleportPacketListener);
+        }
 
         //Restore carts where possible
         log(Level.INFO, "Restoring trains and loading nearby chunks...");

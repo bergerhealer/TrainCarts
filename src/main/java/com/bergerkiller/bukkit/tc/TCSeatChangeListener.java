@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -168,7 +169,7 @@ public class TCSeatChangeListener implements Listener {
         event.getMember().onPropertiesChanged();
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onMemberSeatEnterMonitor(MemberSeatEnterEvent event) {
         if (event.getEntity() instanceof Player) {
             Player player = (Player) event.getEntity();
