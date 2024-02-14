@@ -7,7 +7,6 @@ import com.bergerkiller.bukkit.tc.actions.*;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTracker;
-import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.ActionTrackerMember;
 import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 
@@ -99,14 +98,13 @@ public class ActionRegistry {
      *
      * @param tracker Action Tracker containing actions
      * @return List of data blocks to represent the actions
-     * @see #saveAction(OfflineDataBlock, Action, boolean)
+     * @see #saveAction(OfflineDataBlock, Action, ActionTracker)
      */
     public List<OfflineDataBlock> saveTracker(ActionTracker tracker) {
         if (tracker.hasAction()) {
             OfflineDataBlock root = OfflineDataBlock.create("root");
-            boolean addedToMember = (tracker instanceof ActionTrackerMember);
             for (Action action : tracker.getScheduledActions()) {
-                saveAction(root, action, addedToMember);
+                saveAction(root, action, tracker);
             }
             return Collections.unmodifiableList(root.children);
         } else {
@@ -122,17 +120,9 @@ public class ActionRegistry {
      */
     public void loadTracker(ActionTracker tracker, List<OfflineDataBlock> actionDataBlocks) {
         if (!actionDataBlocks.isEmpty()) {
-            MinecartGroup group;
-            if (tracker instanceof ActionTrackerGroup) {
-                group = ((ActionTrackerGroup) tracker).getOwner();
-            } else if (tracker instanceof ActionTrackerMember) {
-                group = ((ActionTrackerMember) tracker).getOwner().getGroup();
-            } else {
-                throw new IllegalArgumentException("Action tracker is invalid type: " + tracker.getClass().getName());
-            }
-
+            MinecartGroup group = tracker.getGroupOwner();
             for (OfflineDataBlock actionDataBlock : actionDataBlocks) {
-                Action action = loadAction(group, actionDataBlock);
+                Action action = loadAction(group, actionDataBlock, tracker);
                 if (action != null) {
                     tracker.addAction(action);
                 }
@@ -146,15 +136,16 @@ public class ActionRegistry {
      *
      * @param root Root data block to which this action will be added as child
      * @param action Action to save
-     * @param addedToMember True if the action was added to a member. False if it was
-     *                      added to a Group instead.
+     * @param tracker Action tracker the action is part of
      * @return Added data block, or null if this action could not be saved
      */
-    public OfflineDataBlock saveAction(OfflineDataBlock root, Action action, boolean addedToMember) {
+    public OfflineDataBlock saveAction(OfflineDataBlock root, Action action, ActionTracker tracker) {
         final RegisteredAction registeredAction = byType.get(action.getClass());
         if (registeredAction == null) {
             return null;
         }
+
+        boolean addedToMember = (tracker instanceof ActionTrackerMember);
 
         // Create child. Probably never fails.
         OfflineDataBlock child;
@@ -189,7 +180,7 @@ public class ActionRegistry {
         // again to avoid trouble.
         boolean success = false;
         try {
-            success = registeredAction.serializer.save(action, child);
+            success = registeredAction.serializer.save(action, child, tracker);
         } catch (Throwable t) {
             plugin.getLogger().log(Level.SEVERE, "Failed to save action " + action.getClass().getName(), t);
         }
@@ -207,9 +198,10 @@ public class ActionRegistry {
      *
      * @param group Group the action will be run in
      * @param dataBlock OfflineDataBlock to load
+     * @param tracker Action tracker (group or member) the action will be added to after loading
      * @return Action that was loaded, or null if the data block could not be loaded
      */
-    public Action loadAction(MinecartGroup group, OfflineDataBlock dataBlock) {
+    public Action loadAction(MinecartGroup group, OfflineDataBlock dataBlock, ActionTracker tracker) {
         // Name identifier for the action
         RegisteredAction registeredAction = null;
         // For MemberAction that is added to a group, includes the member argument
@@ -260,7 +252,7 @@ public class ActionRegistry {
                 member = null;
             }
 
-            Action action = registeredAction.serializer.load(dataBlock);
+            Action action = registeredAction.serializer.load(dataBlock, tracker);
             if (action == null) {
                 return null;
             }
@@ -309,11 +301,12 @@ public class ActionRegistry {
          *
          * @param action Action to save
          * @param data OfflineDataBlock
+         * @param tracker The ActionTracker (group or member) where the action is saved of
          * @return True if saving was successful, False if the Action should be omitted because
          *         it could not be saved.
          * @throws IOException
          */
-        boolean save(T action, OfflineDataBlock data) throws IOException;
+        boolean save(T action, OfflineDataBlock data, ActionTracker tracker) throws IOException;
 
         /**
          * Loads in this registered action. Child data blocks in the input data
@@ -321,9 +314,10 @@ public class ActionRegistry {
          * and the member that was set do not have to be loaded.
          *
          * @param data OfflineDataBlock
+         * @param tracker The ActionTracker (group or member) where the action will be loaded into
          * @return Loaded Action, or null if the data could not be loaded
          * @throws IOException
          */
-        T load(OfflineDataBlock data) throws IOException;
+        T load(OfflineDataBlock data, ActionTracker tracker) throws IOException;
     }
 }

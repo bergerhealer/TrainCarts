@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.components;
 
 import com.bergerkiller.bukkit.tc.actions.*;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.utils.LauncherConfig;
 
@@ -27,6 +28,11 @@ public class ActionTrackerMember extends ActionTracker {
     @Override
     public MinecartMember<?> getOwner() {
         return owner;
+    }
+
+    @Override
+    public MinecartGroup getGroupOwner() {
+        return owner.getGroup();
     }
 
     @Override

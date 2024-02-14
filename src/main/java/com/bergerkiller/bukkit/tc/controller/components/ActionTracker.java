@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.tc.actions.MemberAction;
 import com.bergerkiller.bukkit.tc.actions.MovementAction;
 import com.bergerkiller.bukkit.tc.actions.TrackedSignActionSetOutput;
 import com.bergerkiller.bukkit.tc.actions.WaitAction;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatusProvider;
@@ -47,6 +48,14 @@ public abstract class ActionTracker implements TrainStatusProvider {
      * @return owner
      */
     public abstract TrainCarts.Provider getOwner();
+
+    /**
+     * Gets the {@link #getOwner()} if this tracker is a group action tracker, or the group of
+     * the member if this is a member action tracker.
+     *
+     * @return Group owner
+     */
+    public abstract MinecartGroup getGroupOwner();
 
     /**
      * Clears all actions scheduled for the owner of this Action Tracker.

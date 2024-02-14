@@ -22,6 +22,11 @@ public class ActionTrackerGroup extends ActionTracker {
     }
 
     @Override
+    public MinecartGroup getGroupOwner() {
+        return owner;
+    }
+
+    @Override
     public void doTick() {
         super.doTick();
         for (MinecartMember<?> member : this.owner) {

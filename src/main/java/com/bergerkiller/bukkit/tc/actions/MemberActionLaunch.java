@@ -9,6 +9,7 @@ import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.tc.actions.registry.ActionRegistry;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.ActionTracker;
 import com.bergerkiller.bukkit.tc.controller.status.TrainStatus;
 import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 import com.bergerkiller.bukkit.tc.utils.LaunchFunction;
@@ -282,7 +283,7 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
      */
     public static abstract class BaseSerializer<T extends MemberActionLaunch> implements ActionRegistry.Serializer<T> {
         @Override
-        public boolean save(T action, OfflineDataBlock data) throws IOException {
+        public boolean save(T action, OfflineDataBlock data, ActionTracker tracker) throws IOException {
             // Save all the information common to all launch actions
             data.addChild("launch-state", stream -> saveStateTo(stream, action));
             return true;
@@ -298,7 +299,7 @@ public class MemberActionLaunch extends MemberAction implements MovementAction {
         public abstract T create(OfflineDataBlock data) throws IOException;
 
         @Override
-        public T load(OfflineDataBlock data) throws IOException {
+        public T load(OfflineDataBlock data, ActionTracker tracker) throws IOException {
             // Create an instance (depending on type)
             T action = this.create(data);
 

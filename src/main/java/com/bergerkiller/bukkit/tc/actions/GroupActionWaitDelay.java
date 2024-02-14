@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.actions;
 
 import com.bergerkiller.bukkit.tc.actions.registry.ActionRegistry;
+import com.bergerkiller.bukkit.tc.controller.components.ActionTracker;
 import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 
 import java.io.DataInputStream;
@@ -29,7 +30,7 @@ public class GroupActionWaitDelay extends GroupActionWaitTill implements WaitAct
 
     public static class Serializer implements ActionRegistry.Serializer<GroupActionWaitDelay> {
         @Override
-        public boolean save(GroupActionWaitDelay action, OfflineDataBlock data) throws IOException {
+        public boolean save(GroupActionWaitDelay action, OfflineDataBlock data, ActionTracker tracker) throws IOException {
             data.addChild("wait-delay", stream -> {
                 stream.writeLong(action.getRemainingDelay());
             });
@@ -37,7 +38,7 @@ public class GroupActionWaitDelay extends GroupActionWaitTill implements WaitAct
         }
 
         @Override
-        public GroupActionWaitDelay load(OfflineDataBlock data) throws IOException {
+        public GroupActionWaitDelay load(OfflineDataBlock data, ActionTracker tracker) throws IOException {
             final long delay;
             try (DataInputStream stream = data.findChildOrThrow("wait-delay").readData()) {
                 delay = stream.readLong();

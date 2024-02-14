@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.actions;
 
 import com.bergerkiller.bukkit.tc.actions.registry.ActionRegistry;
+import com.bergerkiller.bukkit.tc.controller.components.ActionTracker;
 import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 
 import java.io.DataInputStream;
@@ -30,7 +31,7 @@ public class MemberActionWaitDistance extends MemberAction implements WaitAction
 
     public static class Serializer implements ActionRegistry.Serializer<MemberActionWaitDistance> {
         @Override
-        public boolean save(MemberActionWaitDistance action, OfflineDataBlock data) throws IOException {
+        public boolean save(MemberActionWaitDistance action, OfflineDataBlock data, ActionTracker tracker) throws IOException {
             data.addChild("wait-distance", stream -> {
                 stream.writeDouble(action.getDistance());
             });
@@ -38,7 +39,7 @@ public class MemberActionWaitDistance extends MemberAction implements WaitAction
         }
 
         @Override
-        public MemberActionWaitDistance load(OfflineDataBlock data) throws IOException {
+        public MemberActionWaitDistance load(OfflineDataBlock data, ActionTracker tracker) throws IOException {
             final double distance;
             try (DataInputStream stream = data.findChildOrThrow("wait-distance").readData()) {
                 distance = stream.readDouble();
