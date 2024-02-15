@@ -31,7 +31,7 @@ public class Ticket {
     private String _backgroundImagePath = "";
     private ConfigurationNode _properties = new ConfigurationNode();
 
-    public Ticket(String name) {
+    Ticket(String name) {
         this._name = name;
     }
 
