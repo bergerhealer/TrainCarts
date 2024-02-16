@@ -7,7 +7,7 @@ import org.bukkit.util.Vector;
  * Used when seat attachments don't have one explicitly defined.
  */
 public final class ExitOffset {
-    public static final ExitOffset DEFAULT = new ExitOffset(false, 0.0, 0.0, 0.0, 0.0f, 0.0f);
+    public static final ExitOffset DEFAULT = new ExitOffset(false, 0.0, 0.0, 0.0, Float.NaN, Float.NaN);
 
     private final boolean absolute;
     private final double rx, ry, rz;
