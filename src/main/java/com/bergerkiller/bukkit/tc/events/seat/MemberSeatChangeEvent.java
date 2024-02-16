@@ -33,7 +33,7 @@ public class MemberSeatChangeEvent extends MemberSeatExitEvent {
     public MemberSeatChangeEvent(CartAttachmentSeat oldSeat, CartAttachmentSeat newSeat, Entity entity,
             Location seatPosition, Location exitPosition, boolean playerInitiated
     ) {
-        super(oldSeat, entity, seatPosition, exitPosition, playerInitiated);
+        super(oldSeat, entity, seatPosition, exitPosition, true, playerInitiated);
         this.newSeat = newSeat;
     }
 

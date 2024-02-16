@@ -29,14 +29,16 @@ public class MemberBeforeSeatExitEvent extends MemberEvent implements Cancellabl
     private final CartAttachmentSeat seat;
     private final Location seatPosition;
     private Location exitPosition;
+    private boolean exitPreservePlayerRotation;
     private boolean cancelled;
 
-    public MemberBeforeSeatExitEvent(CartAttachmentSeat seat, Entity entity, Location seatPosition, Location exitPosition, boolean playerInitiated) {
+    public MemberBeforeSeatExitEvent(CartAttachmentSeat seat, Entity entity, Location seatPosition, Location exitPosition, boolean exitPreservePlayerRotation, boolean playerInitiated) {
         super(seat.getMember());
         this.seat = seat;
         this.entity = entity;
         this.seatPosition = seatPosition;
         this.exitPosition = exitPosition;
+        this.exitPreservePlayerRotation = exitPreservePlayerRotation;
         this.playerInitiated = playerInitiated;
     }
 
@@ -90,6 +92,16 @@ public class MemberBeforeSeatExitEvent extends MemberEvent implements Cancellabl
     }
 
     /**
+     * Gets whether the player rotation is preserved when exiting the seat. If true, then
+     * the yaw and pitch of {@link #getExitPosition()} are ignored.
+     *
+     * @return True if the player rotation is preserved
+     */
+    public boolean isExitPlayerRotationPreserved() {
+        return exitPreservePlayerRotation;
+    }
+
+    /**
      * Sets a new exit position to use instead of the default one. Players will
      * be teleported here when exiting from the vehicle, or when entering the new
      * seat fails.
@@ -99,6 +111,22 @@ public class MemberBeforeSeatExitEvent extends MemberEvent implements Cancellabl
      */
     public void setExitPosition(Location position) {
         this.exitPosition = position;
+        this.exitPreservePlayerRotation = false;
+    }
+
+    /**
+     * Sets a new exit position to use instead of the default one. Players will
+     * be teleported here when exiting from the vehicle, or when entering the new
+     * seat fails.
+     *
+     * @param position New exit position
+     * @param preservePlayerRotation Whether to preserve the player rotation when
+     *                               exiting. If true, yaw and pitch are ignored.
+     * @see #getExitPosition()
+     */
+    public void setExitPosition(Location position, boolean preservePlayerRotation) {
+        this.exitPosition = position;
+        this.exitPreservePlayerRotation = preservePlayerRotation;
     }
 
     /**

@@ -17,6 +17,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.logging.Level;
@@ -26,6 +27,10 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityEquipmentHandle;
+import com.bergerkiller.generated.net.minecraft.server.network.PlayerConnectionHandle;
+import com.bergerkiller.mountiplex.reflection.resolver.Resolver;
+import com.bergerkiller.mountiplex.reflection.util.FastField;
+import com.bergerkiller.mountiplex.reflection.util.FastMethod;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
@@ -1955,5 +1960,122 @@ public class Util {
             numExtraBits -= 7;
         }
         stream.write(value & 0x7F);
+    }
+
+    private interface TeleportPositionMethod {
+        boolean teleportPosition(Entity entity, Location to);
+    }
+    private static final TeleportPositionMethod TELEPORT_POSITION_METHOD = findRelativeTeleportMethod();
+    private static TeleportPositionMethod findRelativeTeleportMethod() {
+        // If paper API with teleport flags exists, use that
+        try {
+            // These relative position flags only work for players
+            Class<?> flagsClass = Class.forName("io.papermc.paper.entity.TeleportFlag");
+            Class<?> relativeFlagsClass = Class.forName("io.papermc.paper.entity.TeleportFlag$Relative");
+            final Object[] relativeRotFlags = LogicUtil.createArray(flagsClass, 2);
+            relativeRotFlags[0] = relativeFlagsClass.getField("YAW").get(null);
+            relativeRotFlags[1] = relativeFlagsClass.getField("PITCH").get(null);
+            final FastMethod<Boolean> teleportWithFlagsMethod = new FastMethod<>();
+            teleportWithFlagsMethod.init(Entity.class.getMethod("teleport", Location.class, relativeRotFlags.getClass()));
+            teleportWithFlagsMethod.forceInitialization();
+
+            return (entity, to) -> {
+                if (entity instanceof Player) {
+                    return teleportWithFlagsMethod.invoke(entity, to, relativeRotFlags);
+                } else {
+                    return entity.teleport(to);
+                }
+            };
+        } catch (Throwable t) {
+            /* Ignore, not supported (not paper / old paper) */
+        }
+
+        return Entity::teleport;
+    }
+
+    /**
+     * Teleports an entity to another position without altering its (camera) rotation.
+     *
+     * @param entity Entity to teleport
+     * @param to Destination (position)
+     * @return True if successful, False if cancelled
+     */
+    public static boolean teleportPosition(Entity entity, Location to) {
+        Location toCorrected;
+        if (entity instanceof LivingEntity) {
+            toCorrected = ((LivingEntity) entity).getEyeLocation();
+        } else {
+            toCorrected = entity.getLocation();
+        }
+
+        toCorrected.setWorld(to.getWorld());
+        toCorrected.setX(to.getX());
+        toCorrected.setY(to.getY());
+        toCorrected.setZ(to.getZ());
+        return TELEPORT_POSITION_METHOD.teleportPosition(entity, toCorrected);
+    }
+
+    private static final Consumer<Player> RESET_AWAITING_TELEPORT_METHOD = getAwaitTeleportResetMethod();
+    private static Consumer<Player> getAwaitTeleportResetMethod() {
+        // Use BKCL API for this if available
+        if (Common.hasCapability("Common:ConnectionResetAwaitTeleport")) {
+            return player -> {
+                PlayerConnectionHandle connection = PlayerConnectionHandle.forPlayer(player);
+                if (connection != null) {
+                    connection.resetAwaitTeleport();
+                }
+            };
+        }
+
+        // This is only since MC 1.9
+        if (Common.evaluateMCVersion("<", "1.9")) {
+            return player -> {};
+        }
+
+        // Fallback before an API for this was added in BKCommonLib 1.20.4-v4
+        try {
+            String waitingPositionFromClientName, awaitingTeleportName;
+            if (Common.evaluateMCVersion(">=", "1.17")) {
+                waitingPositionFromClientName = "awaitingPositionFromClient";
+                awaitingTeleportName = "awaitingTeleport";
+            } else {
+                waitingPositionFromClientName = "teleportPos";
+                awaitingTeleportName = "teleportAwait";
+            }
+
+            FastField<Object> awaitingPositionFromClientField = new FastField<>(Resolver.resolveAndGetDeclaredField(
+                    PlayerConnectionHandle.T.getType(), waitingPositionFromClientName));
+            awaitingPositionFromClientField.forceInitialization();
+
+            FastField<Integer> awaitingTeleportField = new FastField<>(Resolver.resolveAndGetDeclaredField(
+                    PlayerConnectionHandle.T.getType(), awaitingTeleportName));
+            awaitingTeleportField.forceInitialization();
+
+            return player -> {
+                PlayerConnectionHandle connection = PlayerConnectionHandle.forPlayer(player);
+                if (connection != null && awaitingPositionFromClientField.get(connection.getRaw()) != null) {
+                    int nextInt = awaitingTeleportField.getInteger(connection.getRaw());
+                    if (++nextInt == Integer.MAX_VALUE) {
+                        nextInt = 0;
+                    }
+                    awaitingTeleportField.setInteger(connection.getRaw(), nextInt);
+                    awaitingPositionFromClientField.set(connection.getRaw(), null);
+                }
+            };
+        } catch (Throwable t) {
+            // Can't use plugin instance to log, annoying clinit stuff
+            Bukkit.getLogger().log(Level.SEVERE, "[TrainCarts] Failed to find reset player teleport, player look orientation might be glitched!", t);
+            return player -> {};
+        }
+    }
+
+    /**
+     * The server keeps track of ongoing teleports that the player has not yet confirmed. It's possible that such an await teleport
+     * gets 'stuck'. This resets it so that normal movement updates work again.
+     *
+     * @param player Player
+     */
+    public static void resetPlayerAwaitingTeleport(Player player) {
+        RESET_AWAITING_TELEPORT_METHOD.accept(player);
     }
 }

@@ -16,8 +16,6 @@ import java.util.Locale;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -60,7 +58,7 @@ public class SignActionEject extends SignAction {
             }
 
             // Read the rotation
-            boolean usePlayerRotation = false;
+            boolean retainEntityRotation = false;
             if (!info.getLine(3).isEmpty()) {
                 String[] angletext = Util.splitBySeparator(info.getLine(3));
                 if (angletext.length == 2) {
@@ -69,8 +67,8 @@ public class SignActionEject extends SignAction {
                 } else if (angletext.length == 1) {
                     yaw = ParseUtil.parseFloat(angletext[0], 0.0f);
                 }
-            } else if (isAbsolute) {
-                usePlayerRotation = true;
+            } else {
+                retainEntityRotation = true;
             }
 
             // Convert to sign-relative-space
@@ -85,19 +83,11 @@ public class SignActionEject extends SignAction {
                 Location at = new Location(info.getWorld(), offset.getX(), offset.getY(), offset.getZ(),
                         yaw, pitch);
                 for (MinecartMember<?> mm : info.getMembers()) {
-                    if (usePlayerRotation) {
-                        at.setYaw(0.0f);
-                        at.setPitch(0.0f);
-                        for (Entity e : mm.getEntity().getPassengers()) {
-                            if (e instanceof LivingEntity) {
-                                Location eyeLoc = ((LivingEntity) e).getEyeLocation();
-                                at.setYaw(eyeLoc.getYaw());
-                                at.setPitch(eyeLoc.getPitch());
-                                break;
-                            }
-                        }
-                    }
-                    mm.eject(at);
+                    mm.eject(at, retainEntityRotation);
+                }
+            } else if (retainEntityRotation) {
+                for (MinecartMember<?> mm : info.getMembers()) {
+                    mm.eject(offset);
                 }
             } else {
                 for (MinecartMember<?> mm : info.getMembers()) {

@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.seat.MemberBeforeSeatEnterEvent;
 import com.bergerkiller.bukkit.tc.events.seat.MemberSeatExitEvent;
+
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -67,6 +68,14 @@ class TCSuppressSeatTeleportPacketListener implements Listener, PacketListener {
             SeatMoment moment = seatEnterMoments.remove(event.getPlayer());
             if (moment != null && CommonUtil.getServerTicks() < moment.expire) {
                 event.setCancelled(true);
+
+                // This makes the client await teleport go out of sync, so correct this
+                // Must be done on main thread
+                if (CommonUtil.isMainThread()) {
+                    Util.resetPlayerAwaitingTeleport(event.getPlayer());
+                } else {
+                    CommonUtil.nextTick(() -> Util.resetPlayerAwaitingTeleport(event.getPlayer()));
+                }
             }
         }
     }

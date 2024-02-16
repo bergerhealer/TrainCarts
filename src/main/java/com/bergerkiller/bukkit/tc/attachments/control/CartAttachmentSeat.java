@@ -951,6 +951,27 @@ public class CartAttachmentSeat extends CartAttachment {
     }
 
     /**
+     * Gets whether, on eject, the entity yaw and pitch are preserved
+     *
+     * @return True if entity rotation is preserved
+     */
+    public boolean isEjectRotationPreserved() {
+        if (this._ejectLockRotation) {
+            return false;
+        }
+
+        if (this.getManager() instanceof AttachmentControllerMember) {
+            MinecartMember<?> member = ((AttachmentControllerMember) this.getManager()).getMember();
+            ExitOffset cprop_offset = member.getProperties().getExitOffset();
+            if (cprop_offset.hasLockedYaw() || cprop_offset.hasLockedPitch()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Calculates the eye position and direction of a Player passenger inside this seat.
      * If there is no entity inside (that has a first-person view) then this method
      * returns null.

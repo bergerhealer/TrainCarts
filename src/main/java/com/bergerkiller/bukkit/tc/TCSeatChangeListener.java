@@ -6,7 +6,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -148,7 +147,11 @@ public class TCSeatChangeListener implements Listener {
             }
 
             Util.correctTeleportPosition(loc);
-            e.teleport(loc);
+            if (event.isExitRotationPreserved()) {
+                Util.teleportPosition(e, loc);
+            } else {
+                e.teleport(loc);
+            }
         }
     }
 
@@ -343,14 +346,19 @@ public class TCSeatChangeListener implements Listener {
                 // Fire cancellable before-exit event
                 final Location seatPosition = seat.getPosition(event.getExited());
                 final Location exitPosition;
+                final boolean exitPreservePlayerRotation;
                 {
                     MemberBeforeSeatExitEvent memberExitEvent = new MemberBeforeSeatExitEvent(seat, event.getExited(),
-                            seatPosition, seat.getEjectPosition(event.getExited()), playerInitiated);
+                            seatPosition,
+                            seat.getEjectPosition(event.getExited()),
+                            seat.isEjectRotationPreserved(),
+                            playerInitiated);
                     if (CommonUtil.callEvent(memberExitEvent).isCancelled()) {
                         event.setCancelled(true);
                         return;
                     }
                     exitPosition = memberExitEvent.getExitPosition();
+                    exitPreservePlayerRotation = memberExitEvent.isExitPlayerRotationPreserved();
                 }
 
                 // Next tick, if passenger is indeed no longer in this seat, fire a
@@ -374,7 +382,7 @@ public class TCSeatChangeListener implements Listener {
                     }
 
                     if (passenger.getVehicle() != vehicle) {
-                        CommonUtil.callEvent(new MemberSeatExitEvent(seat, passenger, seatPosition, exitPosition, playerInitiated));
+                        CommonUtil.callEvent(new MemberSeatExitEvent(seat, passenger, seatPosition, exitPosition, exitPreservePlayerRotation, playerInitiated));
                     }
                 });
             }

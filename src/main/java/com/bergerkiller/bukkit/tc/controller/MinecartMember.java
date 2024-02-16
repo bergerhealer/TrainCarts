@@ -1801,6 +1801,17 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     /**
      * Ejects the passenger of this Minecart and teleports him to the offset and
+     * rotation specified. The original yaw and pitch of the entity is maintained.
+     *
+     * @param offset to teleport to
+     */
+    public void eject(Vector offset) {
+        eject(new Location(entity.getWorld(), entity.loc.getX() + offset.getX(), entity.loc.getY() + offset.getY(),
+                entity.loc.getZ() + offset.getZ(), 0.0f, 0.0f), true);
+    }
+
+    /**
+     * Ejects the passenger of this Minecart and teleports him to the offset and
      * rotation specified
      *
      * @param offset to teleport to
@@ -1819,10 +1830,34 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @param to location to eject/teleport to
      */
     public void eject(final Location to) {
+        eject(to, false);
+    }
+
+    /**
+     * Ejects the passenger of this Minecart and teleports him to the location
+     * specified
+     *
+     * @param to location to eject/teleport to
+     * @param retainEntityRotation Whether to retain the original yaw and pitch of the
+     *                             rotation (camera view) of the entity. When false, does
+     *                             not change where players look.
+     */
+    public void eject(final Location to, boolean retainEntityRotation) {
         if (entity.hasPassenger()) {
-            List<Entity> oldPassengers = new ArrayList<>(entity.getPassengers());
+            final List<Entity> oldPassengers = new ArrayList<>(entity.getPassengers());
             TCSeatChangeListener.exemptFromEjectOffset.addAll(oldPassengers);
             this.eject();
+            if (!oldPassengers.isEmpty()) {
+                CommonUtil.nextTick(() -> {
+                    for (Entity oldPassenger : oldPassengers) {
+                        if (retainEntityRotation) {
+                            Util.teleportPosition(oldPassenger, to);
+                        } else {
+                            EntityUtil.teleport(oldPassenger, to);
+                        }
+                    }
+                });
+            }
             for (Entity oldPassenger : oldPassengers) {
                 EntityUtil.teleportNextTick(oldPassenger, to);
             }

@@ -361,6 +361,7 @@ public class AttachmentControllerMember
         }
 
         Location seatPosition = null, exitPosition = null;
+        boolean exitPreserveRotation = true;
         if (old_seat != null && new_seat != null) {
             // Fire event for changing from one seat to another
             MemberBeforeSeatChangeEvent event = new MemberBeforeSeatChangeEvent(old_seat, new_seat, passenger, isPlayerInitiated);
@@ -377,11 +378,13 @@ public class AttachmentControllerMember
             // Fire an event to exit an old seat (eject)
             seatPosition = old_seat.getPosition(passenger);
             exitPosition = old_seat.getEjectPosition(passenger);
-            MemberBeforeSeatExitEvent event = new MemberBeforeSeatExitEvent(old_seat, passenger, seatPosition, exitPosition, isPlayerInitiated);
+            exitPreserveRotation = old_seat.isEjectRotationPreserved();
+            MemberBeforeSeatExitEvent event = new MemberBeforeSeatExitEvent(old_seat, passenger, seatPosition, exitPosition, exitPreserveRotation, isPlayerInitiated);
             if (CommonUtil.callEvent(event).isCancelled()) {
                 return false;
             }
             exitPosition = event.getExitPosition();
+            exitPreserveRotation = event.isExitPlayerRotationPreserved();
         } else if (new_seat != null) {
             // Fire an event to enter a new seat
             MemberBeforeSeatEnterEvent event = new MemberBeforeSeatEnterEvent(new_seat, passenger, isPlayerInitiated,
@@ -452,7 +455,7 @@ public class AttachmentControllerMember
                 if (enteredNewSeat) {
                     CommonUtil.callEvent(new MemberSeatChangeEvent(old_seat, new_seat, passenger, seatPosition, exitPosition, isPlayerInitiated));
                 } else {
-                    CommonUtil.callEvent(new MemberSeatExitEvent(old_seat, passenger, seatPosition, exitPosition, isPlayerInitiated));
+                    CommonUtil.callEvent(new MemberSeatExitEvent(old_seat, passenger, seatPosition, exitPosition, exitPreserveRotation, isPlayerInitiated));
                 }
             }
             if (enteredNewSeat) {

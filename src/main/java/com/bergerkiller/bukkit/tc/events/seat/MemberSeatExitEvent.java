@@ -32,14 +32,16 @@ public class MemberSeatExitEvent extends MemberEvent {
     private final boolean playerInitiated;
     private final Location seatPosition;
     private final Location exitPosition;
+    private final boolean exitPreserveRotation;
     private final CartAttachmentSeat seat;
 
-    public MemberSeatExitEvent(CartAttachmentSeat seat, Entity entity, Location seatPosition, Location exitPosition, boolean playerInitiated) {
+    public MemberSeatExitEvent(CartAttachmentSeat seat, Entity entity, Location seatPosition, Location exitPosition, boolean exitPreserveRotation, boolean playerInitiated) {
         super(seat.getMember());
         this.seat = seat;
         this.entity = entity;
         this.seatPosition = seatPosition;
         this.exitPosition = exitPosition;
+        this.exitPreserveRotation = exitPreserveRotation;
         this.playerInitiated = playerInitiated;
     }
 
@@ -90,6 +92,16 @@ public class MemberSeatExitEvent extends MemberEvent {
      */
     public Location getExitPosition() {
         return this.exitPosition;
+    }
+
+    /**
+     * Gets whether the entity rotation is preserved when exiting the seat. If true, then
+     * the yaw and pitch of {@link #getExitPosition()} are ignored.
+     *
+     * @return True if the entity rotation is preserved
+     */
+    public boolean isExitRotationPreserved() {
+        return exitPreserveRotation;
     }
 
     /**
