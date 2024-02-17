@@ -74,6 +74,7 @@ public class AttachmentControllerMember
     private AttachmentConfigModelTracker modelTracker;
     private Attachment rootAttachment;
     private List<CartAttachmentSeat> seatAttachments = Collections.emptyList();
+    private final Map<Entity, CartAttachmentSeat> cachedSeatAttachmentsByPassenger = new HashMap<>();
     private List<Attachment> flattenedAttachments = Collections.emptyList();
     private final Map<Attachment, AttachmentNameLookup> cachedNameLookups = new IdentityHashMap<>();
     private Map<Entity, SeatHint> seatHints = new HashMap<Entity, SeatHint>();
@@ -360,6 +361,10 @@ public class AttachmentControllerMember
             return false;
         }
 
+        // Avoid leaking memory
+        resetCachedSeatsByPassenger(old_seat);
+        resetCachedSeatsByPassenger(new_seat);
+
         Location seatPosition = null, exitPosition = null;
         boolean exitPreserveRotation = true;
         if (old_seat != null && new_seat != null) {
@@ -467,6 +472,18 @@ public class AttachmentControllerMember
             return true;
         } finally {
             TCSeatChangeListener.suppressSeatChangeEvents = false;
+
+            resetCachedSeatsByPassenger(old_seat);
+            resetCachedSeatsByPassenger(new_seat);
+        }
+    }
+
+    private static void resetCachedSeatsByPassenger(CartAttachmentSeat seat) {
+        if (seat != null && seat.getManager() instanceof AttachmentControllerMember) {
+            AttachmentControllerMember controller = (AttachmentControllerMember) seat.getManager();
+            synchronized (controller) {
+                controller.cachedSeatAttachmentsByPassenger.clear();
+            }
         }
     }
 
@@ -575,8 +592,19 @@ public class AttachmentControllerMember
         if (this.seatAttachments.isEmpty()) {
             return null;
         }
+
+        // Try cache first
+        {
+            CartAttachmentSeat seat = this.cachedSeatAttachmentsByPassenger.get(passenger);
+            if (seat != null && seat.getEntity() == passenger) {
+                return seat;
+            }
+        }
+
         for (CartAttachmentSeat seat : this.seatAttachments) {
             if (seat.getEntity() == passenger) {
+                // Speed up for next time
+                this.cachedSeatAttachmentsByPassenger.put(passenger, seat);
                 return seat;
             }
         }
@@ -899,6 +927,7 @@ public class AttachmentControllerMember
             this.changeListenerNewSeatsAdded = false;
             this.flattenedAttachments = Collections.emptyList();
             this.seatAttachments = Collections.emptyList();
+            this.cachedSeatAttachmentsByPassenger.clear();
             this.invalidateCachedNameLookups();
         }
     }
@@ -921,6 +950,7 @@ public class AttachmentControllerMember
                 .filter(attachment -> attachment instanceof CartAttachmentSeat)
                 .map(attachment -> (CartAttachmentSeat) attachment)
                 .collect(StreamUtil.toUnmodifiableList());
+        this.cachedSeatAttachmentsByPassenger.clear();
         this.invalidateCachedNameLookups(); // Invalidate
     }
 
@@ -1136,6 +1166,7 @@ public class AttachmentControllerMember
             //TODO!
         }
         this.previousSeatPositions.clear();
+        this.cachedSeatAttachmentsByPassenger.clear();
     }
 
     @Override

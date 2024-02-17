@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.bergerkiller.bukkit.common.controller.EntityPositionApplier;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -1626,6 +1627,18 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             }
         }
         return true;
+    }
+
+    @Override
+    public void onPositionPassenger(Entity passenger, EntityPositionApplier applier) {
+        // Find seat. If for some reason one isn't available, use vanilla fallback.
+        CartAttachmentSeat seat = attachmentController.findSeat(passenger);
+        if (seat == null) {
+            super.onPositionPassenger(passenger, applier);
+            return;
+        }
+
+        applier.setPosition(seat.getTransform().toVector());
     }
 
     /**

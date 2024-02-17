@@ -25,8 +25,11 @@ class TCSuppressSeatTeleportPacketListener implements Listener, PacketListener {
     /**
      * Since Minecraft 1.20 the server sends a teleport/position packet to the player (that has no Bukkit event to cancel)
      * when entering carts. This packet must be suppressed in a special way.
+     * BKCommonLib also has a new API to set the position of passengers which also fixes this issue. If that API exists
+     * and is used, then we don't have to suppress it.
      */
-    public static final boolean SUPPRESS_POST_ENTER_PLAYER_POSITION_PACKET = Common.evaluateMCVersion(">=", "1.20");
+    public static final boolean SUPPRESS_POST_ENTER_PLAYER_POSITION_PACKET = !Common.hasCapability("Common:EntityController:PositionPassenger") &&
+                                                                             Common.evaluateMCVersion(">=", "1.20");
 
     public static final PacketType[] LISTENED_TYPES = new PacketType[] {
             PacketType.OUT_POSITION
