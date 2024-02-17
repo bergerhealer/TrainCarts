@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.config.DataReader;
 import com.bergerkiller.bukkit.common.config.TempFileOutputStream;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
 
@@ -70,6 +71,9 @@ class OfflineGroupFileHandler {
         // Save all mutex slot states
         MutexZoneCache.saveState(manager.getTrainCarts(), data.root);
 
+        // Make sure this class is loaded up-front in case of a frozen save
+        StreamUtil.toUnmodifiableList();
+
         // Then in an asynchronous task write all data to disk. Use a TempFileOutputStream
         // so an interrupted write won't corrupt the file.
         currentSaveOperation = CommonUtil.runCheckedAsync(() -> {
@@ -104,7 +108,7 @@ class OfflineGroupFileHandler {
 
     private boolean waitForSaveCompletion() {
         try {
-            currentSaveOperation.get(10, TimeUnit.SECONDS);
+            currentSaveOperation.get(30, TimeUnit.SECONDS);
         } catch (TimeoutException ex) {
             manager.getTrainCarts().log(Level.SEVERE, "Failed to save group data on plugin shutdown: save timed out");
             return false;
