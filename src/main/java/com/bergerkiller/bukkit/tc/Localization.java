@@ -65,6 +65,7 @@ public class Localization extends LocalizationEnum {
     public static final Localization COMMAND_INPUT_SPEED_INVALID = new Localization("command.input.speed.invalid", ChatColor.RED + "Input value %0% is not a valid number or speed expression");
     public static final Localization COMMAND_INPUT_ACCELERATION_INVALID = new Localization("command.input.acceleration.invalid", ChatColor.RED + "Input value %0% is not a valid number or acceleration expression");
     public static final Localization COMMAND_INPUT_DIRECTION_INVALID = new Localization("command.input.direction.invalid", ChatColor.RED + "Input value %0% is not a valid direction");
+    public static final Localization COMMAND_INPUT_CHUNK_LOADING_MODE_INVALID = new Localization("command.input.chunkloading.mode.invalid", ChatColor.RED + "Input value %0% is not a valid chunk loading mode");
     public static final Localization COMMAND_INPUT_NAME_EMPTY = new Localization("command.input.name.empty", ChatColor.RED + "Input train name is empty!");
     public static final Localization COMMAND_INPUT_NAME_INVALID = new Localization("command.input.name.invalid", ChatColor.RED + "Input train name '%0%' contains invalid characters!");
     public static final Localization COMMAND_INPUT_ATTACHMENTS_NO_SEATS = new Localization("command.input.attachments.noseats", ChatColor.RED + "No seats with name '%0%' found!");

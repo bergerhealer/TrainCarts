@@ -59,6 +59,7 @@ public class TCConfig {
     public static boolean useCoalFromStorageCart;
     public static boolean setOwnerOnPlacement;
     public static boolean keepChunksLoadedOnlyWhenMoving;
+    public static int maxKeepChunksLoadedRadius;
     public static int maxDetectorLength;
     public static int maxMutexSize;
     public static int maxMinecartStackSize;
@@ -252,6 +253,10 @@ public class TCConfig {
         config.setHeader("keepChunksLoadedOnlyWhenMoving", "\nWhether or not chunks are only kept loaded when the train is moving");
         config.addHeader("keepChunksLoadedOnlyWhenMoving", "They also keep chunks loaded while the train is waiting on a station");
         keepChunksLoadedOnlyWhenMoving = config.get("keepChunksLoadedOnlyWhenMoving", false);
+
+        config.setHeader("maxKeepChunksLoadedRadius", "\nMaximum radius that can be set for the keep chunks loaded property of a train");
+        config.addHeader("maxKeepChunksLoadedRadius", "The default is radius is 2, which loads a 5x5 chunk area. Avoid abuse, don't make it too big.");
+        maxKeepChunksLoadedRadius = config.get("maxKeepChunksLoadedRadius", 7);
 
         config.setHeader("enableCeilingBlockCollision", "\nWhether to enable or cancel collisions with blocks above minecarts");
         config.addHeader("enableCeilingBlockCollision", "Some constructions depend on these block collisions to block minecarts");

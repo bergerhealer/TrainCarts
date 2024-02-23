@@ -14,6 +14,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.tc.properties.defaults.DefaultProperties;
+import com.bergerkiller.bukkit.tc.properties.standard.type.ChunkLoadOptions;
 import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -479,18 +480,45 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
      * Gets whether this Train keeps nearby chunks loaded
      *
      * @return True or False
+     * @see #getChunkLoadOptions()
      */
     public boolean isKeepingChunksLoaded() {
-        return get(StandardProperties.KEEP_CHUNKS_LOADED);
+        return get(StandardProperties.CHUNK_LOAD_OPTIONS).keepLoaded();
     }
 
     /**
-     * Sets whether this Train keeps nearby chunks loaded
+     * Sets whether this Train keeps nearby chunks loaded. Use the
+     * {@link #setChunkLoadOptions(ChunkLoadOptions)} method for a more fine-grained
+     * control over this. This method merely toggles between simulating between modes
+     * FULL (true) and DISABLED (false).
      *
      * @param state to set to
+     * @see #setChunkLoadOptions(ChunkLoadOptions)
      */
     public void setKeepChunksLoaded(boolean state) {
-        set(StandardProperties.KEEP_CHUNKS_LOADED, state);
+        setChunkLoadOptions(getChunkLoadOptions().withMode(
+                state ? ChunkLoadOptions.Mode.FULL : ChunkLoadOptions.Mode.DISABLED));
+    }
+
+    /**
+     * Gets the chunk loader configuration of this train
+     *
+     * @return Chunk loading options
+     */
+    public ChunkLoadOptions getChunkLoadOptions() {
+        return get(StandardProperties.CHUNK_LOAD_OPTIONS);
+    }
+
+    /**
+     * Sets the chunk loader configuration of this train. Unlike the
+     * {@link #setKeepChunksLoaded(boolean)} option this option allows
+     * control over the chunk loading radius and whether the loaded chunks
+     * simulate entities/redstone.
+     *
+     * @param options New options
+     */
+    public void setChunkLoadOptions(ChunkLoadOptions options) {
+        set(StandardProperties.CHUNK_LOAD_OPTIONS, options);
     }
 
     /**

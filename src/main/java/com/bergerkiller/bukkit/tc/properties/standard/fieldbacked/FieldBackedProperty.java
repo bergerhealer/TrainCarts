@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.properties.standard.fieldbacked;
 import java.util.List;
 import java.util.Set;
 
+import com.bergerkiller.bukkit.tc.properties.standard.type.ChunkLoadOptions;
 import org.bukkit.Material;
 
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -76,7 +77,7 @@ public abstract class FieldBackedProperty<T> implements IProperty<T> {
         public WaitOptions waitOptionsData;
         public BankingOptions bankingOptionsData;
         public boolean soundEnabled;
-        public boolean keepChunksLoaded;
+        public ChunkLoadOptions chunkLoadOptions;
         public boolean allowPlayerManualMovement;
         public boolean allowMobManualMovement;
         public boolean realtimePhysics;

@@ -25,6 +25,7 @@ import com.bergerkiller.bukkit.tc.commands.argument.AttachmentsByName;
 import com.bergerkiller.bukkit.tc.commands.argument.DirectionOrFormattedSpeed;
 import com.bergerkiller.bukkit.tc.commands.parsers.AccelerationParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.AttachmentByNameParser;
+import com.bergerkiller.bukkit.tc.commands.parsers.ChunkLoadOptionsModeParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.DirectionOrFormattedSpeedParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.DirectionParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
@@ -58,6 +59,7 @@ import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
+import com.bergerkiller.bukkit.tc.properties.standard.type.ChunkLoadOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
 import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
 import com.bergerkiller.mountiplex.MountiplexUtil;
@@ -203,6 +205,7 @@ public class Commands {
         });
 
         cloud.parse(Direction.class, p -> new DirectionParser());
+        cloud.parse(ChunkLoadOptions.Mode.class, p -> new ChunkLoadOptionsModeParser());
         cloud.parse(TrainNameFormat.class, p -> new TrainNameFormatParser());
         cloud.parse(DirectionOrFormattedSpeed.class, p -> new DirectionOrFormattedSpeedParser());
 
