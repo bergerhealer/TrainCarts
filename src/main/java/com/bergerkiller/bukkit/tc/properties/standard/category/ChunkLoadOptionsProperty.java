@@ -190,7 +190,7 @@ public final class ChunkLoadOptionsProperty extends FieldBackedStandardTrainProp
                 if (result) {
                     MinecartGroup group = properties.getHolder();
                     if (group != null) {
-                        group.keepChunksLoaded(group.getProperties().isKeepingChunksLoaded());
+                        group.keepChunksLoaded(group.getProperties().getChunkLoadOptions().mode());
                     }
                 }
             });
@@ -198,7 +198,7 @@ public final class ChunkLoadOptionsProperty extends FieldBackedStandardTrainProp
             // If loaded, tell group to no longer keep loaded
             MinecartGroup group = properties.getHolder();
             if (group != null) {
-                group.keepChunksLoaded(false);
+                group.keepChunksLoaded(options.mode());
             }
         }
     }

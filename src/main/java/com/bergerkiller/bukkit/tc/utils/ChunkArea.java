@@ -3,8 +3,8 @@ package com.bergerkiller.bukkit.tc.utils;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
+import com.bergerkiller.bukkit.tc.properties.standard.type.ChunkLoadOptions;
 import org.bukkit.World;
 
 import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
@@ -27,6 +27,7 @@ public class ChunkArea {
     public static final int CHUNK_EDGE = 2 * CHUNK_RANGE + 1;
     public static final int CHUNK_AREA = CHUNK_EDGE * CHUNK_EDGE;
     private World current_world = null;
+    private int current_radius = 0;
     private final ForwardChunkArea forward_chunk_area = new ForwardChunkArea();
     private final LongHashSet added_chunk_centers = new LongHashSet();
     private LongHashMap<OwnedChunk> chunks = new LongHashMap<OwnedChunk>();
@@ -55,9 +56,11 @@ public class ChunkArea {
      * After this refresh the added and removed chunks can be queried, as well as all currently managed chunks.
      * 
      * @param world the minecarts are in (to detect world changes)
+     * @param radius Chunk loading radius (of the train), or if not kept loaded, area that must stay loaded
+     *               before the train unloads.
      * @param coordinates of the chunks all minecarts are in
      */
-    public void refresh(World world, LongHashSet coordinates) {
+    public void refresh(World world, int radius, LongHashSet coordinates) {
         // Reset
         this.removed_chunks.clear();
         this.added_chunks.clear();
@@ -65,6 +68,7 @@ public class ChunkArea {
         // When world changes, perform a full reset
         if (this.current_world != world) {
             this.current_world = world;
+            this.current_radius = 0;
             this.removed_chunks.addAll(this.chunks.getValues());
             for (OwnedChunk chunk : this.removed_chunks) {
                 chunk.forcedChunk.close();
@@ -82,22 +86,50 @@ public class ChunkArea {
             owned.distance_previous = owned.distance;
         }
 
+        // If radius has decreased, then we need to check for all owned chunks whether they're still within radius
+        // Mark owned chunks for removal that no longer match these criteria
+        // This is a slower procedure, thankfully it doesn't run that often.
+        boolean radiusIncreased = (radius > current_radius);
+        boolean radiusDecreased = (radius < current_radius);
+        if (radiusDecreased) {
+            for (LongHashSet.LongIterator iter = this.added_chunk_centers.longIterator(); iter.hasNext();) {
+                long coord = iter.next();
+                int mx = MathUtil.longHashMsw(coord);
+                int mz = MathUtil.longHashLsw(coord);
+                int cx, cz;
+                for (cx = -current_radius; cx <= current_radius; cx++) {
+                    for (cz = -current_radius; cz <= current_radius; cz++) {
+                        if (Math.abs(cz) <= radius && Math.abs(cx) <= radius) continue; // Still added
+
+                        // Remove coordinate, but do not remove the owned chunk when empty
+                        // Maybe in the next stage more chunks will be added again
+                        long ownedCoord = MathUtil.longHashToLong(mx + cx, mz + cz);
+                        OwnedChunk ownedChunk = this.chunks.get(ownedCoord);
+                        if (ownedChunk != null) {
+                            ownedChunk.removeChunk(coord, mx, mz);
+                        }
+                    }
+                }
+            }
+        }
+        current_radius = radius;
+
         // Find chunk centers that have been added
         LongHashSet.LongIterator iter = coordinates.longIterator();
         while (iter.hasNext()) {
             long coord = iter.next();
-            if (this.added_chunk_centers.add(coord)) {
-                // Iterate all 5x5 neighbours of this coordinate and store them in the owned chunks
+            if (this.added_chunk_centers.add(coord) || radiusIncreased) {
+                // Iterate all neighbours of this coordinate and store them in the owned chunks
                 // If new owned chunks are created, store them in a special 'added' set
                 int mx = MathUtil.longHashMsw(coord);
                 int mz = MathUtil.longHashLsw(coord);
                 int cx, cz;
-                for (cx = -CHUNK_RANGE; cx <= CHUNK_RANGE; cx++) {
-                    for (cz = -CHUNK_RANGE; cz <= CHUNK_RANGE; cz++) {
+                for (cx = -radius; cx <= radius; cx++) {
+                    for (cz = -radius; cz <= radius; cz++) {
                         long ownedCoord = MathUtil.longHashToLong(mx + cx, mz + cz);
                         OwnedChunk ownedChunk = this.chunks.get(ownedCoord);
                         if (ownedChunk == null) {
-                            ownedChunk = new OwnedChunk(world, mx + cx, mz + cz);
+                            ownedChunk = new OwnedChunk(world, mx + cx, mz + cz, ownedCoord);
                             ownedChunk.addChunk(coord, mx, mz);
                             this.all_chunks.add(ownedChunk);
                             this.chunks.put(ownedCoord, ownedChunk);
@@ -110,6 +142,16 @@ public class ChunkArea {
             }
         }
 
+        // If radius was decreased, go by all owned chunks and verify whether any of them are empty
+        // If so, mark them as removed
+        if (radiusDecreased) {
+            for (OwnedChunk ownedChunk : new ArrayList<>(this.chunks.values())) {
+                if (ownedChunk.isEmpty()) {
+                    removeOwnedChunk(ownedChunk);
+                }
+            }
+        }
+
         // Find chunk centers that have been removed
         LongHashSet.LongIterator added_iter = this.added_chunk_centers.longIterator();
         while (added_iter.hasNext()) {
@@ -117,28 +159,32 @@ public class ChunkArea {
             if (!coordinates.contains(coord)) {
                 added_iter.remove();
 
-                // Iterate all 5x5 neighbours of this coordinate and remove them from the owned chunks
+                // Iterate all neighbours of this coordinate and remove them from the owned chunks
                 // If owned chunks become empty, store them in a special 'removed' set
                 int mx = MathUtil.longHashMsw(coord);
                 int mz = MathUtil.longHashLsw(coord);
                 int cx, cz;
-                for (cx = -CHUNK_RANGE; cx <= CHUNK_RANGE; cx++) {
-                    for (cz = -CHUNK_RANGE; cz <= CHUNK_RANGE; cz++) {
+                for (cx = -radius; cx <= radius; cx++) {
+                    for (cz = -radius; cz <= radius; cz++) {
                         long ownedCoord = MathUtil.longHashToLong(mx + cx, mz + cz);
                         OwnedChunk ownedChunk = this.chunks.get(ownedCoord);
                         if (ownedChunk != null) {
                             ownedChunk.removeChunk(coord, mx, mz);
                             if (ownedChunk.isEmpty()) {
-                                ownedChunk.forcedChunk.close();
-                                this.removed_chunks.add(ownedChunk);
-                                this.chunks.remove(ownedCoord);
-                                this.all_chunks.remove(ownedChunk);
+                                removeOwnedChunk(ownedChunk);
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    private void removeOwnedChunk(OwnedChunk ownedChunk) {
+        ownedChunk.forcedChunk.close();
+        this.removed_chunks.add(ownedChunk);
+        this.chunks.remove(ownedChunk.chunkKey);
+        this.all_chunks.remove(ownedChunk);
     }
 
     /**
@@ -175,7 +221,7 @@ public class ChunkArea {
     }
 
     /**
-     * Gets all chunks that were removed during the last {@link #refresh(World, LongHashSet)}
+     * Gets all chunks that were removed during the last {@link #refresh(World, int, LongHashSet)}
      *
      * @return removed chunks
      */
@@ -184,7 +230,7 @@ public class ChunkArea {
     }
 
     /**
-     * Gets all chunks that were added during the last {@link #refresh(World, LongHashSet)}
+     * Gets all chunks that were added during the last {@link #refresh(World, int, LongHashSet)}
      *
      * @return added chunks
      */
@@ -230,16 +276,18 @@ public class ChunkArea {
      */
     public static final class OwnedChunk {
         private final int cx, cz;
+        private final long chunkKey;
         private final World world;
         private final LongHashSet chunks = new LongHashSet();
         private int distance;
         private int distance_previous;
         private final ForcedChunk forcedChunk = ForcedChunk.none();
 
-        public OwnedChunk(World world, int cx, int cz) {
+        public OwnedChunk(World world, int cx, int cz, long chunkKey) {
             this.world = world;
             this.cx = cx;
             this.cz = cz;
+            this.chunkKey = chunkKey;
             this.distance = Integer.MAX_VALUE;
             this.distance_previous = Integer.MAX_VALUE;
         }
@@ -248,9 +296,9 @@ public class ChunkArea {
             return this.world.isChunkLoaded(this.cx, this.cz);
         }
 
-        public void keepLoaded(boolean keepLoaded) {
-            if (keepLoaded) {
-                this.forcedChunk.move(ChunkUtil.forceChunkLoaded(this.world, this.cx, this.cz));
+        public void keepLoaded(ChunkLoadOptions.Mode mode) {
+            if (mode != ChunkLoadOptions.Mode.DISABLED) {
+                this.forcedChunk.move(ChunkUtil.forceChunkLoaded(this.world, this.cx, this.cz, mode.getPerChunkRadius()));
             } else {
                 this.forcedChunk.close();
             }

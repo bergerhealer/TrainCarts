@@ -42,6 +42,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CartLockOrientation;
+import com.bergerkiller.bukkit.tc.properties.standard.type.ChunkLoadOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SlowdownMode;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.offline.train.OfflineGroup;
@@ -1392,9 +1393,14 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         return new MergedInventory(source);
     }
 
+    @Deprecated
     public void keepChunksLoaded(boolean keepLoaded) {
+        keepChunksLoaded(keepLoaded ? ChunkLoadOptions.Mode.FULL : ChunkLoadOptions.Mode.DISABLED);
+    }
+
+    public void keepChunksLoaded(ChunkLoadOptions.Mode mode) {
         for (ChunkArea.OwnedChunk chunk : this.chunkArea.getAll()) {
-            chunk.keepLoaded(keepLoaded);
+            chunk.keepLoaded(mode);
         }
     }
 
@@ -1646,22 +1652,28 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      * Refreshes the chunks this train is occupying. When the train keeps chunks loaded,
      * makes sure to load the new chunks and allow old chunks to unload again.
      * 
-     * @param keepChunksLoaded Whether to keep chunks loaded, or track train unloading
+     * @param keepChunksLoaded Whether to keep chunks loaded, or track train unloading (DISABLED mode)
      * @param isRemoving When true, the train is in process of being removed, and no logic
      *                   besides refreshing the chunk area should be performed.
      */
     private void updateChunkInformation(boolean keepChunksLoaded, boolean isRemoving) {
         /* Timings: updateChunkInformation  (Train Physics) */
         {
+            // If kept loaded, use the chunk loader radius limited by the globally configured limit (abuse!)
+            // If not kept loaded, default to unloading the train when one of the 5x5 chunk area the carts
+            // occupy unloads.
+            ChunkLoadOptions options = keepChunksLoaded ? getProperties().getChunkLoadOptions() : ChunkLoadOptions.DEFAULT;
+            int radius = keepChunksLoaded ? Math.min(TCConfig.maxKeepChunksLoadedRadius, options.radius()) : ChunkArea.CHUNK_RANGE;
+
             // Refresh the chunk area tracker using this information
-            this.chunkArea.refresh(this.getWorld(), this.loadChunksBuffer());
+            this.chunkArea.refresh(this.getWorld(), radius, this.loadChunksBuffer());
             this.chunkAreaValid = true;
 
             // Keep-chunks-loaded or automatic unloading when moving into unloaded chunks
             if (keepChunksLoaded) {
                 // Load chunks we entered for asynchronous loading
                 for (ChunkArea.OwnedChunk chunk : this.chunkArea.getAdded()) {
-                    chunk.keepLoaded(true);
+                    chunk.keepLoaded(options.mode());
                 }
 
                 // Load chunks closeby right away and guarantee they are loaded at all times
