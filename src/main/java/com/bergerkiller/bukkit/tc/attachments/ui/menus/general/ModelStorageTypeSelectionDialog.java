@@ -214,12 +214,8 @@ public abstract class ModelStorageTypeSelectionDialog extends MapWidgetMenu {
                 if (model.hasPermission(player)) {
                     try {
                         boolean isNewConfig = model.isNone();
-                        getTrainCarts().getSavedAttachmentModels().setConfig(name, attachmentConfig);
-
-                        // Add claim if configured this should happen
-                        if (isNewConfig && TCConfig.claimNewSavedModels) {
-                            model.setClaims(Collections.singleton(new SavedClaim(player)));
-                        }
+                        getTrainCarts().getSavedAttachmentModels().setConfigAsPlayer(
+                                name, attachmentConfig, player);
 
                         Localization.ATTACHMENTS_SAVE_MODEL_STORE.message(player, name);
                         close();

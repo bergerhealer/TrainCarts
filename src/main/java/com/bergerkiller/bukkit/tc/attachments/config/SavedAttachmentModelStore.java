@@ -208,6 +208,22 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
      * @throws IllegalNameException If the name is null or empty
      */
     public SavedAttachmentModel setDefaultConfigIfMissing(String name) throws IllegalNameException {
+        return setDefaultConfigIfMissing(name, null /* Don't assign claims */);
+    }
+
+    /**
+     * Sets a default attachment configuration for a saved attachment model if
+     * the model by this name does not yet exist.
+     *
+     * @param name of the saved attachment model
+     * @param editingPlayer The player that is editing the attachment model.
+     *                      If the configuration is missing, this player claims this model if
+     *                      this is enabled in TrainCarts configuration.
+     *                      Ignored if null or not a player.
+     * @return Existing or created saved attachment model
+     * @throws IllegalNameException If the name is null or empty
+     */
+    public SavedAttachmentModel setDefaultConfigIfMissing(String name, CommandSender editingPlayer) throws IllegalNameException {
         SavedAttachmentModel existing = getModel(name);
         if (existing != null) {
             return existing;
@@ -216,7 +232,19 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
         ConfigurationNode config = new ConfigurationNode();
         AttachmentTypeRegistry.instance().toConfig(config, CartAttachmentItem.TYPE);
         config.set("item", new ItemStack(getMaterial("LEGACY_WOOD")));
-        return setConfig(name, config);
+        return setConfigAsPlayer(name, config, editingPlayer);
+    }
+
+    /**
+     * Sets the configuration for a saved attachment model
+     *
+     * @param name of the saved attachment model
+     * @param config to set to, is cloned before storing
+     * @return Existing or created saved attachment model
+     * @throws IllegalNameException If the name is null or empty
+     */
+    public SavedAttachmentModel setConfig(String name, ConfigurationNode config) throws IllegalNameException {
+        return setConfigAsPlayer(name, config, null /* Don't assign claims */);
     }
 
     /**
@@ -224,20 +252,30 @@ public abstract class SavedAttachmentModelStore implements TrainCarts.Provider {
      * 
      * @param name of the saved attachment model
      * @param config to set to, is cloned before storing
+     * @param editingPlayer The player that is editing the attachment model.
+     *                      If the configuration was missing, this player claims this model if
+     *                      this is enabled in TrainCarts configuration.
+     *                      Ignored if null or not a player.
      * @return Existing or created saved attachment model
      * @throws IllegalNameException If the name is null or empty
      */
-    public SavedAttachmentModel setConfig(String name, ConfigurationNode config) throws IllegalNameException {
+    public SavedAttachmentModel setConfigAsPlayer(String name, ConfigurationNode config, CommandSender editingPlayer) throws IllegalNameException {
         // Name validation
         if (name == null || name.isEmpty()) {
             throw new IllegalNameException("Name is empty");
         }
 
         // Back up previous claims information
+        // If it's enabled in TC's config, set the editing
+        // player as the sole claim for new models.
         List<String> claims = Collections.emptyList();
         {
             ModularConfigurationEntry<SavedAttachmentModel> entry = container.getIfExists(name);
-            if (entry != null && entry.getConfig().contains("claims")) {
+            if (entry == null && editingPlayer instanceof Player && TCConfig.claimNewSavedModels) {
+                // It's a new model, assign the editing player as the sole claimant (if enabled in config)
+                claims = Collections.singletonList((new SavedClaim((Player) editingPlayer)).toString());
+            } else if (entry != null && entry.getConfig().contains("claims")) {
+                // Old model had claims, preserve them
                 claims = new ArrayList<>(entry.getConfig().getList("claims", String.class));
             }
         }

@@ -90,7 +90,8 @@ public class CartAttachmentModel extends CartAttachment {
 
                             // If model doesn't exist yet, create it. Name might be invalid, check for it.
                             try {
-                                traincarts.getSavedAttachmentModels().setConfig(model.getName(), attachmentConfig);
+                                traincarts.getSavedAttachmentModels().setConfigAsPlayer(
+                                        model.getName(), attachmentConfig, getPlayerOwner().getOnlinePlayer());
                                 modelSelector.setSelectedModel(model); // Ensure if it was missing, it updates
                             } catch (IllegalNameException e) {
                                 Localization.COMMAND_MODEL_CONFIG_INVALID_NAME.message(display.getOwners().get(0), model.getName());

@@ -99,14 +99,9 @@ public class ModelStoreCommands {
                     TrainCarts plugin = context.inject(TrainCarts.class).get();
                     try {
                         // Create new configuration
-                        savedModel = plugin.getSavedAttachmentModels().setConfig(
-                                savedModel.getName(), new ConfigurationNode());
+                        savedModel = plugin.getSavedAttachmentModels().setConfigAsPlayer(
+                                savedModel.getName(), new ConfigurationNode(), context.getSender());
                         context.set("savedmodelname", savedModel);
-
-                        // Add claim if configured this should happen
-                        if (TCConfig.claimNewSavedModels && context.getSender() instanceof Player) {
-                            savedModel.setClaims(Collections.singleton(new SavedClaim((Player) context.getSender())));
-                        }
                     } catch (IllegalNameException e) {
                         Localization.COMMAND_MODEL_CONFIG_INVALID_NAME.message(
                                 context.getSender(), savedModel.getName());
@@ -282,7 +277,8 @@ public class ModelStoreCommands {
         }
 
         try {
-            plugin.getSavedAttachmentModels().setConfig(targetSavedModelName, savedModel.getConfig().clone());
+            plugin.getSavedAttachmentModels().setConfigAsPlayer(
+                    targetSavedModelName, savedModel.getConfig().clone(), sender);
         } catch (IllegalNameException e) {
             Localization.COMMAND_MODEL_CONFIG_INVALID_NAME.message(sender, targetSavedModelName);
             return;
@@ -421,7 +417,7 @@ public class ModelStoreCommands {
 
             // Update configuration
             try {
-                plugin.getSavedAttachmentModels().setConfig(savedModel.getName(), config);
+                plugin.getSavedAttachmentModels().setConfigAsPlayer(savedModel.getName(), config, sender);
             } catch (IllegalNameException e) {
                 // Should never happen because of pre-validation, but hey!
                 Localization.COMMAND_MODEL_CONFIG_INVALID_NAME.message(sender, savedModel.getName());
@@ -450,15 +446,11 @@ public class ModelStoreCommands {
 
         // Ensure saved model is created in the store
         try {
-            plugin.getSavedAttachmentModels().setDefaultConfigIfMissing(savedModel.getName());
+            plugin.getSavedAttachmentModels().setDefaultConfigIfMissing(savedModel.getName(), player.getOnlinePlayer());
         } catch (IllegalNameException e) {
             // Should never happen because of pre-validation, but hey!
             Localization.COMMAND_MODEL_CONFIG_INVALID_NAME.message(player, savedModel.getName());
             return;
-        }
-
-        if (isNewModel && TCConfig.claimNewSavedModels) {
-            savedModel.setClaims(Collections.singleton(new SavedClaim(player.getOnlinePlayer())));
         }
 
         player.editModel(savedModel);

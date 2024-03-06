@@ -117,7 +117,7 @@ public class TrainCartsPlayer implements TrainCarts.Provider {
             return null;
         } else {
             try {
-                return traincarts.getSavedAttachmentModels().setDefaultConfigIfMissing(editedModelName);
+                return traincarts.getSavedAttachmentModels().setDefaultConfigIfMissing(editedModelName, getOnlinePlayer());
             } catch (IllegalNameException e) {
                 editedModelName = null;
                 traincarts.getLogger().log(Level.SEVERE, "Unexpected illegal name exception", e);

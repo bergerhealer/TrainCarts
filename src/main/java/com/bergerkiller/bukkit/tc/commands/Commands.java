@@ -601,7 +601,8 @@ public class Commands {
                 continue;
             }
             try {
-                plugin.getSavedAttachmentModels().setConfig(key, usedModels.getNode(key));
+                plugin.getSavedAttachmentModels().setConfigAsPlayer(
+                        key, usedModels.getNode(key), sender);
                 imported.add(key);
             } catch (IllegalNameException e) {
                 Localization.COMMAND_MODEL_CONFIG_INVALID_NAME.message(sender, key);
