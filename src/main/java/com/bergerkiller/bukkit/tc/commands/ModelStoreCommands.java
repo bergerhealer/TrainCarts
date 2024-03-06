@@ -457,6 +457,10 @@ public class ModelStoreCommands {
             return;
         }
 
+        if (isNewModel && TCConfig.claimNewSavedModels) {
+            savedModel.setClaims(Collections.singleton(new SavedClaim(player.getOnlinePlayer())));
+        }
+
         player.editModel(savedModel);
         if (isNewModel) {
             Localization.COMMAND_MODEL_CONFIG_EDIT_NEW.message(player, savedModel.getName());
