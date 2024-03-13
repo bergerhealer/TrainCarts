@@ -51,6 +51,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
@@ -220,27 +221,40 @@ public class TCListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onVehicleDamage(VehicleDamageEvent event) {
-        MinecartMember<?> mm = MinecartMemberStore.getFromEntity(event.getVehicle());
-        if (mm == null) {
-            return;
+    public void onVehicleDamageByEntity(EntityDamageByEntityEvent event) {
+        if (isCartDamageCancelled(event.getEntity(), event.getDamager())) {
+            event.setCancelled(true);
         }
-        Entity attacker = event.getAttacker();
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onVehicleDamage(VehicleDamageEvent event) {
+        if (isCartDamageCancelled(event.getVehicle(), event.getAttacker())) {
+            event.setCancelled(true);
+        }
+    }
+
+    private boolean isCartDamageCancelled(Entity vehicle, Entity attacker) {
+        MinecartMember<?> mm = MinecartMemberStore.getFromEntity(vehicle);
+        if (mm == null) {
+            return false;
+        }
         if (attacker instanceof Projectile) {
             attacker = (Entity) ((Projectile) attacker).getShooter();
         }
 
         boolean breakAny = ((attacker instanceof Player) && Permission.BREAK_MINECART_ANY.has((Player) attacker));
         if (mm.getProperties().isInvincible() && !breakAny) {
-            event.setCancelled(true);
-            return;
+            return true;
         }
         if (attacker instanceof Player) {
             Player p = (Player) attacker;
             if (!breakAny && (!mm.getProperties().hasOwnership(p) || !Permission.BREAK_MINECART_SELF.has(p))) {
-                event.setCancelled(true);
+                return true;
             }
         }
+
+        return false;
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
