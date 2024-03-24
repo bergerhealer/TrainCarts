@@ -349,10 +349,13 @@ final class WorldRailLookupImpl implements WorldRailLookup {
 
         BlockData signblock_data = WorldUtil.getBlockData(signblock);
         final Block mainBlock;
+        final boolean isSignPost;
         if (signblock_data.isType(WALL_SIGN_TYPE)) {
             mainBlock = signblock.getRelative(signblock_data.getAttachedFace());
+            isSignPost = false;
         } else if (signblock_data.isType(SIGN_POST_TYPE)) {
-            mainBlock = signblock;
+            mainBlock = signblock.getRelative(signblock_data.getAttachedFace());
+            isSignPost = true;
         } else {
             return RailPiece.NONE;
         }
@@ -366,6 +369,14 @@ final class WorldRailLookupImpl implements WorldRailLookup {
         // Look further in all 6 possible directions
         for (BlockFace dir : SIGN_FACES_ORDERED) {
             Block block = mainBlock;
+
+            // In case of sign post, start looking upwards from the sign itself
+            // This is because it encounters the sign before the main block, so trains
+            // can see one extra block vertically downwards.
+            if (isSignPost && dir == BlockFace.DOWN) {
+                block = signblock;
+            }
+
             BlockData blockData;
             boolean hasSigns = true;
             while (true) {

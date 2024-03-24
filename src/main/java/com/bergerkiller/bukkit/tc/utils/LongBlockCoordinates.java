@@ -166,8 +166,8 @@ public class LongBlockCoordinates {
 
     /**
      * Finds the BlockFace offset to translate from one long block coordinate to another.
-     * The two coordinates must be neighbouring or the same value, otherwise an exception
-     * is thrown.
+     * The two coordinates must be neighbouring or the same value, otherwise <i>null</i>
+     * is returned.
      *
      * @param from Long block coordinates
      * @param to Long block coordinates

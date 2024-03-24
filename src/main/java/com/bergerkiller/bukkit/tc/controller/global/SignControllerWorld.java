@@ -190,7 +190,7 @@ public class SignControllerWorld {
         while (true) {
             boolean foundSigns = false;
             for (SignController.Entry entry : this.findNearby(key)) {
-                if (verifySignColumnSlice(key, direction, entry)) {
+                if (verifySignColumnSlice(key, direction, steps == 0, entry)) {
                     foundSigns = true;
                     handler.accept(entry.sign);
                 }
@@ -235,7 +235,7 @@ public class SignControllerWorld {
 
         long key = LongBlockCoordinates.map(block.getX(), block.getY(), block.getZ());
         for (SignController.Entry entry : this.findNearby(key)) {
-            if (verifySignColumnSlice(key, direction, entry)) {
+            if (verifySignColumnSlice(key, direction, true, entry)) {
                 return true;
             }
         }
@@ -333,13 +333,15 @@ public class SignControllerWorld {
      *
      * @param key Block coordinate key
      * @param direction Sign column direction
+     * @param firstLayer Whether this is the first layer being checked. Includes special logic
+     *                   to allow sign posts to function without duplicate activation.
      * @param entry Current sign entry
      * @return True if the sign is a part of the column slice, False if not
      */
-    private boolean verifySignColumnSlice(long key, BlockFace direction, SignController.Entry entry) {
+    private boolean verifySignColumnSlice(long key, BlockFace direction, boolean firstLayer, SignController.Entry entry) {
         // Find relative direction the sign is at
         BlockFace offset = LongBlockCoordinates.findDirection(entry.blockKey, key);
-        if (offset == null || offset == direction || offset == direction.getOppositeFace()) {
+        if (offset == null) {
             return false;
         }
 
@@ -349,23 +351,39 @@ public class SignControllerWorld {
             return false;
         }
 
-        // Retrieve BlockData. Check attached face is correct, or that it is a sign post with SELF
+        // Retrieve BlockData. Check sign is part of the column of signs being checked.
         BlockData blockData = entry.sign.getBlockData();
         if (blockData.isType(SIGN_POST_TYPE)) {
-            if (offset != BlockFace.SELF)
-                return false;
+            // When checking downwards, it normally would encounter the sign post before encountering
+            // the block it is attached to. This is legacy behavior that must stay functioning.
+            // For this reason, we 'trigger' this sign when we encounter it, rather than when encountering
+            // the block it is attached to.
+            //
+            // However, if we start checking (first layer) we have not yet encountered sign posts above the
+            // rail block. So still allow those to be activated the traditional way.
+            if (direction == BlockFace.DOWN) {
+                return (offset == BlockFace.SELF) ||
+                       (firstLayer && offset == BlockFace.DOWN);
+            }
+
+            // When going up or sideways, activate sign posts when they stand on top of the block currently being checked
+            // For the first layer, also allow the sign post put at the current rail block to be activated
+            return (offset == BlockFace.DOWN) ||
+                   (firstLayer && offset == BlockFace.SELF);
         } else if (blockData.isType(WALL_SIGN_TYPE)) {
-            BlockFace facing = blockData.getAttachedFace();
-            if (facing != offset && facing != direction.getOppositeFace())
+            // Skip if positioned in the path we are checking
+            if (offset == direction || offset == direction.getOppositeFace()) {
                 return false;
+            }
+
+            BlockFace facing = blockData.getAttachedFace();
+            return facing == offset || facing == direction.getOppositeFace();
         } else {
             // Doesn't map to either legacy wall or sign post type
             // Assume it's not a sign at all and remove it
             this.removeInvalidEntry(entry);
             return false;
         }
-
-        return true;
     }
 
     /**
