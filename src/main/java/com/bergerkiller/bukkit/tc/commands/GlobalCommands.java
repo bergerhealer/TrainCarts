@@ -39,7 +39,6 @@ import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathWorld;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.statements.Statement;
-import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
 
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
@@ -51,6 +50,7 @@ import cloud.commandframework.annotations.specifier.Greedy;
 import cloud.commandframework.annotations.specifier.Quoted;
 import cloud.commandframework.annotations.specifier.Range;
 
+import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Effect;
@@ -308,20 +308,23 @@ public class GlobalCommands {
             final @Flag(value="routes", description="Reload routes.yml") boolean routes,
             final @Flag(value="defaulttrainproperties", description="Reload DefaultTrainProperties.yml") boolean defaultTrainproperties,
             final @Flag(value="savedtrainproperties", description="Reload SavedTrainProperties.yml and modules") boolean savedTrainproperties,
-            final @Flag(value="modelstore", description="Reload SavedModels.yml and modules") boolean modelStore
+            final @Flag(value="modelstore", description="Reload SavedModels.yml and modules") boolean modelStore,
+            final @Flag(value="tickets", description="Reload tickets.yml") boolean tickets
     ) {
         if (!config &&
             !routes &&
             !defaultTrainproperties &&
             !savedTrainproperties &&
-            !modelStore
+            !modelStore &&
+            !tickets
         ) {
-            sender.sendMessage(ChatColor.RED + "Please specify one or more configuration file to reload:");
+            sender.sendMessage(ChatColor.RED + "Please specify one or more configuration files to reload:");
             sender.sendMessage(ChatColor.RED + "/train globalconfig reload --config");
             sender.sendMessage(ChatColor.RED + "/train globalconfig reload --routes");
             sender.sendMessage(ChatColor.RED + "/train globalconfig reload --defaulttrainproperties");
             sender.sendMessage(ChatColor.RED + "/train globalconfig reload --savedtrainproperties");
             sender.sendMessage(ChatColor.RED + "/train globalconfig reload --modelstore");
+            sender.sendMessage(ChatColor.RED + "/train globalconfig reload --tickets");
             return;
         }
 
@@ -339,6 +342,9 @@ public class GlobalCommands {
         }
         if (modelStore) {
             traincarts.getSavedAttachmentModels().reload();
+        }
+        if (tickets) {
+            TicketStore.load(traincarts);
         }
         sender.sendMessage(ChatColor.YELLOW + "Configuration has been reloaded!");
     }
