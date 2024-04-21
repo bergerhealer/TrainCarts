@@ -17,6 +17,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Handles the loading and (periodic) saving of the offline group mapping.
@@ -25,6 +27,13 @@ class OfflineGroupFileHandler {
     private final OfflineGroupManager manager;
     private final File dataFile;
     private CompletableFuture<Void> currentSaveOperation = CompletableFuture.completedFuture(null);
+    private Thread currentSaveRunningThread = null;
+
+    static {
+        // Force initialization. Avoids a thread deadlock due to getPlugin() not working async in onDisable.
+        CommonUtil.loadClass(TempFileOutputStream.class);
+        CommonUtil.loadClass(OfflineGroupFileFormatModern.class);
+    }
 
     public OfflineGroupFileHandler(OfflineGroupManager manager) {
         this.manager = manager;
@@ -77,15 +86,20 @@ class OfflineGroupFileHandler {
         // Then in an asynchronous task write all data to disk. Use a TempFileOutputStream
         // so an interrupted write won't corrupt the file.
         currentSaveOperation = CommonUtil.runCheckedAsync(() -> {
-            try (TempFileOutputStream fileStream = new TempFileOutputStream(dataFile);
-                 DataOutputStream stream = new DataOutputStream(fileStream)
-            ) {
-                try {
-                    OfflineGroupFileFormatModern.writeAll(stream, data);
-                } catch (Throwable t) {
-                    fileStream.close(false);
-                    throw t;
+            try {
+                currentSaveRunningThread = Thread.currentThread();
+                try (TempFileOutputStream fileStream = new TempFileOutputStream(dataFile);
+                     DataOutputStream stream = new DataOutputStream(fileStream)
+                ) {
+                    try {
+                        OfflineGroupFileFormatModern.writeAll(stream, data);
+                    } catch (Throwable t) {
+                        fileStream.close(false);
+                        throw t;
+                    }
                 }
+            } finally {
+                currentSaveRunningThread = null;
             }
         }, runnable -> {
             AsyncTask task = new AsyncTask("TrainCarts-OfflineGroupSaver") {
@@ -111,6 +125,11 @@ class OfflineGroupFileHandler {
             currentSaveOperation.get(30, TimeUnit.SECONDS);
         } catch (TimeoutException ex) {
             manager.getTrainCarts().log(Level.SEVERE, "Failed to save group data on plugin shutdown: save timed out");
+            Thread t = currentSaveRunningThread;
+            if (t != null) {
+                manager.getTrainCarts().log(Level.SEVERE, "Thread Stack:\n  at " +
+                        Stream.of(t.getStackTrace()).map(Object::toString).collect(Collectors.joining("\n  at ")));
+            }
             return false;
         } catch (Throwable t) { /* already logged */ }
 

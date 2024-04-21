@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.offline.train;
 
 import com.bergerkiller.bukkit.common.offline.OfflineWorld;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
 
@@ -16,6 +17,20 @@ import java.util.UUID;
  * Modern group data format, which stored a flexible amount of data using the OfflineDataBlock format
  */
 public class OfflineGroupFileFormatModern {
+
+    static {
+        // Forward-initialize all classes that this class uses when reading and writing
+        // This avoids a thread deadlock due to the class loader trying to call getPlugin()
+        bootstrap(DataInputStream.class, DataOutputStream.class, Data.class,
+                OfflineWorld.class, StreamUtil.class, OfflineDataBlock.class,
+                IOException.class, ArrayList.class, Collections.class, List.class, UUID.class);
+    }
+
+    private static void bootstrap(Class<?>... classNames) {
+        for (Class<?> clazz : classNames) {
+            CommonUtil.loadClass(clazz);
+        }
+    }
 
     public static void writeAll(DataOutputStream stream, Data data) throws IOException {
         // Write data that, if a legacy format reader would read it, would read nothing
