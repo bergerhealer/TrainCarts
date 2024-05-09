@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.events.ChunkLoadEntitiesEvent;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveFromServerEvent;
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
@@ -294,7 +295,9 @@ public class TCListener implements Listener {
         // Map control: select the clicked block
         if (TCMapControl.isTCMapItem(event.getItem())) {
             if (event.getClickedBlock() != null) {
-                ItemUtil.getMetaTag(event.getItem()).putBlockLocation("selected", new BlockLocation(event.getClickedBlock()));
+                CommonItemStack.of(event.getItem()).updateCustomData(tag -> {
+                    tag.putBlockLocation("selected", new BlockLocation(event.getClickedBlock()));
+                });
             }
 
             TCMapControl.updateMapItem(event.getPlayer(), true);

@@ -18,7 +18,6 @@ import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.MapSessionMode;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.Util;
 
@@ -57,7 +56,7 @@ public class TCMapEditor extends MapDisplay {
 
         this.texture = new RailsTexture();
         List<Block> signBlocks = new ArrayList<Block>();
-        BlockLocation searchLocation = ItemUtil.getMetaTag(this.getMapItem()).getBlockLocation("selected");
+        BlockLocation searchLocation = this.getCommonMapItem().getCustomData().getBlockLocation("selected");
         if (searchLocation != null) {
             Block searchBlock = searchLocation.getBlock();
             this.railsBlock = searchBlock;

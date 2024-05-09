@@ -3,11 +3,11 @@ package com.bergerkiller.bukkit.tc.debug.types;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -47,7 +47,7 @@ public class DebugToolTypeRails extends DebugToolTrackWalkerType {
     }
 
     @Override
-    public void onBlockInteract(TrainCarts plugin, Player player, TrackWalkingPoint walker, ItemStack item, boolean isRightClick) {
+    public void onBlockInteract(TrainCarts plugin, Player player, TrackWalkingPoint walker, CommonItemStack item, boolean isRightClick) {
         player.sendMessage(ChatColor.YELLOW + "Checking for rails from path [" +
                 MathUtil.round(walker.state.position().posX, 3) + "/" +
                 MathUtil.round(walker.state.position().posY, 3) + "/" +

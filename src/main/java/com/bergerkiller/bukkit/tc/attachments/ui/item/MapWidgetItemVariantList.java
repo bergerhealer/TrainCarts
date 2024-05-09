@@ -4,7 +4,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
+import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetTooltip;
 import com.bergerkiller.bukkit.tc.attachments.ui.models.ResourcePackModelListing;
 import com.bergerkiller.bukkit.tc.attachments.ui.models.listing.ListedItemModel;
@@ -21,7 +24,6 @@ import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
-import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
@@ -40,15 +42,15 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
     private final MapWidgetArrow nav_right = new MapWidgetArrow(BlockFace.EAST);
     private final MapWidgetTooltip below_tooltip = new MapWidgetTooltip();
     private final MapTexture background;
-    private List<ItemStack> variants;
-    private Map<ItemStack, MapTexture> iconCache = new HashMap<ItemStack, MapTexture>();
+    private List<CommonItemStack> variants;
+    private Map<CommonItemStack, MapTexture> iconCache = new HashMap<>();
     private int variantIndex = 0;
 
     public MapWidgetItemVariantList() {
         this.background = MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/item_selector_bg.png");
         this.setSize(100, 18);
         this.setFocusable(true);
-        this.variants = new ArrayList<ItemStack>(0);
+        this.variants = new ArrayList<CommonItemStack>(0);
 
         this.nav_left.setPosition(0, 4);
         this.nav_right.setPosition(this.getWidth() - nav_right.getWidth(), 4);
@@ -62,17 +64,21 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
         this.itemChangedListeners.add(this);
     }
 
-    public ItemStack getItem() {
+    public CommonItemStack getItem() {
         if (this.variantIndex >= 0 && this.variantIndex < this.variants.size()) {
             return this.variants.get(this.variantIndex);
         } else {
-            return null;
+            return CommonItemStack.empty();
         }
     }
 
     public void setItem(ItemStack item) {
-        if (item == null) {
-            this.variants = new ArrayList<ItemStack>(0);
+        setItem(CommonItemStack.of(item));
+    }
+
+    public void setItem(CommonItemStack item) {
+        if (item.isEmpty()) {
+            this.variants = new ArrayList<CommonItemStack>(0);
             this.variantIndex = 0;
             this.invalidate();
             this.fireItemChangeEvent();
@@ -85,12 +91,12 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
         // Find the item in the variants to deduce the currently selected index
         this.variantIndex = 0;
         for (int i = 0; i < this.variants.size(); i++) {
-            ItemStack variant = this.variants.get(i);
-            if (variant.isSimilar(item)) {
+            CommonItemStack variant = this.variants.get(i);
+            if (variant.equalsIgnoreAmount(item)) {
                 this.variantIndex = i;
                 break; // Final!
             }
-            if (variant.getDurability() == item.getDurability()) {
+            if (item.isDamageSupported() && variant.getDamage() == item.getDamage()) {
                 this.variantIndex = i;
             }
         }
@@ -99,63 +105,56 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
         this.fireItemChangeEvent();
     }
 
-    private void loadVariants(ItemStack item) {
+    private void loadVariants(CommonItemStack item) {
         // If item is part of traincarts model listing, make a variant list of item models
         ResourcePackModelListing models = TrainCarts.plugin.getModelListing();
-        if (models.isBareItem(item)) {
+        if (models.isBareItem(item.toBukkit())) {
             this.variants = new ArrayList<>(models.root().bareItemStacks().keySet());
             return;
         }
 
         // If it used durability, make a listing of all durabilities of this item
-        int maxDurability = ItemUtil.getMaxDurability(item);
-        if (maxDurability > 0) {
+        if (item.isDamageSupported()) {
             // Uses durability
-            this.variants = new ArrayList<ItemStack>(maxDurability);
-            for (int i = 0; i <= maxDurability; i++) {
-                ItemStack tmp = ItemUtil.createItem(item.clone());
-                tmp.setDurability((short) i);
-                this.variants.add(tmp);
+            int maxDamage = item.getMaxDamage();
+            this.variants = new ArrayList<CommonItemStack>(maxDamage + 1);
+            for (int i = 0; i <= maxDamage; i++) {
+                this.variants.add(item.clone().setDamage(i));
             }
             return;
         }
 
         // Find variants using internal lookup (creative menu)
-        this.variants = ItemUtil.getItemVariants(item.getType());
-
-        // Guarantee CraftItemStack
-        for (int i = 0; i < this.variants.size(); i++) {
-            this.variants.set(i, ItemUtil.createItem(this.variants.get(i)));
-        }
+        this.variants = ItemUtil.getItemVariants(item.getType()).stream()
+                .map(CommonItemStack::of)
+                .map(CommonItemStack::clone)
+                .collect(Collectors.toList());
 
         if (this.variants.size() == 1) {
-            // Preverve all properties if there is only one variant
-            variants.get(0).setItemMeta(item.getItemMeta());
+            // Preserve all properties if there is only one variant
+            variants.get(0).toBukkit().setItemMeta(item.toBukkit().getItemMeta());
         } else {
             // Preserve some of the extra properties of the input item
-            for (ItemStack variant : this.variants) {
-                for (Map.Entry<Enchantment, Integer> enchantment : item.getEnchantments().entrySet()) {
+            for (CommonItemStack variant : this.variants) {
+                for (Map.Entry<Enchantment, Integer> enchantment : item.toBukkit().getEnchantments().entrySet()) {
                     variant.addEnchantment(enchantment.getKey(), enchantment.getValue().intValue());
                 }
             }
-            if (item.getItemMeta().hasDisplayName()) {
-                String name = item.getItemMeta().getDisplayName();
-                for (ItemStack variant : this.variants) {
-                    ItemUtil.setDisplayName(variant, name);
+            if (item.hasCustomName()) {
+                ChatText customName = item.getCustomName();
+                for (CommonItemStack variant : this.variants) {
+                    variant.setCustomName(customName);
                 }
             }
-            CommonTagCompound tag = ItemUtil.getMetaTag(item);
-            if (tag != null && tag.containsKey("Unbreakable") && tag.getValue("Unbreakable", false)) {
-                for (ItemStack variant : this.variants) {
-                    ItemUtil.getMetaTag(variant, true).putValue("Unbreakable", true);
+            if (item.isUnbreakable()) {
+                for (CommonItemStack variant : this.variants) {
+                    variant.setUnbreakable(true);
                 }
             }
-            if (tag != null && tag.containsKey("CustomModelData")) {
-                int customModelData = tag.getValue("CustomModelData", 0);
-                if (customModelData > 0) {
-                    for (ItemStack variant : this.variants) {
-                        ItemUtil.getMetaTag(variant, true).putValue("CustomModelData", customModelData);
-                    }
+            if (item.hasCustomModelData()) {
+                int customModelData = item.getCustomModelData();
+                for (CommonItemStack variant : this.variants) {
+                    variant.setCustomModelData(customModelData);
                 }
             }
         }
@@ -190,7 +189,7 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
             if (newItemMaterial == null) {
                 return false;
             }
-            ItemStack newItem = ItemUtil.createItem(newItemMaterial, 1);
+            CommonItemStack newItem = CommonItemStack.create(newItemMaterial, 1);
 
             // Item durability
             nameEnd = 0;
@@ -201,14 +200,14 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
                     nameEnd++;
                 }
             }
-            String durabilityValueStr = value.substring(0, nameEnd).trim();
-            if (!durabilityValueStr.isEmpty() && ParseUtil.isNumeric(durabilityValueStr)) {
+            String damageValueStr = value.substring(0, nameEnd).trim();
+            if (!damageValueStr.isEmpty() && newItem.isDamageSupported() && ParseUtil.isNumeric(damageValueStr)) {
                 try {
-                    int durability = Integer.parseInt(durabilityValueStr);
-                    if (durability < 0 || durability > ItemUtil.getMaxDurability(newItem)) {
+                    int damage = Integer.parseInt(damageValueStr);
+                    if (damage < 0 || damage > newItem.getMaxDamage()) {
                         return false;
                     }
-                    newItem.setDurability((short) durability);
+                    newItem.setDamage(damage);
                 } catch (NumberFormatException ex) {
                     return false;
                 }
@@ -226,13 +225,14 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
         }
 
         // Find NBT in Mojangson format
+        // TODO: Fix, doesn't work anymore now that components are used
+        /*
         int nbtStart = value.indexOf('{');
         if (nbtStart != -1) {
             CommonTagCompound nbt = CommonTagCompound.fromMojangson(value.substring(nbtStart));
             if (nbt == null) {
                 return false;
             }
-
             ItemStack newItem = ItemUtil.createItem(this.getItem());
             short oldDurability = newItem.getDurability();
             ItemUtil.setMetaTag(newItem, nbt);
@@ -241,6 +241,7 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
             }
             this.setItem(newItem);
         }
+        */
 
         return true;
     }
@@ -273,11 +274,11 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
         for (int index = this.variantIndex - 2; index <= this.variantIndex + 2; index++) {
             // Check index valid
             if (index >= 0 && index < this.variants.size()) {
-                ItemStack item = this.variants.get(index);
+                CommonItemStack item = this.variants.get(index);
                 MapTexture icon = this.iconCache.get(item);
                 if (icon == null) {
                     icon = MapTexture.createEmpty(16, 16);
-                    icon.fillItem(TCConfig.resourcePack, item);
+                    icon.fillItem(TCConfig.resourcePack, item.toBukkit());
                     this.iconCache.put(item, icon);
                 }
                 itemView.draw(icon, x, y);
@@ -287,10 +288,10 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
 
         // If variants are based on durability, show durability value
         if (this.variantIndex >= 0 && this.variantIndex < this.variants.size()) {
-            ItemStack item = this.variants.get(this.variantIndex);
-            if (ItemUtil.getMaxDurability(item) > 0) {
+            CommonItemStack item = this.variants.get(this.variantIndex);
+            if (item.isDamageSupported()) {
                 itemView.setAlignment(MapFont.Alignment.MIDDLE);
-                itemView.draw(MapFont.TINY, 44, 12, MapColorPalette.COLOR_RED, Short.toString(item.getDurability()));
+                itemView.draw(MapFont.TINY, 44, 12, MapColorPalette.COLOR_RED, Integer.toString(item.getDamage()));
             }
         }
     }
@@ -351,11 +352,11 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
     }
 
     private void fireItemChangeEvent() {
-        ItemStack item = this.getItem();
+        CommonItemStack item = this.getItem();
 
         // Update tooltip
         {
-            ListedItemModel itemMeta = TrainCarts.plugin.getModelListing().getBareItemModel(item);
+            ListedItemModel itemMeta = TrainCarts.plugin.getModelListing().getBareItemModel(item.toBukkit());
             if (itemMeta != null) {
                 below_tooltip.setText(itemMeta.name());
                 below_tooltip.setVisible(true);
@@ -370,5 +371,6 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
         }
     }
 
-    public void onItemChanged(ItemStack item) {}
+    @Override
+    public void onItemChanged(CommonItemStack item) {}
 }

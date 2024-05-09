@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.ui.models.listing;
 
 import java.util.concurrent.CompletableFuture;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -274,14 +275,14 @@ public final class DialogBuilder implements Cloneable {
     }
 
     private static ItemStack createDefaultNamespaceItem() {
-        ItemStack item = ItemUtil.createItem(MaterialUtil.getFirst("NAME_TAG", "LEGACY_NAME_TAG"), 1);
-        ListedRootLoader.hideItemAttributes(item);
-        return item;
+        return CommonItemStack.create(MaterialUtil.getFirst("NAME_TAG", "LEGACY_NAME_TAG"), 1)
+                .hideAllAttributes()
+                .toBukkit();
     }
 
     private static ItemStack createDefaultDirectoryItem() {
-        ItemStack item = ItemUtil.createItem(MaterialUtil.getFirst("CHEST", "LEGACY_CHEST"), 1);
-        ListedRootLoader.hideItemAttributes(item);
-        return item;
+        return CommonItemStack.create(MaterialUtil.getFirst("CHEST", "LEGACY_CHEST"), 1)
+                .hideAllAttributes()
+                .toBukkit();
     }
 }

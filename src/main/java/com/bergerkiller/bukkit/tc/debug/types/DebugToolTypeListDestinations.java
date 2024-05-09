@@ -5,12 +5,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
@@ -109,7 +109,7 @@ public class DebugToolTypeListDestinations extends DebugToolTrackWalkerType {
      * @param isRightClick Whether this is a right-click interaction
      */
     @Override
-    public void onBlockInteract(TrainCarts trainCarts, Player player, TrackWalkingPoint walker, ItemStack item, boolean isRightClick) {
+    public void onBlockInteract(TrainCarts trainCarts, Player player, TrackWalkingPoint walker, CommonItemStack item, boolean isRightClick) {
         // TODO Auto-generated method stub
         PathProvider provider = trainCarts.getPathProvider();
         Block old_railBlock = null;

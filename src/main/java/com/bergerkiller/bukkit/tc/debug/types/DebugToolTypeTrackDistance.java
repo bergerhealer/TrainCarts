@@ -3,14 +3,13 @@ package com.bergerkiller.bukkit.tc.debug.types;
 import java.text.NumberFormat;
 import java.util.Locale;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
@@ -48,9 +47,9 @@ public class DebugToolTypeTrackDistance extends DebugToolTrackWalkerType {
     }
 
     @Override
-    public void onBlockInteract(TrainCarts plugin, Player player, TrackWalkingPoint walker, ItemStack item, boolean isRightClick) {
+    public void onBlockInteract(TrainCarts plugin, Player player, TrackWalkingPoint walker, CommonItemStack item, boolean isRightClick) {
         // Update pos1/pos2 in the item's metadata
-        item = ItemUtil.cloneItem(item);
+        item = item.clone();
         RailState start, goal;
         if (isRightClick) {
             saveRailState(item, "pos2", walker.state);
@@ -135,21 +134,23 @@ public class DebugToolTypeTrackDistance extends DebugToolTrackWalkerType {
         }
     }
 
-    private static void saveRailState(ItemStack item, String prefix, RailState state) {
+    private static void saveRailState(CommonItemStack item, String prefix, RailState state) {
         state.position().assertAbsolute();
 
-        CommonTagCompound meta = ItemUtil.getMetaTag(item, false).createCompound(prefix);
-        meta.putValue("world", state.railWorld().getName());
-        meta.putValue("posX", state.position().posX);
-        meta.putValue("posY", state.position().posY);
-        meta.putValue("posZ", state.position().posZ);
-        meta.putValue("motX", state.position().motX);
-        meta.putValue("motY", state.position().motY);
-        meta.putValue("motZ", state.position().motZ);
+        item.updateCustomData(tag -> {
+            CommonTagCompound meta = tag.createCompound(prefix);
+            meta.putValue("world", state.railWorld().getName());
+            meta.putValue("posX", state.position().posX);
+            meta.putValue("posY", state.position().posY);
+            meta.putValue("posZ", state.position().posZ);
+            meta.putValue("motX", state.position().motX);
+            meta.putValue("motY", state.position().motY);
+            meta.putValue("motZ", state.position().motZ);
+        });
     }
 
-    private static RailState loadRailState(Player player, ItemStack item, String prefix) {
-        CommonTagCompound meta = ItemUtil.getMetaTag(item, false).get(prefix, CommonTagCompound.class);
+    private static RailState loadRailState(Player player, CommonItemStack item, String prefix) {
+        CommonTagCompound meta = item.getCustomData().get(prefix, CommonTagCompound.class);
         if (meta == null) {
             return null;
         }

@@ -9,6 +9,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.utils.StringUtil;
@@ -36,7 +37,7 @@ public abstract class ListedEntry implements Comparable<ListedEntry> {
      * @param options Dialog Options
      * @return Icon to display
      */
-    public abstract ItemStack createIconItem(DialogBuilder options);
+    public abstract CommonItemStack createIconItem(DialogBuilder options);
 
     /**
      * Gets the name of this entry. The entry is sorted alphabetically based

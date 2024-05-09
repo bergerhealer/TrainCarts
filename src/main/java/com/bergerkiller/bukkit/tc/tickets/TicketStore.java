@@ -1,13 +1,12 @@
 package com.bergerkiller.bukkit.tc.tickets;
 
-import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getFirst;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.UUID;
 
-import org.bukkit.Material;
+import com.bergerkiller.bukkit.common.inventory.CommonItemMaterials;
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -15,7 +14,6 @@ import org.bukkit.inventory.PlayerInventory;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.Localization;
@@ -24,7 +22,6 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
 public class TicketStore {
-    private static final Material FILLED_MAP_TYPE = getFirst("FILLED_MAP", "LEGACY_MAP");
     public static final Ticket DEFAULT = new Ticket("");
     private static final String saveFileName = "tickets.yml";
     private static boolean hasChanges = false;
@@ -182,26 +179,45 @@ public class TicketStore {
      * @return True if the item is a ticket item
      */
     public static boolean isTicketItem(ItemStack item) {
-        if (item == null || item.getType() != FILLED_MAP_TYPE) {
+        return isTicketItem(CommonItemStack.of(item));
+    }
+
+    /**
+     * Gets whether a given item is a ticket item. This will return true also when the ticket
+     * the item is referencing does not exist.
+     *
+     * @param item to check. CommonItemStack, must not be null.
+     * @return True if the item is a ticket item
+     */
+    public static boolean isTicketItem(CommonItemStack item) {
+        if (!item.isType(CommonItemMaterials.FILLED_MAP)) {
             return false;
         }
-        CommonTagCompound tag = ItemUtil.getMetaTag(item, false);
-        if (tag == null) {
-            return false;
-        }
+        CommonTagCompound tag = item.getCustomData();
         return tag.containsKey("ticketName") && tag.getValue("plugin", "").equals("TrainCarts");
     }
 
     /**
      * Gets a ticket from a ticket item. Returns null if the item is not a ticket item, or if the item
      * references a non-existing ticket.
-     * 
+     *
      * @param item to get the ticket for
      * @return ticket for the item, null if item is not an existing ticket
      */
     public static Ticket getTicketFromItem(ItemStack item) {
+        return getTicketFromItem(CommonItemStack.of(item));
+    }
+
+    /**
+     * Gets a ticket from a ticket item. Returns null if the item is not a ticket item, or if the item
+     * references a non-existing ticket.
+     * 
+     * @param item to get the ticket for. CommonItemStack, must not be null.
+     * @return ticket for the item, null if item is not an existing ticket
+     */
+    public static Ticket getTicketFromItem(CommonItemStack item) {
         if (isTicketItem(item)) {
-            return ticketMap.get(ItemUtil.getMetaTag(item, false).getValue("ticketName", ""));
+            return ticketMap.get(item.getCustomData().getValue("ticketName", ""));
         } else {
             return null;
         }
@@ -209,27 +225,46 @@ public class TicketStore {
 
     /**
      * Gets the number of times a ticket has been used
-     * 
+     *
      * @param item to read from
      * @return number of times the ticket has been used
      */
     public static int getNumberOfUses(ItemStack item) {
-        CommonTagCompound tag = ItemUtil.getMetaTag(item, false);
-        return (tag == null) ? 0 : tag.getValue("ticketNumberOfUses", 0);
+        return getNumberOfUses(CommonItemStack.of(item));
+    }
+
+    /**
+     * Gets the number of times a ticket has been used
+     * 
+     * @param item to read from. CommonItemStack, must not be null.
+     * @return number of times the ticket has been used
+     */
+    public static int getNumberOfUses(CommonItemStack item) {
+        return item.getCustomData().getValue("ticketNumberOfUses", 0);
+    }
+
+    /**
+     * Checks whether a ticket item has expired either the number of uses, and/or by time.
+     *
+     * @param item to check
+     * @return True if the ticket item is expired
+     */
+    public static boolean isTicketExpired(ItemStack item) {
+        return isTicketExpired(CommonItemStack.of(item));
     }
 
     /**
      * Checks whether a ticket item has expired either the number of uses, and/or by time.
      * 
-     * @param item to check
+     * @param item to check. CommonItemStack, must not be null.
      * @return True if the ticket item is expired
      */
-    public static boolean isTicketExpired(ItemStack item) {
+    public static boolean isTicketExpired(CommonItemStack item) {
         Ticket ticket = getTicketFromItem(item);
         if (ticket == null) {
             return true;
         } else {
-            CommonTagCompound tag = ItemUtil.getMetaTag(item, false);
+            CommonTagCompound tag = item.getCustomData();
             if (ticket.getMaxNumberOfUses() >= 0) {
                 int numberOfUses = tag.getValue("ticketNumberOfUses", 0);
                 if (numberOfUses >= ticket.getMaxNumberOfUses()) {
@@ -250,17 +285,29 @@ public class TicketStore {
     /**
      * Checks whether a ticket item can be used by a player. Returns false when the player is not the owner
      * of the ticket. Returns true when he is, or when the ticket is not bound to a player.
-     * 
+     *
      * @param player to check
      * @param item to check
      * @return True if the player owns the ticket item and can use it
      */
     public static boolean isTicketOwner(Player player, ItemStack item) {
+        return isTicketOwner(player, CommonItemStack.of(item));
+    }
+
+    /**
+     * Checks whether a ticket item can be used by a player. Returns false when the player is not the owner
+     * of the ticket. Returns true when he is, or when the ticket is not bound to a player.
+     * 
+     * @param player to check
+     * @param item to check. CommonItemStack, must not be null.
+     * @return True if the player owns the ticket item and can use it
+     */
+    public static boolean isTicketOwner(Player player, CommonItemStack item) {
         Ticket ticket = getTicketFromItem(item);
         if (ticket == null || !ticket.isPlayerBound()) {
             return true;
         } else {
-            CommonTagCompound tag = ItemUtil.getMetaTag(item, false);
+            CommonTagCompound tag = item.getCustomData();
             UUID ownerUUID = tag.getUUID("ticketOwner");
             if (ownerUUID == null) {
                 return true;
@@ -286,22 +333,22 @@ public class TicketStore {
         }
 
         // First check both player's hands for tickets. These have priority!
-        ItemStack mainHand = HumanHand.getItemInMainHand(player);
-        ItemStack offHand = HumanHand.getItemInOffHand(player);
+        CommonItemStack mainHand = CommonItemStack.of(HumanHand.getItemInMainHand(player));
+        CommonItemStack offHand = CommonItemStack.of(HumanHand.getItemInOffHand(player));
         if (isSuitableTicket(mainHand, trainProperties)) {
             if (isSuitableTicket(offHand, trainProperties)) {
                 Localization.TICKET_CONFLICT.message(player);
                 return false;
             }
             if (preUseTicket(player, mainHand, trainProperties)) {
-                HumanHand.setItemInMainHand(player, useTicketItem(mainHand));
+                HumanHand.setItemInMainHand(player, useTicketItem(mainHand).toBukkit());
                 return true;
             } else {
                 return false;
             }
         } else if (isSuitableTicket(offHand, trainProperties)) {
             if (preUseTicket(player, offHand, trainProperties)) {
-                HumanHand.setItemInOffHand(player, useTicketItem(offHand));
+                HumanHand.setItemInOffHand(player, useTicketItem(offHand).toBukkit());
                 return true;
             } else {
                 return false;
@@ -337,7 +384,7 @@ public class TicketStore {
     private static enum TicketHandleResult {
         MISSING, FAILURE, OK
     }
-    
+
     private static TicketHandleResult handleTicketsInventory(Player player, boolean quickbar, TrainProperties trainProperties) {
         // Now we know none of the items in the main hand can be used, check the rest of the inventory
         PlayerInventory inventory = player.getInventory();
@@ -345,7 +392,7 @@ public class TicketStore {
         int start = (quickbar ? 0 : 9);
         int end = (quickbar ? 9 : inventory.getSize());
         for (int i = start; i < end; i++) {
-            ItemStack item = inventory.getItem(i);
+            CommonItemStack item = CommonItemStack.of(inventory.getItem(i));
             if (isSuitableTicket(item, trainProperties) && !isTicketExpired(item)) {
                 if (ticketInvIndex != -1) {
                     // Multiple tickets could be used. Don't know which...
@@ -361,16 +408,16 @@ public class TicketStore {
             return TicketHandleResult.MISSING;
         }
 
-        ItemStack ticketItem = inventory.getItem(ticketInvIndex);
+        CommonItemStack ticketItem = CommonItemStack.of(inventory.getItem(ticketInvIndex));
         if (preUseTicket(player, ticketItem, trainProperties)) {
-            inventory.setItem(ticketInvIndex, useTicketItem(ticketItem));
+            inventory.setItem(ticketInvIndex, useTicketItem(ticketItem).toBukkit());
             return TicketHandleResult.OK;
         } else {
             return TicketHandleResult.FAILURE;
         }
     }
 
-    private static boolean isSuitableTicket(ItemStack item, TrainProperties trainProperties) {
+    private static boolean isSuitableTicket(CommonItemStack item, TrainProperties trainProperties) {
         Ticket ticket = getTicketFromItem(item);
         if (ticket != null) {
             for (String allowed : trainProperties.getTickets()) {
@@ -382,11 +429,11 @@ public class TicketStore {
         return false;
     }
 
-    private static boolean preUseTicket(Player player, ItemStack item, TrainProperties trainProperties) {
+    private static boolean preUseTicket(Player player, CommonItemStack item, TrainProperties trainProperties) {
         // Handle permissions and messages to the player
-        String ticketName = ItemUtil.getMetaTag(item, false).getValue("ticketName", "UNKNOWN");
+        String ticketName = item.getCustomData().getValue("ticketName", "UNKNOWN");
         if (!isTicketOwner(player, item)) {
-            String ownerName = ItemUtil.getMetaTag(item, false).getValue("ticketOwnerName", "UNKNOWN");
+            String ownerName = item.getCustomData().getValue("ticketOwnerName", "UNKNOWN");
             Localization.TICKET_CONFLICT_OWNER.message(player, ticketName, ownerName);
             return false;
         }
@@ -416,26 +463,27 @@ public class TicketStore {
 
     /**
      * Simulates a single use of an item. Returns the updated item that should be set
-     * in the player inventory afterwards. May return null if it should be removed.
+     * in the player inventory after wards. May return null if it should be removed.
      *
-     * @param item
+     * @param item CommonItemStack being used
      * @return Updated item
      */
-    private static ItemStack useTicketItem(ItemStack item) {
+    private static CommonItemStack useTicketItem(CommonItemStack item) {
         Ticket ticket = getTicketFromItem(item);
         if (ticket == null) {
-            return null;
+            return CommonItemStack.empty();
         }
 
-        item = ItemUtil.cloneItem(item);
-        CommonTagCompound tag = ItemUtil.getMetaTag(item);
+        item = item.clone();
         if (ticket.getMaxNumberOfUses() < 0 || item.getAmount() <= 1) {
-            tag.putValue("ticketNumberOfUses", tag.getValue("ticketNumberOfUses", 0) + 1);
+            item.updateCustomData(tag -> {
+                tag.putValue("ticketNumberOfUses", tag.getValue("ticketNumberOfUses", 0) + 1);
+            });
         } else {
             item.setAmount(item.getAmount() - 1);
         }
         if (isTicketExpired(item)) {
-            return null;
+            return CommonItemStack.empty();
         }
 
         return item;

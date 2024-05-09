@@ -4,10 +4,8 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import org.bukkit.ChatColor;
-import org.bukkit.inventory.ItemStack;
-
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
 
 /**
  * A root namespace, such as 'minecraft'
@@ -94,14 +92,13 @@ public final class ListedNamespace extends ListedEntry {
     }
 
     @Override
-    public ItemStack createIconItem(DialogBuilder options) {
-        ItemStack item = options.getNamespaceIconItem().clone();
-        ItemUtil.setDisplayName(item, ChatColor.YELLOW + this.name);
-        ItemUtil.addLoreName(item, "");
-        ItemUtil.addLoreName(item, ChatColor.DARK_GRAY + "Namespace");
-        ItemUtil.addLoreName(item, ChatColor.DARK_GRAY +
-                "< " + ChatColor.GRAY + this.nestedItemCount + ChatColor.DARK_GRAY + " Item models >");
-        return item;
+    public CommonItemStack createIconItem(DialogBuilder options) {
+        return CommonItemStack.copyOf(options.getNamespaceIconItem())
+                .setCustomNameMessage(ChatColor.YELLOW + this.name)
+                .addLoreLine()
+                .addLoreMessage(ChatColor.DARK_GRAY + "Namespace")
+                .addLoreMessage(ChatColor.DARK_GRAY +
+                        "< " + ChatColor.GRAY + this.nestedItemCount + ChatColor.DARK_GRAY + " Item models >");
     }
 
     @Override

@@ -7,6 +7,7 @@ import java.util.logging.Level;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import org.bukkit.ChatColor;
@@ -21,10 +22,8 @@ import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.BasicConfiguration;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.Localization;
@@ -43,121 +42,171 @@ public class TrainChestItemUtil {
     private static final String TITLE = "Traincarts Chest";
 
     public static ItemStack createItem() {
-        ItemStack item = ItemUtil.createItem(Material.ENDER_CHEST, 1);
-        item.addUnsafeEnchantment(Enchantment.ARROW_DAMAGE, 1);
-        CommonTagCompound tag = ItemUtil.getMetaTag(item, true);
-        tag.putValue("plugin", TrainCarts.plugin.getName());
-        tag.putValue("identifier", IDENTIFIER);
-        tag.putValue("name", "");
-        tag.putValue("parsed", false);
-        tag.putValue("locked", false);
-        tag.putValue("HideFlags", 1);
+        CommonItemStack item = CommonItemStack.create(Material.ENDER_CHEST, 1)
+                .addUnsafeEnchantment(Enchantment.ARROW_DAMAGE, 1)
+                .updateCustomData(tag -> {
+                    tag.putValue("plugin", TrainCarts.plugin.getName());
+                    tag.putValue("identifier", IDENTIFIER);
+                    tag.putValue("name", "");
+                    tag.putValue("parsed", false);
+                    tag.putValue("locked", false);
+                    tag.putValue("HideFlags", 1);
+                });
         updateTitle(item);
-        return item;
+        return item.toBukkit();
     }
 
-    private static void updateTitle(ItemStack item) {
+    private static void updateTitle(CommonItemStack item) {
         String displayTitle = TITLE;
         String name = getName(item);
-        if (name.isEmpty() && !isEmpty(item) && ItemUtil.getMetaTag(item).getValue("parsed", false)) {
-            name = ItemUtil.getMetaTag(item).getValue("config", "");
+        if (name.isEmpty() && !isEmpty(item) && item.getCustomData().getValue("parsed", false)) {
+            name = item.getCustomData().getValue("config", "");
         }
         if (!name.isEmpty()) {
             displayTitle += " (" + name + ")";
         }
-        ItemUtil.setDisplayName(item, displayTitle);
+        item.setCustomNameMessage(displayTitle);
 
-        ItemUtil.clearLoreNames(item);
+        item.clearLores();
         if (isEmpty(item)) {
-            ItemUtil.addLoreChatText(item, ChatText.fromMessage(ChatColor.RED + "Empty"));
+            item.addLore(ChatText.fromMessage(ChatColor.RED + "Empty"));
         } else if (isFiniteSpawns(item)) {
-            ItemUtil.addLoreChatText(item, ChatText.fromMessage(ChatColor.BLUE + "Single-use"));
+            item.addLore(ChatText.fromMessage(ChatColor.BLUE + "Single-use"));
         } else {
-            ItemUtil.addLoreChatText(item, ChatText.fromMessage(ChatColor.DARK_PURPLE + "Infinite uses"));
+            item.addLore(ChatText.fromMessage(ChatColor.DARK_PURPLE + "Infinite uses"));
         }
         double speed = getSpeed(item);
         if (speed > 0.0) {
-            ItemUtil.addLoreChatText(item, ChatText.fromMessage(ChatColor.YELLOW + "Speed " + DebugToolUtil.formatNumber(speed) + "b/t"));
+            item.addLore(ChatText.fromMessage(ChatColor.YELLOW + "Speed " + DebugToolUtil.formatNumber(speed) + "b/t"));
         }
         if (isLocked(item)) {
-            ItemUtil.addLoreChatText(item, ChatText.fromMessage(ChatColor.RED + "Locked"));
+            item.addLore(ChatText.fromMessage(ChatColor.RED + "Locked"));
         }
     }
 
     public static boolean isItem(ItemStack item) {
-        if (!ItemUtil.isEmpty(item)) {
-            CommonTagCompound tag = ItemUtil.getMetaTag(item, false);
-            if (tag != null) {
-                return IDENTIFIER.equals(tag.getValue("identifier", ""));
-            }
+        return isItem(CommonItemStack.of(item));
+    }
+
+    public static boolean isItem(CommonItemStack item) {
+        if (!item.isEmpty() && item.hasCustomData()) {
+            return IDENTIFIER.equals(item.getCustomData().getValue("identifier", ""));
         }
         return false;
     }
 
     public static void setFiniteSpawns(ItemStack item, boolean finite) {
+        setFiniteSpawns(CommonItemStack.of(item), finite);
+    }
+
+    public static void setFiniteSpawns(CommonItemStack item, boolean finite) {
         if (isItem(item)) {
-            ItemUtil.getMetaTag(item, true).putValue("finite", finite);
+            item.updateCustomData(tag -> tag.putValue("finite", finite));
             updateTitle(item);
         }
     }
 
     public static void setLocked(ItemStack item, boolean locked) {
+        setLocked(CommonItemStack.of(item), locked);
+    }
+
+    public static void setLocked(CommonItemStack item, boolean locked) {
         if (isItem(item)) {
-            ItemUtil.getMetaTag(item, true).putValue("locked", locked);
+            item.updateCustomData(tag -> tag.putValue("locked", locked));
             updateTitle(item);
         }
     }
 
     public static void setSpeed(ItemStack item, double speed) {
+        setSpeed(CommonItemStack.of(item), speed);
+    }
+
+    public static void setSpeed(CommonItemStack item, double speed) {
         if (isItem(item)) {
-            ItemUtil.getMetaTag(item, true).putValue("speed", speed);
+            item.updateCustomData(tag -> tag.putValue("speed", speed));
             updateTitle(item);
         }
     }
 
     public static void setSpawnMessage(ItemStack item, String message) {
+        setSpawnMessage(CommonItemStack.of(item), message);
+    }
+
+    public static void setSpawnMessage(CommonItemStack item, String message) {
         if (isItem(item)) {
-            ItemUtil.getMetaTag(item, true).putValue("spawnMessage", message);
+            item.updateCustomData(tag -> tag.putValue("spawnMessage", message));
         }
     }
 
     public static String getSpawnMessage(ItemStack item) {
-        return isItem(item) ? ItemUtil.getMetaTag(item).getValue("spawnMessage", String.class, null)
+        return getSpawnMessage(CommonItemStack.of(item));
+    }
+
+    public static String getSpawnMessage(CommonItemStack item) {
+        return isItem(item) ? item.getCustomData().getValue("spawnMessage", String.class, null)
                             : null;
     }
 
     public static boolean isLocked(ItemStack item) {
-        return isItem(item) && ItemUtil.getMetaTag(item).getValue("locked", false);
+        return isLocked(CommonItemStack.of(item));
+    }
+
+    public static boolean isLocked(CommonItemStack item) {
+        return isItem(item) && item.getCustomData().getValue("locked", false);
     }
 
     public static boolean isFiniteSpawns(ItemStack item) {
-        return isItem(item) && ItemUtil.getMetaTag(item).getValue("finite", false);
+        return isFiniteSpawns(CommonItemStack.of(item));
+    }
+
+    public static boolean isFiniteSpawns(CommonItemStack item) {
+        return isItem(item) && item.getCustomData().getValue("finite", false);
     }
 
     public static double getSpeed(ItemStack item) {
-        return isItem(item) ? ItemUtil.getMetaTag(item).getValue("speed", 0.0) : 0.0;
+        return getSpeed(CommonItemStack.of(item));
+    }
+
+    public static double getSpeed(CommonItemStack item) {
+        return isItem(item) ? item.getCustomData().getValue("speed", 0.0) : 0.0;
     }
 
     public static void setName(ItemStack item, String name) {
+        setName(CommonItemStack.of(item), name);
+    }
+
+    public static void setName(CommonItemStack item, String name) {
         if (isItem(item)) {
-            ItemUtil.getMetaTag(item, true).putValue("name", name);
+            item.updateCustomData(tag -> tag.putValue("name", name));
             updateTitle(item);
         }
     }
 
     public static String getName(ItemStack item) {
-        return isItem(item) ? ItemUtil.getMetaTag(item).getValue("name", "") : "";
+        return getName(CommonItemStack.of(item));
+    }
+
+    public static String getName(CommonItemStack item) {
+        return isItem(item) ? item.getCustomData().getValue("name", "") : "";
     }
 
     public static void clear(ItemStack item) {
+        clear(CommonItemStack.of(item));
+    }
+
+    public static void clear(CommonItemStack item) {
         if (isItem(item)) {
-            ItemUtil.getMetaTag(item, true).remove("config");
+            item.updateCustomData(tag -> tag.remove("config"));
             updateTitle(item);
         }
     }
 
     public static boolean isEmpty(ItemStack item) {
-        return isItem(item) && !ItemUtil.getMetaTag(item).containsKey("config");
+        return isEmpty(CommonItemStack.of(item));
+    }
+
+    public static boolean isEmpty(CommonItemStack item) {
+        return isItem(item) && item.getCustomData().containsKey("config");
     }
 
     public static void playSoundStore(Player player) {
@@ -169,38 +218,51 @@ public class TrainChestItemUtil {
     }
 
     public static void store(ItemStack item, String spawnPattern) {
+        store(CommonItemStack.of(item), spawnPattern);
+    }
+
+    public static void store(CommonItemStack item, String spawnPattern) {
         if (isItem(item)) {
-            CommonTagCompound tag = ItemUtil.getMetaTag(item, true);
-            tag.putValue("config", spawnPattern);
-            tag.putValue("parsed", true);
+            item.updateCustomData(tag -> {
+                tag.putValue("config", spawnPattern);
+                tag.putValue("parsed", true);
+            });
             updateTitle(item);
         }
     }
 
     public static void store(ItemStack item, MinecartGroup group) {
+        store(CommonItemStack.of(item), group);
+    }
+
+    public static void store(CommonItemStack item, MinecartGroup group) {
         if (group != null) {
-            store(item, group.saveConfig());            
+            store(item, group.saveConfig());
         }
     }
 
     public static void store(ItemStack item, ConfigurationNode config) {
-        if (isItem(item)) {
-            CommonTagCompound tag = ItemUtil.getMetaTag(item, true);
+        store(CommonItemStack.of(item), config);
+    }
 
-            byte[] compressed = new byte[0];
-            try {
-                byte[] uncompressed = config.toString().getBytes("UTF-8");
-                try (ByteArrayOutputStream byteStream = new ByteArrayOutputStream(uncompressed.length)) {
-                    try (GZIPOutputStream zipStream = new GZIPOutputStream(byteStream)) {
-                        zipStream.write(uncompressed);
+    public static void store(CommonItemStack item, ConfigurationNode config) {
+        if (isItem(item)) {
+            item.updateCustomData(tag -> {
+                byte[] compressed = new byte[0];
+                try {
+                    byte[] uncompressed = config.toString().getBytes("UTF-8");
+                    try (ByteArrayOutputStream byteStream = new ByteArrayOutputStream(uncompressed.length)) {
+                        try (GZIPOutputStream zipStream = new GZIPOutputStream(byteStream)) {
+                            zipStream.write(uncompressed);
+                        }
+                        compressed = byteStream.toByteArray();
                     }
-                    compressed = byteStream.toByteArray();
+                } catch (Throwable t) {
+                    TrainCarts.plugin.getLogger().log(Level.SEVERE, "Unhandled error saving item details to config", t);
                 }
-            } catch (Throwable t) {
-                TrainCarts.plugin.getLogger().log(Level.SEVERE, "Unhandled error saving item details to config", t);
-            }
-            tag.putValue("config", compressed);
-            tag.putValue("parsed", false);
+                tag.putValue("config", compressed);
+                tag.putValue("parsed", false);
+            });
             updateTitle(item);
         }
     }
@@ -216,6 +278,20 @@ public class TrainChestItemUtil {
      *         chest item, or is empty.
      */
     public static SpawnableGroup getSpawnableGroup(TrainCarts plugin, ItemStack item) {
+        return getSpawnableGroup(plugin, CommonItemStack.of(item));
+    }
+
+    /**
+     * Gets the spawnable group stored in the configuration of an item.
+     * Supports both when the configuration itself, as when the train name is
+     * referenced.
+     *
+     * @param plugin TrainCarts plugin instance
+     * @param item Input train chest item
+     * @return group configured in the item. Is null if the item is not a train
+     *         chest item, or is empty.
+     */
+    public static SpawnableGroup getSpawnableGroup(TrainCarts plugin, CommonItemStack item) {
         if (!isItem(item)) {
             return null;
         }
@@ -225,13 +301,13 @@ public class TrainChestItemUtil {
 
         // Attempt parsing the Item's configuration into a SpawnableGroup
         SpawnableGroup group;
-        if (ItemUtil.getMetaTag(item).getValue("parsed", false)) {
-            group = SpawnableGroup.parse(plugin, ItemUtil.getMetaTag(item).getValue("config", ""));
+        if (item.getCustomData().getValue("parsed", false)) {
+            group = SpawnableGroup.parse(plugin, item.getCustomData().getValue("config", ""));
         } else {
             BasicConfiguration basicConfig = new BasicConfiguration();
             try {
                 byte[] uncompressed = new byte[0];
-                byte[] compressed = ItemUtil.getMetaTag(item).getValue("config", new byte[0]);
+                byte[] compressed = item.getCustomData().getValue("config", new byte[0]);
                 if (compressed != null && compressed.length > 0) {
                     try (ByteArrayInputStream inByteStream = new ByteArrayInputStream(compressed)) {
                         try (GZIPInputStream zipStream = new GZIPInputStream(inByteStream)) {

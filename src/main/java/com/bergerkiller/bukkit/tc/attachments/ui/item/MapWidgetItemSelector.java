@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.ui.item;
 
 import java.util.List;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetVerticalNavigableList;
 import com.bergerkiller.bukkit.tc.attachments.ui.models.ResourcePackModelListing;
 import org.bukkit.entity.Player;
@@ -139,17 +140,13 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
 
                     @Override
                     public void onClick() {
-                        ItemStack item = variantList.getItem();
-                        if (item == null) {
+                        CommonItemStack item = variantList.getItem();
+                        if (item.isEmpty()) {
                             return;
                         }
 
-                        item = ItemUtil.createItem(item);
-                        CommonTagCompound tag = ItemUtil.getMetaTag(item, true);
-                        if (tag == null) {
-                            return;
-                        }
-                        tag.putValue("Unbreakable", !(tag.containsKey("Unbreakable") && tag.getValue("Unbreakable", false)));
+                        item = item.clone();
+                        item.setUnbreakable(!item.isUnbreakable());
                         variantList.setItem(item);
                     }
                 };
@@ -157,9 +154,8 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
 
                 this.variantList.registerItemChangedListener(new ItemChangedListener() {
                     @Override
-                    public void onItemChanged(ItemStack item) {
-                        CommonTagCompound tag = ItemUtil.getMetaTag(item, false);
-                        if (tag != null && tag.containsKey("Unbreakable") && tag.getValue("Unbreakable", false)) {
+                    public void onItemChanged(CommonItemStack item) {
+                        if (item.isUnbreakable()) {
                             unbreakableOption.setTooltip("Unbreakable");
                             unbreakableOption.setIcon("attachments/item_unbreakable.png");
                         } else {
@@ -180,15 +176,15 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
 
                     @Override
                     public void onAccept(String text) {
-                        ItemStack item = variantList.getItem();
-                        if (item == null) {
+                        CommonItemStack item = variantList.getItem();
+                        if (item.isEmpty()) {
                             return;
                         }
-                        item = ItemUtil.createItem(item);
+                        item = item.clone();
                         if (text.trim().isEmpty()) {
-                            ItemUtil.setDisplayName(item, null);
+                            item.setCustomName(null);
                         } else {
-                            ItemUtil.setDisplayName(item, text);
+                            item.setCustomNameMessage(text);
                         }
                         variantList.setItem(item);
                     }
@@ -207,9 +203,9 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
 
                 this.variantList.registerItemChangedListener(new ItemChangedListener() {
                     @Override
-                    public void onItemChanged(ItemStack item) {
-                        if (ItemUtil.hasDisplayName(item)) {
-                            nameItemButton.setTooltip("Name (\"" + ItemUtil.getDisplayName(item) + "\")");
+                    public void onItemChanged(CommonItemStack item) {
+                        if (item.hasCustomName()) {
+                            nameItemButton.setTooltip("Name (\"" + item.getCustomNameMessage() + "\")");
                         } else {
                             nameItemButton.setTooltip("Name (None)");
                         }
@@ -243,20 +239,16 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
 
                     @Override
                     public void onValueChanged() {
-                        ItemStack item = variantList.getItem();
-                        if (item == null) {
+                        CommonItemStack item = variantList.getItem();
+                        if (item.isEmpty()) {
                             return;
                         }
 
-                        item = ItemUtil.createItem(item);
-                        CommonTagCompound tag = ItemUtil.getMetaTag(item, true);
-                        if (tag == null) {
-                            return;
-                        }
+                        item = item.clone();
                         if (this.getValue() <= 0) {
-                            tag.remove("CustomModelData");
+                            item.clearCustomModelData();
                         } else {
-                            tag.putValue("CustomModelData", this.getValue());
+                            item.setCustomModelData(this.getValue());
                         }
                         variantList.setItem(item);
                     }
@@ -266,12 +258,8 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
 
                 this.variantList.registerItemChangedListener(new ItemChangedListener() {
                     @Override
-                    public void onItemChanged(ItemStack item) {
-                        CommonTagCompound tag = ItemUtil.getMetaTag(item, false);
-                        int value = 0;
-                        if (tag != null && tag.containsKey("CustomModelData")) {
-                            value = tag.getValue("CustomModelData", 0);
-                        }
+                    public void onItemChanged(CommonItemStack item) {
+                        int value = item.hasCustomModelData() ? item.getCustomModelData() : 0;
                         selector.setValue(value);
                     }
                 }, true);
@@ -281,8 +269,8 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
         // Handle item being changed, changing the preview and firing event
         this.variantList.registerItemChangedListener(new ItemChangedListener() {
             @Override
-            public void onItemChanged(ItemStack item) {
-                preview.setItem(item);
+            public void onItemChanged(CommonItemStack item) {
+                preview.setItem(item.toBukkit());
                 onSelectedItemChanged();
             }
         }, false);
@@ -314,7 +302,7 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
      * @return selected item
      */
     public ItemStack getSelectedItem() {
-        return this.variantList.getItem();
+        return this.variantList.getItem().toBukkit();
     }
 
     @Override

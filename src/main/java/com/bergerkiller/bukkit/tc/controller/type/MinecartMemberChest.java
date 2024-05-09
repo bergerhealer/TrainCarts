@@ -2,9 +2,9 @@ package com.bergerkiller.bukkit.tc.controller.type;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartChest;
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
@@ -80,11 +80,11 @@ public class MinecartMemberChest extends MinecartMember<CommonMinecartChest> {
                 if (!(e instanceof Item) || EntityUtil.isIgnored(e)) {
                     continue;
                 }
-                ItemStack stack = ((Item) e).getItemStack();
+                CommonItemStack stack = CommonItemStack.of(((Item) e).getItemStack());
                 distance = entity.loc.distanceSquared(e);
-                if (ItemUtil.testTransfer(stack, inv) == stack.getAmount()) {
+                if (stack.testTransferTo(inv) == stack.getAmount()) {
                     if (distance < 0.7) {
-                        ItemUtil.transfer(stack, inv, Integer.MAX_VALUE);
+                        stack.transferAllTo(inv);
                         // This.world.playNote
                         entity.getWorld().playEffect(entity.getLocation(), Effect.CLICK1, 0);
                         if (stack.getAmount() == 0) {

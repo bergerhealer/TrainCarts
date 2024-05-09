@@ -6,7 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.inventory.ItemStack;
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 
 /**
  * Root entry. Should not be displayed.
@@ -14,7 +14,7 @@ import org.bukkit.inventory.ItemStack;
 public final class ListedRoot extends ListedEntry {
     final Map<String, ListedNamespace> namespacesByName;
     final List<ListedItemModel> allListedItems;
-    final Map<ItemStack, ListedItemModel> allListedBareItemStacks;
+    final Map<CommonItemStack, ListedItemModel> allListedBareItemStacks;
 
     public ListedRoot() {
         this.namespacesByName = new HashMap<>();
@@ -49,8 +49,8 @@ public final class ListedRoot extends ListedEntry {
     }
 
     @Override
-    public ItemStack createIconItem(DialogBuilder options) {
-        return null; // Unused
+    public CommonItemStack createIconItem(DialogBuilder options) {
+        return CommonItemStack.empty(); // Unused
     }
 
     @Override
@@ -85,7 +85,7 @@ public final class ListedRoot extends ListedEntry {
      *
      * @return Sorted Map of all bare item model item stacks and its associated metadata
      */
-    public Map<ItemStack, ListedItemModel> bareItemStacks() { return allListedBareItemStacks; }
+    public Map<CommonItemStack, ListedItemModel> bareItemStacks() { return allListedBareItemStacks; }
 
     @Override
     public String toString() {
@@ -101,7 +101,7 @@ public final class ListedRoot extends ListedEntry {
      * @param credit Credit (who made this?)
      * @return Created Listed item model
      */
-    public ListedItemModel addListedItem(String path, ItemStack item, String credit) {
+    public ListedItemModel addListedItem(String path, CommonItemStack item, String credit) {
         // Decode the path namespace and directory structure
         ListedNamespace namespace;
         ListedEntry containingEntry;

@@ -6,8 +6,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.DyeColor;
@@ -43,9 +44,9 @@ import com.bergerkiller.bukkit.tc.attachments.ui.models.listing.*;
  */
 class ResourcePackModelListingDialog implements Listener {
     private static final int DISPLAYED_ITEM_COUNT = 4 * 9; // Top 4 rows
-    private static final ItemStack BG_ITEM1 = null; // createGlassPaneItem(DyeColor.GRAY);
-    private static final ItemStack BG_ITEM2 = createGlassPaneItem(DyeColor.BROWN);
-    private static final ItemStack BG_ITEM3 = createGlassPaneItem(DyeColor.GRAY);
+    private static final CommonItemStack BG_ITEM1 = CommonItemStack.empty(); // createGlassPaneItem(DyeColor.GRAY);
+    private static final CommonItemStack BG_ITEM2 = createGlassPaneItem(DyeColor.BROWN);
+    private static final CommonItemStack BG_ITEM3 = createGlassPaneItem(DyeColor.GRAY);
     private static Map<Player, ResourcePackModelListingDialog> shownTo = new HashMap<>();
     private final DialogBuilder options;
     private final CompletableFuture<DialogResult> future;
@@ -291,20 +292,20 @@ class ResourcePackModelListingDialog implements Listener {
         this.btnNextPage.enabled = (currentItems.size() - offset) > DISPLAYED_ITEM_COUNT;
 
         for (int i = 0; i < limit; i++) {
-            this.inventory.setItem(i, currentItems.get(i + offset).createIconItem(options));
+            this.inventory.setItem(i, currentItems.get(i + offset).createIconItem(options).toBukkit());
         }
         for (int i = limit; i < DISPLAYED_ITEM_COUNT; i++) {
-            this.inventory.setItem(i, BG_ITEM1);
+            this.inventory.setItem(i, BG_ITEM1.toBukkit());
         }
 
         // Dividing line
         for (int i = DISPLAYED_ITEM_COUNT; i < (9*5); i++) {
-            this.inventory.setItem(i, BG_ITEM2);
+            this.inventory.setItem(i, BG_ITEM2.toBukkit());
         }
 
         // UI Buttons
         for (UIButton button : buttons) {
-            this.inventory.setItem(button.slot, button.item());
+            this.inventory.setItem(button.slot, button.item().toBukkit());
         }
         for (int i = (9*5); i < (9*6); i++) {
             boolean isButtonSlot = false;
@@ -315,7 +316,7 @@ class ResourcePackModelListingDialog implements Listener {
                 }
             }
             if (!isButtonSlot) {
-                this.inventory.setItem(i, BG_ITEM3);
+                this.inventory.setItem(i, BG_ITEM3.toBukkit());
             }
         }
     }
@@ -546,19 +547,17 @@ class ResourcePackModelListingDialog implements Listener {
     }
 
     private class PrevPageButton extends UIButton {
-        private final ItemStack enabledIconItem = createItem(item -> {
-            ItemUtil.setDisplayName(item, ChatColor.GREEN + "Previous Page");
-        }, "DIAMOND_BLOCK", "LEGACY_DIAMOND_BLOCK");
-        private final ItemStack disabledIconItem = createItem(item -> {
-            ItemUtil.setDisplayName(item, ChatColor.GRAY.toString() + ChatColor.STRIKETHROUGH + "Previous Page");
-        }, "CLAY", "LEGACY_CLAY");
+        private final CommonItemStack enabledIconItem = createItem("DIAMOND_BLOCK", "LEGACY_DIAMOND_BLOCK")
+                .setCustomNameMessage(ChatColor.GREEN + "Previous Page");
+        private final CommonItemStack disabledIconItem = createItem("CLAY", "LEGACY_CLAY")
+                .setCustomNameMessage(ChatColor.GRAY.toString() + ChatColor.STRIKETHROUGH + "Previous Page");
 
         public PrevPageButton() {
             super(3);
         }
 
         @Override
-        public ItemStack item() {
+        public CommonItemStack item() {
             return applyPageInfo(enabled ? enabledIconItem : disabledIconItem, false);
         }
 
@@ -569,19 +568,17 @@ class ResourcePackModelListingDialog implements Listener {
     }
 
     private class NextPageButton extends UIButton {
-        private final ItemStack enabledIconItem = createItem(item -> {
-            ItemUtil.setDisplayName(item, ChatColor.GREEN + "Next Page");
-        }, "DIAMOND_BLOCK", "LEGACY_DIAMOND_BLOCK");
-        private final ItemStack disabledIconItem = createItem(item -> {
-            ItemUtil.setDisplayName(item, ChatColor.GRAY.toString() + ChatColor.STRIKETHROUGH + "Next Page");
-        }, "CLAY", "LEGACY_CLAY");
+        private final CommonItemStack enabledIconItem = createItem("DIAMOND_BLOCK", "LEGACY_DIAMOND_BLOCK")
+                .setCustomNameMessage(ChatColor.GREEN + "Next Page");
+        private final CommonItemStack disabledIconItem = createItem( "CLAY", "LEGACY_CLAY")
+                .setCustomNameMessage(ChatColor.GRAY.toString() + ChatColor.STRIKETHROUGH + "Next Page");
 
         public NextPageButton() {
             super(5);
         }
 
         @Override
-        public ItemStack item() {
+        public CommonItemStack item() {
             return applyPageInfo(enabled ? enabledIconItem : disabledIconItem, false);
         }
 
@@ -598,7 +595,7 @@ class ResourcePackModelListingDialog implements Listener {
         }
 
         @Override
-        public ItemStack item() {
+        public CommonItemStack item() {
             return applyPageInfo(BG_ITEM3, true);
         }
 
@@ -608,21 +605,20 @@ class ResourcePackModelListingDialog implements Listener {
     }
 
     private class BackButton extends UIButton {
-        private final ItemStack backIconItem = createItem(item -> {
-            ItemUtil.setDisplayName(item, ChatColor.YELLOW + "Back");
-            ItemUtil.addLoreName(item, "");
-            ItemUtil.addLoreName(item, ChatColor.BLUE.toString() + ChatColor.ITALIC +
-                    "Right-click to go");
-            ItemUtil.addLoreName(item, ChatColor.BLUE.toString() + ChatColor.ITALIC +
-                    "all the way back");
-        }, "BOOK", "LEGACY_BOOK");
+        private final CommonItemStack backIconItem = createItem("BOOK", "LEGACY_BOOK")
+                .setCustomNameMessage(ChatColor.YELLOW + "Back")
+                .addLoreLine()
+                .addLoreMessage(ChatColor.BLUE.toString() + ChatColor.ITALIC +
+                        "Right-click to go")
+                .addLoreMessage(ChatColor.BLUE.toString() + ChatColor.ITALIC +
+                        "all the way back");
 
         public BackButton() {
             super(0);
         }
 
         @Override
-        public ItemStack item() {
+        public CommonItemStack item() {
             return backIconItem;
         }
 
@@ -638,22 +634,21 @@ class ResourcePackModelListingDialog implements Listener {
     }
 
     private class SearchButton extends UIButton {
-        private final ItemStack searchIconItem = createItem(item -> {
-            ItemUtil.setDisplayName(item, ChatColor.YELLOW + "Enter search query");
-        }, "COMPASS", "LEGACY_COMPASS");
+        private final CommonItemStack searchIconItem = createItem("COMPASS", "LEGACY_COMPASS")
+                .setCustomNameMessage(ChatColor.YELLOW + "Enter search query");
 
         public SearchButton() {
             super(8);
         }
 
         @Override
-        public ItemStack item() {
-            ItemStack item = searchIconItem.clone();
+        public CommonItemStack item() {
+            CommonItemStack item = searchIconItem.clone();
             if (!options.getQuery().isEmpty()) {
-                ItemUtil.addLoreName(item, "");
-                ItemUtil.addLoreName(item, ChatColor.DARK_GRAY + "Current: " +
-                        ChatColor.GRAY + ChatColor.ITALIC + "\"" + options.getQuery() + "\"");
-                ItemUtil.addLoreName(item, ChatColor.BLUE.toString() + ChatColor.ITALIC +
+                item.addLoreLine()
+                    .addLoreMessage(ChatColor.DARK_GRAY + "Current: " +
+                        ChatColor.GRAY + ChatColor.ITALIC + "\"" + options.getQuery() + "\"")
+                    .addLoreMessage(ChatColor.BLUE.toString() + ChatColor.ITALIC +
                         "Right-click to clear");
             }
             return item;
@@ -671,10 +666,10 @@ class ResourcePackModelListingDialog implements Listener {
         }
     }
 
-    private ItemStack applyPageInfo(ItemStack item, boolean isMiddleCountItem) {
-        // Null check
-        if (item == null) {
-            return null;
+    private CommonItemStack applyPageInfo(CommonItemStack item, boolean isMiddleCountItem) {
+        // Empty check
+        if (item.isEmpty()) {
+            return CommonItemStack.empty();
         }
 
         // If only one page exists, omit the count
@@ -686,45 +681,39 @@ class ResourcePackModelListingDialog implements Listener {
         item = item.clone();
         int currPage = (options.getBrowsedPage() + 1);
         if (isMiddleCountItem) {
-            ItemUtil.setDisplayName(item, ChatColor.DARK_GRAY + "Currently on");
+            item.setCustomNameMessage(ChatColor.DARK_GRAY + "Currently on");
             if (currPage <= 64) {
                 item.setAmount(currPage);
             }
         } else {
-            ItemUtil.addLoreName(item, "");
-            ItemUtil.addLoreName(item, ChatColor.DARK_GRAY + "Currently on");
+            item.addLoreLine()
+                .addLoreMessage(ChatColor.DARK_GRAY + "Currently on");
         }
-        ItemUtil.addLoreName(item, ChatColor.DARK_GRAY + "page " +
+        item.addLoreMessage(ChatColor.DARK_GRAY + "page " +
                 ChatColor.GRAY + currPage + ChatColor.DARK_GRAY +
                 " of " + ChatColor.GRAY + pageCount);
         return item;
     }
 
-    private static ItemStack createItem(Consumer<ItemStack> setup, String... materialNames) {
-        ItemStack item = ItemUtil.createItem(MaterialUtil.getFirst(materialNames), 1);
-        setup.accept(item);
-        return item;
+    private static CommonItemStack createItem(String... materialNames) {
+        return CommonItemStack.create(MaterialUtil.getFirst(materialNames), 1);
     }
 
     @SuppressWarnings("deprecation")
-    private static ItemStack createGlassPaneItem(DyeColor color) {
+    private static CommonItemStack createGlassPaneItem(DyeColor color) {
         try {
-            ItemStack item;
+            CommonItemStack item;
             if (CommonCapabilities.MATERIAL_ENUM_CHANGES) {
-                item = ItemUtil.createItem(
+                item = CommonItemStack.create(
                         MaterialUtil.getMaterial(color.name() + "_STAINED_GLASS_PANE"),
                         1);
             } else {
-                item = ItemUtil.createItem(
-                        MaterialUtil.getMaterial("LEGACY_STAINED_GLASS_PANE"),
-                        color.getWoolData(), 1);
+                item = BlockData.fromMaterialData(
+                            MaterialUtil.getMaterial("LEGACY_STAINED_GLASS_PANE"),
+                            color.getWoolData()
+                       ).createCommonItem(1);
             }
-            if (CommonCapabilities.EMPTY_ITEM_NAME) {
-                ItemUtil.setDisplayName(item, ChatColor.RESET.toString());
-            } else {
-                ItemUtil.setDisplayName(item, ChatColor.RESET + "\0");
-            }
-            return item;
+            return item.setEmptyCustomName();
         } catch (Throwable t) {
             return null; // Meh. Not important enough to fail everything!
         }
@@ -738,7 +727,7 @@ class ResourcePackModelListingDialog implements Listener {
             this.slot = (5 * 9) + slot;
         }
 
-        public abstract ItemStack item();
+        public abstract CommonItemStack item();
         public abstract void click(boolean isRightClick);
     }
 }

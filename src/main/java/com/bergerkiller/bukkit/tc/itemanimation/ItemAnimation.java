@@ -1,8 +1,7 @@
 package com.bergerkiller.bukkit.tc.itemanimation;
 
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.utils.GroundItemsInventory;
@@ -35,7 +34,11 @@ public class ItemAnimation {
     }
 
     public static void start(Object from, Object to, org.bukkit.inventory.ItemStack data) {
-        if (from == null || to == null || LogicUtil.nullOrEmpty(data)) {
+        start(from, to, CommonItemStack.of(data));
+    }
+
+    public static void start(Object from, Object to, CommonItemStack data) {
+        if (from == null || to == null || data.isEmpty()) {
             return;
         }
         data = data.clone();
@@ -45,19 +48,19 @@ public class ItemAnimation {
             Location l2 = getLocation(fixObject(anim.item));
             if (l2 != null && l1.getWorld() == l2.getWorld()) {
                 if (l1.distanceSquared(l2) < 4.0) {
-                    org.bukkit.inventory.ItemStack thisdata = anim.item.getItemStack();
-                    if (thisdata.getAmount() == 0) {
+                    CommonItemStack thisdata = CommonItemStack.of(anim.item.getItemStack());
+                    if (thisdata.isEmpty()) {
                         continue;
                     }
-                    ItemUtil.transfer(data, thisdata, Integer.MAX_VALUE);
-                    if (data.getAmount() == 0) {
+                    data.transferTo(thisdata, -1);
+                    if (data.isEmpty()) {
                         return;
                     }
                 }
             }
         }
 
-        runningAnimations.add(new ItemAnimation(from, to, data));
+        runningAnimations.add(new ItemAnimation(from, to, data.toBukkit()));
         // Start the updating task if needed
         if (task == null) {
             task = new Task(TrainCarts.plugin) {

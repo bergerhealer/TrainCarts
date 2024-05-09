@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -13,8 +14,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.map.MapTexture;
-import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 
@@ -317,15 +316,16 @@ public class Ticket {
      * @return ticket item
      */
     public ItemStack createItem(Player owner) {
-        ItemStack item = MapDisplay.createMapItem(TCTicketDisplay.class);
-        CommonTagCompound tag = ItemUtil.getMetaTag(item);
-        tag.putValue("plugin", "TrainCarts");
-        tag.putValue("ticketName", this.getName());
-        tag.putValue("ticketCreationTime", System.currentTimeMillis());
-        tag.putValue("ticketNumberOfUses", 0);
-        tag.putUUID("ticketOwner", owner.getUniqueId());
-        tag.putValue("ticketOwnerName", owner.getDisplayName());
-        ItemUtil.setDisplayName(item, "Train Ticket for " + this.getName());
-        return item;
+        return CommonItemStack.of(MapDisplay.createMapItem(TCTicketDisplay.class))
+                .updateCustomData(tag -> {
+                    tag.putValue("plugin", "TrainCarts");
+                    tag.putValue("ticketName", this.getName());
+                    tag.putValue("ticketCreationTime", System.currentTimeMillis());
+                    tag.putValue("ticketNumberOfUses", 0);
+                    tag.putUUID("ticketOwner", owner.getUniqueId());
+                    tag.putValue("ticketOwnerName", owner.getDisplayName());
+                })
+                .setCustomNameMessage("Train Ticket for " + this.getName())
+                .toBukkit();
     }
 }

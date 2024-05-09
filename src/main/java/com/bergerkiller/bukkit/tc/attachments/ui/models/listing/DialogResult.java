@@ -82,7 +82,7 @@ public final class DialogResult {
      * @return Selected item, null if none was selected
      */
     public ItemStack selectedItem() {
-        return result == null ? null : result.item();
+        return result == null ? null : result.item().toBukkit();
     }
 
     /**
@@ -93,6 +93,6 @@ public final class DialogResult {
      * @return Selected bare item, null if none was selected
      */
     public ItemStack selectedBareItem() {
-        return result == null ? null : result.bareItem();
+        return result == null ? null : result.bareItem().toBukkit();
     }
 }

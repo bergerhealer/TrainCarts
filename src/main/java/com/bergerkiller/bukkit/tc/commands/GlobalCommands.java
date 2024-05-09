@@ -10,13 +10,12 @@ import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.cloud.parsers.SoundEffectArgument;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.internal.CommonPlugin;
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.resources.ResourceKey;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -60,7 +59,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import java.io.UnsupportedEncodingException;
@@ -691,12 +689,10 @@ public class GlobalCommands {
     private void commandGiveAttachmentEditor(
             final Player sender
     ) {
-        ItemStack item = MapDisplay.createMapItem(AttachmentEditor.class);
-        ItemUtil.setDisplayName(item, "Traincarts Attachments Editor");
-        CommonTagCompound tag = ItemUtil.getMetaTag(item, true);
-        CommonTagCompound display = tag.createCompound("display");
-        display.putValue("MapColor", 0xFF0000);
-        sender.getInventory().addItem(item);
+        CommonItemStack item = CommonItemStack.of(MapDisplay.createMapItem(AttachmentEditor.class))
+                .setCustomNameMessage("Traincarts Attachments Editor")
+                .setFilledMapColor(0xFF0000);
+        sender.getInventory().addItem(item.toBukkit());
         sender.sendMessage(ChatColor.GREEN + "Given a Traincarts attachments editor");
     }
 

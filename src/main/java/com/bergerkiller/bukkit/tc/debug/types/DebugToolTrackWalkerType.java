@@ -1,10 +1,10 @@
 package com.bergerkiller.bukkit.tc.debug.types;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
@@ -24,7 +24,7 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 public abstract class DebugToolTrackWalkerType implements DebugToolType {
 
     @Override
-    public final void onBlockInteract(TrainCarts trainCarts, Player player, Block clickedBlock, ItemStack item, boolean isRightClick) {
+    public final void onBlockInteract(TrainCarts trainCarts, Player player, Block clickedBlock, CommonItemStack item, boolean isRightClick) {
         TrackWalkingPoint walker = null;
         if (clickedBlock != null) {
             // From rails block clicked
@@ -77,5 +77,5 @@ public abstract class DebugToolTrackWalkerType implements DebugToolType {
         onBlockInteract(trainCarts, player, walker, item, isRightClick);
     }
 
-    public abstract void onBlockInteract(TrainCarts trainCarts, Player player, TrackWalkingPoint walker, ItemStack item, boolean isRightClick);
+    public abstract void onBlockInteract(TrainCarts trainCarts, Player player, TrackWalkingPoint walker, CommonItemStack item, boolean isRightClick);
 }

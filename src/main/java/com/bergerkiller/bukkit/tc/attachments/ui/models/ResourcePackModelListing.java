@@ -5,6 +5,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -229,7 +230,7 @@ public class ResourcePackModelListing extends ListedRootLoader {
         // Figure out what ItemStack corresponds with each item model and register them all
         for (Material material : ItemUtil.getItemTypes()) {
             for (ItemStack item : ItemUtil.getItemVariants(material)) {
-                String path = "item/" + ModelInfoLookup.lookupItemRenderOptions(item).lookupModelName();
+                String path = "item/" + ModelInfoLookup.lookupItemRenderOptions(CommonItemStack.of(item)).lookupModelName();
                 if (allOverridedModels.contains(path)) {
                     for (ModelOverride override : resourcePack.getModelInfo(path).getOverrides()) {
                         if (override.model == null) {
@@ -248,7 +249,7 @@ public class ResourcePackModelListing extends ListedRootLoader {
                         String credit = resourcePack.getModelInfo(override.model).getCredit();
 
                         ItemStack modelItem = override.applyToItem(item);
-                        root.addListedItem(override.model, modelItem, credit);
+                        root.addListedItem(override.model, CommonItemStack.of(modelItem), credit);
                     }
                 }
             }

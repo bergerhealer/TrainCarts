@@ -4,6 +4,7 @@ import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
@@ -27,7 +28,7 @@ public class MapWidgetItemGrid extends MapWidget implements ItemDropTarget {
     private int _itemSpacing = 1;
     private int _scrollOffset = 0;
     private int _selectedIndex = 0;
-    private List<ItemStack> _items = new ArrayList<ItemStack>();
+    private List<ItemStack> _items = new ArrayList<>();
 
     public MapWidgetItemGrid() {
         this.setFocusable(true);
@@ -35,7 +36,7 @@ public class MapWidgetItemGrid extends MapWidget implements ItemDropTarget {
     }
 
     /**
-     * Gets the currently selected item
+     * Gets the currently selected Bukkit item
      * 
      * @return selected item
      */
@@ -47,8 +48,18 @@ public class MapWidgetItemGrid extends MapWidget implements ItemDropTarget {
     /**
      * Sets the currently selected item. If the item does not
      * exist in the added items, no item is selected.
+     *
+     * @param item CommonItemStack to select
+     */
+    public void setSelectedItem(CommonItemStack item) {
+        setSelectedItem(item.toBukkit());
+    }
+
+    /**
+     * Sets the currently selected item. If the item does not
+     * exist in the added items, no item is selected.
      * 
-     * @param item to select
+     * @param item Bukkit ItemStack to select
      */
     public void setSelectedItem(ItemStack item) {
         // Find the item
@@ -120,22 +131,30 @@ public class MapWidgetItemGrid extends MapWidget implements ItemDropTarget {
     public MapWidgetItemGrid addCreativeItems() {
         for (Material type : ItemUtil.getItemTypes()) {
             if (type == Material.AIR) continue;
-            ItemStack item = ItemUtil.createItem(type, 1);
-            ItemUtil.getMetaTag(item, true).putValue("Unbreakable", true);
-            this.addItem(item);
+            this.addItem(CommonItemStack.create(type, 1).setUnbreakable(true));
         }
         return this;
     }
 
     /**
      * Adds a new item to be displayed in the grid
-     * 
-     * @param item
+     *
+     * @param item Bukkit ItemStack to add
      * @return this item grid widget
      */
     public MapWidgetItemGrid addItem(ItemStack item) {
-        if (item != null) {
-            this._items.add(item);
+        return addItem(CommonItemStack.of(item));
+    }
+
+    /**
+     * Adds a new item to be displayed in the grid
+     * 
+     * @param item CommonItemStack to add
+     * @return this item grid widget
+     */
+    public MapWidgetItemGrid addItem(CommonItemStack item) {
+        if (!item.isEmpty()) {
+            this._items.add(item.toBukkit());
             this.invalidate();
         }
         return this;

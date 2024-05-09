@@ -2,10 +2,8 @@ package com.bergerkiller.bukkit.tc.attachments.ui.models.listing;
 
 import java.util.Locale;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import org.bukkit.ChatColor;
-import org.bukkit.inventory.ItemStack;
-
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
 
 /**
  * A single directory containing item models or other directories
@@ -71,15 +69,14 @@ public final class ListedDirectory extends ListedEntry {
     }
 
     @Override
-    public ItemStack createIconItem(DialogBuilder options) {
-        ItemStack item = options.getDirectoryIconItem().clone();
-        ItemUtil.setDisplayName(item, ChatColor.YELLOW + this.name);
-        ItemUtil.addLoreName(item, ChatColor.WHITE.toString() + ChatColor.ITALIC + this.fullPath());
-        ItemUtil.addLoreName(item, "");
-        ItemUtil.addLoreName(item, ChatColor.DARK_GRAY + "Directory");
-        ItemUtil.addLoreName(item, ChatColor.DARK_GRAY +
-                "< " + ChatColor.GRAY + this.nestedItemCount + ChatColor.DARK_GRAY + " Item models >");
-        return item;
+    public CommonItemStack createIconItem(DialogBuilder options) {
+        return CommonItemStack.copyOf(options.getDirectoryIconItem())
+                .setCustomNameMessage(ChatColor.YELLOW + this.name)
+                .addLoreMessage(ChatColor.WHITE.toString() + ChatColor.ITALIC + this.fullPath())
+                .addLoreLine()
+                .addLoreMessage(ChatColor.DARK_GRAY + "Directory")
+                .addLoreMessage(ChatColor.DARK_GRAY +
+                        "< " + ChatColor.GRAY + this.nestedItemCount + ChatColor.DARK_GRAY + " Item models >");
     }
 
     @Override

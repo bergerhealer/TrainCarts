@@ -4,13 +4,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-import org.bukkit.inventory.ItemFlag;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-
-import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 
 /**
@@ -71,29 +64,6 @@ public class ListedRootLoader {
             for (ListedEntry e : namespace.matchWithPathPrefix(parts)) {
                 e.assignToRoot(root);
             }
-        }
-    }
-
-    // Figure out the default HideFlags to put in the NBT
-    private static final int DEFAULT_HIDE_FLAGS;
-    static {
-        ItemStack item = ItemUtil.createItem(MaterialUtil.getFirst("GLASS", "LEGACY_GLASS"), 1);
-        ItemMeta meta = item.getItemMeta();
-        for (ItemFlag flag : ItemFlag.values()) {
-            if (flag.name().startsWith("HIDE_")) { // Probably is all of them
-                meta.addItemFlags(flag);
-            }
-        }
-        item.setItemMeta(meta);
-        CommonTagCompound nbt = ItemUtil.getMetaTag(item, true);
-        DEFAULT_HIDE_FLAGS = (nbt == null) ? 0 : nbt.getValue("HideFlags", 0);
-    }
-
-    static void hideItemAttributes(ItemStack item) {
-        // Hides everything except the lores we add
-        CommonTagCompound nbt = ItemUtil.getMetaTag(item, true);
-        if (nbt != null) {
-            nbt.putValue("HideFlags", DEFAULT_HIDE_FLAGS);
         }
     }
 }

@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import org.bukkit.ChatColor;
 import org.bukkit.inventory.ItemStack;
 
@@ -19,10 +20,10 @@ public final class ListedItemModel extends ListedEntry {
     private final String name;
     private final String nameLowerCase;
     private final String credit;
-    private final ItemStack bareItem;
-    private final ItemStack item;
+    private final CommonItemStack bareItem;
+    private final CommonItemStack item;
 
-    public ListedItemModel(String fullPath, String path, String name, String credit, ItemStack item) {
+    public ListedItemModel(String fullPath, String path, String name, String credit, CommonItemStack item) {
         this.nestedItemCount = 1;
         this.fullPath = fullPath;
         this.path = path;
@@ -30,7 +31,7 @@ public final class ListedItemModel extends ListedEntry {
         this.nameLowerCase = name.toLowerCase(Locale.ENGLISH);
         this.credit = credit;
         this.bareItem = item;
-        this.item = ItemUtil.createItem(item);
+        this.item = item.clone();
         this.initializeItem();
     }
 
@@ -44,52 +45,39 @@ public final class ListedItemModel extends ListedEntry {
         this.item = itemModel.item;
     }
 
-    @SuppressWarnings("deprecation")
     private void initializeItem() {
-        ListedRootLoader.hideItemAttributes(this.item);
+        item.hideAllAttributes();
 
-        CommonTagCompound nbt = ItemUtil.getMetaTag(this.item);
+        String origItemName = this.item.getCustomNameMessage();
+        item.setCustomNameMessage(ChatColor.AQUA + name);
+        item.addLoreMessage(ChatColor.WHITE.toString() + ChatColor.ITALIC + fullPath);
 
-        String itemName = ItemUtil.getDisplayName(this.item);
-        ItemUtil.setDisplayName(this.item, ChatColor.AQUA + name);
-        ItemUtil.addLoreName(this.item, ChatColor.WHITE.toString() + ChatColor.ITALIC + fullPath);
-
-        addLoreSpacer(this.item);
+        item.addLoreLine();
 
         {
-            addLoreProperty(this.item, "Item", itemName);
+            addLoreProperty(item, "Item", origItemName);
         }
 
-        {
-            int cmd = nbt.containsKey("CustomModelData") ? nbt.getValue("CustomModelData", 0) : 0;
-            if (cmd != 0) {
-                addLoreProperty(this.item, "Custom model data", cmd);
-            }
+        if (item.hasCustomModelData()) {
+            addLoreProperty(item, "Custom model data", item.getCustomModelData());
         }
 
-        {
-            short damage = this.item.getDurability();
-            if (damage != 0) {
-                addLoreProperty(this.item, "Damage", damage);
-            }
+        if (item.isDamageSupported() && item.getDamage() != 0) {
+            addLoreProperty(item, "Damage", item.getDamage());
         }
 
-        if (nbt.containsKey("Unbreakable") && nbt.getValue("Unbreakable", false)) {
-            addLoreProperty(this.item, "Unbreakable", true);
+        if (item.isUnbreakable()) {
+            addLoreProperty(item, "Unbreakable", true);
         }
 
         if (!credit.isEmpty()) {
-            ItemUtil.addLoreName(item, "");
-            ItemUtil.addLoreName(item, ChatColor.DARK_BLUE + credit);
+            item.addLoreLine();
+            item.addLoreMessage(ChatColor.DARK_BLUE + credit);
         }
     }
 
-    private static void addLoreSpacer(ItemStack item) {
-        ItemUtil.addLoreName(item, "");
-    }
-
-    private static void addLoreProperty(ItemStack item, String name, Object value) {
-        ItemUtil.addLoreName(item, ChatColor.DARK_GRAY + name + ": " + ChatColor.GRAY + value);
+    private static void addLoreProperty(CommonItemStack item, String name, Object value) {
+        item.addLoreMessage(ChatColor.DARK_GRAY + name + ": " + ChatColor.GRAY + value);
     }
 
     @Override
@@ -142,7 +130,7 @@ public final class ListedItemModel extends ListedEntry {
      *
      * @return item
      */
-    public ItemStack item() {
+    public CommonItemStack item() {
         return item;
     }
 
@@ -153,12 +141,12 @@ public final class ListedItemModel extends ListedEntry {
      *
      * @return bare item
      */
-    public ItemStack bareItem() {
+    public CommonItemStack bareItem() {
         return bareItem;
     }
 
     @Override
-    public ItemStack createIconItem(DialogBuilder options) {
+    public CommonItemStack createIconItem(DialogBuilder options) {
         return item.clone();
     }
 

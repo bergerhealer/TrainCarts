@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import com.bergerkiller.bukkit.common.bases.IntVector2;
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.inventory.InventoryBase;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.utils.*;
@@ -103,12 +104,12 @@ public class TransferSignUtil {
 
         // Transfer heatable items
         for (ItemParser p : heatables) {
-            ItemStack item = to.getItem(0);
-            if (item == null) {
-                item = ItemUtil.emptyItem();
+            CommonItemStack item = CommonItemStack.of(to.getItem(0));
+            int numTransferred = CommonItemStack.transfer(from, item, p, amountToTransfer);
+            if (numTransferred > 0) {
+                amountToTransfer -= numTransferred;
+                to.setItem(0, item.toBukkit());
             }
-            amountToTransfer -= ItemUtil.transfer(from, item, p, amountToTransfer);
-            to.setItem(0, item);
         }
 
         // Transfer fuel (requires manual limiting if no amount is set)
@@ -121,10 +122,7 @@ public class TransferSignUtil {
             }
 
             int transferCount = amountToTransfer;
-            ItemStack fuel = to.getItem(1);
-            if (fuel == null) {
-                fuel = ItemUtil.emptyItem();
-            }
+            CommonItemStack fuel = CommonItemStack.of(to.getItem(1));
             if (!p.hasAmount()) {
                 // Fill the minimal amount needed to burn all the heatables in the furnace
                 ItemStack cookeditem = to.getItem(0);
@@ -139,7 +137,7 @@ public class TransferSignUtil {
                 if (fuel.getType() == Material.AIR) {
                     fuelPerItem = RecipeUtil.getFuelTime(p.getItemStack(1));
                 } else {
-                    fuelPerItem = RecipeUtil.getFuelTime(fuel);
+                    fuelPerItem = RecipeUtil.getFuelTime(fuel.toBukkit());
                 }
                 //====================================================
                 if (fuelPerItem == 0) continue;
@@ -148,8 +146,8 @@ public class TransferSignUtil {
                 //====================================================
                 transferCount = Math.min(amountToTransfer, (int) Math.ceil((double) fuelNeeded / (double) fuelPerItem));
             }
-            amountToTransfer -= ItemUtil.transfer(from, fuel, p, transferCount);
-            to.setItem(1, fuel);
+            amountToTransfer -= CommonItemStack.transfer(from, fuel, p, transferCount);
+            to.setItem(1, fuel.toBukkit());
         }
         return startAmount - amountToTransfer;
     }

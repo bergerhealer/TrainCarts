@@ -2,21 +2,17 @@ package com.bergerkiller.bukkit.tc.editor;
 
 import java.util.UUID;
 
-import org.bukkit.Material;
+import com.bergerkiller.bukkit.common.inventory.CommonItemMaterials;
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
-import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getFirst;
-
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
 
 public class TCMapControl {
-    private static final Material FILLED_MAP_TYPE = getFirst("FILLED_MAP", "LEGACY_MAP");
-    private static final Material EMPTY_MAP_TYPE = getFirst("MAP", "LEGACY_EMPTY_MAP");
 
     /**
      * Updates a TC Map Sign Editor map item in the inventory of a player.
@@ -43,33 +39,41 @@ public class TCMapControl {
     }
 
     public static void updateMapItem(Player player, ItemStack item, boolean opened) {
+        updateMapItem(player, CommonItemStack.of(item), opened);
+    }
+
+    public static void updateMapItem(Player player, CommonItemStack item, boolean opened) {
         if (!isTCMapItem(item) || !player.isOnline()) {
             return;
         }
         PlayerInventory inv = player.getInventory();
-        UUID uuid = ItemUtil.getMetaTag(item).getUUID("editor");
+        UUID uuid = item.getCustomData().getUUID("editor");
         for (int i = 0; i < inv.getSize(); i++) {
-            ItemStack playerItem = inv.getItem(i);
-            if (isTCMapItem(playerItem) && ItemUtil.getMetaTag(playerItem).getUUID("editor").equals(uuid)) {
-                ItemStack newItem = playerItem.clone();
+            CommonItemStack playerItem = CommonItemStack.of(inv.getItem(i));
+            if (isTCMapItem(playerItem) && playerItem.getCustomData().getUUID("editor").equals(uuid)) {
+                CommonItemStack newItem = playerItem.clone();
                 if (opened) {
-                    newItem.setType(FILLED_MAP_TYPE);
+                    newItem.setType(CommonItemMaterials.FILLED_MAP);
                 } else {
-                    newItem.setType(EMPTY_MAP_TYPE);
+                    newItem.setType(CommonItemMaterials.EMPTY_MAP);
                 }
-                inv.setItem(i, newItem);
+                inv.setItem(i, newItem.toBukkit());
                 return;
             }
         }
     }
 
     public static boolean isTCMapItem(ItemStack item) {
-        if (item == null || (item.getType() != FILLED_MAP_TYPE && item.getType() != EMPTY_MAP_TYPE)) {
+        return isTCMapItem(CommonItemStack.of(item));
+    }
+
+    public static boolean isTCMapItem(CommonItemStack item) {
+        if (item == null || (!item.isType(CommonItemMaterials.FILLED_MAP) && item.isType(CommonItemMaterials.EMPTY_MAP))) {
             return false;
         }
 
         // Check NBT tags for valid signature
-        CommonTagCompound tag = ItemUtil.getMetaTag(item);
+        CommonTagCompound tag = item.getCustomData();
         if (tag == null) {
             return false;
         }
@@ -78,12 +82,14 @@ public class TCMapControl {
     }
 
     public static ItemStack createTCMapItem() {
-        ItemStack item = MapDisplay.createMapItem(TCMapEditor.class);
-        item.setType(EMPTY_MAP_TYPE);
-        ItemUtil.setDisplayName(item, "TrainCarts Editor");
-        ItemUtil.getMetaTag(item).putValue("plugin", "TrainCarts");
-        ItemUtil.getMetaTag(item).putUUID("editor", UUID.randomUUID());
+        CommonItemStack item = CommonItemStack.of(MapDisplay.createMapItem(TCMapEditor.class));
+        item.setType(CommonItemMaterials.EMPTY_MAP);
+        item.setCustomNameMessage("TrainCarts Editor");
+        item.updateCustomData(tag -> {
+            tag.putValue("plugin", "TrainCarts");
+            tag.putUUID("editor", UUID.randomUUID());
+        });
         item.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
-        return item;
+        return item.toBukkit();
     }
 }
