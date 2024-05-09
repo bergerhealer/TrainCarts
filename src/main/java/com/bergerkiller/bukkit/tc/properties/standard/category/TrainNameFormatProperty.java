@@ -124,7 +124,7 @@ public final class TrainNameFormatProperty implements ITrainProperty<TrainNameFo
 
     @Override
     public boolean isAppliedAsDefault() {
-        return false;
+        return true;
     }
 
     @Override
