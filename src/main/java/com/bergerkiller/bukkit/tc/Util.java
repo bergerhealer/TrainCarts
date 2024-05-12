@@ -58,7 +58,6 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.yaml.YamlPath;
-import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -89,17 +88,12 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bergerkiller.generated.net.minecraft.server.level.EntityTrackerEntryStateHandle;
 import com.bergerkiller.generated.net.minecraft.world.level.chunk.ChunkHandle;
 import com.bergerkiller.generated.net.minecraft.world.phys.AxisAlignedBBHandle;
-import com.bergerkiller.reflection.net.minecraft.server.NMSItem;
 
 public class Util {
     public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
     public static final MaterialTypeProperty ISTCRAIL = new MaterialTypeProperty(ISVERTRAIL, MaterialUtil.ISRAILS, MaterialUtil.ISPRESSUREPLATE);
     private static final String SEPARATOR_REGEX = "[|/\\\\]";
     private static List<Block> blockbuff = new ArrayList<>();
-
-    public static void setItemMaxSize(Material material, int maxstacksize) {
-        NMSItem.maxStackSize.set(Conversion.toItemHandle.convert(material), maxstacksize);
-    }
 
     // Number format used by stringifyNumberBoxValue
     private static final NumberFormat numberBox_NumberFormat = createNumberFormat(1, 4);

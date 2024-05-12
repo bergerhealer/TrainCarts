@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
 import com.bergerkiller.bukkit.common.collections.ImplicitlySharedSet;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.controller.DefaultEntityController;
+import com.bergerkiller.bukkit.common.conversion.type.HandleConversion;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.internal.legacy.MaterialsByName;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
@@ -72,6 +73,7 @@ import com.bergerkiller.bukkit.tc.offline.train.OfflineGroup;
 import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bergerkiller.bukkit.tc.utils.BlockPhysicsEventDataAccessor;
+import com.bergerkiller.generated.net.minecraft.world.item.ItemHandle;
 import com.bergerkiller.mountiplex.conversion.Conversion;
 
 import me.m56738.smoothcoasters.api.SmoothCoastersAPI;
@@ -775,7 +777,8 @@ public class TrainCarts extends PluginBase {
         if (TCConfig.maxMinecartStackSize != 1) {
             for (Material material : MaterialsByName.getAllMaterials()) {
                 if (MaterialUtil.ISMINECART.get(material)) {
-                    Util.setItemMaxSize(material, TCConfig.maxMinecartStackSize);
+                    ItemHandle.createHandle(HandleConversion.toItemHandle(material))
+                            .setMaxStackSize(TCConfig.maxMinecartStackSize);
                 }
             }
         }
@@ -1017,7 +1020,8 @@ public class TrainCarts extends PluginBase {
         if (TCConfig.maxMinecartStackSize != 1) {
             for (Material material : MaterialsByName.getAllMaterials()) {
                 if (MaterialUtil.ISMINECART.get(material)) {
-                    Util.setItemMaxSize(material, 1);
+                    ItemHandle.createHandle(HandleConversion.toItemHandle(material))
+                            .setMaxStackSize(1);
                 }
             }
         }
