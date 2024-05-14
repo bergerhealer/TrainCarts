@@ -305,9 +305,9 @@ public class MutexZonePath extends MutexZone {
     protected void setLeversDown(boolean down) {
         if (sign == null) {
             sign = plugin.getTrackedSignLookup().getTrackedSign(key.uniqueKey);
-            if (sign != null) {
-                sign.setOutput(down);
-            }
+        }
+        if (sign != null) {
+            sign.setOutput(down);
         }
     }
 
