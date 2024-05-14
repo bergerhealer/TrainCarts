@@ -87,7 +87,7 @@ public class CartAttachmentPlatform extends CartAttachment {
         this.actual = new VirtualEntity(this.getManager());
         this.actual.setEntityType(EntityType.SHULKER);
         this.actual.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
-        this.actual.getMetaData().watch(EntityShulkerHandle.DATA_COLOR, (byte) Color.DEFAULT.ordinal());
+        this.actual.getMetaData().setClientByteDefault(EntityShulkerHandle.DATA_COLOR, Color.DEFAULT.ordinal());
 
         // Shulker boxes fail to move, and must be inside a vehicle to move at all
         // Handle this logic here. It seems that the position of the chicken is largely irrelevant.

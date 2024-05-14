@@ -47,14 +47,30 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
     // This (unchanging) read-only metadata is used when spawning the mount of the display entity
     public static final DataWatcher ARMORSTAND_MOUNT_METADATA = new DataWatcher();
     static {
-        ARMORSTAND_MOUNT_METADATA.watch(EntityHandle.DATA_NO_GRAVITY, true);
-        ARMORSTAND_MOUNT_METADATA.watch(EntityHandle.DATA_FLAGS,
+        ARMORSTAND_MOUNT_METADATA.set(EntityHandle.DATA_NO_GRAVITY, true);
+        ARMORSTAND_MOUNT_METADATA.set(EntityHandle.DATA_FLAGS,
                 (byte) (EntityHandle.DATA_FLAG_INVISIBLE | EntityHandle.DATA_FLAG_FLYING));
-        ARMORSTAND_MOUNT_METADATA.watch(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
+        ARMORSTAND_MOUNT_METADATA.set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
                 (byte) (EntityArmorStandHandle.DATA_FLAG_SET_MARKER |
                         EntityArmorStandHandle.DATA_FLAG_IS_SMALL |
                         EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE));
     }
+
+    /**
+     * Creates DataWatchers with the base metadata default values for a new display entity
+     */
+    public static final DataWatcher.Prototype BASE_DISPLAY_METADATA = DataWatcher.Prototype.build()
+            .setClientDefault(DisplayHandle.DATA_INTERPOLATION_DURATION, 0)
+            .set(DisplayHandle.DATA_INTERPOLATION_DURATION, 3)
+            .setClientDefault(DisplayHandle.DATA_INTERPOLATION_START_DELTA_TICKS, 0)
+            .setClientDefault(DisplayHandle.DATA_SCALE, new Vector(1, 1, 1))
+            .setClientDefault(DisplayHandle.DATA_TRANSLATION, new Vector())
+            .setClientDefault(DisplayHandle.DATA_LEFT_ROTATION, new Quaternion())
+            .setClientDefault(DisplayHandle.DATA_RIGHT_ROTATION, new Quaternion())
+            .setClientDefault(DisplayHandle.DATA_BRIGHTNESS_OVERRIDE, Brightness.UNSET)
+            .setClientDefault(DisplayHandle.DATA_WIDTH, 0.0f)
+            .setClientDefault(DisplayHandle.DATA_HEIGHT, 0.0f)
+            .create();
 
     // Entity tracking code
     private final int mountEntityId;
@@ -71,22 +87,20 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
     private Brightness brightness;
 
     public VirtualDisplayEntity(AttachmentManager manager, EntityType entityType) {
+        this(manager, entityType, BASE_DISPLAY_METADATA.create());
+    }
+
+    public VirtualDisplayEntity(AttachmentManager manager, EntityType entityType, DataWatcher metadata) {
         super(manager);
         mountEntityId = EntityUtil.getUniqueEntityId();
         displayEntityId = EntityUtil.getUniqueEntityId();
         displayEntityUUID = UUID.randomUUID();
         this.entityType = entityType;
+        this.metadata = metadata;
+
         syncPos = new Vector(Double.NaN, Double.NaN, Double.NaN);
         livePos = new Vector(Double.NaN, Double.NaN, Double.NaN);
         liveRot = new Quaternion();
-        metadata = new DataWatcher();
-        metadata.watch(DisplayHandle.DATA_INTERPOLATION_DURATION, 3);
-        metadata.watch(DisplayHandle.DATA_INTERPOLATION_START_DELTA_TICKS, 0);
-        metadata.watch(DisplayHandle.DATA_SCALE, new Vector(1, 1, 1));
-        metadata.watch(DisplayHandle.DATA_TRANSLATION, new Vector());
-        metadata.watch(DisplayHandle.DATA_LEFT_ROTATION, new Quaternion());
-        metadata.watch(DisplayHandle.DATA_RIGHT_ROTATION, new Quaternion());
-        metadata.watch(DisplayHandle.DATA_BRIGHTNESS_OVERRIDE, Brightness.UNSET);
 
         scale = new Vector(1.0, 1.0, 1.0);
         brightness = Brightness.UNSET;

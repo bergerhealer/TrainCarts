@@ -78,6 +78,14 @@ class DebugParticlesDisplay extends DebugParticles {
         line(color, concrete, x2, y2, z1, x2, y2, z2, lineThickness);
     }
 
+    private static final DataWatcher.Prototype LINE_METADATA = VirtualDisplayEntity.BASE_DISPLAY_METADATA.modify()
+            .setByte(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING)
+            .set(DisplayHandle.DATA_INTERPOLATION_DURATION, 0)
+            .set(DisplayHandle.DATA_BRIGHTNESS_OVERRIDE, Brightness.blockLight(15))
+            .setClientDefault(DisplayHandle.DATA_GLOW_COLOR_OVERRIDE, -1)
+            .setClientDefault(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, BlockData.AIR)
+            .create();
+
     private void line(Color color, BlockData concrete, double x1, double y1, double z1, double x2, double y2, double z2, double lineThickness) {
         double dist = MathUtil.distance(x1, y1, z1, x2, y2, z2);
         if (dist <= 1e-6) {
@@ -88,22 +96,18 @@ class DebugParticlesDisplay extends DebugParticles {
 
         int entityId = EntityUtil.getUniqueEntityId();
         UUID entityUUID = UUID.randomUUID();
-        DataWatcher metadata = new DataWatcher();
+        DataWatcher metadata = LINE_METADATA.create();
 
         Vector translation = new Vector(-0.5 * lineThickness, -0.5 * lineThickness, -0.5 * dist);
         rotation.transformPoint(translation);
 
         // Setup metadata to transform the cube into a neat line
         {
-            metadata.watch(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_GLOWING);
-            metadata.watch(DisplayHandle.DATA_TRANSLATION, translation);
-            metadata.watch(DisplayHandle.DATA_LEFT_ROTATION, rotation);
-            metadata.watch(DisplayHandle.DATA_SCALE, new Vector(lineThickness, lineThickness, dist));
-            metadata.watch(DisplayHandle.DATA_INTERPOLATION_DURATION, 0);
-            metadata.watch(DisplayHandle.DATA_INTERPOLATION_START_DELTA_TICKS, 0);
-            metadata.watch(DisplayHandle.DATA_GLOW_COLOR_OVERRIDE, color.asRGB());
-            metadata.watch(DisplayHandle.DATA_BRIGHTNESS_OVERRIDE, Brightness.blockLight(15));
-            metadata.watch(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, concrete);
+            metadata.set(DisplayHandle.DATA_TRANSLATION, translation);
+            metadata.set(DisplayHandle.DATA_LEFT_ROTATION, rotation);
+            metadata.set(DisplayHandle.DATA_SCALE, new Vector(lineThickness, lineThickness, dist));
+            metadata.set(DisplayHandle.DATA_GLOW_COLOR_OVERRIDE, color.asRGB());
+            metadata.set(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, concrete);
         }
 
         DisplayTask task = new DisplayTask(entityId, color, metadata);
@@ -131,23 +135,30 @@ class DebugParticlesDisplay extends DebugParticles {
         startUpdating();
     }
 
+    private static final DataWatcher.Prototype POINT_METADATA;
+    static {
+        double scale = 0.1;
+        POINT_METADATA = VirtualDisplayEntity.BASE_DISPLAY_METADATA.modify()
+                .set(DisplayHandle.DATA_TRANSLATION, new Vector(-0.5 * scale, -0.5 * scale, -0.5 * scale))
+                .set(DisplayHandle.DATA_SCALE, new Vector(scale, scale, scale))
+                .setByte(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING)
+                .set(DisplayHandle.DATA_INTERPOLATION_DURATION, 0)
+                .set(DisplayHandle.DATA_BRIGHTNESS_OVERRIDE, Brightness.blockLight(15))
+                .setClientDefault(DisplayHandle.DATA_GLOW_COLOR_OVERRIDE, -1)
+                .setClientDefault(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, BlockData.AIR)
+                .create();
+    }
+
     @Override
     public void point(Color color, double x, double y, double z) {
         int entityId = EntityUtil.getUniqueEntityId();
         UUID entityUUID = UUID.randomUUID();
-        DataWatcher metadata = new DataWatcher();
-        double scale = 0.1;
+        DataWatcher metadata = POINT_METADATA.create();
 
         // Setup metadata to transform the cube into a neat line
         {
-            metadata.watch(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_GLOWING);
-            metadata.watch(DisplayHandle.DATA_TRANSLATION, new Vector(-0.5 * scale, -0.5 * scale, -0.5 * scale));
-            metadata.watch(DisplayHandle.DATA_SCALE, new Vector(scale, scale, scale));
-            metadata.watch(DisplayHandle.DATA_INTERPOLATION_DURATION, 0);
-            metadata.watch(DisplayHandle.DATA_INTERPOLATION_START_DELTA_TICKS, 0);
-            metadata.watch(DisplayHandle.DATA_GLOW_COLOR_OVERRIDE, color.asRGB());
-            metadata.watch(DisplayHandle.DATA_BRIGHTNESS_OVERRIDE, Brightness.blockLight(15));
-            metadata.watch(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, ConcretePalette.getConcrete(color));
+            metadata.set(DisplayHandle.DATA_GLOW_COLOR_OVERRIDE, color.asRGB());
+            metadata.set(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, ConcretePalette.getConcrete(color));
         }
 
         DisplayTask task = new DisplayTask(entityId, color, metadata);

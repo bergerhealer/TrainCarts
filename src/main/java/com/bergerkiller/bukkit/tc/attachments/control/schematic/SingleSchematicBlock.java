@@ -26,6 +26,12 @@ class SingleSchematicBlock {
     private final UUID entityUUID;
     private final DataWatcher metadata;
 
+    private static final DataWatcher.Prototype BLOCK_METADATA = VirtualDisplayEntity.BASE_DISPLAY_METADATA.modify()
+            .set(DisplayHandle.DATA_WIDTH, (float) 1.5F)
+            .set(DisplayHandle.DATA_HEIGHT, (float) 1.5F)
+            .setClientDefault(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, BlockData.AIR)
+            .create();
+
     public SingleSchematicBlock(double x, double y, double z, BlockData blockData) {
         this.x = x;
         this.y = y;
@@ -36,16 +42,8 @@ class SingleSchematicBlock {
         this.translation = new Vector(x, y, z);
         this.entityId = EntityUtil.getUniqueEntityId();
         this.entityUUID = UUID.randomUUID();
-        this.metadata = new DataWatcher();
-
-        metadata.watch(DisplayHandle.DATA_INTERPOLATION_DURATION, 3);
-        metadata.watch(DisplayHandle.DATA_INTERPOLATION_START_DELTA_TICKS, 0);
-        metadata.watch(DisplayHandle.DATA_SCALE, new Vector(1, 1, 1));
-        metadata.watch(DisplayHandle.DATA_TRANSLATION, new Vector());
-        metadata.watch(DisplayHandle.DATA_LEFT_ROTATION, new Quaternion());
-        metadata.watch(DisplayHandle.DATA_WIDTH, (float) 1.5F);
-        metadata.watch(DisplayHandle.DATA_HEIGHT, (float) 1.5F);
-        metadata.watch(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, blockData);
+        this.metadata = BLOCK_METADATA.create();
+        this.metadata.set(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, blockData);
     }
 
     /**

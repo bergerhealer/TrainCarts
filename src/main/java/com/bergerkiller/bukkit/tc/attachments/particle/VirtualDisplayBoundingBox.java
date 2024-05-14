@@ -167,6 +167,19 @@ public class VirtualDisplayBoundingBox extends VirtualBoundingBox {
         public final UUID entityUUID;
         private final DataWatcher metadata;
 
+        private static final DataWatcher.Prototype LINE_METADATA = DataWatcher.Prototype.build()
+                .setClientByteDefault(EntityHandle.DATA_FLAGS, 0)
+                .setClientDefault(DisplayHandle.DATA_TRANSLATION, new Vector())
+                .setClientDefault(DisplayHandle.DATA_LEFT_ROTATION, new Quaternion())
+                .setClientDefault(DisplayHandle.DATA_SCALE, new Vector(1, 1, 1))
+                .setClientDefault(DisplayHandle.DATA_INTERPOLATION_DURATION, 0)
+                .set(DisplayHandle.DATA_INTERPOLATION_DURATION, 3)
+                .setClientDefault(DisplayHandle.DATA_INTERPOLATION_START_DELTA_TICKS, 0)
+                .setClientDefault(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, BlockData.AIR)
+                .set(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, BlockData.fromMaterial(
+                        MaterialUtil.getMaterial("BLACK_CONCRETE")))
+                .create();
+
         public static Line transform(Consumer<LineTransformer> transform) {
             return new Line(transform);
         }
@@ -175,14 +188,7 @@ public class VirtualDisplayBoundingBox extends VirtualBoundingBox {
             this.transform = transform;
             entityId = EntityUtil.getUniqueEntityId();
             entityUUID = UUID.randomUUID();
-            metadata = new DataWatcher();
-            metadata.watch(EntityHandle.DATA_FLAGS, (byte) 0);
-            metadata.watch(DisplayHandle.DATA_TRANSLATION, new Vector());
-            metadata.watch(DisplayHandle.DATA_SCALE, new Vector(1, 1, 1));
-            metadata.watch(DisplayHandle.DATA_INTERPOLATION_DURATION, 3);
-            metadata.watch(DisplayHandle.DATA_INTERPOLATION_START_DELTA_TICKS, 0);
-            metadata.watch(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, BlockData.fromMaterial(
-                    MaterialUtil.getMaterial("BLACK_CONCRETE")));
+            metadata = LINE_METADATA.create();
         }
 
         public PacketPlayOutEntityMetadataHandle createMetaPacket(boolean includeUnchangedData) {

@@ -19,14 +19,23 @@ public class VirtualDisplayItemEntity extends VirtualDisplayEntity {
     // This (unchanging) read-only metadata is used when spawning the mount of the display entity
     private static final DataWatcher MOUNT_METADATA = new DataWatcher();
     static {
-        MOUNT_METADATA.watch(EntityHandle.DATA_NO_GRAVITY, true);
-        MOUNT_METADATA.watch(EntityHandle.DATA_FLAGS,
+        MOUNT_METADATA.set(EntityHandle.DATA_NO_GRAVITY, true);
+        MOUNT_METADATA.set(EntityHandle.DATA_FLAGS,
                 (byte) (EntityHandle.DATA_FLAG_INVISIBLE | EntityHandle.DATA_FLAG_FLYING));
-        MOUNT_METADATA.watch(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
+        MOUNT_METADATA.set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
                 (byte) (EntityArmorStandHandle.DATA_FLAG_SET_MARKER |
                         EntityArmorStandHandle.DATA_FLAG_IS_SMALL |
                         EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE));
     }
+
+    /**
+     * Creates DataWatchers with the base metadata default values for a new Item display entity
+     */
+    public static final DataWatcher.Prototype ITEM_DISPLAY_METADATA = BASE_DISPLAY_METADATA.modify()
+            .setClientDefault(DisplayHandle.ItemDisplayHandle.DATA_ITEM_DISPLAY_MODE, ItemDisplayMode.NONE)
+            .set(DisplayHandle.ItemDisplayHandle.DATA_ITEM_DISPLAY_MODE, ItemDisplayMode.HEAD)
+            .setClientDefault(DisplayHandle.ItemDisplayHandle.DATA_ITEM_STACK, null)
+            .create();
 
     /**
      * On Minecraft 1.19.4 display entities had their yaw flipped. As such an extra flip was needed
@@ -42,9 +51,7 @@ public class VirtualDisplayItemEntity extends VirtualDisplayEntity {
     private boolean appliedClip;
 
     public VirtualDisplayItemEntity(AttachmentManager manager) {
-        super(manager, ITEM_DISPLAY_ENTITY_TYPE);
-        metadata.watch(DisplayHandle.ItemDisplayHandle.DATA_ITEM_DISPLAY_MODE, ItemDisplayMode.HEAD);
-        metadata.watch(DisplayHandle.ItemDisplayHandle.DATA_ITEM_STACK, null);
+        super(manager, ITEM_DISPLAY_ENTITY_TYPE, ITEM_DISPLAY_METADATA.create());
 
         mode = ItemDisplayMode.HEAD;
         item = null;
@@ -100,11 +107,7 @@ public class VirtualDisplayItemEntity extends VirtualDisplayEntity {
 
     private void applyClip() {
         if (this.clip != 0.0) {
-            if (!appliedClip) {
-                appliedClip = true;
-                metadata.watch(DisplayHandle.ItemDisplayHandle.DATA_WIDTH, 0.0f);
-                metadata.watch(DisplayHandle.ItemDisplayHandle.DATA_HEIGHT, 0.0f);
-            }
+            appliedClip = true;
             float f = (float) (this.clip * BBOX_FACT * Util.absMaxAxis(scale));
             metadata.set(DisplayHandle.ItemDisplayHandle.DATA_WIDTH, f);
             metadata.set(DisplayHandle.ItemDisplayHandle.DATA_HEIGHT, f);

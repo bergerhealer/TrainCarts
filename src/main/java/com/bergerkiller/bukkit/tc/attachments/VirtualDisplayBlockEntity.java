@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments;
 
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.generated.net.minecraft.world.entity.DisplayHandle;
@@ -14,10 +15,16 @@ public class VirtualDisplayBlockEntity extends VirtualDisplayEntity {
     // Properties
     private BlockData blockData;
 
+    /**
+     * Creates DataWatchers with the base metadata default values for a new Block display entity
+     */
+    public static final DataWatcher.Prototype BLOCK_DISPLAY_METADATA = BASE_DISPLAY_METADATA.modify()
+            .set(DisplayHandle.DATA_WIDTH, (float) BBOX_FACT)
+            .set(DisplayHandle.DATA_HEIGHT, (float) BBOX_FACT)
+            .create();
+
     public VirtualDisplayBlockEntity(AttachmentManager manager) {
-        super(manager, BLOCK_DISPLAY_ENTITY_TYPE);
-        metadata.watch(DisplayHandle.DATA_WIDTH, (float) BBOX_FACT);
-        metadata.watch(DisplayHandle.DATA_HEIGHT, (float) BBOX_FACT);
+        super(manager, BLOCK_DISPLAY_ENTITY_TYPE, BLOCK_DISPLAY_METADATA.create());
         blockData = null;
     }
 
