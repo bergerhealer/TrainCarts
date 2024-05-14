@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.chest;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -8,11 +9,9 @@ import org.bukkit.event.Event.Result;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.collections.EntityMap;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -65,7 +64,7 @@ public class TrainChestListener implements Listener {
         }
 
         // Check train spawning chest item
-        ItemStack heldItem = HumanHand.getItemInMainHand(event.getPlayer());
+        CommonItemStack heldItem = CommonItemStack.of(HumanHand.getItemInMainHand(event.getPlayer()));
         if (!TrainChestItemUtil.isItem(heldItem)) {
             return;
         }
@@ -118,17 +117,13 @@ public class TrainChestListener implements Listener {
         // Remove item if the chest item is also locked
         if (result == TrainChestItemUtil.SpawnResult.SUCCESS && TrainChestItemUtil.isFiniteSpawns(heldItem)) {
             if (TrainChestItemUtil.isLocked(heldItem)) {
-                if (heldItem.getAmount() > 1) {
-                    heldItem = ItemUtil.cloneItem(heldItem);
-                    heldItem.setAmount(heldItem.getAmount() - 1);
-                    HumanHand.setItemInMainHand(event.getPlayer(), heldItem);
-                } else {
-                    HumanHand.setItemInMainHand(event.getPlayer(), null);
-                }
+                HumanHand.setItemInMainHand(event.getPlayer(), heldItem.clone()
+                        .subtractAmount(1)
+                        .toBukkit());
             } else {
-                heldItem = ItemUtil.cloneItem(heldItem);
+                heldItem = heldItem.clone();
                 TrainChestItemUtil.clear(heldItem);
-                HumanHand.setItemInMainHand(event.getPlayer(), heldItem);
+                HumanHand.setItemInMainHand(event.getPlayer(), heldItem.toBukkit());
             }
         }
 
@@ -153,7 +148,7 @@ public class TrainChestListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
         // Handle clicking groups while holding a train storage chest
-        ItemStack heldItem = HumanHand.getItemInMainHand(event.getPlayer());
+        CommonItemStack heldItem = CommonItemStack.of(HumanHand.getItemInMainHand(event.getPlayer()));
         if (TrainChestItemUtil.isItem(heldItem)) {
             event.setCancelled(true);
 
@@ -186,7 +181,7 @@ public class TrainChestListener implements Listener {
 
             heldItem = heldItem.clone();
             TrainChestItemUtil.store(heldItem, member.getGroup());
-            HumanHand.setItemInMainHand(event.getPlayer(), heldItem);
+            HumanHand.setItemInMainHand(event.getPlayer(), heldItem.toBukkit());
             Localization.CHEST_PICKUP.message(event.getPlayer());
             TrainChestItemUtil.playSoundStore(event.getPlayer());
 

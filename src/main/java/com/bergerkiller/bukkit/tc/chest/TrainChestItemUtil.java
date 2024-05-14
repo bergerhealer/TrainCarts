@@ -206,7 +206,7 @@ public class TrainChestItemUtil {
     }
 
     public static boolean isEmpty(CommonItemStack item) {
-        return isItem(item) && item.getCustomData().containsKey("config");
+        return isItem(item) && !item.getCustomData().containsKey("config");
     }
 
     public static void playSoundStore(Player player) {
