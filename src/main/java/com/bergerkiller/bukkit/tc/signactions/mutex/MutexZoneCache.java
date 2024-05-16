@@ -131,6 +131,10 @@ public class MutexZoneCache {
                         }
                     }
                 });
+                if (slotData == null) {
+                    // AbortChildException thrown
+                    continue;
+                }
             } catch (Throwable t) {
                 plugin.getLogger().log(Level.SEVERE, "Failed to save mutex zone slot '" + slot.getName() + "'", t);
                 continue;
