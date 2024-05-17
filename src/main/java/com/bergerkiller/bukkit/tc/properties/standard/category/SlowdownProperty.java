@@ -19,10 +19,9 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SlowdownMode;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Controls whether a train slows down (or speeds up) over time
@@ -53,7 +52,7 @@ public final class SlowdownProperty extends FieldBackedStandardTrainProperty<Set
 
     @CommandTargetTrain
     @PropertyCheckPermission("slowdown")
-    @CommandMethod("train slowdown <mode> <enabled>")
+    @Command("train slowdown <mode> <enabled>")
     @CommandDescription("Sets whether trains slow down and speed up due to a particular type of slow-down mode")
     private void trainSetSlowdownMode(
             final CommandSender sender,
@@ -65,7 +64,7 @@ public final class SlowdownProperty extends FieldBackedStandardTrainProperty<Set
         trainGetSlowdownMode(sender, properties, mode);
     }
 
-    @CommandMethod("train slowdown <mode>")
+    @Command("train slowdown <mode>")
     @CommandDescription("Gets whether trains slow down and speed up for a particular slow-down mode")
     private void trainGetSlowdownMode(
             final CommandSender sender,
@@ -79,7 +78,7 @@ public final class SlowdownProperty extends FieldBackedStandardTrainProperty<Set
 
     @CommandTargetTrain
     @PropertyCheckPermission("slowdown")
-    @CommandMethod("train slowdown all|true|enable|enabled")
+    @Command("train slowdown all|true|enable|enabled")
     @CommandDescription("Enables all default modes of slowing down")
     private void trainSetSlowdownAll(
             final CommandSender sender,
@@ -91,7 +90,7 @@ public final class SlowdownProperty extends FieldBackedStandardTrainProperty<Set
 
     @CommandTargetTrain
     @PropertyCheckPermission("slowdown")
-    @CommandMethod("train slowdown none|false|disable|disabled")
+    @Command("train slowdown none|false|disable|disabled")
     @CommandDescription("Disables all default modes of slowing down")
     private void trainSetSlowdownNone(
             final CommandSender sender,
@@ -101,7 +100,7 @@ public final class SlowdownProperty extends FieldBackedStandardTrainProperty<Set
         trainGetSlowdownModes(sender, properties);
     }
 
-    @CommandMethod("train slowdown")
+    @Command("train slowdown")
     @CommandDescription("Gets what types of slow-down are enabled for a train")
     private void trainGetSlowdownModes(
             final CommandSender sender,

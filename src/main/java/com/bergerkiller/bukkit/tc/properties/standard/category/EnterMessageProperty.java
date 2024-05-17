@@ -14,11 +14,10 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
-import cloud.commandframework.annotations.specifier.Quoted;
+import org.incendo.cloud.annotation.specifier.Quoted;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Displays a message to the players when they enter this particular cart
@@ -27,7 +26,7 @@ public final class EnterMessageProperty implements ICartProperty<String> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("entermessage")
-    @CommandMethod("train entermessage <message>")
+    @Command("train entermessage <message>")
     @CommandDescription("Sets the message displayed to players when they enter the train")
     private void setProperty(
             final CommandSender sender,
@@ -38,7 +37,7 @@ public final class EnterMessageProperty implements ICartProperty<String> {
         getProperty(sender, properties);
     }
 
-    @CommandMethod("train entermessage")
+    @Command("train entermessage")
     @CommandDescription("Displays the message that will be displayed to players when they enter the train")
     private void getProperty(
             final CommandSender sender,
@@ -56,7 +55,7 @@ public final class EnterMessageProperty implements ICartProperty<String> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("entermessage")
-    @CommandMethod("cart entermessage <message>")
+    @Command("cart entermessage <message>")
     @CommandDescription("Sets the message displayed to players when they enter the cart")
     private void setProperty(
             final CommandSender sender,
@@ -67,7 +66,7 @@ public final class EnterMessageProperty implements ICartProperty<String> {
         getProperty(sender, properties);
     }
 
-    @CommandMethod("cart entermessage")
+    @Command("cart entermessage")
     @CommandDescription("Displays the message that will be displayed to players when they enter the cart")
     private void getProperty(
             final CommandSender sender,

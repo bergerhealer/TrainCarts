@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.tc.commands.parsers;
 
 import com.bergerkiller.bukkit.tc.Localization;
 
-import cloud.commandframework.context.CommandContext;
+import org.incendo.cloud.context.CommandContext;
 
 /**
  * Exception thrown from parsers when provided input is invalid

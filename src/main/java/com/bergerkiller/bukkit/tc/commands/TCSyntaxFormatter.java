@@ -1,73 +1,146 @@
+//
+// MIT License
+//
+// Copyright (c) 2024 Incendo
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//
 package com.bergerkiller.bukkit.tc.commands;
 
-import java.util.Iterator;
-import java.util.List;
-
+import com.bergerkiller.bukkit.tc.commands.parsers.TrainTargetingFlags;
+import io.leangen.geantyref.GenericTypeReflector;
+import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.incendo.cloud.CommandManager;
+import org.incendo.cloud.component.CommandComponent;
+import org.incendo.cloud.internal.CommandNode;
+import org.incendo.cloud.parser.aggregate.AggregateParser;
+import org.incendo.cloud.parser.flag.CommandFlag;
+import org.incendo.cloud.parser.flag.CommandFlagParser;
+import org.incendo.cloud.permission.Permission;
+import org.incendo.cloud.syntax.CommandSyntaxFormatter;
 
-import com.bergerkiller.bukkit.tc.commands.parsers.TrainTargetingFlags;
-
-import cloud.commandframework.CommandTree;
-import cloud.commandframework.arguments.CommandArgument;
-import cloud.commandframework.arguments.CommandSyntaxFormatter;
-import cloud.commandframework.arguments.StaticArgument;
-import cloud.commandframework.arguments.compound.CompoundArgument;
-import cloud.commandframework.arguments.compound.FlagArgument;
-import cloud.commandframework.arguments.flags.CommandFlag;
+import java.lang.reflect.Type;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
 
 /**
  * Based upon cloud's standard syntax formatter, but filters certain flags
  * so they don't make the help menu super verbose.
- * 
+ *
  * @param <C> CommandSender type
  */
 public class TCSyntaxFormatter<C> implements CommandSyntaxFormatter<C> {
+    private final CommandManager<C> manager;
+
+    /**
+     * Creates a new {@link org.incendo.cloud.syntax.StandardCommandSyntaxFormatter}.
+     *
+     * @param manager command manager
+     */
+    public TCSyntaxFormatter(final @NonNull CommandManager<C> manager) {
+        this.manager = manager;
+    }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    @SuppressWarnings("unchecked")
     public final @NonNull String apply(
-            final @NonNull List<@NonNull CommandArgument<C, ?>> commandArguments,
-            final CommandTree.@Nullable Node<@Nullable CommandArgument<C, ?>> node
+            final @Nullable C sender,
+            final @NonNull List<@NonNull CommandComponent<C>> commandComponents,
+            final @Nullable CommandNode<C> node
+    ) {
+        return this.apply(commandComponents, node, n -> {
+            if (sender == null) {
+                return true;
+            }
+            final Map<Type, Permission> accessMap = n.nodeMeta().getOrDefault(
+                    CommandNode.META_KEY_ACCESS,
+                    Collections.emptyMap()
+            );
+            for (final Map.Entry<Type, Permission> entry : accessMap.entrySet()) {
+                if (GenericTypeReflector.isSuperType(entry.getKey(), sender.getClass())) {
+                    if (this.manager.testPermission(sender, entry.getValue()).allowed()) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        });
+    }
+
+    private @NonNull String apply(
+            final @NonNull List<@NonNull CommandComponent<C>> commandComponents,
+            final @Nullable CommandNode<C> node,
+            final @NonNull Predicate<@NonNull CommandNode<C>> filter
     ) {
         final FormattingInstance formattingInstance = this.createInstance();
-        final Iterator<CommandArgument<C, ?>> iterator = commandArguments.iterator();
+        final Iterator<CommandComponent<C>> iterator = commandComponents.iterator();
         while (iterator.hasNext()) {
-            final CommandArgument<?, ?> commandArgument = iterator.next();
-            if (commandArgument instanceof StaticArgument) {
-                formattingInstance.appendLiteral((StaticArgument<C>) commandArgument);
-            } else if (commandArgument instanceof CompoundArgument) {
-                formattingInstance.appendCompound((CompoundArgument<?, ?, ?>) commandArgument);
-            } else if (commandArgument instanceof FlagArgument) {
-                formattingInstance.appendFlag((FlagArgument<?>) commandArgument);
+            final CommandComponent<C> commandComponent = iterator.next();
+            if (commandComponent.type() == CommandComponent.ComponentType.LITERAL) {
+                formattingInstance.appendLiteral(commandComponent);
+            } else if (commandComponent.parser() instanceof AggregateParser<?, ?>) {
+                final AggregateParser<?, ?> aggregateParser = (AggregateParser<?, ?>) commandComponent.parser();
+                formattingInstance.appendAggregate(commandComponent, aggregateParser);
+            } else if (commandComponent.type() == CommandComponent.ComponentType.FLAG) {
+                formattingInstance.appendFlag((CommandFlagParser<?>) commandComponent.parser());
             } else {
-                if (commandArgument.isRequired()) {
-                    formattingInstance.appendRequired(commandArgument);
+                if (commandComponent.required()) {
+                    formattingInstance.appendRequired(commandComponent);
                 } else {
-                    formattingInstance.appendOptional(commandArgument);
+                    formattingInstance.appendOptional(commandComponent);
                 }
             }
             if (iterator.hasNext()) {
                 formattingInstance.appendBlankSpace();
             }
         }
-        CommandTree.Node<CommandArgument<C, ?>> tail = node;
-        while (tail != null && !tail.isLeaf()) {
-            if (tail.getChildren().size() > 1) {
+        CommandNode<C> tail = node;
+        while (tail != null && !tail.isLeaf() && filter.test(tail)) {
+            if (tail.children().size() > 1) {
                 formattingInstance.appendBlankSpace();
-                final Iterator<CommandTree.Node<CommandArgument<C, ?>>> childIterator = tail.getChildren().iterator();
+                final Iterator<CommandNode<C>> childIterator = tail.children().stream().filter(filter).iterator();
                 while (childIterator.hasNext()) {
-                    final CommandTree.Node<CommandArgument<C, ?>> child = childIterator.next();
+                    final CommandNode<C> child = childIterator.next();
 
-                    if (child.getValue() instanceof StaticArgument) {
-                        formattingInstance.appendName(child.getValue().getName());
-                    } else if (child.getValue().isRequired()) {
-                        formattingInstance.appendRequired(child.getValue());
-                    } else {
-                        formattingInstance.appendOptional(child.getValue());
+                    if (child.component() == null) {
+                        continue;
+                    }
+
+                    switch (child.component().type()) {
+                        case LITERAL:
+                            formattingInstance.appendName(child.component().name());
+                            break;
+                        case REQUIRED_VARIABLE:
+                            formattingInstance.appendRequired(child.component());
+                            break;
+                        case OPTIONAL_VARIABLE:
+                            formattingInstance.appendOptional(child.component());
+                            break;
+                        default:
+                            break;
                     }
 
                     if (childIterator.hasNext()) {
@@ -76,22 +149,29 @@ public class TCSyntaxFormatter<C> implements CommandSyntaxFormatter<C> {
                 }
                 break;
             }
-            final CommandArgument<C, ?> argument = tail.getChildren().get(0).getValue();
-            if (argument instanceof CompoundArgument) {
+            if (!filter.test(tail.children().get(0))) {
+                break;
+            }
+            final CommandComponent<C> component = tail.children().get(0).component();
+            if (component.parser() instanceof AggregateParser<?, ?>) {
+                final AggregateParser<?, ?> aggregateParser = (AggregateParser<?, ?>) component.parser();
                 formattingInstance.appendBlankSpace();
-                formattingInstance.appendCompound((CompoundArgument<?, ?, ?>) argument);
-            } else if (argument instanceof FlagArgument) {
+                formattingInstance.appendAggregate(component, aggregateParser);
+            } else if (component.type() == CommandComponent.ComponentType.FLAG) {
                 formattingInstance.appendBlankSpace();
-                formattingInstance.appendFlag((FlagArgument<?>) argument);
+                formattingInstance.appendFlag((CommandFlagParser<?>) component.parser());
+            } else if (component.type() == CommandComponent.ComponentType.LITERAL) {
+                formattingInstance.appendBlankSpace();
+                formattingInstance.appendLiteral(component);
             } else {
                 formattingInstance.appendBlankSpace();
-                if (argument.isRequired()) {
-                    formattingInstance.appendRequired(argument);
+                if (component.required()) {
+                    formattingInstance.appendRequired(component);
                 } else {
-                    formattingInstance.appendOptional(argument);
+                    formattingInstance.appendOptional(component);
                 }
             }
-            tail = tail.getChildren().get(0);
+            tail = tail.children().get(0);
         }
         return formattingInstance.toString();
     }
@@ -133,25 +213,32 @@ public class TCSyntaxFormatter<C> implements CommandSyntaxFormatter<C> {
          *
          * @param literal Literal to append
          */
-        public void appendLiteral(final @NonNull StaticArgument<?> literal) {
-            this.appendName(literal.getName());
+        public void appendLiteral(final @NonNull CommandComponent<?> literal) {
+            this.appendName(literal.name());
         }
 
         /**
-         * Append a compound argument to the syntax string
+         * Append an aggregate component to the syntax string
          *
-         * @param argument Compound argument to append
+         * @param component The component that contained the argument
+         * @param parser    Compound argument to append
          */
-        public void appendCompound(final @NonNull CompoundArgument<?, ?, ?> argument) {
-            final String prefix = argument.isRequired() ? this.getRequiredPrefix() : this.getOptionalPrefix();
-            final String suffix = argument.isRequired() ? this.getRequiredSuffix() : this.getOptionalSuffix();
+        @API(status = API.Status.STABLE)
+        public void appendAggregate(
+                final @NonNull CommandComponent<?> component,
+                final @NonNull AggregateParser<?, ?> parser
+        ) {
+            final String prefix = component.required() ? this.requiredPrefix() : this.optionalPrefix();
+            final String suffix = component.required() ? this.requiredSuffix() : this.optionalSuffix();
             this.builder.append(prefix);
-            final Object[] names = argument.getNames().toArray();
-            for (int i = 0; i < names.length; i++) {
+
+            final Iterator<? extends CommandComponent<?>> innerComponents = parser.components().iterator();
+            while (innerComponents.hasNext()) {
+                final CommandComponent<?> innerComponent = innerComponents.next();
                 this.builder.append(prefix);
-                this.appendName(names[i].toString());
+                this.appendName(innerComponent.name());
                 this.builder.append(suffix);
-                if ((i + 1) < names.length) {
+                if (innerComponents.hasNext()) {
                     this.builder.append(' ');
                 }
             }
@@ -159,44 +246,42 @@ public class TCSyntaxFormatter<C> implements CommandSyntaxFormatter<C> {
         }
 
         /**
-         * Append a flag argument
+         * Appends a flag argument
          *
-         * @param flagArgument Flag argument
+         * @param flagParser flag parser
          */
-        public void appendFlag(final @NonNull FlagArgument<?> flagArgument) {
-            final Iterator<CommandFlag<?>> flagIterator = flagArgument
-                    .getFlags()
+        public void appendFlag(final @NonNull CommandFlagParser<?> flagParser) {
+            final Iterator<CommandFlag<?>> flagIterator = flagParser
+                    .flags()
+                    .stream()
+                    .filter(this::isFlagVisible)
                     .iterator();
 
-            boolean first = true;
+            if (!flagIterator.hasNext()) {
+                return;
+            }
+
+            this.builder.append(this.optionalPrefix());
+
             while (flagIterator.hasNext()) {
                 final CommandFlag<?> flag = flagIterator.next();
-                if (!isFlagVisible(flag)) {
-                    continue;
+                this.appendName(String.format("--%s", flag.name()));
+
+                if (flag.commandComponent() != null) {
+                    this.builder.append(' ');
+                    this.builder.append(this.optionalPrefix());
+                    this.appendName(flag.commandComponent().name());
+                    this.builder.append(this.optionalSuffix());
                 }
 
-                if (first) {
-                    first = false;
-                    this.builder.append(this.getOptionalPrefix());
-                } else {
+                if (flagIterator.hasNext()) {
                     this.appendBlankSpace();
                     this.appendPipe();
                     this.appendBlankSpace();
                 }
-
-                this.appendName(String.format("--%s", flag.getName()));
-
-                if (flag.getCommandArgument() != null) {
-                    this.builder.append(' ');
-                    this.builder.append(this.getOptionalPrefix());
-                    this.appendName(flag.getCommandArgument().getName());
-                    this.builder.append(this.getOptionalSuffix());
-                }
             }
 
-            if (!first) {
-                this.builder.append(this.getOptionalSuffix());
-            }
+            this.builder.append(this.optionalSuffix());
         }
 
         /**
@@ -214,10 +299,10 @@ public class TCSyntaxFormatter<C> implements CommandSyntaxFormatter<C> {
          *
          * @param argument Required argument
          */
-        public void appendRequired(final @NonNull CommandArgument<?, ?> argument) {
-            this.builder.append(this.getRequiredPrefix());
-            this.appendName(argument.getName());
-            this.builder.append(this.getRequiredSuffix());
+        public void appendRequired(final @NonNull CommandComponent<?> argument) {
+            this.builder.append(this.requiredPrefix());
+            this.appendName(argument.name());
+            this.builder.append(this.requiredSuffix());
         }
 
         /**
@@ -225,10 +310,10 @@ public class TCSyntaxFormatter<C> implements CommandSyntaxFormatter<C> {
          *
          * @param argument Optional argument
          */
-        public void appendOptional(final @NonNull CommandArgument<?, ?> argument) {
-            this.builder.append(this.getOptionalPrefix());
-            this.appendName(argument.getName());
-            this.builder.append(this.getOptionalSuffix());
+        public void appendOptional(final @NonNull CommandComponent<?> argument) {
+            this.builder.append(this.optionalPrefix());
+            this.appendName(argument.name());
+            this.builder.append(this.optionalSuffix());
         }
 
         /**
@@ -252,7 +337,7 @@ public class TCSyntaxFormatter<C> implements CommandSyntaxFormatter<C> {
          *
          * @return Required argument prefix
          */
-        public @NonNull String getRequiredPrefix() {
+        public @NonNull String requiredPrefix() {
             return "<";
         }
 
@@ -261,7 +346,7 @@ public class TCSyntaxFormatter<C> implements CommandSyntaxFormatter<C> {
          *
          * @return Required argument suffix
          */
-        public @NonNull String getRequiredSuffix() {
+        public @NonNull String requiredSuffix() {
             return ">";
         }
 
@@ -270,7 +355,7 @@ public class TCSyntaxFormatter<C> implements CommandSyntaxFormatter<C> {
          *
          * @return Optional argument prefix
          */
-        public @NonNull String getOptionalPrefix() {
+        public @NonNull String optionalPrefix() {
             return "[";
         }
 
@@ -279,7 +364,7 @@ public class TCSyntaxFormatter<C> implements CommandSyntaxFormatter<C> {
          *
          * @return Optional argument suffix
          */
-        public @NonNull String getOptionalSuffix() {
+        public @NonNull String optionalSuffix() {
             return "]";
         }
 
@@ -289,7 +374,5 @@ public class TCSyntaxFormatter<C> implements CommandSyntaxFormatter<C> {
         public void appendBlankSpace() {
             this.builder.append(' ');
         }
-
     }
-
 }

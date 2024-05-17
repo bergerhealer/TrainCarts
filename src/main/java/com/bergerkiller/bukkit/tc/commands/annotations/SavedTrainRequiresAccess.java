@@ -5,8 +5,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 
-import cloud.commandframework.arguments.parser.ParserParameter;
 import io.leangen.geantyref.TypeToken;
+import org.incendo.cloud.parser.ParserParameter;
 
 /**
  * Declares that the command will require write access to the saved train.

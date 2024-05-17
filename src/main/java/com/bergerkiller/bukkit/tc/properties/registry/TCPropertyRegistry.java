@@ -84,7 +84,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
             final IProperty<?> property = currentlyParsedProperty();
             final String propertyName = annot.value();
             return builder.prependHandler(context -> {
-                CommandSender sender = context.getSender();
+                CommandSender sender = context.sender();
                 if (!Permission.COMMAND_PROPERTIES.has(sender) &&
                     !Permission.COMMAND_GLOBALPROPERTIES.has(sender)
                 ) {

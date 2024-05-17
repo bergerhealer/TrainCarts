@@ -16,6 +16,7 @@ repositories {
         content {
             includeGroup("org.spigotmc")
             includeGroup("com.mojang")
+            includeGroup("com.bergerkiller.bukkit")
         }
     }
     maven("https://ci.mg-dev.eu/plugin/repository/everything/")

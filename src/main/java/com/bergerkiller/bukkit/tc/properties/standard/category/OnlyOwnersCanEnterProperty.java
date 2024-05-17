@@ -16,10 +16,9 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardCartProperty;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Configures whether all players can enter a cart, or that only players set as owner
@@ -29,7 +28,7 @@ public final class OnlyOwnersCanEnterProperty extends FieldBackedStandardCartPro
 
     @CommandTargetTrain
     @PropertyCheckPermission("onlyownerscanenter")
-    @CommandMethod("train onlyownerscanenter <state>")
+    @Command("train onlyownerscanenter <state>")
     @CommandDescription("Sets whether only owners can enter the train")
     private void setProperty(
             final CommandSender sender,
@@ -40,7 +39,7 @@ public final class OnlyOwnersCanEnterProperty extends FieldBackedStandardCartPro
         getProperty(sender, properties);
     }
 
-    @CommandMethod("train onlyownerscanenter")
+    @Command("train onlyownerscanenter")
     @CommandDescription("Displays whether only owners can enter the train")
     private void getProperty(
             final CommandSender sender,
@@ -52,7 +51,7 @@ public final class OnlyOwnersCanEnterProperty extends FieldBackedStandardCartPro
 
     @CommandTargetTrain
     @PropertyCheckPermission("onlyownerscanenter")
-    @CommandMethod("cart onlyownerscanenter <state>")
+    @Command("cart onlyownerscanenter <state>")
     @CommandDescription("Sets whether only owners can enter the cart")
     private void setProperty(
             final CommandSender sender,
@@ -63,7 +62,7 @@ public final class OnlyOwnersCanEnterProperty extends FieldBackedStandardCartPro
         getProperty(sender, properties);
     }
 
-    @CommandMethod("cart onlyownerscanenter")
+    @Command("cart onlyownerscanenter")
     @CommandDescription("Displays whether only owners can enter the cart")
     private void getProperty(
             final CommandSender sender,

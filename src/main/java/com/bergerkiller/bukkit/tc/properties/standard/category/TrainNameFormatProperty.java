@@ -19,11 +19,10 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.PropertySelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
-import cloud.commandframework.annotations.Flag;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
+import org.incendo.cloud.annotations.Flag;
 
 /**
  * Stores the name format that is used when renaming trains. When the format
@@ -35,7 +34,7 @@ public final class TrainNameFormatProperty implements ITrainProperty<TrainNameFo
 
     @CommandTargetTrain
     @PropertyCheckPermission("name")
-    @CommandMethod("train rename|setname|name <new_name>")
+    @Command("train rename|setname|name <new_name>")
     @CommandDescription("Renames a train")
     private void trainSetNameFormat(
             final CommandSender sender,
@@ -62,7 +61,7 @@ public final class TrainNameFormatProperty implements ITrainProperty<TrainNameFo
         builder.send(sender);
     }
 
-    @CommandMethod("train rename|setname|name")
+    @Command("train rename|setname|name")
     @CommandDescription("Displays the current name of the train being edited")
     private void trainGetNameFormat(
             final CommandSender sender,

@@ -21,18 +21,17 @@ import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardCartProperty;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
-import cloud.commandframework.annotations.specifier.FlagYielding;
+import org.incendo.cloud.annotation.specifier.FlagYielding;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Configures blocks automatically broken by carts
  */
 public final class BreakBlocksProperty extends FieldBackedStandardCartProperty<Set<Material>> {
 
-    @CommandMethod("cart breakblocks|break")
+    @Command("cart breakblocks|break")
     @CommandDescription("Displays what block types are broken by the cart")
     private void getProperty(
             final CommandSender sender,
@@ -42,7 +41,7 @@ public final class BreakBlocksProperty extends FieldBackedStandardCartProperty<S
         sender.sendMessage(ChatColor.YELLOW + "This cart breaks: " + ChatColor.WHITE + StringUtil.combineNames(types));
     }
 
-    @CommandMethod("train breakblocks|break")
+    @Command("train breakblocks|break")
     @CommandDescription("Displays what block types are broken by the train")
     private void getProperty(
             final CommandSender sender,
@@ -57,7 +56,7 @@ public final class BreakBlocksProperty extends FieldBackedStandardCartProperty<S
 
     @CommandTargetTrain
     @PropertyCheckPermission("breakblocks")
-    @CommandMethod("cart breakblocks|break clear")
+    @Command("cart breakblocks|break clear")
     @CommandDescription("Clears the list of blocks broken by the cart, disabling it")
     private void setPropertyClear(
             final CommandSender sender,
@@ -69,7 +68,7 @@ public final class BreakBlocksProperty extends FieldBackedStandardCartProperty<S
 
     @CommandTargetTrain
     @PropertyCheckPermission("breakblocks")
-    @CommandMethod("train breakblocks|break clear")
+    @Command("train breakblocks|break clear")
     @CommandDescription("Clears the list of blocks broken by the train, disabling it")
     private void setPropertyClear(
             final CommandSender sender,
@@ -83,7 +82,7 @@ public final class BreakBlocksProperty extends FieldBackedStandardCartProperty<S
 
     @CommandTargetTrain
     @PropertyCheckPermission("breakblocks")
-    @CommandMethod("cart breakblocks|break <block_types>")
+    @Command("cart breakblocks|break <block_types>")
     @CommandDescription("Sets the list of blocks broken by the cart")
     private void setProperty(
             final CommandSender sender,
@@ -129,7 +128,7 @@ public final class BreakBlocksProperty extends FieldBackedStandardCartProperty<S
 
     @CommandTargetTrain
     @PropertyCheckPermission("breakblocks")
-    @CommandMethod("train breakblocks|break <block_types>")
+    @Command("train breakblocks|break <block_types>")
     @CommandDescription("Sets the list of blocks broken by the train")
     private void setProperty(
             final CommandSender sender,

@@ -16,10 +16,9 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
 import com.bergerkiller.bukkit.tc.properties.standard.type.BankingOptions;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Configures whether a train rolls inwards when taking (sharp) turns.
@@ -28,7 +27,7 @@ public final class BankingOptionsProperty extends FieldBackedStandardTrainProper
 
     @CommandTargetTrain
     @PropertyCheckPermission("banking")
-    @CommandMethod("train banking <strength> <smoothness>")
+    @Command("train banking <strength> <smoothness>")
     @CommandDescription("Sets a new train banking strength and smoothness")
     private void trainSetBanking(
             final CommandSender sender,
@@ -40,7 +39,7 @@ public final class BankingOptionsProperty extends FieldBackedStandardTrainProper
         trainGetBankingInfo(sender, properties);
     }
 
-    @CommandMethod("train banking")
+    @Command("train banking")
     @CommandDescription("Displays the current train banking settings")
     private void trainGetBankingInfo(
             final CommandSender sender,
@@ -58,7 +57,7 @@ public final class BankingOptionsProperty extends FieldBackedStandardTrainProper
 
     @CommandTargetTrain
     @PropertyCheckPermission("banking")
-    @CommandMethod("train banking strength <strength>")
+    @Command("train banking strength <strength>")
     @CommandDescription("Sets a new train banking strength")
     private void trainSetBankingStrength(
             final CommandSender sender,
@@ -69,7 +68,7 @@ public final class BankingOptionsProperty extends FieldBackedStandardTrainProper
         trainGetBankingStrength(sender, properties);
     }
 
-    @CommandMethod("train banking strength")
+    @Command("train banking strength")
     @CommandDescription("Displays the currently configured train banking strength")
     private void trainGetBankingStrength(
             final CommandSender sender,
@@ -86,7 +85,7 @@ public final class BankingOptionsProperty extends FieldBackedStandardTrainProper
 
     @CommandTargetTrain
     @PropertyCheckPermission("banking")
-    @CommandMethod("train banking smoothness <strength>")
+    @Command("train banking smoothness <strength>")
     @CommandDescription("Sets a new train banking smoothness")
     private void trainSetBankingSmoothness(
             final CommandSender sender,
@@ -97,7 +96,7 @@ public final class BankingOptionsProperty extends FieldBackedStandardTrainProper
         trainGetBankingSmoothness(sender, properties);
     }
 
-    @CommandMethod("train banking smoothness")
+    @Command("train banking smoothness")
     @CommandDescription("Displays the currently configured train banking smoothness")
     private void trainGetBankingSmoothness(
             final CommandSender sender,

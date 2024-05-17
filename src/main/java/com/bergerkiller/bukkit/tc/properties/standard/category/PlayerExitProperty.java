@@ -16,10 +16,9 @@ import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Whether players can exit from a cart
@@ -28,7 +27,7 @@ public final class PlayerExitProperty implements ICartProperty<Boolean> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("playerexit")
-    @CommandMethod("train playerexit|allowplayerexit|playerleave <allow>")
+    @Command("train playerexit|allowplayerexit|playerleave <allow>")
     @CommandDescription("Sets whether players can exit from carts of this train")
     private void commandSetProperty(
             final CommandSender sender,
@@ -39,7 +38,7 @@ public final class PlayerExitProperty implements ICartProperty<Boolean> {
         commandGetProperty(sender, properties);
     }
 
-    @CommandMethod("train playerexit|allowplayerexit|playerleave")
+    @Command("train playerexit|allowplayerexit|playerleave")
     @CommandDescription("Gets whether players can exit from carts of this train")
     private void commandGetProperty(
             final CommandSender sender,
@@ -51,7 +50,7 @@ public final class PlayerExitProperty implements ICartProperty<Boolean> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("playerexit")
-    @CommandMethod("cart playerexit|allowplayerexit|playerleave <allow>")
+    @Command("cart playerexit|allowplayerexit|playerleave <allow>")
     @CommandDescription("Sets whether players can exit the cart")
     private void commandSetProperty(
             final CommandSender sender,
@@ -62,7 +61,7 @@ public final class PlayerExitProperty implements ICartProperty<Boolean> {
         commandGetProperty(sender, properties);
     }
 
-    @CommandMethod("cart playerexit|allowplayerexit|playerleave")
+    @Command("cart playerexit|allowplayerexit|playerleave")
     @CommandDescription("Gets whether players can exit the cart")
     private void commandGetProperty(
             final CommandSender sender,

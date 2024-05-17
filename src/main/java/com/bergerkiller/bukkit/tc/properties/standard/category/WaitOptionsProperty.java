@@ -18,10 +18,10 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
 import com.bergerkiller.bukkit.tc.properties.standard.type.WaitOptions;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
+import org.incendo.cloud.annotations.Default;
 
 /**
  * Stores the wait options for a train. This controls whether trains wait
@@ -31,7 +31,7 @@ public final class WaitOptionsProperty extends FieldBackedStandardTrainProperty<
 
     @CommandTargetTrain
     @PropertyCheckPermission("waitdistance")
-    @CommandMethod("train wait distance <blocks>")
+    @Command("train wait distance <blocks>")
     @CommandDescription("Sets the distance to keep to other trains")
     private void setDistanceProperty(
             final CommandSender sender,
@@ -48,7 +48,7 @@ public final class WaitOptionsProperty extends FieldBackedStandardTrainProperty<
         getDistanceProperty(sender, properties);
     }
 
-    @CommandMethod("train wait distance")
+    @Command("train wait distance")
     @CommandDescription("Displays the distance to keep to other trains")
     private void getDistanceProperty(
             final CommandSender sender,
@@ -60,7 +60,7 @@ public final class WaitOptionsProperty extends FieldBackedStandardTrainProperty<
 
     @CommandTargetTrain
     @PropertyCheckPermission("waitdelay")
-    @CommandMethod("train wait delay <time>")
+    @Command("train wait delay <time>")
     @CommandDescription("Sets the time a train waits when fully stopped to wait")
     private void setDelayProperty(
             final CommandSender sender,
@@ -77,7 +77,7 @@ public final class WaitOptionsProperty extends FieldBackedStandardTrainProperty<
         getDelayProperty(sender, properties);
     }
 
-    @CommandMethod("train wait delay")
+    @Command("train wait delay")
     @CommandDescription("Displays the time a train waits when fully stopped to wait")
     private void getDelayProperty(
             final CommandSender sender,
@@ -89,7 +89,7 @@ public final class WaitOptionsProperty extends FieldBackedStandardTrainProperty<
 
     @CommandTargetTrain
     @PropertyCheckPermission("waitacceleration")
-    @CommandMethod("train wait acceleration <acceleration> [deceleration]")
+    @Command("train wait acceleration <acceleration> [deceleration]")
     @CommandDescription("Sets the rate of acceleration (and deceleration) of the train")
     private void setAccelerationProperty(
             final CommandSender sender,
@@ -97,7 +97,7 @@ public final class WaitOptionsProperty extends FieldBackedStandardTrainProperty<
             final @Argument(value="acceleration", parserName=AccelerationParser.NAME,
                             description="Acceleration in blocks/tick\u00B2") double acceleration,
             final @Argument(value="deceleration", parserName=AccelerationParser.NAME,
-                            defaultValue="NaN", description="De-acceleration in blocks/tick\u00B2") double deceleration
+                            description="De-acceleration in blocks/tick\u00B2") @Default("NaN") double deceleration
     ) {
         properties.update(this, options -> WaitOptions.create(
                 options.distance(),
@@ -109,7 +109,7 @@ public final class WaitOptionsProperty extends FieldBackedStandardTrainProperty<
         getAccelerationProperty(sender, properties);
     }
 
-    @CommandMethod("train wait acceleration")
+    @Command("train wait acceleration")
     @CommandDescription("Displays the rate of acceleration (and deceleration) of the train")
     private void getAccelerationProperty(
             final CommandSender sender,
@@ -128,7 +128,7 @@ public final class WaitOptionsProperty extends FieldBackedStandardTrainProperty<
 
     @CommandTargetTrain
     @PropertyCheckPermission("waitprediction")
-    @CommandMethod("train wait predict <predict>")
+    @Command("train wait predict <predict>")
     @CommandDescription("Sets whether the train will predict routing up ahead")
     private void setPredictProperty(
             final CommandSender sender,
@@ -145,7 +145,7 @@ public final class WaitOptionsProperty extends FieldBackedStandardTrainProperty<
         getPredictProperty(sender, properties);
     }
 
-    @CommandMethod("train wait predict")
+    @Command("train wait predict")
     @CommandDescription("Displays whether the train will predict routing up ahead")
     private void getPredictProperty(
             final CommandSender sender,

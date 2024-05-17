@@ -23,10 +23,9 @@ import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionMobCategory;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CollisionOptions;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Controls the behavior of trains when they collide with other entities or blocks
@@ -63,7 +62,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
 
     @CommandTargetTrain
     @PropertyCheckPermission("collision")
-    @CommandMethod("train collision default|true")
+    @Command("train collision default|true")
     @CommandDescription("Configures the default collision settings")
     private void trainSetCollisionDefault(
             final CommandSender sender,
@@ -75,7 +74,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
 
     @CommandTargetTrain
     @PropertyCheckPermission("collision")
-    @CommandMethod("train collision none|false")
+    @Command("train collision none|false")
     @CommandDescription("Disables collision with all entities and blocks")
     private void trainSetCollisionNone(
             final CommandSender sender,
@@ -85,7 +84,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         trainGetCollisionInfo(sender, properties);
     }
 
-    @CommandMethod("train collision")
+    @Command("train collision")
     @CommandDescription("Gets all collision rules configured for a train")
     private void trainGetCollisionInfo(
             final CommandSender sender,
@@ -98,7 +97,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
 
     @CommandTargetTrain
     @PropertyCheckPermission("mobcollision")
-    @CommandMethod("train collision <mobcategory> <mode>")
+    @Command("train collision <mobcategory> <mode>")
     @CommandDescription("Sets new behavior when colliding with a given mob category")
     private void trainSetMobCollision(
             final CommandSender sender,
@@ -112,7 +111,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
 
     @CommandTargetTrain
     @PropertyCheckPermission("mobcollision")
-    @CommandMethod("train collision mobs|mob <mode>")
+    @Command("train collision mobs|mob <mode>")
     @CommandDescription("Sets new behavior when colliding with all types of mob")
     private void trainSetAllMobCollision(
             final CommandSender sender,
@@ -125,7 +124,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
 
     @CommandTargetTrain
     @PropertyCheckPermission("mobcollision")
-    @CommandMethod("train collision <mobcategory> none")
+    @Command("train collision <mobcategory> none")
     @CommandDescription("Resets behavior when colliding with a given mob category")
     private void trainResetMobCollision(
             final CommandSender sender,
@@ -138,7 +137,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
 
     @CommandTargetTrain
     @PropertyCheckPermission("mobcollision")
-    @CommandMethod("train collision mobs|mob none")
+    @Command("train collision mobs|mob none")
     @CommandDescription("Resets behavior when colliding with any type of mob")
     private void trainResetAllMobsCollision(
             final CommandSender sender,
@@ -148,7 +147,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         sender.sendMessage(ChatColor.YELLOW + "Reset collision rules for all mob types. Will default to misc.");
     }
 
-    @CommandMethod("train collision <mobcategory>")
+    @Command("train collision <mobcategory>")
     @CommandDescription("Gets the current behavior when colliding with a given mob category")
     private void trainGetMobCollision(
             final CommandSender sender,
@@ -166,7 +165,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         }
     }
 
-    @CommandMethod("train collision mobs|mob")
+    @Command("train collision mobs|mob")
     @CommandDescription("Gets the current behavior when colliding with a given mob category")
     private void trainGetAllMobCollision(
             final CommandSender sender,
@@ -217,7 +216,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
 
     @CommandTargetTrain
     @PropertyCheckPermission("blockcollision")
-    @CommandMethod("train collision block <mode>")
+    @Command("train collision block <mode>")
     @CommandDescription("Sets the behavior of the train when colliding with blocks")
     private void trainSetBlockCollision(
             final CommandSender sender,
@@ -228,7 +227,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         trainGetBlockCollision(sender, properties);
     }
 
-    @CommandMethod("train collision block")
+    @Command("train collision block")
     @CommandDescription("Gets the behavior of the train when colliding with blocks")
     private void trainGetBlockCollision(
             final CommandSender sender,
@@ -239,7 +238,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
 
     @CommandTargetTrain
     @PropertyCheckPermission("playercollision")
-    @CommandMethod("train collision player <mode>")
+    @Command("train collision player <mode>")
     @CommandDescription("Sets the behavior of the train when colliding with players")
     private void trainSetPlayerCollision(
             final CommandSender sender,
@@ -250,7 +249,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         trainGetPlayerCollision(sender, properties);
     }
 
-    @CommandMethod("train collision player")
+    @Command("train collision player")
     @CommandDescription("Gets the behavior of the train when colliding with players")
     private void trainGetPlayerCollision(
             final CommandSender sender,
@@ -261,7 +260,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
 
     @CommandTargetTrain
     @PropertyCheckPermission("traincollision")
-    @CommandMethod("train collision train <mode>")
+    @Command("train collision train <mode>")
     @CommandDescription("Sets the behavior of the train when colliding with other trains")
     private void trainSetTrainCollision(
             final CommandSender sender,
@@ -272,7 +271,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         trainGetTrainCollision(sender, properties);
     }
 
-    @CommandMethod("train collision train")
+    @Command("train collision train")
     @CommandDescription("Gets the behavior of the train when colliding with other trains")
     private void trainGetTrainCollision(
             final CommandSender sender,
@@ -283,7 +282,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
 
     @CommandTargetTrain
     @PropertyCheckPermission("misccollision")
-    @CommandMethod("train collision misc <mode>")
+    @Command("train collision misc <mode>")
     @CommandDescription("Sets the behavior of the train when colliding with miscellaneous mobs and entities")
     private void trainSetMiscCollision(
             final CommandSender sender,
@@ -294,7 +293,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         trainGetMiscCollision(sender, properties);
     }
 
-    @CommandMethod("train collision misc")
+    @Command("train collision misc")
     @CommandDescription("Gets the behavior of the train when colliding with miscellaneous mobs and entities")
     private void trainGetMiscCollision(
             final CommandSender sender,

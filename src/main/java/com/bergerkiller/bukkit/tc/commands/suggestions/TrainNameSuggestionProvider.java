@@ -15,19 +15,25 @@ import com.bergerkiller.bukkit.tc.commands.selector.SelectorHandler;
 import com.bergerkiller.bukkit.tc.commands.selector.SelectorHandlerConditionOption;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 
-import cloud.commandframework.context.CommandContext;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.incendo.cloud.context.CommandContext;
+import org.incendo.cloud.context.CommandInput;
+import org.incendo.cloud.suggestion.BlockingSuggestionProvider;
 
 /**
  * Suggests a train name from all trains that a player can edit/has ownership of.
  * Also handles suggestions for the @train[...] selector in this spot.
  */
-public class TrainNameSuggestionProvider implements BiFunction<CommandContext<CommandSender>, String, List<String>> {
-
+public class TrainNameSuggestionProvider implements BlockingSuggestionProvider.Strings<CommandSender> {
     @Override
-    public List<String> apply(CommandContext<CommandSender> context, String input) {
-        final CommandSender sender = context.getSender();
+    public @NonNull Iterable<@NonNull String> stringSuggestions(
+            @NonNull CommandContext<CommandSender> commandContext,
+            @NonNull CommandInput commandInput
+    ) {
+        final CommandSender sender = commandContext.sender();
+        String input = commandInput.lastRemainingToken();
         if (input.startsWith("@train[")) {
-            TrainCarts plugin = context.inject(TrainCarts.class).get();
+            TrainCarts plugin = commandContext.inject(TrainCarts.class).get();
             SelectorHandler handler = plugin.getSelectorHandlerRegistry().find("train");
             if (handler == null) {
                 return Collections.singletonList("@train[]");

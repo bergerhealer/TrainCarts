@@ -16,10 +16,9 @@ import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Whether carts drop items when destroyed
@@ -28,7 +27,7 @@ public final class SpawnItemDropsProperty implements ICartProperty<Boolean> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("spawnitemdrops")
-    @CommandMethod("train spawnitemdrops <spawn>")
+    @Command("train spawnitemdrops <spawn>")
     @CommandDescription("Sets whether the train drops items when destroyed")
     private void setProperty(
             final CommandSender sender,
@@ -39,7 +38,7 @@ public final class SpawnItemDropsProperty implements ICartProperty<Boolean> {
         getProperty(sender, properties);
     }
 
-    @CommandMethod("train spawnitemdrops")
+    @Command("train spawnitemdrops")
     @CommandDescription("Displays whether the train drops items when destroyed")
     private void getProperty(
             final CommandSender sender,
@@ -51,7 +50,7 @@ public final class SpawnItemDropsProperty implements ICartProperty<Boolean> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("spawnitemdrops")
-    @CommandMethod("cart spawnitemdrops <spawn>")
+    @Command("cart spawnitemdrops <spawn>")
     @CommandDescription("Sets whether the cart drops items when destroyed")
     private void setProperty(
             final CommandSender sender,
@@ -62,7 +61,7 @@ public final class SpawnItemDropsProperty implements ICartProperty<Boolean> {
         getProperty(sender, properties);
     }
 
-    @CommandMethod("cart spawnitemdrops")
+    @Command("cart spawnitemdrops")
     @CommandDescription("Displays whether the cart drops items when destroyed")
     private void getProperty(
             final CommandSender sender,

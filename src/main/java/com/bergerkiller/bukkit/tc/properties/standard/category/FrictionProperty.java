@@ -15,10 +15,9 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.PropertySelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Applies a factor to the effects friction has on a train.
@@ -29,7 +28,7 @@ public final class FrictionProperty extends FieldBackedStandardTrainProperty.Sta
 
     @CommandTargetTrain
     @PropertyCheckPermission("friction")
-    @CommandMethod("train friction <multiplier>")
+    @Command("train friction <multiplier>")
     @CommandDescription("Sets a friction effect multiplier for the train")
     private void trainSetProperty(
             final CommandSender sender,
@@ -40,7 +39,7 @@ public final class FrictionProperty extends FieldBackedStandardTrainProperty.Sta
         trainGetProperty(sender, properties);
     }
 
-    @CommandMethod("train friction")
+    @Command("train friction")
     @CommandDescription("Displays the friction multiplier currently set for the train")
     private void trainGetProperty(
             final CommandSender sender,

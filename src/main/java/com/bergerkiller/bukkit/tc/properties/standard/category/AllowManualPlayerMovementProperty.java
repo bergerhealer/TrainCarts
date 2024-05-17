@@ -15,10 +15,9 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Whether players in a train can set it in motion using W/A/S/D steering controls
@@ -27,7 +26,7 @@ public final class AllowManualPlayerMovementProperty extends FieldBackedStandard
 
     @CommandTargetTrain
     @PropertyCheckPermission("allowmanual")
-    @CommandMethod("train manualmovement player <enabled>")
+    @Command("train manualmovement player <enabled>")
     @CommandDescription("Sets whether the train can be controlled by player passengers using steering controls")
     private void getProperty(
             final CommandSender sender,
@@ -38,7 +37,7 @@ public final class AllowManualPlayerMovementProperty extends FieldBackedStandard
         getProperty(sender, properties);
     }
 
-    @CommandMethod("train manualmovement player")
+    @Command("train manualmovement player")
     @CommandDescription("Displays whether the train can be controlled by player passengers using steering controls")
     private void getProperty(
             final CommandSender sender,

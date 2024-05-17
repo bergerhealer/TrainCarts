@@ -22,11 +22,10 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.PropertySelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardCartProperty;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
-import cloud.commandframework.annotations.specifier.FlagYielding;
+import org.incendo.cloud.annotation.specifier.FlagYielding;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * A simple set of tags that can be used to mark and switch carts or trains
@@ -34,7 +33,7 @@ import cloud.commandframework.annotations.specifier.FlagYielding;
 public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<String>> implements IStringSetProperty {
 
     @CommandTargetTrain
-    @CommandMethod("train tags")
+    @Command("train tags")
     @CommandDescription("Displays the tags set for the carts of a train")
     private void getTrainTags(
             final CommandSender sender,
@@ -51,7 +50,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
 
     @CommandTargetTrain
     @PropertyCheckPermission("tags")
-    @CommandMethod("train tags clear")
+    @Command("train tags clear")
     @CommandDescription("Clears the previous tags for a train")
     private void setCartTags(
             final CommandSender sender,
@@ -62,7 +61,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
 
     @CommandTargetTrain
     @PropertyCheckPermission("tags")
-    @CommandMethod("train tags set [tags]")
+    @Command("train tags set [tags]")
     @CommandDescription("Clears the previous tags and sets new tags for carts of the train")
     private void setTrainTags(
             final CommandSender sender,
@@ -79,7 +78,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
         }
     }
 
-    @CommandMethod("cart tags")
+    @Command("cart tags")
     @CommandDescription("Displays the tags set for a cart")
     private void getCartTags(
             final CommandSender sender,
@@ -95,7 +94,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
     }
 
     @PropertyCheckPermission("tags")
-    @CommandMethod("cart tags clear")
+    @Command("cart tags clear")
     @CommandDescription("Clears the previous tags for a cart")
     private void setCartTags(
             final CommandSender sender,
@@ -106,7 +105,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
 
     @CommandTargetTrain
     @PropertyCheckPermission("tags")
-    @CommandMethod("cart tags set [tags]")
+    @Command("cart tags set [tags]")
     @CommandDescription("Clears the previous tags and sets new tags for a cart")
     private void setCartTags(
             final CommandSender sender,
@@ -125,7 +124,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
 
     @CommandTargetTrain
     @PropertyCheckPermission("tags")
-    @CommandMethod("train tags add|add_many <tags>")
+    @Command("train tags add|add_many <tags>")
     @CommandDescription("Adds one or more tags to the train")
     private void addTrainSingleTag(
             final CommandSender sender,
@@ -143,7 +142,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
 
     @CommandTargetTrain
     @PropertyCheckPermission("tags")
-    @CommandMethod("train tags remove|remove_many <tags>")
+    @Command("train tags remove|remove_many <tags>")
     @CommandDescription("Removes one or more tags from the train")
     private void removeTrainSingleTag(
             final CommandSender sender,
@@ -161,7 +160,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
 
     @CommandTargetTrain
     @PropertyCheckPermission("tags")
-    @CommandMethod("cart tags add|add_many <tags>")
+    @Command("cart tags add|add_many <tags>")
     @CommandDescription("Adds one or more tags to the cart")
     private void addCartSingleTag(
             final CommandSender sender,
@@ -179,7 +178,7 @@ public final class TagSetProperty extends FieldBackedStandardCartProperty<Set<St
 
     @CommandTargetTrain
     @PropertyCheckPermission("tags")
-    @CommandMethod("cart tags remove|remove_many <tags>")
+    @Command("cart tags remove|remove_many <tags>")
     @CommandDescription("Removes one or more tags from the cart")
     private void removeCartSingleTag(
             final CommandSender sender,

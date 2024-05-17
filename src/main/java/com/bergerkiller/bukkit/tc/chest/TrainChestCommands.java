@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.chest;
 
 import java.util.function.Consumer;
 
-import cloud.commandframework.annotations.specifier.Quoted;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -19,12 +18,12 @@ import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainStorageChestItemException;
 import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
-import cloud.commandframework.annotations.Flag;
-import cloud.commandframework.annotations.specifier.Greedy;
+import org.incendo.cloud.annotation.specifier.Greedy;
+import org.incendo.cloud.annotation.specifier.Quoted;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
+import org.incendo.cloud.annotations.Flag;
 
 /**
  * All /train chest commands are implemented here
@@ -32,7 +31,7 @@ import cloud.commandframework.annotations.specifier.Greedy;
 public class TrainChestCommands {
 
     @CommandRequiresPermission(Permission.COMMAND_STORAGE_CHEST_CREATE)
-    @CommandMethod("train chest give <target_player>")
+    @Command("train chest give <target_player>")
     @CommandDescription("Gives a pre-configured train-storing chest item to another player")
     private void commandGiveChestItemToPlayer(
             final TrainCarts plugin,
@@ -83,7 +82,7 @@ public class TrainChestCommands {
     }
 
     @CommandRequiresPermission(Permission.COMMAND_STORAGE_CHEST_CREATE)
-    @CommandMethod("train chest [spawnconfig]")
+    @Command("train chest [spawnconfig]")
     @CommandDescription("Gives a new train-storing chest item to the sender, train information to store can be specified")
     private void commandGiveChestItem(
             final TrainCarts plugin,
@@ -107,7 +106,7 @@ public class TrainChestCommands {
     }
 
     @CommandRequiresPermission(Permission.COMMAND_STORAGE_CHEST_CREATE)
-    @CommandMethod("train chest set [spawnconfig]")
+    @Command("train chest set [spawnconfig]")
     @CommandDescription("Clears the train-storing chest item the player is currently holding")
     private void commandSetChestItem(
             final TrainCarts plugin,
@@ -127,7 +126,7 @@ public class TrainChestCommands {
     }
 
     @CommandRequiresPermission(Permission.COMMAND_STORAGE_CHEST_CREATE)
-    @CommandMethod("train chest clear")
+    @Command("train chest clear")
     @CommandDescription("Clears the train-storing chest item the player is currently holding")
     private void commandClearChestItem(
             final Player player
@@ -136,7 +135,7 @@ public class TrainChestCommands {
     }
 
     @CommandRequiresPermission(Permission.COMMAND_STORAGE_CHEST_CREATE)
-    @CommandMethod("train chest lock")
+    @Command("train chest lock")
     @CommandDescription("Locks the train-storing chest item so it can not pick up trains by right-clicking")
     private void commandLockChestItem(
             final Player player
@@ -145,7 +144,7 @@ public class TrainChestCommands {
     }
 
     @CommandRequiresPermission(Permission.COMMAND_STORAGE_CHEST_CREATE)
-    @CommandMethod("train chest unlock")
+    @Command("train chest unlock")
     @CommandDescription("Unlocks the train-storing chest item so it can pick up trains by right-clicking again")
     private void commandUnlockChestItem(
             final Player player
@@ -154,7 +153,7 @@ public class TrainChestCommands {
     }
 
     @CommandRequiresPermission(Permission.COMMAND_STORAGE_CHEST_CREATE)
-    @CommandMethod("train chest finite <finite_spawns>")
+    @Command("train chest finite <finite_spawns>")
     @CommandDescription("Sets whether the train-storing chest item has only finite spawns, and becomes empty after spawning")
     private void commandChestItemSetFiniteSpawns(
             final Player player,
@@ -164,7 +163,7 @@ public class TrainChestCommands {
     }
 
     @CommandRequiresPermission(Permission.COMMAND_STORAGE_CHEST_CREATE)
-    @CommandMethod("train chest speed <speed>")
+    @Command("train chest speed <speed>")
     @CommandDescription("Sets the initial speed of the train when spawning")
     private void commandChestItemSetSpeed(
             final Player player,
@@ -174,7 +173,7 @@ public class TrainChestCommands {
     }
 
     @CommandRequiresPermission(Permission.COMMAND_STORAGE_CHEST_CREATE)
-    @CommandMethod("train chest name <name>")
+    @Command("train chest name <name>")
     @CommandDescription("Sets a descriptive name for the train-storing chest item")
     private void commandNameChestItem(
             final Player player,
@@ -184,7 +183,7 @@ public class TrainChestCommands {
     }
 
     @CommandRequiresPermission(Permission.COMMAND_STORAGE_CHEST_CREATE)
-    @CommandMethod("train chest spawnmessage <message>")
+    @Command("train chest spawnmessage <message>")
     @CommandDescription("Sets the message displayed when successfully spawning using the chest item")
     private void commandSetShowMessage(
             final Player player,
@@ -195,7 +194,7 @@ public class TrainChestCommands {
     }
 
     @CommandRequiresPermission(Permission.COMMAND_STORAGE_CHEST_CREATE)
-    @CommandMethod("train chest spawnmessage DEFAULT")
+    @Command("train chest spawnmessage DEFAULT")
     @CommandDescription("Resets the message displayed when successfully spawning using the chest item")
     private void commandSetDefaultShowMessage(
             final Player player
@@ -205,7 +204,7 @@ public class TrainChestCommands {
 
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_IMPORT)
     @CommandRequiresPermission(Permission.COMMAND_STORAGE_CHEST_CREATE)
-    @CommandMethod("train chest import <url>")
+    @Command("train chest import <url>")
     @CommandDescription("Imports a saved train into the chest item from an online hastebin server by url")
     private void commandImportChestItem(
             final Player player,
@@ -236,7 +235,7 @@ public class TrainChestCommands {
 
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_EXPORT)
     @CommandRequiresPermission(Permission.COMMAND_STORAGE_CHEST_CREATE)
-    @CommandMethod("train chest export")
+    @Command("train chest export")
     @CommandDescription("Exports the train configuration in the chest item to a hastebin server")
     private void commandExportChestItem(
             final TrainCarts plugin,

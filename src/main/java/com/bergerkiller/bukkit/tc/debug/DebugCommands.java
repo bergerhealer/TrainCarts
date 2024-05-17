@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.debug;
 
 import java.util.Collection;
 
-import cloud.commandframework.annotations.Flag;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
@@ -39,11 +38,11 @@ import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.EventListenerHook;
 import com.bergerkiller.bukkit.tc.utils.PlayerVelocityController;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
-import cloud.commandframework.annotations.specifier.Quoted;
+import org.incendo.cloud.annotation.specifier.Quoted;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
+import org.incendo.cloud.annotations.Flag;
 
 /**
  * Commands starting with /train debug.
@@ -53,7 +52,7 @@ import cloud.commandframework.annotations.specifier.Quoted;
 public class DebugCommands {
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug event vehicle_enter [enabled]")
+    @Command("train debug event vehicle_enter [enabled]")
     @CommandDescription("Broadcasts a message when a vehicle enter is cancelled by a plugin")
     private void commandDebugEventVehicleEnter(
             final CommandSender sender,
@@ -83,7 +82,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug event vehicle_exit [enabled]")
+    @Command("train debug event vehicle_exit [enabled]")
     @CommandDescription("Broadcasts a message when a vehicle exit is cancelled by a plugin")
     private void commandDebugEventVehicleExit(
             final CommandSender sender,
@@ -113,7 +112,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug rails")
+    @Command("train debug rails")
     @CommandDescription("Get a debug stick item to visually display what path tracks use")
     private void commandDebugRails(
             final Player player
@@ -122,7 +121,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug distance")
+    @Command("train debug distance")
     @CommandDescription("Get a debug stick item to display the track distance between two points")
     private void commandDebugTrackDistance(
             final Player player
@@ -131,7 +130,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug destinations")
+    @Command("train debug destinations")
     @CommandDescription("Get a debug stick item to visually display the possible path finding routes")
     private void commandDebugDestinationAll(
             final Player player,
@@ -143,7 +142,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug destination")
+    @Command("train debug destination")
     @CommandDescription("Get a debug stick item to visually display the possible path finding routes")
     private void commandDebugDestinationAll(
             final Player player
@@ -152,7 +151,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug destination <destination>")
+    @Command("train debug destination <destination>")
     @CommandDescription("Get a debug stick item to visually display the route towards a destination")
     private void commandDebugDestinationName(
             final Player player,
@@ -162,7 +161,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug destination <destination> teleport")
+    @Command("train debug destination <destination> teleport")
     @CommandDescription("Get a debug stick item to visually display the route towards a destination")
     private void commandDebugTeleportToDestination(
             final Player player,
@@ -195,7 +194,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug mutex")
+    @Command("train debug mutex")
     @CommandDescription("Displays the area of effect of all nearby mutex signs")
     private void commandDebugMutex(
             final Player player,
@@ -206,7 +205,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug railtracker <enabled>")
+    @Command("train debug railtracker <enabled>")
     @CommandDescription("Sets whether the rail tracker debugging is currently enabled")
     private void commandDebugSetRailTracker(
             final CommandSender sender,
@@ -217,7 +216,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug railtracker")
+    @Command("train debug railtracker")
     @CommandDescription("Checks whether the rail tracker debugging is currently enabled")
     private void commandDebugCheckRailTracker(
             final CommandSender sender
@@ -227,7 +226,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug wheeltracker <enabled>")
+    @Command("train debug wheeltracker <enabled>")
     @CommandDescription("Sets whether the rail tracker debugging is currently enabled")
     private void commandDebugSetWheelTracker(
             final CommandSender sender,
@@ -238,7 +237,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug wheeltracker")
+    @Command("train debug wheeltracker")
     @CommandDescription("Checks whether the wheel tracker debugging is currently enabled")
     private void commandDebugCheckWheelTracker(
             final CommandSender sender
@@ -248,7 +247,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug splitting <enabled>")
+    @Command("train debug splitting <enabled>")
     @CommandDescription("Sets whether messages are logged when trains split apart")
     private void commandDebugSetSplitDebugEnabled(
             final CommandSender sender,
@@ -259,7 +258,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug splitting")
+    @Command("train debug splitting")
     @CommandDescription("Checks whether messages are logged when trains split apart")
     private void commandDebugCheckSplitDebugEnabled(
             final CommandSender sender
@@ -269,7 +268,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug fix signs")
+    @Command("train debug fix signs")
     @CommandDescription("Forcibly recalculates all cached sign information near the player")
     private void commandDebugCheckWheelTracker(
             final Player player,
@@ -300,7 +299,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.COMMAND_FIXBUGGED)
-    @CommandMethod("train debug fix buggedminecarts")
+    @Command("train debug fix buggedminecarts")
     @CommandDescription("Forcibly removes minecarts and trackers that have glitched out")
     private void commandFixBugged(
             final CommandSender sender
@@ -312,7 +311,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug railcache export")
+    @Command("train debug railcache export")
     @CommandDescription("Exports the rail block coordinates inside the current player world's rail cache")
     private void commandDebugRailCacheExport(
             final Player player,
@@ -335,7 +334,7 @@ public class DebugCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug loading unload")
+    @Command("train debug loading unload")
     @CommandDescription("Forces the targeted train to unload, even if it otherwise wouldn't")
     private void commandDebugUnloadTrain(
             final CommandSender sender,
@@ -348,7 +347,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug loading refresh")
+    @Command("train debug loading refresh")
     @CommandDescription("Forcibly checks all unloaded trains if they can be loaded, and loads them in")
     private void commandDebugForceLoadTrains(
             final CommandSender sender,
@@ -367,7 +366,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug pvc fly")
+    @Command("train debug pvc fly")
     private void commandTestFlight(final Player player, final TrainCarts plugin) {
         final Vector center = new Vector(-175.5, 4.1 + 10.0, 354.5);
 
@@ -447,7 +446,7 @@ public class DebugCommands {
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
-    @CommandMethod("train debug pvc swing")
+    @Command("train debug pvc swing")
     private void commandTestSwing(final Player player, final TrainCarts plugin) {
         final double radius = 10.0;
         final Vector center = new Vector(-175.5, 4.1 + radius, 354.5);

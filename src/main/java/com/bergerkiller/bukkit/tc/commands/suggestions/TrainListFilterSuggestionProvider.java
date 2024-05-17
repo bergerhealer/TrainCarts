@@ -10,18 +10,19 @@ import org.bukkit.command.CommandSender;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.selector.SelectorHandler;
 import com.bergerkiller.bukkit.tc.commands.selector.SelectorHandlerConditionOption;
-
-import cloud.commandframework.context.CommandContext;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.incendo.cloud.context.CommandContext;
+import org.incendo.cloud.context.CommandInput;
+import org.incendo.cloud.suggestion.BlockingSuggestionProvider;
 
 /**
  * Provides suggestions for the arguments following a /train list command
  */
-public class TrainListFilterSuggestionProvider implements BiFunction<CommandContext<CommandSender>, String, List<String>> {
-
+public class TrainListFilterSuggestionProvider implements BlockingSuggestionProvider.Strings<CommandSender> {
     @Override
-    public List<String> apply(CommandContext<CommandSender> context, String input) {
-        final CommandSender sender = context.getSender();
-        if (input.startsWith("@train[")) {
+    public @NonNull Iterable<@NonNull String> stringSuggestions(@NonNull CommandContext<CommandSender> context, @NonNull CommandInput input) {
+        final CommandSender sender = context.sender();
+        if (input.remainingInput().startsWith("@train[")) {
             TrainCarts plugin = context.inject(TrainCarts.class).get();
             SelectorHandler handler = plugin.getSelectorHandlerRegistry().find("train");
             if (handler == null) {

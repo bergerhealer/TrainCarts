@@ -5,13 +5,12 @@ import com.bergerkiller.bukkit.common.localization.LocalizationEnum;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
-import cloud.commandframework.captions.Caption;
-
 import java.util.HashSet;
 
 import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.caption.Caption;
 
 public class Localization extends LocalizationEnum {
     public static final Localization COMMAND_USAGE = new Localization("command.usage", ChatColor.GREEN + "See " + "[" + ChatColor.WHITE + ChatColor.UNDERLINE + "the WIKI](https://wiki.traincarts.net/p/TrainCarts)" + ChatColor.RESET + ChatColor.GREEN + " for more information, or use /train help");

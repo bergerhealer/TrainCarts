@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.commands.suggestions;
 
 import java.util.List;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -10,16 +9,18 @@ import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
-
-import cloud.commandframework.context.CommandContext;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.incendo.cloud.context.CommandContext;
+import org.incendo.cloud.context.CommandInput;
+import org.incendo.cloud.suggestion.BlockingSuggestionProvider;
 
 /**
  * Suggests parts of a train spawn pattern, as used for the chest item and on spawn signs
  */
-public class TrainSpawnPatternSuggestionProvider implements BiFunction<CommandContext<CommandSender>, String, List<String>> {
-
+public class TrainSpawnPatternSuggestionProvider implements BlockingSuggestionProvider.Strings<CommandSender> {
     @Override
-    public List<String> apply(CommandContext<CommandSender> commandContext, String input) {
+    public @NonNull Iterable<@NonNull String> stringSuggestions(@NonNull CommandContext<CommandSender> commandContext, @NonNull CommandInput commandInput) {
+        final String input = commandInput.lastRemainingToken();
         final TrainCarts plugin = commandContext.inject(TrainCarts.class).get();
 
         if (input.isEmpty() || Character.isDigit(input.charAt(input.length()-1))) {

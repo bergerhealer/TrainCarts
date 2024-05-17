@@ -13,10 +13,9 @@ import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Whether players take carts with them when they leave the server
@@ -25,7 +24,7 @@ public final class AllowPlayerTakeProperty implements ITrainProperty<Boolean> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("allowplayertake")
-    @CommandMethod("train allowplayertake|playertake <allow>")
+    @Command("train allowplayertake|playertake <allow>")
     @CommandDescription("Sets whether players take carts of the train with them when they leave the server")
     private void commandSetProperty(
             final CommandSender sender,
@@ -36,7 +35,7 @@ public final class AllowPlayerTakeProperty implements ITrainProperty<Boolean> {
         commandGetProperty(sender, properties);
     }
 
-    @CommandMethod("train allowplayertake|playertake")
+    @Command("train allowplayertake|playertake")
     @CommandDescription("Displays whether players take carts of the train with them when they leave the server")
     private void commandGetProperty(
             final CommandSender sender,

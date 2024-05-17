@@ -11,10 +11,9 @@ import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
-import cloud.commandframework.annotations.Flag;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
+import org.incendo.cloud.annotations.Flag;
 
 /**
  * The commands used to start and stop train locating operations
@@ -23,7 +22,7 @@ public class TrainLocatorCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_LOCATE)
-    @CommandMethod("cart locate")
+    @Command("cart locate")
     @CommandDescription("Toggles locating a single cart of a train. Stops locating other carts.")
     private void commandLocateCart(
             final Player sender,
@@ -45,7 +44,7 @@ public class TrainLocatorCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_LOCATE)
-    @CommandMethod("train locate")
+    @Command("train locate")
     @CommandDescription("Toggles locating a single train. Stops locating other trains.")
     private void commandLocateTrain(
             final Player sender,
@@ -67,7 +66,7 @@ public class TrainLocatorCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_LOCATE)
-    @CommandMethod("cart locate start")
+    @Command("cart locate start")
     @CommandDescription("Starts locating a single cart of a train. Keeps locating previous trains.")
     private void commandStartLocatingCart(
             final Player sender,
@@ -100,7 +99,7 @@ public class TrainLocatorCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_LOCATE)
-    @CommandMethod("train locate start")
+    @Command("train locate start")
     @CommandDescription("Starts locating a single cart of a train. Keeps locating previous carts.")
     private void commandStartLocatingTrain(
             final Player sender,
@@ -133,7 +132,7 @@ public class TrainLocatorCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_LOCATE)
-    @CommandMethod("cart locate stop")
+    @Command("cart locate stop")
     @CommandDescription("Stops locating the selected cart, keeps locating other carts")
     private void commandStopLocatingCart(
             final Player sender,
@@ -152,7 +151,7 @@ public class TrainLocatorCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_LOCATE)
-    @CommandMethod("train locate stop")
+    @Command("train locate stop")
     @CommandDescription("Stops locating the selected train, keeps locating other train")
     private void commandStopLocatingTrain(
             final Player sender,
@@ -170,7 +169,7 @@ public class TrainLocatorCommands {
     }
 
     @CommandRequiresPermission(Permission.COMMAND_LOCATE)
-    @CommandMethod("cart locate stop_all")
+    @Command("cart locate stop_all")
     @CommandDescription("Stops locating all carts")
     private void commandStopLocatingAllCartAlias(
             final Player sender,
@@ -180,7 +179,7 @@ public class TrainLocatorCommands {
     }
 
     @CommandRequiresPermission(Permission.COMMAND_LOCATE)
-    @CommandMethod("train locate stop_all")
+    @Command("train locate stop_all")
     @CommandDescription("Stops locating all trains")
     private void commandStopLocatingAll(
             final Player sender,

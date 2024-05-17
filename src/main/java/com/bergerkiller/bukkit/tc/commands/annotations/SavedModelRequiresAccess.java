@@ -1,7 +1,7 @@
 package com.bergerkiller.bukkit.tc.commands.annotations;
 
-import cloud.commandframework.arguments.parser.ParserParameter;
 import io.leangen.geantyref.TypeToken;
+import org.incendo.cloud.parser.ParserParameter;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

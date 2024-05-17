@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.commands.suggestions;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import org.bukkit.command.CommandSender;
@@ -12,13 +11,15 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.components.AnimationController;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
-
-import cloud.commandframework.context.CommandContext;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.incendo.cloud.context.CommandContext;
+import org.incendo.cloud.context.CommandInput;
+import org.incendo.cloud.suggestion.BlockingSuggestionProvider;
 
 /**
  * Suggests animation names used in a train or cart
  */
-public final class AnimationNameSuggestionProvider implements BiFunction<CommandContext<CommandSender>, String, List<String>> {
+public final class AnimationNameSuggestionProvider implements BlockingSuggestionProvider.Strings<CommandSender> {
     public static final AnimationNameSuggestionProvider TRAIN_ANIMATION_NAME = new AnimationNameSuggestionProvider(true);
     public static final AnimationNameSuggestionProvider CART_ANIMATION_NAME = new AnimationNameSuggestionProvider(false);
 
@@ -29,7 +30,8 @@ public final class AnimationNameSuggestionProvider implements BiFunction<Command
     }
 
     @Override
-    public List<String> apply(CommandContext<CommandSender> context, String input) {
+    public @NonNull Iterable<@NonNull String> stringSuggestions(@NonNull CommandContext<CommandSender> context, @NonNull CommandInput commandInput) {
+        String input = commandInput.lastRemainingToken();
         AnimationController holder;
 
         // Get list of animation names for the train or cart

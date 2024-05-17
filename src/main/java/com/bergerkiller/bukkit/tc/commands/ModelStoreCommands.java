@@ -1,17 +1,5 @@
 package com.bergerkiller.bukkit.tc.commands;
 
-import cloud.commandframework.CommandManager;
-import cloud.commandframework.annotations.Flag;
-import cloud.commandframework.annotations.InitializationMethod;
-import cloud.commandframework.annotations.specifier.Quoted;
-import cloud.commandframework.annotations.suggestions.Suggestions;
-import cloud.commandframework.arguments.CommandArgument;
-import cloud.commandframework.arguments.parser.ArgumentParseResult;
-import cloud.commandframework.arguments.parser.ArgumentParser;
-import cloud.commandframework.arguments.parser.ParserParameters;
-import cloud.commandframework.context.CommandContext;
-import cloud.commandframework.exceptions.parsing.NoInputProvidedException;
-import cloud.commandframework.services.types.ConsumerService;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Localization;
@@ -36,11 +24,24 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
-import cloud.commandframework.annotations.specifier.Greedy;
 import org.bukkit.inventory.ItemStack;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.incendo.cloud.CommandManager;
+import org.incendo.cloud.annotation.specifier.Greedy;
+import org.incendo.cloud.annotation.specifier.Quoted;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
+import org.incendo.cloud.annotations.Flag;
+import org.incendo.cloud.annotations.suggestion.Suggestions;
+import org.incendo.cloud.component.CommandComponent;
+import org.incendo.cloud.context.CommandContext;
+import org.incendo.cloud.context.CommandInput;
+import org.incendo.cloud.parser.ArgumentParseResult;
+import org.incendo.cloud.parser.ArgumentParser;
+import org.incendo.cloud.parser.ParserParameters;
+import org.incendo.cloud.services.type.ConsumerService;
+import org.incendo.cloud.suggestion.BlockingSuggestionProvider;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,7 +57,7 @@ import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
  * Houses all commands to do with (item) models. "Model" attachment names can be managed here,
  * such as listing/importing/exporting. As well all resource pack-declared item models can be listed.
  */
-@CommandMethod("train model")
+@Command("train model")
 public class ModelStoreCommands {
 
     @Suggestions("savedmodelmodules")
@@ -71,10 +72,9 @@ public class ModelStoreCommands {
         return plugin.getSavedAttachmentModels().getNames();
     }
 
-    @InitializationMethod
-    private void init(CommandManager<CommandSender> manager) {
+    public void init(CommandManager<CommandSender> manager) {
         manager.registerCommandPostProcessor((postProcessContext) -> {
-            final CommandContext<CommandSender> context = postProcessContext.getCommandContext();
+            final CommandContext<CommandSender> context = postProcessContext.commandContext();
 
             // Check if command uses saved model attachments
             Object raw_arg = context.getOrDefault("savedmodelname", (Object) null);
@@ -83,8 +83,8 @@ public class ModelStoreCommands {
             }
 
             // Find SavedAttachmentModelParser. If used, process the post-logic code down below.
-            SavedAttachmentModelParser parser = postProcessContext.getCommand().getArguments().stream()
-                    .map(CommandArgument::getParser)
+            SavedAttachmentModelParser parser = postProcessContext.command().components().stream()
+                    .map(CommandComponent::parser)
                     .filter(SavedAttachmentModelParser.class::isInstance)
                     .map(SavedAttachmentModelParser.class::cast)
                     .findFirst().orElse(null);
@@ -100,22 +100,22 @@ public class ModelStoreCommands {
                     try {
                         // Create new configuration
                         savedModel = plugin.getSavedAttachmentModels().setConfigAsPlayer(
-                                savedModel.getName(), new ConfigurationNode(), context.getSender());
+                                savedModel.getName(), new ConfigurationNode(), context.sender());
                         context.set("savedmodelname", savedModel);
                     } catch (IllegalNameException e) {
                         Localization.COMMAND_MODEL_CONFIG_INVALID_NAME.message(
-                                context.getSender(), savedModel.getName());
+                                context.sender(), savedModel.getName());
                         ConsumerService.interrupt();
                     }
                 } else {
                     // Not found, fail
                     Localization.COMMAND_MODEL_CONFIG_NOTFOUND.message(
-                            context.getSender(), savedModel.getName());
+                            context.sender(), savedModel.getName());
                     ConsumerService.interrupt();
                 }
             } else if (parser.isMustHaveAccess()) {
                 // Check permissions when access is required
-                CommandSender sender = context.getSender();
+                CommandSender sender = context.sender();
                 if (savedModel.hasPermission(sender)) {
                     return;
                 }
@@ -128,17 +128,17 @@ public class ModelStoreCommands {
         });
 
         // Token specified when a command requires write access to a saved model
-        manager.getParserRegistry().registerAnnotationMapper(SavedModelRequiresAccess.class, (a, typeToken) -> {
+        manager.parserRegistry().registerAnnotationMapper(SavedModelRequiresAccess.class, (a, typeToken) -> {
             return ParserParameters.single(SavedModelRequiresAccess.PARAM, Boolean.TRUE);
         });
 
         // Token specified when new saved model configurations are created when missing
-        manager.getParserRegistry().registerAnnotationMapper(SavedModelImplicitlyCreated.class, (a, typeToken) -> {
+        manager.parserRegistry().registerAnnotationMapper(SavedModelImplicitlyCreated.class, (a, typeToken) -> {
             return ParserParameters.single(SavedModelImplicitlyCreated.PARAM, Boolean.TRUE);
         });
 
         // Create parsers, take @SavedModelRequiresAccess flag into account
-        manager.getParserRegistry().registerParserSupplier(TypeToken.get(SavedAttachmentModel.class), (parameters) -> {
+        manager.parserRegistry().registerParserSupplier(TypeToken.get(SavedAttachmentModel.class), (parameters) -> {
             //parameters.get(parameter, defaultValue)
             boolean access = parameters.get(SavedModelRequiresAccess.PARAM, Boolean.FALSE);
             boolean implicitlyCreated = parameters.get(SavedModelImplicitlyCreated.PARAM, Boolean.FALSE);
@@ -146,7 +146,7 @@ public class ModelStoreCommands {
         });
     }
 
-    @CommandMethod("config")
+    @Command("config")
     @CommandDescription("Shows command usage of /train model config, lists saved model configurations")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     private void commandUsage(
@@ -158,7 +158,7 @@ public class ModelStoreCommands {
         this.commandShowInfo(sender, plugin, false, null);
     }
 
-    @CommandMethod("config <savedmodelname> info")
+    @Command("config <savedmodelname> info")
     @CommandDescription("Shows detailed information about a saved model configuration")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     private void commandShowInfo(
@@ -179,7 +179,7 @@ public class ModelStoreCommands {
         builder.send(sender);
     }
 
-    @CommandMethod("config <savedmodelname> defaultmodule")
+    @Command("config <savedmodelname> defaultmodule")
     @CommandDescription("Moves a saved model configuration to the default module")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     private void commandSetDefaultModule(
@@ -195,7 +195,7 @@ public class ModelStoreCommands {
         }
     }
 
-    @CommandMethod("config <savedmodelname> module <newmodulename>")
+    @Command("config <savedmodelname> module <newmodulename>")
     @CommandDescription("Moves a saved model configuration to a new or existing module")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     private void commandSetModule(
@@ -214,7 +214,7 @@ public class ModelStoreCommands {
         }
     }
 
-    @CommandMethod("config <savedmodelname> export|share|paste|upload")
+    @Command("config <savedmodelname> export|share|paste|upload")
     @CommandDescription("Exports the saved model configuration configuration to a hastebin server")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_EXPORT)
@@ -227,7 +227,7 @@ public class ModelStoreCommands {
         Commands.exportModel(sender, savedModel.getName(), exportedConfig);
     }
 
-    @CommandMethod("config <savedmodelname> rename|changename|move <newsavedmodelname>")
+    @Command("config <savedmodelname> rename|changename|move <newsavedmodelname>")
     @CommandDescription("Renames a saved model configuration")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_RENAME)
@@ -255,7 +255,7 @@ public class ModelStoreCommands {
                 ChatColor.YELLOW + "'!");
     }
 
-    @CommandMethod("config <savedmodelname> copy|clone <targetsavedmodelname>")
+    @Command("config <savedmodelname> copy|clone <targetsavedmodelname>")
     @CommandDescription("Copies an existing saved model configuration and saves it as the target saved model configuration name")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_COPY)
@@ -289,7 +289,7 @@ public class ModelStoreCommands {
                 ChatColor.YELLOW + "'!");
     }
 
-    @CommandMethod("config <savedmodelname> delete|remove")
+    @Command("config <savedmodelname> delete|remove")
     @CommandDescription("Deletes a saved model configuration permanently")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_DELETE)
@@ -310,7 +310,7 @@ public class ModelStoreCommands {
         }
     }
 
-    @CommandMethod("config <savedmodelname> claim")
+    @Command("config <savedmodelname> claim")
     @CommandDescription("Claims a saved model configuration so that the player has exclusive access")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_CLAIM)
@@ -334,7 +334,7 @@ public class ModelStoreCommands {
         }
     }
 
-    @CommandMethod("config <savedmodelname> claim add <player>")
+    @Command("config <savedmodelname> claim add <player>")
     @CommandDescription("Adds a claim to a saved model configuration so that the added player has exclusive access")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_CLAIM)
@@ -359,7 +359,7 @@ public class ModelStoreCommands {
         updateClaimList(sender, savedModel, oldClaims, newClaims);
     }
 
-    @CommandMethod("config <savedmodelname> claim remove <player>")
+    @Command("config <savedmodelname> claim remove <player>")
     @CommandDescription("Removes a claim from a saved model configuration so that the player no longer has exclusive access")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_CLAIM)
@@ -384,7 +384,7 @@ public class ModelStoreCommands {
         updateClaimList(sender, savedModel, oldClaims, newClaims);
     }
 
-    @CommandMethod("config <savedmodelname> claim clear")
+    @Command("config <savedmodelname> claim clear")
     @CommandDescription("Clears all the claims set for the saved model configuration, allowing anyone to access it")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_CLAIM)
@@ -400,7 +400,7 @@ public class ModelStoreCommands {
         updateClaimList(sender, savedModel, oldClaims, Collections.emptySet());
     }
 
-    @CommandMethod("config <savedmodelname> import <url>")
+    @Command("config <savedmodelname> import <url>")
     @CommandDescription("Imports a saved model configuration from an online hastebin server by url")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_IMPORT)
@@ -431,7 +431,7 @@ public class ModelStoreCommands {
         });
     }
 
-    @CommandMethod("config <savedmodelname> edit")
+    @Command("config <savedmodelname> edit")
     @CommandDescription("Switches the attachment editor to edit this model configuration")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_IMPORT)
@@ -461,7 +461,7 @@ public class ModelStoreCommands {
         }
     }
 
-    @CommandMethod("config list")
+    @Command("config list")
     @CommandDescription("Lists all the model configurations that exist on the server that a player can modify")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     private void commandShowInfo(
@@ -496,7 +496,7 @@ public class ModelStoreCommands {
         builder.send(sender);
     }
 
-    @CommandMethod("config list modules")
+    @Command("config list modules")
     @CommandDescription("Lists all modules in which saved model configurations are saved")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     private void commandListModules(
@@ -547,7 +547,7 @@ public class ModelStoreCommands {
     }
 
     @CommandRequiresPermission(Permission.COMMAND_MODEL_SEARCH)
-    @CommandMethod("search")
+    @Command("search")
     @CommandDescription("Shows a dialog with all resource pack item models that are available")
     private void commandSearchModels(
             final TrainCarts plugin,
@@ -561,7 +561,7 @@ public class ModelStoreCommands {
     }
 
     @CommandRequiresPermission(Permission.COMMAND_MODEL_SEARCH)
-    @CommandMethod("search <query>")
+    @Command("search <query>")
     @CommandDescription("Shows a dialog with all resource pack item models that are available")
     private void commandSearchModelsQuery(
             final TrainCarts plugin,
@@ -650,7 +650,7 @@ public class ModelStoreCommands {
     /**
      * Parser for SavedAttachmentModel
      */
-    private static class SavedAttachmentModelParser implements ArgumentParser<CommandSender, SavedAttachmentModel> {
+    private static class SavedAttachmentModelParser implements ArgumentParser<CommandSender, SavedAttachmentModel>, BlockingSuggestionProvider.Strings<CommandSender> {
         private final boolean mustHaveAccess;
         private final boolean implicitlyCreated;
 
@@ -668,15 +668,9 @@ public class ModelStoreCommands {
         }
 
         @Override
-        public ArgumentParseResult<SavedAttachmentModel> parse(CommandContext<CommandSender> commandContext, Queue<String> inputQueue) {
+        public @NonNull ArgumentParseResult<@NonNull SavedAttachmentModel> parse(@NonNull CommandContext<@NonNull CommandSender> commandContext, @NonNull CommandInput commandInput) {
             final TrainCarts plugin = commandContext.inject(TrainCarts.class).get();
-            final String input = inputQueue.peek();
-            if (input == null) {
-                return ArgumentParseResult.failure(new NoInputProvidedException(
-                        SavedAttachmentModelParser.class,
-                        commandContext
-                ));
-            }
+            final String input = commandInput.lastRemainingToken();
 
             // Verify not an invalid name that will brick YAML
             TrainNameFormat.VerifyResult verify = TrainNameFormat.verify(input);
@@ -685,17 +679,18 @@ public class ModelStoreCommands {
                         verify.getModelMessage(), input));
             }
 
-            inputQueue.remove();
+            commandInput.readString();
 
             return ArgumentParseResult.success(plugin.getSavedAttachmentModels().getModelOrNone(input));
         }
 
         @Override
-        public List<String> suggestions(
-                final CommandContext<CommandSender> commandContext,
-                final String input
+        public @NonNull Iterable<@NonNull String> stringSuggestions(
+                @NonNull CommandContext<CommandSender> commandContext,
+                @NonNull CommandInput commandInput
         ) {
             final TrainCarts plugin = commandContext.inject(TrainCarts.class).get();
+            final String input = commandInput.lastRemainingToken();
 
             List<String> filtered;
             if (input.isEmpty()) {
@@ -706,7 +701,7 @@ public class ModelStoreCommands {
             }
 
             List<String> claimed = filtered.stream().filter(name -> {
-                return plugin.getSavedAttachmentModels().hasPermission(commandContext.getSender(), name);
+                return plugin.getSavedAttachmentModels().hasPermission(commandContext.sender(), name);
             }).collect(Collectors.toList());
 
             if (claimed.isEmpty()) {

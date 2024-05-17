@@ -27,18 +27,17 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyParseResult;
 import com.bergerkiller.bukkit.tc.signactions.SignActionBlockChanger;
 import com.bergerkiller.bukkit.tc.offline.train.OfflineMember;
 
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
-import cloud.commandframework.annotations.Flag;
-import cloud.commandframework.annotations.specifier.Greedy;
-import cloud.commandframework.annotations.specifier.Quoted;
-
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotation.specifier.Greedy;
+import org.incendo.cloud.annotation.specifier.Quoted;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
+import org.incendo.cloud.annotations.Flag;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,7 +46,7 @@ import java.util.List;
 public class CartCommands {
 
     @CommandTargetTrain
-    @CommandMethod("cart info|i")
+    @Command("cart info|i")
     @CommandDescription("Displays the properties of the cart")
     private void commandInfo(
             final CommandSender sender,
@@ -58,7 +57,7 @@ public class CartCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_DESTROY)
-    @CommandMethod("cart destroy|remove")
+    @Command("cart destroy|remove")
     @CommandDescription("Destroys the single cart that is selected")
     private void commandDestroy(
             final CommandSender sender,
@@ -76,7 +75,7 @@ public class CartCommands {
 
     @CommandRequiresPermission(Permission.COMMAND_SAVE_TRAIN)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_EXPORT)
-    @CommandMethod("cart export|share|paste|upload")
+    @Command("cart export|share|paste|upload")
     @CommandDescription("Exports the selected cart's train configuration to a hastebin server")
     private void commandExport(
             final CommandSender sender,
@@ -91,7 +90,7 @@ public class CartCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_SAVE_TRAIN)
-    @CommandMethod("cart save <name>")
+    @Command("cart save <name>")
     @CommandDescription("Saves the selected cart as a train under a name")
     private void commandSave(
             final TrainCarts plugin,
@@ -148,7 +147,7 @@ public class CartCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_TELEPORT)
-    @CommandMethod("cart teleport|tp")
+    @Command("cart teleport|tp")
     @CommandDescription("Teleports the player to where the cart is")
     private void commandTeleport(
             final Player player,
@@ -179,7 +178,7 @@ public class CartCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_EFFECT)
-    @CommandMethod("cart effect <effect_name>")
+    @Command("cart effect <effect_name>")
     @CommandDescription("Plays an effect for a cart")
     private void commandEffect(
             final CommandSender sender,
@@ -209,7 +208,7 @@ public class CartCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_ANIMATE)
-    @CommandMethod("cart animate <animation_name>")
+    @Command("cart animate <animation_name>")
     @CommandDescription("Plays an animation for the cart")
     private void commandAnimate(
             final CommandSender sender,
@@ -253,7 +252,7 @@ public class CartCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
-    @CommandMethod("cart displayedblock clear")
+    @Command("cart displayedblock clear")
     @CommandDescription("Clears the displayed block in the Minecart, making it empty")
     private void commandClearDisplayedBlock(
             final CommandSender sender,
@@ -270,7 +269,7 @@ public class CartCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
-    @CommandMethod("cart displayedblock type <block>")
+    @Command("cart displayedblock type <block>")
     @CommandDescription("Sets the displayed block type in the Minecart")
     private void commandChangeDisplayedBlock(
             final CommandSender sender,
@@ -290,7 +289,7 @@ public class CartCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
-    @CommandMethod("cart displayedblock offset reset")
+    @Command("cart displayedblock offset reset")
     @CommandDescription("Resets the height offset at which a block is displayed in a Minecart to the defaults")
     private void commandResetDisplayedBlockOffset(
             final CommandSender sender,
@@ -307,7 +306,7 @@ public class CartCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_CHANGEBLOCK)
-    @CommandMethod("cart displayedblock offset <offset>")
+    @Command("cart displayedblock offset <offset>")
     @CommandDescription("Sets the height offset at which a block is displayed in a Minecart")
     private void commandSetDisplayedBlockOffset(
             final CommandSender sender,
@@ -325,7 +324,7 @@ public class CartCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_EJECT)
-    @CommandMethod("cart eject")
+    @Command("cart eject")
     @CommandDescription("Ejects the passengers of a cart, ignoring the allow player exit property")
     private void commandEject(
             final CommandSender sender,
@@ -355,7 +354,7 @@ public class CartCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_FLIP)
-    @CommandMethod("cart flip")
+    @Command("cart flip")
     @CommandDescription("Flips the orientation of a cart 180 degrees")
     private void commandFlip(
             final CommandSender sender,
@@ -372,7 +371,7 @@ public class CartCommands {
     }
 
     @CommandTargetTrain
-    @CommandMethod("cart <property> <value>")
+    @Command("cart <property> <value>")
     @CommandDescription("Updates the value of a property of a cart by name")
     private void commandCart(
               final CommandSender sender,

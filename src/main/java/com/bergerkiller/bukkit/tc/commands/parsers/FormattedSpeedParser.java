@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.commands.parsers;
 
 import java.util.List;
-import java.util.Queue;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -12,35 +11,35 @@ import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
 import com.bergerkiller.mountiplex.MountiplexUtil;
 
-import cloud.commandframework.arguments.parser.ArgumentParseResult;
-import cloud.commandframework.arguments.parser.ArgumentParser;
-import cloud.commandframework.context.CommandContext;
-import cloud.commandframework.exceptions.parsing.NoInputProvidedException;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.incendo.cloud.context.CommandContext;
+import org.incendo.cloud.context.CommandInput;
+import org.incendo.cloud.parser.ArgumentParseResult;
+import org.incendo.cloud.parser.ArgumentParser;
+import org.incendo.cloud.parser.ParserDescriptor;
+import org.incendo.cloud.suggestion.BlockingSuggestionProvider;
 
 /**
  * Parses a speed with a default unit of blocks/tick, where a unit
  * can optionally be specified.
  */
-public class FormattedSpeedParser implements ArgumentParser<CommandSender, FormattedSpeed> {
+public class FormattedSpeedParser implements ArgumentParser<CommandSender, FormattedSpeed>, BlockingSuggestionProvider.Strings<CommandSender> {
     private final boolean _greedy;
 
     public FormattedSpeedParser(boolean greedy) {
         this._greedy = greedy;
     }
 
-    @Override
-    public ArgumentParseResult<FormattedSpeed> parse(
-            final CommandContext<CommandSender> commandContext,
-            final Queue<String> inputQueue
-    ) {
-        if (inputQueue.isEmpty()) {
-            return ArgumentParseResult.failure(new NoInputProvidedException(
-                    this.getClass(),
-                    commandContext
-            ));
-        }
+    public static ParserDescriptor<CommandSender, FormattedSpeed> formattedSpeedParser(boolean greedy) {
+        return ParserDescriptor.of(new FormattedSpeedParser(greedy), FormattedSpeed.class);
+    }
 
-        String input = this._greedy ? String.join(" ", inputQueue) : inputQueue.peek();
+    @Override
+    public @NonNull ArgumentParseResult<@NonNull FormattedSpeed> parse(
+            @NonNull CommandContext<@NonNull CommandSender> commandContext,
+            @NonNull CommandInput commandInput
+    ) {
+        String input = this._greedy ? commandInput.remainingInput() : commandInput.peekString();
         FormattedSpeed result;
 
         if (input.equalsIgnoreCase("nan")) {
@@ -54,18 +53,20 @@ public class FormattedSpeedParser implements ArgumentParser<CommandSender, Forma
         }
 
         if (this._greedy) {
-            inputQueue.clear();
+            commandInput.cursor(commandInput.length());
         } else {
-            inputQueue.poll();
+            commandInput.readString();
         }
         return ArgumentParseResult.success(result);
     }
 
     @Override
-    public List<String> suggestions(
-            final CommandContext<CommandSender> commandContext,
-            final String input
+    public @NonNull List<@NonNull String> stringSuggestions(
+            @NonNull CommandContext<CommandSender> commandContext,
+            @NonNull CommandInput commandInput
     ) {
+        final String input = commandInput.lastRemainingToken();
+
         if (input.isEmpty()) {
             // Show digits and '-'/'+'
             return Stream.concat(Stream.of("-", "+"), IntStream.range(0, 10)

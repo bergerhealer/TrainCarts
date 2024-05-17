@@ -22,17 +22,16 @@ import com.bergerkiller.bukkit.tc.exception.command.NoTicketSelectedException;
 import com.bergerkiller.bukkit.tc.tickets.TCTicketDisplay;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
-
-import cloud.commandframework.CommandManager;
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
-import cloud.commandframework.annotations.InitializationMethod;
-import cloud.commandframework.annotations.parsers.Parser;
-import cloud.commandframework.annotations.specifier.Quoted;
-import cloud.commandframework.annotations.suggestions.Suggestions;
-import cloud.commandframework.context.CommandContext;
-import cloud.commandframework.exceptions.InvalidCommandSenderException;
+import org.incendo.cloud.CommandManager;
+import org.incendo.cloud.annotation.specifier.Quoted;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
+import org.incendo.cloud.annotations.parser.Parser;
+import org.incendo.cloud.annotations.suggestion.Suggestions;
+import org.incendo.cloud.context.CommandContext;
+import org.incendo.cloud.context.CommandInput;
+import org.incendo.cloud.exception.InvalidCommandSenderException;
 
 public class TicketCommands {
 
@@ -44,29 +43,29 @@ public class TicketCommands {
     }
 
     @Parser(suggestions = "ticketNames")
-    public Ticket parseTicket(final CommandContext<CommandSender> commandContext, final Queue<String> inputQueue) {
-        final String input = inputQueue.peek();
+    public Ticket parseTicket(final CommandContext<CommandSender> commandContext, final CommandInput commandInput) {
+        final String input = commandInput.peekString();
         Ticket ticket = TicketStore.getTicket(input);
         if (ticket == null) {
             throw new LocalizedParserException(commandContext,
                     Localization.COMMAND_TICKET_NOTFOUND, input);
         }
 
-        inputQueue.poll();
+        commandInput.readString();
         return ticket;
     }
 
-    @InitializationMethod
-    private void init(CommandManager<CommandSender> manager) {
+    public void init(CommandManager<CommandSender> manager) {
         // Injects the ticket the sender is editing, otherwise fails
         manager.parameterInjectorRegistry().registerInjector(Ticket.class, (context, annot) -> {
-            if (!(context.getSender() instanceof Player)) {
+            if (!(context.sender() instanceof Player)) {
                 throw new InvalidCommandSenderException(
-                        context.getSender(),
+                        context.sender(),
                         Player.class,
-                        Collections.emptyList());
+                        Collections.emptyList(),
+                        context.command());
             }
-            Ticket ticket = TicketStore.getEditing((Player) context.getSender());
+            Ticket ticket = TicketStore.getEditing((Player) context.sender());
             if (ticket == null) {
                 throw new NoTicketSelectedException();
             }
@@ -74,7 +73,7 @@ public class TicketCommands {
         });
     }
 
-    @CommandMethod("train list tickets")
+    @Command("train list tickets")
     @CommandDescription("Lists the names of all tickets that exist")
     private void commandTrainList(
             final CommandSender sender
@@ -83,7 +82,7 @@ public class TicketCommands {
     }
 
     //@ProxiedBy("train list tickets")
-    @CommandMethod("train ticket list")
+    @Command("train ticket list")
     @CommandDescription("Lists the names of all tickets that exist")
     private void commandList(
             final CommandSender sender
@@ -98,7 +97,7 @@ public class TicketCommands {
     }
 
     @CommandRequiresPermission(Permission.TICKET_MANAGE)
-    @CommandMethod("train ticket edit <name>")
+    @Command("train ticket edit <name>")
     @CommandDescription("Edits a ticket by name")
     private void commandEdit(
               final Player sender,
@@ -109,7 +108,7 @@ public class TicketCommands {
     }
 
     @CommandRequiresPermission(Permission.TICKET_MANAGE)
-    @CommandMethod("train ticket create")
+    @Command("train ticket create")
     @CommandDescription("Creates a new ticket with a unique random name")
     private void commandCreate(
               final Player sender
@@ -120,7 +119,7 @@ public class TicketCommands {
     }
 
     @CommandRequiresPermission(Permission.TICKET_MANAGE)
-    @CommandMethod("train ticket create <name>")
+    @Command("train ticket create <name>")
     @CommandDescription("Creates a new ticket with a name as specified")
     private void commandCreateWithName(
               final Player sender,
@@ -136,7 +135,7 @@ public class TicketCommands {
     }
 
     @CommandRequiresPermission(Permission.TICKET_MANAGE)
-    @CommandMethod("train ticket give <ticket> <players>")
+    @Command("train ticket give <ticket> <players>")
     @CommandDescription("Gives a ticket by name to one or more players")
     private void commandGiveTicket(
               final CommandSender sender,
@@ -155,7 +154,7 @@ public class TicketCommands {
     }
 
     @CommandRequiresPermission(Permission.TICKET_MANAGE)
-    @CommandMethod("train ticket sell <ticket> <price> <players>")
+    @Command("train ticket sell <ticket> <price> <players>")
     @CommandDescription("Sells a ticket by name to one or more players by charging them money")
     private void commandSellTicket(
               final CommandSender sender,
@@ -211,7 +210,7 @@ public class TicketCommands {
     }
 
     @CommandRequiresPermission(Permission.TICKET_MANAGE)
-    @CommandMethod("train ticket clone")
+    @Command("train ticket clone")
     @CommandDescription("Clones the currently edited ticket with a random new name")
     private void commandCloneTicket(
               final Player sender,
@@ -223,7 +222,7 @@ public class TicketCommands {
     }
 
     @CommandRequiresPermission(Permission.TICKET_MANAGE)
-    @CommandMethod("train ticket clone <newname>")
+    @Command("train ticket clone <newname>")
     @CommandDescription("Clones the currently edited ticket with the new name specified")
     private void commandCloneTicketWithNewName(
               final Player sender,
@@ -240,7 +239,7 @@ public class TicketCommands {
     }
 
     @CommandRequiresPermission(Permission.TICKET_MANAGE)
-    @CommandMethod("train ticket remove")
+    @Command("train ticket remove")
     @CommandDescription("Permanently removes a ticket")
     private void commandDeleteTicket(
               final Player sender,
@@ -254,7 +253,7 @@ public class TicketCommands {
     }
 
     @CommandRequiresPermission(Permission.TICKET_MANAGE)
-    @CommandMethod("train ticket rename <newname>")
+    @Command("train ticket rename <newname>")
     @CommandDescription("Renames the currently edited ticket")
     private void commandRenameTicket(
               final Player sender,
@@ -269,7 +268,7 @@ public class TicketCommands {
     }
 
     @CommandRequiresPermission(Permission.TICKET_MANAGE)
-    @CommandMethod("train ticket realm <newrealm>")
+    @Command("train ticket realm <newrealm>")
     @CommandDescription("Changes the realm of the currently edited ticket")
     private void commandSetRealm(
               final Player sender,
@@ -281,7 +280,7 @@ public class TicketCommands {
         sender.sendMessage(ChatColor.GREEN + "Ticket realm set to " + ChatColor.YELLOW + newRealm);
     }
 
-    @CommandMethod("train ticket background|image")
+    @Command("train ticket background|image")
     @CommandDescription("Reads what background image is configured for the currently edited ticket")
     private void commandSetBackground(
               final Player sender,
@@ -297,7 +296,7 @@ public class TicketCommands {
     }
 
     @CommandRequiresPermission(Permission.TICKET_MANAGE)
-    @CommandMethod("train ticket background|image <newimage>")
+    @Command("train ticket background|image <newimage>")
     @CommandDescription("Configures a custom background image for the currently edited ticket")
     private void commandSetBackground(
               final Player sender,
@@ -321,7 +320,7 @@ public class TicketCommands {
     }
 
     @CommandRequiresPermission(Permission.TICKET_MANAGE)
-    @CommandMethod("train ticket maximumuses|maxuses|uselimit unlimited|infinite")
+    @Command("train ticket maximumuses|maxuses|uselimit unlimited|infinite")
     @CommandDescription("Sets the number of uses for the currently edited ticket to unlimited")
     private void commandSetUnlimitedMaximumUses(
               final Player sender,
@@ -331,7 +330,7 @@ public class TicketCommands {
     }
 
     @CommandRequiresPermission(Permission.TICKET_MANAGE)
-    @CommandMethod("train ticket maximumuses|maxuses|uselimit <newmaxuses>")
+    @Command("train ticket maximumuses|maxuses|uselimit <newmaxuses>")
     @CommandDescription("Sets the number of uses for the currently edited ticket")
     private void commandSetMaximumUses(
               final Player sender,
@@ -349,7 +348,7 @@ public class TicketCommands {
     }
 
     @CommandRequiresPermission(Permission.TICKET_MANAGE)
-    @CommandMethod("train ticket destination <newdestination>")
+    @Command("train ticket destination <newdestination>")
     @CommandDescription("Sets a destination to apply to the train when the currently edited ticket is used")
     private void commandSetDestination(
               final Player sender,
@@ -361,7 +360,7 @@ public class TicketCommands {
     }
 
     @CommandRequiresPermission(Permission.TICKET_MANAGE)
-    @CommandMethod("train ticket tags [newtags]")
+    @Command("train ticket tags [newtags]")
     @CommandDescription("Sets tags to apply to the train when the currently edited ticket is used")
     private void commandSetTags(
               final Player sender,

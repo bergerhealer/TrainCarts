@@ -17,11 +17,10 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.PropertySelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
-import cloud.commandframework.annotations.specifier.Quoted;
+import org.incendo.cloud.annotation.specifier.Quoted;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * The current destination a train is going for. May also update the
@@ -31,7 +30,7 @@ import cloud.commandframework.annotations.specifier.Quoted;
 public final class DestinationProperty implements ICartProperty<String> {
 
     @CommandTargetTrain
-    @CommandMethod("train destination|dest none")
+    @Command("train destination|dest none")
     @CommandDescription("Clears the destination set for a train")
     private void commandClearProperty(
             final CommandSender sender,
@@ -42,7 +41,7 @@ public final class DestinationProperty implements ICartProperty<String> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("destination")
-    @CommandMethod("train destination|dest <destination>")
+    @Command("train destination|dest <destination>")
     @CommandDescription("Sets a new destination for the train to go to")
     private void commandSetProperty(
             final CommandSender sender,
@@ -53,7 +52,7 @@ public final class DestinationProperty implements ICartProperty<String> {
         commandGetProperty(sender, properties);
     }
 
-    @CommandMethod("train destination|dest")
+    @Command("train destination|dest")
     @CommandDescription("Displays the current destination set for the train")
     private void commandGetProperty(
             final CommandSender sender,
@@ -69,7 +68,7 @@ public final class DestinationProperty implements ICartProperty<String> {
     }
 
     @CommandTargetTrain
-    @CommandMethod("cart destination|dest none")
+    @Command("cart destination|dest none")
     @CommandDescription("Clears the destination set for a cart")
     private void commandClearProperty(
             final CommandSender sender,
@@ -80,7 +79,7 @@ public final class DestinationProperty implements ICartProperty<String> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("destination")
-    @CommandMethod("cart destination|dest <destination>")
+    @Command("cart destination|dest <destination>")
     @CommandDescription("Sets a new destination for the cart to go to")
     private void commandSetProperty(
             final CommandSender sender,
@@ -91,7 +90,7 @@ public final class DestinationProperty implements ICartProperty<String> {
         commandGetProperty(sender, properties);
     }
 
-    @CommandMethod("cart destination|dest")
+    @Command("cart destination|dest")
     @CommandDescription("Displays the current destination set for the cart")
     private void commandGetProperty(
             final CommandSender sender,

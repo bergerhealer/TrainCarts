@@ -28,14 +28,13 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
-import cloud.commandframework.annotations.specifier.FlagYielding;
-import cloud.commandframework.annotations.specifier.Greedy;
-import cloud.commandframework.annotations.suggestions.Suggestions;
-import cloud.commandframework.context.CommandContext;
+import org.incendo.cloud.annotation.specifier.FlagYielding;
+import org.incendo.cloud.annotation.specifier.Greedy;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
+import org.incendo.cloud.annotations.suggestion.Suggestions;
+import org.incendo.cloud.context.CommandContext;
 
 /**
  * Stores a list of destinations a cart traversed. When it reaches the next
@@ -112,7 +111,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
         }
     }
 
-    @CommandMethod("cart route")
+    @Command("cart route")
     @CommandDescription("Displays the current route set for a cart")
     private void getProperty(
             final CommandSender sender,
@@ -123,7 +122,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
 
     @CommandTargetTrain
     @PropertyCheckPermission("route")
-    @CommandMethod("cart route add <destinations>")
+    @Command("cart route add <destinations>")
     @CommandDescription("Adds one or more destinations to the route set for a cart")
     private void setPropertyAdd(
             final CommandSender sender,
@@ -135,7 +134,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
 
     @CommandTargetTrain
     @PropertyCheckPermission("route")
-    @CommandMethod("cart route set <destinations>")
+    @Command("cart route set <destinations>")
     @CommandDescription("Resets the route to one or more destinations for a cart")
     private void setPropertySet(
             final CommandSender sender,
@@ -147,7 +146,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
 
     @CommandTargetTrain
     @PropertyCheckPermission("route")
-    @CommandMethod("cart route remove <destinations>")
+    @Command("cart route remove <destinations>")
     @CommandDescription("Removes one or more destinations from the route of a cart")
     private void setPropertyRemove(
             final CommandSender sender,
@@ -159,7 +158,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
 
     @CommandTargetTrain
     @PropertyCheckPermission("route")
-    @CommandMethod("cart route clear")
+    @Command("cart route clear")
     @CommandDescription("Clears the route set for a cart")
     private void setPropertyClear(
             final CommandSender sender,
@@ -171,7 +170,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_SAVE_ROUTE)
-    @CommandMethod("cart route save <route_name>")
+    @Command("cart route save <route_name>")
     @CommandDescription("Saves the current route of the cart with a name, which can then be loaded by that name")
     private void getPropertySaveRoute(
             final TrainCarts plugin,
@@ -185,7 +184,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
 
     @CommandTargetTrain
     @PropertyCheckPermission("route")
-    @CommandMethod("cart route load <route_name>")
+    @Command("cart route load <route_name>")
     @CommandDescription("Resets the route and loads a new route by name for a cart")
     private void setPropertyLoadRoute(
             final CommandSender sender,
@@ -195,7 +194,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
         setPropertyLoadRouteGeneric(sender, properties, routeName);
     }
 
-    @CommandMethod("train route")
+    @Command("train route")
     @CommandDescription("Displays the current route set for a train")
     private void getProperty(
             final CommandSender sender,
@@ -206,7 +205,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
 
     @CommandTargetTrain
     @PropertyCheckPermission("route")
-    @CommandMethod("train route add <destinations>")
+    @Command("train route add <destinations>")
     @CommandDescription("Adds one or more destinations to the route set for a train")
     private void setPropertyAdd(
             final CommandSender sender,
@@ -218,7 +217,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
 
     @CommandTargetTrain
     @PropertyCheckPermission("route")
-    @CommandMethod("train route set <destinations>")
+    @Command("train route set <destinations>")
     @CommandDescription("Resets the route to one or more destinations for a train")
     private void setPropertySet(
             final CommandSender sender,
@@ -230,7 +229,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
 
     @CommandTargetTrain
     @PropertyCheckPermission("route")
-    @CommandMethod("train route remove <destinations>")
+    @Command("train route remove <destinations>")
     @CommandDescription("Removes one or more destinations from the route of a train")
     private void setPropertyRemove(
             final CommandSender sender,
@@ -242,7 +241,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
 
     @CommandTargetTrain
     @PropertyCheckPermission("route")
-    @CommandMethod("train route clear")
+    @Command("train route clear")
     @CommandDescription("Clears the route set for a train")
     private void setPropertyClear(
             final CommandSender sender,
@@ -254,7 +253,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_SAVE_ROUTE)
-    @CommandMethod("train route save <route_name>")
+    @Command("train route save <route_name>")
     @CommandDescription("Saves the current route of the train with a name, which can then be loaded by that name")
     private void getPropertySaveRoute(
             final TrainCarts plugin,
@@ -268,7 +267,7 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
 
     @CommandTargetTrain
     @PropertyCheckPermission("route")
-    @CommandMethod("train route load <route_name>")
+    @Command("train route load <route_name>")
     @CommandDescription("Resets the route and loads a new route by name for a train")
     private void setPropertyLoadRoute(
             final CommandSender sender,

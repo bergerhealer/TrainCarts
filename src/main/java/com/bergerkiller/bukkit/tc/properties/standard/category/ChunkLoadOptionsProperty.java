@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.properties.standard.category;
 
 import java.util.Optional;
 
-import cloud.commandframework.annotations.Flag;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.properties.standard.type.ChunkLoadOptions;
@@ -21,10 +20,10 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.PropertySelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
+import org.incendo.cloud.annotations.Flag;
 
 /**
  * Controls whether trains keep chunks around them loaded, preventing the train
@@ -36,7 +35,7 @@ public final class ChunkLoadOptionsProperty extends FieldBackedStandardTrainProp
 
     @CommandTargetTrain
     @PropertyCheckPermission("keeploaded")
-    @CommandMethod("train keepchunksloaded|keeploaded|loadchunks <mode>")
+    @Command("train keepchunksloaded|keeploaded|loadchunks <mode>")
     @CommandDescription("Sets whether the train keeps chunks loaded, how and optionally with what radius")
     private void commandSetProperty(
             final CommandSender sender,
@@ -58,7 +57,7 @@ public final class ChunkLoadOptionsProperty extends FieldBackedStandardTrainProp
         commandGetProperty(sender, properties);
     }
 
-    @CommandMethod("train keepchunksloaded|keeploaded|loadchunks")
+    @Command("train keepchunksloaded|keeploaded|loadchunks")
     @CommandDescription("Gets the chunk loader configuration of the train")
     private void commandGetProperty(
             final CommandSender sender,

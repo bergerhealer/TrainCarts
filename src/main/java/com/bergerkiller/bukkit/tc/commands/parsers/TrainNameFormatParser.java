@@ -1,34 +1,26 @@
 package com.bergerkiller.bukkit.tc.commands.parsers;
 
-import java.util.Queue;
-
 import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
-
-import cloud.commandframework.arguments.parser.ArgumentParseResult;
-import cloud.commandframework.arguments.parser.ArgumentParser;
-import cloud.commandframework.context.CommandContext;
-import cloud.commandframework.exceptions.parsing.NoInputProvidedException;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.incendo.cloud.context.CommandContext;
+import org.incendo.cloud.context.CommandInput;
+import org.incendo.cloud.parser.ArgumentParseResult;
+import org.incendo.cloud.parser.ArgumentParser;
+import org.incendo.cloud.parser.ParserDescriptor;
 
 /**
  * Parses the train name format input provided by the user
  */
 public class TrainNameFormatParser implements ArgumentParser<CommandSender, TrainNameFormat> {
+    public static ParserDescriptor<CommandSender, TrainNameFormat> trainNameFormatParser() {
+        return ParserDescriptor.of(new TrainNameFormatParser(), TrainNameFormat.class);
+    }
 
     @Override
-    public ArgumentParseResult<TrainNameFormat> parse(
-            final CommandContext<CommandSender> commandContext,
-            final Queue<String> inputQueue
-    ) {
-        if (inputQueue.isEmpty()) {
-            return ArgumentParseResult.failure(new NoInputProvidedException(
-                    this.getClass(),
-                    commandContext
-            ));
-        }
-
-        String inputName = inputQueue.peek();
+    public @NonNull ArgumentParseResult<@NonNull TrainNameFormat> parse(@NonNull CommandContext<@NonNull CommandSender> commandContext, @NonNull CommandInput commandInput) {
+        String inputName = commandInput.peekString();
         TrainNameFormat name = TrainNameFormat.parse(inputName);
         TrainNameFormat.VerifyResult verify = name.verify();
         if (verify != TrainNameFormat.VerifyResult.OK) {
@@ -36,7 +28,7 @@ public class TrainNameFormatParser implements ArgumentParser<CommandSender, Trai
                     verify.getMessage(), inputName));
         }
 
-        inputQueue.poll();
+        commandInput.readString();
         return ArgumentParseResult.success(name);
     }
 }

@@ -20,10 +20,9 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.type.ExitOffset;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Legacy property, which has become obsolete since exit offsets can be
@@ -34,7 +33,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("exitoffset")
-    @CommandMethod("train exit offset <dx> <dy> <dz>")
+    @Command("train exit offset <dx> <dy> <dz>")
     @CommandDescription("Sets an offset relative to the cart where players exit it")
     private void trainSetOffsetProperty(
             final CommandSender sender,
@@ -50,7 +49,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("exitoffset")
-    @CommandMethod("train exit location <posX> <posY> <posZ>")
+    @Command("train exit location <posX> <posY> <posZ>")
     @CommandDescription("Sets world coordinates where players are teleported to when exiting")
     private void trainSetLocationProperty(
             final CommandSender sender,
@@ -66,7 +65,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("exitrotation")
-    @CommandMethod("train exit rotation <yaw> <pitch>")
+    @Command("train exit rotation <yaw> <pitch>")
     @CommandDescription("Sets the rotation of the player relative to the cart where players exit it")
     private void trainSetRotationProperty(
             final CommandSender sender,
@@ -81,7 +80,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("exitoffset")
-    @CommandMethod("cart exit location <posX> <posY> <posZ>")
+    @Command("cart exit location <posX> <posY> <posZ>")
     @CommandDescription("Sets world coordinates where players are teleported to when exiting")
     private void cartSetlocationProperty(
             final CommandSender sender,
@@ -97,7 +96,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("exitoffset")
-    @CommandMethod("cart exit offset <dx> <dy> <dz>")
+    @Command("cart exit offset <dx> <dy> <dz>")
     @CommandDescription("Sets an offset relative to the cart where players exit it")
     private void cartSetOffsetProperty(
             final CommandSender sender,
@@ -113,7 +112,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("exitrotation")
-    @CommandMethod("cart exit rotation <yaw> <pitch>")
+    @Command("cart exit rotation <yaw> <pitch>")
     @CommandDescription("Sets the rotation of the player relative to the cart where players exit it")
     private void cartSetRotationProperty(
             final CommandSender sender,
@@ -128,7 +127,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("exitrotation")
-    @CommandMethod("cart exit yaw <yaw>")
+    @Command("cart exit yaw <yaw>")
     @CommandDescription("Sets the yaw rotation relative to the cart exiting players are positioned at")
     private void cartSetRotationYawProperty(
             final CommandSender sender,
@@ -142,7 +141,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("exitrotation")
-    @CommandMethod("cart exit yaw free")
+    @Command("cart exit yaw free")
     @CommandDescription("Sets the yaw orientation of the player after exiting remains as it was before")
     private void cartSetRotationYawFreeProperty(
             final CommandSender sender,
@@ -155,7 +154,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("exitrotation")
-    @CommandMethod("cart exit pitch <pitch>")
+    @Command("cart exit pitch <pitch>")
     @CommandDescription("Sets the pitch rotation relative to the cart exiting players are positioned at")
     private void cartSetRotationPitchProperty(
             final CommandSender sender,
@@ -169,7 +168,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("exitrotation")
-    @CommandMethod("cart exit pitch free")
+    @Command("cart exit pitch free")
     @CommandDescription("Sets the pitch orientation of the player after exiting remains as it was before")
     private void cartSetRotationPitchFreeProperty(
             final CommandSender sender,
@@ -182,7 +181,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("exitrotation")
-    @CommandMethod("train exit yaw <yaw>")
+    @Command("train exit yaw <yaw>")
     @CommandDescription("Sets the yaw rotation relative to the cart exiting players are positioned at")
     private void trainSetRotationYawProperty(
             final CommandSender sender,
@@ -196,7 +195,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("exitrotation")
-    @CommandMethod("train exit yaw free")
+    @Command("train exit yaw free")
     @CommandDescription("Sets the yaw orientation of the player after exiting remains as it was before")
     private void trainSetRotationYawFreeProperty(
             final CommandSender sender,
@@ -209,7 +208,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("exitrotation")
-    @CommandMethod("train exit pitch <pitch>")
+    @Command("train exit pitch <pitch>")
     @CommandDescription("Sets the pitch rotation relative to the cart exiting players are positioned at")
     private void trainSetRotationPitchProperty(
             final CommandSender sender,
@@ -223,7 +222,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("exitrotation")
-    @CommandMethod("train exit pitch free")
+    @Command("train exit pitch free")
     @CommandDescription("Sets the pitch orientation of the player after exiting remains as it was before")
     private void trainSetRotationPitchFreeProperty(
             final CommandSender sender,
@@ -234,7 +233,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
         trainGetProperty(sender, properties);
     }
 
-    @CommandMethod("train exit")
+    @Command("train exit")
     @CommandDescription("Displays the current exit offset and rotation set for the train")
     private void trainGetProperty(
             final CommandSender sender,
@@ -243,7 +242,7 @@ public final class ExitOffsetProperty implements ICartProperty<ExitOffset> {
         showProperty(sender, "Train", properties.get(this));
     }
 
-    @CommandMethod("cart exit")
+    @Command("cart exit")
     @CommandDescription("Displays the current exit offset and rotation set for the cart")
     private void cartGetProperty(
             final CommandSender sender,
