@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.commands.parsers;
 
+import com.bergerkiller.bukkit.common.cloud.CloudLocalizedException;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
@@ -53,7 +54,7 @@ public class AttachmentByNameParser<T extends Attachment> implements ArgumentPar
     public List<T> parse(CommandContext<CommandSender> context, String name) {
         List<T> result = (List<T>) lookup(context).get(name, filter);
         if (result.isEmpty()) {
-            throw new LocalizedParserException(context, this.emptyMessage, name);
+            throw new CloudLocalizedException(context, this.emptyMessage, name);
         }
         return result;
     }

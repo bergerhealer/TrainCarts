@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.commands.parsers;
 
+import com.bergerkiller.bukkit.common.cloud.CloudLocalizedException;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.properties.standard.type.ChunkLoadOptions;
 import org.bukkit.command.CommandSender;
@@ -25,7 +26,7 @@ public class ChunkLoadOptionsModeParser implements ArgumentParser<CommandSender,
     public @NonNull ArgumentParseResult<ChunkLoadOptions.@NonNull Mode> parse(@NonNull CommandContext<@NonNull CommandSender> commandContext, @NonNull CommandInput commandInput) {
         Optional<ChunkLoadOptions.Mode> parsed = ChunkLoadOptions.Mode.fromName(commandInput.peekString());
         if (!parsed.isPresent()) {
-            return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
+            return ArgumentParseResult.failure(new CloudLocalizedException(commandContext,
                     Localization.COMMAND_INPUT_CHUNK_LOADING_MODE_INVALID, commandInput.peekString()));
         }
 

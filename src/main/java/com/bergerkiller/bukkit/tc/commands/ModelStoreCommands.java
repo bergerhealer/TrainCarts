@@ -1,16 +1,13 @@
 package com.bergerkiller.bukkit.tc.commands;
 
 import com.bergerkiller.bukkit.common.MessageBuilder;
+import com.bergerkiller.bukkit.common.cloud.CloudLocalizedException;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Localization;
-import com.bergerkiller.bukkit.tc.TCConfig;
-import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModelStore;
-import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentItem;
 import com.bergerkiller.bukkit.tc.commands.annotations.SavedModelImplicitlyCreated;
 import com.bergerkiller.bukkit.tc.commands.annotations.SavedModelRequiresAccess;
-import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.properties.SavedClaim;
@@ -24,7 +21,6 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 
-import org.bukkit.inventory.ItemStack;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.incendo.cloud.CommandManager;
 import org.incendo.cloud.annotation.specifier.Greedy;
@@ -47,11 +43,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
 /**
  * Houses all commands to do with (item) models. "Model" attachment names can be managed here,
@@ -675,7 +668,7 @@ public class ModelStoreCommands {
             // Verify not an invalid name that will brick YAML
             TrainNameFormat.VerifyResult verify = TrainNameFormat.verify(input);
             if (verify != TrainNameFormat.VerifyResult.OK) {
-                return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
+                return ArgumentParseResult.failure(new CloudLocalizedException(commandContext,
                         verify.getModelMessage(), input));
             }
 

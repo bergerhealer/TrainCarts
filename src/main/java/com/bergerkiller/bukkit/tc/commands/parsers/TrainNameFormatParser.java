@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.commands.parsers;
 
+import com.bergerkiller.bukkit.common.cloud.CloudLocalizedException;
 import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
@@ -24,7 +25,7 @@ public class TrainNameFormatParser implements ArgumentParser<CommandSender, Trai
         TrainNameFormat name = TrainNameFormat.parse(inputName);
         TrainNameFormat.VerifyResult verify = name.verify();
         if (verify != TrainNameFormat.VerifyResult.OK) {
-            return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
+            return ArgumentParseResult.failure(new CloudLocalizedException(commandContext,
                     verify.getMessage(), inputName));
         }
 

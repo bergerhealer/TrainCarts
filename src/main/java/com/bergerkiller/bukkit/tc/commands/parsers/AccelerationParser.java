@@ -1,11 +1,10 @@
 package com.bergerkiller.bukkit.tc.commands.parsers;
 
-import java.util.List;
-import java.util.Queue;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import com.bergerkiller.bukkit.common.cloud.CloudLocalizedException;
 import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.tc.Localization;
@@ -40,7 +39,7 @@ public class AccelerationParser implements ArgumentParser<CommandSender, Double>
         } else {
             result = Util.parseAcceleration(input, Double.NaN);
             if (Double.isNaN(result)) {
-                return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
+                return ArgumentParseResult.failure(new CloudLocalizedException(commandContext,
                         Localization.COMMAND_INPUT_ACCELERATION_INVALID, input));
             }
         }

@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import com.bergerkiller.bukkit.common.cloud.CloudLocalizedException;
 import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.tc.Localization;
@@ -47,7 +48,7 @@ public class FormattedSpeedParser implements ArgumentParser<CommandSender, Forma
         } else {
             result = FormattedSpeed.parse(input, null);
             if (result == null) {
-                return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
+                return ArgumentParseResult.failure(new CloudLocalizedException(commandContext,
                         Localization.COMMAND_INPUT_SPEED_INVALID, input));
             }
         }

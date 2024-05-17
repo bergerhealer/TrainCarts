@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.bergerkiller.bukkit.common.cloud.CloudLocalizedException;
 import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.tc.Direction;
@@ -30,7 +31,7 @@ public class DirectionParser implements ArgumentParser<CommandSender, Direction>
     public @NonNull ArgumentParseResult<@NonNull Direction> parse(@NonNull CommandContext<@NonNull CommandSender> commandContext, @NonNull CommandInput commandInput) {
         Direction result = Direction.parse(commandInput.peekString());
         if (result == Direction.NONE) {
-            return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
+            return ArgumentParseResult.failure(new CloudLocalizedException(commandContext,
                     Localization.COMMAND_INPUT_DIRECTION_INVALID, commandInput.peekString()));
         }
 

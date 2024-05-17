@@ -4,11 +4,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import com.bergerkiller.bukkit.common.cloud.CloudLocalizedException;
 import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -181,7 +181,7 @@ public class TrainTargetingFlags implements BuilderModifier<CommandTargetTrain, 
             if (cartSelector.cart_result != null) {
                 // If --train was used to set a train, disallow selecting a cart not from that train
                 if (trainProperties != null && trainProperties != cartSelector.cart_result.getTrainProperties()) {
-                    throw new LocalizedParserException(context,
+                    throw new CloudLocalizedException(context,
                             Localization.COMMAND_CART_NOT_FOUND_IN_TRAIN,
                             "uuid=" + cartSelector.cart_result.getUUID().toString());
                 }
@@ -207,7 +207,7 @@ public class TrainTargetingFlags implements BuilderModifier<CommandTargetTrain, 
                         cartProperties = group.get(indexInCart).getProperties();
                     }
                 } else {
-                    throw new LocalizedParserException(context,
+                    throw new CloudLocalizedException(context,
                             Localization.COMMAND_CART_NOT_FOUND_IN_TRAIN,
                             "index=" + cartSelector.index_in_train);
                 }
@@ -262,13 +262,13 @@ public class TrainTargetingFlags implements BuilderModifier<CommandTargetTrain, 
                 UUID uuid = UUID.fromString(uuidName);
                 CartProperties prop = CartPropertiesStore.getByUUID(uuid);
                 if (prop == null) {
-                    return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
+                    return ArgumentParseResult.failure(new CloudLocalizedException(commandContext,
                             Localization.COMMAND_CART_NOT_FOUND_BY_UUID, uuid.toString()));
                 }
 
                 return ArgumentParseResult.success(new CartSelectorResult(prop));
             } catch (IllegalArgumentException ex) {
-                return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
+                return ArgumentParseResult.failure(new CloudLocalizedException(commandContext,
                         Localization.COMMAND_CART_NOT_FOUND_BY_UUID, uuidName));
             }
         }
@@ -312,7 +312,7 @@ public class TrainTargetingFlags implements BuilderModifier<CommandTargetTrain, 
                 properties = TrainPropertiesStore.getRelaxed(trainName);
             }
             if (properties == null) {
-                return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
+                return ArgumentParseResult.failure(new CloudLocalizedException(commandContext,
                         Localization.COMMAND_TRAIN_NOT_FOUND, trainName));
             }
 

@@ -2,9 +2,9 @@ package com.bergerkiller.bukkit.tc.commands;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Queue;
 import java.util.stream.Collectors;
 
+import com.bergerkiller.bukkit.common.cloud.CloudLocalizedException;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -17,7 +17,6 @@ import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
-import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.exception.command.NoTicketSelectedException;
 import com.bergerkiller.bukkit.tc.tickets.TCTicketDisplay;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
@@ -47,7 +46,7 @@ public class TicketCommands {
         final String input = commandInput.peekString();
         Ticket ticket = TicketStore.getTicket(input);
         if (ticket == null) {
-            throw new LocalizedParserException(commandContext,
+            throw new CloudLocalizedException(commandContext,
                     Localization.COMMAND_TICKET_NOTFOUND, input);
         }
 
