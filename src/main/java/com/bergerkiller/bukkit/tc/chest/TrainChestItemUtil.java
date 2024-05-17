@@ -51,7 +51,8 @@ public class TrainChestItemUtil {
                     tag.putValue("parsed", false);
                     tag.putValue("locked", false);
                     tag.putValue("HideFlags", 1);
-                });
+                })
+                .hideAllAttributes();
         updateTitle(item);
         return item.toBukkit();
     }
