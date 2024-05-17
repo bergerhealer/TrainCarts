@@ -16,7 +16,6 @@ repositories {
         content {
             includeGroup("org.spigotmc")
             includeGroup("com.mojang")
-            includeGroup("com.bergerkiller.bukkit")
         }
     }
     maven("https://ci.mg-dev.eu/plugin/repository/everything/")
@@ -109,7 +108,7 @@ tasks {
         val commonPrefix = "com.bergerkiller.bukkit.common.dep"
         relocate("me.m56738", "com.bergerkiller.bukkit.tc.dep.me.m56738")
         relocate("com.bergerkiller.bukkit.preloader", "com.bergerkiller.bukkit.tc")
-        relocate("cloud.commandframework", "$commonPrefix.cloud")
+        relocate("org.incendo.cloud", "$commonPrefix.cloud")
         relocate("io.leangen.geantyref", "$commonPrefix.typetoken")
         relocate("me.lucko.commodore", "$commonPrefix.me.lucko.commodore")
         relocate("net.kyori", "$commonPrefix.net.kyori")
