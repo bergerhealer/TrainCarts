@@ -9,6 +9,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import com.bergerkiller.bukkit.common.cloud.CloudLocalizedException;
+import com.bergerkiller.bukkit.common.cloud.parsers.QuotedArgumentParser;
 import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -292,28 +293,27 @@ public class TrainTargetingFlags implements BuilderModifier<CommandTargetTrain, 
     }
 
     private static @NotNull ParserDescriptor<CommandSender, TrainProperties> trainFlagParser() {
-        return ParserDescriptor.of(new TrainFlagParser(), TrainProperties.class);
+        return new TrainFlagParser().createDescriptor(TrainProperties.class);
     }
 
     /**
      * Parses the --train name flag
      */
-    private static class TrainFlagParser implements ArgumentParser<CommandSender, TrainProperties> {
+    private static class TrainFlagParser implements QuotedArgumentParser<CommandSender, TrainProperties> {
         private final TrainNameSuggestionProvider suggestionProvider = new TrainNameSuggestionProvider();
 
         @Override
-        public @NonNull ArgumentParseResult<@NonNull TrainProperties> parse(
+        public @NonNull ArgumentParseResult<@NonNull TrainProperties> parseQuotedString(
                 @NonNull CommandContext<@NonNull CommandSender> commandContext,
-                @NonNull CommandInput commandInput
+                String inputString
         ) {
-            String trainName = commandInput.readString();
-            TrainProperties properties = TrainPropertiesStore.get(trainName);
+            TrainProperties properties = TrainPropertiesStore.get(inputString);
             if (properties == null) {
-                properties = TrainPropertiesStore.getRelaxed(trainName);
+                properties = TrainPropertiesStore.getRelaxed(inputString);
             }
             if (properties == null) {
                 return ArgumentParseResult.failure(new CloudLocalizedException(commandContext,
-                        Localization.COMMAND_TRAIN_NOT_FOUND, trainName));
+                        Localization.COMMAND_TRAIN_NOT_FOUND, inputString));
             }
 
             commandContext.set("trainProperties", properties);
