@@ -27,7 +27,11 @@ public class MapWidgetItemPreview extends MapWidget {
     private volatile MapTexture lastRenderResult = null;
 
     public void setItem(ItemStack item) {
-        lastRenderOptions = new RenderOptions(lastRenderOptions, item);
+        if (item != null) {
+            lastRenderOptions = new RenderOptions(lastRenderOptions, item);
+        } else {
+            lastRenderOptions = new RenderOptions();
+        }
         synchronized (renderLock) {
             renderLock.notifyAll();
         }
@@ -117,6 +121,9 @@ public class MapWidgetItemPreview extends MapWidget {
         }
 
         public RenderOptions(RenderOptions orig, ItemStack item) {
+            if (item == null) {
+                throw new IllegalArgumentException("Null item");
+            }
             this.item = item;
             this.model = TCConfig.resourcePack.getItemModel(item);
             this.yaw = orig.yaw;

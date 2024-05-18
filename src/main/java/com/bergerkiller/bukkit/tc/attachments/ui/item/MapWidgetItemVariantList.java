@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
@@ -77,16 +78,14 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
     }
 
     public void setItem(CommonItemStack item) {
+        // Refresh the variants list
+        loadVariants(item);
+
         if (item.isEmpty()) {
-            this.variants = new ArrayList<CommonItemStack>(0);
-            this.variantIndex = 0;
             this.invalidate();
             this.fireItemChangeEvent();
             return;
         }
-
-        // Refresh the variants list
-        loadVariants(item);
 
         // Find the item in the variants to deduce the currently selected index
         this.variantIndex = 0;
@@ -106,6 +105,13 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
     }
 
     private void loadVariants(CommonItemStack item) {
+        // If item is null/empty, ignore
+        if (item.isEmpty()) {
+            this.variants = new ArrayList<>();
+            this.variantIndex = 0;
+            return;
+        }
+
         // If item is part of traincarts model listing, make a variant list of item models
         ResourcePackModelListing models = TrainCarts.plugin.getModelListing();
         if (models.isBareItem(item.toBukkit())) {
@@ -126,6 +132,7 @@ public abstract class MapWidgetItemVariantList extends MapWidget implements SetV
 
         // Find variants using internal lookup (creative menu)
         this.variants = ItemUtil.getItemVariants(item.getType()).stream()
+                .filter(Objects::nonNull)
                 .map(CommonItemStack::of)
                 .map(CommonItemStack::clone)
                 .collect(Collectors.toList());
