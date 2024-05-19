@@ -203,10 +203,10 @@ public class Commands {
         cloud.parse(DirectionOrFormattedSpeed.directionOrFormattedSpeedParser());
 
         // Register attachment list arguments
-        cloud.parse("cartSeatAttachments", p -> AttachmentByNameParser.seats(false));
-        cloud.parse("trainSeatAttachments", p -> AttachmentByNameParser.seats(true));
-        cloud.parse("cartEffectAttachments", p -> AttachmentByNameParser.effects(false));
-        cloud.parse("trainEffectAttachments", p -> AttachmentByNameParser.effects(true));
+        cloud.parse("cartSeatAttachments", p -> AttachmentByNameParser.seats(false).createParser());
+        cloud.parse("trainSeatAttachments", p -> AttachmentByNameParser.seats(true).createParser());
+        cloud.parse("cartEffectAttachments", p -> AttachmentByNameParser.effects(false).createParser());
+        cloud.parse("trainEffectAttachments", p -> AttachmentByNameParser.effects(true).createParser());
 
         cloud.handleMessage(NoPermissionException.class, Localization.COMMAND_NOPERM.getName());
         cloud.handleMessage(NoTrainSelectedException.class, Localization.EDIT_NOSELECT.getName());

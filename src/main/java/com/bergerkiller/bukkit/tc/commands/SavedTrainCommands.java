@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.bergerkiller.bukkit.common.cloud.CloudLocalizedException;
+import com.bergerkiller.bukkit.common.cloud.parsers.QuotedArgumentParser;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -40,7 +41,6 @@ import org.incendo.cloud.component.CommandComponent;
 import org.incendo.cloud.context.CommandContext;
 import org.incendo.cloud.context.CommandInput;
 import org.incendo.cloud.parser.ArgumentParseResult;
-import org.incendo.cloud.parser.ArgumentParser;
 import org.incendo.cloud.parser.ParserParameters;
 import org.incendo.cloud.services.type.ConsumerService;
 import org.incendo.cloud.suggestion.BlockingSuggestionProvider;
@@ -137,7 +137,7 @@ public class SavedTrainCommands {
             //parameters.get(parameter, defaultValue)
             boolean access = parameters.get(SavedTrainRequiresAccess.PARAM, Boolean.FALSE);
             boolean implicitlyCreated = parameters.get(SavedTrainImplicitlyCreated.PARAM, Boolean.FALSE);
-            return new SavedTrainPropertiesParser(access, implicitlyCreated);
+            return new SavedTrainPropertiesParser(access, implicitlyCreated).createParser();
         });
     }
 
@@ -642,7 +642,7 @@ public class SavedTrainCommands {
     /**
      * Parser for SavedTrainProperties
      */
-    private static class SavedTrainPropertiesParser implements ArgumentParser<CommandSender, SavedTrainProperties>, BlockingSuggestionProvider.Strings<CommandSender> {
+    private static class SavedTrainPropertiesParser implements QuotedArgumentParser<CommandSender, SavedTrainProperties>, BlockingSuggestionProvider.Strings<CommandSender> {
         private final boolean mustHaveAccess;
         private final boolean implicitlyCreated;
 
@@ -660,9 +660,11 @@ public class SavedTrainCommands {
         }
 
         @Override
-        public @NonNull ArgumentParseResult<@NonNull SavedTrainProperties> parse(@NonNull CommandContext<@NonNull CommandSender> commandContext, @NonNull CommandInput commandInput) {
+        public @NonNull ArgumentParseResult<@NonNull SavedTrainProperties> parseQuotedString(
+                @NonNull CommandContext<@NonNull CommandSender> commandContext,
+                @NonNull String input
+        ) {
             final TrainCarts plugin = commandContext.inject(TrainCarts.class).get();
-            final String input = commandInput.lastRemainingToken();
 
             // Verify not an invalid name that will brick YAML
             TrainNameFormat.VerifyResult verify = TrainNameFormat.verify(input);
@@ -670,8 +672,6 @@ public class SavedTrainCommands {
                 return ArgumentParseResult.failure(new CloudLocalizedException(commandContext,
                         verify.getMessage(), input));
             }
-
-            commandInput.readString();
 
             return ArgumentParseResult.success(plugin.getSavedTrains().getPropertiesOrNone(input));
         }

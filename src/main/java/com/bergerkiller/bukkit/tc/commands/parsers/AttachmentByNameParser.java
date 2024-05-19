@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.commands.parsers;
 
 import com.bergerkiller.bukkit.common.cloud.CloudLocalizedException;
+import com.bergerkiller.bukkit.common.cloud.parsers.QuotedArgumentParser;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
@@ -17,7 +18,6 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.incendo.cloud.context.CommandContext;
 import org.incendo.cloud.context.CommandInput;
 import org.incendo.cloud.parser.ArgumentParseResult;
-import org.incendo.cloud.parser.ArgumentParser;
 import org.incendo.cloud.suggestion.BlockingSuggestionProvider;
 
 import java.util.Collections;
@@ -27,7 +27,7 @@ import java.util.function.Predicate;
 /**
  * Parses attachments that match a specified name
  */
-public class AttachmentByNameParser<T extends Attachment> implements ArgumentParser<CommandSender, AttachmentsByName<T>>, BlockingSuggestionProvider.Strings<CommandSender> {
+public class AttachmentByNameParser<T extends Attachment> implements QuotedArgumentParser<CommandSender, AttachmentsByName<T>>, BlockingSuggestionProvider.Strings<CommandSender> {
     private final boolean forTrain;
     private final Predicate<Attachment> filter;
     private final Localization emptyMessage;
@@ -88,19 +88,19 @@ public class AttachmentByNameParser<T extends Attachment> implements ArgumentPar
     }
 
     @Override
-    public @NonNull ArgumentParseResult<@NonNull AttachmentsByName<T>> parse(@NonNull CommandContext<@NonNull CommandSender> commandContext, @NonNull CommandInput commandInput) {
+    public @NonNull ArgumentParseResult<@NonNull AttachmentsByName<T>> parseQuotedString(
+            final @NonNull CommandContext<@NonNull CommandSender> commandContext,
+            final @NonNull String name
+    ) {
         // Note: this stuff won't work, because the --train and --cart flags aren't parsed yet
         /*
-        String name = inputQueue.peek();
         List<Attachment> result = lookup(commandContext).get(name, filter);
         if (result.isEmpty()) {
             return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
                     this.emptyMessage, name));
         }
-        inputQueue.poll();
          */
 
-        String name = commandInput.readString();
         return ArgumentParseResult.success(new AttachmentsByName<>(name, this, commandContext));
     }
 
