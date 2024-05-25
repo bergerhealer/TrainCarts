@@ -1,9 +1,9 @@
 package com.bergerkiller.bukkit.tc.commands.argument;
 
-import cloud.commandframework.context.CommandContext;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.commands.parsers.AttachmentByNameParser;
 import org.bukkit.command.CommandSender;
+import org.incendo.cloud.context.CommandContext;
 
 import java.util.List;
 

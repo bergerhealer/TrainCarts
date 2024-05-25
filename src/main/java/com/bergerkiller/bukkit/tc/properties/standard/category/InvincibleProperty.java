@@ -16,10 +16,9 @@ import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Whether the train can be destroyed using normal damage or
@@ -29,7 +28,7 @@ public final class InvincibleProperty implements ICartProperty<Boolean> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("invincible")
-    @CommandMethod("train invincible|godmode <invincible>")
+    @Command("train invincible|godmode <invincible>")
     @CommandDescription("Sets whether the train is invincible to damage")
     private void setProperty(
             final CommandSender sender,
@@ -40,7 +39,7 @@ public final class InvincibleProperty implements ICartProperty<Boolean> {
         getProperty(sender, properties);
     }
 
-    @CommandMethod("train invincible|godmode")
+    @Command("train invincible|godmode")
     @CommandDescription("Displays whether the train is invincible to damage")
     private void getProperty(
             final CommandSender sender,
@@ -52,7 +51,7 @@ public final class InvincibleProperty implements ICartProperty<Boolean> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("invincible")
-    @CommandMethod("cart invincible|godmode <invincible>")
+    @Command("cart invincible|godmode <invincible>")
     @CommandDescription("Sets whether the cart is invincible to damage")
     private void setProperty(
             final CommandSender sender,
@@ -63,7 +62,7 @@ public final class InvincibleProperty implements ICartProperty<Boolean> {
         getProperty(sender, properties);
     }
 
-    @CommandMethod("cart invincible|godmode")
+    @Command("cart invincible|godmode")
     @CommandDescription("Displays whether the cart is invincible to damage")
     private void getProperty(
             final CommandSender sender,

@@ -17,9 +17,9 @@ softdependency = "1.02"
 
 [libraries]
 bkcommonlib = { module = "com.bergerkiller.bukkit:BKCommonLib", version.ref = "bkcommonlib" }
-cloud-annotations = { module = "org.bergerhealer.cloud.commandframework:cloud-annotations" }
-cloud-minecraft-extras = { module = "org.bergerhealer.cloud.commandframework:cloud-minecraft-extras" }
-cloud-paper = { module = "org.bergerhealer.cloud.commandframework:cloud-paper" }
+cloud-annotations = { module = "org.incendo:cloud-annotations" }
+cloud-minecraft-extras = { module = "org.incendo:cloud-minecraft-extras" }
+cloud-paper = { module = "org.incendo:cloud-paper" }
 junit = { module = "junit:junit", version.ref = "junit" }
 lightapi-fork = { module = "io.github.qveshn:LightAPI-fork", version.ref = "lightapi-fork" }
 lightapi-v5 = { module = "ru.beykerykt.minecraft:lightapi-bukkit-common", version.ref = "lightapi-v5" }

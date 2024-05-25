@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.commands.suggestions;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import org.bukkit.command.CommandSender;
@@ -13,13 +12,15 @@ import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
 import com.bergerkiller.bukkit.tc.controller.components.AnimationController;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
-
-import cloud.commandframework.context.CommandContext;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.incendo.cloud.context.CommandContext;
+import org.incendo.cloud.context.CommandInput;
+import org.incendo.cloud.suggestion.BlockingSuggestionProvider;
 
 /**
  * Suggests animation names used in a train or cart
  */
-public final class AnimationSceneSuggestionProvider implements BiFunction<CommandContext<CommandSender>, String, List<String>> {
+public final class AnimationSceneSuggestionProvider implements BlockingSuggestionProvider.Strings<CommandSender> {
     public static final AnimationSceneSuggestionProvider TRAIN_ANIMATION_SCENE = new AnimationSceneSuggestionProvider(true);
     public static final AnimationSceneSuggestionProvider CART_ANIMATION_SCENE = new AnimationSceneSuggestionProvider(false);
 
@@ -30,7 +31,9 @@ public final class AnimationSceneSuggestionProvider implements BiFunction<Comman
     }
 
     @Override
-    public List<String> apply(CommandContext<CommandSender> context, String input) {
+    public @NonNull Iterable<@NonNull String> stringSuggestions(@NonNull CommandContext<CommandSender> context, @NonNull CommandInput commandInput) {
+        String input = commandInput.lastRemainingToken();
+
         // Animation name is input before the scene is specified
         String animationName = context.getOrDefault("animation_name", "");
         if (animationName.isEmpty()) {

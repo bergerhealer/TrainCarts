@@ -3,10 +3,9 @@ package com.bergerkiller.bukkit.tc;
 import com.bergerkiller.bukkit.common.internal.CommonPlugin;
 import com.bergerkiller.bukkit.common.permissions.IPermissionEnum;
 
-import cloud.commandframework.permission.PredicatePermission;
-
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.PermissionDefault;
+import org.incendo.cloud.permission.PredicatePermission;
 
 /**
  * All permissions used by TrainCarts
@@ -168,7 +167,7 @@ public enum Permission implements IPermissionEnum {
         this._root = node;
         this._default = permdefault;
         this._description = desc;
-        this._cloud = this::has;
+        this._cloud = PredicatePermission.of(this::has);
     }
 
     @Override
@@ -201,7 +200,7 @@ public enum Permission implements IPermissionEnum {
      *
      * @return Cloud Command Permission
      */
-    public cloud.commandframework.permission.CommandPermission cloudPermission() {
+    public org.incendo.cloud.permission.Permission cloudPermission() {
         return _cloud;
     }
 }

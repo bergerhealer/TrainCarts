@@ -16,10 +16,9 @@ import com.bergerkiller.bukkit.tc.properties.api.ICartProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Whether players can enter carts of a train
@@ -28,7 +27,7 @@ public final class PlayerEnterProperty implements ICartProperty<Boolean> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("playerenter")
-    @CommandMethod("train playerenter|allowplayerenter <allow>")
+    @Command("train playerenter|allowplayerenter <allow>")
     @CommandDescription("Sets whether players can enter carts of this train")
     private void commandSetProperty(
             final CommandSender sender,
@@ -39,7 +38,7 @@ public final class PlayerEnterProperty implements ICartProperty<Boolean> {
         commandGetProperty(sender, properties);
     }
 
-    @CommandMethod("train playerenter|allowplayerenter")
+    @Command("train playerenter|allowplayerenter")
     @CommandDescription("Gets whether players can enter carts of this train")
     private void commandGetProperty(
             final CommandSender sender,
@@ -51,7 +50,7 @@ public final class PlayerEnterProperty implements ICartProperty<Boolean> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("playerenter")
-    @CommandMethod("cart playerenter|allowplayerenter <allow>")
+    @Command("cart playerenter|allowplayerenter <allow>")
     @CommandDescription("Sets whether players can enter the cart")
     private void commandSetProperty(
             final CommandSender sender,
@@ -62,7 +61,7 @@ public final class PlayerEnterProperty implements ICartProperty<Boolean> {
         commandGetProperty(sender, properties);
     }
 
-    @CommandMethod("cart playerenter|allowplayerenter")
+    @Command("cart playerenter|allowplayerenter")
     @CommandDescription("Gets whether players can enter the cart")
     private void commandGetProperty(
             final CommandSender sender,

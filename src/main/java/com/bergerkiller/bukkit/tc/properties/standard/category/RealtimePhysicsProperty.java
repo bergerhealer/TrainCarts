@@ -15,10 +15,9 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Configures whether the train takes into account changes in tick rate
@@ -30,7 +29,7 @@ public class RealtimePhysicsProperty extends FieldBackedStandardTrainProperty<Bo
 
     @CommandTargetTrain
     @PropertyCheckPermission("realtime")
-    @CommandMethod("train realtime <enabled>")
+    @Command("train realtime <enabled>")
     @CommandDescription("Sets whether the train updates in realtime, adjusting for server tick lag and jitter")
     private void getProperty(
             final CommandSender sender,
@@ -41,7 +40,7 @@ public class RealtimePhysicsProperty extends FieldBackedStandardTrainProperty<Bo
         getProperty(sender, properties);
     }
 
-    @CommandMethod("train realtime")
+    @Command("train realtime")
     @CommandDescription("Displays whether the train updates in realtime, adjusting for server tick lag and jitter")
     private void getProperty(
             final CommandSender sender,

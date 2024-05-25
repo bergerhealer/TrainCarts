@@ -30,10 +30,9 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.mountiplex.reflection.util.FastMethod;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Paper server only. Applies a new view distance to players that enter a cart
@@ -52,7 +51,7 @@ public final class PaperPlayerViewDistanceProperty implements ICartProperty<Inte
 
     @CommandTargetTrain
     @PropertyCheckPermission("viewdistance")
-    @CommandMethod("train viewdistance reset")
+    @Command("train viewdistance reset")
     @CommandDescription("Resets the view distance players inside the train have to the defaults")
     private void resetProperty(
             final CommandSender sender,
@@ -63,7 +62,7 @@ public final class PaperPlayerViewDistanceProperty implements ICartProperty<Inte
 
     @CommandTargetTrain
     @PropertyCheckPermission("viewdistance")
-    @CommandMethod("train viewdistance <num_chunks>")
+    @Command("train viewdistance <num_chunks>")
     @CommandDescription("Sets the view distance players inside the train have")
     private void setProperty(
             final CommandSender sender,
@@ -74,7 +73,7 @@ public final class PaperPlayerViewDistanceProperty implements ICartProperty<Inte
         getProperty(sender, properties);
     }
 
-    @CommandMethod("train viewdistance")
+    @Command("train viewdistance")
     @CommandDescription("Displays the view distance players inside the train have")
     private void getProperty(
             final CommandSender sender,
@@ -92,7 +91,7 @@ public final class PaperPlayerViewDistanceProperty implements ICartProperty<Inte
 
     @CommandTargetTrain
     @PropertyCheckPermission("viewdistance")
-    @CommandMethod("cart viewdistance reset")
+    @Command("cart viewdistance reset")
     @CommandDescription("Resets the view distance players inside the cart have to the defaults")
     private void resetProperty(
             final CommandSender sender,
@@ -103,7 +102,7 @@ public final class PaperPlayerViewDistanceProperty implements ICartProperty<Inte
 
     @CommandTargetTrain
     @PropertyCheckPermission("viewdistance")
-    @CommandMethod("cart viewdistance <num_chunks>")
+    @Command("cart viewdistance <num_chunks>")
     @CommandDescription("Sets the view distance players inside the cart have")
     private void setProperty(
             final CommandSender sender,
@@ -114,7 +113,7 @@ public final class PaperPlayerViewDistanceProperty implements ICartProperty<Inte
         getProperty(sender, properties);
     }
 
-    @CommandMethod("cart viewdistance")
+    @Command("cart viewdistance")
     @CommandDescription("Displays the view distance players inside the cart have")
     private void getProperty(
             final CommandSender sender,

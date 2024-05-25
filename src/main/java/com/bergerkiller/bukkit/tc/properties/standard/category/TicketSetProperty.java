@@ -22,10 +22,9 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.PropertySelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Stores a set of tickets that a player can use to enter a train.
@@ -35,7 +34,7 @@ public final class TicketSetProperty implements ITrainProperty<Set<String>> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("ticket")
-    @CommandMethod("train ticket list assigned")
+    @Command("train ticket list assigned")
     @CommandDescription("Displays the ticket names assigned to the train")
     private void getTrainTickets(
             final CommandSender sender,
@@ -53,7 +52,7 @@ public final class TicketSetProperty implements ITrainProperty<Set<String>> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("ticket")
-    @CommandMethod("train ticket assign <ticket>")
+    @Command("train ticket assign <ticket>")
     @CommandDescription("Assigns the ticket with the given name to the train")
     private void assignTrainTicket(
             final CommandSender sender,
@@ -66,7 +65,7 @@ public final class TicketSetProperty implements ITrainProperty<Set<String>> {
     }
 
     @PropertyCheckPermission("ticket")
-    @CommandMethod("train ticket assign")
+    @Command("train ticket assign")
     @CommandDescription("Assigns the currently-edited ticket to the train")
     private void assignEditedTrainTicket(
             final Player sender,
@@ -78,7 +77,7 @@ public final class TicketSetProperty implements ITrainProperty<Set<String>> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("ticket")
-    @CommandMethod("train ticket unassign <ticket>")
+    @Command("train ticket unassign <ticket>")
     @CommandDescription("Un-assigns the ticket with the given name from the train")
     private void unassignTrainTicket(
             final CommandSender sender,
@@ -95,7 +94,7 @@ public final class TicketSetProperty implements ITrainProperty<Set<String>> {
     }
 
     @PropertyCheckPermission("ticket")
-    @CommandMethod("train ticket unassign")
+    @Command("train ticket unassign")
     @CommandDescription("Un-assigns the currently-edited ticket from the train")
     private void unassignEditedTrainTicket(
             final Player sender,
@@ -107,7 +106,7 @@ public final class TicketSetProperty implements ITrainProperty<Set<String>> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("ticket")
-    @CommandMethod("train ticket clearassigned")
+    @Command("train ticket clearassigned")
     @CommandDescription("Un-assigns all tickets currently assigned to a train")
     private void clearAssignedTickets(
             final CommandSender sender,

@@ -5,8 +5,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import cloud.commandframework.arguments.parser.ParserParameter;
 import io.leangen.geantyref.TypeToken;
+import org.incendo.cloud.parser.ParserParameter;
 
 /**
  * Declares that if a saved train by this name does not exist,

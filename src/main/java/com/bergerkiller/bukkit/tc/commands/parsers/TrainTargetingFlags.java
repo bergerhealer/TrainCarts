@@ -3,13 +3,13 @@ package com.bergerkiller.bukkit.tc.commands.parsers;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.UUID;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import com.bergerkiller.bukkit.common.cloud.CloudLocalizedException;
+import com.bergerkiller.bukkit.common.cloud.parsers.QuotedArgumentParser;
 import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -34,39 +34,44 @@ import com.bergerkiller.bukkit.tc.properties.CartPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 
-import cloud.commandframework.Command;
-import cloud.commandframework.Command.Builder;
-import cloud.commandframework.arguments.CommandArgument;
-import cloud.commandframework.arguments.flags.CommandFlag;
-import cloud.commandframework.arguments.parser.ArgumentParseResult;
-import cloud.commandframework.arguments.parser.ArgumentParser;
-import cloud.commandframework.bukkit.parsers.WorldArgument;
-import cloud.commandframework.context.CommandContext;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.incendo.cloud.Command.Builder;
+import org.incendo.cloud.annotations.BuilderModifier;
+import org.incendo.cloud.bukkit.parser.WorldParser;
+import org.incendo.cloud.component.CommandComponent;
+import org.incendo.cloud.context.CommandContext;
+import org.incendo.cloud.context.CommandInput;
+import org.incendo.cloud.parser.ArgumentParseResult;
+import org.incendo.cloud.parser.ArgumentParser;
+import org.incendo.cloud.parser.ParserDescriptor;
+import org.incendo.cloud.parser.flag.CommandFlag;
+import org.incendo.cloud.suggestion.BlockingSuggestionProvider;
+import org.incendo.cloud.suggestion.SuggestionProvider;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * The flags added at the end of commands to target trains or individual carts
  */
-public class TrainTargetingFlags implements BiFunction<CommandTargetTrain, Command.Builder<CommandSender>, Command.Builder<CommandSender>> {
+public class TrainTargetingFlags implements BuilderModifier<CommandTargetTrain, CommandSender> {
     public static final TrainTargetingFlags INSTANCE = new TrainTargetingFlags();
 
-    private final CommandFlag<TrainProperties> flagTrain = CommandFlag.newBuilder("train")
-            .withArgument(CommandArgument.<CommandSender, TrainProperties>ofType(TrainProperties.class, "train_name")
-                    .withParser(new TrainFlagParser()))
-            .build();
-    private final CommandFlag<CartSelectorResult> flagCart = CommandFlag.newBuilder("cart")
-            .withArgument(CommandArgument.<CommandSender, CartSelectorResult>ofType(CartSelectorResult.class, "cart_uuid")
-                    .withParser(new CartFlagParser()))
+    private final CommandFlag<TrainProperties> flagTrain = CommandFlag.<CommandSender>builder("train")
+            .withComponent(CommandComponent.builder("train_name", trainFlagParser()))
             .build();
 
-    private final CommandFlag<World> flagWorld = CommandFlag.newBuilder("world")
-            .withArgument(WorldArgument.of("world_name"))
+    private final CommandFlag<CartSelectorResult> flagCart = CommandFlag.<CommandSender>builder("cart")
+            .withComponent(CommandComponent.builder("cart_uuid", cartFlagParser()))
             .build();
 
-    private final CommandFlag<NearPosition> flagNear = CommandFlag.newBuilder("near")
-            .withArgument(NearPosition.asArgument("where"))
+    private final CommandFlag<World> flagWorld = CommandFlag.<CommandSender>builder("world")
+            .withComponent(CommandComponent.builder("world_name", WorldParser.worldParser()))
             .build();
 
-    private final CommandFlag<Void> flagNearest = CommandFlag.newBuilder("nearest")
+    private final CommandFlag<NearPosition> flagNear = CommandFlag.<CommandSender>builder("near")
+            .withComponent(CommandComponent.builder("where", NearPosition.nearParser()))
+            .build();
+
+    private final CommandFlag<Void> flagNearest = CommandFlag.<CommandSender>builder("nearest")
             .build();
 
     // Make private
@@ -82,7 +87,7 @@ public class TrainTargetingFlags implements BiFunction<CommandTargetTrain, Comma
     }
 
     @Override
-    public Builder<CommandSender> apply(CommandTargetTrain annotation, Builder<CommandSender> builder) {
+    public Builder<? extends CommandSender> modifyBuilder(@NonNull CommandTargetTrain annotation, Builder<CommandSender> builder) {
         builder = builder.flag(flagTrain).flag(flagCart);
         builder = builder.flag(flagWorld).flag(flagNear).flag(flagNearest);
         return builder;
@@ -100,35 +105,35 @@ public class TrainTargetingFlags implements BiFunction<CommandTargetTrain, Comma
         CartProperties cartProperties = null;
 
         // Process --train selector
-        if (context.flags().hasFlag(flagTrain.getName())) {
-            trainProperties = context.flags().get(flagTrain.getName());
+        if (context.flags().hasFlag(flagTrain.name())) {
+            trainProperties = context.flags().get(flagTrain.name());
             if (!trainProperties.isEmpty()) {
                 cartProperties = trainProperties.get(0);
             }
         }
 
         // For --near world and to filter results from global selectors
-        World atWorld = context.flags().getValue(flagWorld.getName(), null);
+        World atWorld = context.flags().getValue(flagWorld.name(), null);
 
         // Process --near to find carts nearby
-        if (context.flags().hasFlag(flagNear.getName()) || context.flags().hasFlag(flagNearest.getName())) {
+        if (context.flags().hasFlag(flagNear.name()) || context.flags().hasFlag(flagNearest.name())) {
             // Perms
-            Permission.COMMAND_TARGET_NEAR.handle(context.getSender());
+            Permission.COMMAND_TARGET_NEAR.handle(context.sender());
 
             final NearPosition near;
-            if (context.flags().hasFlag(flagNear.getName())) {
-                near = context.flags().get(flagNear.getName());
+            if (context.flags().hasFlag(flagNear.name())) {
+                near = context.flags().get(flagNear.name());
             } else {
                 ArgumentParseResult<NearPosition> parseResult = NearPosition.parseNearest(context);
-                if (parseResult.getFailure().isPresent()) {
-                    Throwable t = parseResult.getFailure().get();
+                if (parseResult.failure().isPresent()) {
+                    Throwable t = parseResult.failure().get();
                     if (t instanceof RuntimeException) {
                         throw (RuntimeException) t;
                     } else {
                         return null; //Uhhhh....
                     }
                 }
-                near = parseResult.getParsedValue().get();
+                near = parseResult.parsedValue().get();
             }
             if (atWorld != null) {
                 near.at.setWorld(atWorld);
@@ -164,7 +169,7 @@ public class TrainTargetingFlags implements BiFunction<CommandTargetTrain, Comma
         }
 
         // If no cart was selected (and no train either), pick what the player is editing
-        if (cartProperties == null && trainProperties == null && context.getSender() instanceof Player) {
+        if (cartProperties == null && trainProperties == null && context.sender() instanceof Player) {
             cartProperties = context.inject(TrainCartsPlayer.class).get().getEditedCart();
             if (cartProperties != null) {
                 trainProperties = cartProperties.getTrainProperties();
@@ -172,12 +177,12 @@ public class TrainTargetingFlags implements BiFunction<CommandTargetTrain, Comma
         }
 
         // Process --cart selector last
-        if (context.flags().hasFlag(flagCart.getName())) {
-            CartSelectorResult cartSelector = context.flags().get(flagCart.getName());
+        if (context.flags().hasFlag(flagCart.name())) {
+            CartSelectorResult cartSelector = context.flags().get(flagCart.name());
             if (cartSelector.cart_result != null) {
                 // If --train was used to set a train, disallow selecting a cart not from that train
                 if (trainProperties != null && trainProperties != cartSelector.cart_result.getTrainProperties()) {
-                    throw new LocalizedParserException(context,
+                    throw new CloudLocalizedException(context,
                             Localization.COMMAND_CART_NOT_FOUND_IN_TRAIN,
                             "uuid=" + cartSelector.cart_result.getUUID().toString());
                 }
@@ -203,7 +208,7 @@ public class TrainTargetingFlags implements BiFunction<CommandTargetTrain, Comma
                         cartProperties = group.get(indexInCart).getProperties();
                     }
                 } else {
-                    throw new LocalizedParserException(context,
+                    throw new CloudLocalizedException(context,
                             Localization.COMMAND_CART_NOT_FOUND_IN_TRAIN,
                             "index=" + cartSelector.index_in_train);
                 }
@@ -226,16 +231,20 @@ public class TrainTargetingFlags implements BiFunction<CommandTargetTrain, Comma
         return cartProperties;
     }
 
+    private static @NotNull ParserDescriptor<CommandSender, CartSelectorResult> cartFlagParser() {
+        return ParserDescriptor.of(new CartFlagParser(), CartSelectorResult.class);
+    }
+
     /**
      * Parses the --cart [uuid] or --cart [num] flag
      */
-    private static class CartFlagParser implements ArgumentParser<CommandSender, CartSelectorResult> {
+    private static class CartFlagParser implements ArgumentParser<CommandSender, CartSelectorResult>, BlockingSuggestionProvider.Strings<CommandSender> {
         @Override
-        public ArgumentParseResult<CartSelectorResult> parse(
-                final CommandContext<CommandSender> commandContext,
-                final Queue<String> inputQueue
+        public @NonNull ArgumentParseResult<@NonNull CartSelectorResult> parse(
+                @NonNull CommandContext<@NonNull CommandSender> commandContext,
+                @NonNull CommandInput commandInput
         ) {
-            String uuidName = inputQueue.poll();
+            String uuidName = commandInput.readString();
 
             if (uuidName.equalsIgnoreCase("head")) {
                 return ArgumentParseResult.success(new CartSelectorResult(0));
@@ -254,21 +263,21 @@ public class TrainTargetingFlags implements BiFunction<CommandTargetTrain, Comma
                 UUID uuid = UUID.fromString(uuidName);
                 CartProperties prop = CartPropertiesStore.getByUUID(uuid);
                 if (prop == null) {
-                    return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
+                    return ArgumentParseResult.failure(new CloudLocalizedException(commandContext,
                             Localization.COMMAND_CART_NOT_FOUND_BY_UUID, uuid.toString()));
                 }
 
                 return ArgumentParseResult.success(new CartSelectorResult(prop));
             } catch (IllegalArgumentException ex) {
-                return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
+                return ArgumentParseResult.failure(new CloudLocalizedException(commandContext,
                         Localization.COMMAND_CART_NOT_FOUND_BY_UUID, uuidName));
             }
         }
 
         @Override
-        public List<String> suggestions(
-                final CommandContext<CommandSender> commandContext,
-                final String input
+        public @NonNull Iterable<@NonNull String> stringSuggestions(
+                @NonNull CommandContext<CommandSender> commandContext,
+                @NonNull CommandInput input
         ) {
             if (input.isEmpty()) {
                 return Stream.concat(Stream.of("<uuid>", "head", "tail"), IntStream.range(0, 10)
@@ -283,25 +292,28 @@ public class TrainTargetingFlags implements BiFunction<CommandTargetTrain, Comma
         }
     }
 
+    private static @NotNull ParserDescriptor<CommandSender, TrainProperties> trainFlagParser() {
+        return new TrainFlagParser().createDescriptor(TrainProperties.class);
+    }
+
     /**
      * Parses the --train name flag
      */
-    private static class TrainFlagParser implements ArgumentParser<CommandSender, TrainProperties> {
+    private static class TrainFlagParser implements QuotedArgumentParser<CommandSender, TrainProperties> {
         private final TrainNameSuggestionProvider suggestionProvider = new TrainNameSuggestionProvider();
 
         @Override
-        public ArgumentParseResult<TrainProperties> parse(
-                final CommandContext<CommandSender> commandContext,
-                final Queue<String> inputQueue
+        public @NonNull ArgumentParseResult<@NonNull TrainProperties> parseQuotedString(
+                @NonNull CommandContext<@NonNull CommandSender> commandContext,
+                String inputString
         ) {
-            String trainName = inputQueue.poll();
-            TrainProperties properties = TrainPropertiesStore.get(trainName);
+            TrainProperties properties = TrainPropertiesStore.get(inputString);
             if (properties == null) {
-                properties = TrainPropertiesStore.getRelaxed(trainName);
+                properties = TrainPropertiesStore.getRelaxed(inputString);
             }
             if (properties == null) {
-                return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
-                        Localization.COMMAND_TRAIN_NOT_FOUND, trainName));
+                return ArgumentParseResult.failure(new CloudLocalizedException(commandContext,
+                        Localization.COMMAND_TRAIN_NOT_FOUND, inputString));
             }
 
             commandContext.set("trainProperties", properties);
@@ -309,11 +321,8 @@ public class TrainTargetingFlags implements BiFunction<CommandTargetTrain, Comma
         }
 
         @Override
-        public List<String> suggestions(
-                final CommandContext<CommandSender> commandContext,
-                final String input
-        ) {
-            return suggestionProvider.apply(commandContext, input);
+        public @NonNull SuggestionProvider<CommandSender> suggestionProvider() {
+            return suggestionProvider;
         }
     }
 

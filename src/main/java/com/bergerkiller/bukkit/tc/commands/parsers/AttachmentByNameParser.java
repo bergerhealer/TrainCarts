@@ -1,9 +1,7 @@
 package com.bergerkiller.bukkit.tc.commands.parsers;
 
-import cloud.commandframework.arguments.parser.ArgumentParseResult;
-import cloud.commandframework.arguments.parser.ArgumentParser;
-import cloud.commandframework.context.CommandContext;
-import cloud.commandframework.exceptions.parsing.NoInputProvidedException;
+import com.bergerkiller.bukkit.common.cloud.CloudLocalizedException;
+import com.bergerkiller.bukkit.common.cloud.parsers.QuotedArgumentParser;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
@@ -16,16 +14,20 @@ import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.incendo.cloud.context.CommandContext;
+import org.incendo.cloud.context.CommandInput;
+import org.incendo.cloud.parser.ArgumentParseResult;
+import org.incendo.cloud.suggestion.BlockingSuggestionProvider;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Queue;
 import java.util.function.Predicate;
 
 /**
  * Parses attachments that match a specified name
  */
-public class AttachmentByNameParser <T extends Attachment> implements ArgumentParser<CommandSender, AttachmentsByName<T>> {
+public class AttachmentByNameParser<T extends Attachment> implements QuotedArgumentParser<CommandSender, AttachmentsByName<T>>, BlockingSuggestionProvider.Strings<CommandSender> {
     private final boolean forTrain;
     private final Predicate<Attachment> filter;
     private final Localization emptyMessage;
@@ -52,7 +54,7 @@ public class AttachmentByNameParser <T extends Attachment> implements ArgumentPa
     public List<T> parse(CommandContext<CommandSender> context, String name) {
         List<T> result = (List<T>) lookup(context).get(name, filter);
         if (result.isEmpty()) {
-            throw new LocalizedParserException(context, this.emptyMessage, name);
+            throw new CloudLocalizedException(context, this.emptyMessage, name);
         }
         return result;
     }
@@ -86,47 +88,37 @@ public class AttachmentByNameParser <T extends Attachment> implements ArgumentPa
     }
 
     @Override
-    public ArgumentParseResult<AttachmentsByName<T>> parse(
-            final CommandContext<CommandSender> commandContext,
-            final Queue<String> inputQueue
+    public @NonNull ArgumentParseResult<@NonNull AttachmentsByName<T>> parseQuotedString(
+            final @NonNull CommandContext<@NonNull CommandSender> commandContext,
+            final @NonNull String name
     ) {
-        if (inputQueue.isEmpty()) {
-            return ArgumentParseResult.failure(new NoInputProvidedException(
-                    this.getClass(),
-                    commandContext
-            ));
-        }
-
         // Note: this stuff won't work, because the --train and --cart flags aren't parsed yet
         /*
-        String name = inputQueue.peek();
         List<Attachment> result = lookup(commandContext).get(name, filter);
         if (result.isEmpty()) {
             return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
                     this.emptyMessage, name));
         }
-        inputQueue.poll();
          */
 
-        String name = inputQueue.poll();
         return ArgumentParseResult.success(new AttachmentsByName<>(name, this, commandContext));
     }
 
     @Override
-    public List<String> suggestions(
-            final CommandContext<CommandSender> context,
-            final String input
+    public @NonNull Iterable<@NonNull String> stringSuggestions(
+            @NonNull CommandContext<CommandSender> commandContext,
+            @NonNull CommandInput input
     ) {
         // Note: at this stage it is not possible to make use of the --train or --cart flags, as they are
         //       parsed after this argument. Just rely on the train the player has selected to provide a
         //       bare minimum for suggestions.
         //       Hopefully this is fixed in a future version of Cloud.
 
-        if (!(context.getSender() instanceof Player)) {
+        if (!(commandContext.sender() instanceof Player)) {
             return Collections.emptyList();
         }
 
-        CartProperties props = context.inject(TrainCarts.class).get().getPlayer((Player) context.getSender()).getEditedCart();
+        CartProperties props = commandContext.inject(TrainCarts.class).get().getPlayer((Player) commandContext.sender()).getEditedCart();
         MinecartMember<?> member;
         if (props == null || (member = props.getHolder()) == null) {
             return Collections.emptyList();

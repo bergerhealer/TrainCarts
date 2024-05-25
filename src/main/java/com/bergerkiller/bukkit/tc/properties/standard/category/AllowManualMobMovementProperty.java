@@ -15,10 +15,9 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Whether mobs inside a train can set it in motion
@@ -27,7 +26,7 @@ public final class AllowManualMobMovementProperty extends FieldBackedStandardTra
 
     @CommandTargetTrain
     @PropertyCheckPermission("allowmobmanual")
-    @CommandMethod("train manualmovement mob <enabled>")
+    @Command("train manualmovement mob <enabled>")
     @CommandDescription("Sets whether mobs seated in the train can cause the train to move")
     private void getProperty(
             final CommandSender sender,
@@ -38,7 +37,7 @@ public final class AllowManualMobMovementProperty extends FieldBackedStandardTra
         getProperty(sender, properties);
     }
 
-    @CommandMethod("train manualmovement mob")
+    @Command("train manualmovement mob")
     @CommandDescription("Displays whether mobs seated in the train can cause the train to move")
     private void getProperty(
             final CommandSender sender,

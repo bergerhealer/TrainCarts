@@ -13,11 +13,10 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
-import cloud.commandframework.annotations.specifier.Greedy;
+import org.incendo.cloud.annotation.specifier.Greedy;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Configures the display name of a train, which is currently
@@ -27,7 +26,7 @@ public final class DisplayNameProperty implements ITrainProperty<String> {
 
     @CommandTargetTrain
     @PropertyCheckPermission("displayname")
-    @CommandMethod("train displayname <name>")
+    @Command("train displayname <name>")
     @CommandDescription("Sets the display name of the train")
     private void setProperty(
             final CommandSender sender,
@@ -38,7 +37,7 @@ public final class DisplayNameProperty implements ITrainProperty<String> {
         getProperty(sender, properties);
     }
 
-    @CommandMethod("train displayname")
+    @Command("train displayname")
     @CommandDescription("Displays whether the current display name of the train")
     private void getProperty(
             final CommandSender sender,

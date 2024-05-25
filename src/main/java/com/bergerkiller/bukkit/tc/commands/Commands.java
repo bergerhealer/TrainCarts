@@ -10,7 +10,6 @@ import com.bergerkiller.bukkit.common.Hastebin.UploadResult;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
-import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -26,9 +25,7 @@ import com.bergerkiller.bukkit.tc.commands.argument.DirectionOrFormattedSpeed;
 import com.bergerkiller.bukkit.tc.commands.parsers.AccelerationParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.AttachmentByNameParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.ChunkLoadOptionsModeParser;
-import com.bergerkiller.bukkit.tc.commands.parsers.DirectionOrFormattedSpeedParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.DirectionParser;
-import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.commands.parsers.TrainNameFormatParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.FormattedSpeedParser;
 import com.bergerkiller.bukkit.tc.commands.parsers.TrainTargetingFlags;
@@ -59,17 +56,9 @@ import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
-import com.bergerkiller.bukkit.tc.properties.standard.type.ChunkLoadOptions;
 import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
 import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
 import com.bergerkiller.mountiplex.MountiplexUtil;
-
-import cloud.commandframework.Command;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
-import cloud.commandframework.arguments.parser.StandardParameters;
-import cloud.commandframework.meta.CommandMeta;
-import cloud.commandframework.permission.AndPermission;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -88,6 +77,10 @@ import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
+import org.incendo.cloud.meta.CommandMeta;
+import org.incendo.cloud.parser.StandardParameters;
 
 public class Commands {
     private final CloudSimpleHandler cloud = new CloudSimpleHandler();
@@ -111,7 +104,7 @@ public class Commands {
         cloud.enable(plugin);
 
         // Override syntax formatter to hide excess flags for targeting a train or cart
-        cloud.getManager().setCommandSyntaxFormatter(new TCSyntaxFormatter<CommandSender>());
+        cloud.getManager().commandSyntaxFormatter(new TCSyntaxFormatter<>(cloud.getManager()));
 
         // Localization
         cloud.captionFromLocalization(Localization.class);
@@ -120,7 +113,7 @@ public class Commands {
         cloud.getParser().registerBuilderModifier(CommandRequiresPermission.class,
                 (perm, builder) -> builder.permission(perm.value().cloudPermission()));
         cloud.getParser().registerBuilderModifier(CommandRequiresMultiplePermissions.class, (multi, builder) -> {
-            final List<cloud.commandframework.permission.CommandPermission> perms = Stream.of(multi.value())
+            final List<org.incendo.cloud.permission.Permission> perms = Stream.of(multi.value())
                     .map(CommandRequiresPermission::value)
                     .map(Permission::cloudPermission)
                     .collect(Collectors.toList());
@@ -129,7 +122,7 @@ public class Commands {
             } else if (perms.size() == 1) {
                 return builder.permission(perms.get(0));
             } else {
-                return builder.permission(AndPermission.of(perms));
+                return builder.permission(org.incendo.cloud.permission.Permission.allOf(perms));
             }
         });
 
@@ -138,8 +131,8 @@ public class Commands {
 
         // Convert Player -> TrainCarts Player
         cloud.injector(TrainCartsPlayer.class, (context, annotations) -> {
-            if (context.getSender() instanceof Player) {
-                return plugin.getPlayer((Player) context.getSender());
+            if (context.sender() instanceof Player) {
+                return plugin.getPlayer((Player) context.sender());
             } else {
                 throw new CommandOnlyForPlayersException();
             }
@@ -150,8 +143,8 @@ public class Commands {
             final CartProperties cartProperties = TrainTargetingFlags.INSTANCE.findCartProperties(context);
 
             // Check ownership permissions
-            if (context.getSender() instanceof Player) {
-                Player p = (Player) context.getSender();
+            if (context.sender() instanceof Player) {
+                Player p = (Player) context.sender();
                 if (!cartProperties.hasOwnership(p)) {
                     throw new SelectedTrainNotOwnedException();
                 }
@@ -164,8 +157,8 @@ public class Commands {
             final TrainProperties trainProperties = cartProperties.getTrainProperties();
 
             // Check ownership permissions
-            if (context.getSender() instanceof Player) {
-                Player p = (Player) context.getSender();
+            if (context.sender() instanceof Player) {
+                Player p = (Player) context.sender();
                 if (!trainProperties.hasOwnership(p)) {
                     throw new SelectedTrainNotOwnedException();
                 }
@@ -204,16 +197,16 @@ public class Commands {
             return new AccelerationParser(greedy);
         });
 
-        cloud.parse(Direction.class, p -> new DirectionParser());
-        cloud.parse(ChunkLoadOptions.Mode.class, p -> new ChunkLoadOptionsModeParser());
-        cloud.parse(TrainNameFormat.class, p -> new TrainNameFormatParser());
-        cloud.parse(DirectionOrFormattedSpeed.class, p -> new DirectionOrFormattedSpeedParser());
+        cloud.parse(DirectionParser.directionParser());
+        cloud.parse(ChunkLoadOptionsModeParser.chunkLoadOptionsModeParser());
+        cloud.parse(TrainNameFormatParser.trainNameFormatParser());
+        cloud.parse(DirectionOrFormattedSpeed.directionOrFormattedSpeedParser());
 
         // Register attachment list arguments
-        cloud.parse("cartSeatAttachments", p -> AttachmentByNameParser.seats(false));
-        cloud.parse("trainSeatAttachments", p -> AttachmentByNameParser.seats(true));
-        cloud.parse("cartEffectAttachments", p -> AttachmentByNameParser.effects(false));
-        cloud.parse("trainEffectAttachments", p -> AttachmentByNameParser.effects(true));
+        cloud.parse("cartSeatAttachments", p -> AttachmentByNameParser.seats(false).createParser());
+        cloud.parse("trainSeatAttachments", p -> AttachmentByNameParser.seats(true).createParser());
+        cloud.parse("cartEffectAttachments", p -> AttachmentByNameParser.effects(false).createParser());
+        cloud.parse("trainEffectAttachments", p -> AttachmentByNameParser.effects(true).createParser());
 
         cloud.handleMessage(NoPermissionException.class, Localization.COMMAND_NOPERM.getName());
         cloud.handleMessage(NoTrainSelectedException.class, Localization.EDIT_NOSELECT.getName());
@@ -225,9 +218,6 @@ public class Commands {
         cloud.handleMessage(NoPermissionForAnyPropertiesException.class, Localization.PROPERTY_NOPERM_ANY.getName());
         cloud.handle(NoPermissionForPropertyException.class, (sender, ex) -> {
             Localization.PROPERTY_NOPERM.message(sender, ex.getName());
-        });
-        cloud.handle(LocalizedParserException.class, (sender, ex) -> {
-            sender.sendMessage(ex.getMessage());
         });
 
         cloud.handle(InvalidClaimPlayerNameException.class, (sender, exception) -> {
@@ -254,9 +244,9 @@ public class Commands {
         // Register provider for destination names
         cloud.suggest("destinations", (context, input) -> {
             Stream<PathWorld> worlds;
-            if (context.getSender() instanceof Player) {
+            if (context.sender() instanceof Player) {
                 // Only of one world the player is on
-                World world = ((Player) context.getSender()).getWorld();
+                World world = ((Player) context.sender()).getWorld();
                 worlds = MountiplexUtil.toStream(plugin.getPathProvider().getWorld(world));
             } else {
                 // Combine all worlds' unique destinations
@@ -278,6 +268,10 @@ public class Commands {
         });
 
         // Register all the commands
+        commands_train_global.init(cloud.getManager());
+        commands_train_ticket.init(cloud.getManager());
+        commands_savedtrain.init(cloud.getManager());
+        commands_modelstore.init(cloud.getManager());
         cloud.annotations(commands_cart);
         cloud.annotations(commands_train);
         cloud.annotations(commands_train_global);
@@ -299,21 +293,20 @@ public class Commands {
 
         // The /train debug and /train debug help command
         {
-            final Command<CommandSender> debugHelpCommand = cloud.helpCommand(
+            final org.incendo.cloud.Command<CommandSender> debugHelpCommand = cloud.helpCommand(
                     Arrays.asList("train", "debug"),
                     "Shows help about the debugging commands",
                     builder -> {
                         return builder.permission(Permission.DEBUG_COMMAND_DEBUG.getName());
                     });
 
-            cloud.getManager().command(Command.<CommandSender>newBuilder("train", CommandMeta.simple().build())
+            cloud.getManager().command(org.incendo.cloud.Command.<CommandSender>newBuilder("train", CommandMeta.empty())
                     .literal("debug")
-                    .hidden()
                     .proxies(debugHelpCommand));
         }
     }
 
-    @CommandMethod("train")
+    @Command("train")
     @CommandDescription("Displays the TrainCarts plugin about message, with version information")
     private void commandShowAbout(final TrainCarts plugin, final CommandSender sender) {
         // Build a message showing 'TrainCarts <version>, followed by a clickable link to the wiki

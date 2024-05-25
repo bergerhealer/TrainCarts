@@ -1,27 +1,27 @@
 package com.bergerkiller.bukkit.tc.commands.parsers;
 
-import java.util.List;
-import java.util.Queue;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import com.bergerkiller.bukkit.common.cloud.CloudLocalizedException;
 import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.mountiplex.MountiplexUtil;
-
-import cloud.commandframework.arguments.parser.ArgumentParseResult;
-import cloud.commandframework.arguments.parser.ArgumentParser;
-import cloud.commandframework.context.CommandContext;
-import cloud.commandframework.exceptions.parsing.NoInputProvidedException;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.incendo.cloud.context.CommandContext;
+import org.incendo.cloud.context.CommandInput;
+import org.incendo.cloud.parser.ArgumentParseResult;
+import org.incendo.cloud.parser.ArgumentParser;
+import org.incendo.cloud.suggestion.BlockingSuggestionProvider;
 
 /**
  * Parses an acceleration with a default unit of blocks/tick^2, where a unit
  * can optionally be specified.
  */
-public class AccelerationParser implements ArgumentParser<CommandSender, Double> {
+public class AccelerationParser implements ArgumentParser<CommandSender, Double>, BlockingSuggestionProvider.Strings<CommandSender> {
     public static final String NAME = "acceleration";
     private final boolean _greedy;
 
@@ -30,18 +30,8 @@ public class AccelerationParser implements ArgumentParser<CommandSender, Double>
     }
 
     @Override
-    public ArgumentParseResult<Double> parse(
-            final CommandContext<CommandSender> commandContext,
-            final Queue<String> inputQueue
-    ) {
-        if (inputQueue.isEmpty()) {
-            return ArgumentParseResult.failure(new NoInputProvidedException(
-                    this.getClass(),
-                    commandContext
-            ));
-        }
-
-        String input = this._greedy ? String.join(" ", inputQueue) : inputQueue.peek();
+    public @NonNull ArgumentParseResult<@NonNull Double> parse(@NonNull CommandContext<@NonNull CommandSender> commandContext, @NonNull CommandInput commandInput) {
+        String input = this._greedy ? commandInput.remainingInput() : commandInput.peekString();
         double result;
 
         if (input.equalsIgnoreCase("nan")) {
@@ -49,24 +39,23 @@ public class AccelerationParser implements ArgumentParser<CommandSender, Double>
         } else {
             result = Util.parseAcceleration(input, Double.NaN);
             if (Double.isNaN(result)) {
-                return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
+                return ArgumentParseResult.failure(new CloudLocalizedException(commandContext,
                         Localization.COMMAND_INPUT_ACCELERATION_INVALID, input));
             }
         }
 
         if (this._greedy) {
-            inputQueue.clear();
+            commandInput.cursor(commandInput.length());
         } else {
-            inputQueue.poll();
+            commandInput.readString();
         }
         return ArgumentParseResult.success(result);
     }
 
     @Override
-    public List<String> suggestions(
-            final CommandContext<CommandSender> commandContext,
-            final String input
-    ) {
+    public @NonNull Iterable<@NonNull String> stringSuggestions(@NonNull CommandContext<CommandSender> commandContext, @NonNull CommandInput commandInput) {
+        final String input = commandInput.lastRemainingToken();
+
         if (input.isEmpty()) {
             // Show digits and '-'
             return Stream.concat(MountiplexUtil.toStream("-"), IntStream.range(0, 10)

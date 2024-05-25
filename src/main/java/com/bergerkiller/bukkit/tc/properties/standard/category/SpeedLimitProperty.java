@@ -18,10 +18,9 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.PropertySelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
 import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Changes the maximum speed a train can move at
@@ -30,7 +29,7 @@ public final class SpeedLimitProperty extends FieldBackedStandardTrainProperty.S
 
     @CommandTargetTrain
     @PropertyCheckPermission("maxspeed")
-    @CommandMethod("train maxspeed|speedlimit <speed>")
+    @Command("train maxspeed|speedlimit <speed>")
     @CommandDescription("Sets a new  speed limit for the train")
     private void trainSetSpeedLimit(
             final CommandSender sender,
@@ -41,7 +40,7 @@ public final class SpeedLimitProperty extends FieldBackedStandardTrainProperty.S
         trainGetSpeedLimit(sender, properties);
     }
 
-    @CommandMethod("train maxspeed|speedlimit")
+    @Command("train maxspeed|speedlimit")
     @CommandDescription("Reads the current speed limit set for the train")
     private void trainGetSpeedLimit(
             final CommandSender sender,

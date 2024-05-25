@@ -16,10 +16,9 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardCartProperty;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Enables a storage cart to pick up items nearby off the ground
@@ -28,7 +27,7 @@ public final class PickUpItemsProperty extends FieldBackedStandardCartProperty<B
 
     @CommandTargetTrain
     @PropertyCheckPermission("pickupitems")
-    @CommandMethod("train pickupitems|pickup <pickup>")
+    @Command("train pickupitems|pickup <pickup>")
     @CommandDescription("Sets whether the train picks up items off the ground")
     private void setProperty(
             final CommandSender sender,
@@ -39,7 +38,7 @@ public final class PickUpItemsProperty extends FieldBackedStandardCartProperty<B
         getProperty(sender, properties);
     }
 
-    @CommandMethod("train pickupitems|pickup")
+    @Command("train pickupitems|pickup")
     @CommandDescription("Displays whether the train picks up items off the ground")
     private void getProperty(
             final CommandSender sender,
@@ -51,7 +50,7 @@ public final class PickUpItemsProperty extends FieldBackedStandardCartProperty<B
 
     @CommandTargetTrain
     @PropertyCheckPermission("pickupitems")
-    @CommandMethod("cart pickupitems|pickup <pickup>")
+    @Command("cart pickupitems|pickup <pickup>")
     @CommandDescription("Sets whether the cart picks up items off the ground")
     private void setProperty(
             final CommandSender sender,
@@ -62,7 +61,7 @@ public final class PickUpItemsProperty extends FieldBackedStandardCartProperty<B
         getProperty(sender, properties);
     }
 
-    @CommandMethod("cart pickupitems|pickup")
+    @Command("cart pickupitems|pickup")
     @CommandDescription("Displays whether the cart picks up items off the ground")
     private void getProperty(
             final CommandSender sender,

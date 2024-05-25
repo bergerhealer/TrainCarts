@@ -4,10 +4,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.bergerkiller.bukkit.common.cloud.CloudLocalizedException;
+import com.bergerkiller.bukkit.common.cloud.parsers.QuotedArgumentParser;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -21,29 +22,28 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission;
 import com.bergerkiller.bukkit.tc.commands.annotations.SavedTrainImplicitlyCreated;
 import com.bergerkiller.bukkit.tc.commands.annotations.SavedTrainRequiresAccess;
-import com.bergerkiller.bukkit.tc.commands.parsers.LocalizedParserException;
 import com.bergerkiller.bukkit.tc.exception.IllegalNameException;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainProperties;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.SavedClaim;
 import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
 
-import cloud.commandframework.CommandManager;
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
-import cloud.commandframework.annotations.Flag;
-import cloud.commandframework.annotations.InitializationMethod;
-import cloud.commandframework.annotations.specifier.Quoted;
-import cloud.commandframework.annotations.suggestions.Suggestions;
-import cloud.commandframework.arguments.CommandArgument;
-import cloud.commandframework.arguments.parser.ArgumentParseResult;
-import cloud.commandframework.arguments.parser.ArgumentParser;
-import cloud.commandframework.arguments.parser.ParserParameters;
-import cloud.commandframework.context.CommandContext;
-import cloud.commandframework.exceptions.parsing.NoInputProvidedException;
-import cloud.commandframework.services.types.ConsumerService;
 import io.leangen.geantyref.TypeToken;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.incendo.cloud.CommandManager;
+import org.incendo.cloud.annotation.specifier.Quoted;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
+import org.incendo.cloud.annotations.Flag;
+import org.incendo.cloud.annotations.suggestion.Suggestions;
+import org.incendo.cloud.component.CommandComponent;
+import org.incendo.cloud.context.CommandContext;
+import org.incendo.cloud.context.CommandInput;
+import org.incendo.cloud.parser.ArgumentParseResult;
+import org.incendo.cloud.parser.ParserParameters;
+import org.incendo.cloud.services.type.ConsumerService;
+import org.incendo.cloud.suggestion.BlockingSuggestionProvider;
 
 /**
  * Commands to modify an existing saved train
@@ -62,10 +62,9 @@ public class SavedTrainCommands {
         return plugin.getSavedTrains().getNames();
     }
 
-    @InitializationMethod
-    private void init(CommandManager<CommandSender> manager) {
+    public void init(CommandManager<CommandSender> manager) {
         manager.registerCommandPostProcessor((postProcessContext) -> {
-            final CommandContext<CommandSender> context = postProcessContext.getCommandContext();
+            final CommandContext<CommandSender> context = postProcessContext.commandContext();
 
             // Check if command uses saved train properties
             Object raw_arg = context.getOrDefault("savedtrainname", (Object) null);
@@ -74,8 +73,8 @@ public class SavedTrainCommands {
             }
 
             // Find SavedTrainPropertiesParser. If used, process the post-logic code down below.
-            SavedTrainPropertiesParser parser = postProcessContext.getCommand().getArguments().stream()
-                    .map(CommandArgument::getParser)
+            SavedTrainPropertiesParser parser = postProcessContext.command().components().stream()
+                    .map(CommandComponent::parser)
                     .filter(SavedTrainPropertiesParser.class::isInstance)
                     .map(SavedTrainPropertiesParser.class::cast)
                     .findFirst().orElse(null);
@@ -95,23 +94,23 @@ public class SavedTrainCommands {
                         context.set("savedtrainname", savedTrain);
 
                         // Add claim if configured this should happen
-                        if (TCConfig.claimNewSavedTrains && context.getSender() instanceof Player) {
-                            savedTrain.setClaims(Collections.singleton(new SavedClaim((Player) context.getSender())));
+                        if (TCConfig.claimNewSavedTrains && context.sender() instanceof Player) {
+                            savedTrain.setClaims(Collections.singleton(new SavedClaim((Player) context.sender())));
                         }
                     } catch (IllegalNameException e) {
                         Localization.COMMAND_SAVEDTRAIN_INVALID_NAME.message(
-                                context.getSender(), savedTrain.getName());
+                                context.sender(), savedTrain.getName());
                         ConsumerService.interrupt();
                     }
                 } else {
                     // Not found, fail
                     Localization.COMMAND_SAVEDTRAIN_NOTFOUND.message(
-                            context.getSender(), savedTrain.getName());
+                            context.sender(), savedTrain.getName());
                     ConsumerService.interrupt();
                 }
             } else if (parser.isMustHaveAccess()) {
                 // Check permissions when access is required
-                CommandSender sender = context.getSender();
+                CommandSender sender = context.sender();
                 if (savedTrain.hasPermission(sender)) {
                     return;
                 }
@@ -124,25 +123,25 @@ public class SavedTrainCommands {
         });
 
         // Token specified when a command requires write access to a saved train
-        manager.getParserRegistry().registerAnnotationMapper(SavedTrainRequiresAccess.class, (a, typeToken) -> {
+        manager.parserRegistry().registerAnnotationMapper(SavedTrainRequiresAccess.class, (a, typeToken) -> {
             return ParserParameters.single(SavedTrainRequiresAccess.PARAM, Boolean.TRUE);
         });
 
         // Token specified when new saved train properties are created when missing
-        manager.getParserRegistry().registerAnnotationMapper(SavedTrainImplicitlyCreated.class, (a, typeToken) -> {
+        manager.parserRegistry().registerAnnotationMapper(SavedTrainImplicitlyCreated.class, (a, typeToken) -> {
             return ParserParameters.single(SavedTrainImplicitlyCreated.PARAM, Boolean.TRUE);
         });
 
         // Create parsers, take @SavedTrainRequiresAccess flag into account
-        manager.getParserRegistry().registerParserSupplier(TypeToken.get(SavedTrainProperties.class), (parameters) -> {
+        manager.parserRegistry().registerParserSupplier(TypeToken.get(SavedTrainProperties.class), (parameters) -> {
             //parameters.get(parameter, defaultValue)
             boolean access = parameters.get(SavedTrainRequiresAccess.PARAM, Boolean.FALSE);
             boolean implicitlyCreated = parameters.get(SavedTrainImplicitlyCreated.PARAM, Boolean.FALSE);
-            return new SavedTrainPropertiesParser(access, implicitlyCreated);
+            return new SavedTrainPropertiesParser(access, implicitlyCreated).createParser();
         });
     }
 
-    @CommandMethod("savedtrain")
+    @Command("savedtrain")
     @CommandDescription("Shows command usage of /savedtrain, lists saved trains")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     private void commandUsage(
@@ -154,7 +153,7 @@ public class SavedTrainCommands {
         this.commandShowInfo(sender, plugin, false, null);
     }
 
-    @CommandMethod("savedtrain <savedtrainname> info")
+    @Command("savedtrain <savedtrainname> info")
     @CommandDescription("Shows detailed information about a saved train")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     private void commandShowInfo(
@@ -177,7 +176,7 @@ public class SavedTrainCommands {
         builder.send(sender);
     }
 
-    @CommandMethod("savedtrain <savedtrainname> defaultmodule")
+    @Command("savedtrain <savedtrainname> defaultmodule")
     @CommandDescription("Moves a saved train to the default module")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     private void commandSetDefaultModule(
@@ -193,7 +192,7 @@ public class SavedTrainCommands {
         }
     }
 
-    @CommandMethod("savedtrain <savedtrainname> module <newmodulename>")
+    @Command("savedtrain <savedtrainname> module <newmodulename>")
     @CommandDescription("Moves a saved train to a new or existing module")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     private void commandSetModule(
@@ -212,7 +211,7 @@ public class SavedTrainCommands {
         }
     }
 
-    @CommandMethod("savedtrain <savedtrainname> export|share|paste|upload")
+    @Command("savedtrain <savedtrainname> export|share|paste|upload")
     @CommandDescription("Exports the saved train configuration to a hastebin server")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_EXPORT)
@@ -223,7 +222,7 @@ public class SavedTrainCommands {
         Commands.exportTrain(sender, savedTrain.getName(), savedTrain.getExportedConfig());
     }
 
-    @CommandMethod("savedtrain <savedtrainname> rename|changename|move <newsavedtrainname>")
+    @Command("savedtrain <savedtrainname> rename|changename|move <newsavedtrainname>")
     @CommandDescription("Renames a saved train")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_RENAME)
@@ -259,7 +258,7 @@ public class SavedTrainCommands {
                 ChatColor.YELLOW + "'!");
     }
 
-    @CommandMethod("savedtrain <savedtrainname> copy|clone <targetsavedtrainname>")
+    @Command("savedtrain <savedtrainname> copy|clone <targetsavedtrainname>")
     @CommandDescription("Copies an existing saved train and saves it as the target saved train name")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_COPY)
@@ -300,7 +299,7 @@ public class SavedTrainCommands {
                 ChatColor.YELLOW + "'!");
     }
 
-    @CommandMethod("savedtrain <savedtrainname> reverse|flip")
+    @Command("savedtrain <savedtrainname> reverse|flip")
     @CommandDescription("Reverse and flips the carts so it is moving in reverse when spawned")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_REVERSE)
@@ -314,7 +313,7 @@ public class SavedTrainCommands {
                 ChatColor.GREEN + "' has been reversed!");
     }
 
-    @CommandMethod("savedtrain <savedtrainname> lockorientation <locked>")
+    @Command("savedtrain <savedtrainname> lockorientation <locked>")
     @CommandDescription("Sets whether the train orientation is locked, so future saved can't change it")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_REVERSE)
@@ -338,7 +337,7 @@ public class SavedTrainCommands {
         }
     }
 
-    @CommandMethod("savedtrain <savedtrainname> spawnlimit unlimited")
+    @Command("savedtrain <savedtrainname> spawnlimit unlimited")
     @CommandDescription("Disables any set spawn limit, allowing the saved train to be spawned an unlimited number of times")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_SPAWNLIMIT)
@@ -349,7 +348,7 @@ public class SavedTrainCommands {
         commandSetSpawnLimit(sender, savedTrain, -1);
     }
 
-    @CommandMethod("savedtrain <savedtrainname> spawnlimit <limit>")
+    @Command("savedtrain <savedtrainname> spawnlimit <limit>")
     @CommandDescription("Sets the maximum number of times this saved train can be spawned using spawn signs or spawn chest")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_SPAWNLIMIT)
@@ -371,7 +370,7 @@ public class SavedTrainCommands {
         }
     }
 
-    @CommandMethod("savedtrain <savedtrainname> spawnlimit")
+    @Command("savedtrain <savedtrainname> spawnlimit")
     @CommandDescription("Gets the currently configured saved train spawn limit and how many trains have spawned")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_SPAWNLIMIT)
@@ -391,7 +390,7 @@ public class SavedTrainCommands {
         }
     }
 
-    @CommandMethod("savedtrain <savedtrainname> delete|remove")
+    @Command("savedtrain <savedtrainname> delete|remove")
     @CommandDescription("Deletes a saved train permanently")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_DELETE)
@@ -412,7 +411,7 @@ public class SavedTrainCommands {
         }
     }
 
-    @CommandMethod("savedtrain <savedtrainname> claim")
+    @Command("savedtrain <savedtrainname> claim")
     @CommandDescription("Claims a saved train so that the player has exclusive access")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_CLAIM)
@@ -436,7 +435,7 @@ public class SavedTrainCommands {
         }
     }
 
-    @CommandMethod("savedtrain <savedtrainname> claim add <player>")
+    @Command("savedtrain <savedtrainname> claim add <player>")
     @CommandDescription("Adds a claim to a saved train so that the added player has exclusive access")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_CLAIM)
@@ -461,7 +460,7 @@ public class SavedTrainCommands {
         updateClaimList(sender, savedTrain, oldClaims, newClaims);
     }
 
-    @CommandMethod("savedtrain <savedtrainname> claim remove <player>")
+    @Command("savedtrain <savedtrainname> claim remove <player>")
     @CommandDescription("Removes a claim from a saved train so that the player no longer has exclusive access")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_CLAIM)
@@ -486,7 +485,7 @@ public class SavedTrainCommands {
         updateClaimList(sender, savedTrain, oldClaims, newClaims);
     }
 
-    @CommandMethod("savedtrain <savedtrainname> claim clear")
+    @Command("savedtrain <savedtrainname> claim clear")
     @CommandDescription("Clears all the claims set for the saved train, allowing anyone to access it")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_CLAIM)
@@ -502,7 +501,7 @@ public class SavedTrainCommands {
         updateClaimList(sender, savedTrain, oldClaims, Collections.emptySet());
     }   
 
-    @CommandMethod("savedtrain <savedtrainname> import <url>")
+    @Command("savedtrain <savedtrainname> import <url>")
     @CommandDescription("Imports a saved train from an online hastebin server by url")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_IMPORT)
@@ -537,7 +536,7 @@ public class SavedTrainCommands {
         });
     }
 
-    @CommandMethod("savedtrain list")
+    @Command("savedtrain list")
     @CommandDescription("Lists all the saved trains that exist on the server that a player can modify")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     private void commandShowInfo(
@@ -572,7 +571,7 @@ public class SavedTrainCommands {
         builder.send(sender);
     }
 
-    @CommandMethod("savedtrain list modules")
+    @Command("savedtrain list modules")
     @CommandDescription("Lists all modules in which saved trains are saved")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     private void commandListModules(
@@ -643,7 +642,7 @@ public class SavedTrainCommands {
     /**
      * Parser for SavedTrainProperties
      */
-    private static class SavedTrainPropertiesParser implements ArgumentParser<CommandSender, SavedTrainProperties> {
+    private static class SavedTrainPropertiesParser implements QuotedArgumentParser<CommandSender, SavedTrainProperties>, BlockingSuggestionProvider.Strings<CommandSender> {
         private final boolean mustHaveAccess;
         private final boolean implicitlyCreated;
 
@@ -661,34 +660,29 @@ public class SavedTrainCommands {
         }
 
         @Override
-        public ArgumentParseResult<SavedTrainProperties> parse(CommandContext<CommandSender> commandContext, Queue<String> inputQueue) {
+        public @NonNull ArgumentParseResult<@NonNull SavedTrainProperties> parseQuotedString(
+                @NonNull CommandContext<@NonNull CommandSender> commandContext,
+                @NonNull String input
+        ) {
             final TrainCarts plugin = commandContext.inject(TrainCarts.class).get();
-            final String input = inputQueue.peek();
-            if (input == null) {
-                return ArgumentParseResult.failure(new NoInputProvidedException(
-                        SavedTrainPropertiesParser.class,
-                        commandContext
-                ));
-            }
 
             // Verify not an invalid name that will brick YAML
             TrainNameFormat.VerifyResult verify = TrainNameFormat.verify(input);
             if (verify != TrainNameFormat.VerifyResult.OK) {
-                return ArgumentParseResult.failure(new LocalizedParserException(commandContext,
+                return ArgumentParseResult.failure(new CloudLocalizedException(commandContext,
                         verify.getMessage(), input));
             }
-
-            inputQueue.remove();
 
             return ArgumentParseResult.success(plugin.getSavedTrains().getPropertiesOrNone(input));
         }
 
         @Override
-        public List<String> suggestions(
-                final CommandContext<CommandSender> commandContext,
-                final String input
+        public @NonNull Iterable<@NonNull String> stringSuggestions(
+                @NonNull CommandContext<CommandSender> commandContext,
+                @NonNull CommandInput commandInput
         ) {
             final TrainCarts plugin = commandContext.inject(TrainCarts.class).get();
+            final String input = commandInput.lastRemainingToken();
 
             List<String> filtered;
             if (input.isEmpty()) {
@@ -699,7 +693,7 @@ public class SavedTrainCommands {
             }
 
             List<String> claimed = filtered.stream().filter(name -> {
-                return plugin.getSavedTrains().hasPermission(commandContext.getSender(), name);
+                return plugin.getSavedTrains().hasPermission(commandContext.sender(), name);
             }).collect(Collectors.toList());
 
             if (claimed.isEmpty()) {

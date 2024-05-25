@@ -15,10 +15,9 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.PropertySelectorCondition;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Applies a factor to the effects gravity has on a train.
@@ -28,7 +27,7 @@ public final class GravityProperty extends FieldBackedStandardTrainProperty.Stan
 
     @CommandTargetTrain
     @PropertyCheckPermission("gravity")
-    @CommandMethod("train gravity <multiplier>")
+    @Command("train gravity <multiplier>")
     @CommandDescription("Sets a gravity effect multiplier for the train")
     private void trainSetProperty(
             final CommandSender sender,
@@ -39,7 +38,7 @@ public final class GravityProperty extends FieldBackedStandardTrainProperty.Stan
         trainGetProperty(sender, properties);
     }
 
-    @CommandMethod("train gravity")
+    @Command("train gravity")
     @CommandDescription("Displays the gravity multiplier currently set for the train")
     private void trainGetProperty(
             final CommandSender sender,

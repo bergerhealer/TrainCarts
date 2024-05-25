@@ -24,11 +24,10 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardCartProperty;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
-import cloud.commandframework.annotations.specifier.FlagYielding;
+import org.incendo.cloud.annotation.specifier.FlagYielding;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Set of usernames of owners of a cart who have permission to edit it
@@ -60,7 +59,7 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
         }
     }
 
-    @CommandMethod("cart owners")
+    @Command("cart owners")
     @CommandDescription("Display the owners set for the cart")
     private void getProperty(
             final CommandSender sender,
@@ -72,7 +71,7 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
     }
 
     @PropertyCheckPermission("owners")
-    @CommandMethod("cart claim")
+    @Command("cart claim")
     @CommandDescription("Sets the caller as the sole owner of a cart")
     private void setPropertyClaim(
             final Player sender,
@@ -85,7 +84,7 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
 
     @CommandTargetTrain
     @PropertyCheckPermission("owners")
-    @CommandMethod("cart owners add <player_names>")
+    @Command("cart owners add <player_names>")
     @CommandDescription("Adds players as owners of a cart")
     private void setPropertyAdd(
             final CommandSender sender,
@@ -104,7 +103,7 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
 
     @CommandTargetTrain
     @PropertyCheckPermission("owners")
-    @CommandMethod("cart owners remove <player_names>")
+    @Command("cart owners remove <player_names>")
     @CommandDescription("Removes players as owners of a cart")
     private void setPropertyRemove(
             final CommandSender sender,
@@ -123,7 +122,7 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
 
     @CommandTargetTrain
     @PropertyCheckPermission("owners")
-    @CommandMethod("cart owners set <player_names>")
+    @Command("cart owners set <player_names>")
     @CommandDescription("Discards previous owners and sets players as owners of a cart")
     private void setProperty(
             final CommandSender sender,
@@ -143,7 +142,7 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
     }
 
     @PropertyCheckPermission("owners")
-    @CommandMethod("cart owners clear")
+    @Command("cart owners clear")
     @CommandDescription("Clears all owners set for a cart, allowing everyone access")
     private void setPropertyClear(
             final CommandSender sender,
@@ -156,7 +155,7 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
         }
     }
 
-    @CommandMethod("train owners")
+    @Command("train owners")
     @CommandDescription("Display the owners set for carts of the train")
     private void getProperty(
             final CommandSender sender,
@@ -168,7 +167,7 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
     }
 
     @PropertyCheckPermission("owners")
-    @CommandMethod("train claim")
+    @Command("train claim")
     @CommandDescription("Sets the caller as the sole owner of a train")
     private void setPropertyClaim(
             final Player sender,
@@ -181,7 +180,7 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
 
     @CommandTargetTrain
     @PropertyCheckPermission("owners")
-    @CommandMethod("train owners add <player_names>")
+    @Command("train owners add <player_names>")
     @CommandDescription("Adds players as owners of all carts of a train")
     private void setPropertyAdd(
             final CommandSender sender,
@@ -200,7 +199,7 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
 
     @CommandTargetTrain
     @PropertyCheckPermission("owners")
-    @CommandMethod("train owners remove <player_names>")
+    @Command("train owners remove <player_names>")
     @CommandDescription("Removes players as owners of all carts of a train")
     private void setPropertyRemove(
             final CommandSender sender,
@@ -219,7 +218,7 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
 
     @CommandTargetTrain
     @PropertyCheckPermission("owners")
-    @CommandMethod("train owners set <player_names>")
+    @Command("train owners set <player_names>")
     @CommandDescription("Discards previous owners and sets players as owners of all carts of a train")
     private void setProperty(
             final CommandSender sender,
@@ -239,7 +238,7 @@ public final class OwnerSetProperty extends FieldBackedStandardCartProperty<Set<
     }
 
     @PropertyCheckPermission("owners")
-    @CommandMethod("train owners clear")
+    @Command("train owners clear")
     @CommandDescription("Clears all owners set for a train, allowing everyone access")
     private void setPropertyClear(
             final CommandSender sender,

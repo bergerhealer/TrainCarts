@@ -13,10 +13,9 @@ import com.bergerkiller.bukkit.tc.properties.api.ISyntheticProperty;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyInvalidInputException;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Makes it possible to apply defaults from configuration to trains
@@ -25,7 +24,7 @@ public final class DefaultConfigSyntheticProperty implements ISyntheticProperty<
 
     @CommandTargetTrain
     @PropertyCheckPermission("setdefault")
-    @CommandMethod("train defaults apply <defaultname>")
+    @Command("train defaults apply <defaultname>")
     @CommandDescription("Applies defaults from DefaultTrainProperties to a train")
     private void commandApplyDefaults(
             final CommandSender sender,

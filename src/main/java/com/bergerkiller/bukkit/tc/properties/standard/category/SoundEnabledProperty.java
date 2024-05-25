@@ -15,10 +15,9 @@ import com.bergerkiller.bukkit.tc.properties.api.PropertyCheckPermission;
 import com.bergerkiller.bukkit.tc.properties.api.PropertyParser;
 import com.bergerkiller.bukkit.tc.properties.api.context.PropertyParseContext;
 import com.bergerkiller.bukkit.tc.properties.standard.fieldbacked.FieldBackedStandardTrainProperty;
-
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 /**
  * Whether sound plays while the train moves
@@ -27,7 +26,7 @@ public final class SoundEnabledProperty extends FieldBackedStandardTrainProperty
 
     @CommandTargetTrain
     @PropertyCheckPermission("soundenabled")
-    @CommandMethod("train soundenabled|sound <enabled>")
+    @Command("train soundenabled|sound <enabled>")
     @CommandDescription("Sets whether the train makes sound while moving")
     private void setProperty(
             final CommandSender sender,
@@ -38,7 +37,7 @@ public final class SoundEnabledProperty extends FieldBackedStandardTrainProperty
         getProperty(sender, properties);
     }
 
-    @CommandMethod("train soundenabled|sound")
+    @Command("train soundenabled|sound")
     @CommandDescription("Displays whether the train makes sound while moving")
     private void getProperty(
             final CommandSender sender,

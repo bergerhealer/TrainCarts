@@ -1,8 +1,5 @@
 package com.bergerkiller.bukkit.tc.properties.standard.category;
 
-import cloud.commandframework.annotations.Argument;
-import cloud.commandframework.annotations.CommandDescription;
-import cloud.commandframework.annotations.CommandMethod;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -21,6 +18,9 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
 
 import java.lang.reflect.Method;
 import java.util.Optional;
@@ -35,7 +35,7 @@ public final class PaperTrackingRangeProperty implements ICartProperty<Integer> 
 
     @CommandTargetTrain
     @PropertyCheckPermission("trackingrange")
-    @CommandMethod("train trackingrange reset")
+    @Command("train trackingrange reset")
     @CommandDescription("Resets the view distance players inside the train have to the defaults")
     private void resetProperty(
             final CommandSender sender,
@@ -46,7 +46,7 @@ public final class PaperTrackingRangeProperty implements ICartProperty<Integer> 
 
     @CommandTargetTrain
     @PropertyCheckPermission("trackingrange")
-    @CommandMethod("train trackingrange <num_blocks>")
+    @Command("train trackingrange <num_blocks>")
     @CommandDescription("Sets the view distance players inside the train have")
     private void setProperty(
             final CommandSender sender,
@@ -57,7 +57,7 @@ public final class PaperTrackingRangeProperty implements ICartProperty<Integer> 
         getProperty(sender, properties);
     }
 
-    @CommandMethod("train trackingrange")
+    @Command("train trackingrange")
     @CommandDescription("Displays the view distance players inside the train have")
     private void getProperty(
             final CommandSender sender,
@@ -75,7 +75,7 @@ public final class PaperTrackingRangeProperty implements ICartProperty<Integer> 
 
     @CommandTargetTrain
     @PropertyCheckPermission("trackingrange")
-    @CommandMethod("cart trackingrange reset")
+    @Command("cart trackingrange reset")
     @CommandDescription("Resets the view distance players inside the cart have to the defaults")
     private void resetProperty(
             final CommandSender sender,
@@ -86,7 +86,7 @@ public final class PaperTrackingRangeProperty implements ICartProperty<Integer> 
 
     @CommandTargetTrain
     @PropertyCheckPermission("trackingrange")
-    @CommandMethod("cart trackingrange <num_blocks>")
+    @Command("cart trackingrange <num_blocks>")
     @CommandDescription("Sets the view distance players inside the cart have")
     private void setProperty(
             final CommandSender sender,
@@ -97,7 +97,7 @@ public final class PaperTrackingRangeProperty implements ICartProperty<Integer> 
         getProperty(sender, properties);
     }
 
-    @CommandMethod("cart trackingrange")
+    @Command("cart trackingrange")
     @CommandDescription("Displays the view distance players inside the cart have")
     private void getProperty(
             final CommandSender sender,
