@@ -6,6 +6,9 @@ import cloud.commandframework.annotations.Flag;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
+import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
@@ -153,9 +156,42 @@ public class DebugCommands {
     @CommandDescription("Get a debug stick item to visually display the route towards a destination")
     private void commandDebugDestinationName(
             final Player player,
-            final @Quoted @Argument("destination") String destination
+            final @Quoted @Argument(value="destination", suggestions="destinations") String destination
     ) {
         (new DebugToolTypeListDestinations(destination)).giveToPlayer(player);
+    }
+
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
+    @CommandMethod("train debug destination <destination> teleport")
+    @CommandDescription("Get a debug stick item to visually display the route towards a destination")
+    private void commandDebugTeleportToDestination(
+            final Player player,
+            final TrainCarts plugin,
+            final @Quoted @Argument(value="destination", suggestions="destinations") String destination
+    ) {
+        // Try to find this PathNode
+        PathNode node = plugin.getPathProvider().getWorld(player.getWorld()).getNodeByName(destination);
+        if (node == null) {
+            // Find on other worlds
+            node = plugin.getPathProvider().getWorlds().stream()
+                    .map(w -> w.getNodeByName(destination))
+                    .findFirst()
+                    .orElse(null);
+            if (node == null) {
+                player.sendMessage(ChatColor.RED + "Destination with name '" + destination + "' not found");
+                return;
+            }
+        }
+
+        // Find the rails block
+        RailPiece rail = RailPiece.create(node.location.getBlock());
+        if (rail.isNone()) {
+            player.sendMessage(ChatColor.RED + "There are no rails at this destination! (No longer exists?)");
+            return;
+        }
+        RailState spawnState = RailState.getSpawnState(rail);
+        player.teleport(spawnState.positionLocation());
+        player.sendMessage(ChatColor.GREEN + "Teleported to destination '" + ChatColor.YELLOW + destination + ChatColor.GREEN + "'!");
     }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
