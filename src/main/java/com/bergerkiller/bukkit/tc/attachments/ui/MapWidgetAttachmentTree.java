@@ -21,7 +21,7 @@ import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
  */
 public abstract class MapWidgetAttachmentTree extends MapWidget {
     private static final int MAX_VISIBLE_DEPTH = 3;
-    private MapWidgetAttachmentNode root = new MapWidgetAttachmentNode(this,
+    private MapWidgetAttachmentNode root = MapWidgetAttachmentNode.createNewRoot(this,
             (new AttachmentConfigTracker(new ConfigurationNode())).getRoot().get());
     private int offset = 0;
     private int count = 6;
@@ -66,7 +66,7 @@ public abstract class MapWidgetAttachmentTree extends MapWidget {
         }
         this.model = model;
         AttachmentConfig rootConfig = model.getConfigTracker().startTracking(changeListener);
-        this.root = new MapWidgetAttachmentNode(this, rootConfig);
+        this.root = MapWidgetAttachmentNode.createNewRoot(this, rootConfig);
         this.lastSelIdx = this.root.getEditorOption("selectedIndex", 0);
         this.updateView(this.root.getEditorOption("scrollOffset", 0));
     }

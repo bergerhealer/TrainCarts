@@ -62,7 +62,12 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     private MapWidgetMenuButton appearanceMenuButton;
     private final MapWidgetNameBox topNameBox = new MapWidgetNameBox();
 
-    public MapWidgetAttachmentNode(MapWidgetAttachmentTree tree, AttachmentConfig config) {
+    public static MapWidgetAttachmentNode createNewRoot(MapWidgetAttachmentTree tree, AttachmentConfig config) {
+        return new MapWidgetAttachmentNode(null, tree, config);
+    }
+
+    public MapWidgetAttachmentNode(MapWidgetAttachmentNode parentAttachment, MapWidgetAttachmentTree tree, AttachmentConfig config) {
+        this.parentAttachment = parentAttachment;
         this.tree = tree;
         this.config = config;
         this.loadFromConfig();
@@ -75,9 +80,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
         // Add child attachments
         this.attachments.clear();
         for (AttachmentConfig childConfig : config.children()) {
-            MapWidgetAttachmentNode sub = new MapWidgetAttachmentNode(this.tree, childConfig);
-            sub.parentAttachment = this;
-            this.attachments.add(sub);
+            this.attachments.add(new MapWidgetAttachmentNode(this, this.tree, childConfig));
         }
 
         // Special properties
@@ -133,9 +136,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
             }
 
             // Insert a new attachment at this position
-            MapWidgetAttachmentNode node = new MapWidgetAttachmentNode(this.tree, childConfig);
-            node.parentAttachment = this;
-            this.attachments.add(i, node);
+            this.attachments.add(i, new MapWidgetAttachmentNode(this, this.tree, childConfig));
             changed = true;
         }
 
@@ -239,9 +240,8 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     }
 
     public MapWidgetAttachmentNode addAttachment(int index, ConfigurationNode config) {
-        MapWidgetAttachmentNode attachment = new MapWidgetAttachmentNode(this.tree,
+        MapWidgetAttachmentNode attachment = new MapWidgetAttachmentNode(this, this.tree,
                 this.config.addChild(index, config));
-        attachment.parentAttachment = this;
         this.attachments.add(index, attachment);
         return attachment;
     }
