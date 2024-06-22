@@ -68,6 +68,7 @@ public abstract class MapWidgetItemSelector extends MapWidget implements ItemDro
                 listing.buildDialog(owner)
                         .cancelOnRootRightClick(false)
                         .title("Select an item model")
+                        .setCompactingEnabled(TrainCarts.plugin.getPlayer(owner).getModelSearchCompactFolders())
                         .show()
                         .thenAccept(result -> {
                             if (result.success()) {
