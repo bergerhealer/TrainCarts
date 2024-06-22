@@ -125,7 +125,7 @@ class ResourcePackModelListingDialog implements Listener {
         // If not found, reset back to root
         ListedEntry initialEntry = currentListing.root().findAtPath(ListedEntry.tokenizePath(options.getBrowsedPath()))
                 .orElse(currentListing.root())
-                .compact();
+                .compactIf(options.isCompactingEnabled());
         navigate(initialEntry, options.getBrowsedPage());
 
         player().openInventory(inventory);
@@ -190,7 +190,7 @@ class ResourcePackModelListingDialog implements Listener {
             while (e.parent() != null) {
                 e = e.parent();
             }
-            e = e.compact();
+            e = e.compactIf(options.isCompactingEnabled());
         } else {
             while (e.parent() != null) {
                 e = e.parent();
@@ -258,7 +258,7 @@ class ResourcePackModelListingDialog implements Listener {
 
     private void navigate(ListedEntry current, int page) {
         this.current = current;
-        this.currentItems = current.displayedItems(DISPLAYED_ITEM_COUNT);
+        this.currentItems = current.displayedItems(DISPLAYED_ITEM_COUNT, options.isCompactingEnabled());
         this.options.navigate(current.fullPath(), clampPage(page)); // Update for dialog result
         this.updateItems();
     }
@@ -659,7 +659,7 @@ class ResourcePackModelListingDialog implements Listener {
             if (isRightClick) {
                 // If a query was set, reset it and reshow from root
                 options.query("");
-                navigate(options.listing().root().compact(), 0);
+                navigate(options.listing().root().compactIf(options.isCompactingEnabled()), 0);
             } else {
                 closeAndShowSearchDialog(options.getQuery());
             }

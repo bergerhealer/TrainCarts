@@ -120,6 +120,7 @@ public class TCConfig {
     public static int maxCartsPerWorld = -1;
     public static int maxCartsPerTrain = -1;
     public static boolean maxCartsPerWorldCountUnloaded = false;
+    public static boolean modelSearchCompactFolders = true;
     public static String currencyFormat;
     public static Set<Material> allowedBlockBreakTypes = new HashSet<>();
     public static ConfiguredWorldSet enabledWorlds = new ConfiguredWorldSet();
@@ -141,6 +142,11 @@ public class TCConfig {
         config.addHeader("resourcePack", "Using 'default' or empty makes it use no resource pack at all");
         resourcePack = new MapResourcePack(config.get("resourcePack", "server"));
         resourcePack.load();
+
+        config.setHeader("modelSearchCompactFolders", "\nWhether to automatically unpack folders in the /train model search dialog");
+        config.addHeader("modelSearchCompactFolders", "If true, will show models in place of folders if there are few inside");
+        config.addHeader("modelSearchCompactFolders", "If false, will always show all folders, even if there's only one model inside");
+        modelSearchCompactFolders = config.get("modelSearchCompactFolders", true);
 
         // Legacy old 'normal' node, which used to exist because there was also one for 'angled'
         // Remove it and move the configuration properties to where they are now

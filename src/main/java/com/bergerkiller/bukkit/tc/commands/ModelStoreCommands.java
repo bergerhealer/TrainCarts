@@ -544,13 +544,38 @@ public class ModelStoreCommands {
     @CommandDescription("Shows a dialog with all resource pack item models that are available")
     private void commandSearchModels(
             final TrainCarts plugin,
-            final Player player
+            final TrainCartsPlayer player
     ) {
         if (plugin.getModelListing().isEmpty()) {
             player.sendMessage(ChatColor.RED + "The currently configured resource pack does not have any custom item models");
         } else {
-            plugin.getModelListing().showCreativeDialog(player);
+            plugin.getModelListing().buildDialog(player.getOnlinePlayer())
+                    .asCreativeMenu()
+                    .setCompactingEnabled(player.getModelSearchCompactFolders())
+                    .show();
         }
+    }
+
+    @CommandRequiresPermission(Permission.COMMAND_MODEL_SEARCH)
+    @Command("search-option compacting")
+    @CommandDescription("Toggles whether compacting of folders is enabled for the model search dialog")
+    private void commandToggleSearchModels(
+            final TrainCarts plugin,
+            final TrainCartsPlayer player
+    ) {
+        commandSearchModels(plugin, player, !player.getModelSearchCompactFolders());
+    }
+
+    @CommandRequiresPermission(Permission.COMMAND_MODEL_SEARCH)
+    @Command("search-option compacting <enabled>")
+    @CommandDescription("Sets whether compacting of folders is enabled for the model search dialog")
+    private void commandSearchModels(
+            final TrainCarts plugin,
+            final TrainCartsPlayer player,
+            final @Argument("enabled") boolean enabled
+    ) {
+        player.setModelSearchCompactFolders(enabled);
+        player.sendMessage(ChatColor.YELLOW + "Compacting of models in the search dialog: " + Localization.boolStr(enabled));
     }
 
     @CommandRequiresPermission(Permission.COMMAND_MODEL_SEARCH)

@@ -3,11 +3,11 @@ package com.bergerkiller.bukkit.tc.attachments.ui.models.listing;
 import java.util.concurrent.CompletableFuture;
 
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.attachments.ui.models.ResourcePackModelListing;
 
@@ -22,6 +22,7 @@ public final class DialogBuilder implements Cloneable {
     private final Player player;
     private final ResourcePackModelListing listing;
     private boolean creativeMenu = false;
+    private boolean compactingEnabled = TCConfig.modelSearchCompactFolders;
     private String title = "Resource Pack Models";
     private String query = "";
     private String browsedLocation = "";
@@ -123,6 +124,28 @@ public final class DialogBuilder implements Cloneable {
      */
     public boolean isCreativeMenu() {
         return creativeMenu;
+    }
+
+    /**
+     * Sets whether to show the models inside a folder, instead of the folders,
+     * if it contains too few models inside
+     *
+     * @param compact True to compact
+     * @return this
+     */
+    public DialogBuilder setCompactingEnabled(boolean compact) {
+        this.compactingEnabled = compact;
+        return this;
+    }
+
+    /**
+     * Gets whether to show the models inside a folder, instead of the folders,
+     * if it contains too few models inside
+     *
+     * @return True if folders are automatically unpacked
+     */
+    public boolean isCompactingEnabled() {
+        return compactingEnabled;
     }
 
     /**
@@ -271,6 +294,7 @@ public final class DialogBuilder implements Cloneable {
         clone.cancelOnRootRightClick = this.cancelOnRootRightClick;
         clone.namespaceItem = this.namespaceItem;
         clone.directoryItem = this.directoryItem;
+        clone.compactingEnabled = this.compactingEnabled;
         return clone;
     }
 
