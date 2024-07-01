@@ -31,6 +31,8 @@ import com.bergerkiller.bukkit.tc.properties.standard.type.TrainNameFormat;
 import io.leangen.geantyref.TypeToken;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.incendo.cloud.CommandManager;
+import org.incendo.cloud.annotation.specifier.FlagYielding;
+import org.incendo.cloud.annotation.specifier.Greedy;
 import org.incendo.cloud.annotation.specifier.Quoted;
 import org.incendo.cloud.annotations.Argument;
 import org.incendo.cloud.annotations.Command;
@@ -509,7 +511,7 @@ public class SavedTrainCommands {
             final CommandSender sender,
             final TrainCarts plugin,
             final @SavedTrainRequiresAccess @SavedTrainImplicitlyCreated @Argument(value="savedtrainname") SavedTrainProperties savedTrain,
-            final @Argument(value="url", description="The URL to a Hastebin-hosted paste to download from") String url,
+            final @Greedy @FlagYielding @Argument(value="url", description="The URL to a Hastebin-hosted paste to download from") String url,
             final @Flag("force") boolean force,
             final @Flag("import-models") boolean importModels
     ) {

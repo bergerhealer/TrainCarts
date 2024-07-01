@@ -23,6 +23,7 @@ import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.incendo.cloud.CommandManager;
+import org.incendo.cloud.annotation.specifier.FlagYielding;
 import org.incendo.cloud.annotation.specifier.Greedy;
 import org.incendo.cloud.annotation.specifier.Quoted;
 import org.incendo.cloud.annotations.Argument;
@@ -401,7 +402,7 @@ public class ModelStoreCommands {
             final CommandSender sender,
             final TrainCarts plugin,
             final @SavedModelRequiresAccess @SavedModelImplicitlyCreated @Argument(value="savedmodelname") SavedAttachmentModel savedModel,
-            final @Argument(value="url", description="The URL to a Hastebin-hosted paste to download from") String url,
+            final @Greedy @FlagYielding @Argument(value="url", description="The URL to a Hastebin-hosted paste to download from") String url,
             final @Flag("force") boolean force
     ) {
         Commands.importModel(plugin, sender, url, config -> {

@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.commands.annotations.CommandRequiresPermission
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
 import com.bergerkiller.bukkit.tc.exception.command.NoTrainStorageChestItemException;
 import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
+import org.incendo.cloud.annotation.specifier.FlagYielding;
 import org.incendo.cloud.annotation.specifier.Greedy;
 import org.incendo.cloud.annotation.specifier.Quoted;
 import org.incendo.cloud.annotations.Argument;
@@ -209,7 +210,7 @@ public class TrainChestCommands {
     private void commandImportChestItem(
             final Player player,
             final TrainCarts plugin,
-            final @Argument("url") String url,
+            final @Greedy @FlagYielding @Argument("url") String url,
             final @Flag("force") boolean force,
             final @Flag("import-models") boolean importModels
     ) {
