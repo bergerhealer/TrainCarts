@@ -2072,4 +2072,80 @@ public class Util {
     public static void resetPlayerAwaitingTeleport(Player player) {
         RESET_AWAITING_TELEPORT_METHOD.accept(player);
     }
+
+    /**
+     * Un-escapes a previously escaped String
+     *
+     * @param str Input String
+     * @return Unescaped string if the string starts with a quote, otherwise the input string
+     */
+    //TODO: Moved to BKCL (UnquotedCharacterFilter)
+    public static String unescapeString(String str) {
+        // First character must be a " or its not escaped at all. Probably an error.
+        int len = str.length();
+        if (len == 0 || str.charAt(0) != '"') {
+            return str;
+        }
+
+        StringBuilder newStr = new StringBuilder(len - 1);
+        boolean escaped = false;
+        for (int i = 1; i < len; i++) {
+            char c = str.charAt(i);
+            if (escaped) {
+                escaped = false;
+                newStr.append(c);
+            } else if (c == '\\') {
+                escaped = true;
+            } else if (c == '"') {
+                break;
+            } else {
+                newStr.append(c);
+            }
+        }
+        return newStr.toString();
+    }
+
+    /**
+     * Escapes a command argument so it is accepted as an @Quoted argument string. Some characters
+     * aren't allowed unquoted.
+     *
+     * @param text Text
+     * @return Input text if permitted, otherwise quote-escaped
+     */
+    //TODO: Moved to BKCL (UnquotedCharacterFilter)
+    public static String escapeQuotedArgument(String text) {
+        int len = text.length();
+        boolean allowed = true;
+        for (int i = 0; i < len; i++) {
+            if (!isAllowedInUnquotedString(text.charAt(i))) {
+                allowed = false;
+                break;
+            }
+        }
+        if (allowed) {
+            return text;
+        }
+
+        // Escape characters
+        StringBuilder escaped = new StringBuilder(len + 8);
+        escaped.append('"');
+        for (int i = 0; i < len; i++) {
+            char c = text.charAt(i);
+            if (c == '\\' || c == '"') {
+                escaped.append('\\');
+            }
+            escaped.append(c);
+        }
+        escaped.append('"');
+        return escaped.toString();
+    }
+
+    //TODO: Moved to BKCL (UnquotedCharacterFilter)
+    private static boolean isAllowedInUnquotedString(final char c) {
+        return c >= '0' && c <= '9'
+                || c >= 'A' && c <= 'Z'
+                || c >= 'a' && c <= 'z'
+                || c == '_' || c == '-'
+                || c == '.' || c == '+';
+    }
 }

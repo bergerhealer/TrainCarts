@@ -235,7 +235,8 @@ public class Commands {
         cloud.suggest("trainAnimationScene", AnimationSceneSuggestionProvider.TRAIN_ANIMATION_SCENE);
 
         // Register provider for train names a player can edit
-        cloud.suggest("trainnames", new TrainNameSuggestionProvider());
+        cloud.getManager().parserRegistry().registerSuggestionProvider("quoted_trainnames",
+                new TrainNameSuggestionProvider().quoteEscaped());
         cloud.suggest("trainlistfilter", new TrainListFilterSuggestionProvider());
 
         // Register provider for spawn patterns
@@ -356,48 +357,6 @@ public class Commands {
         if (loc != null) {
             message.newLine().yellow("Current location: ").white("[", loc.x, "/", loc.y, "/", loc.z, "] in world ", loc.world);
         }
-    }
-
-    /**
-     * Escapes a command argument so it is accepted as an @Quoted argument string. Some characters
-     * aren't allowed unquoted.
-     *
-     * @param text Text
-     * @return Input text if permitted, otherwise quote-escaped
-     */
-    public static String escapeQuotedArgument(String text) {
-        int len = text.length();
-        boolean allowed = true;
-        for (int i = 0; i < len; i++) {
-            if (!isAllowedInUnquotedString(text.charAt(i))) {
-                allowed = false;
-                break;
-            }
-        }
-        if (allowed) {
-            return text;
-        }
-
-        // Escape characters
-        StringBuilder escaped = new StringBuilder(len + 8);
-        escaped.append('"');
-        for (int i = 0; i < len; i++) {
-            char c = text.charAt(i);
-            if (c == '\\' || c == '"') {
-                escaped.append('\\');
-            }
-            escaped.append(c);
-        }
-        escaped.append('"');
-        return escaped.toString();
-    }
-
-    private static boolean isAllowedInUnquotedString(final char c) {
-        return c >= '0' && c <= '9'
-                || c >= 'A' && c <= 'Z'
-                || c >= 'a' && c <= 'z'
-                || c == '_' || c == '-'
-                || c == '.' || c == '+';
     }
 
     /**

@@ -113,6 +113,30 @@ public class SelectorHandlerTest {
     }
 
     @Test
+    public void testHandlerTwoArgsQuoted() {
+        assertEquals(Arrays.asList("command test",
+                "command a",
+                "command b",
+                "command c",
+                "command d"), registry.expandCommands(null, "command \"@test[a=b,c=d]\""));
+        assertEquals(Arrays.asList("command pre test",
+                "command pre a",
+                "command pre b",
+                "command pre c",
+                "command pre d"), registry.expandCommands(null, "command pre \"@test[a=b,c=d]\""));
+        assertEquals(Arrays.asList("command test post",
+                "command a post",
+                "command b post",
+                "command c post",
+                "command d post"), registry.expandCommands(null, "command \"@test[a=b,c=d]\" post"));
+        assertEquals(Arrays.asList("command pre test post",
+                "command pre a post",
+                "command pre b post",
+                "command pre c post",
+                "command pre d post"), registry.expandCommands(null, "command pre \"@test[a=b,c=d]\" post"));
+    }
+
+    @Test
     public void testHandlerThreeArgs() {
         assertEquals(Arrays.asList("command test",
                                    "command a",

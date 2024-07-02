@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.Util;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandException;
@@ -40,6 +41,8 @@ import com.bergerkiller.generated.net.minecraft.server.network.PlayerConnectionH
 public class SelectorHandlerRegistry implements Listener {
     // ^\[([\w\d\-\+=,\*\.\!]+)\](?:\s|$)
     private static final Pattern CONDITIONS_PATTERN = Pattern.compile("^\\[([\\w\\d\\-\\+=,\\*\\.\\!]+)\\](?:\\s|$)");
+    // ^\[([\w\d\-\+=,\*\.\!\\\"]+)\]\"(?:\s|$)
+    private static final Pattern CONDITIONS_PATTERN_QUOTED = Pattern.compile("^\\[([\\w\\d\\-\\+=,\\*\\.\\!\\\\\\\"]+)\\]\\\"(?:\\s|$)");
 
     private final Map<String, SelectorHandler> handlers = new HashMap<>();
     private final JavaPlugin plugin;
@@ -105,7 +108,11 @@ public class SelectorHandlerRegistry implements Listener {
 
         // These will be filled up as the command is expanded
         List<StringBuilder> resultBuilders = null;
-        int builderStartPosition = 0;
+
+        // Include the other contents if the input command past this index
+        // Also tracks it of the previous selector, to include contents 'between'
+        int postLastSelectorStart = 0;
+        int postSelectorCommandStart = 0;
 
         // Find all instances of @, and check that the character before is permitted
         // for use of a selector expression.
@@ -119,7 +126,8 @@ public class SelectorHandlerRegistry implements Listener {
                 char ch = command.charAt(searchIndex);
                 if (ch != '@' || (!Character.isWhitespace(lastChar) &&
                                   lastChar != '!' &&
-                                  lastChar != '=')
+                                  lastChar != '=' &&
+                                  lastChar != '"')
                 ) {
                     lastChar = ch;
                     searchIndex++;
@@ -127,10 +135,16 @@ public class SelectorHandlerRegistry implements Listener {
                 }
             }
 
+            // Is the entire selector quote-escaped?
+            boolean quoteEscaped = (lastChar == '"');
+
+            // The range of the input command to replace with the selector values
+            int replaceStartIndex;
+
             // Identify the selector name
             final int selectorStartIndex;
             final String selector;
-            final String conditionsString;
+            String conditionsString;
             final SelectorHandler handler;
             {
                 boolean hasConditions = false;
@@ -158,6 +172,7 @@ public class SelectorHandlerRegistry implements Listener {
                 selectorStartIndex = searchIndex;
                 searchIndex = nameEndIndex;
                 lastChar = ']'; // If next character is @ do not match!
+                replaceStartIndex = quoteEscaped ? (selectorStartIndex - 1) : selectorStartIndex;
 
                 // Decode the selector name, efficiently, without using regex
                 // See if the found selector has a handler, if not, skip right away
@@ -182,17 +197,28 @@ public class SelectorHandlerRegistry implements Listener {
 
                 // If we found conditions before, try to decode them
                 // If we cannot find a valid conditions range, skip it
+                postSelectorCommandStart = selectorStartIndex + selector.length() + 1;
                 if (hasConditions) {
-                    if (conditionsMatcher == null) {
-                        conditionsMatcher = CONDITIONS_PATTERN.matcher(command.subSequence(nameEndIndex, commandLength));
-                    } else {
+                    if (conditionsMatcher != null) {
                         conditionsMatcher.reset(command.subSequence(nameEndIndex, commandLength));
+                    } else if (quoteEscaped) {
+                        conditionsMatcher = CONDITIONS_PATTERN_QUOTED.matcher(command.subSequence(nameEndIndex, commandLength));
+                    } else {
+                        conditionsMatcher = CONDITIONS_PATTERN.matcher(command.subSequence(nameEndIndex, commandLength));
                     }
                     if (!conditionsMatcher.lookingAt()) {
                         continue;
                     }
+
                     conditionsString = conditionsMatcher.group(1);
                     searchIndex += conditionsString.length() + 2; // skip conditions in next search
+                    postSelectorCommandStart += conditionsString.length() + 2;
+
+                    // Unescape
+                    if (quoteEscaped) {
+                        conditionsString = Util.unescapeString(conditionsString);
+                        postSelectorCommandStart++; // Omit " too
+                    }
                 } else {
                     conditionsString = null;
                 }
@@ -247,12 +273,12 @@ public class SelectorHandlerRegistry implements Listener {
             if (resultBuilders == null) {
                 // First time, initialize resultBuilders
                 StringBuilder builder = new StringBuilder(command.length());
-                builder.append(command, 0, selectorStartIndex);
+                builder.append(command, 0, replaceStartIndex);
                 resultBuilders = new ArrayList<>(values.size());
                 resultBuilders.add(builder);
             } else {
                 // Second time, include the text in-between two matches
-                String inbetween = command.substring(builderStartPosition, selectorStartIndex);
+                String inbetween = command.substring(postLastSelectorStart, replaceStartIndex);
                 for (StringBuilder builder : resultBuilders) {
                     builder.append(inbetween);
                 }
@@ -271,29 +297,26 @@ public class SelectorHandlerRegistry implements Listener {
                 Iterator<StringBuilder> builderIter = resultBuilders.iterator();
                 for (String value : values) {
                     for (int i = 0; i < numResults; i++) {
-                        builderIter.next().append(value);
+                        builderIter.next().append(Util.escapeQuotedArgument(value));
                     }
                 }
             } else {
                 // Only one value, append to all builders (easy)
                 final String value = values.iterator().next();
                 for (StringBuilder builder : resultBuilders) {
-                    builder.append(value);
+                    builder.append(Util.escapeQuotedArgument(value));
                 }
             }
 
             // Label this portion as processed. Ignore trailing space.
-            builderStartPosition = selectorStartIndex + selector.length() + 1;
-            if (conditionsString != null) {
-                builderStartPosition += conditionsString.length() + 2;
-            }
+            postLastSelectorStart = postSelectorCommandStart;
         }
 
         // If there are results, finalize all result builders
         if (resultBuilders != null) {
             List<String> results = new ArrayList<String>(resultBuilders.size());
             for (StringBuilder builder : resultBuilders) {
-                builder.append(command, builderStartPosition, commandLength);
+                builder.append(command, postSelectorCommandStart, commandLength);
                 results.add(builder.toString());
             }
             return results;

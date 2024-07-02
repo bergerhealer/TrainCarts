@@ -446,7 +446,7 @@ public class GlobalCommands {
     private void commandEditByName(
             final TrainCarts plugin,
             final Player sender,
-            final @Quoted @Argument(value="trainname", suggestions="trainnames") String trainName
+            final @Quoted @Argument(value="trainname", suggestions="quoted_trainnames") String trainName
     ) {
         TrainProperties prop = TrainProperties.get(trainName);
         if (prop == null) {
@@ -806,7 +806,7 @@ public class GlobalCommands {
         }
 
         String safeEditName = StringUtil.stripChatStyle(name);
-        text.setClickableRunCommand("/train edit " + Commands.escapeQuotedArgument(safeEditName));
+        text.setClickableRunCommand("/train edit " + Util.escapeQuotedArgument(safeEditName));
         return text;
     }
 }
