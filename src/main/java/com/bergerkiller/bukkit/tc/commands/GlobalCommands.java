@@ -806,11 +806,7 @@ public class GlobalCommands {
         }
 
         String safeEditName = StringUtil.stripChatStyle(name);
-        if (safeEditName.indexOf(' ') != -1) {
-            text.setClickableRunCommand("/train edit \"" + safeEditName + "\"");
-        } else {
-            text.setClickableRunCommand("/train edit " + safeEditName);
-        }
+        text.setClickableRunCommand("/train edit " + Commands.escapeQuotedArgument(safeEditName));
         return text;
     }
 }

@@ -359,6 +359,48 @@ public class Commands {
     }
 
     /**
+     * Escapes a command argument so it is accepted as an @Quoted argument string. Some characters
+     * aren't allowed unquoted.
+     *
+     * @param text Text
+     * @return Input text if permitted, otherwise quote-escaped
+     */
+    public static String escapeQuotedArgument(String text) {
+        int len = text.length();
+        boolean allowed = true;
+        for (int i = 0; i < len; i++) {
+            if (!isAllowedInUnquotedString(text.charAt(i))) {
+                allowed = false;
+                break;
+            }
+        }
+        if (allowed) {
+            return text;
+        }
+
+        // Escape characters
+        StringBuilder escaped = new StringBuilder(len + 8);
+        escaped.append('"');
+        for (int i = 0; i < len; i++) {
+            char c = text.charAt(i);
+            if (c == '\\' || c == '"') {
+                escaped.append('\\');
+            }
+            escaped.append(c);
+        }
+        escaped.append('"');
+        return escaped.toString();
+    }
+
+    private static boolean isAllowedInUnquotedString(final char c) {
+        return c >= '0' && c <= '9'
+                || c >= 'A' && c <= 'Z'
+                || c >= 'a' && c <= 'z'
+                || c == '_' || c == '-'
+                || c == '.' || c == '+';
+    }
+
+    /**
      * Checks permissions for overwriting a saved train, and handles when the command must be forced
      * to overwrite an existing train.
      *
