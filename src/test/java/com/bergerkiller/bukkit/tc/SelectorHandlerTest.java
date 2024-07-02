@@ -210,7 +210,7 @@ public class SelectorHandlerTest {
     public void testHandlerInvertedArgs() {
         assertEquals(Arrays.asList("command test",
                                    "command a",
-                                   "command !b"), registry.expandCommands(null, "command @test[a=!b]"));
+                                   "command \"!b\""), registry.expandCommands(null, "command @test[a=!b]"));
     }
 
     @Test
