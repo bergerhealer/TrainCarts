@@ -60,7 +60,7 @@ public class TrainLocator {
      * @return True if locating the member is possible, False if not
      */
     public boolean canLocate(Player player, MinecartMember<?> member) {
-        return player.isOnline()
+        return player.isValid()
                 && !member.isUnloaded()
                 && player.getWorld() == member.getWorld();
     }

@@ -196,7 +196,7 @@ class TCPacketListener implements PacketListener {
         }
 
         // If member is unloaded or was despawned during this time, it's no longer valid
-        if (member == null || member.isUnloaded() || player == null || !player.isOnline()) {
+        if (member == null || member.isUnloaded() || player == null || !player.isValid()) {
             return;
         }
 
@@ -219,7 +219,7 @@ class TCPacketListener implements PacketListener {
         }
 
         // If member is unloaded or was despawned during this time, it's no longer valid
-        if (member == null || member.isUnloaded() || player == null || !player.isOnline()) {
+        if (member == null || member.isUnloaded() || player == null || !player.isValid()) {
             return;
         }
 

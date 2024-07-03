@@ -39,7 +39,7 @@ public class SeatDebugUI {
      */
     public void previewEye(Player player, int numTicks) {
         // Don't allow for this, that's messy
-        if (!seat.isAttached() || seat.firstPerson.player == player || !player.isOnline()) {
+        if (!seat.isAttached() || seat.firstPerson.player == player || !player.isValid()) {
             return;
         }
 
@@ -69,7 +69,7 @@ public class SeatDebugUI {
      */
     public void showEyeArrow(Player player, int numTicks) {
         // Don't allow for this, that's messy
-        if (!seat.isAttached() || seat.firstPerson.player == player || !player.isOnline() || this._eyePreviews.containsKey(player)) {
+        if (!seat.isAttached() || seat.firstPerson.player == player || !player.isValid() || this._eyePreviews.containsKey(player)) {
             return;
         }
 
@@ -93,7 +93,7 @@ public class SeatDebugUI {
                     // Stopped
                     iter.remove();
                     onEyePreviewStopped(preview.player);
-                } else if (!preview.player.isOnline()) {
+                } else if (!preview.player.isValid()) {
                     // Just remove
                     iter.remove();
                 } else {

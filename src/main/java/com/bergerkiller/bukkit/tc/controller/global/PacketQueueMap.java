@@ -31,7 +31,7 @@ public class PacketQueueMap {
     public synchronized PacketQueue getQueue(Player player) {
         PacketQueue queue = queues.get(player);
         if (queue == null) {
-            if (player.isOnline()) {
+            if (player.isValid()) {
                 queue = PacketQueue.create(plugin, player);
                 queues.put(player, queue);
                 queuesList.add(queue);

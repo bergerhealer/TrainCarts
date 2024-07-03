@@ -400,7 +400,7 @@ public class DebugCommands {
                     stop();
                     return;
                 }
-                if (!player.isOnline()) {
+                if (!player.isValid()) {
                     stop();
                     controller.stop();
                     return;
@@ -474,7 +474,7 @@ public class DebugCommands {
                     stop();
                     return;
                 }
-                if (!player.isOnline()) {
+                if (!player.isValid()) {
                     stop();
                     controller.stop();
                     return;

@@ -67,7 +67,7 @@ public class TrainCartsPlayer implements TrainCarts.Provider {
      */
     public Player getOnlinePlayer() {
         Player p = player.get();
-        if (p == null || !p.isOnline()) {
+        if (p == null || !p.isValid()) {
             p = Bukkit.getPlayer(uuid);
             if (p != null) {
                 player = new WeakReference<>(p);

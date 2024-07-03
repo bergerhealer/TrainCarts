@@ -471,7 +471,7 @@ public class PathProvider extends Task implements TrainCarts.Provider {
                     if (!(sender instanceof ConsoleCommandSender || sender instanceof Player)) {
                         continue; // don't send to command blocks, that's weird
                     }
-                    if (sender instanceof Player && !((Player) sender).isOnline()) {
+                    if (sender instanceof Player && !((Player) sender).isValid()) {
                         continue; // don't send to offline players
                     }
                     sender.sendMessage(ChatColor.GREEN + "Train rerouting completed!");

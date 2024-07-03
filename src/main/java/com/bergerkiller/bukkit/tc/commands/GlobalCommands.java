@@ -419,7 +419,7 @@ public class GlobalCommands {
                 @Override
                 public void run() {
                     for (int i = 0; i < batch_ctr; i++) {
-                        if (dy > 50.0 || !player.isOnline() || memberEntity.isDead()) {
+                        if (dy > 50.0 || !player.isValid() || memberEntity.isDead()) {
                             stop();
                             return;
                         }

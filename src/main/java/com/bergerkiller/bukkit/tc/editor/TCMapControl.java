@@ -43,7 +43,7 @@ public class TCMapControl {
     }
 
     public static void updateMapItem(Player player, CommonItemStack item, boolean opened) {
-        if (!isTCMapItem(item) || !player.isOnline()) {
+        if (!isTCMapItem(item) || !player.isValid()) {
             return;
         }
         PlayerInventory inv = player.getInventory();

@@ -155,8 +155,8 @@ public interface AttachmentViewer extends TrainCarts.Provider {
      *
      * @return True if online
      */
-    default boolean isOnline() {
-        return getPlayer().isOnline();
+    default boolean isValid() {
+        return getPlayer().isValid();
     }
 
     /**

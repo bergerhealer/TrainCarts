@@ -410,7 +410,7 @@ public enum FakePlayerSpawner {
 
         public void finish() {
             try {
-                if (this.viewer.isOnline()) {
+                if (this.viewer.isValid()) {
                     this.viewer.send(ClientboundPlayerInfoRemovePacketHandle.createNew(Collections.singletonList(this.playerUUID)));
                 }
             } finally {
