@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.EntityTracker;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
@@ -87,24 +88,28 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         // remove this tracker entry from the server.
         // It is not clear why this happens sometimes.
         // Do this in another tick to avoid concurrent modification exceptions.
+        World world = (this.entity == null) ? null : this.entity.getWorld();
+        if (world == null) {
+            return;
+        }
         MinecartMember<?> member = this.getMember();
-        if (member == null || !member.getEntity().isSpawned()) {
-            World world = (this.entity == null) ? null : this.entity.getWorld();
-            if (world != null) {
-                CommonUtil.nextTick(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (entity != null) {
-                            EntityTracker tracker = WorldUtil.getTracker(world);
-                            EntityTrackerEntryHandle entry = tracker.getEntry(entity.getEntity());
-                            if (entry != null && getHandle() == entry.getRaw()) {
-                                tracker.stopTracking(entity.getEntity());
-                            }
+        if (member == null
+                || member.getEntity() == null
+                || EntityUtil.getEntity(world, member.getEntity().getUniqueId()) != member.getEntity().getEntity())
+        {
+            CommonUtil.nextTick(new Runnable() {
+                @Override
+                public void run() {
+                    World world = (entity == null) ? null : entity.getWorld();
+                    if (entity != null && world != null) {
+                        EntityTracker tracker = WorldUtil.getTracker(world);
+                        EntityTrackerEntryHandle entry = tracker.getEntry(entity.getEntity());
+                        if (entry != null && getHandle() == entry.getRaw()) {
+                            tracker.stopTracking(entity.getEntity());
                         }
                     }
-                });
-            }
-            return;
+                }
+            });
         }
 
         // Delegate to the attachment controller
