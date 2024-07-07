@@ -186,7 +186,7 @@ public abstract class MinecartMemberStore {
      */
     @SuppressWarnings("deprecation")
     public static EntityNetworkController<?> createNetworkController() {
-        return new MinecartMemberNetwork();
+        return new MinecartMemberNetwork(TrainCarts.plugin);
     }
 
     /**

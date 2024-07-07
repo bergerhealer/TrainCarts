@@ -211,7 +211,7 @@ public class AttachmentControllerMember
         if (this.networkInvalid.clear()) {
             EntityNetworkController<?> controller = this.member.getEntity().getNetworkController();
             if (!(controller instanceof com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork)) {
-                this.member.getEntity().setNetworkController(new com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork());
+                this.member.getEntity().setNetworkController(new com.bergerkiller.bukkit.tc.controller.MinecartMemberNetwork(plugin));
             }
         }
     }

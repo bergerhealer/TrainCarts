@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller;
 
+import com.bergerkiller.bukkit.common.RunOnceTask;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
@@ -7,6 +8,7 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.EntityTracker;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.server.level.EntityTrackerEntryHandle;
@@ -27,7 +29,33 @@ import java.util.List;
  */
 @Deprecated
 public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecart<?>> {
+    private final TrainCarts plugin;
+    private final RunOnceTask verifyExistsCheck;
     private MinecartMember<?> member = null;
+
+    public MinecartMemberNetwork(TrainCarts plugin) {
+        this.plugin = plugin;
+        this.verifyExistsCheck = new RunOnceTask(plugin) {
+            @Override
+            public void run() {
+                // If the entity backing this controller does not exist,
+                // remove this tracker entry from the server.
+                // It is not clear why this happens sometimes.
+                // Do this in another tick to avoid concurrent modification exceptions.
+                MinecartMember<?> member = getMember();
+                if (entity != null && (member == null || !member.getEntity().isSpawned())) {
+                    World world = entity.getWorld();
+                    if (world != null) {
+                        EntityTracker tracker = WorldUtil.getTracker(world);
+                        EntityTrackerEntryHandle entry = tracker.getEntry(entity.getEntity());
+                        if (entry != null && getHandle() == entry.getRaw()) {
+                            tracker.stopTracking(entity.getEntity());
+                        }
+                    }
+                }
+            }
+        };
+    }
 
     /**
      * Gets the root attachment, representing the (attachments) based model
@@ -71,6 +99,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
         if (this.member != null) {
             this.member.getAttachments().onDetached();
         }
+        this.verifyExistsCheck.cancel();
     }
 
     @Override
@@ -84,33 +113,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     public void makeVisible(Player viewer) {
         //super.makeVisible(viewer);
 
-        // If the entity backing this controller does not exist,
-        // remove this tracker entry from the server.
-        // It is not clear why this happens sometimes.
-        // Do this in another tick to avoid concurrent modification exceptions.
-        World world = (this.entity == null) ? null : this.entity.getWorld();
-        if (world == null) {
-            return;
-        }
-        MinecartMember<?> member = this.getMember();
-        if (member == null
-                || member.getEntity() == null
-                || EntityUtil.getEntity(world, member.getEntity().getUniqueId()) != member.getEntity().getEntity())
-        {
-            CommonUtil.nextTick(new Runnable() {
-                @Override
-                public void run() {
-                    World world = (entity == null) ? null : entity.getWorld();
-                    if (entity != null && world != null) {
-                        EntityTracker tracker = WorldUtil.getTracker(world);
-                        EntityTrackerEntryHandle entry = tracker.getEntry(entity.getEntity());
-                        if (entry != null && getHandle() == entry.getRaw()) {
-                            tracker.stopTracking(entity.getEntity());
-                        }
-                    }
-                }
-            });
-        }
+        verifyExistsCheck.start();
 
         // Delegate to the attachment controller
         member.getAttachments().makeVisible(viewer);
