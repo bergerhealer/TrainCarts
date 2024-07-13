@@ -62,6 +62,7 @@ public class TCConfig {
     public static int maxKeepChunksLoadedRadius;
     public static int maxDetectorLength;
     public static int maxMutexSize;
+    public static boolean debugMutexGlow;
     public static int maxMinecartStackSize;
     public static int defaultTransferRadius;
     public static int maxTransferRadius;
@@ -313,6 +314,9 @@ public class TCConfig {
         config.setHeader("maxMutexSize", "\nThe maximum size a dimension of a mutex zone is allowed to have");
         config.addHeader("maxMutexSize", "Too large mutexes could result in an out-of-memory situation");
         maxMutexSize = config.get("maxMutexSize", 2000);
+
+        config.setHeader("debugMutexGlow", "\nWhether to show a glowing see-through effect when showing mutexes with /train debug mutex");
+        debugMutexGlow = config.get("debugMutexGlow", true);
 
         config.setHeader("maxMinecartStackSize", "\nThe maximum amount of minecart items that can be stacked in one item");
         maxMinecartStackSize = config.get("maxMinecartStackSize", 64);

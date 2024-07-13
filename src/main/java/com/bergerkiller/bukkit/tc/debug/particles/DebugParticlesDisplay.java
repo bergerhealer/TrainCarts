@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.Brightness;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayEntity;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
@@ -97,6 +98,9 @@ class DebugParticlesDisplay extends DebugParticles {
         int entityId = EntityUtil.getUniqueEntityId();
         UUID entityUUID = UUID.randomUUID();
         DataWatcher metadata = LINE_METADATA.create();
+        if (!TCConfig.debugMutexGlow) {
+            metadata.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, false);
+        }
 
         Vector translation = new Vector(-0.5 * lineThickness, -0.5 * lineThickness, -0.5 * dist);
         rotation.transformPoint(translation);
@@ -154,6 +158,9 @@ class DebugParticlesDisplay extends DebugParticles {
         int entityId = EntityUtil.getUniqueEntityId();
         UUID entityUUID = UUID.randomUUID();
         DataWatcher metadata = POINT_METADATA.create();
+        if (!TCConfig.debugMutexGlow) {
+            metadata.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, false);
+        }
 
         // Setup metadata to transform the cube into a neat line
         {
