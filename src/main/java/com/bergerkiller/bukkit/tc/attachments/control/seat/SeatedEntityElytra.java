@@ -130,16 +130,18 @@ class SeatedEntityElytra extends SeatedEntity {
             // Destroy old fake player entity
             viewer.send(PacketPlayOutEntityDestroyHandle.createNewSingle(this._fakeEntityId));
             viewer.send(PacketPlayOutEntityDestroyHandle.createNewSingle(this._fakeEntityIdFlipped));
-            this.fakeVehicle.destroy(viewer);
             VehicleMountController vmc = viewer.getVehicleMountController();
+            if (this.fakeVehicle != null) {
+                this.fakeVehicle.destroy(viewer);
+                vmc.remove(this.fakeVehicle.getEntityId());
+
+                // Remove vehicle if no more viewers for it exist
+                if (!this.fakeVehicle.hasViewers()) {
+                    this.fakeVehicle = null;
+                }
+            }
             vmc.remove(this._fakeEntityId);
             vmc.remove(this._fakeEntityIdFlipped);
-            vmc.remove(this.fakeVehicle.getEntityId());
-
-            // Remove vehicle if no more viewers for it exist
-            if (!this.fakeVehicle.hasViewers()) {
-                this.fakeVehicle = null;
-            }
         }
     }
 
