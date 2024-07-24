@@ -46,7 +46,7 @@ import java.util.List;
 public class CartCommands {
 
     @CommandTargetTrain
-    @Command("cart info|i")
+    @Command("cart info")
     @CommandDescription("Displays the properties of the cart")
     private void commandInfo(
             final CommandSender sender,
@@ -57,7 +57,18 @@ public class CartCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_DESTROY)
-    @Command("cart destroy|remove")
+    @Command("cart remove")
+    @CommandDescription("Destroys the single cart that is selected")
+    private void commandRemove(
+            final CommandSender sender,
+            final CartProperties properties
+    ) {
+        commandDestroy(sender, properties);
+    }
+
+    @CommandTargetTrain
+    @CommandRequiresPermission(Permission.COMMAND_DESTROY)
+    @Command("cart destroy")
     @CommandDescription("Destroys the single cart that is selected")
     private void commandDestroy(
             final CommandSender sender,
@@ -75,7 +86,7 @@ public class CartCommands {
 
     @CommandRequiresPermission(Permission.COMMAND_SAVE_TRAIN)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_EXPORT)
-    @Command("cart export|share|paste|upload")
+    @Command("cart export")
     @CommandDescription("Exports the selected cart's train configuration to a hastebin server")
     private void commandExport(
             final CommandSender sender,
@@ -147,7 +158,7 @@ public class CartCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_TELEPORT)
-    @Command("cart teleport|tp")
+    @Command("cart teleport")
     @CommandDescription("Teleports the player to where the cart is")
     private void commandTeleport(
             final Player player,

@@ -56,7 +56,7 @@ import java.util.concurrent.CompletableFuture;
 public class TrainCommands {
 
     @CommandTargetTrain
-    @Command("train info|i")
+    @Command("train info")
     @CommandDescription("Displays the properties of the train")
     private void commandInfo(
             final CommandSender sender,
@@ -147,7 +147,18 @@ public class TrainCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_DESTROY)
-    @Command("train destroy|remove")
+    @Command("train remove")
+    @CommandDescription("Destroys the train, removing all carts")
+    private void commandRemove(
+            final CommandSender sender,
+            final TrainProperties properties
+    ) {
+        commandDestroy(sender, properties);
+    }
+
+    @CommandTargetTrain
+    @CommandRequiresPermission(Permission.COMMAND_DESTROY)
+    @Command("train destroy")
     @CommandDescription("Destroys the train, removing all carts")
     private void commandDestroy(
             final CommandSender sender,
@@ -173,7 +184,7 @@ public class TrainCommands {
 
     @CommandRequiresPermission(Permission.COMMAND_SAVE_TRAIN)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_EXPORT)
-    @Command("train export|share|paste|upload")
+    @Command("train export")
     @CommandDescription("Exports the train configuration to a hastebin server")
     private void commandExport(
             final CommandSender sender,
@@ -252,7 +263,7 @@ public class TrainCommands {
 
     @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_TELEPORT)
-    @Command("train teleport|tp")
+    @Command("train teleport")
     @CommandDescription("Teleports the player to where the train is")
     private void commandTeleport(
             final Player player,

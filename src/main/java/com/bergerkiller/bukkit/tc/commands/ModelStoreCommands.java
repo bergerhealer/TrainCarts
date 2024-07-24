@@ -208,7 +208,7 @@ public class ModelStoreCommands {
         }
     }
 
-    @Command("config <savedmodelname> export|share|paste|upload")
+    @Command("config <savedmodelname> export")
     @CommandDescription("Exports the saved model configuration configuration to a hastebin server")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_EXPORT)
@@ -221,7 +221,7 @@ public class ModelStoreCommands {
         Commands.exportModel(sender, savedModel.getName(), exportedConfig);
     }
 
-    @Command("config <savedmodelname> rename|changename|move <newsavedmodelname>")
+    @Command("config <savedmodelname> rename <newsavedmodelname>")
     @CommandDescription("Renames a saved model configuration")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_RENAME)
@@ -249,7 +249,7 @@ public class ModelStoreCommands {
                 ChatColor.YELLOW + "'!");
     }
 
-    @Command("config <savedmodelname> copy|clone <targetsavedmodelname>")
+    @Command("config <savedmodelname> copy <targetsavedmodelname>")
     @CommandDescription("Copies an existing saved model configuration and saves it as the target saved model configuration name")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_COPY)
@@ -283,7 +283,7 @@ public class ModelStoreCommands {
                 ChatColor.YELLOW + "'!");
     }
 
-    @Command("config <savedmodelname> delete|remove")
+    @Command("config <savedmodelname> delete")
     @CommandDescription("Deletes a saved model configuration permanently")
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_LIST)
     @CommandRequiresPermission(Permission.COMMAND_MODEL_CONFIG_DELETE)

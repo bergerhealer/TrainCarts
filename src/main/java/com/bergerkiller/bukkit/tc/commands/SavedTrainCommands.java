@@ -213,7 +213,7 @@ public class SavedTrainCommands {
         }
     }
 
-    @Command("savedtrain <savedtrainname> export|share|paste|upload")
+    @Command("savedtrain <savedtrainname> export")
     @CommandDescription("Exports the saved train configuration to a hastebin server")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_EXPORT)
@@ -224,7 +224,7 @@ public class SavedTrainCommands {
         Commands.exportTrain(sender, savedTrain.getName(), savedTrain.getExportedConfig());
     }
 
-    @Command("savedtrain <savedtrainname> rename|changename|move <newsavedtrainname>")
+    @Command("savedtrain <savedtrainname> rename <newsavedtrainname>")
     @CommandDescription("Renames a saved train")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_RENAME)
@@ -260,7 +260,7 @@ public class SavedTrainCommands {
                 ChatColor.YELLOW + "'!");
     }
 
-    @Command("savedtrain <savedtrainname> copy|clone <targetsavedtrainname>")
+    @Command("savedtrain <savedtrainname> copy <targetsavedtrainname>")
     @CommandDescription("Copies an existing saved train and saves it as the target saved train name")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_COPY)
@@ -301,7 +301,7 @@ public class SavedTrainCommands {
                 ChatColor.YELLOW + "'!");
     }
 
-    @Command("savedtrain <savedtrainname> reverse|flip")
+    @Command("savedtrain <savedtrainname> reverse")
     @CommandDescription("Reverse and flips the carts so it is moving in reverse when spawned")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_REVERSE)
@@ -392,7 +392,7 @@ public class SavedTrainCommands {
         }
     }
 
-    @Command("savedtrain <savedtrainname> delete|remove")
+    @Command("savedtrain <savedtrainname> delete")
     @CommandDescription("Deletes a saved train permanently")
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_DELETE)

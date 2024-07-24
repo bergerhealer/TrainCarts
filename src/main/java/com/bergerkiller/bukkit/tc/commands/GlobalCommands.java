@@ -184,7 +184,20 @@ public class GlobalCommands {
     }
 
     @CommandRequiresPermission(Permission.COMMAND_DESTROYALL)
-    @Command("train destroyall|removeall")
+    @Command("train removeall")
+    @CommandDescription("Destroys all trains on the server or world")
+    private void commandRemoveAll(
+            final CommandSender sender,
+            final TrainCarts plugin,
+            final @Flag("world") World world,
+            final @Flag(value="vanilla",
+                    description="Whether to destroy non-Traincarts vanilla Minecarts too") boolean destroyVanilla
+    ) {
+        commandDestroyAll(sender, plugin, world, destroyVanilla);
+    }
+
+    @CommandRequiresPermission(Permission.COMMAND_DESTROYALL)
+    @Command("train destroyall")
     @CommandDescription("Destroys all trains on the server or world")
     private void commandDestroyAll(
             final CommandSender sender,
@@ -296,7 +309,7 @@ public class GlobalCommands {
     }
 
     @CommandRequiresPermission(Permission.COMMAND_RELOAD)
-    @Command("train globalconfig reload|load")
+    @Command("train globalconfig reload")
     @CommandDescription("Reloads one or more global TrainCarts configuration files from disk")
     private void commandReloadConfig(
             final CommandSender sender,
