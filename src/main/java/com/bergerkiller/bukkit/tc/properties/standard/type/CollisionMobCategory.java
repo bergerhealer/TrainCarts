@@ -12,7 +12,7 @@ import com.bergerkiller.bukkit.tc.CollisionMode;
  * This enum contains entity types that a minecart could collide with.
  * This allows the user to configure collision modes in a very granular
  * fashion. The categories here are based on the minecraft wiki
- * (http://minecraft.gamepedia.com/Mobs#List_of_mobs) and in
+ * (http://minecraft.wiki/w/Mobs#List_of_mobs) and in
  * com.bergerkiller.bukkit.common.utils.EntityGroupingUtil.
  */
 public enum CollisionMobCategory {
