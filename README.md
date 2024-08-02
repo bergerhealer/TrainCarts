@@ -66,7 +66,7 @@ Host the zip file somewhere on a FTP, your own server, a public resource pack ho
 This is the recommended way, as this way the train models also show properly inside the attachment editor.
 
 #### 2.B: Enable it in your client
-You can follow [this tutorial](https://minecraft.fandom.com/wiki/Tutorials/Loading_a_resource_pack) on the Minecraft Wiki to install the zip file as a resource pack in your Minecraft client.
+You can follow [this tutorial](https://minecraft.wiki/w/Tutorials/Loading_a_resource_pack) on the Minecraft Wiki to install the zip file as a resource pack in your Minecraft client.
 
 **Important note**: you will get a warning about the resource pack being outdated, but it works just fine on modern versions of Minecraft. That warning can be ignored.
 
