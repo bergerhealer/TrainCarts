@@ -5,6 +5,15 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 public class StatementBoolean extends Statement {
+    /**
+     * This statement instance is used to match true/false
+     */
+    public static final StatementBoolean INSTANCE = new StatementBoolean();
+    /**
+     * This statement instance is used if an empty statement text is encountered.
+     * This differentiates it from a constant true/false
+     */
+    public static final StatementBoolean EMPTY = new StatementBoolean();
 
     @Override
     public boolean match(String text) {
@@ -29,6 +38,11 @@ public class StatementBoolean extends Statement {
     @Override
     public boolean matchArray(String text) {
         return false;
+    }
+
+    @Override
+    public boolean isConstant() {
+        return true;
     }
 
     @Override

@@ -10,7 +10,7 @@ import java.util.Collections;
 import java.util.List;
 
 public abstract class Statement {
-    private static List<Statement> statements = new ArrayList<>();
+    private static final List<Statement> statements = new ArrayList<>();
 
     public static String[] parseArray(String text) {
         return text.split(";", -1);
@@ -20,7 +20,7 @@ public abstract class Statement {
         // Note: For same priority(), evaluated from bottom to top
         //       Late-registered statements evaluate before early ones.
         register(new StatementDestination());
-        register(new StatementBoolean());
+        register(StatementBoolean.INSTANCE);
         register(new StatementRandom());
         register(new StatementProperty());
         register(new StatementName());
@@ -83,7 +83,7 @@ public abstract class Statement {
      * @return True if successful, False if not
      */
     public static boolean has(MinecartMember<?> member, MinecartGroup group, String text, SignActionEvent event) {
-        return Matcher.of(text).withMember(member).withGroup(group).withSignEvent(event).match();
+        return Matcher.of(text).withMember(member).withGroup(group).withSignEvent(event).match().has();
     }
 
     public static boolean hasMultiple(MinecartMember<?> member, Iterable<String> statementTexts, SignActionEvent event) {
@@ -178,6 +178,20 @@ public abstract class Statement {
     }
 
     /**
+     * Whether this statement evaluates in a constant fashion. If true, then this statement does
+     * not rely on world, cart, train or changing random information to evaluate it.
+     * Constant statements behave differently with the path finding algorithm, where it will
+     * use it as a path route instead of registering the switcher sign as a node.<br>
+     * <br>
+     * Enter direction is considered a constant, too.
+     *
+     * @return True if this statement evaluates as a constant. Default false.
+     */
+    public boolean isConstant() {
+        return false;
+    }
+
+    /**
      * Defines the priority of this statement. Use this to have statements
      * match before or after other statements. Default is 0. A negative value
      * will make it match last, a positive value will have it match first.
@@ -186,6 +200,26 @@ public abstract class Statement {
      */
     public int priority() {
         return 0;
+    }
+
+    /**
+     * Called before handle() is called to check all required context is available.
+     * By default, checks {@link #requiredEvent()} and {@link #requiresTrain()},
+     * but can be tweaked for more specific checks.
+     *
+     * @param member Member, null if not available
+     * @param group Group, null if not available
+     * @param event Sign Event information, null if not available
+     * @return True if all required context is available
+     */
+    public boolean hasRequiredContext(MinecartMember<?> member, MinecartGroup group, SignActionEvent event) {
+        if (member == null && group == null && requiresTrain()) {
+            return false;
+        }
+        if (event == null && requiredEvent()) {
+            return false;
+        }
+        return true;
     }
 
     public boolean handle(MinecartGroup group, String text, SignActionEvent event) {
@@ -223,8 +257,6 @@ public abstract class Statement {
         private MinecartGroup group;
         private MinecartMember<?> member;
         private SignActionEvent signEvent;
-        private Statement lastStatement;
-        private boolean lastStatementIsArray;
 
         private Matcher(String text) {
             this.text = text;
@@ -250,59 +282,12 @@ public abstract class Statement {
         }
 
         /**
-         * Gets the Statement matched using the last {@link #match()} call<br>
-         * <br>
-         * Note that this will include statements that have failed to parse fully
-         * because they require more information (sign event, group, member), but would
-         * have parsed if that information existed.
-         *
-         * @return Statement that was matched
-         */
-        public Statement lastStatement() {
-            return this.lastStatement;
-        }
-
-        /**
-         * Gets whether the {@link #lastStatement()} matched was matched against
-         * the array syntax.<br>
-         * <br>
-         * Note that this will include statements that have failed to parse fully
-         * because they require more information (sign event, group, member), but would
-         * have parsed if that information existed.
-         *
-         * @return True if an array statement syntax was matched
-         */
-        public boolean lastStatementIsArray() {
-            return this.lastStatementIsArray;
-        }
-
-        /**
-         * Gets whether the last {@link #match()} result actually matched a statement,
-         * or that a fallback result was produced using the Tag fallback.<br>
-         * <br>
-         * Note that this will include statements that have failed to parse fully
-         * because they require more information (sign event, group, member), but would
-         * have parsed if that information existed.
-         *
-         * @return True if a result was actually matched. For tag statements this requires
-         *         use of t@.
-         */
-        public boolean lastResultWasExactMatch() {
-            return this.lastStatement != null &&
-                    (!(this.lastStatement instanceof StatementTag) || this.lastStatementIsArray);
-        }
-
-        /**
          * Matches the input text against a compatible statement and returns
          * the result of whether the condition is True.
          *
-         * @return Match result
+         * @return Match result, or Empty if no statement matched
          */
-        public boolean match() {
-            // Reset
-            this.lastStatement = null;
-            this.lastStatementIsArray = false;
-
+        public MatchResult match() {
             boolean inv = false;
             String text = TCConfig.statementShortcuts.replace(this.text);
             while (!text.isEmpty() && text.charAt(0) == '!') {
@@ -310,42 +295,130 @@ public abstract class Statement {
                 inv = !inv;
             }
             if (text.isEmpty()) {
-                return inv;
+                return MatchResult.create(StatementBoolean.EMPTY, false, inv);
             }
+
             String lowerText = text.toLowerCase();
             int idx = lowerText.indexOf('@');
             String arrayText = idx == -1 ? null : lowerText.substring(0, idx);
             String[] array = idx == -1 ? null : parseArray(text.substring(idx + 1));
             for (Statement statement : statements) {
                 if (arrayText != null && statement.matchArray(arrayText)) {
-                    this.lastStatement = statement;
-                    this.lastStatementIsArray = true;
-                    if (signEvent == null && statement.requiredEvent()) {
-                        continue;
-                    }
-                    if (member != null) {
-                        return statement.handleArray(member, array, signEvent) != inv;
+                    if (!statement.hasRequiredContext(member, group, signEvent)) {
+                        return MatchResult.createWithMissingContext(statement, true, inv);
+                    } else if (member != null) {
+                        return MatchResult.create(statement, true, statement.handleArray(member, array, signEvent) != inv);
                     } else if (group != null) {
-                        return statement.handleArray(group, array, signEvent) != inv;
-                    } else if (!statement.requiresTrain()) {
-                        return statement.handleArray((MinecartMember<?>) null, array, signEvent) != inv;
+                        return MatchResult.create(statement, true, statement.handleArray(group, array, signEvent) != inv);
+                    } else {
+                        return MatchResult.create(statement, true, statement.handleArray((MinecartMember<?>) null, array, signEvent) != inv);
                     }
                 } else if (statement.match(lowerText)) {
-                    this.lastStatement = statement;
-                    this.lastStatementIsArray = true;
-                    if (signEvent == null && statement.requiredEvent()) {
-                        continue;
-                    }
-                    if (member != null) {
-                        return statement.handle(member, text, signEvent) != inv;
+                    if (!statement.hasRequiredContext(member, group, signEvent)) {
+                        return MatchResult.createWithMissingContext(statement, false, inv);
+                    } else if (member != null) {
+                        return MatchResult.create(statement, false, statement.handle(member, text, signEvent) != inv);
                     } else if (group != null) {
-                        return statement.handle(group, text, signEvent) != inv;
-                    } else if (!statement.requiresTrain()) {
-                        return statement.handle((MinecartMember<?>) null, text, signEvent) != inv;
+                        return MatchResult.create(statement, false, statement.handle(group, text, signEvent) != inv);
+                    } else {
+                        return MatchResult.create(statement, false, statement.handle((MinecartMember<?>) null, text, signEvent) != inv);
                     }
                 }
             }
-            return inv;
+
+            // Note: this never gets reached in practise because StatementTag (at the end) match() always evaluates true.
+            // Something is put here just to avoid unexpected behavior
+            return MatchResult.createWithMissingContext(StatementBoolean.EMPTY, false, inv);
+        }
+    }
+
+    /**
+     * The result of looking up a statement and matching it against the cart, train or sign
+     */
+    public static class MatchResult {
+        private final Statement statement;
+        private final boolean isArray;
+        private final boolean isMissingContext;
+        private final boolean has;
+
+        public static MatchResult create(Statement statement, boolean isArray, boolean has) {
+            return new MatchResult(statement, isArray, false, has);
+        }
+
+        public static MatchResult createWithMissingContext(Statement statement, boolean isArray, boolean inv) {
+            return new MatchResult(statement, isArray, true, inv);
+        }
+
+        private MatchResult(Statement statement, boolean isArray, boolean isMissingContext, boolean has) {
+            this.statement = statement;
+            this.isArray = isArray;
+            this.isMissingContext = isMissingContext;
+            this.has = has;
+        }
+
+        /**
+         * Gets the statement instance that was matched and this result is for
+         *
+         * @return Statement, never null
+         */
+        public Statement statement() {
+            return statement;
+        }
+
+        /**
+         * Gets whether the statement evaluated true
+         *
+         * @return True if the statement evaluated
+         */
+        public boolean has() {
+            return has;
+        }
+
+        /**
+         * Whether context such as a sign, train info or cart info was missing when evaluating
+         * the statement.
+         *
+         * @return True if context was missing that was required, and false was assumed
+         */
+        public boolean isMissingContext() {
+            return isMissingContext;
+        }
+
+        /**
+         * Gets whether the statement matched using the array @ syntax
+         *
+         * @return True if array
+         */
+        public boolean isArray() {
+            return isArray;
+        }
+
+        /**
+         * Whether the statement is considered constant
+         *
+         * @return True if constant
+         * @see Statement#isConstant()
+         */
+        public boolean isConstant() {
+            return statement.isConstant();
+        }
+
+        /**
+         * Gets whether this result actually matched a statement,
+         * or that a fallback result was produced using the Tag fallback,
+         * or false assumed because of missing context.
+         *
+         * @return True if a result was actually matched. For tag statements this requires
+         *         use of t@.
+         */
+        public boolean isExactMatch() {
+            // Empty text encountered
+            if (statement == StatementBoolean.EMPTY) {
+                return false;
+            }
+
+            // Is not a statement tag, or it is but the tag was done with t@
+            return !(this.statement instanceof StatementTag) || this.isArray;
         }
     }
 }

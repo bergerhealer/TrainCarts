@@ -138,18 +138,19 @@ public final class PropertyParseContext<T> extends PropertyContext {
     public boolean inputBoolean() {
         if (!ParseUtil.isBool(input())) {
             // Try to match the value using statements
-            Statement.Matcher matcher = Statement.Matcher.of(input())
+            Statement.MatchResult match = Statement.Matcher.of(input())
                     .withSignEvent(this.input.signEvent())
                     .withGroup(isTrainProperties() ? trainProperties().getHolder() : null)
-                    .withMember(isCartProperties() ? cartProperties().getHolder() : null);
-            boolean result = matcher.match();
+                    .withMember(isCartProperties() ? cartProperties().getHolder() : null)
+                    .match();
 
             // We do want a failure result if no real statement gets matched.
             // It always matches the tag statement as a fall-back, so suppress that one.
-            if (!matcher.lastResultWasExactMatch()) {
+            if (!match.isExactMatch()) {
                 throw new PropertyInvalidInputException("Not a boolean (true/false) or Statement expression");
             }
 
+            boolean result = match.has();
             this.input.setHasParsedStatements(true);
             return result;
         }
