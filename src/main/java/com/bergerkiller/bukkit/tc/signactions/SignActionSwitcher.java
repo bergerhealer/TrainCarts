@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathPredictEvent;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
+import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import org.bukkit.block.Block;
@@ -181,7 +182,7 @@ public class SignActionSwitcher extends SignAction {
 
             DirectionStatement activeDirection = null;
             if (!statements.isEmpty() && facing) {
-                activeDirection = this.selectStatement(false);
+                activeDirection = this.selectStatement(false, false);
 
                 // If not powered or rails cannot be switched, don't switch rails at all
                 // Also don't do this after the path finding logic has concluded.
@@ -243,7 +244,7 @@ public class SignActionSwitcher extends SignAction {
                         info.setLevers(true);
                     }
                 } else {
-                    activeDirection = this.selectStatement(true);
+                    activeDirection = this.selectStatement(false, true);
 
                     // Only set levers down when a non-default statement condition matches and a cart is on the sign
                     if (hasMember) {
@@ -402,7 +403,19 @@ public class SignActionSwitcher extends SignAction {
             return false;
         }
 
-        private DirectionStatement selectStatement(boolean incrementCounters) {
+        /**
+         * Retrieves the direction statement on the switcher sign that is active right now.
+         *
+         * @param isPathRouting Whether a route is being calculated in the path finding algorithm.
+         *                      In this case, if a statement is hit that isn't constant such
+         *                      as 'true' or based on enter direction, then null is returned.
+         *                      This makes sure trains try to navigate there to let switcher
+         *                      behavior handle it. If false, behaves normally.
+         * @param incrementCounters Whether to increment counter statements. If false, only
+         *                          reads the counter state (prediction).
+         * @return Active direction statement
+         */
+        private DirectionStatement selectStatement(boolean isPathRouting, boolean incrementCounters) {
             boolean hasMember = info.hasRailedMember();
             if (statements.isEmpty()) {
                 // If no directions are at all specified, all we do is toggle the lever
@@ -443,10 +456,38 @@ public class SignActionSwitcher extends SignAction {
 
                 DirectionStatement dir = null;
                 for (DirectionStatement stat : statements) {
+                    // Don't evaluate these here
+                    if (stat.isDefault()) {
+                        continue;
+                    }
+
                     // Counter logic
-                    if (stat.hasCounter() && (counter += stat.counter.get(signcounter.startLength)) > signcounter.counter) {
-                        dir = stat;
-                        break;
+                    if (stat.hasCounter()) {
+                        // Counters are not constant, fail routing
+                        if (isPathRouting) {
+                            return null;
+                        }
+
+                        // Check counter
+                        if ((counter += stat.counter.get(signcounter.startLength)) > signcounter.counter) {
+                            dir = stat;
+                            break;
+                        }
+                    }
+
+                    // If path routing, the statement must support this. It must be constant.
+                    // Many statements like random or redstone are not constant and must be evaluated
+                    // when the train rolls over it.
+                    if (isPathRouting) {
+                        Statement.MatchResult result = Statement.Matcher.of(stat.text).withSignEvent(info).match();
+                        if (!result.isConstant()) {
+                            // Not a constant, can't use it for path prediction when routing
+                            return null;
+                        } else if (result.has()) {
+                            // Constant statement evaluates true, pick it
+                            dir = stat;
+                            break;
+                        }
                     }
 
                     // Cart/Train logic
@@ -465,7 +506,7 @@ public class SignActionSwitcher extends SignAction {
                 // Check if any direction is marked "default"
                 if (dir == null) {
                     for (DirectionStatement stat : statements) {
-                        if (stat.isDefault() && (hasMember || !stat.isSwitchedFromSelf())) {
+                        if (stat.isDefault() && (isPathRouting || hasMember || !stat.isSwitchedFromSelf())) {
                             dir = stat;
                             break;
                         }
