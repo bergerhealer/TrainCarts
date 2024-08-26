@@ -591,7 +591,7 @@ public abstract class SignAction {
 
         // Is switchable, mark it
         if (isRailSwitcher(event)) {
-            event.setSwitchable(true);
+            event.setRouteSwitchable(true);
         }
 
         // If destination name is set, add it

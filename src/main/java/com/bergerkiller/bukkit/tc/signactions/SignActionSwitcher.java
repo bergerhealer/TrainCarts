@@ -17,8 +17,10 @@ import com.bergerkiller.bukkit.tc.events.MissingPathConnectionEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathConnection;
+import com.bergerkiller.bukkit.tc.pathfinding.PathNavigateEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathPredictEvent;
+import com.bergerkiller.bukkit.tc.pathfinding.SignRoutingEvent;
 import com.bergerkiller.bukkit.tc.properties.IProperties;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
@@ -133,6 +135,16 @@ public class SignActionSwitcher extends SignAction {
     }
 
     @Override
+    public void route(SignRoutingEvent event) {
+        // Optimization
+        if (TCConfig.onlyPoweredSwitchersDoPathFinding && event.getHeader().isAlwaysOff()) {
+            return;
+        }
+
+        (new SwitcherLogic(event)).route(event);
+    }
+
+    @Override
     public boolean overrideFacing() {
         return true;
     }
@@ -171,6 +183,23 @@ public class SignActionSwitcher extends SignAction {
             // can do so because from-directions are always specified.
             this.canToggleRails = (info.isCartSign() ? info.isAction(SignActionType.MEMBER_ENTER) : info.isAction(SignActionType.GROUP_ENTER)) ||
                     (hasFromDirections && info.isAction(SignActionType.REDSTONE_CHANGE) && info.hasRails() && info.isPowered());
+        }
+
+        public void route(SignRoutingEvent event) {
+            // Check to see if there is an active constant statement for current activation
+            // In that case, don't register a switcher, but instead predict the route taken
+            // This avoids issues of trains believing they can take directions they really cannot
+            // because of switchers, such as at X-intersections with enter-direction statements.
+            if (!statements.isEmpty() && info.isEnterActivated()) {
+                DirectionStatement activeDirection = this.selectStatement(true, false);
+                if (activeDirection != null) {
+                    predictRails(event, activeDirection);
+                    return;
+                }
+            }
+
+            // Mark as switchable
+            event.setRouteSwitchable(true);
         }
 
         public void predict(PathPredictEvent prediction) {
@@ -294,7 +323,7 @@ public class SignActionSwitcher extends SignAction {
             }
         }
 
-        private void predictRails(PathPredictEvent prediction, DirectionStatement direction) {
+        private void predictRails(PathNavigateEvent navigateEvent, DirectionStatement direction) {
             RailJunction a = info.findJunction(direction.direction);
             RailJunction b = direction.isSwitchedFromSelf()
                     ? null : info.findJunction(direction.directionFrom);
@@ -302,23 +331,23 @@ public class SignActionSwitcher extends SignAction {
                 if (a == null) {
                     return;
                 } else {
-                    prediction.setSwitchedJunction(a);
+                    navigateEvent.setSwitchedJunction(a);
                 }
             } else if (a == null) {
-                prediction.setSwitchedJunction(b);
+                navigateEvent.setSwitchedJunction(b);
             } else {
                 // Figure out whether to switch to direction or directionFrom
                 // This is based on the current movement direction
-                RailPath.Position pos = prediction.railState().position();
+                RailPath.Position pos = navigateEvent.railState().position();
                 if (a.position().motDot(pos) > b.position().motDot(pos)) {
-                    prediction.setSwitchedJunction(a);
+                    navigateEvent.setSwitchedJunction(a);
                 } else {
-                    prediction.setSwitchedJunction(b);
+                    navigateEvent.setSwitchedJunction(b);
                 }
             }
         }
 
-        private void predictRailsTo(PathPredictEvent prediction, String name) {
+        private void predictRailsTo(PathNavigateEvent prediction, String name) {
             RailJunction junction = info.findJunction(name);
             if (junction != null) {
                 prediction.setSwitchedJunction(junction);
@@ -504,9 +533,10 @@ public class SignActionSwitcher extends SignAction {
                 }
 
                 // Check if any direction is marked "default"
-                if (dir == null) {
+                // Don't select these when doing path routing, as path finding has preference
+                if (dir == null && !isPathRouting) {
                     for (DirectionStatement stat : statements) {
-                        if (stat.isDefault() && (isPathRouting || hasMember || !stat.isSwitchedFromSelf())) {
+                        if (stat.isDefault() && (hasMember || !stat.isSwitchedFromSelf())) {
                             dir = stat;
                             break;
                         }

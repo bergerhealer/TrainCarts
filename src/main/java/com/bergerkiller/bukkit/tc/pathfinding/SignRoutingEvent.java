@@ -79,22 +79,22 @@ public class SignRoutingEvent extends SignActionEvent implements PathNavigateEve
     }
 
     /**
-     * Gets whether the track can be changed here, and all junctions must be navigated
-     * to find additional paths.
+     * Gets whether the track can be changed here to find routes, and all junctions
+     * must be navigated to find additional paths. Used for powered switcher signs.
      *
      * @return True if switchable
      */
-    public boolean isSwitchable() {
+    public boolean isRouteSwitchable() {
         return switchable;
     }
 
     /**
-     * Sets whether the track can be changed here, and all junctions must be navigated
-     * to find additional paths.
+     * Sets whether the track can be changed here to find routes, and all junctions
+     * must be navigated to find additional paths. Used for powered switcher signs.
      *
      * @param switchable Whether it is switchable
      */
-    public void setSwitchable(boolean switchable) {
+    public void setRouteSwitchable(boolean switchable) {
         this.switchable = switchable;
     }
 

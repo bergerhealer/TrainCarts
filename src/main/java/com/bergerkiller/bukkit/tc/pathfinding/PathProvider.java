@@ -109,7 +109,7 @@ public class PathProvider extends Task implements TrainCarts.Provider {
 
                     // If a destination name or switchable is set, create a node here
                     // Resume navigation from this node onwards
-                    boolean switchable = signEvent.isSwitchable();
+                    boolean switchable = signEvent.isRouteSwitchable();
                     List<String> destinationNames = signEvent.getDestinationNames();
                     if (switchable || !destinationNames.isEmpty()) {
                         // Update the node we found with the information of the current sign
