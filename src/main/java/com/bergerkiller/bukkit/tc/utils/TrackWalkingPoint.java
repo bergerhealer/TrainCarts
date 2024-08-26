@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
+import com.bergerkiller.bukkit.tc.pathfinding.PathNavigateEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathPredictEvent;
 import com.bergerkiller.bukkit.tc.rails.logic.RailLogic;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
@@ -68,7 +69,8 @@ public class TrackWalkingPoint {
 
     private boolean first = true;
     private boolean isAtEnd = false;
-    private Predictor predictor = null;
+    private Navigator navigator = null;
+    private PathNavigateEvent navigatorEvent = null;
 
     public TrackWalkingPoint(RailState state) {
         state.position().assertAbsolute();
@@ -112,6 +114,27 @@ public class TrackWalkingPoint {
     }
 
     /**
+     * Sets a navigator on this track walking point. The navigator is informed of visited rails,
+     * and can alter the path followed (change junctions). Incompatible with {@link #setFollowPredictedPath(MinecartMember)}
+     *
+     * @param navigator Navigator to use
+     */
+    public void setNavigator(Navigator navigator) {
+        if (this.navigator != navigator) {
+            this.navigator = navigator;
+            if (navigator != null) {
+                // Initialize the navigator event
+                this.navigatorEvent = navigator.createNewEvent(this.state);
+                this.navigatorEvent.resetToInitialState(this.currentRailPath, this.movedTotal);
+                navigator.navigate(this.navigatorEvent);
+            } else {
+                // Reset
+                this.navigatorEvent = null;
+            }
+        }
+    }
+
+    /**
      * Configures this walking point to follow a predicted path of a particular Minecart Member.
      * Signs and other routing nodes along the way that can perform track switching will be asked
      * where this member should go, and that path is followed accordingly.
@@ -119,11 +142,7 @@ public class TrackWalkingPoint {
      * @param member MinecartMember to track following the predicted path. Null to disable.
      */
     public void setFollowPredictedPath(MinecartMember<?> member) {
-        this.predictor = (member == null) ? null : new Predictor(this.state, member);
-        if (member != null) {
-            // Initialize the predictor state
-            this.predictor.predict(this.movedTotal, this.currentRailPath);
-        }
+        setNavigator((member == null) ? null : new Predictor(member));
     }
 
     /**
@@ -134,8 +153,10 @@ public class TrackWalkingPoint {
      * @return predicted speed limit, {@link Double#MAX_VALUE} if there is none.
      */
     public double getPredictedSpeedLimit() {
-        Predictor predictor = this.predictor;
-        return (predictor == null) ? Double.MAX_VALUE : predictor.event.getSpeedLimit();
+        PathNavigateEvent navigatorEvent = this.navigatorEvent;
+        return (navigatorEvent instanceof PathPredictEvent)
+                ? ((PathPredictEvent) navigatorEvent).getSpeedLimit()
+                : Double.MAX_VALUE;
     }
 
     /**
@@ -145,8 +166,10 @@ public class TrackWalkingPoint {
      * @return predicted remaining block distance
      */
     public double getPredictedRemainingBlockDistance() {
-        Predictor predictor = this.predictor;
-        return (predictor == null) ? 0.0 : Math.max(0.0, predictor.maxPredictorEndDistance - this.movedTotal);
+        Navigator navigator = this.navigator;
+        return (navigator instanceof Predictor)
+                ? Math.max(0.0, ((Predictor) navigator).maxPredictorEndDistance - this.movedTotal)
+                : 0.0;
     }
 
     /**
@@ -323,7 +346,8 @@ public class TrackWalkingPoint {
 
     private boolean loadNextRail() {
         RailPath.Position position = this.state.position();
-        Predictor predictor = this.predictor;
+        Navigator navigator = this.navigator;
+        PathNavigateEvent navigatorEvent = this.navigatorEvent;
 
         // If position is already the same then we ran into a nasty loop that is no good!
         // Break out of it when detected to avoid freezing the server
@@ -350,11 +374,11 @@ public class TrackWalkingPoint {
             this._stuckCtr = 0;
         }
 
-        // If following a predicted path, and the current rail is/was being switched, move to
-        // this predicted position and advance a small amount beyond the rail.
-        if (predictor != null && predictor.event.hasSwitchedPosition()) {
-            predictor.event.getSwitchedPosition().copyTo(position);
-            position.makeAbsolute(predictor.event.railBlock());
+        // If navigating and the navigator altered the path, move to
+        // this new position and advance a small amount beyond the rail.
+        if (navigatorEvent != null && navigatorEvent.hasSwitchedPosition()) {
+            navigatorEvent.getSwitchedPosition().copyTo(position);
+            position.makeAbsolute(navigatorEvent.railBlock());
         }
 
         // Load next rails information
@@ -390,8 +414,9 @@ public class TrackWalkingPoint {
         this.isAtEnd = true;
 
         // Update predictor so the speed limit / switched position is updated
-        if (predictor != null) {
-            predictor.predict(this.movedTotal, this.currentRailPath);
+        if (navigator != null && navigatorEvent != null) {
+            navigatorEvent.resetToInitialState(this.currentRailPath, this.movedTotal);
+            navigator.navigate(navigatorEvent);
         }
 
         return true;
@@ -467,26 +492,66 @@ public class TrackWalkingPoint {
         return this.movedTotal <= maxDistance;
     }
 
-    private static class Predictor {
-        public final PathPredictEvent event;
+    /**
+     * A navigator can be installed on a track walking point to alter the path followed
+     * on the track mid-iteration. This can be used for path prediction with switchers
+     * and to iterate encountered rail pieces.<br>
+     * <br>
+     * The navigator is called for every (new) track piece encountered, but not for every
+     * small movement step.
+     */
+    @FunctionalInterface
+    public interface Navigator {
+        /**
+         * Called for every rail piece encountered by the track walking point
+         *
+         * @param event PathNavigateEvent containing track information. Also has actions
+         *              that can be performed, such as changing the current position
+         *              navigated on.
+         */
+        void navigate(PathNavigateEvent event);
+
+        /**
+         * Overridable method that returns the event class type to create that the
+         * {@link #navigate(PathNavigateEvent)} method receives.
+         * By default creates the standard {@link PathNavigateEvent}.
+         *
+         * @param railState Mutable RailState
+         * @return PathNavigateEvent
+         */
+        default PathNavigateEvent createNewEvent(RailState railState) {
+            return new PathNavigateEvent(railState);
+        }
+    }
+
+    private static class Predictor implements Navigator {
+        private final MinecartMember<?> member;
         private List<BlockPredictor> activeBlockPredictors = Collections.emptyList();
         private Set<Object> usedBlockPredictorTokens = Collections.emptySet();
         private double maxPredictorEndDistance = 0.0;
 
-        public Predictor(RailState railState, MinecartMember<?> member) {
-            this.event = new PathPredictEvent(member.getTrainCarts().getPathProvider(), railState, member);
+        public Predictor(MinecartMember<?> member) {
+            this.member = member;
         }
 
-        public void predict(double currentDistance, RailPath currentRailPath) {
-            this.event.resetToInitialState(currentRailPath);
-            this.event.provider().predictRoutingHandler(this.event);
+        @Override
+        public PathNavigateEvent createNewEvent(RailState railState) {
+            return new PathPredictEvent(member.getTrainCarts().getPathProvider(), railState, member);
+        }
+
+        @Override
+        public void navigate(PathNavigateEvent navEvent) {
+            PathPredictEvent event = (PathPredictEvent) navEvent;
+            double currentDistance = event.currentDistance();
+
+            event.provider().predictRoutingHandler(event);
 
             // Process active block predictors. Remove when they return false, or distance is beyond the max.
             boolean predictorsRemoved = false;
             for (Iterator<BlockPredictor> iter = activeBlockPredictors.iterator(); iter.hasNext();) {
                 BlockPredictor blockPredictor = iter.next();
                 if (!blockPredictor.handler.update(event, currentDistance - blockPredictor.startDistance)
-                    || currentDistance >= blockPredictor.endDistance) {
+                        || currentDistance >= blockPredictor.endDistance) {
                     iter.remove();
                     predictorsRemoved = true;
                 }

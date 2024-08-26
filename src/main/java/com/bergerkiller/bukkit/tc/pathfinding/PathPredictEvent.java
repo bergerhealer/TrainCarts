@@ -1,13 +1,8 @@
 package com.bergerkiller.bukkit.tc.pathfinding;
 
-import org.bukkit.World;
-import org.bukkit.block.Block;
-
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
-import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 
 import java.util.ArrayList;
@@ -20,32 +15,23 @@ import java.util.List;
  * a switched {@link RailPath.Position} based on the properties of the train/member entering it.
  * Speed traps and blockers should configure a speed limit to use on the piece of track.
  */
-public class PathPredictEvent {
+public class PathPredictEvent extends PathNavigateEvent {
     private final PathProvider provider;
-    private final RailState railState;
-    private RailPath railPath;
     private final MinecartMember<?> member;
-    private RailPath.Position nextPosition;
     private double speedLimit;
     private List<ActiveBlockHandler> newBlockHandlers = Collections.emptyList();
 
     public PathPredictEvent(PathProvider provider, RailState railState, MinecartMember<?> member) {
+        super(railState);
         this.provider = provider;
-        this.railState = railState;
         this.member = member;
-        this.nextPosition = null;
         this.speedLimit = Double.MAX_VALUE;
     }
 
-    /**
-     * Resets this prediction event, so that it can be used again for a new rail position
-     *
-     * @param railPath Current Rail Path for the event
-     */
-    public void resetToInitialState(RailPath railPath) {
-        this.railPath = railPath;
+    @Override
+    public void resetToInitialState(RailPath railPath, double currentDistance) {
+        super.resetToInitialState(railPath, currentDistance);
         this.setSpeedLimit(Double.MAX_VALUE);
-        this.setSwitchedPosition(null);
         this.newBlockHandlers = Collections.emptyList();
     }
 
@@ -88,95 +74,9 @@ public class PathPredictEvent {
      * @return path node, Null if there is no switched/destination node here
      */
     public PathNode pathNode() {
-        return this.provider.getWorld(this.railState.railWorld())
-                            .getNodeAtRail(this.railState.railBlock());
-    }
-
-    /**
-     * Gets the exact rail block, type, position and direction
-     * currently on the track.
-     *
-     * @return rail state details
-     */
-    public RailState railState() {
-        return this.railState;
-    }
-
-    /**
-     * Gets the rail path currently being moved over
-     *
-     * @return rail path details
-     */
-    public RailPath railPath() {
-        return this.railPath;
-    }
-
-    /**
-     * Gets the RailPiece of the current track. This stores the rail
-     * type and block, and other information about a piece of rails.
-     *
-     * @return rail piece
-     */
-    public RailPiece railPiece() {
-        return this.railState.railPiece();
-    }
-
-    /**
-     * Gets the exact rail block the path finder is currently on
-     *
-     * @return rail block
-     */
-    public Block railBlock() {
-        return this.railState.railBlock();
-    }
-
-    /**
-     * Gets the World this event is for
-     *
-     * @return rail world
-     */
-    public World railWorld() {
-        return this.railState.railWorld();
-    }
-
-    /**
-     * Gets the next rail path end-position of the current rail block
-     * that the {@link #member()} should move to.
-     *
-     * @return next rail path position, null if unset
-     */
-    public RailPath.Position getSwitchedPosition() {
-        return this.nextPosition;
-    }
-
-    /**
-     * Gets whether a switched position was set
-     *
-     * @return True if a switched position was set
-     * @see #setSwitchedPosition(RailPath.Position)
-     */
-    public boolean hasSwitchedPosition() {
-        return this.nextPosition != null;
-    }
-
-    /**
-     * Sets the rail path end-position of the current rail block that the
-     * {@link #member()} should move to.
-     *
-     * @param nextPosition Next rail path position
-     */
-    public void setSwitchedPosition(RailPath.Position nextPosition) {
-        this.nextPosition = nextPosition;
-    }
-
-    /**
-     * Sets the rail junction of the current rail block that the
-     * {@link #member()} should move to.
-     *
-     * @param junction Junction to take and whose end-position to navigate to
-     */
-    public void setSwitchedJunction(RailJunction junction) {
-        this.nextPosition = junction.position();
+        RailState state = this.railState();
+        return this.provider.getWorld(state.railWorld())
+                            .getNodeAtRail(state.railBlock());
     }
 
     /**
