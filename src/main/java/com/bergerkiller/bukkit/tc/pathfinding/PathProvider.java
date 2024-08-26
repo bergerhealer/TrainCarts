@@ -637,18 +637,16 @@ public class PathProvider extends Task implements TrainCarts.Provider {
             this.startNode = startNode;
 
             this.p = new TrackWalkingPoint(state);
-            this.p.setNavigator(new TrackWalkingPoint.Navigator() {
+            this.p.setNavigator(new TrackWalkingPoint.Navigator<PathRoutingHandler.PathRouteEvent>() {
                 @Override
-                public void navigate(PathNavigateEvent event) {
-                    PathRoutingHandler.PathRouteEvent routeEvent = (PathRoutingHandler.PathRouteEvent) event;
-
+                public void navigate(PathRoutingHandler.PathRouteEvent event) {
                     // Handle event
-                    for (PathRoutingHandler handler : routeEvent.provider().handlers) {
-                        handler.process(routeEvent);
+                    for (PathRoutingHandler handler : event.provider().handlers) {
+                        handler.process(event);
                     }
 
                     // Process results
-                    PathNode foundNode = routeEvent.getLastSetNode();
+                    PathNode foundNode = event.getLastSetNode();
                     if (foundNode != null && !startNode.location.equals(foundNode.location)) {
                         // Calculate distance from the start node to this new node
                         // Include distance between spawn position on rail, and the current position with the walker
@@ -661,7 +659,7 @@ public class PathProvider extends Task implements TrainCarts.Provider {
                         // Add neighbour
                         startNode.addNeighbour(foundNode, totalDistance, getJunctionName());
                         if (DEBUG_MODE) {
-                            routeEvent.provider().getTrainCarts().log(Level.INFO, "MADE CONNECTION FROM " +
+                            event.provider().getTrainCarts().log(Level.INFO, "MADE CONNECTION FROM " +
                                     startNode.getDisplayName() + " TO " + foundNode.getDisplayName());
                         }
 
@@ -672,7 +670,7 @@ public class PathProvider extends Task implements TrainCarts.Provider {
                 }
 
                 @Override
-                public PathNavigateEvent createNewEvent() {
+                public PathRoutingHandler.PathRouteEvent createNewEvent() {
                     return new PathRoutingHandler.PathRouteEvent(provider, world);
                 }
             });

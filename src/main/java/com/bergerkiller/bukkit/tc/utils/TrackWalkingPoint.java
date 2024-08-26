@@ -69,8 +69,7 @@ public class TrackWalkingPoint {
 
     private boolean first = true;
     private boolean isAtEnd = false;
-    private Navigator navigator = null;
-    private PathNavigateEvent navigatorEvent = null;
+    private NavigatorWithEvent<?> navigator = null;
 
     public TrackWalkingPoint(RailState state) {
         state.position().assertAbsolute();
@@ -119,23 +118,22 @@ public class TrackWalkingPoint {
      *
      * @param navigator Navigator to use
      */
-    public void setNavigator(Navigator navigator) {
-        if (this.navigator != navigator) {
-            this.navigator = navigator;
-            if (navigator != null) {
-                // Initialize the navigator event
-                PathNavigateEvent navigatorEvent = navigator.createNewEvent();
-                navigatorEvent.resetToInitialState(this.state, this.currentRailPath, this.movedTotal);
-                this.navigatorEvent = navigatorEvent;
-                navigator.navigate(navigatorEvent);
+    public void setNavigator(Navigator<?> navigator) {
+        if (navigator == null) {
+            this.navigator = null; // Reset
+            return;
+        }
 
-                if (navigatorEvent.isNavigationAborted()) {
-                    this.failReason = FailReason.NAVIGATION_ABORTED;
-                    // Iteration is halted later
-                }
-            } else {
-                // Reset
-                this.navigatorEvent = null;
+        NavigatorWithEvent<?> currentNav = this.navigator;
+        if (currentNav == null || currentNav.navigator != navigator) {
+            this.navigator = currentNav = new NavigatorWithEvent<>(navigator);
+
+            // Initialize the navigator event
+            currentNav.navigate(this.state, this.currentRailPath, this.movedTotal);
+
+            if (currentNav.event.isNavigationAborted()) {
+                this.failReason = FailReason.NAVIGATION_ABORTED;
+                // Iteration is halted later
             }
         }
     }
@@ -159,9 +157,9 @@ public class TrackWalkingPoint {
      * @return predicted speed limit, {@link Double#MAX_VALUE} if there is none.
      */
     public double getPredictedSpeedLimit() {
-        PathNavigateEvent navigatorEvent = this.navigatorEvent;
-        return (navigatorEvent instanceof PathPredictEvent)
-                ? ((PathPredictEvent) navigatorEvent).getSpeedLimit()
+        NavigatorWithEvent<?> navigator = this.navigator;
+        return (navigator != null && navigator.event instanceof PathPredictEvent)
+                ? ((PathPredictEvent) navigator.event).getSpeedLimit()
                 : Double.MAX_VALUE;
     }
 
@@ -172,9 +170,9 @@ public class TrackWalkingPoint {
      * @return predicted remaining block distance
      */
     public double getPredictedRemainingBlockDistance() {
-        Navigator navigator = this.navigator;
-        return (navigator instanceof Predictor)
-                ? Math.max(0.0, ((Predictor) navigator).maxPredictorEndDistance - this.movedTotal)
+        NavigatorWithEvent<?> navigator = this.navigator;
+        return (navigator != null && navigator.navigator instanceof Predictor)
+                ? Math.max(0.0, ((Predictor) navigator.navigator).maxPredictorEndDistance - this.movedTotal)
                 : 0.0;
     }
 
@@ -349,8 +347,7 @@ public class TrackWalkingPoint {
 
     private boolean loadNextRail() {
         RailPath.Position position = this.state.position();
-        Navigator navigator = this.navigator;
-        PathNavigateEvent navigatorEvent = this.navigatorEvent;
+        NavigatorWithEvent<?> navigator = this.navigator;
 
         // If position is already the same then we ran into a nasty loop that is no good!
         // Break out of it when detected to avoid freezing the server
@@ -379,9 +376,9 @@ public class TrackWalkingPoint {
 
         // If navigating and the navigator altered the path, move to
         // this new position and advance a small amount beyond the rail.
-        if (navigatorEvent != null && navigatorEvent.hasSwitchedPosition()) {
-            navigatorEvent.getSwitchedPosition().copyTo(position);
-            position.makeAbsolute(navigatorEvent.railBlock());
+        if (navigator != null && navigator.event.hasSwitchedPosition()) {
+            navigator.event.getSwitchedPosition().copyTo(position);
+            position.makeAbsolute(navigator.event.railBlock());
         }
 
         // Load next rails information
@@ -417,12 +414,11 @@ public class TrackWalkingPoint {
         this.isAtEnd = true;
 
         // Update predictor so the speed limit / switched position is updated
-        if (navigator != null && navigatorEvent != null) {
-            navigatorEvent.resetToInitialState(this.state, this.currentRailPath, this.movedTotal);
-            navigator.navigate(navigatorEvent);
+        if (navigator != null) {
+            navigator.navigate(this.state, this.currentRailPath, this.movedTotal);
 
             // Handle navigation aborting
-            if (navigatorEvent.isNavigationAborted()) {
+            if (navigator.event.isNavigationAborted()) {
                 this.failReason = FailReason.NAVIGATION_ABORTED;
                 return false;
             }
@@ -441,8 +437,8 @@ public class TrackWalkingPoint {
         }
 
         // If navigator is installed and halted it, fail
-        PathNavigateEvent navigatorEvent = this.navigatorEvent;
-        if (navigatorEvent != null && navigatorEvent.isNavigationAborted()) {
+        NavigatorWithEvent<?> navigator = this.navigator;
+        if (navigator != null && navigator.event.isNavigationAborted()) {
             return true;
         }
 
@@ -522,9 +518,10 @@ public class TrackWalkingPoint {
      * <br>
      * The navigator is called for every (new) track piece encountered, but not for every
      * small movement step.
+     *
+     * @param <E> - Type of PathNavigateEvent to construct and use in {@link #navigate(PathNavigateEvent)}
      */
-    @FunctionalInterface
-    public interface Navigator {
+    public interface Navigator<E extends PathNavigateEvent> {
         /**
          * Called for every rail piece encountered by the track walking point
          *
@@ -532,21 +529,33 @@ public class TrackWalkingPoint {
          *              that can be performed, such as changing the current position
          *              navigated on.
          */
-        void navigate(PathNavigateEvent event);
+        void navigate(E event);
 
         /**
          * Overridable method that returns the event class type to create that the
          * {@link #navigate(PathNavigateEvent)} method receives.
-         * By default creates the standard {@link PathNavigateEvent}.
          *
-         * @return PathNavigateEvent
+         * @return PathNavigateEvent or extended type
          */
-        default PathNavigateEvent createNewEvent() {
-            return new PathNavigateEvent();
+        E createNewEvent();
+    }
+
+    private static class NavigatorWithEvent<E extends PathNavigateEvent> {
+        public final Navigator<E> navigator;
+        public final E event;
+
+        public NavigatorWithEvent(Navigator<E> navigator) {
+            this.navigator = navigator;
+            this.event = navigator.createNewEvent();
+        }
+
+        public void navigate(RailState railState, RailPath railPath, double currentPosition) {
+            event.resetToInitialState(railState, railPath, currentPosition);
+            navigator.navigate(event);
         }
     }
 
-    private static class Predictor implements Navigator {
+    private static class Predictor implements Navigator<PathPredictEvent> {
         private final MinecartMember<?> member;
         private List<BlockPredictor> activeBlockPredictors = Collections.emptyList();
         private Set<Object> usedBlockPredictorTokens = Collections.emptySet();
@@ -557,13 +566,12 @@ public class TrackWalkingPoint {
         }
 
         @Override
-        public PathNavigateEvent createNewEvent() {
+        public PathPredictEvent createNewEvent() {
             return new PathPredictEvent(member.getTrainCarts().getPathProvider(), member);
         }
 
         @Override
-        public void navigate(PathNavigateEvent navEvent) {
-            PathPredictEvent event = (PathPredictEvent) navEvent;
+        public void navigate(PathPredictEvent event) {
             double currentDistance = event.currentDistance();
 
             event.provider().predictRoutingHandler(event);
