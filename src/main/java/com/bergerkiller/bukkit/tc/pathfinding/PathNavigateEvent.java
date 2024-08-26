@@ -18,6 +18,7 @@ public class PathNavigateEvent {
     private RailPath railPath;
     private RailPath.Position nextPosition;
     private double currentDistance;
+    private boolean abortNavigation;
 
     /**
      * Constructs a new PathNavigateEvent with the (mutable!) rail state specified.
@@ -40,6 +41,7 @@ public class PathNavigateEvent {
         this.railPath = railPath;
         this.nextPosition = null;
         this.currentDistance = currentDistance;
+        this.abortNavigation = false;
     }
 
     /**
@@ -49,6 +51,23 @@ public class PathNavigateEvent {
      */
     public double currentDistance() {
         return currentDistance;
+    }
+
+    /**
+     * Gets whether {@link #abortNavigation()} was called. Mostly internal use.
+     *
+     * @return True if navigation is aborted
+     */
+    public boolean isNavigationAborted() {
+        return abortNavigation;
+    }
+
+    /**
+     * Aborts any further navigation of the track walking point. This exits navigation early,
+     * causing {@link TrackWalkingPoint#moveFull()} to return false.
+     */
+    public void abortNavigation() {
+        abortNavigation = true;
     }
 
     /**

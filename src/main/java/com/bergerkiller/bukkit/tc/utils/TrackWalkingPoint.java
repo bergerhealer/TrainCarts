@@ -124,9 +124,15 @@ public class TrackWalkingPoint {
             this.navigator = navigator;
             if (navigator != null) {
                 // Initialize the navigator event
-                this.navigatorEvent = navigator.createNewEvent(this.state);
-                this.navigatorEvent.resetToInitialState(this.currentRailPath, this.movedTotal);
-                navigator.navigate(this.navigatorEvent);
+                PathNavigateEvent navigatorEvent = navigator.createNewEvent(this.state);
+                navigatorEvent.resetToInitialState(this.currentRailPath, this.movedTotal);
+                this.navigatorEvent = navigatorEvent;
+                navigator.navigate(navigatorEvent);
+
+                if (navigatorEvent.isNavigationAborted()) {
+                    this.failReason = FailReason.NAVIGATION_ABORTED;
+                    // Iteration is halted later
+                }
             } else {
                 // Reset
                 this.navigatorEvent = null;
@@ -195,8 +201,7 @@ public class TrackWalkingPoint {
      * @return True if the step was successful
      */
     public boolean moveStep(double limit) {
-        // No rails
-        if (isDerailed()) {
+        if (isMovementAborted()) {
             return false;
         }
 
@@ -259,8 +264,7 @@ public class TrackWalkingPoint {
      * @return True if movement was successful, False if not
      */
     public boolean moveFull() {
-        // No rails
-        if (isDerailed()) {
+        if (isMovementAborted()) {
             return false;
         }
 
@@ -294,8 +298,7 @@ public class TrackWalkingPoint {
      * @return True if movement was successful, False if not
      */
     public boolean move(final double distance) {
-        // If no position is known, then we did not have a valid starting point at all
-        if (isDerailed()) {
+        if (isMovementAborted()) {
             return false;
         }
 
@@ -417,6 +420,12 @@ public class TrackWalkingPoint {
         if (navigator != null && navigatorEvent != null) {
             navigatorEvent.resetToInitialState(this.currentRailPath, this.movedTotal);
             navigator.navigate(navigatorEvent);
+
+            // Handle navigation aborting
+            if (navigatorEvent.isNavigationAborted()) {
+                this.failReason = FailReason.NAVIGATION_ABORTED;
+                return false;
+            }
         }
 
         return true;
@@ -424,6 +433,20 @@ public class TrackWalkingPoint {
 
     private boolean isDerailed() {
         return this.state.railType() == RailType.NONE || this.currentRailPath.isEmpty();
+    }
+
+    private boolean isMovementAborted() {
+        if (isDerailed()) {
+            return true;
+        }
+
+        // If navigator is installed and halted it, fail
+        PathNavigateEvent navigatorEvent = this.navigatorEvent;
+        if (navigatorEvent != null && navigatorEvent.isNavigationAborted()) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -609,6 +632,8 @@ public class TrackWalkingPoint {
         /** A loop on the track was detected */
         LOOP_DETECTED,
         /** An imposed movement limit was reached */
-        LIMIT_REACHED
+        LIMIT_REACHED,
+        /** A navigator was installed and {@link PathNavigateEvent#abortNavigation()} was called */
+        NAVIGATION_ABORTED
     }
 }
