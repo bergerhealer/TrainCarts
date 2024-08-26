@@ -627,11 +627,48 @@ public class PathProvider extends Task implements TrainCarts.Provider {
         private final PathRoutingHandler.PathRouteEvent routeEvent; // re-used
 
         public PathFindOperation(PathProvider provider, PathNode startNode, RailState state, RailJunction junction) {
-            this.p = new TrackWalkingPoint(state);
-            this.p.setLoopFilter(true);
+            this.routeEvent = new PathRoutingHandler.PathRouteEvent(provider, state.railWorld());
             this.junctionName = junction.name();
             this.startNode = startNode;
-            this.routeEvent = new PathRoutingHandler.PathRouteEvent(provider, state.railWorld());
+
+            this.p = new TrackWalkingPoint(state);
+            this.p.setNavigator(event -> {
+                // Handle event
+                routeEvent.reset(event.railState());
+                for (PathRoutingHandler handler : routeEvent.provider().handlers) {
+                    handler.process(routeEvent);
+                }
+
+                // Process results
+                PathNode foundNode = routeEvent.getLastSetNode();
+                if (foundNode != null && !this.startNode.location.equals(foundNode.location)) {
+                    // Calculate distance from the start node to this new node
+                    // Include distance between spawn position on rail, and the current position with the walker
+                    double totalDistance = p.movedTotal;
+                    {
+                        Location spawnPos = p.state.railType().getSpawnLocation(p.state.railBlock(), p.state.position().getMotionFace());
+                        totalDistance += spawnPos.distanceSquared(p.state.positionLocation());
+                    }
+
+                    // Add neighbour
+                    this.startNode.addNeighbour(foundNode, totalDistance, this.getJunctionName());
+                    if (DEBUG_MODE) {
+                        routeEvent.provider().getTrainCarts().log(Level.INFO, "MADE CONNECTION FROM " +
+                                startNode.getDisplayName() + " TO " + foundNode.getDisplayName());
+                    }
+
+                    // Finished
+                    event.abortNavigation();
+                    return;
+                }
+
+                // If route blocked, finish routing here
+                if (routeEvent.isBlocked()) {
+                    event.abortNavigation();
+                    return;
+                }
+            });
+            this.p.setLoopFilter(true);
 
             // Include distance from spawn position of rails, to the junction start
             Location spawnPos = state.railType().getSpawnLocation(state.railBlock(), state.position().getMotionFace());
@@ -651,42 +688,8 @@ public class PathProvider extends Task implements TrainCarts.Provider {
             if (!this.p.state.railLookup().isValid()) {
                 return true; // Abort. World not available.
             }
-            if (!this.p.moveFull()) {
-                return true;
-            }
-
-            // Handle event
-            routeEvent.reset(this.p.state);
-            for (PathRoutingHandler handler : routeEvent.provider().handlers) {
-                handler.process(routeEvent);
-            }
-
-            // Process results
-            PathNode foundNode = routeEvent.getLastSetNode();
-            if (foundNode != null && !this.startNode.location.equals(foundNode.location)) {
-                // Calculate distance from the start node to this new node
-                // Include distance between spawn position on rail, and the current position with the walker
-                double totalDistance = p.movedTotal;
-                {
-                    Location spawnPos = p.state.railType().getSpawnLocation(p.state.railBlock(), p.state.position().getMotionFace());
-                    totalDistance += spawnPos.distanceSquared(p.state.positionLocation());
-                }
-
-                // Add neighbour
-                this.startNode.addNeighbour(foundNode, totalDistance, this.getJunctionName());
-                if (DEBUG_MODE) {
-                    routeEvent.provider().getTrainCarts().log(Level.INFO, "MADE CONNECTION FROM " +
-                            startNode.getDisplayName() + " TO " + foundNode.getDisplayName());
-                }
-                return true; // Finished
-            }
-
-            // If route blocked, finish routing here
-            if (routeEvent.isBlocked()) {
-                return true;
-            }
-
-            return false;
+            // All processing is done in the Navigator
+            return !this.p.moveFull();
         }
     }
 
