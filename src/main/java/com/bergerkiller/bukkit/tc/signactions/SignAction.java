@@ -21,6 +21,7 @@ import com.bergerkiller.bukkit.tc.events.SignBuildEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathPredictEvent;
+import com.bergerkiller.bukkit.tc.pathfinding.SignRoutingEvent;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
@@ -571,6 +572,33 @@ public abstract class SignAction {
      */
     public boolean isMemberMoveHandled(SignActionEvent info) {
         return false;
+    }
+
+    /**
+     * Called when this sign is encountered while computing the path finding routing information.
+     * Calls {@link #isRailSwitcher(SignActionEvent)}, {@link #getRailDestinationName(SignActionEvent)}
+     * and {@link #isPathFindingBlocked(SignActionEvent, RailState)} by default. Can be overridden
+     * for more advanced logic, such as path prediction past otherwise routed nodes.
+     *
+     * @param event SignRoutingEvent (SignActionEvent with extra routing-related helper methods)
+     */
+    public void route(SignRoutingEvent event) {
+        // If path blocked, abort
+        if (isPathFindingBlocked(event, event.getCartEnterState())) {
+            event.setBlocked();
+            return;
+        }
+
+        // Is switchable, mark it
+        if (isRailSwitcher(event)) {
+            event.setSwitchable(true);
+        }
+
+        // If destination name is set, add it
+        String destinationName = getRailDestinationName(event);
+        if (destinationName != null) {
+            event.addDestinationName(destinationName);
+        }
     }
 
     /**

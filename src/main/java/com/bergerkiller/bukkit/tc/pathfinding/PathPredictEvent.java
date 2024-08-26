@@ -21,16 +21,15 @@ public class PathPredictEvent extends PathNavigateEvent {
     private double speedLimit;
     private List<ActiveBlockHandler> newBlockHandlers = Collections.emptyList();
 
-    public PathPredictEvent(PathProvider provider, RailState railState, MinecartMember<?> member) {
-        super(railState);
+    public PathPredictEvent(PathProvider provider, MinecartMember<?> member) {
         this.provider = provider;
         this.member = member;
         this.speedLimit = Double.MAX_VALUE;
     }
 
     @Override
-    public void resetToInitialState(RailPath railPath, double currentDistance) {
-        super.resetToInitialState(railPath, currentDistance);
+    public void resetToInitialState(RailState railState, RailPath railPath, double currentDistance) {
+        super.resetToInitialState(railState, railPath, currentDistance);
         this.setSpeedLimit(Double.MAX_VALUE);
         this.newBlockHandlers = Collections.emptyList();
     }

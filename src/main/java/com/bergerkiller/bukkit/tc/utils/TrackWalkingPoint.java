@@ -124,8 +124,8 @@ public class TrackWalkingPoint {
             this.navigator = navigator;
             if (navigator != null) {
                 // Initialize the navigator event
-                PathNavigateEvent navigatorEvent = navigator.createNewEvent(this.state);
-                navigatorEvent.resetToInitialState(this.currentRailPath, this.movedTotal);
+                PathNavigateEvent navigatorEvent = navigator.createNewEvent();
+                navigatorEvent.resetToInitialState(this.state, this.currentRailPath, this.movedTotal);
                 this.navigatorEvent = navigatorEvent;
                 navigator.navigate(navigatorEvent);
 
@@ -418,7 +418,7 @@ public class TrackWalkingPoint {
 
         // Update predictor so the speed limit / switched position is updated
         if (navigator != null && navigatorEvent != null) {
-            navigatorEvent.resetToInitialState(this.currentRailPath, this.movedTotal);
+            navigatorEvent.resetToInitialState(this.state, this.currentRailPath, this.movedTotal);
             navigator.navigate(navigatorEvent);
 
             // Handle navigation aborting
@@ -539,11 +539,10 @@ public class TrackWalkingPoint {
          * {@link #navigate(PathNavigateEvent)} method receives.
          * By default creates the standard {@link PathNavigateEvent}.
          *
-         * @param railState Mutable RailState
          * @return PathNavigateEvent
          */
-        default PathNavigateEvent createNewEvent(RailState railState) {
-            return new PathNavigateEvent(railState);
+        default PathNavigateEvent createNewEvent() {
+            return new PathNavigateEvent();
         }
     }
 
@@ -558,8 +557,8 @@ public class TrackWalkingPoint {
         }
 
         @Override
-        public PathNavigateEvent createNewEvent(RailState railState) {
-            return new PathPredictEvent(member.getTrainCarts().getPathProvider(), railState, member);
+        public PathNavigateEvent createNewEvent() {
+            return new PathPredictEvent(member.getTrainCarts().getPathProvider(), member);
         }
 
         @Override

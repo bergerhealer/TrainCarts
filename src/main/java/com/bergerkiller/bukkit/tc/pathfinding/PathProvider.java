@@ -97,17 +97,21 @@ public class PathProvider extends Task implements TrainCarts.Provider {
                     }
 
                     // Check for blocker signs
-                    SignActionEvent signEvent = trackedSign.createEvent(SignActionType.GROUP_ENTER);
-                    if (action.isPathFindingBlocked(signEvent, event.railState())) {
-                        // If blocked, abort
+                    SignRoutingEvent signEvent = new SignRoutingEvent(trackedSign);
+                    signEvent.overrideCartEnterState(event.railState());
+                    action.route(signEvent);
+
+                    // If blocked, abort
+                    if (signEvent.isBlocked()) {
                         event.setBlocked();
                         return;
                     }
 
-                    // Check for switchers and potential (new) destinations
-                    boolean switchable = action.isRailSwitcher(signEvent);
-                    String destinationName = action.getRailDestinationName(signEvent);
-                    if (!switchable && destinationName == null) {
+                    // If a destination name or switchable is set, create a node here
+                    // Resume navigation from this node onwards
+                    boolean switchable = signEvent.isSwitchable();
+                    List<String> destinationNames = signEvent.getDestinationNames();
+                    if (!switchable && destinationNames.isEmpty()) {
                         continue; // no pathfinding relevant signs
                     }
 
@@ -116,9 +120,7 @@ public class PathProvider extends Task implements TrainCarts.Provider {
                     if (switchable) {
                         newFoundNode.addSwitcher();
                     }
-                    if (destinationName != null) {
-                        newFoundNode.addName(destinationName);
-                    }
+                    destinationNames.forEach(newFoundNode::addName);
                 }
             }
 
@@ -533,7 +535,8 @@ public class PathProvider extends Task implements TrainCarts.Provider {
 
             // Process this location
             RailState initialState = RailState.getSpawnState(RailPiece.create(railType, railBlock));
-            PathRoutingHandler.PathRouteEvent routeEvent = new PathRoutingHandler.PathRouteEvent(this, initialState);
+            PathRoutingHandler.PathRouteEvent routeEvent = new PathRoutingHandler.PathRouteEvent(this, initialState.railWorld());
+            routeEvent.resetToInitialState(initialState, initialState.loadRailLogic().getPath(), 0.0);
             for (PathRoutingHandler handler : this.handlers) {
                 handler.process(routeEvent);
             }
@@ -621,51 +624,56 @@ public class PathProvider extends Task implements TrainCarts.Provider {
     }
 
     private static class PathFindOperation {
+        private final PathProvider provider;
+        private final World world;
         private final TrackWalkingPoint p;
         private final PathNode startNode;
         private final String junctionName;
-        private final PathRoutingHandler.PathRouteEvent routeEvent; // re-used
 
         public PathFindOperation(PathProvider provider, PathNode startNode, RailState state, RailJunction junction) {
-            this.routeEvent = new PathRoutingHandler.PathRouteEvent(provider, state.railWorld());
+            this.provider = provider;
+            this.world = state.railWorld();
             this.junctionName = junction.name();
             this.startNode = startNode;
 
             this.p = new TrackWalkingPoint(state);
-            this.p.setNavigator(event -> {
-                // Handle event
-                routeEvent.reset(event.railState());
-                for (PathRoutingHandler handler : routeEvent.provider().handlers) {
-                    handler.process(routeEvent);
-                }
+            this.p.setNavigator(new TrackWalkingPoint.Navigator() {
+                @Override
+                public void navigate(PathNavigateEvent event) {
+                    PathRoutingHandler.PathRouteEvent routeEvent = (PathRoutingHandler.PathRouteEvent) event;
 
-                // Process results
-                PathNode foundNode = routeEvent.getLastSetNode();
-                if (foundNode != null && !this.startNode.location.equals(foundNode.location)) {
-                    // Calculate distance from the start node to this new node
-                    // Include distance between spawn position on rail, and the current position with the walker
-                    double totalDistance = p.movedTotal;
-                    {
-                        Location spawnPos = p.state.railType().getSpawnLocation(p.state.railBlock(), p.state.position().getMotionFace());
-                        totalDistance += spawnPos.distanceSquared(p.state.positionLocation());
+                    // Handle event
+                    for (PathRoutingHandler handler : routeEvent.provider().handlers) {
+                        handler.process(routeEvent);
                     }
 
-                    // Add neighbour
-                    this.startNode.addNeighbour(foundNode, totalDistance, this.getJunctionName());
-                    if (DEBUG_MODE) {
-                        routeEvent.provider().getTrainCarts().log(Level.INFO, "MADE CONNECTION FROM " +
-                                startNode.getDisplayName() + " TO " + foundNode.getDisplayName());
-                    }
+                    // Process results
+                    PathNode foundNode = routeEvent.getLastSetNode();
+                    if (foundNode != null && !startNode.location.equals(foundNode.location)) {
+                        // Calculate distance from the start node to this new node
+                        // Include distance between spawn position on rail, and the current position with the walker
+                        double totalDistance = p.movedTotal;
+                        {
+                            Location spawnPos = p.state.railType().getSpawnLocation(p.state.railBlock(), p.state.position().getMotionFace());
+                            totalDistance += spawnPos.distanceSquared(p.state.positionLocation());
+                        }
 
-                    // Finished
-                    event.abortNavigation();
-                    return;
+                        // Add neighbour
+                        startNode.addNeighbour(foundNode, totalDistance, getJunctionName());
+                        if (DEBUG_MODE) {
+                            routeEvent.provider().getTrainCarts().log(Level.INFO, "MADE CONNECTION FROM " +
+                                    startNode.getDisplayName() + " TO " + foundNode.getDisplayName());
+                        }
+
+                        // Finished
+                        event.abortNavigation();
+                        return;
+                    }
                 }
 
-                // If route blocked, finish routing here
-                if (routeEvent.isBlocked()) {
-                    event.abortNavigation();
-                    return;
+                @Override
+                public PathNavigateEvent createNewEvent() {
+                    return new PathRoutingHandler.PathRouteEvent(provider, world);
                 }
             });
             this.p.setLoopFilter(true);
@@ -694,24 +702,19 @@ public class PathProvider extends Task implements TrainCarts.Provider {
     }
 
     /**
-     * Finds out rail information at a particular rail position.
-     * If new nodes are discovered, they are scheduled.
+     * Queries all registered routing handlers while navigating over the track
      * 
-     * @param state
-     * @return info
+     * @param railState Current rail state position information
+     * @param railPath Current rail path navigated over
+     * @param currentDistance Current distance moved from start
+     * @return PathRouteEvent storing the results of routing
      */
-    public PathRailInfo getRailInfo(RailState state) {
-        PathRoutingHandler.PathRouteEvent routeEvent = new PathRoutingHandler.PathRouteEvent(this, state);
+    public PathRoutingHandler.PathRouteEvent handleRouting(RailState railState, RailPath railPath, double currentDistance) {
+        PathRoutingHandler.PathRouteEvent routeEvent = new PathRoutingHandler.PathRouteEvent(this, railState.railWorld());
+        routeEvent.resetToInitialState(railState, railPath, currentDistance);
         for (PathRoutingHandler handler : this.handlers) {
             handler.process(routeEvent);
         }
-
-        if (routeEvent.isBlocked()) {
-            return PathRailInfo.BLOCKED;
-        } else if (routeEvent.getLastSetNode() != null) {
-            return PathRailInfo.NODE;
-        } else {
-            return  PathRailInfo.NONE;
-        }
+        return routeEvent;
     }
 }

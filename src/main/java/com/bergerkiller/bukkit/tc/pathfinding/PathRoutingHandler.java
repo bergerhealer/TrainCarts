@@ -1,10 +1,9 @@
 package com.bergerkiller.bukkit.tc.pathfinding;
 
+import com.bergerkiller.bukkit.tc.controller.components.RailPath;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
-import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 
 /**
@@ -54,30 +53,20 @@ public interface PathRoutingHandler {
      * and {@link #setBlocked()} can be used to provide feedback
      * about what to do with the current rail.
      */
-    public static class PathRouteEvent {
+    class PathRouteEvent extends PathNavigateEvent {
         private final PathProvider provider;
         private final PathWorld world;
-        private RailState railState;
         private PathNode nodeAtRail;
-        private boolean blocked;
-
-        public PathRouteEvent(PathProvider provider, RailState state) {
-            this(provider, state.railWorld());
-            reset(state);
-        }
 
         public PathRouteEvent(PathProvider provider, World world) {
             this.provider = provider;
             this.world = provider.getWorld(world);
         }
 
-        /**
-         * Resets the event for the next invocation
-         */
-        public void reset(RailState railState) {
-            this.railState = railState;
+        @Override
+        public void resetToInitialState(RailState railState, RailPath railPath, double currentDistance) {
+            super.resetToInitialState(railState, railPath, currentDistance);
             this.nodeAtRail = null;
-            this.blocked = false;
         }
 
         /**
@@ -89,44 +78,6 @@ public interface PathRoutingHandler {
          */
         public PathProvider provider() {
             return this.provider;
-        }
-
-        /**
-         * Gets the exact rail block, type, position and direction
-         * currently on the track.
-         *
-         * @return rail state details
-         */
-        public RailState railState() {
-            return this.railState;
-        }
-
-        /**
-         * Gets the RailPiece of the current track. This stores the rail
-         * type and block, and other information about a piece of rails.
-         *
-         * @return rail piece
-         */
-        public RailPiece railPiece() {
-            return this.railState.railPiece();
-        }
-
-        /**
-         * Gets the exact rail block the path finder is currently on
-         *
-         * @return rail block
-         */
-        public Block railBlock() {
-            return this.railState.railBlock();
-        }
-
-        /**
-         * Gets the World this event is for
-         *
-         * @return rail world
-         */
-        public World railWorld() {
-            return this.railState.railWorld();
         }
 
         /**
@@ -155,19 +106,41 @@ public interface PathRoutingHandler {
         /**
          * Marks the current rail block movement as a blocked movement.
          * Path finding will abort at this point and consider the rest
-         * of the track ahead unreachable.
+         * of the track ahead unreachable.<br>
+         * <br>
+         * Underlying it just calls {@link #abortNavigation()} to stop walking
+         * the track
+         *
+         * @see #abortNavigation()
          */
         public void setBlocked() {
-            this.blocked = true;
+            this.abortNavigation();
         }
 
         /**
          * Gets whether {@link #setBlocked()} was called for this rail
          *
          * @return True if blocked
+         * @see #isNavigationAborted()
          */
         public boolean isBlocked() {
-            return this.blocked;
+            return this.isNavigationAborted();
+        }
+
+        /**
+         * Reads the stored information of this event and summarizes it with the
+         * PathRailInfo state enum
+         *
+         * @return PathRailInfo
+         */
+        public PathRailInfo getRailInfo() {
+            if (isBlocked()) {
+                return PathRailInfo.BLOCKED;
+            } else if (getLastSetNode() != null) {
+                return PathRailInfo.NODE;
+            } else {
+                return PathRailInfo.NONE;
+            }
         }
     }
 }

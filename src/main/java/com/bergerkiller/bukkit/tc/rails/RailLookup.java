@@ -591,7 +591,7 @@ public final class RailLookup {
          * @param action Sign action event type
          * @return new SignActionEvent
          */
-        public SignActionEvent createEvent(SignActionType action) {
+        public final SignActionEvent createEvent(SignActionType action) {
             return (new SignActionEvent(this)).setAction(action);
         }
 

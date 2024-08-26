@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
+import com.bergerkiller.bukkit.tc.pathfinding.PathRoutingHandler;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.block.Block;
@@ -143,7 +144,9 @@ public class DebugToolTypeListDestinations extends DebugToolTrackWalkerType {
                 old_railBlock = walker.state.railBlock();
             }
 
-            PathRailInfo info = provider.getRailInfo(walker.state);
+            PathRoutingHandler.PathRouteEvent routeEvent = provider.handleRouting(walker.state, walker.currentRailPath, walker.movedTotal);
+            //TODO: Handle prediction from the route event
+            PathRailInfo info = routeEvent.getRailInfo();
             if (info == PathRailInfo.BLOCKED) {
                 if (this.destination != null) {
                     player.sendMessage(ChatColor.RED + "Destination " + this.destination + " can not be reached!");

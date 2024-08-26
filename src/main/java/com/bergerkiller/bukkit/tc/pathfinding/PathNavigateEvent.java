@@ -14,30 +14,29 @@ import org.bukkit.block.Block;
  * position to navigate to.
  */
 public class PathNavigateEvent {
-    private final RailState railState;
+    private RailState railState;
     private RailPath railPath;
     private RailPath.Position nextPosition;
     private double currentDistance;
     private boolean abortNavigation;
 
     /**
-     * Constructs a new PathNavigateEvent with the (mutable!) rail state specified.
-     * Must call {@link #resetToInitialState(RailPath, double)} to set it up
+     * Constructs a new PathNavigateEvent.
+     * Must call {@link #resetToInitialState(RailState, RailPath, double)} to set it up
      * before using as an event.
-     *
-     * @param railState Mutable RailState
      */
-    public PathNavigateEvent(RailState railState) {
-        this.railState = railState;
+    public PathNavigateEvent() {
     }
 
     /**
      * Resets this event, so that it can be used again for a new rail position
      *
+     * @param railState Current Rail State for the event
      * @param railPath Current Rail Path for the event
      * @param currentDistance Current distance traveled so far using the track walking point
      */
-    public void resetToInitialState(RailPath railPath, double currentDistance) {
+    public void resetToInitialState(RailState railState, RailPath railPath, double currentDistance) {
+        this.railState = railState;
         this.railPath = railPath;
         this.nextPosition = null;
         this.currentDistance = currentDistance;
