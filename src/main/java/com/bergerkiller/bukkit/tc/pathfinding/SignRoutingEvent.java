@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.pathfinding;
 
+import com.bergerkiller.bukkit.tc.controller.components.RailPath;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
@@ -13,8 +15,12 @@ import java.util.List;
  * path finding routing algorithm. Destination names and switched nodes
  * can be designated, and a level of path prediction can be performed.
  */
-public class SignRoutingEvent extends SignActionEvent {
-    private boolean blocked = false;
+public class SignRoutingEvent extends SignActionEvent implements PathNavigateEvent {
+    private RailState railState;
+    private RailPath railPath;
+    private RailPath.Position nextPosition;
+    private double currentDistance;
+    private boolean abortNavigation;
     private boolean switchable = false;
     private List<String> destinationNames = Collections.emptyList();
 
@@ -23,20 +29,53 @@ public class SignRoutingEvent extends SignActionEvent {
         this.setAction(SignActionType.GROUP_ENTER);
     }
 
-    /**
-     * Gets whether the path is blocked and navigation should be aborted
-     *
-     * @return True if {@link #setBlocked()} was called
-     */
-    public boolean isBlocked() {
-        return blocked;
+    @Override
+    public void resetToInitialState(RailState railState, RailPath railPath, double currentDistance) {
+        this.railState = railState;
+        this.railPath = railPath;
+        this.nextPosition = null;
+        this.currentDistance = currentDistance;
+        this.abortNavigation = false;
     }
 
-    /**
-     * Aborts further navigation because the current path/route is blocked
-     */
-    public void setBlocked() {
-        this.blocked = true;
+    @Override
+    public double currentDistance() {
+        return currentDistance;
+    }
+
+    @Override
+    public boolean isNavigationAborted() {
+        return abortNavigation;
+    }
+
+    @Override
+    public void abortNavigation() {
+        abortNavigation = true;
+    }
+
+    @Override
+    public RailState railState() {
+        return this.railState;
+    }
+
+    @Override
+    public RailPath railPath() {
+        return this.railPath;
+    }
+
+    @Override
+    public RailPath.Position getSwitchedPosition() {
+        return this.nextPosition;
+    }
+
+    @Override
+    public boolean hasSwitchedPosition() {
+        return this.nextPosition != null;
+    }
+
+    @Override
+    public void setSwitchedPosition(RailPath.Position nextPosition) {
+        this.nextPosition = nextPosition;
     }
 
     /**

@@ -15,7 +15,7 @@ import java.util.List;
  * a switched {@link RailPath.Position} based on the properties of the train/member entering it.
  * Speed traps and blockers should configure a speed limit to use on the piece of track.
  */
-public class PathPredictEvent extends PathNavigateEvent {
+public class PathPredictEvent extends PathNavigateEventBaseImpl {
     private final PathProvider provider;
     private final MinecartMember<?> member;
     private double speedLimit;

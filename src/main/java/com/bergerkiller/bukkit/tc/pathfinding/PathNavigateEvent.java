@@ -13,19 +13,15 @@ import org.bukkit.block.Block;
  * Provides information about the current rail visited and a way to override the next
  * position to navigate to.
  */
-public class PathNavigateEvent {
-    private RailState railState;
-    private RailPath railPath;
-    private RailPath.Position nextPosition;
-    private double currentDistance;
-    private boolean abortNavigation;
+public interface PathNavigateEvent {
 
     /**
      * Constructs a new PathNavigateEvent.
      * Must call {@link #resetToInitialState(RailState, RailPath, double)} to set it up
      * before using as an event.
      */
-    public PathNavigateEvent() {
+    static PathNavigateEvent createNew() {
+        return new PathNavigateEventBaseImpl();
     }
 
     /**
@@ -35,38 +31,50 @@ public class PathNavigateEvent {
      * @param railPath Current Rail Path for the event
      * @param currentDistance Current distance traveled so far using the track walking point
      */
-    public void resetToInitialState(RailState railState, RailPath railPath, double currentDistance) {
-        this.railState = railState;
-        this.railPath = railPath;
-        this.nextPosition = null;
-        this.currentDistance = currentDistance;
-        this.abortNavigation = false;
-    }
+    void resetToInitialState(RailState railState, RailPath railPath, double currentDistance);
 
     /**
      * Gets the current distance the walking point has traveled since the start
      *
      * @return Travel distance
      */
-    public double currentDistance() {
-        return currentDistance;
-    }
+    double currentDistance();
 
     /**
      * Gets whether {@link #abortNavigation()} was called. Mostly internal use.
      *
      * @return True if navigation is aborted
      */
-    public boolean isNavigationAborted() {
-        return abortNavigation;
-    }
+    boolean isNavigationAborted();
 
     /**
      * Aborts any further navigation of the track walking point. This exits navigation early,
      * causing {@link TrackWalkingPoint#moveFull()} to return false.
      */
-    public void abortNavigation() {
-        abortNavigation = true;
+    void abortNavigation();
+
+    /**
+     * Marks the current rail block movement as a blocked movement.
+     * Path finding will abort at this point and consider the rest
+     * of the track ahead unreachable.<br>
+     * <br>
+     * Underlying it just calls {@link #abortNavigation()} to stop walking
+     * the track
+     *
+     * @see #abortNavigation()
+     */
+    default void setBlocked() {
+        this.abortNavigation();
+    }
+
+    /**
+     * Gets whether {@link #setBlocked()} was called for this rail
+     *
+     * @return True if blocked
+     * @see #isNavigationAborted()
+     */
+    default boolean isBlocked() {
+        return this.isNavigationAborted();
     }
 
     /**
@@ -75,18 +83,14 @@ public class PathNavigateEvent {
      *
      * @return rail state details
      */
-    public RailState railState() {
-        return this.railState;
-    }
+    RailState railState();
 
     /**
      * Gets the rail path currently being moved over
      *
      * @return rail path details
      */
-    public RailPath railPath() {
-        return this.railPath;
-    }
+    RailPath railPath();
 
     /**
      * Gets the RailPiece of the current track. This stores the rail
@@ -94,8 +98,8 @@ public class PathNavigateEvent {
      *
      * @return rail piece
      */
-    public RailPiece railPiece() {
-        return this.railState.railPiece();
+    default RailPiece railPiece() {
+        return railState().railPiece();
     }
 
     /**
@@ -103,8 +107,8 @@ public class PathNavigateEvent {
      *
      * @return rail block
      */
-    public Block railBlock() {
-        return this.railState.railBlock();
+    default Block railBlock() {
+        return railState().railBlock();
     }
 
     /**
@@ -112,8 +116,8 @@ public class PathNavigateEvent {
      *
      * @return rail world
      */
-    public World railWorld() {
-        return this.railState.railWorld();
+    default World railWorld() {
+        return railState().railWorld();
     }
 
     /**
@@ -123,9 +127,7 @@ public class PathNavigateEvent {
      *
      * @return next rail path position, null if unset
      */
-    public RailPath.Position getSwitchedPosition() {
-        return this.nextPosition;
-    }
+    RailPath.Position getSwitchedPosition();
 
     /**
      * Gets whether a switched position was set
@@ -133,9 +135,7 @@ public class PathNavigateEvent {
      * @return True if a switched position was set
      * @see #setSwitchedPosition(RailPath.Position)
      */
-    public boolean hasSwitchedPosition() {
-        return this.nextPosition != null;
-    }
+    boolean hasSwitchedPosition();
 
     /**
      * Sets the rail path end-position of the current rail block that should be
@@ -143,9 +143,7 @@ public class PathNavigateEvent {
      *
      * @param nextPosition Next rail path position
      */
-    public void setSwitchedPosition(RailPath.Position nextPosition) {
-        this.nextPosition = nextPosition;
-    }
+    void setSwitchedPosition(RailPath.Position nextPosition);
 
     /**
      * Sets the rail junction of the current rail block that should be
@@ -153,7 +151,7 @@ public class PathNavigateEvent {
      *
      * @param junction Junction to take and whose end-position to navigate to
      */
-    public void setSwitchedJunction(RailJunction junction) {
-        this.nextPosition = junction.position();
+    default void setSwitchedJunction(RailJunction junction) {
+        setSwitchedPosition(junction.position());
     }
 }

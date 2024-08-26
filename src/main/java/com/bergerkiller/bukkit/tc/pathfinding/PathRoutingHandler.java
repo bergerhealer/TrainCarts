@@ -53,7 +53,7 @@ public interface PathRoutingHandler {
      * and {@link #setBlocked()} can be used to provide feedback
      * about what to do with the current rail.
      */
-    class PathRouteEvent extends PathNavigateEvent {
+    class PathRouteEvent extends PathNavigateEventBaseImpl {
         private final PathProvider provider;
         private final PathWorld world;
         private PathNode nodeAtRail;
@@ -101,30 +101,6 @@ public interface PathRoutingHandler {
          */
         public PathNode getLastSetNode() {
             return this.nodeAtRail;
-        }
-
-        /**
-         * Marks the current rail block movement as a blocked movement.
-         * Path finding will abort at this point and consider the rest
-         * of the track ahead unreachable.<br>
-         * <br>
-         * Underlying it just calls {@link #abortNavigation()} to stop walking
-         * the track
-         *
-         * @see #abortNavigation()
-         */
-        public void setBlocked() {
-            this.abortNavigation();
-        }
-
-        /**
-         * Gets whether {@link #setBlocked()} was called for this rail
-         *
-         * @return True if blocked
-         * @see #isNavigationAborted()
-         */
-        public boolean isBlocked() {
-            return this.isNavigationAborted();
         }
 
         /**

@@ -111,16 +111,20 @@ public class PathProvider extends Task implements TrainCarts.Provider {
                     // Resume navigation from this node onwards
                     boolean switchable = signEvent.isSwitchable();
                     List<String> destinationNames = signEvent.getDestinationNames();
-                    if (!switchable && destinationNames.isEmpty()) {
-                        continue; // no pathfinding relevant signs
+                    if (switchable || !destinationNames.isEmpty()) {
+                        // Update the node we found with the information of the current sign
+                        PathNode newFoundNode = event.createNode();
+                        if (switchable) {
+                            newFoundNode.addSwitcher();
+                        }
+                        destinationNames.forEach(newFoundNode::addName);
+                        return;
                     }
 
-                    // Update the node we found with the information of the current sign
-                    PathNode newFoundNode = event.createNode();
-                    if (switchable) {
-                        newFoundNode.addSwitcher();
+                    // If a next position on the track was predicted, pass is along to the walker
+                    if (signEvent.hasSwitchedPosition()) {
+                        event.setSwitchedPosition(signEvent.getSwitchedPosition());
                     }
-                    destinationNames.forEach(newFoundNode::addName);
                 }
             }
 
