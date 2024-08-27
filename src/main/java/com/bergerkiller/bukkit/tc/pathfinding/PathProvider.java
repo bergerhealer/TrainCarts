@@ -549,7 +549,8 @@ public class PathProvider extends Task implements TrainCarts.Provider {
 
     private void addPendingNodes() {
         if (!this.pendingNodes.isEmpty()) {
-            for (PathNode node : this.pendingNodes) {
+            Set<PathNode> newPending = new LinkedHashSet<>(this.pendingNodes);
+            for (PathNode node : newPending) {
                 Block startRail = node.location.getBlock();
                 RailType startType = RailType.getType(startRail);
                 if (startType == RailType.NONE) {
@@ -600,7 +601,7 @@ public class PathProvider extends Task implements TrainCarts.Provider {
                     }
                 }
             }
-            this.pendingNodes.clear();
+            this.pendingNodes.removeAll(newPending);
         }
     }
 
