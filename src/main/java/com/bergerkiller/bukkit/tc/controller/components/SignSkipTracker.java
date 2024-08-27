@@ -26,7 +26,6 @@ import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 public class SignSkipTracker {
     private final IPropertiesHolder owner;
     private boolean isLoaded = false;
-    private boolean hasSkippedSigns = false;
     private final Map<TrackedSign, Boolean> history = new HashMap<TrackedSign, Boolean>();
 
     public SignSkipTracker(IPropertiesHolder owner) {
@@ -65,8 +64,17 @@ public class SignSkipTracker {
      * @param sign Sign
      */
     public void setSkipped(SignTracker.ActiveSign sign) {
-        this.history.put(sign.getSign(), Boolean.TRUE);
-        this.hasSkippedSigns = true;
+        setSkipped(sign, true);
+    }
+
+    /**
+     * Sets a sign as being skipped
+     *
+     * @param sign Sign
+     * @param skipped Whether it is skipped or not
+     */
+    public void setSkipped(SignTracker.ActiveSign sign, boolean skipped) {
+        this.history.put(sign.getSign(), skipped);
     }
 
     /**
@@ -78,7 +86,6 @@ public class SignSkipTracker {
     public void loadSigns(List<SignTracker.ActiveSign> signs) {
         this.isLoaded = true;
         this.history.clear();
-        this.hasSkippedSigns = false;
         if (signs.isEmpty()) {
             return;
         }
@@ -99,7 +106,6 @@ public class SignSkipTracker {
                             signPos.world.equals(signBlock.getWorld().getName()))
                     {
                         this.history.put(sign.getSign(), Boolean.TRUE);
-                        this.hasSkippedSigns = true;
                         break;
                     }
                 }
@@ -118,38 +124,21 @@ public class SignSkipTracker {
         if (this.isLoaded) {
             this.isLoaded = false;
             this.history.clear();
-            this.hasSkippedSigns = false;
         }
     }
 
     /**
-     * Called from the block tracker to filter the detected signs based on the skip settings.
-     * The signs specified should contain all signs known to the minecart for proper functioning.
-     * 
-     * @param signs (modifiable!)
+     * Called when a new rails block is visited and new signs are loaded in. This tracker
+     * does some maintenance work, such as removing signs from history that the train is
+     * no longer seeing.
+     *
+     * @param signs New list of signs that the train or cart sees right now
      */
-    public void filterSigns(List<SignTracker.ActiveSign> signs) {
+    public void onSignVisitStart(List<SignTracker.ActiveSign> signs) {
         // Load if needed
         if (!this.isLoaded) {
             this.loadSigns(signs);
         }
-
-        // Read settings
-        IProperties properties = this.owner.getProperties();
-        final SignSkipOptions options = properties.get(StandardProperties.SIGN_SKIP);
-
-        // Not active; simplified logic to minimize wasted CPU
-        if (!options.isActive() && !this.hasSkippedSigns) {
-            this.history.clear();
-            for (SignTracker.ActiveSign sign : signs) {
-                this.history.put(sign.getSign(), Boolean.FALSE);
-            }
-            return;
-        }
-
-        // Track down below when the skipped signs change
-        // When it does, we need to update the property to ensure persistence
-        final SkipOptionChanges changes = new SkipOptionChanges(options);
 
         // Remove states from history for signs that are no longer tracked
         {
@@ -164,98 +153,83 @@ public class SignSkipTracker {
                     }
                 }
                 if (!found) {
-                    changes.skippedSignsChanged |= e.getValue().booleanValue();
                     iter.remove();
                 }
             }
         }
 
-        // Go by all signs and if they don't already exist, add them
-        // Check if they need to be skipped when doing so
-        this.hasSkippedSigns = false;
-        Iterator<SignTracker.ActiveSign> iter = signs.iterator();
-        while (iter.hasNext()) {
-            Boolean historyState = this.history.computeIfAbsent(iter.next().getSign(), sign -> {
-                boolean passFilter = true;
-                if (options.hasFilter()) {
-                    if (sign.sign == null) {
-                        passFilter = false; // should never happen, but just in case
-                    } else {
-                        passFilter = Util.getCleanLine(sign.sign, 1).toLowerCase(Locale.ENGLISH).startsWith(options.filter());
-                    }
+        // Now: For each sign onSignVisit(sign) is called
+        //      Go by all signs and if they don't already exist, add them
+        //      Check if they need to be skipped when doing so
+    }
+
+    /**
+     * Called from the block tracker to filter the detected signs based on the skip settings.
+     * The signs specified should contain all signs known to the minecart for proper functioning.
+     * 
+     * @param sign New or existing sign that is visited just now
+     * @return true to see the sign, false to skip it
+     */
+    public boolean onSignVisit(SignTracker.ActiveSign sign) {
+        Boolean isSignSkipped = this.history.computeIfAbsent(sign.getSign(), trackedSign -> {
+            // This lambda runs when a sign is encountered it has not seen before
+            // When this happens, run the filtering logic
+
+            // Read settings
+            IProperties properties = this.owner.getProperties();
+            final SignSkipOptions options = properties.get(StandardProperties.SIGN_SKIP);
+
+            // Shortcut: if not active, don't do anything
+            if (!options.isActive()) {
+                return Boolean.FALSE;
+            }
+
+            boolean passFilter = true;
+            if (options.hasFilter()) {
+                if (trackedSign.sign == null) {
+                    passFilter = false; // should never happen, but just in case
+                } else {
+                    passFilter = Util.getCleanLine(trackedSign.sign, 1).toLowerCase(Locale.ENGLISH).startsWith(options.filter());
                 }
-                return passFilter ? changes.handleSkip() : Boolean.FALSE;
-            });
-
-            // When state is 'true', skip the sign
-            if (historyState.booleanValue()) {
-                this.hasSkippedSigns = true;
-                iter.remove();
             }
-        }
 
-        // If options stored signs in the past, get rid of them
-        // If skip offset/count changed, update as well
-        if (options.hasSkippedSigns() || changes.countersChanged) {
-            properties.set(StandardProperties.SIGN_SKIP, SignSkipOptions.create(
-                    changes.ignoreCounter,
-                    changes.skipCounter,
-                    options.filter(),
-                    Collections.emptySet()
-            ));
-        }
+            Boolean isNewSignSkipped;
+            if (passFilter) {
+                // Track down below when the skipped signs change
+                // When it does, we need to update the property to ensure persistence
+                final SkipOptionChanges changes = new SkipOptionChanges(options);
+                isNewSignSkipped = changes.handleSkip();
 
-        // Old stuff. Skipped signs are no longer saved in properties.
-        /*
-        // Save skipped signs property again when it changes
-        if (changes.skippedSignsChanged) {
-            // Store the signs that are skipped in history
-            if (this.hasSkippedSigns) {
-                // Produce set of skipped signs and update
-                Set<BlockLocation> skippedSigns = this.history.entrySet().stream()
-                    .filter(e -> e.getValue().booleanValue())
-                    .map(e -> new BlockLocation(e.getKey().signBlock))
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
-
-                // Store updated options
-                properties.set(StandardProperties.SIGN_SKIP, SignSkipOptions.create(
-                        changes.ignoreCounter,
-                        changes.skipCounter,
-                        options.filter(),
-                        Collections.unmodifiableSet(skippedSigns)
-                ));
+                // If options stored signs in the past, get rid of them
+                // If skip offset/count changed, update as well
+                if (options.hasSkippedSigns() || changes.countersChanged) {
+                    properties.set(StandardProperties.SIGN_SKIP, SignSkipOptions.create(
+                            changes.ignoreCounter,
+                            changes.skipCounter,
+                            options.filter(),
+                            Collections.emptySet()
+                    ));
+                }
             } else {
-                // Had signs, clear them
-                properties.set(StandardProperties.SIGN_SKIP, SignSkipOptions.create(
-                        changes.ignoreCounter,
-                        changes.skipCounter,
-                        options.filter(),
-                        Collections.emptySet()
-                ));
+                isNewSignSkipped = Boolean.FALSE;
             }
-        } else if (changes.countersChanged) {
-            // Only update counters
-            properties.set(StandardProperties.SIGN_SKIP, SignSkipOptions.create(
-                    changes.ignoreCounter,
-                    changes.skipCounter,
-                    options.filter(),
-                    options.skippedSigns()
-            ));
-        }
-         */
+
+            return isNewSignSkipped;
+        });
+
+        // If skipped, return false to indicate it is filtered
+        return !isSignSkipped;
     }
 
     private static final class SkipOptionChanges {
         public int ignoreCounter;
         public int skipCounter;
         public boolean countersChanged;
-        public boolean skippedSignsChanged;
 
         public SkipOptionChanges(SignSkipOptions options) {
             this.ignoreCounter = options.ignoreCounter();
             this.skipCounter = options.skipCounter();
             this.countersChanged = false;
-            this.skippedSignsChanged = false;
         }
 
         public Boolean handleSkip() {
@@ -266,7 +240,6 @@ public class SignSkipTracker {
             } else if (this.skipCounter > 0) {
                 this.skipCounter--;
                 this.countersChanged = true;
-                this.skippedSignsChanged = true;
                 return Boolean.TRUE;
             } else {
                 return Boolean.FALSE;

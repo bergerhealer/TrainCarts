@@ -244,7 +244,7 @@ public class SignTrackerGroup extends SignTracker {
 
                 // Filter based on cart skip options
                 for (MinecartMember<?> member : owner) {
-                    member.getSignTracker().signSkipTrackerFilterSigns(member.getSignTracker().liveActiveSigns);
+                    member.getSignTracker().onSignVisitStart(member.getSignTracker().liveActiveSigns);
                 }
 
                 // Synchronize the list of active signs using the liveActiveSigns of the members
@@ -256,7 +256,7 @@ public class SignTrackerGroup extends SignTracker {
                 // Filter the list based on sign skip options before returning
                 // This will remove elements from the lists in the member sign tracker!
                 // That way, telling a train to skip signs will make it skip [cart] signs just the same
-                this.signSkipTrackerFilterSigns(this.liveActiveSigns);
+                this.onSignVisitStart(this.liveActiveSigns);
 
                 // Update cart signs
                 // Activating a sign might cause a change to this train, make a defensive copy

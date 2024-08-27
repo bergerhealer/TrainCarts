@@ -89,7 +89,14 @@ public abstract class SignTracker {
         offlineLoadedSkippedSignKeys = Collections.emptySet();
     }
 
-    protected void signSkipTrackerFilterSigns(List<ActiveSign> signs) {
+    /**
+     * Called when a new list of signs is visited by a cart or train. Restores information
+     * from cached offline state and pokes the sign skip tracker as well.
+     * The input list is not filtered.
+     *
+     * @param signs List of all signs
+     */
+    protected void onSignVisitStart(List<ActiveSign> signs) {
         if (!signs.isEmpty()) {
             // If there's signs the train already had activated, update those in the skip tracker
             // first. This avoids a skip rule repeating after a reload
@@ -112,8 +119,9 @@ public abstract class SignTracker {
             }
         }
 
-        // Now actually filter the signs list
-        signSkipTracker.filterSigns(signs);
+        // Tells the tracker what signs we are seeing right now
+        // In addition with every (new) sign activation onSignVisit is called later
+        signSkipTracker.onSignVisitStart(signs);
     }
 
     public boolean isSkipped(TrackedSign sign) {
@@ -290,14 +298,20 @@ public abstract class SignTracker {
             currActiveSign.detected = true;
 
             // If a new sign was added, update the list of tracked signs
+            // Also pass it by the sign skip tracker, to see if we skip this one
             if (currActiveSign.enterState == null) {
                 currActiveSign.enterState = newActiveSign.enterState;
-                activeSigns.add(currActiveSign);
 
-                // Fire enter for new sign (if not reloaded)
                 if (offlineLoadedActiveSignKeys.contains(currActiveSign.getUniqueKey())) {
+                    // If loaded from an offline state, assume activated and do not ask skip tracker
+                    activeSigns.add(currActiveSign);
+                    signSkipTracker.setSkipped(currActiveSign, false);
                     onLoadedChange(currActiveSign, true);
-                } else {
+                } else if (signSkipTracker.onSignVisit(currActiveSign)) {
+                    // Sign skip tracker allows the sign, add it as an active sign
+                    activeSigns.add(currActiveSign);
+
+                    // Fire enter for new sign
                     onSignChange(currActiveSign, true);
                 }
             } else if (currActiveSign.sign != newActiveSign.sign) {
