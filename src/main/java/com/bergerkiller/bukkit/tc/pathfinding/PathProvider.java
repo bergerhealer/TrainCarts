@@ -626,7 +626,11 @@ public class PathProvider extends Task implements TrainCarts.Provider {
         if (!state.railPiece().offlineWorld().isLoaded()) {
             return;
         }
-        pendingOperations.offer(new PathFindOperation(this, node, state, junction));
+        try {
+            pendingOperations.offer(new PathFindOperation(this, node, state, junction));
+        } catch (Throwable t) {
+            getTrainCarts().getLogger().log(Level.SEVERE, "Failed to schedule path finding operation for node at " + node.location, t);
+        }
     }
 
     private static class PathFindOperation {
