@@ -105,7 +105,7 @@ public class PathProvider extends Task implements TrainCarts.Provider {
                     // If blocked, abort
                     if (signEvent.isBlocked()) {
                         event.setBlocked();
-                        return;
+                        continue;
                     }
 
                     // If a destination name or switchable is set, create a node here
@@ -119,7 +119,7 @@ public class PathProvider extends Task implements TrainCarts.Provider {
                             newFoundNode.addSwitcher();
                         }
                         destinationNames.forEach(newFoundNode::addName);
-                        return;
+                        continue;
                     }
 
                     // If a next position on the track was predicted, pass is along to the walker
