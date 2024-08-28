@@ -102,7 +102,7 @@ public class SignBuildOptions {
      * @return this
      */
     public SignBuildOptions setMinecraftWIKIHelp(String page) {
-        return setHelpURL("https://minecraft.gamepedia.com/" + page,
+        return setHelpURL("https://minecraft.wiki/w/" + page,
                 "Click here to visit the Minecraft WIKI for help with this sign");
     }
 
