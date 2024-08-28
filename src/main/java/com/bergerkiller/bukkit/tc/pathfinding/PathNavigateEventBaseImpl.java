@@ -24,6 +24,12 @@ public class PathNavigateEventBaseImpl implements PathNavigateEvent {
 
     @Override
     public void resetToInitialState(RailState railState, RailPath railPath, double currentDistance) {
+        if (railState == null) {
+            throw new IllegalArgumentException("Rail state cannot be null");
+        }
+        if (railPath == null) {
+            throw new IllegalArgumentException("Rail path cannot be null");
+        }
         this.railState = railState;
         this.railPath = railPath;
         this.nextPosition = null;

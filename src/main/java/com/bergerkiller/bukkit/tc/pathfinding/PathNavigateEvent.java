@@ -81,7 +81,7 @@ public interface PathNavigateEvent {
      * Gets the exact rail block, type, position and direction
      * currently on the track.
      *
-     * @return rail state details
+     * @return rail state details. Is never null.
      */
     RailState railState();
 

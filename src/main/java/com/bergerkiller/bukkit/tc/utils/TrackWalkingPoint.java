@@ -129,7 +129,9 @@ public class TrackWalkingPoint {
             this.navigator = currentNav = new NavigatorWithEvent<>(navigator);
 
             // Initialize the navigator event
-            currentNav.navigate(this.state, this.currentRailPath, this.movedTotal);
+            if (!this.isDerailed()) {
+                currentNav.navigate(this.state, this.currentRailPath, this.movedTotal);
+            }
 
             if (currentNav.event.isNavigationAborted()) {
                 this.failReason = FailReason.NAVIGATION_ABORTED;

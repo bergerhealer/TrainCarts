@@ -98,6 +98,7 @@ public class PathProvider extends Task implements TrainCarts.Provider {
 
                     // Check for blocker signs
                     SignRoutingEvent signEvent = new SignRoutingEvent(trackedSign);
+                    signEvent.resetToInitialState(event.railState(), event.railPath(), event.currentDistance());
                     signEvent.overrideCartEnterState(event.railState());
                     action.route(signEvent);
 
