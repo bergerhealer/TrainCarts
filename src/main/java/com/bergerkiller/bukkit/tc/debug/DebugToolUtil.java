@@ -116,8 +116,14 @@ public class DebugToolUtil {
             p.move(-0.01);
         }
 
-        player.sendMessage(ChatColor.RED + "End of the rail at " + coordinates(p) +
-                " after " + ((int) (walker.movedTotal + initialDistance)) + " blocks");
+        if (walker.failReason == TrackWalkingPoint.FailReason.NAVIGATION_ABORTED) {
+            player.sendMessage(ChatColor.RED + "A blocker sign at " + ChatColor.YELLOW + coordinates(p) +
+                    ChatColor.RED + " is blocking trains after " +
+                    ((int) (walker.movedTotal + initialDistance)) + " blocks!");
+        } else {
+            player.sendMessage(ChatColor.RED + "End of the rail at " + coordinates(p) +
+                    " after " + ((int) (walker.movedTotal + initialDistance)) + " blocks!");
+        }
     }
 
     public static String formatNumber(double value) {

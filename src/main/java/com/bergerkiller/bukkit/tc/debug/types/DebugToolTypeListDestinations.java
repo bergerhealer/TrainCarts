@@ -111,8 +111,40 @@ public class DebugToolTypeListDestinations extends DebugToolTrackWalkerType {
      */
     @Override
     public void onBlockInteract(TrainCarts trainCarts, Player player, TrackWalkingPoint walker, CommonItemStack item, boolean isRightClick) {
-        // TODO Auto-generated method stub
         PathProvider provider = trainCarts.getPathProvider();
+
+        // Install a navigator to perform routing predictions
+        // This adds support for constant direction switcher signs altering movement
+        // We ignore the switcher / destination sign information it produces
+        // TODO: Also handle the display of those here...
+        walker.setNavigator(new TrackWalkingPoint.Navigator<PathRoutingHandler.PathRouteEvent>() {
+            @Override
+            public void navigate(PathRoutingHandler.PathRouteEvent routeEvent) {
+                // This adds information about switchers, blockers and forced movement
+                routeEvent.provider().handleRouting(routeEvent);
+
+                // Logging
+                PathRailInfo info = routeEvent.getRailInfo();
+                if (info == PathRailInfo.BLOCKED) {
+                    if (destination != null) {
+                        player.sendMessage(ChatColor.RED + "Destination " + destination + " can not be reached!");
+                    }
+                    player.sendMessage(ChatColor.RED + "A blocker sign at " +
+                            ChatColor.YELLOW + DebugToolUtil.coordinates(walker.state.position()) +
+                            ChatColor.RED + " is blocking trains!");
+                    routeEvent.abortNavigation();
+                } else if (info == PathRailInfo.NODE) {
+                    debugListRoutesFrom(trainCarts, player, walker.state, destination, player.isSneaking(), walker.movedTotal);
+                    routeEvent.abortNavigation();
+                }
+            }
+
+            @Override
+            public PathRoutingHandler.PathRouteEvent createNewEvent() {
+                return new PathRoutingHandler.PathRouteEvent(provider, walker.state.railWorld());
+            }
+        });
+
         Block old_railBlock = null;
         double stopDistance = walker.movedTotal + 2000.0; // 2000 blocks at a time
         int lim = 10000;
@@ -125,13 +157,17 @@ public class DebugToolTypeListDestinations extends DebugToolTrackWalkerType {
                 break;
             } else if (this.destination != null) {
                 if (!walker.move(0.3)) {
-                    DebugToolUtil.showEndOfTheRail(player, walker, 0.0);
+                    if (walker.failReason != TrackWalkingPoint.FailReason.NAVIGATION_ABORTED) {
+                        DebugToolUtil.showEndOfTheRail(player, walker, 0.0);
+                    }
                     break;
                 }
                 Util.spawnDustParticle(walker.state.positionLocation(), Color.RED);
             } else {
                 if (!walker.moveFull()) {
-                    DebugToolUtil.showEndOfTheRail(player, walker, 0.0);
+                    if (walker.failReason != TrackWalkingPoint.FailReason.NAVIGATION_ABORTED) {
+                        DebugToolUtil.showEndOfTheRail(player, walker, 0.0);
+                    }
                     break;
                 }
                 Util.spawnDustParticle(walker.state.positionLocation(), Color.GRAY);
@@ -142,22 +178,6 @@ public class DebugToolTypeListDestinations extends DebugToolTrackWalkerType {
                 continue;
             } else {
                 old_railBlock = walker.state.railBlock();
-            }
-
-            PathRoutingHandler.PathRouteEvent routeEvent = provider.handleRouting(walker.state, walker.currentRailPath, walker.movedTotal);
-            //TODO: Handle prediction from the route event
-            PathRailInfo info = routeEvent.getRailInfo();
-            if (info == PathRailInfo.BLOCKED) {
-                if (this.destination != null) {
-                    player.sendMessage(ChatColor.RED + "Destination " + this.destination + " can not be reached!");
-                }
-                player.sendMessage(ChatColor.RED + "A blocker sign at " +
-                        ChatColor.YELLOW + DebugToolUtil.coordinates(walker.state.position()) +
-                        ChatColor.RED + " is blocking trains!");
-                break;
-            } else if (info == PathRailInfo.NODE) {
-                debugListRoutesFrom(trainCarts, player, walker.state, this.destination, player.isSneaking(), walker.movedTotal);
-                break;
             }
         }
     }
@@ -358,9 +378,24 @@ public class DebugToolTypeListDestinations extends DebugToolTrackWalkerType {
             return null; // not found
         }
 
+        final PathProvider provider = connection.destination.getWorld().getProvider();
+
         // Walk a short distance and spawn colored particles to denote this junction
         TrackWalkingPoint walker = new TrackWalkingPoint(state);
         walker.setLoopFilter(true);
+        walker.setNavigator(new TrackWalkingPoint.Navigator<PathRoutingHandler.PathRouteEvent>() {
+            @Override
+            public void navigate(PathRoutingHandler.PathRouteEvent routeEvent) {
+                // This adds information about switchers, blockers and forced movement
+                routeEvent.provider().handleRouting(routeEvent);
+            }
+
+            @Override
+            public PathRoutingHandler.PathRouteEvent createNewEvent() {
+                return new PathRoutingHandler.PathRouteEvent(provider, walker.state.railWorld());
+            }
+        });
+
         return walker;
     }
 }
