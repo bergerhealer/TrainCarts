@@ -379,8 +379,12 @@ public class TrackWalkingPoint {
         // If navigating and the navigator altered the path, move to
         // this new position and advance a small amount beyond the rail.
         if (navigator != null && navigator.event.hasSwitchedPosition()) {
-            navigator.event.getSwitchedPosition().copyTo(position);
-            position.makeAbsolute(navigator.event.railBlock());
+            RailPath.Position switchedPosition = navigator.event.getSwitchedPosition().clone();
+            switchedPosition.makeAbsolute(navigator.event.railBlock());
+            double distance = position.distance(switchedPosition);
+            switchedPosition.copyTo(position);
+            moved += distance;
+            movedTotal += distance;
         }
 
         // Load next rails information

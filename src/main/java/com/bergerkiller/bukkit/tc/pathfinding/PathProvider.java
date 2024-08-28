@@ -679,7 +679,7 @@ public class PathProvider extends Task implements TrainCarts.Provider {
                         double totalDistance = p.movedTotal;
                         {
                             Location spawnPos = p.state.railType().getSpawnLocation(p.state.railBlock(), p.state.position().getMotionFace());
-                            totalDistance += spawnPos.distanceSquared(p.state.positionLocation());
+                            totalDistance += spawnPos.distance(p.state.positionLocation());
                         }
 
                         // Add neighbour
