@@ -32,6 +32,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -89,6 +90,8 @@ public class PathProvider extends Task implements TrainCarts.Provider {
         registerRoutingHandler(new PathRoutingHandler() {
             @Override
             public void process(PathRouteEvent event) {
+                boolean switchable = false;
+                List<String> destinationNames = Collections.emptyList();
                 for (RailLookup.TrackedSign trackedSign : event.railPiece().signs()) {
                     // Check there is a SignAction at this sign
                     SignAction action = trackedSign.getAction();
@@ -102,23 +105,27 @@ public class PathProvider extends Task implements TrainCarts.Provider {
                     signEvent.overrideCartEnterState(event.railState());
                     action.route(signEvent);
 
-                    // If blocked, abort
+                    // If blocked, abort. Don't even create / attach a node here.
+                    // The order of the blocker sign doesn't matter - we know the train can't move on
                     if (signEvent.isBlocked()) {
                         event.setBlocked();
-                        continue;
+                        return;
                     }
 
                     // If a destination name or switchable is set, create a node here
                     // Resume navigation from this node onwards
-                    boolean switchable = signEvent.isRouteSwitchable();
-                    List<String> destinationNames = signEvent.getDestinationNames();
-                    if (switchable || !destinationNames.isEmpty()) {
-                        // Update the node we found with the information of the current sign
-                        PathNode newFoundNode = event.createNode();
-                        if (switchable) {
-                            newFoundNode.addSwitcher();
+                    if (signEvent.isRouteSwitchable() || !signEvent.getDestinationNames().isEmpty()) {
+                        // Remember state for later
+                        switchable |= signEvent.isRouteSwitchable();
+                        if (!signEvent.getDestinationNames().isEmpty()) {
+                            if (destinationNames.isEmpty()) {
+                                destinationNames = new ArrayList<>();
+                            }
+                            destinationNames.addAll(signEvent.getDestinationNames());
                         }
-                        destinationNames.forEach(newFoundNode::addName);
+
+                        // Clear any sort of path switched position, as it'll be overridden by this later sign
+                        event.setSwitchedPosition(null);
                         continue;
                     }
 
@@ -126,6 +133,15 @@ public class PathProvider extends Task implements TrainCarts.Provider {
                     if (signEvent.hasSwitchedPosition()) {
                         event.setSwitchedPosition(signEvent.getSwitchedPosition());
                     }
+                }
+
+                if (switchable || !destinationNames.isEmpty()) {
+                    // Update the node we found with the information of the current sign
+                    PathNode newFoundNode = event.createNode();
+                    if (switchable) {
+                        newFoundNode.addSwitcher();
+                    }
+                    destinationNames.forEach(newFoundNode::addName);
                 }
             }
 
@@ -711,6 +727,17 @@ public class PathProvider extends Task implements TrainCarts.Provider {
 
     /**
      * Queries all registered routing handlers while navigating over the track
+     *
+     * @param routeEvent Route event to notify to all handlers
+     */
+    public void handleRouting(PathRoutingHandler.PathRouteEvent routeEvent) {
+        for (PathRoutingHandler handler : this.handlers) {
+            handler.process(routeEvent);
+        }
+    }
+
+    /**
+     * Queries all registered routing handlers while navigating over the track
      * 
      * @param railState Current rail state position information
      * @param railPath Current rail path navigated over
@@ -720,9 +747,7 @@ public class PathProvider extends Task implements TrainCarts.Provider {
     public PathRoutingHandler.PathRouteEvent handleRouting(RailState railState, RailPath railPath, double currentDistance) {
         PathRoutingHandler.PathRouteEvent routeEvent = new PathRoutingHandler.PathRouteEvent(this, railState.railWorld());
         routeEvent.resetToInitialState(railState, railPath, currentDistance);
-        for (PathRoutingHandler handler : this.handlers) {
-            handler.process(routeEvent);
-        }
+        handleRouting(routeEvent);
         return routeEvent;
     }
 }
