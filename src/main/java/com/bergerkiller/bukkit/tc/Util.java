@@ -1445,13 +1445,15 @@ public class Util {
     private static final double SQ_COS_22_5 = Math.pow(Math.cos(Math.PI / 8.0), 2.0);
 
     /**
-     * Check if a rails block connects with another rails block in the direction specified
+     * Check if from a relative direction trains can move onto this rail. This is used
+     * to figure out 'default' watched directions when none are specified on the
+     * sign.
      *
      * @param rails The rails block and type to connect from
      * @param direction to connect to
      * @return True if connected, False if not
      */
-    public static boolean isConnectedRails(RailPiece rails, BlockFace direction) {
+    public static boolean isConnectedRailsFrom(RailPiece rails, BlockFace direction) {
         // Check not invalid
         if (rails == null || rails.block() == null) {
             return false;
@@ -1481,6 +1483,40 @@ public class Util {
         // Verify this is the Block we came from
         return wp.state.railType() == rails.type() &&
                wp.state.railBlock().equals(rails.block());
+    }
+
+    /**
+     * Check if a rails block connects with another rails block in the direction specified.
+     * This checks that movement can travel from this rails into the direction specified.
+     *
+     * @param rails The rails block and type to connect from
+     * @param direction to connect to
+     * @return True if connected, False if not
+     */
+    public static boolean isConnectedRails(RailPiece rails, BlockFace direction) {
+        // Check not invalid
+        if (rails == null || rails.block() == null) {
+            return false;
+        }
+
+        // Move from the current rail minecart position one block into the direction
+        // Check if a rail exists there. If there is, check if it points at this rail
+        // If so, then there is a rails there!
+        RailJunction junction = Util.faceToJunction(rails.type().getJunctions(rails.block()), direction);
+        if (junction == null) {
+            return false;
+        }
+        RailState state = rails.type().takeJunction(rails.block(), junction);
+        if (state == null) {
+            return false;
+        }
+
+        state.initEnterDirection();
+
+        // Move forwards from the rails, and verify it lands onto valid new rails
+        TrackWalkingPoint wp = new TrackWalkingPoint(state);
+        wp.skipFirst();
+        return wp.moveFull();
     }
 
     public static boolean isUpsideDownRailSupport(Block block) {

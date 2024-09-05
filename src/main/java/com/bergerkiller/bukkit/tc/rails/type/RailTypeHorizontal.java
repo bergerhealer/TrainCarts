@@ -282,14 +282,14 @@ public abstract class RailTypeHorizontal extends RailType {
             // find out what directions are watched
             BlockFace[] faces = FaceUtil.getFaces(signFacing);
             for (BlockFace face : faces) {
-                if (Util.isConnectedRails(rail, face)) {
+                if (Util.isConnectedRailsFrom(rail, face)) {
                     watchedFaces.add(face.getOppositeFace());
                 }
             }
             // Try an inversed version, maybe rails can be found there
             if (watchedFaces.isEmpty()) {
                 for (BlockFace face : faces) {
-                    if (Util.isConnectedRails(rail, face.getOppositeFace())) {
+                    if (Util.isConnectedRailsFrom(rail, face.getOppositeFace())) {
                         watchedFaces.add(face);
                     }
                 }
@@ -304,9 +304,9 @@ public abstract class RailTypeHorizontal extends RailType {
 
             // Simple facing checks - NESW
             BlockFace facing = signFacing;
-            if (Util.isConnectedRails(rail, facing)) {
+            if (Util.isConnectedRailsFrom(rail, facing)) {
                 watchedFaces.add(facing.getOppositeFace());
-            } else if (Util.isConnectedRails(rail, facing.getOppositeFace())) {
+            } else if (Util.isConnectedRailsFrom(rail, facing.getOppositeFace())) {
                 watchedFaces.add(facing);
             } else {
                 watchedFaces.add(FaceUtil.rotate(facing, -2));

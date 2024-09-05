@@ -403,11 +403,10 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
         // Attempt parsing the junctionName into a Direction statement
         // This includes special handling for continue/reverse, which uses cart direction
         final String dirText = junctionName.toLowerCase(Locale.ENGLISH);
-        BlockFace enterFace = this.getCartEnterFace();
         if (LogicUtil.contains(dirText, "c", "continue")) {
-            return findJunction(Direction.fromFace(enterFace));
+            return findJunction(Direction.fromFace(getCartEnterFace()));
         } else if (LogicUtil.contains(dirText, "i", "rev", "reverse", "inverse")) {
-            return findJunction(Direction.fromFace(enterFace.getOppositeFace()));
+            return findJunction(Direction.fromFace(getCartEnterFace().getOppositeFace()));
         } else {
             return findJunction(Direction.parse(dirText));
         }
@@ -434,9 +433,14 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
         if (direction == Direction.NONE || direction == null) {
             return null;
         }
+
         BlockFace to = direction.getDirection(this.getFacing());
-        if (direction == Direction.LEFT || direction == Direction.RIGHT) {
-            // Only do this crap for switched vanilla rails. It completely confuses TC-Coasters!
+
+        // This is for switcher signs where no direction is specified on the third/fourth lines
+        // It is sort of a legacy and convenience behavior. But when the player is specific with
+        // l: or r: we do not want to run this, as it causes mysterious bugs.
+        // Only do this crap for switched vanilla rails. It completely confuses TC-Coasters!
+        if (direction == Direction.IMPLICIT_LEFT || direction == Direction.IMPLICIT_RIGHT) {
             if (this.getRailType() instanceof RailTypeRegular && !this.isConnectedRails(to)) {
                 to = Direction.FORWARD.getDirection(this.getFacing());
             }
@@ -866,7 +870,8 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
     }
 
     /**
-     * Checks if rails at the offset specified are connected to the rails at this sign
+     * Checks if movement is possible from this rails into the direction specified, if the
+     * rails were to be switched that way. If the train derails, then false is returned.
      *
      * @param direction to connect to
      * @return True if connected, False if not

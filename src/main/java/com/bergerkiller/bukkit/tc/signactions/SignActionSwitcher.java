@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.signactions;
 import com.bergerkiller.bukkit.common.collections.BlockMap;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.DirectionStatement;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -67,15 +68,18 @@ public class SignActionSwitcher extends SignAction {
         //find out what statements to parse
         List<DirectionStatement> statements = new ArrayList<>();
         if (!info.getLine(2).isEmpty() || !info.getLine(3).isEmpty()) {
+            String left_str = Direction.IMPLICIT_LEFT.aliases()[0];
             if (info.getLine(2).isEmpty()) {
-                statements.add(new DirectionStatement("default", "left"));
+                statements.add(new DirectionStatement("default", left_str));
             } else {
-                statements.add(new DirectionStatement(info.getLine(2), "left"));
+                statements.add(new DirectionStatement(info.getLine(2), left_str));
             }
+
+            String right_str = Direction.IMPLICIT_RIGHT.aliases()[0];
             if (info.getLine(3).isEmpty()) {
-                statements.add(new DirectionStatement("default", "right"));
+                statements.add(new DirectionStatement("default", right_str));
             } else {
-                statements.add(new DirectionStatement(info.getLine(3), "right"));
+                statements.add(new DirectionStatement(info.getLine(3), right_str));
             }
         }
         //other signs below this sign we could parse?

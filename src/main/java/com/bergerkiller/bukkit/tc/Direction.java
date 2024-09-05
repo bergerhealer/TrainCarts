@@ -13,6 +13,10 @@ public enum Direction {
     WEST(true, "w", "west"),
     LEFT(false, "l", "left"),
     RIGHT(false, "r", "right"),
+    /** {@link #LEFT} selected when switcher sign does not define a direction */
+    IMPLICIT_LEFT(false, "implicit_left"),
+    /** {@link #RIGHT} selected when switcher sign does not define a direction */
+    IMPLICIT_RIGHT(false, "implicit_right"),
     FORWARD(false, "f", "front", "forward", "forwards"),
     BACKWARD(false, "b", "back", "backward", "backwards"),
     UP(true, "u", "up", "upwards", "above"),
@@ -63,8 +67,10 @@ public enum Direction {
         case UP:
             return BlockFace.UP;
         case LEFT:
+        case IMPLICIT_LEFT:
             return FaceUtil.rotate(signfacing, 2);
         case RIGHT:
+        case IMPLICIT_RIGHT:
             return FaceUtil.rotate(signfacing, -2);
         case FORWARD:
             return signfacing.getOppositeFace();
@@ -96,8 +102,10 @@ public enum Direction {
             case UP:
                 return BlockFace.UP;
             case LEFT:
+            case IMPLICIT_LEFT:
                 return FaceUtil.rotate(signfacing, 2);
             case RIGHT:
+            case IMPLICIT_RIGHT:
                 return FaceUtil.rotate(signfacing, -2);
             case CONTINUE:
             case FORWARD:
