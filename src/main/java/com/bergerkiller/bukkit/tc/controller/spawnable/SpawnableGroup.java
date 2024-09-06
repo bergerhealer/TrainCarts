@@ -135,14 +135,6 @@ public class SpawnableGroup implements TrainCarts.Provider {
         this.centerMode = mode;
     }
 
-    private void addCenterMode(CenterMode mode) {
-        if (this.centerMode == CenterMode.NONE || this.centerMode == mode) {
-            this.centerMode = mode;
-        } else {
-            this.centerMode = CenterMode.MIDDLE;
-        }
-    }
-
     /**
      * Gets all the Minecarts part of this group
      * 
@@ -736,11 +728,11 @@ public class SpawnableGroup implements TrainCarts.Provider {
             // First check centering mode changing characters
             char c = typesText.charAt(typeTextIdx);
             if (LogicUtil.containsChar(c, "]>)}")) {
-                result.addCenterMode(CenterMode.LEFT);
+                result.setCenterMode(result.getCenterMode().next(CenterMode.LEFT));
                 continue;
             }
             if (LogicUtil.containsChar(c, "[<({")) {
-                result.addCenterMode(CenterMode.RIGHT);
+                result.setCenterMode(result.getCenterMode().next(CenterMode.RIGHT));
                 continue;
             }
 
@@ -858,7 +850,15 @@ public class SpawnableGroup implements TrainCarts.Provider {
      * Ways of centering a train when spawning
      */
     public static enum CenterMode {
-        NONE, MIDDLE, LEFT, RIGHT
+        NONE, MIDDLE, LEFT, RIGHT;
+
+        public CenterMode next(CenterMode adjusted) {
+            if (this == NONE || this == adjusted) {
+                return adjusted;
+            } else {
+                return MIDDLE;
+            }
+        }
     }
 
     /**
