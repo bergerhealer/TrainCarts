@@ -804,13 +804,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
     }
 
     private static EntityType findVanillaCartType(char c) {
-        c = Character.toLowerCase(c); //Note: might fail for turkish!
-        for (VanillaCartType type : VanillaCartType.values()) {
-            if (type.getCode() == c) {
-                return type.getType();
-            }
-        }
-        return null;
+        return VanillaCartType.parse(c).map(VanillaCartType::getType).orElse(null);
     }
 
     /**
@@ -843,6 +837,16 @@ public class SpawnableGroup implements TrainCarts.Provider {
         @Override
         public String toString() {
             return Character.toString(this.code);
+        }
+
+        public static Optional<VanillaCartType> parse(char c) {
+            c = Character.toLowerCase(c); //Note: might fail for turkish!
+            for (VanillaCartType type : VanillaCartType.values()) {
+                if (type.getCode() == c) {
+                    return Optional.of(type);
+                }
+            }
+            return Optional.empty();
         }
     }
 
