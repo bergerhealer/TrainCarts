@@ -156,9 +156,12 @@ public class SpawnableGroup implements TrainCarts.Provider {
      * Adds a new Minecart to the end of this group
      * 
      * @param config
+     * @return SpawnableMember added
      */
-    public void addMember(ConfigurationNode config) {
-        this.members.add(new SpawnableMember(this, config));
+    public SpawnableMember addMember(ConfigurationNode config) {
+        SpawnableMember newMember = new SpawnableMember(this, config);
+        this.members.add(newMember);
+        return newMember;
     }
 
     /**
@@ -166,9 +169,12 @@ public class SpawnableGroup implements TrainCarts.Provider {
      * of an existing spawnable member.
      * 
      * @param member
+     * @return SpawnableMember added
      */
-    public void addMember(SpawnableMember member) {
-        this.members.add(member.cloneWithGroup(this));
+    public SpawnableMember addMember(SpawnableMember member) {
+        SpawnableMember newMember = member.cloneWithGroup(this);
+        this.members.add(newMember);
+        return newMember;
     }
 
     /**
@@ -235,32 +241,48 @@ public class SpawnableGroup implements TrainCarts.Provider {
         return false;
     }
 
-    private int applyConfig(SavedTrainProperties savedTrainProperties) {
-        int numAddedCarts = (savedTrainProperties == null || savedTrainProperties.isEmpty())
-                ? 0 : applyConfig(savedTrainProperties.getConfig());
+    /**
+     * Adds the carts of a saved train as members to this spawnable group and merges the train
+     * configuration.
+     *
+     * @param savedTrainProperties SavedTrainProperties to add to this group
+     * @return List of newly added SpawnableMember
+     */
+    public List<SpawnableMember> addTrainWithConfig(SavedTrainProperties savedTrainProperties) {
+        if (savedTrainProperties == null || savedTrainProperties.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<SpawnableMember> addedMembers = addTrainWithConfig(savedTrainProperties.getConfig());
 
         // If these saved train properties apply a spawn limit, add the saved train properties name
         // to the active spawn limits property of this train.
-        if (numAddedCarts > 0 && savedTrainProperties.getSpawnLimit() >= 0) {
+        if (!addedMembers.isEmpty() && savedTrainProperties.getSpawnLimit() >= 0) {
             StandardProperties.ACTIVE_SAVED_TRAIN_SPAWN_LIMITS.addSavedTrainToConfig(
                     this.config, savedTrainProperties.getName());
         }
 
-        return numAddedCarts;
+        return addedMembers;
     }
 
-    private int applyConfig(ConfigurationNode savedConfig) {
+    /**
+     * Applies the train YAML configuration to this spawnable group and adds the "carts"
+     * represented inside.
+     *
+     * @param savedConfig Saved train YAML config
+     * @return List of newly added SpawnableMember
+     */
+    public List<SpawnableMember> addTrainWithConfig(ConfigurationNode savedConfig) {
         for (String key : savedConfig.getKeys()) {
             if (key.equals("carts")) continue;
             this.config.set(key, savedConfig.get(key));
         }
         List<ConfigurationNode> cartConfigList = savedConfig.getNodeList("carts");
-        int countAdded = 0;
+        List<SpawnableMember> newMembers = new ArrayList<>(cartConfigList.size());
         for (int i = cartConfigList.size() - 1; i >= 0; i--) {
-            this.addMember(cartConfigList.get(i));
-            countAdded++;
+            newMembers.add(this.addMember(cartConfigList.get(i)));
         }
-        return countAdded;
+        return newMembers;
     }
 
     /**
@@ -629,7 +651,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
      */
     public static SpawnableGroup fromConfig(SavedTrainProperties savedTrainProperties) {
         SpawnableGroup result = new SpawnableGroup(savedTrainProperties.getTrainCarts());
-        result.applyConfig(savedTrainProperties);
+        result.addTrainWithConfig(savedTrainProperties);
         return result;
     }
 
@@ -643,7 +665,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
      */
     public static SpawnableGroup fromConfig(TrainCarts plugin, ConfigurationNode savedConfig) {
         SpawnableGroup result = new SpawnableGroup(plugin);
-        result.applyConfig(savedConfig);
+        result.addTrainWithConfig(savedConfig);
         return result;
     }
 
@@ -727,13 +749,13 @@ public class SpawnableGroup implements TrainCarts.Provider {
             String name = plugin.getSavedTrains().findName(typesText.substring(typeTextIdx));
             if (name != null && (name.length() > 1 || findVanillaCartType(c) == null)) {
                 typeTextIdx += name.length() - 1;
-                countAdded += result.applyConfig(plugin.getSavedTrains().getProperties(name));
+                countAdded += result.addTrainWithConfig(plugin.getSavedTrains().getProperties(name)).size();
             } else {
                 EntityType type = findVanillaCartType(c);
                 if (type != null) {
                     ConfigurationNode standardCartConfig = TrainPropertiesStore.getDefaultsByName("spawner").getConfig().clone();
                     standardCartConfig.remove("carts");
-                    result.applyConfig(standardCartConfig);
+                    result.addTrainWithConfig(standardCartConfig);
                     standardCartConfig.set("entityType", type);
                     result.addMember(standardCartConfig);
                     countAdded++;
