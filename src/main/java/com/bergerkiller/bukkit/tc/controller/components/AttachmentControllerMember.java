@@ -80,7 +80,7 @@ public class AttachmentControllerMember
     private Map<Entity, SeatHint> seatHints = new HashMap<Entity, SeatHint>();
     private final Map<Player, AttachmentViewer> viewers = new IdentityHashMap<>();
     private final Map<Entity, Vector> previousSeatPositions = new IdentityHashMap<>();
-    private boolean changeListenerNewSeatsAdded = false;
+    private boolean changeListenerSeatsAddedOrRemoved = false;
     protected final ToggledState networkInvalid = new ToggledState();
     private boolean attached = false;
     private boolean hidden = false;
@@ -506,6 +506,10 @@ public class AttachmentControllerMember
      * @return New seat for this passenger
      */
     public synchronized CartAttachmentSeat findNewSeatForEntity(Entity passenger) {
+        if (this.seatAttachments.isEmpty()) {
+            return null;
+        }
+
         SeatHint seatHint = this.seatHints.get(passenger);
         List<CartAttachmentSeat> sortedSeats;
         if (seatHint != null && !seatHint.isExpired()) {
@@ -589,6 +593,15 @@ public class AttachmentControllerMember
      * @return seat, null if this cart has no seats for the passenger to enter
      */
     public synchronized CartAttachmentSeat findSeat(Entity passenger) {
+        CartAttachmentSeat seat = findSeatOfExistingPassenger(passenger);
+        if (seat != null) {
+            return seat;
+        } else {
+            return this.findNewSeatForEntity(passenger);
+        }
+    }
+
+    private CartAttachmentSeat findSeatOfExistingPassenger(Entity passenger) {
         if (this.seatAttachments.isEmpty()) {
             return null;
         }
@@ -608,7 +621,8 @@ public class AttachmentControllerMember
                 return seat;
             }
         }
-        return this.findNewSeatForEntity(passenger);
+
+        return null;
     }
 
     // Called from NetworkController
@@ -924,7 +938,7 @@ public class AttachmentControllerMember
             detachAttachments(this.flattenedAttachments);
         } finally {
             this.rootAttachment = null;
-            this.changeListenerNewSeatsAdded = false;
+            this.changeListenerSeatsAddedOrRemoved = false; // Don't try to refresh
             this.flattenedAttachments = Collections.emptyList();
             this.seatAttachments = Collections.emptyList();
             this.cachedSeatAttachmentsByPassenger.clear();
@@ -979,6 +993,7 @@ public class AttachmentControllerMember
                     if (oldEntity != null) {
                         previousSeatPositions.put(oldEntity, seat.getTransform().toVector());
                     }
+                    changeListenerSeatsAddedOrRemoved = true;
                 }
             }
 
@@ -1010,7 +1025,7 @@ public class AttachmentControllerMember
             // Create a completely new attachment root using the configuration and set it up
             this.rootAttachment = this.createAttachment(attachmentConfig);
             this.updateFlattenedLists();
-            this.changeListenerNewSeatsAdded = !seatAttachments.isEmpty();
+            this.changeListenerSeatsAddedOrRemoved |= !seatAttachments.isEmpty();
             this.flattenedAttachments.forEach(HelperMethods::perform_onAttached_single);
             this.plugin.getTrainUpdateController().computeAttachmentTransform(
                     this.rootAttachment, this.getLiveTransform());
@@ -1040,7 +1055,7 @@ public class AttachmentControllerMember
             int prevSeatCount = this.seatAttachments.size();
             this.updateFlattenedLists();
             if (this.seatAttachments.size() > prevSeatCount) {
-                this.changeListenerNewSeatsAdded = true;
+                this.changeListenerSeatsAddedOrRemoved = true;
             }
             addedAttachments.forEach(HelperMethods::perform_onAttached_single);
 
@@ -1131,16 +1146,26 @@ public class AttachmentControllerMember
 
         // All changes have been applied. Now put players that had been removed from seats
         // back into the closest seat they can be put in.
+        // Ejects players that no longer have an available seat.
         putPassengersIntoSeats();
     }
 
     private void putPassengersIntoSeats() {
-        if (this.changeListenerNewSeatsAdded) {
-            this.changeListenerNewSeatsAdded = false;
+        if (this.changeListenerSeatsAddedOrRemoved) {
+            this.changeListenerSeatsAddedOrRemoved = false;
 
             // Let all passengers re-enter us
             // For this, we must find suitable Seat attachments in the tree
-            List<Entity> remainingPassengers = new ArrayList<Entity>(this.member.getEntity().getPassengers());
+            // Skip entities that are already inside a seat right now
+            List<Entity> allPassengers = this.member.getEntity().getPassengers();
+            List<Entity> remainingPassengers = new ArrayList<Entity>(allPassengers.size());
+            for (Entity entity : allPassengers) {
+                if (findSeatOfExistingPassenger(entity) == null) {
+                    remainingPassengers.add(entity);
+                }
+            }
+
+            // Try to find a new seat for the players that don't have one
             while (!remainingPassengers.isEmpty()) {
                 Entity entity = remainingPassengers.get(0);
                 Vector position = previousSeatPositions.get(entity);
@@ -1163,7 +1188,9 @@ public class AttachmentControllerMember
             }
 
             // It can happen passengers have no seat now. Eject them.
-            //TODO!
+            for (Entity entity : remainingPassengers) {
+                this.member.getEntity().removePassenger(entity);
+            }
         }
         this.previousSeatPositions.clear();
         this.cachedSeatAttachmentsByPassenger.clear();
