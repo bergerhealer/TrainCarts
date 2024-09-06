@@ -16,8 +16,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.utils.LogicUtil;
-import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -721,61 +719,12 @@ public class SpawnableGroup implements TrainCarts.Provider {
      * @return spawnable group parsed from the types text
      */
     public static SpawnableGroup parse(TrainCarts plugin, String typesText) {
+        TrainSpawnPattern.ParsedSpawnPattern pattern = TrainSpawnPattern.parse(
+                typesText, name -> plugin.getSavedTrains().findName(name));
+
         SpawnableGroup result = new SpawnableGroup(plugin);
-        StringBuilder amountBuilder = new StringBuilder();
-
-        for (int typeTextIdx = 0; typeTextIdx < typesText.length(); typeTextIdx++) {
-            // First check centering mode changing characters
-            char c = typesText.charAt(typeTextIdx);
-            if (LogicUtil.containsChar(c, "]>)}")) {
-                result.setCenterMode(result.getCenterMode().next(CenterMode.LEFT));
-                continue;
-            }
-            if (LogicUtil.containsChar(c, "[<({")) {
-                result.setCenterMode(result.getCenterMode().next(CenterMode.RIGHT));
-                continue;
-            }
-
-            // Attempt to parse a saved train name
-            int countAdded = 0;
-            String name = plugin.getSavedTrains().findName(typesText.substring(typeTextIdx));
-            if (name != null && (name.length() > 1 || findVanillaCartType(c) == null)) {
-                typeTextIdx += name.length() - 1;
-                countAdded += result.addTrainWithConfig(plugin.getSavedTrains().getProperties(name)).size();
-            } else {
-                EntityType type = findVanillaCartType(c);
-                if (type != null) {
-                    ConfigurationNode standardCartConfig = TrainPropertiesStore.getDefaultsByName("spawner").getConfig().clone();
-                    standardCartConfig.remove("carts");
-                    result.addTrainWithConfig(standardCartConfig);
-                    standardCartConfig.set("entityType", type);
-                    result.addMember(standardCartConfig);
-                    countAdded++;
-                } else if (Character.isDigit(c)) {
-                    amountBuilder.append(c);
-                }
-            }
-
-            if (countAdded > 0 && amountBuilder.length() > 0) {
-                // Multiply the amount added with the amount put in front
-                int amount = ParseUtil.parseInt(amountBuilder.toString(), 1);
-                amountBuilder.setLength(0);
-                if (amount == 0) {
-                    // Cancel adding
-                    for (int i = 0; i < countAdded; i++) {
-                        result.members.remove(result.members.size() - 1);
-                    }
-                } else if (amount > 1) {
-                    // Duplicate to add multiple times
-                    int startIdx = result.members.size() - countAdded;
-                    for (int n = 0; n < amount - 1; n++) {
-                        for (int i = 0; i < countAdded; i++) {
-                            result.members.add(result.members.get(startIdx + i).clone());
-                        }
-                    }
-                }
-            }
-        }
+        result.setCenterMode(pattern.centerMode());
+        pattern.newGroupApplier().accept(result);
         return result;
     }
 
@@ -801,10 +750,6 @@ public class SpawnableGroup implements TrainCarts.Provider {
             group.addMember(member);
         }
         return group;
-    }
-
-    private static EntityType findVanillaCartType(char c) {
-        return VanillaCartType.parse(c).map(VanillaCartType::getType).orElse(null);
     }
 
     /**
