@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainProperties;
@@ -725,7 +726,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
         SpawnableGroup result = new SpawnableGroup(plugin);
         result.setCenterMode(pattern.centerMode());
         try {
-            pattern.newGroupApplier().accept(result);
+            pattern.newGroupApplier().apply(result, new Random());
         } catch (TrainSpawnPattern.TrainTooLongException ex) {
             // TODO: Do we do anything with this? For now fail silently.
         }

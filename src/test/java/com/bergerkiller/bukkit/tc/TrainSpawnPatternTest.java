@@ -65,6 +65,87 @@ public class TrainSpawnPatternTest {
     }
 
     @Test
+    public void testChanceWeightComplex() {
+        TrainSpawnPattern.ParsedSpawnPattern pattern = TrainSpawnPattern.parse("40%[mmm]60%[sss]", n -> null);
+
+        assertFalse(pattern.quantity().hasChanceWeight());
+        assertEquals(2, pattern.patterns().size());
+
+        {
+            TrainSpawnPattern.SequenceSpawnPattern seq = getPattern(pattern, 0, TrainSpawnPattern.SequenceSpawnPattern.class);
+            assertEquals(1, seq.amount());
+            assertTrue(seq.quantity().hasChanceWeight());
+            assertEquals(40.0, seq.quantity().chanceWeight, 1e-8);
+            assertEquals(3, seq.patterns().size());
+
+            for (int i = 0; i < 3; i++) {
+                TrainSpawnPattern.VanillaCartSpawnPattern vm = getPattern(seq, i, TrainSpawnPattern.VanillaCartSpawnPattern.class);
+                assertEquals(1, vm.amount());
+                assertFalse(vm.quantity().hasChanceWeight());
+                assertEquals(SpawnableGroup.VanillaCartType.RIDEABLE, vm.type());
+            }
+        }
+        {
+            TrainSpawnPattern.SequenceSpawnPattern seq = getPattern(pattern, 1, TrainSpawnPattern.SequenceSpawnPattern.class);
+            assertEquals(1, seq.amount());
+            assertTrue(seq.quantity().hasChanceWeight());
+            assertEquals(60.0, seq.quantity().chanceWeight, 1e-8);
+            assertEquals(3, seq.patterns().size());
+
+            for (int i = 0; i < 3; i++) {
+                TrainSpawnPattern.VanillaCartSpawnPattern vs = getPattern(seq, i, TrainSpawnPattern.VanillaCartSpawnPattern.class);
+                assertEquals(1, vs.amount());
+                assertFalse(vs.quantity().hasChanceWeight());
+                assertEquals(SpawnableGroup.VanillaCartType.STORAGE, vs.type());
+            }
+        }
+    }
+
+    @Test
+    public void testChanceWeightSimpleWithAmounts() {
+        TrainSpawnPattern.ParsedSpawnPattern pattern = TrainSpawnPattern.parse("30%3m60%4s", n -> null);
+
+        assertEquals(2, pattern.patterns().size());
+
+        {
+            TrainSpawnPattern.VanillaCartSpawnPattern vm = getPattern(pattern, 0, TrainSpawnPattern.VanillaCartSpawnPattern.class);
+            assertEquals(3, vm.amount());
+            assertTrue(vm.quantity().hasChanceWeight());
+            assertEquals(30.0, vm.quantity().chanceWeight, 1e-8);
+            assertEquals(SpawnableGroup.VanillaCartType.RIDEABLE, vm.type());
+        }
+        {
+            TrainSpawnPattern.VanillaCartSpawnPattern vm = getPattern(pattern, 1, TrainSpawnPattern.VanillaCartSpawnPattern.class);
+            assertEquals(4, vm.amount());
+            assertTrue(vm.quantity().hasChanceWeight());
+            assertEquals(60.0, vm.quantity().chanceWeight, 1e-8);
+            assertEquals(SpawnableGroup.VanillaCartType.STORAGE, vm.type());
+        }
+    }
+
+    @Test
+    public void testChanceWeightSimple() {
+        TrainSpawnPattern.ParsedSpawnPattern pattern = TrainSpawnPattern.parse("30%m60%s", n -> null);
+
+        assertEquals(2, pattern.patterns().size());
+
+        {
+            TrainSpawnPattern.VanillaCartSpawnPattern vm = getPattern(pattern, 0, TrainSpawnPattern.VanillaCartSpawnPattern.class);
+            assertEquals(1, vm.amount());
+            assertTrue(vm.quantity().hasChanceWeight());
+            assertEquals(30.0, vm.quantity().chanceWeight, 1e-8);
+            assertEquals(SpawnableGroup.VanillaCartType.RIDEABLE, vm.type());
+        }
+        {
+            TrainSpawnPattern.VanillaCartSpawnPattern vm = getPattern(pattern, 1, TrainSpawnPattern.VanillaCartSpawnPattern.class);
+            assertEquals(1, vm.amount());
+            assertTrue(vm.quantity().hasChanceWeight());
+            assertEquals(60.0, vm.quantity().chanceWeight, 1e-8);
+            assertEquals(SpawnableGroup.VanillaCartType.STORAGE, vm.type());
+        }
+    }
+
+    @Test
     public void testCenterModeComplex() {
         {
             TrainSpawnPattern.ParsedSpawnPattern pattern = TrainSpawnPattern.parse("[2[3m]", n -> null);

@@ -10,7 +10,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Optional;
-import java.util.function.Consumer;
+import java.util.Random;
 import java.util.function.Function;
 
 /**
@@ -63,18 +63,18 @@ public abstract class TrainSpawnPattern {
      *
      * @return Applier consumer function
      */
-    protected abstract Consumer<SpawnableGroup> newGroupApplier();
+    protected abstract Applier newGroupApplier();
 
-    protected Consumer<SpawnableGroup> repeatWithAmount(Consumer<SpawnableGroup> callback) {
+    protected Applier repeatWithAmount(Applier callback) {
         final int amount = quantity().amount;
         if (amount <= 0) {
-            return group -> {};
+            return (group, random) -> {};
         } else if (amount == 1) {
             return callback;
         } else {
-            return group -> {
+            return (group, random) -> {
                 for (int n = 0; n < amount; n++) {
-                    callback.accept(group);
+                    callback.apply(group, random);
                 }
             };
         }
@@ -132,9 +132,26 @@ public abstract class TrainSpawnPattern {
         }
 
         public QuantityPrefix consumeQuantity() {
-            int amount = ParseUtil.parseInt(quantityBuilder.toString(), 1);
-            quantityBuilder.setLength(0);
-            return new QuantityPrefix(amount);
+            try {
+                // Look for a % chance sign. Parse all before it as the chance weight, rest as amount (if any)
+                int chanceIndex = this.quantityBuilder.indexOf("%");
+                if (chanceIndex != -1) {
+                    double chanceWeight = ParseUtil.parseDouble(this.quantityBuilder.substring(0, chanceIndex), 0.0);
+                    if (chanceWeight <= 0.0) {
+                        // 0 causes some horrible math issues, so just pretend it's a zero amount to make it work
+                        return QuantityPrefix.ZERO;
+                    }
+
+                    int amount = ParseUtil.parseInt(this.quantityBuilder.substring(chanceIndex + 1), 1);
+                    return new QuantityPrefix(amount, chanceWeight);
+                }
+
+                // Amount only
+                int amount = ParseUtil.parseInt(quantityBuilder.toString(), 1);
+                return new QuantityPrefix(amount);
+            } finally {
+                quantityBuilder.setLength(0);
+            }
         }
 
         public ParsedSpawnPattern createSpawnPattern() {
@@ -211,7 +228,9 @@ public abstract class TrainSpawnPattern {
 
                 // Anything else is accumulated as the amount prefix
                 ++index;
-                quantityBuilder.append(c);
+                if (Character.isDigit(c) || c == '.' || c == '%') {
+                    quantityBuilder.append(c);
+                }
             }
 
             return index;
@@ -256,7 +275,7 @@ public abstract class TrainSpawnPattern {
         private final SpawnableGroup.CenterMode centerMode;
 
         protected ParsedSpawnPattern(SequenceSpawnPattern sequence, SpawnableGroup.CenterMode centerMode) {
-            super(sequence.quantity(), sequence.patterns());
+            super(sequence);
             this.centerMode = centerMode;
         }
 
@@ -304,7 +323,7 @@ public abstract class TrainSpawnPattern {
         }
 
         @Override
-        protected Consumer<SpawnableGroup> newGroupApplier() {
+        protected Applier newGroupApplier() {
             return repeatWithAmount(twoStage(group -> {
                 ConfigurationNode standardCartConfig = TrainPropertiesStore.getDefaultsByName("spawner").getConfig().clone();
                 standardCartConfig.remove("carts");
@@ -341,7 +360,7 @@ public abstract class TrainSpawnPattern {
         }
 
         @Override
-        protected Consumer<SpawnableGroup> newGroupApplier() {
+        protected Applier newGroupApplier() {
             return repeatWithAmount(twoStage(group -> group.addTrainWithConfig(
                     group.getTrainCarts().getSavedTrains().getProperties(name))));
         }
@@ -352,6 +371,10 @@ public abstract class TrainSpawnPattern {
      */
     public static class SequenceSpawnPattern extends TrainSpawnPattern {
         private final List<TrainSpawnPattern> patterns;
+
+        public SequenceSpawnPattern(SequenceSpawnPattern copy) {
+            this(copy.quantity(), copy.patterns());
+        }
 
         public SequenceSpawnPattern(QuantityPrefix quantity, List<TrainSpawnPattern> patterns) {
             super(quantity);
@@ -413,14 +436,77 @@ public abstract class TrainSpawnPattern {
         }
 
         @Override
-        protected Consumer<SpawnableGroup> newGroupApplier() {
-            final List<Consumer<SpawnableGroup>> appliers = new ArrayList<>(patterns.size());
+        protected Applier newGroupApplier() {
+            // Check whether any of the patterns contain a chance weight
+            boolean hasChanceWeight = false;
+            for (TrainSpawnPattern pattern : patterns) {
+                if (pattern.quantity().hasChanceWeight()) {
+                    hasChanceWeight = true;
+                    break;
+                }
+            }
+
+            // With chance weight we must only activate the consumers when weight matches
+            // For this, assign a weight position for each consumer and compute an index into
+            // this every time it is consumed.
+            // Entries without a chance weight are always active.
+            if (hasChanceWeight) {
+                final List<WeightedApplier> appliers = new ArrayList<>(patterns.size());
+                final double totalChanceWeight;
+                {
+                    double chanceWeightPosition = 0.0;
+                    for (TrainSpawnPattern pattern : patterns) {
+                        if (pattern.quantity().hasChanceWeight()) {
+                            double nextChanceWeightPosition = chanceWeightPosition + pattern.quantity().chanceWeight;
+                            appliers.add(new WeightedApplier(pattern.newGroupApplier(), chanceWeightPosition, nextChanceWeightPosition));
+                            chanceWeightPosition = nextChanceWeightPosition;
+                        } else {
+                            appliers.add(new WeightedApplier(pattern.newGroupApplier()));
+                        }
+                    }
+                    totalChanceWeight = chanceWeightPosition;
+                }
+                return repeatWithAmount((group, random) -> {
+                    double chanceWeightPosition = random.nextDouble(totalChanceWeight);
+                    appliers.forEach(applier -> applier.apply(group, random, chanceWeightPosition));
+                });
+            }
+
+            // Without chance weights this is a simple operation of macro-ing the applier callbacks
+            final List<Applier> appliers = new ArrayList<>(patterns.size());
             for (TrainSpawnPattern pattern : patterns) {
                 appliers.add(pattern.newGroupApplier());
             }
-            return repeatWithAmount(group -> {
-                appliers.forEach(applier -> applier.accept(group));
+            return repeatWithAmount((group, random) -> {
+                appliers.forEach(applier -> applier.apply(group, random));
             });
+        }
+
+        private static class WeightedApplier {
+            private final Applier applier;
+            private final boolean always;
+            private final double chanceWeightRangeStart;
+            private final double chanceWeightRangeEnd;
+
+            public WeightedApplier(Applier applier) {
+                this.applier = applier;
+                this.always = true;
+                this.chanceWeightRangeStart = Double.NaN;
+                this.chanceWeightRangeEnd = Double.NaN;
+            }
+
+            public WeightedApplier(Applier applier, double chanceWeightRangeStart, double chanceWeightRangeEnd) {
+                this.applier = applier;
+                this.always = false;
+                this.chanceWeightRangeStart = chanceWeightRangeStart;
+                this.chanceWeightRangeEnd = chanceWeightRangeEnd;
+            }
+
+            public void apply(SpawnableGroup group, Random random, double chanceWeightPosition) {
+                if (always || (chanceWeightPosition >= chanceWeightRangeStart && chanceWeightPosition < chanceWeightRangeEnd)) {
+                    applier.apply(group, random);
+                }
+            }
         }
     }
 
@@ -429,19 +515,44 @@ public abstract class TrainSpawnPattern {
      * pattern repeats.
      */
     public static class QuantityPrefix {
+        public static final QuantityPrefix ZERO = new QuantityPrefix(0);
         public static final QuantityPrefix ONE = new QuantityPrefix(1);
         public final int amount;
+        public final double chanceWeight;
 
         public QuantityPrefix(int amount) {
+            this(amount, Double.NaN);
+        }
+
+        public QuantityPrefix(int amount, double chanceWeight) {
             this.amount = amount;
+            this.chanceWeight = chanceWeight;
         }
 
         public boolean isOne() {
-            return amount == 1;
+            return amount == 1 && Double.isNaN(chanceWeight);
+        }
+
+        public boolean hasChanceWeight() {
+            return !Double.isNaN(chanceWeight);
         }
 
         @Override
         public String toString() {
+            if (hasChanceWeight()) {
+                StringBuilder str = new StringBuilder();
+                if (chanceWeight == Math.floor(chanceWeight)) {
+                    str.append((int) chanceWeight);
+                } else {
+                    str.append(chanceWeight);
+                }
+                str.append('%');
+                if (amount != 1) {
+                    str.append(amount);
+                }
+                return str.toString();
+            }
+
             return isOne() ? "" : Integer.toString(amount);
         }
     }
@@ -454,14 +565,14 @@ public abstract class TrainSpawnPattern {
      * @param initializer Initializer function that first adds the members to the group
      * @return Applier callback
      */
-    private static Consumer<SpawnableGroup> twoStage(Function<SpawnableGroup, List<SpawnableMember>> initializer) {
+    private static Applier twoStage(Function<SpawnableGroup, List<SpawnableMember>> initializer) {
         return new TwoStageApplier(initializer);
     }
 
     /**
      * @see #twoStage(Function) 
      */
-    private static class TwoStageApplier implements Consumer<SpawnableGroup> {
+    private static class TwoStageApplier implements Applier {
         private final Function<SpawnableGroup, List<SpawnableMember>> initializer;
         private List<SpawnableMember> initializedMembers = null;
 
@@ -470,7 +581,7 @@ public abstract class TrainSpawnPattern {
         }
 
         @Override
-        public void accept(SpawnableGroup spawnableGroup) {
+        public void apply(SpawnableGroup spawnableGroup, Random random) {
             List<SpawnableMember> initializedMembers = this.initializedMembers;
             if (initializedMembers != null) {
                 if ((spawnableGroup.getMembers().size() + initializedMembers.size()) > MAX_SPAWNABLE_TRAIN_LENGTH) {
@@ -489,6 +600,13 @@ public abstract class TrainSpawnPattern {
                 }
             }
         }
+    }
+
+    /**
+     * Applies a spawn pattern to a spawnable group, populating its members
+     */
+    public interface Applier {
+        void apply(SpawnableGroup group, Random random);
     }
 
     public static class TrainTooLongException extends RuntimeException {
