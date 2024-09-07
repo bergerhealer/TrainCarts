@@ -19,6 +19,13 @@ import java.util.function.Function;
  * so it can be unit tested. It has no use otherwise.
  */
 public abstract class TrainSpawnPattern {
+    /**
+     * Absolute maximum amount of carts that can ever be parsed and then spawned.
+     * This guards against an out of memory exploit by trying to spawn extremely long trains.
+     * This limit is checked when building the train configuration.
+     */
+    public static final int MAX_SPAWNABLE_TRAIN_LENGTH = 1024;
+
     private final QuantityPrefix quantity;
 
     protected TrainSpawnPattern(QuantityPrefix quantity) {
@@ -49,7 +56,10 @@ public abstract class TrainSpawnPattern {
      * Returns a new callback function which applies this format to a group.
      * When the returned consumer is invoked the represented information
      * is added to the group. It can be invoked more than once to repeat
-     * the add operation.
+     * the add operation.<br>
+     * <br>
+     * The callback can throw a TrainTooLongException if the number of members has
+     * exceeded {@link #MAX_SPAWNABLE_TRAIN_LENGTH}
      *
      * @return Applier consumer function
      */
@@ -463,10 +473,24 @@ public abstract class TrainSpawnPattern {
         public void accept(SpawnableGroup spawnableGroup) {
             List<SpawnableMember> initializedMembers = this.initializedMembers;
             if (initializedMembers != null) {
+                if ((spawnableGroup.getMembers().size() + initializedMembers.size()) > MAX_SPAWNABLE_TRAIN_LENGTH) {
+                    throw new TrainTooLongException();
+                }
+
                 initializedMembers.forEach(spawnableGroup::addMember);
             } else {
                 this.initializedMembers = this.initializer.apply(spawnableGroup);
+                if (spawnableGroup.getMembers().size() > MAX_SPAWNABLE_TRAIN_LENGTH) {
+                    // Remove again & fail
+                    for (int n = 0; n < initializedMembers.size() && !spawnableGroup.getMembers().isEmpty(); n++) {
+                        spawnableGroup.getMembers().remove(spawnableGroup.getMembers().size() - 1);
+                    }
+                    throw new TrainTooLongException();
+                }
             }
         }
+    }
+
+    public static class TrainTooLongException extends RuntimeException {
     }
 }

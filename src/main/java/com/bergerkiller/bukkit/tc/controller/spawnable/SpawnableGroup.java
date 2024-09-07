@@ -724,7 +724,11 @@ public class SpawnableGroup implements TrainCarts.Provider {
 
         SpawnableGroup result = new SpawnableGroup(plugin);
         result.setCenterMode(pattern.centerMode());
-        pattern.newGroupApplier().accept(result);
+        try {
+            pattern.newGroupApplier().accept(result);
+        } catch (TrainSpawnPattern.TrainTooLongException ex) {
+            // TODO: Do we do anything with this? For now fail silently.
+        }
         return result;
     }
 
