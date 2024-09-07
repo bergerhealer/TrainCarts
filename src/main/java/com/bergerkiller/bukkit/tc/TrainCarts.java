@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.neznamytabnametaghider.TabNameTagHider;
 import com.bergerkiller.bukkit.neznamytabnametaghider.TabNameTagHiderDependency;
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.common.softdependency.SoftDependency;
+import com.bergerkiller.bukkit.sl.API.events.SignVariablesDetectEvent;
 import com.bergerkiller.bukkit.tc.actions.Action;
 import com.bergerkiller.bukkit.tc.actions.registry.ActionRegistry;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
@@ -88,6 +89,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockEvent;
 import org.bukkit.plugin.Plugin;
@@ -145,6 +148,7 @@ public class TrainCarts extends PluginBase {
     };
     private final SoftDependency<Plugin> signLink = new SoftDependency<Plugin>(this, "SignLink") {
         private Task signtask;
+        private Listener variableSuppressionListener = null;
 
         @Override
         protected Plugin initialize(Plugin plugin) {
@@ -161,12 +165,40 @@ public class TrainCarts extends PluginBase {
                 }
             };
             signtask.start(0, 10);
+
+            // If SignLink supports it, add a variable detection event handler that suppresses detection
+            // inside TrainCarts ([train]/[cart]) signs. This is primarily to make the spawn sign % chance
+            // logic behave properly.
+            boolean hasEvent = false;
+            try {
+                Class.forName("com.bergerkiller.bukkit.sl.API.events.SignVariablesDetectEvent");
+                hasEvent = true;
+            } catch (Throwable t) {}
+            if (hasEvent) {
+                variableSuppressionListener = createVariableSuppressionListener();
+                TrainCarts.this.register(variableSuppressionListener);
+            }
+        }
+
+        private Listener createVariableSuppressionListener() {
+            return new Listener() {
+                @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+                public void onSignVariablesDetected(SignVariablesDetectEvent event) {
+                    if (SignActionHeader.parse(event.getLine(0)).isValid()) {
+                        event.setCancelled(true);
+                    }
+                }
+            };
         }
 
         @Override
         protected void onDisable() {
             Task.stop(signtask);
             signtask = null;
+            if (variableSuppressionListener != null) {
+                CommonUtil.unregisterListener(variableSuppressionListener);
+                variableSuppressionListener = null;
+            }
         }
     };
     private final SoftDependency<Plugin> lightAPI = SoftDependency.build(this, "LightAPI")
