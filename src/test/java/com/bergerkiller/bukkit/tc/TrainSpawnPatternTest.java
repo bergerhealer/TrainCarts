@@ -4,6 +4,11 @@ import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
 import com.bergerkiller.bukkit.tc.controller.spawnable.TrainSpawnPattern;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import static org.junit.Assert.*;
 
 /**
@@ -11,6 +16,38 @@ import static org.junit.Assert.*;
  * Does not test that the saved train by-name lookup is working properly.
  */
 public class TrainSpawnPatternTest {
+
+    @Test
+    public void testTrainNameMatchingShort() {
+        List<String> testList = new ArrayList<>(Arrays.asList(
+                "Green", "Blue", "One", "OneLonger", "Two"));
+        Collections.sort(testList);
+
+        assertEquals("Two", TrainSpawnPattern.findNameInSortedList(testList, "TwoWithMoreAfter"));
+        assertEquals("Two", TrainSpawnPattern.findNameInSortedList(testList, "Two"));
+        assertEquals("One", TrainSpawnPattern.findNameInSortedList(testList, "One"));
+        assertEquals("One", TrainSpawnPattern.findNameInSortedList(testList, "OneLong"));
+        assertEquals("OneLonger", TrainSpawnPattern.findNameInSortedList(testList, "OneLonger"));
+        assertEquals("OneLonger", TrainSpawnPattern.findNameInSortedList(testList, "OneLongerWithMore"));
+    }
+
+    @Test
+    public void testTrainNameMatchingLong() {
+        List<String> testList = new ArrayList<>(Arrays.asList(
+                "Green", "Blue", "One", "OneLonger", "Two",
+                "Red", "Redder", "Pineapple", "Train12", "Train123"));
+        Collections.sort(testList);
+
+        assertEquals("Two", TrainSpawnPattern.findNameInSortedList(testList, "TwoWithMoreAfter"));
+        assertEquals("Two", TrainSpawnPattern.findNameInSortedList(testList, "Two"));
+        assertEquals("One", TrainSpawnPattern.findNameInSortedList(testList, "One"));
+        assertEquals("One", TrainSpawnPattern.findNameInSortedList(testList, "OneLong"));
+        assertEquals("OneLonger", TrainSpawnPattern.findNameInSortedList(testList, "OneLonger"));
+        assertEquals("OneLonger", TrainSpawnPattern.findNameInSortedList(testList, "OneLongerWithMore"));
+        assertEquals("Train12", TrainSpawnPattern.findNameInSortedList(testList, "Train12"));
+        assertEquals("Train123", TrainSpawnPattern.findNameInSortedList(testList, "Train123"));
+        assertEquals("Train12", TrainSpawnPattern.findNameInSortedList(testList, "Train124"));
+    }
 
     @Test
     public void testVanillaPattern() {

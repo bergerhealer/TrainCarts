@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.controller.spawnable.TrainSpawnPattern;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.BasicModularConfiguration;
 import com.bergerkiller.bukkit.tc.utils.modularconfiguration.ModularConfigurationEntry;
@@ -298,13 +299,7 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
      * @return name found, null if none found
      */
     public String findName(String text) {
-        String foundName = null;
-        for (String name : this.getNames()) {
-            if (text.startsWith(name) && (foundName == null || name.length() > foundName.length())) {
-                foundName = name;
-            }
-        }
-        return foundName;
+        return TrainSpawnPattern.findNameInSortedList(getNames(), text);
     }
 
     /**

@@ -98,6 +98,25 @@ public abstract class TrainSpawnPattern {
     }
 
     /**
+     * Searches for the input name in the alphabetically sorted list of names.
+     * This looks for an entry where the input text starts with the name
+     * in the sorted name list.
+     *
+     * @param sortedNames Alphabetically sorted list of names
+     * @param input Input name to match
+     * @return Found name, or null if none matched
+     */
+    public static String findNameInSortedList(List<String> sortedNames, String input) {
+        String longestMatchingName = null;
+        for (String name : sortedNames) {
+            if (input.startsWith(name) && (longestMatchingName == null || name.length() > longestMatchingName.length())) {
+                longestMatchingName = name;
+            }
+        }
+        return longestMatchingName;
+    }
+
+    /**
      * Gets the amount of times the contained information is repeated.
      * This is for number prefixes.
      *
