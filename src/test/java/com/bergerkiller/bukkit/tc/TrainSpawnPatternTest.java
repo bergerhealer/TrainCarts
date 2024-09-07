@@ -18,6 +18,18 @@ import static org.junit.Assert.*;
 public class TrainSpawnPatternTest {
 
     @Test
+    public void testTrainNameMatchingVeryShort() {
+        assertNull(TrainSpawnPattern.findNameInSortedList(
+                Collections.emptyList(), "Item"));
+        assertNull(TrainSpawnPattern.findNameInSortedList(
+                Collections.singletonList("Not"), "Item"));
+        assertEquals("Not", TrainSpawnPattern.findNameInSortedList(
+                Collections.singletonList("Not"), "Not"));
+        assertEquals("Not", TrainSpawnPattern.findNameInSortedList(
+                Collections.singletonList("Not"), "NotWithExtra"));
+    }
+
+    @Test
     public void testTrainNameMatchingShort() {
         List<String> testList = new ArrayList<>(Arrays.asList(
                 "Green", "Blue", "One", "OneLonger", "Two"));
@@ -29,6 +41,7 @@ public class TrainSpawnPatternTest {
         assertEquals("One", TrainSpawnPattern.findNameInSortedList(testList, "OneLong"));
         assertEquals("OneLonger", TrainSpawnPattern.findNameInSortedList(testList, "OneLonger"));
         assertEquals("OneLonger", TrainSpawnPattern.findNameInSortedList(testList, "OneLongerWithMore"));
+        assertNull(TrainSpawnPattern.findNameInSortedList(testList, "Twee"));
     }
 
     @Test
@@ -47,6 +60,7 @@ public class TrainSpawnPatternTest {
         assertEquals("Train12", TrainSpawnPattern.findNameInSortedList(testList, "Train12"));
         assertEquals("Train123", TrainSpawnPattern.findNameInSortedList(testList, "Train123"));
         assertEquals("Train12", TrainSpawnPattern.findNameInSortedList(testList, "Train124"));
+        assertNull(TrainSpawnPattern.findNameInSortedList(testList, "Twee"));
     }
 
     @Test

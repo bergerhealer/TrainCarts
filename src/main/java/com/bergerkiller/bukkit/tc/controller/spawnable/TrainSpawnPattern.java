@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -107,13 +108,24 @@ public abstract class TrainSpawnPattern {
      * @return Found name, or null if none matched
      */
     public static String findNameInSortedList(List<String> sortedNames, String input) {
-        String longestMatchingName = null;
-        for (String name : sortedNames) {
-            if (input.startsWith(name) && (longestMatchingName == null || name.length() > longestMatchingName.length())) {
-                longestMatchingName = name;
+        // Binary search to see where roughly we need to look
+        int index = Collections.binarySearch(sortedNames, input);
+        if (index >= 0) {
+            return sortedNames.get(index); // Exact match
+        }
+
+        // Walk steps back and find the longest matching prefix
+        String longestPrefix = null;
+        ListIterator<String> iter = sortedNames.listIterator(-(index + 1));
+        while (iter.hasPrevious()) {
+            String name = iter.previous();
+            if (input.startsWith(name) && (longestPrefix == null || name.length() > longestPrefix.length())) {
+                longestPrefix = name;
+            } else if (longestPrefix != null) {
+                break;
             }
         }
-        return longestMatchingName;
+        return longestPrefix;
     }
 
     /**
