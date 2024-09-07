@@ -19,10 +19,30 @@ import java.util.function.Function;
  * so it can be unit tested. It has no use otherwise.
  */
 public abstract class TrainSpawnPattern {
-    private final int amount;
+    private final QuantityPrefix quantity;
 
-    protected TrainSpawnPattern(int amount) {
-        this.amount = amount;
+    protected TrainSpawnPattern(QuantityPrefix quantity) {
+        this.quantity = quantity;
+    }
+
+    /**
+     * Gets the amount of times the contained information is repeated.
+     * This is for number prefixes.
+     *
+     * @return Quantity of this spawn pattern
+     */
+    public QuantityPrefix quantity() {
+        return quantity;
+    }
+
+    /**
+     * Gets the {@link QuantityPrefix#amount} of the quantity. This is how often
+     * this pattern repeats.
+     *
+     * @return Amount
+     */
+    public int amount() {
+        return quantity().amount;
     }
 
     /**
@@ -36,12 +56,12 @@ public abstract class TrainSpawnPattern {
     protected abstract Consumer<SpawnableGroup> newGroupApplier();
 
     protected Consumer<SpawnableGroup> repeatWithAmount(Consumer<SpawnableGroup> callback) {
-        if (amount() <= 0) {
+        final int amount = quantity().amount;
+        if (amount <= 0) {
             return group -> {};
-        } else if (amount() == 1) {
+        } else if (amount == 1) {
             return callback;
         } else {
-            final int amount = amount();
             return group -> {
                 for (int n = 0; n < amount; n++) {
                     callback.accept(group);
@@ -60,42 +80,132 @@ public abstract class TrainSpawnPattern {
      * @return ParsedSpawnPattern
      */
     public static ParsedSpawnPattern parse(String spawnPattern, Function<String, String> savedTrainMatcher) {
-        StringBuilder amountBuilder = new StringBuilder();
-        SpawnableGroup.CenterMode centerMode = SpawnableGroup.CenterMode.NONE;
-        List<TrainSpawnPattern> patterns = new ArrayList<>();
+        Parser parser = new Parser(spawnPattern, 0, savedTrainMatcher);
+        parser.parse();
+        return parser.createSpawnPattern();
+    }
 
-        for (int typeTextIdx = 0; typeTextIdx < spawnPattern.length(); typeTextIdx++) {
-            // First check centering mode changing characters
-            char c = spawnPattern.charAt(typeTextIdx);
-            if (LogicUtil.containsChar(c, "]>)}")) {
-                centerMode = centerMode.next(SpawnableGroup.CenterMode.LEFT);
-                continue;
-            }
-            if (LogicUtil.containsChar(c, "[<({")) {
-                centerMode = centerMode.next(SpawnableGroup.CenterMode.RIGHT);
-                continue;
-            }
+    /**
+     * Parses (part of) a spawn pattern. Keeps track of the amount prefix as it is parsing.
+     */
+    private static class Parser {
+        private final StringBuilder quantityBuilder = new StringBuilder();
+        private final String spawnPattern;
+        private final int startIndex;
+        private final Function<String, String> savedTrainMatcher;
+        public final List<TrainSpawnPattern> patterns = new ArrayList<>();
+        public SpawnableGroup.CenterMode centerMode = SpawnableGroup.CenterMode.NONE;
+        private boolean foundSequenceEnd = false;
 
-            // Attempt to parse a saved train name
-            String name = savedTrainMatcher.apply(spawnPattern.substring(typeTextIdx));
-            if (name != null && (name.length() > 1 || !SpawnableGroup.VanillaCartType.parse(c).isPresent())) {
-                typeTextIdx += name.length() - 1;
-                int amount = ParseUtil.parseInt(amountBuilder.toString(), 1);
-                amountBuilder.setLength(0);
-                patterns.add(new SavedTrainSpawnPattern(amount, name));
-            } else {
-                Optional<SpawnableGroup.VanillaCartType> type = SpawnableGroup.VanillaCartType.parse(c);
-                if (type.isPresent()) {
-                    int amount = ParseUtil.parseInt(amountBuilder.toString(), 1);
-                    amountBuilder.setLength(0);
-                    patterns.add(new VanillaCartSpawnPattern(amount, type.get()));
-                } else {
-                    amountBuilder.append(c);
-                }
-            }
+        public Parser(String spawnPattern, int startIndex, Function<String, String> savedTrainMatcher) {
+            this.spawnPattern = spawnPattern;
+            this.startIndex = startIndex;
+            this.savedTrainMatcher = savedTrainMatcher;
         }
 
-        return new ParsedSpawnPattern(patterns, centerMode);
+        public boolean hasPatterns() {
+            return !patterns.isEmpty();
+        }
+
+        public boolean hasParsedContent() {
+            // Check a pattern was parsed
+            // Check amount builder has anything. Exclude whitespace.
+            return !patterns.isEmpty() || !quantityBuilder.toString().trim().isEmpty();
+        }
+
+        public SequenceSpawnPattern toSequence(QuantityPrefix quantity) {
+            return new SequenceSpawnPattern(quantity, patterns);
+        }
+
+        public void addPattern(TrainSpawnPattern pattern) {
+            this.patterns.add(pattern);
+        }
+
+        public QuantityPrefix consumeQuantity() {
+            int amount = ParseUtil.parseInt(quantityBuilder.toString(), 1);
+            quantityBuilder.setLength(0);
+            return new QuantityPrefix(amount);
+        }
+
+        public ParsedSpawnPattern createSpawnPattern() {
+            return this.toSequence(QuantityPrefix.ONE).simplify().asSpawnPattern(this.centerMode);
+        }
+
+        public int parse() {
+            int index = startIndex;
+            String spawnPattern = this.spawnPattern;
+            while (index < spawnPattern.length()) {
+                char c = spawnPattern.charAt(index);
+
+                // Check for the start of sub-sequences
+                // This doubles as the centering mode parameter for RIGHT or MIDDLE
+                if (LogicUtil.containsChar(c, "[<({")) {
+                    Parser subParser = new Parser(spawnPattern, index + 1, savedTrainMatcher);
+                    int subEndIndex = subParser.parse();
+
+                    // If no other pattern was parsed yet, then this [ could signify a centering mode parameter
+                    // This only applies for the top-level substring (start index is 0)
+                    if (subEndIndex == spawnPattern.length() && this.startIndex == 0 && !this.hasParsedContent()) {
+                        // For sure the 'RIGHT' center mode is active. But was a 'LEFT' one (closing ]) specified?
+                        // Check this by asking the sub-parser whether a ] character was encountered at the end
+                        this.centerMode = subParser.foundSequenceEnd
+                                ? SpawnableGroup.CenterMode.MIDDLE : SpawnableGroup.CenterMode.RIGHT;
+
+                        // Add all patterns parsed as if we parsed it
+                        for (TrainSpawnPattern pattern : subParser.patterns) {
+                            this.addPattern(pattern);
+                        }
+                        return subEndIndex;
+                    }
+
+                    // Sub-pattern encountered, add it with the quantity prefix
+                    this.addPattern(subParser.toSequence(this.consumeQuantity()));
+                    index = subEndIndex;
+                    continue;
+                }
+
+                // Check for the end of this sub-sequence
+                // This doubles as the centering mode parameter for LEFT if encountered at the top level
+                if (LogicUtil.containsChar(c, "]>)}")) {
+                    // For sub-sequences this counts as the end. Stop parsing.
+                    if (this.startIndex > 0) {
+                        this.foundSequenceEnd = true;
+                        return index + 1;
+                    }
+
+                    // At the top level a stray ] indicates center mode LEFT
+                    // Continue parsing the rest of the String, although anything more
+                    // is technically a syntax error.
+                    this.centerMode = SpawnableGroup.CenterMode.LEFT;
+                    ++index;
+                    continue;
+                }
+
+                // Attempt to parse a saved train name
+                String name = savedTrainMatcher.apply(spawnPattern.substring(index));
+                if (name != null && (name.length() > 1 || !SpawnableGroup.VanillaCartType.parse(c).isPresent())) {
+                    // Saved train name matched. Continue parsing past this point. Add the train.
+                    index += name.length();
+                    addPattern(new SavedTrainSpawnPattern(consumeQuantity(), name));
+                    continue;
+                }
+
+                // Attempt to parse a vanilla Minecart type character
+                Optional<SpawnableGroup.VanillaCartType> type = SpawnableGroup.VanillaCartType.parse(c);
+                if (type.isPresent()) {
+                    // Vanilla cart matched. Continue parsing past this point. Add the cart.
+                    ++index;
+                    addPattern(new VanillaCartSpawnPattern(consumeQuantity(), type.get()));
+                    continue;
+                }
+
+                // Anything else is accumulated as the amount prefix
+                ++index;
+                quantityBuilder.append(c);
+            }
+
+            return index;
+        }
     }
 
     /**
@@ -129,24 +239,14 @@ public abstract class TrainSpawnPattern {
     }
 
     /**
-     * Gets the amount of times the contained information is repeated.
-     * This is for number prefixes.
-     *
-     * @return Amount of times this format repeats
-     */
-    public int amount() {
-        return amount;
-    }
-
-    /**
      * Final parsed pattern. The result of parsing a pattern String. In addition to the
      * parsed formats, includes the centering mode when spawning.
      */
     public static class ParsedSpawnPattern extends SequenceSpawnPattern {
         private final SpawnableGroup.CenterMode centerMode;
 
-        public ParsedSpawnPattern(List<TrainSpawnPattern> patterns, SpawnableGroup.CenterMode centerMode) {
-            super(1, patterns);
+        protected ParsedSpawnPattern(SequenceSpawnPattern sequence, SpawnableGroup.CenterMode centerMode) {
+            super(sequence.quantity(), sequence.patterns());
             this.centerMode = centerMode;
         }
 
@@ -159,6 +259,12 @@ public abstract class TrainSpawnPattern {
         public SpawnableGroup.CenterMode centerMode() {
             return centerMode;
         }
+
+        @Override
+        public String toString() {
+            String str = super.toString();
+            return str.substring(1, str.length() - 1); // Omit surrounding []
+        }
     }
 
     /**
@@ -168,8 +274,8 @@ public abstract class TrainSpawnPattern {
     public static class VanillaCartSpawnPattern extends TrainSpawnPattern {
         private final SpawnableGroup.VanillaCartType type;
 
-        public VanillaCartSpawnPattern(int amount, SpawnableGroup.VanillaCartType type) {
-            super(amount);
+        public VanillaCartSpawnPattern(QuantityPrefix quantity, SpawnableGroup.VanillaCartType type) {
+            super(quantity);
             this.type = type;
         }
 
@@ -180,6 +286,11 @@ public abstract class TrainSpawnPattern {
          */
         public SpawnableGroup.VanillaCartType type() {
             return type;
+        }
+
+        @Override
+        public String toString() {
+            return quantity().toString() + type.getCode();
         }
 
         @Override
@@ -200,8 +311,8 @@ public abstract class TrainSpawnPattern {
     public static class SavedTrainSpawnPattern extends TrainSpawnPattern {
         private final String name;
 
-        public SavedTrainSpawnPattern(int amount, String name) {
-            super(amount);
+        public SavedTrainSpawnPattern(QuantityPrefix quantity, String name) {
+            super(quantity);
             this.name = name;
         }
 
@@ -212,6 +323,11 @@ public abstract class TrainSpawnPattern {
          */
         public String name() {
             return name;
+        }
+
+        @Override
+        public String toString() {
+            return quantity().toString() + name;
         }
 
         @Override
@@ -227,8 +343,8 @@ public abstract class TrainSpawnPattern {
     public static class SequenceSpawnPattern extends TrainSpawnPattern {
         private final List<TrainSpawnPattern> patterns;
 
-        public SequenceSpawnPattern(int amount, List<TrainSpawnPattern> patterns) {
-            super(amount);
+        public SequenceSpawnPattern(QuantityPrefix quantity, List<TrainSpawnPattern> patterns) {
+            super(quantity);
             this.patterns = patterns;
         }
 
@@ -241,6 +357,51 @@ public abstract class TrainSpawnPattern {
             return patterns;
         }
 
+        /**
+         * Simplifies this sequence spawn pattern. If this sequence consists of only one element,
+         * and the quantity of this element is 1, and that element is also a sequence, returns that element.
+         * Otherwise, returns this.
+         *
+         * @return Simplified sequence
+         */
+        public SequenceSpawnPattern simplify() {
+            if (this.patterns.size() == 1 && this.quantity().isOne()) {
+                TrainSpawnPattern p = this.patterns.get(0);
+                if (p instanceof SequenceSpawnPattern) {
+                    return (SequenceSpawnPattern) p;
+                }
+            }
+            return this;
+        }
+
+        /**
+         * Clones this sequence as a spawn pattern, including centering mode information
+         *
+         * @param centerMode CenterMode to set
+         * @return new ParsedSpawnPattern
+         */
+        public ParsedSpawnPattern asSpawnPattern(SpawnableGroup.CenterMode centerMode) {
+            return new ParsedSpawnPattern(this, centerMode);
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder str = new StringBuilder();
+            str.append(quantity().toString());
+            str.append("[");
+            boolean first = true;
+            for (TrainSpawnPattern p : patterns) {
+                if (first) {
+                    first = false;
+                } else {
+                    str.append(" ");
+                }
+                str.append(p.toString());
+            }
+            str.append("]");
+            return str.toString();
+        }
+
         @Override
         protected Consumer<SpawnableGroup> newGroupApplier() {
             final List<Consumer<SpawnableGroup>> appliers = new ArrayList<>(patterns.size());
@@ -250,6 +411,28 @@ public abstract class TrainSpawnPattern {
             return repeatWithAmount(group -> {
                 appliers.forEach(applier -> applier.accept(group));
             });
+        }
+    }
+
+    /**
+     * The quantity prefix of (part of) a spawn pattern. This controls how often the
+     * pattern repeats.
+     */
+    public static class QuantityPrefix {
+        public static final QuantityPrefix ONE = new QuantityPrefix(1);
+        public final int amount;
+
+        public QuantityPrefix(int amount) {
+            this.amount = amount;
+        }
+
+        public boolean isOne() {
+            return amount == 1;
+        }
+
+        @Override
+        public String toString() {
+            return isOne() ? "" : Integer.toString(amount);
         }
     }
 

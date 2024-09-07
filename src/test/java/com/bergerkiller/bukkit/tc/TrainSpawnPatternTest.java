@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Tests and verifies the correct parsing of train spawn patterns.
@@ -61,6 +62,164 @@ public class TrainSpawnPatternTest {
         assertEquals("Train123", TrainSpawnPattern.findNameInSortedList(testList, "Train123"));
         assertEquals("Train12", TrainSpawnPattern.findNameInSortedList(testList, "Train124"));
         assertNull(TrainSpawnPattern.findNameInSortedList(testList, "Twee"));
+    }
+
+    @Test
+    public void testCenterModeComplex() {
+        {
+            TrainSpawnPattern.ParsedSpawnPattern pattern = TrainSpawnPattern.parse("[2[3m]", n -> null);
+            assertEquals(SpawnableGroup.CenterMode.RIGHT, pattern.centerMode());
+            verifyCenterModeComplexPattern(pattern);
+        }
+        {
+            TrainSpawnPattern.ParsedSpawnPattern pattern = TrainSpawnPattern.parse("2[3m]]", n -> null);
+            assertEquals(SpawnableGroup.CenterMode.LEFT, pattern.centerMode());
+            verifyCenterModeComplexPattern(pattern);
+        }
+        {
+            TrainSpawnPattern.ParsedSpawnPattern pattern = TrainSpawnPattern.parse("[2[3m]]", n -> null);
+            assertEquals(SpawnableGroup.CenterMode.MIDDLE, pattern.centerMode());
+            verifyCenterModeComplexPattern(pattern);
+        }
+    }
+
+    private void verifyCenterModeComplexPattern(TrainSpawnPattern.ParsedSpawnPattern pattern) {
+        assertEquals(2, pattern.amount());
+        assertEquals(1, pattern.patterns().size());
+
+        TrainSpawnPattern.VanillaCartSpawnPattern vm = getPattern(pattern, 0, TrainSpawnPattern.VanillaCartSpawnPattern.class);
+        assertEquals(3, vm.amount());
+        assertEquals(SpawnableGroup.VanillaCartType.RIDEABLE, vm.type());
+    }
+
+    @Test
+    public void testCenterModeSimple() {
+        {
+            TrainSpawnPattern.ParsedSpawnPattern pattern = TrainSpawnPattern.parse("m", n -> null);
+            assertEquals(SpawnableGroup.CenterMode.NONE, pattern.centerMode());
+            assertEquals(1, pattern.amount());
+            assertEquals(1, pattern.patterns().size());
+
+            TrainSpawnPattern.VanillaCartSpawnPattern vm = getPattern(pattern, 0, TrainSpawnPattern.VanillaCartSpawnPattern.class);
+            assertEquals(1, vm.amount());
+            assertEquals(SpawnableGroup.VanillaCartType.RIDEABLE, vm.type());
+        }
+        {
+            TrainSpawnPattern.ParsedSpawnPattern pattern = TrainSpawnPattern.parse("[m", n -> null);
+            assertEquals(SpawnableGroup.CenterMode.RIGHT, pattern.centerMode());
+            assertEquals(1, pattern.amount());
+            assertEquals(1, pattern.patterns().size());
+
+            TrainSpawnPattern.VanillaCartSpawnPattern vm = getPattern(pattern, 0, TrainSpawnPattern.VanillaCartSpawnPattern.class);
+            assertEquals(1, vm.amount());
+            assertEquals(SpawnableGroup.VanillaCartType.RIDEABLE, vm.type());
+        }
+        {
+            TrainSpawnPattern.ParsedSpawnPattern pattern = TrainSpawnPattern.parse("m]", n -> null);
+            assertEquals(SpawnableGroup.CenterMode.LEFT, pattern.centerMode());
+            assertEquals(1, pattern.amount());
+            assertEquals(1, pattern.patterns().size());
+
+            TrainSpawnPattern.VanillaCartSpawnPattern vm = getPattern(pattern, 0, TrainSpawnPattern.VanillaCartSpawnPattern.class);
+            assertEquals(1, vm.amount());
+            assertEquals(SpawnableGroup.VanillaCartType.RIDEABLE, vm.type());
+        }
+        {
+            TrainSpawnPattern.ParsedSpawnPattern pattern = TrainSpawnPattern.parse("[m]", n -> null);
+            assertEquals(SpawnableGroup.CenterMode.MIDDLE, pattern.centerMode());
+            assertEquals(1, pattern.amount());
+            assertEquals(1, pattern.patterns().size());
+
+            // Note: is simplified, but center mode should stay
+            TrainSpawnPattern.VanillaCartSpawnPattern vm = getPattern(pattern, 0, TrainSpawnPattern.VanillaCartSpawnPattern.class);
+            assertEquals(1, vm.amount());
+            assertEquals(SpawnableGroup.VanillaCartType.RIDEABLE, vm.type());
+        }
+    }
+
+    @Test
+    public void testSubSequencePatternComplex() {
+        TrainSpawnPattern.ParsedSpawnPattern pattern = TrainSpawnPattern.parse("4TrainName5[2m3s][3[ms]]", n -> {
+            if (n.startsWith("TrainName")) {
+                return "TrainName";
+            } else {
+                return null;
+            }
+        });
+        assertEquals(SpawnableGroup.CenterMode.NONE, pattern.centerMode());
+
+        // Is not simplified, should have the 3 components
+        assertEquals(1, pattern.amount());
+        assertEquals(3, pattern.patterns().size());
+
+        // Should have the TrainName as first item
+        {
+            TrainSpawnPattern.SavedTrainSpawnPattern st = getPattern(pattern, 0, TrainSpawnPattern.SavedTrainSpawnPattern.class);
+            assertEquals(4, st.amount());
+            assertEquals("TrainName", st.name());
+        }
+
+        // Should have a sequence as second item with the right amount prefix
+        {
+            TrainSpawnPattern.SequenceSpawnPattern seq = getPattern(pattern, 1, TrainSpawnPattern.SequenceSpawnPattern.class);
+            assertEquals(5, seq.amount());
+            assertEquals(2, seq.patterns().size());
+
+            // Should have the two vanilla cart patterns with right amounts
+            {
+                TrainSpawnPattern.VanillaCartSpawnPattern vm = getPattern(seq, 0, TrainSpawnPattern.VanillaCartSpawnPattern.class);
+                assertEquals(2, vm.amount());
+                assertEquals(SpawnableGroup.VanillaCartType.RIDEABLE, vm.type());
+            }
+            {
+                TrainSpawnPattern.VanillaCartSpawnPattern vs = getPattern(seq, 1, TrainSpawnPattern.VanillaCartSpawnPattern.class);
+                assertEquals(3, vs.amount());
+                assertEquals(SpawnableGroup.VanillaCartType.STORAGE, vs.type());
+            }
+        }
+
+        // Should have a sequence as third item, with inside another sequence
+        {
+            TrainSpawnPattern.SequenceSpawnPattern seq = getPattern(pattern, 2, TrainSpawnPattern.SequenceSpawnPattern.class);
+            assertEquals(1, seq.amount());
+            assertEquals(1, seq.patterns().size());
+
+            {
+                TrainSpawnPattern.SequenceSpawnPattern subSeq = getPattern(seq, 0, TrainSpawnPattern.SequenceSpawnPattern.class);
+
+                // Should have the two vanilla cart patterns with right amounts (1 each since there is no quantity prefix)
+                {
+                    TrainSpawnPattern.VanillaCartSpawnPattern vm = getPattern(subSeq, 0, TrainSpawnPattern.VanillaCartSpawnPattern.class);
+                    assertEquals(1, vm.amount());
+                    assertEquals(SpawnableGroup.VanillaCartType.RIDEABLE, vm.type());
+                }
+                {
+                    TrainSpawnPattern.VanillaCartSpawnPattern vs = getPattern(subSeq, 1, TrainSpawnPattern.VanillaCartSpawnPattern.class);
+                    assertEquals(1, vs.amount());
+                    assertEquals(SpawnableGroup.VanillaCartType.STORAGE, vs.type());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testSubSequencePatternSimple() {
+        TrainSpawnPattern.ParsedSpawnPattern pattern = TrainSpawnPattern.parse("5[2m3s]", n -> null);
+        assertEquals(SpawnableGroup.CenterMode.NONE, pattern.centerMode());
+        assertEquals(5, pattern.amount()); // Is simplified, so should be 5
+
+        // Should have the two vanilla cart patterns
+        assertEquals(2, pattern.patterns().size());
+        {
+            TrainSpawnPattern.VanillaCartSpawnPattern vm = getPattern(pattern, 0, TrainSpawnPattern.VanillaCartSpawnPattern.class);
+            assertEquals(2, vm.amount());
+            assertEquals(SpawnableGroup.VanillaCartType.RIDEABLE, vm.type());
+        }
+        {
+            TrainSpawnPattern.VanillaCartSpawnPattern vs = getPattern(pattern, 1, TrainSpawnPattern.VanillaCartSpawnPattern.class);
+            assertEquals(3, vs.amount());
+            assertEquals(SpawnableGroup.VanillaCartType.STORAGE, vs.type());
+        }
     }
 
     @Test
@@ -136,8 +295,8 @@ public class TrainSpawnPatternTest {
         assertEquals("Red", red.name());
     }
 
-    private static <T extends TrainSpawnPattern> T getPattern(TrainSpawnPattern.ParsedSpawnPattern parsed, int index, Class<T> type) {
-        TrainSpawnPattern pattern = parsed.patterns().get(index);
+    private static <T extends TrainSpawnPattern> T getPattern(TrainSpawnPattern.SequenceSpawnPattern sequence, int index, Class<T> type) {
+        TrainSpawnPattern pattern = sequence.patterns().get(index);
         if (!type.isInstance(pattern)) {
             throw new IllegalStateException("Expected type " + type.getName() + " at " + index + ", but was " + pattern.getClass().getName());
         }
