@@ -168,9 +168,17 @@ public class SavedTrainCommands {
         if (!savedTrain.getModule().isDefault()) {
             builder.yellow("Stored in module: ").white(savedTrain.getModule().getName()).newLine();
         }
-        builder.yellow("Number of carts: ").white(savedTrain.getNumberOfCarts()).newLine();
-        builder.yellow("Number of seats: ").white(savedTrain.getNumberOfSeats()).newLine();
-        builder.yellow("Total train length: ").white(savedTrain.getTotalTrainLength()).newLine();
+
+        if (savedTrain.hasSpawnPattern()) {
+            builder.yellow("Spawning this saved train will spawn other trains:").newLine();
+            builder.yellow("Pattern: ").white(savedTrain.getSpawnPattern()).newLine();
+            builder.yellow("Reversed: ").white(savedTrain.getConfig().getOrDefault("flipped", false)
+                    ? "Yes" : "No").newLine();
+        } else {
+            builder.yellow("Number of carts: ").white(savedTrain.getNumberOfCarts()).newLine();
+            builder.yellow("Number of seats: ").white(savedTrain.getNumberOfSeats()).newLine();
+            builder.yellow("Total train length: ").white(savedTrain.getTotalTrainLength()).newLine();
+        }
 
         builder.yellow("Claimed by: ");
         SavedClaim.buildClaimList(builder, savedTrain.getClaims());
@@ -501,7 +509,42 @@ public class SavedTrainCommands {
 
         // Update
         updateClaimList(sender, savedTrain, oldClaims, Collections.emptySet());
-    }   
+    }
+
+    @Command("savedtrain <savedtrainname> spawn [spawnconfig]")
+    @CommandDescription("Sets a pattern of other saved trains to be spawned when this saved train is spawned")
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_LIST)
+    @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_IMPORT)
+    private void commandSetSpawn(
+            final CommandSender sender,
+            final TrainCarts plugin,
+            final @SavedTrainRequiresAccess @SavedTrainImplicitlyCreated @Argument(value="savedtrainname") SavedTrainProperties savedTrain,
+            final @FlagYielding @Argument(value="spawnconfig", suggestions="trainspawnpattern") @Greedy String spawnConfig,
+            final @Flag("force") boolean force,
+            final @Flag("reverse") boolean reverse
+    ) {
+        // Retrieve previous train properties
+        boolean isNewTrain = savedTrain.isEmpty();
+
+        // Update configuration
+        try {
+            ConfigurationNode config = new ConfigurationNode();
+            config.set("spawnPattern", spawnConfig);
+            if (reverse) {
+                config.set("flipped", true);
+            }
+            plugin.getSavedTrains().setConfig(savedTrain.getName(), config);
+        } catch (IllegalNameException e) {
+            // Should never happen because of pre-validation, but hey!
+            Localization.COMMAND_INPUT_NAME_INVALID.message(sender, savedTrain.getName());
+            return;
+        }
+        if (isNewTrain) {
+            sender.sendMessage(ChatColor.GREEN + "The train spawning pattern was set and saved as " + savedTrain.getName());
+        } else {
+            sender.sendMessage(ChatColor.GREEN + "The train spawning pattern was set and saved as " + savedTrain.getName() + ", a previous train was overwritten");
+        }
+    }
 
     @Command("savedtrain <savedtrainname> import <url>")
     @CommandDescription("Imports a saved train from an online hastebin server by url")

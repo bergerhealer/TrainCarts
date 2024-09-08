@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
+import java.util.function.Function;
 
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainProperties;
@@ -150,7 +151,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
      * @return SpawnableMember added
      */
     public SpawnableMember addMember(ConfigurationNode config) {
-        SpawnableMember newMember = new SpawnableMember(this, config);
+        SpawnableMember newMember = new SpawnableMember(this, config.clone());
         this.members.add(newMember);
         return newMember;
     }
@@ -720,13 +721,14 @@ public class SpawnableGroup implements TrainCarts.Provider {
      * @return spawnable group parsed from the types text
      */
     public static SpawnableGroup parse(TrainCarts plugin, String typesText) {
-        TrainSpawnPattern.ParsedSpawnPattern pattern = TrainSpawnPattern.parse(
-                typesText, name -> plugin.getSavedTrains().findName(name));
+        Function<String, String> savedTrainMatcher = name -> plugin.getSavedTrains().findName(name);
+
+        TrainSpawnPattern.ParsedSpawnPattern pattern = TrainSpawnPattern.parse(typesText, savedTrainMatcher);
 
         SpawnableGroup result = new SpawnableGroup(plugin);
         result.setCenterMode(pattern.centerMode());
         try {
-            pattern.newGroupApplier().apply(result, new Random());
+            pattern.newGroupApplier().apply(result, new Random(), savedTrainMatcher);
         } catch (TrainSpawnPattern.TrainTooLongException ex) {
             // TODO: Do we do anything with this? For now fail silently.
         }

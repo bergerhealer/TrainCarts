@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.spawnable;
 
+import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
 import org.bukkit.util.Vector;
@@ -23,7 +24,7 @@ public class SpawnableMember implements TrainCarts.Provider {
 
     protected SpawnableMember(SpawnableGroup group, ConfigurationNode config) {
         this.group = group;
-        this.config = config.clone();
+        this.config = config;
         if (this.config.contains("model.physical.cartLength")) {
             this.length = this.config.get("model.physical.cartLength", DEFAULT_CART_LENGTH);
         } else if (this.group.getConfig().contains("model.physical.cartLength")) {
@@ -133,13 +134,24 @@ public class SpawnableMember implements TrainCarts.Provider {
     }
 
     /**
+     * Clones this spawnable member and flips its around 180 degrees when spawning
+     *
+     * @return Reversed spawnable member
+     */
+    public SpawnableMember cloneReversed() {
+        ConfigurationNode config = this.config.clone();
+        StandardProperties.reverseSavedCart(config);
+        return new SpawnableMember(this.group, config);
+    }
+
+    /**
      * Clones this SpawnableMember and assigns it a new group
      * 
      * @param group
      * @return spawnable member with new group assigned
      */
     protected SpawnableMember cloneWithGroup(SpawnableGroup group) {
-        return new SpawnableMember(group, this.config);
+        return new SpawnableMember(group, this.config.clone());
     }
 
     @Override

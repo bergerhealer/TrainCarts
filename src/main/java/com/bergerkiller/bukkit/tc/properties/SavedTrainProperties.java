@@ -20,7 +20,6 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.CartLockOrientation;
-import org.bukkit.entity.Player;
 
 /**
  * Wraps a saved train configuration
@@ -98,7 +97,33 @@ public class SavedTrainProperties implements TrainCarts.Provider, SavedAttachmen
      * @return True if empty
      */
     public boolean isEmpty() {
-        return entry.isRemoved() || !entry.getConfig().contains("carts");
+        if (entry.isRemoved()) {
+            return true;
+        } else {
+            ConfigurationNode config = entry.getConfig();
+            return !config.contains("carts") && !config.contains("spawnPattern");
+        }
+    }
+
+    /**
+     * Gets whether this saved train is has a spawn pattern for other trains to spawn. In that case,
+     * this configuration does not store anything except this pattern, and whether to
+     * spawn the train in reverse.
+     *
+     * @return True if an alias pattern is stored
+     */
+    public boolean hasSpawnPattern() {
+        return !entry.isRemoved() && entry.getConfig().contains("spawnPattern");
+    }
+
+    /**
+     * Gets the train spawning pattern if {@link #hasSpawnPattern()} is true. Otherwise, returns
+     * null.
+     *
+     * @return Train spawning alias pattern, or null if none is set
+     */
+    public String getSpawnPattern() {
+        return entry.isRemoved() ? null : entry.getConfig().getOrDefault("spawnPattern", String.class, null);
     }
 
     /**
@@ -111,6 +136,13 @@ public class SavedTrainProperties implements TrainCarts.Provider, SavedAttachmen
         }
 
         List<ConfigurationNode> carts = entry.getWritableConfig().getNodeList("carts");
+
+        // For alias patterns, instead store a "flipped" state in the saved train configuration itself
+        if (carts.isEmpty() && hasSpawnPattern()) {
+            entry.getWritableConfig().set("flipped", !entry.getWritableConfig().get("flipped", false));
+            return;
+        }
+
         carts.forEach(StandardProperties::reverseSavedCart);
         Collections.reverse(carts);
         entry.getWritableConfig().setNodeList("carts", carts);

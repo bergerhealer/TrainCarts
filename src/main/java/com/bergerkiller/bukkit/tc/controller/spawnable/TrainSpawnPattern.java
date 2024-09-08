@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.controller.spawnable;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.tc.properties.SavedTrainProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainPropertiesStore;
 
 import java.util.ArrayList;
@@ -68,13 +69,13 @@ public abstract class TrainSpawnPattern {
     protected Applier repeatWithAmount(Applier callback) {
         final int amount = quantity().amount;
         if (amount <= 0) {
-            return (group, random) -> {};
+            return (group, random, savedTrainMatcher) -> {};
         } else if (amount == 1) {
             return callback;
         } else {
-            return (group, random) -> {
+            return (group, random, savedTrainMatcher) -> {
                 for (int n = 0; n < amount; n++) {
-                    callback.apply(group, random);
+                    callback.apply(group, random, savedTrainMatcher);
                 }
             };
         }
@@ -361,8 +362,50 @@ public abstract class TrainSpawnPattern {
 
         @Override
         protected Applier newGroupApplier() {
-            return repeatWithAmount(twoStage(group -> group.addTrainWithConfig(
-                    group.getTrainCarts().getSavedTrains().getProperties(name))));
+            return new Applier() {
+                Applier applier = null; // Initialized on first call
+
+                @Override
+                public void apply(SpawnableGroup group, Random random, Function<String, String> savedTrainMatcher) {
+                    Applier applier = this.applier;
+                    if (applier == null) {
+                        this.applier = applier = repeatWithAmount(createApplier(group, random, savedTrainMatcher));
+                    }
+                    applier.apply(group, random, savedTrainMatcher);
+                }
+
+                private Applier createApplier(SpawnableGroup group, Random random, final Function<String, String> savedTrainMatcher) {
+                    final SavedTrainProperties properties = group.getTrainCarts().getSavedTrains().getProperties(name);
+
+                    // For normal trains, just add its configuration to the group.
+                    // With repeated calls the already-added carts are cloned (twoStage)
+                    if (!properties.hasSpawnPattern()) {
+                        return twoStage(g -> g.addTrainWithConfig(properties));
+                    }
+
+                    // Create a new saved train matcher that excludes the name of this pattern itself
+                    // This avoids infinite recursion type issues
+                    Function<String, String> filteredSavedTrainMatcher = name -> {
+                        String foundName = savedTrainMatcher.apply(name);
+                        if (foundName != null && foundName.equals(SavedTrainSpawnPattern.this.name)) {
+                            foundName = null;
+                        }
+                        return foundName;
+                    };
+
+                    // Parse the spawn pattern
+                    Applier patternApplier = TrainSpawnPattern.parse(properties.getSpawnPattern(), filteredSavedTrainMatcher)
+                            .newGroupApplier();
+
+                    // Can be flipped if reverse() was once called
+                    // If flipped, we reverse the added members in the spawnable group after each invocation
+                    if (properties.getConfig().getOrDefault("flipped", false)) {
+                        patternApplier = patternApplier.reverse();
+                    }
+
+                    return patternApplier;
+                }
+            };
         }
     }
 
@@ -466,9 +509,9 @@ public abstract class TrainSpawnPattern {
                     }
                     totalChanceWeight = chanceWeightPosition;
                 }
-                return repeatWithAmount((group, random) -> {
+                return repeatWithAmount((group, random, savedTrainMatcher) -> {
                     double chanceWeightPosition = random.nextDouble(totalChanceWeight);
-                    appliers.forEach(applier -> applier.apply(group, random, chanceWeightPosition));
+                    appliers.forEach(applier -> applier.apply(group, random, savedTrainMatcher, chanceWeightPosition));
                 });
             }
 
@@ -477,8 +520,8 @@ public abstract class TrainSpawnPattern {
             for (TrainSpawnPattern pattern : patterns) {
                 appliers.add(pattern.newGroupApplier());
             }
-            return repeatWithAmount((group, random) -> {
-                appliers.forEach(applier -> applier.apply(group, random));
+            return repeatWithAmount((group, random, savedTrainMatcher) -> {
+                appliers.forEach(applier -> applier.apply(group, random, savedTrainMatcher));
             });
         }
 
@@ -502,9 +545,9 @@ public abstract class TrainSpawnPattern {
                 this.chanceWeightRangeEnd = chanceWeightRangeEnd;
             }
 
-            public void apply(SpawnableGroup group, Random random, double chanceWeightPosition) {
+            public void apply(SpawnableGroup group, Random random, Function<String, String> savedTrainMatcher, double chanceWeightPosition) {
                 if (always || (chanceWeightPosition >= chanceWeightRangeStart && chanceWeightPosition < chanceWeightRangeEnd)) {
-                    applier.apply(group, random);
+                    applier.apply(group, random, savedTrainMatcher);
                 }
             }
         }
@@ -581,7 +624,7 @@ public abstract class TrainSpawnPattern {
         }
 
         @Override
-        public void apply(SpawnableGroup spawnableGroup, Random random) {
+        public void apply(SpawnableGroup spawnableGroup, Random random, Function<String, String> savedTrainMatcher) {
             List<SpawnableMember> initializedMembers = this.initializedMembers;
             if (initializedMembers != null) {
                 if ((spawnableGroup.getMembers().size() + initializedMembers.size()) > MAX_SPAWNABLE_TRAIN_LENGTH) {
@@ -606,7 +649,29 @@ public abstract class TrainSpawnPattern {
      * Applies a spawn pattern to a spawnable group, populating its members
      */
     public interface Applier {
-        void apply(SpawnableGroup group, Random random);
+        void apply(SpawnableGroup group, Random random, Function<String, String> savedTrainMatcher);
+
+        /**
+         * Returns a new Applier that reverses the order and orientation of the carts of this one.
+         * This is done by reversing the added members after calling the base callback.
+         *
+         * @return Reversed applier
+         */
+        default Applier reverse() {
+            final Applier base = this;
+            return (group, random, savedTrainMatcher) -> {
+                int countBefore = group.getMembers().size();
+                try {
+                    base.apply(group, random, savedTrainMatcher);
+                } finally {
+                    List<SpawnableMember> added = group.getMembers().subList(countBefore, group.getMembers().size());
+                    Collections.reverse(added);
+                    for (ListIterator<SpawnableMember> iter = added.listIterator(); iter.hasNext();) {
+                        iter.set(iter.next().cloneReversed());
+                    }
+                }
+            };
+        }
     }
 
     public static class TrainTooLongException extends RuntimeException {
