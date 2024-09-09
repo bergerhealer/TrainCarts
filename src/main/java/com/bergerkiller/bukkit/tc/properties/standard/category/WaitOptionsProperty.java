@@ -191,7 +191,7 @@ public final class WaitOptionsProperty extends FieldBackedStandardTrainProperty<
             throw new PropertyInvalidInputException("Deceleration is not a number or acceleration expression");
         }
         return WaitOptions.create(context.current().distance(),
-                context.inputDouble(),
+                context.current().delay(),
                 newAcceleration,
                 newDeceleration,
                 context.current().predict());
