@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.UUID;
 
-import com.bergerkiller.bukkit.common.inventory.CommonItemMaterials;
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
