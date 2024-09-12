@@ -28,6 +28,13 @@ public class TicketStore {
     private static final HashMap<String, Ticket> ticketMap = new HashMap<String, Ticket>();
     private static final HashMap<UUID, Ticket> editingMap = new HashMap<UUID, Ticket>();
 
+    // Keys used in NBT
+    protected static final String KEY_TICKET_NAME = "ticketName";
+    protected static final String KEY_TICKET_CREATION_TIME = "ticketCreationTime";
+    protected static final String KEY_TICKET_NUMBER_OF_USES = "ticketNumberOfUses";
+    protected static final String KEY_TICKET_OWNER_UUID = "ticketOwner";
+    protected static final String KEY_TICKET_OWNER_NAME = "ticketOwnerName";
+
     /**
      * Creates a new ticket, using an existing ticket as a base configuration.
      * The static DEFAULT constant can be used when no ticket is explicitly specified.
@@ -190,11 +197,8 @@ public class TicketStore {
      * @return True if the item is a ticket item
      */
     public static boolean isTicketItem(CommonItemStack item) {
-        if (!item.isType(CommonItemMaterials.FILLED_MAP)) {
-            return false;
-        }
         CommonTagCompound tag = item.getCustomData();
-        return tag.containsKey("ticketName") && tag.getValue("plugin", "").equals("TrainCarts");
+        return tag.containsKey(KEY_TICKET_NAME) && tag.getValue("plugin", "").equals("TrainCarts");
     }
 
     /**
@@ -216,8 +220,9 @@ public class TicketStore {
      * @return ticket for the item, null if item is not an existing ticket
      */
     public static Ticket getTicketFromItem(CommonItemStack item) {
-        if (isTicketItem(item)) {
-            return ticketMap.get(item.getCustomData().getValue("ticketName", ""));
+        CommonTagCompound nbt = item.getCustomData();
+        if (nbt.containsKey(KEY_TICKET_NAME)) {
+            return ticketMap.get(item.getCustomData().getValue(KEY_TICKET_NAME, ""));
         } else {
             return null;
         }
@@ -240,7 +245,7 @@ public class TicketStore {
      * @return number of times the ticket has been used
      */
     public static int getNumberOfUses(CommonItemStack item) {
-        return item.getCustomData().getValue("ticketNumberOfUses", 0);
+        return item.getCustomData().getValue(KEY_TICKET_NUMBER_OF_USES, 0);
     }
 
     /**
@@ -266,14 +271,14 @@ public class TicketStore {
         } else {
             CommonTagCompound tag = item.getCustomData();
             if (ticket.getMaxNumberOfUses() >= 0) {
-                int numberOfUses = tag.getValue("ticketNumberOfUses", 0);
+                int numberOfUses = tag.getValue(KEY_TICKET_NUMBER_OF_USES, 0);
                 if (numberOfUses >= ticket.getMaxNumberOfUses()) {
                     return true;
                 }
             }
             if (ticket.getExpirationTime() >= 0) {
                 long timeNow = System.currentTimeMillis();
-                long timeCreated = tag.getValue("ticketCreationTime", timeNow);
+                long timeCreated = tag.getValue(KEY_TICKET_CREATION_TIME, timeNow);
                 if (timeNow >= (timeCreated + ticket.getExpirationTime())) {
                     return true;
                 }
@@ -308,7 +313,7 @@ public class TicketStore {
             return true;
         } else {
             CommonTagCompound tag = item.getCustomData();
-            UUID ownerUUID = tag.getUUID("ticketOwner");
+            UUID ownerUUID = tag.getUUID(KEY_TICKET_OWNER_UUID);
             if (ownerUUID == null) {
                 return true;
             } else {
@@ -431,9 +436,9 @@ public class TicketStore {
 
     private static boolean preUseTicket(Player player, CommonItemStack item, TrainProperties trainProperties) {
         // Handle permissions and messages to the player
-        String ticketName = item.getCustomData().getValue("ticketName", "UNKNOWN");
+        String ticketName = item.getCustomData().getValue(KEY_TICKET_NAME, "UNKNOWN");
         if (!isTicketOwner(player, item)) {
-            String ownerName = item.getCustomData().getValue("ticketOwnerName", "UNKNOWN");
+            String ownerName = item.getCustomData().getValue(KEY_TICKET_OWNER_NAME, "UNKNOWN");
             Localization.TICKET_CONFLICT_OWNER.message(player, ticketName, ownerName);
             return false;
         }
@@ -477,7 +482,7 @@ public class TicketStore {
         item = item.clone();
         if (ticket.getMaxNumberOfUses() < 0 || item.getAmount() <= 1) {
             item.updateCustomData(tag -> {
-                tag.putValue("ticketNumberOfUses", tag.getValue("ticketNumberOfUses", 0) + 1);
+                tag.putValue(KEY_TICKET_NUMBER_OF_USES, tag.getValue(KEY_TICKET_NUMBER_OF_USES, 0) + 1);
             });
         } else {
             item.setAmount(item.getAmount() - 1);

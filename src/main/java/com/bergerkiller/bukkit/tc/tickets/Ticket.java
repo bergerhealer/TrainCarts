@@ -311,6 +311,28 @@ public class Ticket {
     }
 
     /**
+     * Creates a new ticket item using a custom item. The custom item does not have to be
+     * a map item.
+     *
+     * @param baseItem Base item that is turned into a ticket item. Is not modified
+     *                 by this function.
+     * @return ticket item, a clone of baseItem with ticket properties applied
+     */
+    public ItemStack createItem(Player owner, ItemStack baseItem) {
+        return CommonItemStack.copyOf(baseItem)
+                .updateCustomData(tag -> {
+                    tag.putValue("plugin", "TrainCarts");
+                    tag.putValue(TicketStore.KEY_TICKET_NAME, this.getName());
+                    tag.putValue(TicketStore.KEY_TICKET_CREATION_TIME, System.currentTimeMillis());
+                    tag.putValue(TicketStore.KEY_TICKET_NUMBER_OF_USES, 0);
+                    tag.putUUID(TicketStore.KEY_TICKET_OWNER_UUID, owner.getUniqueId());
+                    tag.putValue(TicketStore.KEY_TICKET_OWNER_NAME, owner.getDisplayName());
+                })
+                .setCustomNameMessage("Train Ticket for " + this.getName())
+                .toBukkit();
+    }
+
+    /**
      * Creates a new ticket item
      * 
      * @return ticket item
@@ -319,11 +341,11 @@ public class Ticket {
         return CommonItemStack.of(MapDisplay.createMapItem(TCTicketDisplay.class))
                 .updateCustomData(tag -> {
                     tag.putValue("plugin", "TrainCarts");
-                    tag.putValue("ticketName", this.getName());
-                    tag.putValue("ticketCreationTime", System.currentTimeMillis());
-                    tag.putValue("ticketNumberOfUses", 0);
-                    tag.putUUID("ticketOwner", owner.getUniqueId());
-                    tag.putValue("ticketOwnerName", owner.getDisplayName());
+                    tag.putValue(TicketStore.KEY_TICKET_NAME, this.getName());
+                    tag.putValue(TicketStore.KEY_TICKET_CREATION_TIME, System.currentTimeMillis());
+                    tag.putValue(TicketStore.KEY_TICKET_NUMBER_OF_USES, 0);
+                    tag.putUUID(TicketStore.KEY_TICKET_OWNER_UUID, owner.getUniqueId());
+                    tag.putValue(TicketStore.KEY_TICKET_OWNER_NAME, owner.getDisplayName());
                 })
                 .setCustomNameMessage("Train Ticket for " + this.getName())
                 .toBukkit();
