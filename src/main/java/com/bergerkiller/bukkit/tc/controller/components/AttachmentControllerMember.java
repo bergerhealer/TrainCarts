@@ -333,7 +333,7 @@ public class AttachmentControllerMember
         }
 
         // See what seat attachment this passenger currently occupies
-        CartAttachmentSeat old_seat = this.findSeat(passenger);
+        CartAttachmentSeat old_seat = this.findSeatOfExistingPassenger(passenger);
         if (old_seat == null || new_seat == null || old_seat == new_seat) {
             return false;
         }
@@ -601,7 +601,13 @@ public class AttachmentControllerMember
         }
     }
 
-    private CartAttachmentSeat findSeatOfExistingPassenger(Entity passenger) {
+    /**
+     * Finds the existing seat of a passenger
+     *
+     * @param passenger Entity passenger
+     * @return Found seat, or null if the passenger isn't inside this member
+     */
+    public synchronized CartAttachmentSeat findSeatOfExistingPassenger(Entity passenger) {
         if (this.seatAttachments.isEmpty()) {
             return null;
         }

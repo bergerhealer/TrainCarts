@@ -52,6 +52,8 @@ import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class TrainCommands {
 
@@ -298,43 +300,59 @@ public class TrainCommands {
     private void commandEnter(
             final Player player,
             final CartProperties cartProperties,
-            final TrainProperties trainProperties
+            final TrainProperties trainProperties,
+            final @Flag(value="seat", parserName="trainSeatAttachments") AttachmentsByName<CartAttachmentSeat> seatAttachments
     ) {
         if (!trainProperties.isLoaded()) {
             player.sendMessage(ChatColor.RED + "Can not enter the train: it is not loaded");
             return;
         }
 
-        MinecartMember<?> member = (cartProperties == null) ? null : cartProperties.getHolder();
-        if (member != null && member.getAvailableSeatCount(player) == 0) {
-            member = null;
+        if (seatAttachments != null) {
+            // Query seat to eject by name
+            seatAttachments.validate(); // Fail early
+
+            // Check if the player is already inside one of the seats selected
+            // Do nothing if that is the case
+            for (CartAttachmentSeat seat : seatAttachments.attachments()) {
+                if (seat.getEntity() == player) {
+                    return;
+                }
+            }
+
+            // If there is more than one, try to select the one of a cart the player has also selected
+            List<CartAttachmentSeat> selectedSeats = seatAttachments.attachments();
+            if (selectedSeats.size() > 1) {
+                MinecartMember<?> member = (cartProperties == null) ? null : cartProperties.getHolder();
+                if (member != null) {
+                    List<CartAttachmentSeat> seatsOfMember = selectedSeats.stream()
+                            .filter(s -> s.getMember() == member)
+                            .collect(Collectors.toList());
+                    if (!seatsOfMember.isEmpty()) {
+                        // Sort these to the front, to try them first
+                        selectedSeats = Stream.concat( seatsOfMember.stream(),
+                                                       selectedSeats.stream().filter(s -> !seatsOfMember.contains(s))
+                                        ).collect(Collectors.toList());
+                    }
+                }
+            }
+
+            // Enter em all
+            Commands.enterSeats(player, seatAttachments.name(), selectedSeats);
+            return;
         }
-        if (member == null) {
+
+        // Normal logic
+        MinecartMember<?> member = (cartProperties == null) ? null : cartProperties.getHolder();
+        if (member == null || member.getAvailableSeatCount(player) == 0) {
             for (MinecartMember<?> groupMember : trainProperties.getHolder()) {
                 if (groupMember.getAvailableSeatCount(player) > 0) {
-                    member = groupMember;
-                    break;
+                    Commands.enterMember(player, groupMember);
+                    return;
                 }
             }
         }
-        if (member != null) {
-            Location entityLoc = member.getEntity().getLocation();
-            boolean mustTeleport = (player.getWorld() != entityLoc.getWorld())
-                    || (player.getLocation().distance(entityLoc) > 64.0);
-            if (!mustTeleport || player.teleport(member.getEntity().getLocation())) {
-                if (member.addPassengerForced(player)) {
-                    player.sendMessage(ChatColor.GREEN + "You entered a seat of train '" + trainProperties.getTrainName() + "'!");
-                } else if (mustTeleport) {
-                    player.sendMessage(ChatColor.YELLOW + "Selected cart has no available seat. Teleported to the train instead.");
-                } else {
-                    player.sendMessage(ChatColor.YELLOW + "Selected cart has no available seat.");
-                }
-            } else {
-                player.sendMessage(ChatColor.RED + "Failed to enter train: teleport was denied");
-            }
-        } else {
-            player.sendMessage(ChatColor.RED + "Failed to enter train: no free seat available");
-        }
+        Commands.enterMember(player, member);
     }
 
     @CommandTargetTrain

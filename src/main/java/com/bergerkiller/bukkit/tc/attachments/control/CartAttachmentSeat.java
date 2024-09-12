@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.stream.Stream;
 
+import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualSpawnableObject;
 import com.bergerkiller.bukkit.tc.attachments.config.transform.ItemTransformType;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -759,6 +761,50 @@ public class CartAttachmentSeat extends CartAttachment {
             return false;
         } else {
             return AttachmentControllerMember.handleSeatChange(getEntity(), this, null, isPlayerInitiated);
+        }
+    }
+
+    /**
+     * Lets an Entity enter this seat, if there isn't already a passenger in this seat.
+     * Ejects from any previous entity or seat.
+     *
+     * @param entity Entity to let enter this seat
+     * @return True if the seat was entered, False if this seat was occupied or
+     *         the entering was cancelled by a plugin
+     */
+    public boolean enter(Entity entity) {
+        if (this.getEntity() == entity) {
+            return true;
+        } else if (this.getEntity() != null) {
+            return false;
+        } else {
+            // Eject from a previous entity first, if the entity isn't already inside the same cart.
+            if (entity.getVehicle() != null) {
+                // Switching seats within the same cart
+                {
+                    CartAttachmentSeat previousSeat = this.getController().findSeatOfExistingPassenger(entity);
+                    if (previousSeat != null) {
+                        return AttachmentControllerMember.handleSeatChange(entity, previousSeat, this, false);
+                    }
+                }
+
+                // Ejecting a previous cart and entering another cart
+                if (!CommonEntity.get(entity.getVehicle()).removePassenger(entity)) {
+                    return false; // Eject cancelled
+                }
+            }
+
+            // Teleport near to the cart first if needed
+            // Especially important if cross-world
+            Location seatLoc = this.getPosition(entity);
+            boolean mustTeleport = (entity.getWorld() != seatLoc.getWorld())
+                    || (entity.getLocation().distance(seatLoc) > 64.0);
+            if (mustTeleport && !entity.teleport(seatLoc)) {
+                return false;
+            }
+
+            this.getController().storeSeatHint(entity, this);
+            return this.getMember().getEntity().addPassenger(entity);
         }
     }
 

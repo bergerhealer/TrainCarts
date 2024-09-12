@@ -334,6 +334,41 @@ public class CartCommands {
     }
 
     @CommandTargetTrain
+    @CommandRequiresPermission(Permission.COMMAND_ENTER)
+    @Command("cart enter")
+    @CommandDescription("Teleports the player to the cart and enters an available seat")
+    private void commandEnter(
+            final Player player,
+            final CartProperties cartProperties,
+            final @Flag(value="seat", parserName="cartSeatAttachments") AttachmentsByName<CartAttachmentSeat> seatAttachments
+    ) {
+        if (cartProperties.getHolder() == null) {
+            player.sendMessage(ChatColor.RED + "Can not enter the train: it is not loaded");
+            return;
+        }
+
+        if (seatAttachments != null) {
+            // Query seat to eject by name
+            seatAttachments.validate(); // Fail early
+
+            // Check if the player is already inside one of the seats selected
+            // Do nothing if that is the case
+            for (CartAttachmentSeat seat : seatAttachments.attachments()) {
+                if (seat.getEntity() == player) {
+                    return;
+                }
+            }
+
+            // Enter em all
+            Commands.enterSeats(player, seatAttachments.name(), seatAttachments.attachments());
+            return;
+        }
+
+        // Normal logic
+        Commands.enterMember(player, cartProperties.getHolder());
+    }
+
+    @CommandTargetTrain
     @CommandRequiresPermission(Permission.COMMAND_EJECT)
     @Command("cart eject")
     @CommandDescription("Ejects the passengers of a cart, ignoring the allow player exit property")

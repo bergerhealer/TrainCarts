@@ -74,6 +74,7 @@ import java.util.stream.Stream;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -670,6 +671,47 @@ public class Commands {
             sender.sendMessage(ChatColor.RED + "Seats with name '" + seats.name() + "' could not be ejected (cancelled)!");
         } else {
             sender.sendMessage(ChatColor.YELLOW + "Seats with name '" + seats.name() + "' have no passengers!");
+        }
+    }
+
+    public static void enterMember(Player player, MinecartMember<?> member) {
+        if (member != null && member.getAvailableSeatCount(player) > 0) {
+            Location entityLoc = member.getEntity().getLocation();
+            boolean mustTeleport = (player.getWorld() != entityLoc.getWorld())
+                    || (player.getLocation().distance(entityLoc) > 64.0);
+            if (!mustTeleport || player.teleport(member.getEntity().getLocation())) {
+                if (member.addPassengerForced(player)) {
+                    player.sendMessage(ChatColor.GREEN + "You entered a seat of train '" +
+                            member.getGroup().getProperties().getTrainName() + "'!");
+                } else if (mustTeleport) {
+                    player.sendMessage(ChatColor.YELLOW + "Selected cart has no available seat. Teleported to the train instead.");
+                } else {
+                    player.sendMessage(ChatColor.YELLOW + "Selected cart has no available seat.");
+                }
+            } else {
+                player.sendMessage(ChatColor.RED + "Failed to enter train: teleport was denied");
+            }
+        } else {
+            player.sendMessage(ChatColor.RED + "Failed to enter train: no free seat available");
+        }
+    }
+
+    public static void enterSeats(Player player, String seatName, List<CartAttachmentSeat> seats) {
+        boolean hadEmptySeats = false;
+        for (CartAttachmentSeat seat : seats) {
+            if (seat.enter(player)) {
+                player.sendMessage(ChatColor.GREEN + "Seat with name '" + seatName + "' entered!");
+                return;
+            } else if (seat.getEntity() == null) {
+                hadEmptySeats = true;
+            }
+        }
+        if (hadEmptySeats) {
+            player.sendMessage(ChatColor.RED + "Seat with name '" + seatName + "' could not be entered (cancelled)!");
+        } else if (seats.isEmpty()) {
+            player.sendMessage(ChatColor.RED + "Seat with name '" + seatName + "' does not exist!");
+        } else {
+            player.sendMessage(ChatColor.RED + "Seats with name '" + seatName + "' are all occupied!");
         }
     }
 }
