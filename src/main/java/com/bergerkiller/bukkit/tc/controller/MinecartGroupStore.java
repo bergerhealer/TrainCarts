@@ -291,87 +291,109 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
         return mm == null ? null : mm.getGroup();
     }
 
-    public static boolean link(MinecartMember<?> m1, MinecartMember<?> m2) {
+    /**
+     * Links two Minecarts together
+     *
+     * @param m1
+     * @param m2
+     * @return LinkResult, whether linking succeeded and other information
+     */
+    public static LinkResult link(MinecartMember<?> m1, MinecartMember<?> m2) {
         if (m1 == null || m2 == null || m1 == m2 || !m1.isInteractable() || !m2.isInteractable()) {
-            return false;
+            return LinkResult.INVALID;
         }
         MinecartGroup g1 = m1.getGroup();
         MinecartGroup g2 = m2.getGroup();
-        //max links per update
-        if (g1 != g2) {
-            if (m1.isDerailed() || m2.isDerailed()) {
-                return false;
-            }
-
-            //Would the resulting train be too long?
-            if (TCConfig.maxCartsPerTrain >= 0 && (g1.size() + g2.size()) > TCConfig.maxCartsPerTrain) {
-                return false;
-            }
-
-            //Can the two groups bind?
-            TrainProperties prop1 = g1.getProperties();
-            TrainProperties prop2 = g2.getProperties();
-
-            //Is a powered minecart required?
-            if (prop1.isPoweredMinecartRequired() || prop2.isPoweredMinecartRequired()) {
-                if (g1.size(EntityType.MINECART_FURNACE) == 0 && g2.size(EntityType.MINECART_FURNACE) == 0) {
-                    return false;
-                }
-            }
-
-            //Can the minecarts reach the other?
-            if (!MinecartMember.isTrackConnected(m1, m2)) return true;
-
-            //append group1 before or after group2?
-            int m1index = g1.indexOf(m1);
-            int m2index = g2.indexOf(m2);
-
-            //Validate
-            if (!g2.canConnect(m1, m2index) || !g1.canConnect(m2, m1index)) {
-                return false;
-            }
-
-            //Event
-            if (GroupLinkEvent.call(g1, g2).isCancelled()) return false;
-
-            //Transfer properties if needed
-            if (g1.size() > g2.size() || (g1.size() == g2.size() && g1.getTicksLived() > g2.getTicksLived())) {
-                // Transfer properties
-                g2.getProperties().load(g1.getProperties());
-                // Transfer name, assigning a random name to the removed properties
-                String name = g1.getProperties().getTrainName();
-                g1.getProperties().setTrainName(TrainProperties.generateTrainName());
-                g2.getProperties().setTrainName(name);
-            }
-
-            //Clear targets and active signs
-            g1.getSignTracker().clear();
-            g2.getSignTracker().clear();
-
-            //Finally link
-            if (m1index == 0 && m2index == 0) {
-                Collections.reverse(g1);
-                g2.addAll(0, g1);
-            } else if (m1index == 0 && m2index == g2.size() - 1) {
-                g2.addAll(g1);
-            } else if (m1index == g1.size() - 1 && m2index == 0) {
-                g2.addAll(0, g1);
-            } else {
-                return false;
-            }
-
-            //Correct the yaw and order
-            g2.getAverageForce();
-            g2.updateDirection();
-            g2.getSignTracker().updatePosition();
-
-            g1.remove();
-            if (TCConfig.playHissWhenLinked) {
-                m2.playLinkEffect();
-            }
-            return true;
+        if (g1 == g2) {
+            return LinkResult.ALREADY_LINKED;
         }
-        return false;
+
+        //max links per update
+        if (m1.isDerailed() || m2.isDerailed()) {
+            return LinkResult.DERAILED;
+        }
+
+        //Would the resulting train be too long?
+        if (TCConfig.maxCartsPerTrain >= 0 && (g1.size() + g2.size()) > TCConfig.maxCartsPerTrain) {
+            return LinkResult.TOO_LONG;
+        }
+
+        //Can the two groups bind?
+        TrainProperties prop1 = g1.getProperties();
+        TrainProperties prop2 = g2.getProperties();
+
+        //Is a powered minecart required?
+        if (prop1.isPoweredMinecartRequired() || prop2.isPoweredMinecartRequired()) {
+            if (g1.size(EntityType.MINECART_FURNACE) == 0 && g2.size(EntityType.MINECART_FURNACE) == 0) {
+                return LinkResult.POWERED_CART_REQUIRED;
+            }
+        }
+
+        //Can the minecarts reach the other?
+        if (!MinecartMember.isTrackConnected(m1, m2))
+            return LinkResult.DIFFERENT_TRACKS;
+
+        //append group1 before or after group2?
+        int m1index = g1.indexOf(m1);
+        int m2index = g2.indexOf(m2);
+
+        //Validate
+        if (!g2.canConnect(m1, m2index) || !g1.canConnect(m2, m1index)) {
+            return LinkResult.DIFFERENT_TRACKS;
+        }
+
+        //Members must be the ends of the train, otherwise fail the collision
+        //Make sure no collision occurs either
+        if ( !(m1index == 0 || m1index == (g1.size() - 1)) ||
+             !(m2index == 0 || m2index == (g2.size() - 1)) )
+        {
+            return LinkResult.IS_MIDDLE_CARTS;
+        }
+
+        //Event
+        if (GroupLinkEvent.call(g1, g2).isCancelled())
+            return LinkResult.LINK_CANCELLED;
+
+        //Transfer properties if needed
+        if (g1.size() > g2.size() || (g1.size() == g2.size() && g1.getTicksLived() > g2.getTicksLived())) {
+            // Transfer properties
+            g2.getProperties().load(g1.getProperties());
+            // Transfer name, assigning a random name to the removed properties
+            String name = g1.getProperties().getTrainName();
+            g1.getProperties().setTrainName(TrainProperties.generateTrainName());
+            g2.getProperties().setTrainName(name);
+        }
+
+        //Clear targets and active signs
+        g1.getSignTracker().clear();
+        g2.getSignTracker().clear();
+
+        //Finally link
+        if (m1index == 0 && m2index == 0) {
+            Collections.reverse(g1);
+            g2.addAll(0, g1);
+        } else if (m1index == 0 && m2index == g2.size() - 1) {
+            g2.addAll(g1);
+        } else if (m1index == g1.size() - 1 && m2index == 0) {
+            g2.addAll(0, g1);
+        } else if (m1index == g1.size() - 1 && m2index == g2.size() - 1) {
+            Collections.reverse(g1);
+            g2.addAll(g1);
+        } else {
+            // This really should not be reached, there is an if check above already
+            return LinkResult.IS_MIDDLE_CARTS;
+        }
+
+        //Correct the yaw and order
+        g2.getAverageForce();
+        g2.updateDirection();
+        g2.getSignTracker().updatePosition();
+
+        g1.remove();
+        if (TCConfig.playHissWhenLinked) {
+            m2.playLinkEffect();
+        }
+        return LinkResult.SUCCESS;
     }
 
     /**
@@ -381,5 +403,46 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
      */
     public static void notifyPhysicsChange() {
         hasPhysicsChanges = true;
+    }
+
+    /**
+     * The result of (trying to) link two Minecarts into a train
+     */
+    public enum LinkResult {
+        /** One or both MinecartMember arguments are null or are not loaded */
+        INVALID(false),
+        /** Both MinecartMembers are already part of the same group */
+        ALREADY_LINKED(true),
+        /** Minecarts aren't at the ends of the train, so they shouldn't collide yet */
+        IS_MIDDLE_CARTS(true),
+        /** One or both MinecartMembers are derailed */
+        DERAILED(false),
+        /** Can't link because the resulting train would be too long */
+        TOO_LONG(false),
+        /** Can't link because a powered cart is required for that */
+        POWERED_CART_REQUIRED(false),
+        /** The two members are on different non-connected tracks, no linking occurred */
+        DIFFERENT_TRACKS(true),
+        /** The GroupLinkEvent was cancelled by a plugin */
+        LINK_CANCELLED(false),
+        /** Link success! Members are now linked to a train */
+        SUCCESS(true);
+
+        private final boolean cancelCollision;
+
+        LinkResult(boolean cancelCollision) {
+            this.cancelCollision = cancelCollision;
+        }
+
+        /**
+         * If the link was result of two Minecarts colliding, returns whether the
+         * collision should be cancelled because of this link attempt result.
+         *
+         * @return True if collision should be cancelled, False if it should be allowed
+         *         to occur like normal.
+         */
+        public boolean isCancelCollision() {
+            return cancelCollision;
+        }
     }
 }

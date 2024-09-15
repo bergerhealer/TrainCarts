@@ -193,7 +193,7 @@ public enum CollisionMode {
             case LINK:
                 if (other != null) {
                     // Perform default linking logic
-                    return !MinecartGroupStore.link(member, other);
+                    return !MinecartGroupStore.link(member, other).isCancelCollision();
                 }
                 return true;
             default:
