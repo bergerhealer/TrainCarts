@@ -46,6 +46,8 @@ public class TrainChestItemUtil {
 
     /** How much extra distance to look for members to auto-connect with. Emulates 'reach' */
     private static final double AUTOCONNECT_EXTRA_DISTANCE = 1.0;
+    /** The reach of using the train chest to spawn where the player is looking */
+    private static final double SPAWN_LOOKING_AT_REACH = 10.0;
 
     public static ItemStack createItem() {
         CommonItemStack item = CommonItemStack.create(Material.ENDER_CHEST, 1)
@@ -405,9 +407,9 @@ public class TrainChestItemUtil {
         // to the actual rail. Once we find the block within the rail is found,
         // then we can do finetuning to find exactly where on the rail
         // was clicked.
-        final double reach = 5.0;
-        final int steps = 100;
-        final Vector step = eyeLocation.getDirection().multiply(reach / (double) steps);
+        final double stepSize = 0.05;
+        final int steps = (int) (SPAWN_LOOKING_AT_REACH / stepSize);
+        final Vector step = eyeLocation.getDirection().multiply(SPAWN_LOOKING_AT_REACH / (double) steps);
 
         RailState bestState = null;
         {
