@@ -88,7 +88,12 @@ public class TrainChestListener implements Listener {
         // Parse group, check not empty
         TrainChestItemUtil.SpawnResult result;
         SpawnableGroup group = TrainChestItemUtil.getSpawnableGroup(plugin, heldItem);
-        double speed = TrainChestItemUtil.getSpeed(heldItem);
+
+        // Options for spawning the train
+        TrainChestItemUtil.SpawnOptions spawnOptions = new TrainChestItemUtil.SpawnOptions(event.getPlayer());
+        spawnOptions.initialSpeed = TrainChestItemUtil.getSpeed(heldItem);
+        spawnOptions.tryExtendTrains = !event.getPlayer().isSneaking();
+
         if (group == null) {
             // Invalid item, or empty item
             result = TrainChestItemUtil.SpawnResult.FAIL_EMPTY;
@@ -97,17 +102,17 @@ public class TrainChestListener implements Listener {
             result = TrainChestItemUtil.SpawnResult.FAIL_NO_PERM;
         } else if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             // Clicked on a block that could be a rails block itself
-            result = TrainChestItemUtil.spawnAtBlock(group, event.getPlayer(), event.getClickedBlock(), speed);
+            result = TrainChestItemUtil.spawnAtBlock(group, event.getClickedBlock(), spawnOptions);
             if (result == TrainChestItemUtil.SpawnResult.FAIL_NORAIL) {
                 // Try to spawn looking at instead as a fall-back
-                result = TrainChestItemUtil.spawnLookingAt(group, event.getPlayer(), event.getPlayer().getEyeLocation(), speed);
+                result = TrainChestItemUtil.spawnLookingAt(group, event.getPlayer(), event.getPlayer().getEyeLocation(), spawnOptions);
                 if (result == TrainChestItemUtil.SpawnResult.FAIL_NORAIL_LOOK) {
                     result = TrainChestItemUtil.SpawnResult.FAIL_NORAIL;
                 }
             }
         } else if (event.getAction() == Action.RIGHT_CLICK_AIR) {
             // Follow where the player is looking and spawn there
-            result = TrainChestItemUtil.spawnLookingAt(group, event.getPlayer(), event.getPlayer().getEyeLocation(), speed);
+            result = TrainChestItemUtil.spawnLookingAt(group, event.getPlayer(), event.getPlayer().getEyeLocation(), spawnOptions);
         } else {
             // Impossible
             result = TrainChestItemUtil.SpawnResult.FAIL_NORAIL_LOOK;

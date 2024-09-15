@@ -20,7 +20,6 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.tc.Localization;
-import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
@@ -409,6 +408,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
         if (!edgeAtStart && this.members.size() == 1) {
             SpawnLocationList result = new SpawnLocationList();
             result.addMember(this.members.get(0), startState.motionVector(), startState.positionLocation());
+            result.endState = startState.clone();
 
             // Check whether additional rails are available beyond placement of the member itself
             TrackWalkingPoint walker = new TrackWalkingPoint(startState);
@@ -435,6 +435,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
                 }
 
                 // Check whether additional rails are available
+                result.endState = startState.clone();
                 TrackWalkingPoint walker = new TrackWalkingPoint(startState);
                 walker.skipFirst();
                 result.can_move = walker.move(CAN_MOVE_DISTANCE);
@@ -542,6 +543,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
                     }
                 }
 
+                result.endState = walker.state.clone();
                 result.can_move = walker.move(CAN_MOVE_DISTANCE); // Check further rails are available
             }
 
@@ -572,6 +574,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
                     return null; // Out of space
                 }
             }
+            result.endState = walker.state.clone();
             result.can_move = walker.move(CAN_MOVE_DISTANCE); // Check further rails are available
             return result;
         }
@@ -603,6 +606,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
                 }
             }
             Collections.reverse(result.locations); // Make sure head is still at the same position
+            result.endState = walker.state.clone();
             result.can_move = walker.move(CAN_MOVE_DISTANCE); // Check further rails are available
             return result;
         }
@@ -871,7 +875,17 @@ public class SpawnableGroup implements TrainCarts.Provider {
          * Centers the train at the position, making sure the front cart is
          * positioned into the direction as specified.
          */
-        CENTER
+        CENTER;
+
+        public boolean isReverseOrder() {
+            switch (this) {
+                case REVERSE:
+                case REVERSE_EDGE:
+                    return true;
+                default:
+                    return false;
+            }
+        }
     }
 
     /**
@@ -881,6 +895,8 @@ public class SpawnableGroup implements TrainCarts.Provider {
     public static final class SpawnLocationList {
         /** The spawn locations for each member of the spawnable group */
         public final List<SpawnableMember.SpawnLocation> locations;
+        /** The last state on the rails before track ended, or the last spawn location was found */
+        public RailState endState;
         /** Whether additional rails are available in front of the front cart */
         public boolean can_move;
 
@@ -910,18 +926,48 @@ public class SpawnableGroup implements TrainCarts.Provider {
         }
 
         /**
-         * Checks whether any of the spawn locations are occupied by another train
-         * 
-         * @return True if occupied
+         * Gets a list of all Minecart Members that are occupying the spawn locations,
+         * in the order they are found.
+         *
+         * @return List of occupying members
          */
-        public boolean isOccupied() {
+        public List<OccupiedLocation> getOccupiedLocations() {
+            List<OccupiedLocation> occupying = Collections.emptyList();
             for (SpawnableMember.SpawnLocation loc : this.locations) {
                 MinecartMember<?> member = MinecartMemberStore.getAt(loc.location);
                 if (member != null && !member.isUnloaded() && !member.getEntity().isRemoved()) {
-                    return true;
+                    if (occupying.isEmpty()) {
+                        occupying = new ArrayList<>();
+                    }
+                    occupying.add(new OccupiedLocation(loc, member));
                 }
             }
-            return false;
+            return occupying;
+        }
+
+        /**
+         * Checks whether any of the spawn locations are occupied by another train
+         *
+         * @return True if occupied
+         */
+        public boolean isOccupied() {
+            return !getOccupiedLocations().isEmpty();
+        }
+    }
+
+    /**
+     * An occupied spawn location. Contains the spawn location that has another train already on it,
+     * including information about the member that is occupying that spot.
+     */
+    public static class OccupiedLocation {
+        /** The spawn location that is occupied */
+        public final SpawnableMember.SpawnLocation spawnLocation;
+        /** The member that is occupying this spawn location */
+        public final MinecartMember<?> member;
+
+        public OccupiedLocation( SpawnableMember.SpawnLocation spawnLocation, MinecartMember<?> member) {
+            this.spawnLocation = spawnLocation;
+            this.member = member;
         }
     }
 }

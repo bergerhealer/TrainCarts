@@ -3,6 +3,8 @@ package com.bergerkiller.bukkit.tc.chest;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -10,6 +12,7 @@ import java.util.zip.GZIPOutputStream;
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -40,6 +43,9 @@ import com.google.common.io.ByteStreams;
 public class TrainChestItemUtil {
     private static final String IDENTIFIER = "Traincarts.chest";
     private static final String TITLE = "Traincarts Chest";
+
+    /** How much extra distance to look for members to auto-connect with. Emulates 'reach' */
+    private static final double AUTOCONNECT_EXTRA_DISTANCE = 1.0;
 
     public static ItemStack createItem() {
         CommonItemStack item = CommonItemStack.create(Material.ENDER_CHEST, 1)
@@ -330,7 +336,7 @@ public class TrainChestItemUtil {
         return group;
     }
 
-    public static SpawnResult spawnAtBlock(SpawnableGroup group, Player player, Block clickedBlock, double initialSpeed) {
+    public static SpawnResult spawnAtBlock(SpawnableGroup group, Block clickedBlock, SpawnOptions options) {
         if (group == null) {
             return SpawnResult.FAIL_EMPTY;
         }
@@ -346,7 +352,7 @@ public class TrainChestItemUtil {
         }
 
         // Check clicked rails Block is actually a rail
-        BlockFace orientation = FaceUtil.getDirection(player.getEyeLocation().getDirection());
+        BlockFace orientation = FaceUtil.getDirection(options.player.getEyeLocation().getDirection());
         RailType clickedRailType = RailType.getType(clickedBlock);
         if (clickedRailType == RailType.NONE) {
             return SpawnResult.FAIL_NORAIL;
@@ -357,27 +363,27 @@ public class TrainChestItemUtil {
         }
 
         // Compute movement direction on the clicked rails using rail state
+        RailState spawnStartState;
         Vector spawnDirection;
         {
-            RailState state = new RailState();
-            state.setRailPiece(RailPiece.create(clickedRailType, clickedBlock));
-            state.setPosition(Position.fromTo(spawnLoc, spawnLoc));
-            state.setMotionVector(spawnLoc.getDirection());
-            state.initEnterDirection();
-            state.loadRailLogic().getPath().move(state, 0.0);
-            spawnDirection = state.position().getMotion();
-            if (state.position().motDot(player.getEyeLocation().getDirection()) < 0.0) {
-                spawnDirection.multiply(-1.0);
+            spawnStartState = new RailState();
+            spawnStartState.setRailPiece(RailPiece.create(clickedRailType, clickedBlock));
+            spawnStartState.setPosition(Position.fromTo(spawnLoc, spawnLoc));
+            spawnStartState.setMotionVector(spawnLoc.getDirection());
+            spawnStartState.initEnterDirection();
+            spawnStartState.loadRailLogic().getPath().move(spawnStartState, 0.0);
+            if (spawnStartState.position().motDot(options.player.getEyeLocation().getDirection()) < 0.0) {
+                spawnStartState.position().invertMotion();
             }
+            spawnDirection = spawnStartState.motionVector();
         }
 
-        // Find locations to spawn at
-        SpawnableGroup.SpawnLocationList locationList = group.findSpawnLocations(spawnLoc, spawnDirection, SpawnableGroup.SpawnMode.DEFAULT);
-        if (locationList == null) {
-            return SpawnResult.FAIL_RAILTOOSHORT; // Not enough spawn positions on the rails
-        }
-        if (locationList.locations.size() < group.getMembers().size()) {
-            return SpawnResult.FAIL_RAILTOOSHORT; // Not enough spawn positions on the rails
+        // Extend-behind logic
+        {
+            Optional<SpawnResult> behindResult = trySpawnExtendBehind(group, spawnStartState, options);
+            if (behindResult.isPresent()) {
+                return behindResult.get();
+            }
         }
 
         // Check the per-world limits
@@ -385,23 +391,14 @@ public class TrainChestItemUtil {
             return SpawnResult.FAIL_MAX_PER_WORLD;
         }
 
-        // Prepare chunks
-        locationList.loadChunks();
+        // Find locations to spawn at
+        SpawnableGroup.SpawnLocationList locationList = group.findSpawnLocations(spawnLoc, spawnDirection, SpawnableGroup.SpawnMode.DEFAULT);
 
-        // Verify spawn area is clear of trains before spawning
-        if (locationList.isOccupied()) {
-            return SpawnResult.FAIL_BLOCKED; // Occupied
-        }
-
-        // Spawn.
-        MinecartGroup spawnedGroup = group.spawn(locationList, initialSpeed);
-        if (spawnedGroup != null && !spawnedGroup.isEmpty()) {
-            spawnedGroup.getTrainCarts().getPlayer(player).editCart(spawnedGroup.tail().getProperties());
-        }
-        return SpawnResult.SUCCESS;
+        // Attempt spawning here
+        return spawnAtLocations(group, locationList, options);
     }
 
-    public static SpawnResult spawnLookingAt(SpawnableGroup group, Player player, Location eyeLocation, double initialSpeed) {
+    public static SpawnResult spawnLookingAt(SpawnableGroup group, Player player, Location eyeLocation, SpawnOptions options) {
         // Clicked in the air. Perform a raytrace hit-test to find
         // possible rails in range of where the player clicked.
         // No need to make this complicated, we only need to get close
@@ -435,28 +432,168 @@ public class TrainChestItemUtil {
             }
         }
 
+        // No rail found at all?
         if (bestState == null) {
             return SpawnResult.FAIL_NORAIL_LOOK;
-        } else {
-            // Reverse direction to align how the player is looking
-            if (bestState.position().motDot(step) < 0.0) {
-                bestState.position().invertMotion();
-            }
-            bestState.initEnterDirection();
-
-            // Try spawning
-            return spawnAtState(group, player, bestState, initialSpeed);
         }
+
+        // Reverse direction to align how the player is looking
+        if (bestState.position().motDot(step) < 0.0) {
+            bestState.position().invertMotion();
+        }
+        bestState.initEnterDirection();
+
+        // Extend-behind logic
+        {
+            Optional<SpawnResult> behindResult = trySpawnExtendBehind(group, bestState, options);
+            if (behindResult.isPresent()) {
+                return behindResult.get();
+            }
+        }
+
+        // Try spawning
+        return spawnAtState(group, bestState, options);
     }
 
-    public static SpawnResult spawnAtState(SpawnableGroup group, Player player, RailState state, double initialSpeed) {
+    /**
+     * Looks in reverse from a spawn start state for trains already on the track. Returns the spawn result
+     * if such a train was found, or empty otherwise.
+     *
+     * @param group SpawnableGroup
+     * @param spawnStartState Initial state on the track pointing forwards of where to spawn
+     * @param options SpawnOptions
+     * @return SpawnResult if a train was found, or empty otherwise
+     */
+    private static Optional<SpawnResult> trySpawnExtendBehind(SpawnableGroup group, RailState spawnStartState, SpawnOptions options) {
+        // If enabled, try to find another train behind and extend that one
+        // We might also find one later during spawn location finding, but there
+        // we would not find trains right behind.
+        if (options.tryExtendTrains) {
+            double searchDistance = AUTOCONNECT_EXTRA_DISTANCE + group.getCartGap() +
+                    0.5 * group.getMembers().get(0).getLength();
+
+            TrainChestExtendableTrain extendableTrain = TrainChestExtendableTrain.find(spawnStartState.cloneAndInvertMotion(), searchDistance);
+            if (extendableTrain != null) {
+                // Handle further spawning with the extendable train state
+                // After spawning, link the newly spawned train with this one
+                options.tryExtendTrains = false; // Avoid infinite recursion
+                options.connectWith = extendableTrain.member;
+                options.spawnMode = SpawnableGroup.SpawnMode.DEFAULT_EDGE;
+                return Optional.of(spawnAtState(group, extendableTrain.startState, options));
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    /**
+     * Performs spawning logic after having calculated the spawn location list. Pre-checks will occur to see
+     * if spawning is actually allowed or possible. If options include {@link SpawnOptions#tryExtendTrains} then
+     * it will also try to connect with trains already on the track. (But not behind)
+     *
+     * @param group SpawnableGroup
+     * @param locationList List of spawn locations that were previously calculated
+     * @param options SpawnOptions
+     * @return SpawnResult
+     */
+    private static SpawnResult spawnAtLocations(SpawnableGroup group, SpawnableGroup.SpawnLocationList locationList, SpawnOptions options) {
+        // Not enough spawn positions on the rails?
+        if (locationList == null) {
+            return SpawnResult.FAIL_RAILTOOSHORT;
+        }
+
+        // Prepare chunks
+        locationList.loadChunks();
+
+        // Verify spawn area is clear of trains before spawning
+        // Do try to connect with trains occupying the track if enabled
+        if (options.tryExtendTrains) {
+            // Try to extend trains. If this fails, fail with BLOCKED.
+            List<SpawnableGroup.OccupiedLocation> occupiedLocations = locationList.getOccupiedLocations();
+            if (!occupiedLocations.isEmpty()) {
+                if (options.tryExtendTrains) {
+                    TrainChestExtendableTrain extendableTrain = TrainChestExtendableTrain.findOccupied(occupiedLocations);
+                    if (extendableTrain != null) {
+                        options.tryExtendTrains = false; // Avoid infinite recursion
+                        options.connectWith = extendableTrain.member;
+                        options.spawnMode = SpawnableGroup.SpawnMode.REVERSE_EDGE;
+                        return spawnAtState(group, extendableTrain.startState.cloneAndInvertMotion(), options);
+                    }
+                }
+
+                // Fail!
+                return SpawnResult.FAIL_BLOCKED;
+            }
+        } else if (options.connectWith != null) {
+            // If connecting with an existing train, ignore that train when checking
+            MinecartGroup connectWithGroup = options.connectWith.getGroup();
+            for (SpawnableGroup.OccupiedLocation occupied : locationList.getOccupiedLocations()) {
+                if (occupied.member.getGroup() != connectWithGroup) {
+                    // Occupied by another train (one we are not connecting with)
+                    return SpawnResult.FAIL_BLOCKED;
+                }
+            }
+        } else if (locationList.isOccupied()) {
+            // Occupied by another train
+            return SpawnResult.FAIL_BLOCKED;
+        }
+
+        // Not enough spawn positions on the rails?
+        if (locationList.locations.size() < group.getMembers().size()) {
+            return SpawnResult.FAIL_RAILTOOSHORT;
+        }
+
+        // Also check whether a short distance past the last cart being spawned, there's a train
+        // Same logic as when handling occupied locations (forwards)
+        if (options.tryExtendTrains && locationList.endState != null) {
+            double searchDistance = AUTOCONNECT_EXTRA_DISTANCE + group.getCartGap() +
+                    0.5 * group.getMembers().get(0).getLength();
+
+            TrainChestExtendableTrain extendableTrain = TrainChestExtendableTrain.find(locationList.endState, searchDistance);
+            if (extendableTrain != null) {
+                // Handle further spawning with the extendable train state
+                // After spawning, link the newly spawned train with this one
+                options.tryExtendTrains = false; // Avoid infinite recursion
+                options.connectWith = extendableTrain.member;
+                options.spawnMode = SpawnableGroup.SpawnMode.REVERSE_EDGE;
+                return spawnAtState(group, extendableTrain.startState.cloneAndInvertMotion(), options);
+            }
+        }
+
+        // ======================= Pre-checks done ========================
+
+        // Spawn.
+        MinecartGroup spawnedGroup = group.spawn(locationList, options.initialSpeed);
+        if (!spawnedGroup.isEmpty()) {
+            spawnedGroup.getTrainCarts().getPlayer(options.player).editMember(spawnedGroup.tail());
+        }
+
+        // Link it up!
+        // This could technically fail, but since we've already spawned the train, count it
+        // as an absolute win.
+        if (options.connectWith != null) {
+            MinecartMember<?> with = options.spawnMode.isReverseOrder() ? spawnedGroup.head() : spawnedGroup.tail();
+            // Order is important! This way, we keep the group of connectWith around. (g2)
+            MinecartGroup.link(with, options.connectWith);
+        }
+
+        return SpawnResult.SUCCESS;
+    }
+
+    public static SpawnResult spawnAtState(SpawnableGroup group, RailState state, SpawnOptions options) {
         if (group == null) {
             return SpawnResult.FAIL_EMPTY;
         }
 
         // Check not too long
-        if (TCConfig.maxCartsPerTrain >= 0 && group.getMembers().size() > TCConfig.maxCartsPerTrain) {
-            return SpawnResult.FAIL_TOO_LONG;
+        {
+            int totalLength = group.getMembers().size();
+            if (options.connectWith != null) {
+                totalLength += options.connectWith.getGroup().size();
+            }
+            if (TCConfig.maxCartsPerTrain >= 0 && totalLength > TCConfig.maxCartsPerTrain) {
+                return SpawnResult.FAIL_TOO_LONG;
+            }
         }
 
         // Check not reached limit
@@ -464,34 +601,33 @@ public class TrainChestItemUtil {
             return SpawnResult.FAIL_LIMIT_REACHED;
         }
 
-        // Find locations to spawn at
-        SpawnableGroup.SpawnLocationList locationList = group.findSpawnLocations(state, SpawnableGroup.SpawnMode.DEFAULT);
-        if (locationList == null) {
-            return SpawnResult.FAIL_RAILTOOSHORT; // Not enough spawn positions on the rails
-        }
-        if (locationList.locations.size() < group.getMembers().size()) {
-            return SpawnResult.FAIL_RAILTOOSHORT; // Not enough spawn positions on the rails
-        }
-
         // Check the per-world limits
         if (MinecartGroupStore.isPerWorldSpawnLimitReached(state.positionLocation(), group.getMembers().size())) {
             return SpawnResult.FAIL_MAX_PER_WORLD;
         }
 
-        // Prepare chunks
-        locationList.loadChunks();
+        // Find locations to spawn at
+        SpawnableGroup.SpawnLocationList locationList = group.findSpawnLocations(state, options.spawnMode);
 
-        // Verify spawn area is clear of trains before spawning
-        if (locationList.isOccupied()) {
-            return SpawnResult.FAIL_BLOCKED; // Occupied by another train
-        }
+        // Attempt spawning here
+        return spawnAtLocations(group, locationList, options);
+    }
 
-        // Spawn.
-        MinecartGroup spawnedGroup = group.spawn(locationList, initialSpeed);
-        if (spawnedGroup != null && !spawnedGroup.isEmpty()) {
-            spawnedGroup.getTrainCarts().getPlayer(player).editMember(spawnedGroup.tail());
+    public static class SpawnOptions {
+        /** The player that initiated the spawn with the chest */
+        public final Player player;
+        /** Initial launch speed after spawning */
+        public double initialSpeed = 0.0;
+        /** Whether or not to look for existing trains and to spawn additional connected carts */
+        public boolean tryExtendTrains = false;
+        /** Mode of spawning the train */
+        public SpawnableGroup.SpawnMode spawnMode = SpawnableGroup.SpawnMode.DEFAULT;
+        /** Connect with another, existing train after spawning */
+        public MinecartMember<?> connectWith = null;
+
+        public SpawnOptions(Player player) {
+            this.player = player;
         }
-        return SpawnResult.SUCCESS;
     }
 
     public static enum SpawnResult {
