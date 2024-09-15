@@ -278,6 +278,17 @@ public class SpawnableGroup implements TrainCarts.Provider {
     }
 
     /**
+     * Gets the configured gap kept between carts when spawning this spawnable group
+     * as a standalone train
+     *
+     * @return Cart gap kept between carts
+     */
+    public double getCartGap() {
+        return StandardProperties.CART_GAP.readFromConfig(getConfig())
+                .orElse(StandardProperties.CART_GAP.getDefault());
+    }
+
+    /**
      * Gets the total length of all the members of this spawnable group
      * 
      * @return total length
@@ -287,7 +298,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
             return 0.0;
         } else {
             return this.members.stream().mapToDouble(SpawnableMember::getLength).sum() +
-                    (double) (this.members.size() - 1) * TCConfig.cartDistanceGap;
+                    (double) (this.members.size() - 1) * getCartGap();
         }
     }
 
@@ -406,6 +417,9 @@ public class SpawnableGroup implements TrainCarts.Provider {
             return result;
         }
 
+        // Gap used
+        double cartGap = this.getCartGap();
+
         // CENTER logic requires walking in both directions
         if (mode == SpawnMode.CENTER) {
             double halfLength = 0.5 * this.getTotalLength();
@@ -457,7 +471,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
 
                     // Member is definitely part of the backward half, so add it
                     accumLength += memberStartLength;
-                    prevMemberLength = 0.5 * member.getLength() + TCConfig.cartDistanceGap;
+                    prevMemberLength = 0.5 * member.getLength() + cartGap;
                     backward.add(member);
                 }
                 if (!isForwardPortion) {
@@ -495,7 +509,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
                             Util.invertRotation(walker.state.positionLocation()));
 
                     // Last member has no gap
-                    double gap = (i < (backward.size() - 1)) ? TCConfig.cartDistanceGap : 0.0;
+                    double gap = (i < (backward.size() - 1)) ? cartGap : 0.0;
                     if (!walker.move(0.5 * member.getLength() + gap)) {
                         return null; // Out of space behind
                     }
@@ -522,7 +536,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
                     result.addMember(member, walker.state.motionVector(), walker.state.positionLocation());
 
                     // Last member has no gap
-                    double gap = (i < (forward.size() - 1)) ? TCConfig.cartDistanceGap : 0.0;
+                    double gap = (i < (forward.size() - 1)) ? cartGap : 0.0;
                     if (!walker.move(0.5 * member.getLength() + gap)) {
                         return null; // Out of space forwards
                     }
@@ -553,7 +567,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
                 result.addMember(member, walker.state.motionVector(), walker.state.positionLocation());
 
                 // Last member has no gap
-                double gap = (i < (this.members.size() - 1)) ? TCConfig.cartDistanceGap : 0.0;
+                double gap = (i < (this.members.size() - 1)) ? cartGap : 0.0;
                 if (!walker.move(0.5 * member.getLength() + gap)) {
                     return null; // Out of space
                 }
@@ -583,7 +597,7 @@ public class SpawnableGroup implements TrainCarts.Provider {
                         Util.invertRotation(walker.state.positionLocation()));
 
                 // Last member has no gap
-                double gap = (i > 0) ? TCConfig.cartDistanceGap : 0.0;
+                double gap = (i > 0) ? cartGap : 0.0;
                 if (!walker.move(0.5 * member.getLength() + gap)) {
                     return null; // Out of space
                 }

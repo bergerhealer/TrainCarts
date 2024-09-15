@@ -233,11 +233,16 @@ public class SavedTrainProperties implements TrainCarts.Provider, SavedAttachmen
         return count;
     }
 
+    public double getCartGap() {
+        return StandardProperties.CART_GAP.readFromConfig(getConfig())
+                .orElse(StandardProperties.CART_GAP.getDefault());
+    }
+
     public double getTotalTrainLength() {
         double totalLength = 0.0;
         List<ConfigurationNode> carts = getCarts();
         if (!carts.isEmpty()) {
-            totalLength += TCConfig.cartDistanceGap * (carts.size() - 1);
+            totalLength += getCartGap() * (carts.size() - 1);
             for (ConfigurationNode cart : carts) {
                 if (cart.contains("model.physical.cartLength")) {
                     totalLength += cart.get("model.physical.cartLength", 0.0);

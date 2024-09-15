@@ -223,7 +223,7 @@ public enum CollisionMode {
                 double force;
                 // Keeping distance
                 //TODO: Needs to take cart size into account
-                force = TCConfig.cartDistanceGap + 1.0 - member.getEntity().loc.distanceSquared(entity);
+                force = member.getGroup().getCartGap() + 1.0 - member.getEntity().loc.distanceSquared(entity);
                 force *= TCConfig.cartDistanceForcer;
                 // Difference in velocity
                 force += member.getRealSpeed() - entity.getVelocity().length();

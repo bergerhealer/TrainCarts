@@ -71,6 +71,7 @@ public abstract class FieldBackedProperty<T> implements IProperty<T> {
         public double speedLimit;
         public double gravity;
         public double friction;
+        public double cartGap;
         public CollisionOptions collision;
         public Set<SlowdownMode> slowdown;
         public SignSkipOptions signSkipOptionsData;

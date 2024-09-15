@@ -2215,7 +2215,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
 
         // Set the factor to the offset we must make to correct the distance
-        double distanceDiff = (TCConfig.cartDistanceGap - gap);
+        double distanceDiff = (getGroup().getCartGap() - gap);
         direction.multiply(distanceDiff);
         return direction;
     }
@@ -2621,7 +2621,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return preferred distance
      */
     public double getPreferredDistance(MinecartMember<?> member) {
-        return 0.5 * ((double) entity.getWidth() + (double) member.getEntity().getWidth()) + TCConfig.cartDistanceGap;
+        return 0.5 * ((double) entity.getWidth() + (double) member.getEntity().getWidth()) + getGroup().getCartGap();
     }
 
     /**

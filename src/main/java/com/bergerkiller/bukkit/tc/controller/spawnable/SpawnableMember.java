@@ -36,6 +36,15 @@ public class SpawnableMember implements TrainCarts.Provider {
         this.flipped = this.config.get("flipped", false);
     }
 
+    /**
+     * Gets the spawnable group information that this member is a member of.
+     *
+     * @return SpawnableGroup
+     */
+    public SpawnableGroup getGroup() {
+        return group;
+    }
+
     @Override
     public TrainCarts getTrainCarts() {
         return this.group.getTrainCarts();
