@@ -293,11 +293,10 @@ public class SignControllerWorld {
         {
             long key = MathUtil.longHashToLong(cx, cz);
             if ((signsAtChunk = this.signsByChunk.get(key)) == null) {
-                world.getChunkAt(cx, cz);
-                if ((signsAtChunk = this.signsByChunk.get(key)) == null) {
-                    // Weird! This case probably never happens.
-                    return false;
-                }
+                // Note: On Paper, getChunkAt() will already fire ChunkLoad, and thus loadChunk
+                //       Because of this, the extra loadChunk will do nothing (already loaded, ignore)
+                //       On Spigot however, this does not happen, and the extra loadChunk() is required.
+                signsAtChunk = this.loadChunk(world.getChunkAt(cx, cz));
             }
         }
 
@@ -654,17 +653,23 @@ public class SignControllerWorld {
      *
      * @param chunk
      */
-    void loadChunk(Chunk chunk) {
+    List<SignController.Entry> loadChunk(Chunk chunk) {
         // If this sign cache hasn't been initialized with all loaded chunks yet, don't do anything here
         if (this.needsInitialization) {
-            return;
+            return Collections.emptyList();
         }
 
         long chunkKey = MathUtil.longHashToLong(chunk.getX(), chunk.getZ());
 
-        // Skip if already added. Might be some edge conditions during world load...
-        if (this.signsByChunk.contains(chunkKey)) {
-            return;
+        // The loadChunk() always fires twice: once when requested from a lookup function of this
+        // controller, again because of the ChunkLoadEvent. The behavior and timing of these
+        // things differ between Paper and Spigot. The below check ensures initialization
+        // of the chunk-sign metadata only occurs once.
+        {
+            List<SignController.Entry> existingEntriesAtChunk = this.signsByChunk.get(chunkKey);
+            if (existingEntriesAtChunk != null) {
+                return existingEntriesAtChunk;
+            }
         }
 
         List<SignController.Entry> entriesAtChunk = Collections.emptyList();
@@ -707,6 +712,8 @@ public class SignControllerWorld {
                 deactivateSignsInChunk(tracker.getChunk());
             }
         });
+
+        return entriesAtChunk;
     }
 
     private Collection<BlockState> getBlockStatesSafe(Chunk chunk) {
@@ -815,7 +822,9 @@ public class SignControllerWorld {
         }
 
         @Override
-        void loadChunk(Chunk chunk) {}
+        List<SignController.Entry> loadChunk(Chunk chunk) {
+            return Collections.emptyList();
+        }
 
         @Override
         void unloadChunk(Chunk chunk) {}
