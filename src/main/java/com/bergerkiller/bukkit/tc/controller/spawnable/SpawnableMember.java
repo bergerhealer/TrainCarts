@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.spawnable;
 
+import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.properties.standard.StandardProperties;
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
@@ -19,6 +21,7 @@ public class SpawnableMember implements TrainCarts.Provider {
     private final SpawnableGroup group;
     private final ConfigurationNode config;
     private final double length;
+    private final double couplerLength;
     private final EntityType entityType;
     private final boolean flipped;
 
@@ -32,6 +35,7 @@ public class SpawnableMember implements TrainCarts.Provider {
         } else {
             this.length = DEFAULT_CART_LENGTH;
         }
+        this.couplerLength = this.config.getOrDefault("model.physical.cartCouplerLength", 0.5 * TCConfig.cartDistanceGap);
         this.entityType = this.config.get("entityType", EntityType.MINECART);
         this.flipped = this.config.get("flipped", false);
     }
@@ -97,6 +101,18 @@ public class SpawnableMember implements TrainCarts.Provider {
      */
     public double getLength() {
         return this.length;
+    }
+
+    /**
+     * Gets the extra spacing that the (invisible) coupler of this cart has between
+     * itself and the coupler of another cart. The two coupler lengths of the two
+     * carts form the 'gap' distance between the two carts.
+     *
+     * @return Cart coupler length
+     * @see AttachmentModel#getCartCouplerLength()
+     */
+    public double getCartCouplerLength() {
+        return couplerLength;
     }
 
     /**

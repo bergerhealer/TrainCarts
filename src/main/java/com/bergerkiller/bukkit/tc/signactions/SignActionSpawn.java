@@ -346,11 +346,6 @@ public class SignActionSpawn extends SignAction {
                 }
             }
         } else {
-            // Cart gap is kind of annoying as it is a group property but we don't have that
-            // Sneakily use the members for it...
-            // This is a deprecated method anyway.
-            double cartGap = types.isEmpty() ? TCConfig.cartDistanceGap : types.get(0).getGroup().getCartGap();
-
             // Multiple-minecart spawning logic
             TrackWalkingPoint walker = new TrackWalkingPoint(startLoc, direction);
             walker.skipFirst();
@@ -366,7 +361,12 @@ public class SignActionSpawn extends SignAction {
                     }
                 }
                 result.add(walker.state.positionLocation());
-                if ((i == types.size() - 1) || !walker.move(0.5 * type.getLength() + cartGap)) {
+                if (i == (types.size() - 1)) {
+                    break;
+                }
+
+                double cartGap = type.getCartCouplerLength() + types.get(i + 1).getCartCouplerLength();
+                if (!walker.move(0.5 * type.getLength() + cartGap)) {
                     break;
                 }
             }

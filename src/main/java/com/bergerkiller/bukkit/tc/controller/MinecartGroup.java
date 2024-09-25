@@ -1284,16 +1284,6 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         return force / (double) size();
     }
 
-    /**
-     * Gets the inter-cart gap configured for this train.
-     *
-     * @return Gap between carts
-     * @see StandardProperties#CART_GAP
-     */
-    public double getCartGap() {
-        return StandardProperties.CART_GAP.get(this.getProperties());
-    }
-
     public List<Material> getTypes() {
         ArrayList<Material> types = new ArrayList<>(this.size());
         for (MinecartMember<?> mm : this) {

@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableMember;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -470,11 +471,14 @@ public class TrainChestItemUtil {
         // If enabled, try to find another train behind and extend that one
         // We might also find one later during spawn location finding, but there
         // we would not find trains right behind.
+        // We assume 2x cart coupler length because we don't know what to expect for a train we find
+        // A safe assumption is that it'll use the same coupler length.
         if (options.tryExtendTrains) {
-            double searchDistance = AUTOCONNECT_EXTRA_DISTANCE + group.getCartGap() +
-                    0.5 * group.getMembers().get(0).getLength();
+            SpawnableMember lastMember = group.getMembers().get(group.getMembers().size() - 1);
+            double searchDistance = AUTOCONNECT_EXTRA_DISTANCE +
+                    2.0 * lastMember.getCartCouplerLength() + 0.5 * lastMember.getLength();
 
-            TrainChestExtendableTrain extendableTrain = TrainChestExtendableTrain.find(spawnStartState.cloneAndInvertMotion(), searchDistance);
+            TrainChestExtendableTrain extendableTrain = TrainChestExtendableTrain.find(spawnStartState.cloneAndInvertMotion(), searchDistance, lastMember);
             if (extendableTrain != null) {
                 // Handle further spawning with the extendable train state
                 // After spawning, link the newly spawned train with this one
@@ -514,7 +518,7 @@ public class TrainChestItemUtil {
             List<SpawnableGroup.OccupiedLocation> occupiedLocations = locationList.getOccupiedLocations();
             if (!occupiedLocations.isEmpty()) {
                 if (options.tryExtendTrains) {
-                    TrainChestExtendableTrain extendableTrain = TrainChestExtendableTrain.findOccupied(occupiedLocations);
+                    TrainChestExtendableTrain extendableTrain = TrainChestExtendableTrain.findOccupied(occupiedLocations, group.getMembers().get(0));
                     if (extendableTrain != null) {
                         options.tryExtendTrains = false; // Avoid infinite recursion
                         options.connectWith = extendableTrain.member;
@@ -547,11 +551,14 @@ public class TrainChestItemUtil {
 
         // Also check whether a short distance past the last cart being spawned, there's a train
         // Same logic as when handling occupied locations (forwards)
+        // We assume 2x cart coupler length because we don't know what to expect for a train we find
+        // A safe assumption is that it'll use the same coupler length.
         if (options.tryExtendTrains && locationList.endState != null) {
-            double searchDistance = AUTOCONNECT_EXTRA_DISTANCE + group.getCartGap() +
-                    0.5 * group.getMembers().get(0).getLength();
+            SpawnableMember firstMember = group.getMembers().get(0);
+            double searchDistance = AUTOCONNECT_EXTRA_DISTANCE +
+                    2.0 * firstMember.getCartCouplerLength() + 0.5 * firstMember.getLength();
 
-            TrainChestExtendableTrain extendableTrain = TrainChestExtendableTrain.find(locationList.endState, searchDistance);
+            TrainChestExtendableTrain extendableTrain = TrainChestExtendableTrain.find(locationList.endState, searchDistance, firstMember);
             if (extendableTrain != null) {
                 // Handle further spawning with the extendable train state
                 // After spawning, link the newly spawned train with this one

@@ -220,10 +220,20 @@ public enum CollisionMode {
         if (entity instanceof Minecart) {
             // Push the minecart (only when moving towards it)
             if (member.isHeadingTo(entity)) {
+                double gap = member.getCartCouplerLength();
+                {
+                    MinecartMember<?> otherMember = MinecartMemberStore.getFromEntity(entity);
+                    if (otherMember != null) {
+                        gap += otherMember.getCartCouplerLength();
+                    } else {
+                        gap += 0.5 * TCConfig.cartDistanceGap;
+                    }
+                }
+
                 double force;
                 // Keeping distance
                 //TODO: Needs to take cart size into account
-                force = member.getGroup().getCartGap() + 1.0 - member.getEntity().loc.distanceSquared(entity);
+                force = gap + 1.0 - member.getEntity().loc.distanceSquared(entity);
                 force *= TCConfig.cartDistanceForcer;
                 // Difference in velocity
                 force += member.getRealSpeed() - entity.getVelocity().length();

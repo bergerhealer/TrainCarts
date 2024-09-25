@@ -7,6 +7,9 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import org.bukkit.ChatColor;
@@ -23,6 +26,8 @@ import org.bukkit.util.Vector;
  */
 public class PhysicalMemberPreview {
     private final VirtualBoundingBox boundingBox = VirtualBoundingBox.create(null);
+    private final VirtualTrainCoupler trainCouplerFront = VirtualTrainCoupler.create(null);
+    private final VirtualTrainCoupler trainCouplerBack = VirtualTrainCoupler.create(null);
     private final VirtualMemberWheelPreview wheelsFront = new VirtualMemberWheelPreview();
     private final VirtualMemberWheelPreview wheelsBack = new VirtualMemberWheelPreview();
     private final Set<Player> viewers = new HashSet<Player>();
@@ -32,8 +37,10 @@ public class PhysicalMemberPreview {
     public PhysicalMemberPreview(MinecartMember<?> member, Supplier<Collection<Player>> viewerSupplier) {
         this.member = member;
         this.viewerSupplier = viewerSupplier;
-        this.boundingBox.update(this.member.getHitBox());
         this.boundingBox.setGlowColor(ChatColor.WHITE);
+        this.trainCouplerFront.setGlowColor(ChatColor.WHITE);
+        this.trainCouplerBack.setGlowColor(ChatColor.WHITE);
+        this.updateFromCart();
     }
 
     public void update() {
@@ -69,19 +76,49 @@ public class PhysicalMemberPreview {
 
     private void spawn(AttachmentViewer viewer) {
         this.boundingBox.spawn(viewer, new Vector(0.0, 0.0, 0.0));
+        this.trainCouplerFront.spawn(viewer, new Vector(0.0, 0.0, 0.0));
+        this.trainCouplerBack.spawn(viewer, new Vector(0.0, 0.0, 0.0));
         this.wheelsFront.spawn(viewer.getPlayer(), 1.0, this.member.getWheels().front());
         this.wheelsBack.spawn(viewer.getPlayer(), 1.0, this.member.getWheels().back());
     }
 
+    private void updateFromCart() {
+        OrientedBoundingBox bb = this.member.getHitBox();
+        double couplerLength = this.member.getCartCouplerLength();
+
+        this.boundingBox.update(bb);
+
+        // Front coupler
+        {
+            Matrix4x4 transform = Matrix4x4.translation(bb.getPosition());
+            transform.rotate(bb.getOrientation());
+            transform.translate(0.0, -0.5 * bb.getSize().getY(), 0.5 * bb.getSize().getZ());
+            this.trainCouplerFront.update(transform, couplerLength);
+        }
+
+        // Back coupler
+        {
+            Matrix4x4 transform = Matrix4x4.translation(bb.getPosition());
+            transform.rotate(bb.getOrientation());
+            transform.rotateYFlip();
+            transform.translate(0.0, -0.5 * bb.getSize().getY(), 0.5 * bb.getSize().getZ());
+            this.trainCouplerBack.update(transform, couplerLength);
+        }
+    }
+
     private void update(Iterable<Player> viewers) {
-        this.boundingBox.update(this.member.getHitBox());
+        this.updateFromCart();
         this.boundingBox.syncPosition(true);
+        this.trainCouplerFront.syncPosition(true);
+        this.trainCouplerBack.syncPosition(true);
         this.wheelsFront.update(viewers, 1.0, this.member.getWheels().front());
         this.wheelsBack.update(viewers, 1.0, this.member.getWheels().back());
     }
 
     private void destroy(AttachmentViewer viewer) {
         this.boundingBox.destroy(viewer);
+        this.trainCouplerFront.destroy(viewer);
+        this.trainCouplerBack.destroy(viewer);
         this.wheelsFront.destroy(viewer.getPlayer());
         this.wheelsBack.destroy(viewer.getPlayer());
     }

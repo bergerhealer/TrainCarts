@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.chest;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableGroup;
+import com.bergerkiller.bukkit.tc.controller.spawnable.SpawnableMember;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
@@ -28,9 +29,13 @@ public class TrainChestExtendableTrain {
      * Tries to extend a train that was found occupying previously calculated spawn locations
      *
      * @param occupiedLocations List of occupied locations
+     * @param connectedMember The first spawned cart that will be connected with any found train
      * @return Found extendable train, or null if none could be identified or there is no room on the track
      */
-    public static TrainChestExtendableTrain findOccupied(List<SpawnableGroup.OccupiedLocation> occupiedLocations) {
+    public static TrainChestExtendableTrain findOccupied(
+            List<SpawnableGroup.OccupiedLocation> occupiedLocations,
+            SpawnableMember connectedMember
+    ) {
         if (occupiedLocations.isEmpty()) {
             return null;
         }
@@ -38,7 +43,9 @@ public class TrainChestExtendableTrain {
         // This assumes the train chest was used to spawn into a direction, but then a member was found.
         // Pick the first slot that is occupied, and use that to find the relative direction vector.
         SpawnableGroup.OccupiedLocation firstOccupied = occupiedLocations.get(0);
-        return findEndOfTrain(firstOccupied.member, firstOccupied.spawnLocation.forward.clone().multiply(-1.0));
+        return findEndOfTrain(firstOccupied.member,
+                firstOccupied.spawnLocation.forward.clone().multiply(-1.0),
+                connectedMember);
     }
 
     /**
@@ -47,9 +54,10 @@ public class TrainChestExtendableTrain {
      *
      * @param startState Start state to begin looking for a member to connect with
      * @param searchDistance Maximum distance to look for other trains past start state
+     * @param connectedMember The first spawned cart that will be connected with any found train
      * @return Found extendable train, or null if none are found
      */
-    public static TrainChestExtendableTrain find(RailState startState, double searchDistance) {
+    public static TrainChestExtendableTrain find(RailState startState, double searchDistance, SpawnableMember connectedMember) {
         if (startState.railPiece().isNone()) {
             return null;
         }
@@ -83,14 +91,14 @@ public class TrainChestExtendableTrain {
             // Always pick first. It doesn't matter if there is more than one, because
             // we will be navigating from this member forwards anyway to find the front
             // or back of the train.
-            return findEndOfTrain(bestMember, p.state.motionVector().clone().multiply(-1.0));
+            return findEndOfTrain(bestMember, p.state.motionVector().clone().multiply(-1.0), connectedMember);
         } while (p.moveStep(searchDistance - p.movedTotal));
 
         // Not found
         return null;
     }
 
-    private static TrainChestExtendableTrain findEndOfTrain(MinecartMember<?> member, Vector spawnDirection) {
+    private static TrainChestExtendableTrain findEndOfTrain(MinecartMember<?> member, Vector spawnDirection, SpawnableMember connectedMember) {
         // What direction is forwards? Use the motion direction vector of the member.
         // Based on this pick either the first or last cart of the train
         RailState memberStartState;
@@ -105,7 +113,7 @@ public class TrainChestExtendableTrain {
         }
 
         // Walk half the width + a gap away from the member and return the position
-        double extraDistance = 0.5 * member.getEntity().getWidth() + member.getGroup().getCartGap();
+        double extraDistance = 0.5 * member.getEntity().getWidth() + member.getCartCouplerLength() + connectedMember.getCartCouplerLength();
         TrackWalkingPoint p = new TrackWalkingPoint(memberStartState);
         p.skipFirst();
         if (!p.move(extraDistance)) {

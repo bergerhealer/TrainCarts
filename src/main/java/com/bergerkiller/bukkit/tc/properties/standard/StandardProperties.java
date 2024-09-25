@@ -35,7 +35,6 @@ public class StandardProperties {
     public static final PlayerEnterAndExitProperty ALLOW_PLAYER_ENTER_AND_EXIT = new PlayerEnterAndExitProperty();
     public static final GravityProperty GRAVITY = new GravityProperty();
     public static final FrictionProperty FRICTION = new FrictionProperty();
-    public static final CartGapProperty CART_GAP = new CartGapProperty();
     public static final SpeedLimitProperty SPEEDLIMIT = new SpeedLimitProperty();
     public static final TrainNameFormatProperty TRAIN_NAME_FORMAT = new TrainNameFormatProperty();
     public static final OnlyOwnersCanEnterProperty ONLY_OWNERS_CAN_ENTER = new OnlyOwnersCanEnterProperty();

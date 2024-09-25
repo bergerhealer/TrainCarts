@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.function.Supplier;
 
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.properties.standard.type.AttachmentModelBoundToCart;
 import com.bergerkiller.bukkit.tc.utils.SetCallbackCollector;
@@ -20,6 +21,9 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
  * Everything configurable in the attachment editor is described here.
  */
 public class AttachmentModel implements SavedAttachmentModelStore.ModelUsing {
+    /** Default cart length (of a Minecart) */
+    public static final float DEFAULT_CART_LENGTH = 0.98f;
+
     private final AttachmentTypeRegistry registry;
     private final AttachmentConfigTracker tracker;
     private final SavedAttachmentModelStore modelStore;
@@ -98,6 +102,17 @@ public class AttachmentModel implements SavedAttachmentModelStore.ModelUsing {
 
     public float getCartLength() {
         return calcMeta().cartLength;
+    }
+
+    /**
+     * Gets the extra spacing that the (invisible) coupler of this cart has between
+     * itself and the coupler of another cart. The two coupler lengths of the two
+     * carts form the 'gap' distance between the two carts.
+     *
+     * @return Cart coupler length
+     */
+    public double getCartCouplerLength() {
+        return calcMeta().cartCouplerLength;
     }
 
     public double getWheelDistance() {
@@ -255,13 +270,15 @@ public class AttachmentModel implements SavedAttachmentModelStore.ModelUsing {
         public final AttachmentConfig.RootReference root;
         public final int seatCount;
         public final float cartLength;
+        public final double cartCouplerLength;
         public final double wheelCenter;
         public final double wheelDistance;
 
         public AttachmentModelMeta() {
             this.root = AttachmentConfig.RootReference.NONE;
             this.seatCount = 0;
-            this.cartLength = 0.98f;
+            this.cartLength = DEFAULT_CART_LENGTH;
+            this.cartCouplerLength = 0.5 * TCConfig.cartDistanceGap;
             this.wheelCenter = 0.0;
             this.wheelDistance = 0.0;
         }
@@ -273,11 +290,13 @@ public class AttachmentModel implements SavedAttachmentModelStore.ModelUsing {
             this.seatCount = calcSeatCount(registry, rootAtt);
             if (rootAtt.config().isNode("physical")) {
                 ConfigurationNode physical = rootAtt.config().getNode("physical");
-                this.cartLength = physical.get("cartLength", 0.98f);
+                this.cartLength = physical.get("cartLength", DEFAULT_CART_LENGTH);
+                this.cartCouplerLength = physical.getOrDefault("cartCouplerLength", 0.5 * TCConfig.cartDistanceGap);
                 this.wheelCenter = physical.get("wheelCenter", 0.0);
                 this.wheelDistance = physical.get("wheelDistance", 0.0);
             } else {
-                this.cartLength = 0.98f;
+                this.cartLength = DEFAULT_CART_LENGTH;
+                this.cartCouplerLength = 0.5 * TCConfig.cartDistanceGap;
                 this.wheelCenter = 0.0;
                 this.wheelDistance = 0.0;
             }

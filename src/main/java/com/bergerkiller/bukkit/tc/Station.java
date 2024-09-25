@@ -413,7 +413,7 @@ public class Station {
                 // TODO: Using the calculated value works but caused far worse station centering performance
                 //       It seems specifying the hardcoded configured gap works best
                 //       Perhaps this is because the gap changes during the station launching?
-                total_size += group.getCartGap();
+                total_size += m.getCartCouplerLength() + group.get(i - 1).getCartCouplerLength();
                 //total_size += MinecartMember.calculateGapAndDirection(m, group.get(i-1), new org.bukkit.util.Vector());
 
                 if (m == info.cart) {

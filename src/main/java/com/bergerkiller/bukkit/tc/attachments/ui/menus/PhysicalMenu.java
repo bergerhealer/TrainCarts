@@ -10,7 +10,9 @@ import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.particle.PhysicalMemberPreview;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
@@ -21,8 +23,10 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
  * banking and movement drag parameters.
  */
 public class PhysicalMenu extends MapWidgetMenu {
-    private static final int NUMBERBOX_OFFSET = 35;
-    private static final int NUMBERBOX_STEP = 24;
+    private static final int PREVIEW_OFFSET = 5;
+    private static final int PREVIEW_HEIGHT = 10;
+    private static final int NUMBERBOX_OFFSET = 27;
+    private static final int NUMBERBOX_STEP = 21;
     private static final int NUMBERBOX_HEIGHT = 11;
     private final MapTexture wheelTexture;
     private PhysicalMemberPreview preview;
@@ -51,7 +55,10 @@ public class PhysicalMenu extends MapWidgetMenu {
             });
         }
 
-        this.addWidget(new MapWidgetNumberBox() { // Position X
+        // Color of the labels for the number boxes
+        byte lblColor = MapColorPalette.getColor(152, 89, 36);
+
+        this.addWidget(new MapWidgetNumberBox() { // Cart Length
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -65,13 +72,52 @@ public class PhysicalMenu extends MapWidgetMenu {
             }
 
             @Override
+            public void onResetValue() {
+                setValue(AttachmentModel.DEFAULT_CART_LENGTH);
+            }
+
+            @Override
             public void onValueChanged() {
                 getConfig().set("cartLength", getValue());
                 onChanged();
             }
-        }).setBounds(10, NUMBERBOX_OFFSET, 100, NUMBERBOX_HEIGHT);
+        }).setBounds(10, NUMBERBOX_OFFSET + 0 * NUMBERBOX_STEP, 100, NUMBERBOX_HEIGHT);
+        this.addWidget(new MapWidgetText()).setColor(lblColor).setText("Cart Length").setPosition(20, NUMBERBOX_OFFSET+0*NUMBERBOX_STEP - 8);
 
-        this.addWidget(new MapWidgetNumberBox() { // Position Y
+        this.addWidget(new MapWidgetNumberBox() { // Cart Coupler Length
+            @Override
+            public void onAttached() {
+                super.onAttached();
+
+                // Note: You can go as far negative as you like
+                //       If higher than cart length, the carts will just occupy the same spot
+                this.setRange(-100.0, Math.max(0.1, TCConfig.cartDistanceGapMax));
+                this.setInitialValue(getConfig().getOrDefault("cartCouplerLength", 0.5 * TCConfig.cartDistanceGap));
+            }
+
+            @Override
+            public String getAcceptedPropertyName() {
+                return "Coupler Length";
+            }
+
+            @Override
+            public void onResetValue() {
+                setValue(0.5 * TCConfig.cartDistanceGap);
+            }
+
+            @Override
+            public void onValueChanged() {
+                if (getValue() == (0.5 * TCConfig.cartDistanceGap)) {
+                    getConfig().remove("cartCouplerLength");
+                } else {
+                    getConfig().set("cartCouplerLength", getValue());
+                }
+                onChanged();
+            }
+        }).setBounds(10, NUMBERBOX_OFFSET + 1 * NUMBERBOX_STEP, 100, NUMBERBOX_HEIGHT);
+        this.addWidget(new MapWidgetText()).setColor(lblColor).setText("Coupler Length").setPosition(20, NUMBERBOX_OFFSET+1*NUMBERBOX_STEP - 8);
+
+        this.addWidget(new MapWidgetNumberBox() { // Wheel Distance
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -89,9 +135,10 @@ public class PhysicalMenu extends MapWidgetMenu {
                 getConfig().set("wheelDistance", getValue());
                 onChanged();
             }
-        }).setBounds(10, NUMBERBOX_OFFSET + NUMBERBOX_STEP, 100, NUMBERBOX_HEIGHT);
+        }).setBounds(10, NUMBERBOX_OFFSET + 2 * NUMBERBOX_STEP, 100, NUMBERBOX_HEIGHT);
+        this.addWidget(new MapWidgetText()).setColor(lblColor).setText("Wheel Distance").setPosition(20, NUMBERBOX_OFFSET+2*NUMBERBOX_STEP - 8);
 
-        this.addWidget(new MapWidgetNumberBox() { // Position Z
+        this.addWidget(new MapWidgetNumberBox() { // Wheel Center
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -108,13 +155,8 @@ public class PhysicalMenu extends MapWidgetMenu {
                 getConfig().set("wheelCenter", getValue());
                 onChanged();
             }
-        }).setBounds(10, NUMBERBOX_OFFSET + 2 * NUMBERBOX_STEP, 100, NUMBERBOX_HEIGHT);
-
-        // Labels for the number boxes
-        byte lblColor = MapColorPalette.getColor(152, 89, 36);
-        this.addWidget(new MapWidgetText()).setColor(lblColor).setText("Cart Length").setPosition(20, NUMBERBOX_OFFSET+0*NUMBERBOX_STEP - 8);
-        this.addWidget(new MapWidgetText()).setColor(lblColor).setText("Wheel Distance").setPosition(20, NUMBERBOX_OFFSET+1*NUMBERBOX_STEP - 8);
-        this.addWidget(new MapWidgetText()).setColor(lblColor).setText("Wheel Offset").setPosition(20, NUMBERBOX_OFFSET+2*NUMBERBOX_STEP - 8);
+        }).setBounds(10, NUMBERBOX_OFFSET + 3 * NUMBERBOX_STEP, 100, NUMBERBOX_HEIGHT);
+        this.addWidget(new MapWidgetText()).setColor(lblColor).setText("Wheel Offset").setPosition(20, NUMBERBOX_OFFSET+3*NUMBERBOX_STEP - 8);
     }
 
     @Override
@@ -177,9 +219,9 @@ public class PhysicalMenu extends MapWidgetMenu {
 
         // Draw the Minecart hull based on the cart length
         int hull_x = MathUtil.floor((0.5 * this.getWidth()) - (0.5 * cartLength));
-        int hull_y = 5;
+        int hull_y = PREVIEW_OFFSET;
         int hull_w = MathUtil.ceil(cartLength);
-        int hull_h = 14;
+        int hull_h = PREVIEW_HEIGHT;
         {
             view.drawRectangle(hull_x, hull_y, hull_w, hull_h, MapColorPalette.COLOR_BLACK);
             Random rand = new Random(12345678L);

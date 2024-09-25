@@ -233,20 +233,22 @@ public class SavedTrainProperties implements TrainCarts.Provider, SavedAttachmen
         return count;
     }
 
-    public double getCartGap() {
-        return StandardProperties.CART_GAP.readFromConfig(getConfig())
-                .orElse(StandardProperties.CART_GAP.getDefault());
-    }
-
     public double getTotalTrainLength() {
         double totalLength = 0.0;
         List<ConfigurationNode> carts = getCarts();
         if (!carts.isEmpty()) {
-            totalLength += getCartGap() * (carts.size() - 1);
+            double prevCartCouplerLength = 0.0;
+            boolean first = true;
             for (ConfigurationNode cart : carts) {
-                if (cart.contains("model.physical.cartLength")) {
-                    totalLength += cart.get("model.physical.cartLength", 0.0);
+                double cartCouplerLength = cart.getOrDefault("model.physical.cartCouplerLength", 0.5 * TCConfig.cartDistanceGap);
+                if (first) {
+                    first = false;
+                } else {
+                    totalLength += prevCartCouplerLength + cartCouplerLength;
                 }
+                prevCartCouplerLength = cartCouplerLength;
+
+                totalLength += cart.getOrDefault("model.physical.cartLength", (double) SavedAttachmentModel.DEFAULT_CART_LENGTH);
             }
         }
         return totalLength;

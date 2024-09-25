@@ -2215,7 +2215,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         }
 
         // Set the factor to the offset we must make to correct the distance
-        double distanceDiff = (getGroup().getCartGap() - gap);
+        double distanceDiff = ((back.getCartCouplerLength() + front.getCartCouplerLength()) - gap);
         direction.multiply(distanceDiff);
         return direction;
     }
@@ -2621,7 +2621,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * @return preferred distance
      */
     public double getPreferredDistance(MinecartMember<?> member) {
-        return 0.5 * ((double) entity.getWidth() + (double) member.getEntity().getWidth()) + getGroup().getCartGap();
+        return 0.5 * ((double) entity.getWidth() + (double) member.getEntity().getWidth()) +
+                this.getCartCouplerLength() + member.getCartCouplerLength();
     }
 
     /**
@@ -2671,6 +2672,18 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         box.setSize(1.0, height, entity.getWidth());
         box.setOrientation(orientation);
         return box;
+    }
+
+    /**
+     * Gets the extra spacing that the (invisible) coupler of this cart has between
+     * itself and the coupler of another cart. The two coupler lengths of the two
+     * carts form the 'gap' distance between the two carts.
+     *
+     * @return Cart coupler length
+     * @see AttachmentModel#getCartCouplerLength()
+     */
+    public double getCartCouplerLength() {
+        return getProperties().getModel().getCartCouplerLength();
     }
 
     /**
