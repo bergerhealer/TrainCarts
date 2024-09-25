@@ -6,6 +6,7 @@ import java.util.OptionalInt;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
+import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -40,6 +41,13 @@ public class VirtualFishingLine {
             new Vector(-0.35, -1.04, -0.8),
             /** Offset to position the hooked silverfish entity to align hook-line at 0/0/0 */
             new Vector(0.0, -0.49, 0.0));
+    private static final Offsets OFFSETS_1_20_2 = new Offsets(
+            /** Offset to position the player so that the held fishing rod line is exactly at 0/0/0 */
+            new Vector(-0.35, -1.17, -0.8),
+            /** Offset to position the silverfish mount of the player to align at 0/0/0 */
+            new Vector(-0.35, -0.807, -0.8),
+            /** Offset to position the hooked silverfish entity to align hook-line at 0/0/0 */
+            new Vector(0.0, -0.49, 0.0));
 
     private final int hookedEntityId, holderEntityId, holderPlayerEntityId, hookEntityId;
 
@@ -55,7 +63,9 @@ public class VirtualFishingLine {
     }
 
     private Offsets offsets(AttachmentViewer viewer) {
-        if (viewer.evaluateGameVersion(">=", "1.11")) {
+        if (viewer.evaluateGameVersion(">=", "1.20.2")) {
+            return OFFSETS_1_20_2;
+        } else if (viewer.evaluateGameVersion(">=", "1.11")) {
             return OFFSETS_1_11;
         } else {
             return OFFSETS_1_8;
@@ -274,6 +284,28 @@ public class VirtualFishingLine {
             this.PLAYER = OFFSET_PLAYER;
             this.HOLDER = OFFSET_HOLDER;
             this.HOOKED = OFFSET_HOOKED;
+        }
+
+        /**
+         * Passes these values through {@link DebugUtil}. Can be used to figure out the actual
+         * values if Minecraft changed these again.
+         *
+         * @return Debugged offsets
+         */
+        public Offsets debug() {
+            return new Offsets(
+                    /** Offset to position the player so that the held fishing rod line is exactly at 0/0/0 */
+                    new Vector(DebugUtil.getDoubleValue("ax", PLAYER.getX()),
+                               DebugUtil.getDoubleValue("ay", PLAYER.getY()),
+                               DebugUtil.getDoubleValue("az", PLAYER.getZ())),
+                    /** Offset to position the silverfish mount of the player to align at 0/0/0 */
+                    new Vector(DebugUtil.getDoubleValue("bx", HOLDER.getX()),
+                               DebugUtil.getDoubleValue("by", HOLDER.getY()),
+                               DebugUtil.getDoubleValue("bz", HOLDER.getZ())),
+                    /** Offset to position the hooked silverfish entity to align hook-line at 0/0/0 */
+                    new Vector(DebugUtil.getDoubleValue("cx", HOOKED.getX()),
+                               DebugUtil.getDoubleValue("cy", HOOKED.getY()),
+                               DebugUtil.getDoubleValue("cz", HOOKED.getZ())));
         }
     }
 }
