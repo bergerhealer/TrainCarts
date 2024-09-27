@@ -171,7 +171,8 @@ public class TCConfig {
         }
 
         config.setHeader("linkProperties", "\nProperties of the link between the carts of a train");
-        config.setHeader("linkProperties.cartDistanceGap", "The distance between two carts in a train");
+        config.setHeader("linkProperties.cartDistanceGap", "The default distance between two carts in a train");
+        config.addHeader("linkProperties.cartDistanceGap", "This can be overridden by configuring the 'coupler length' in the physical menu of the attachment editor");
         config.setHeader("linkProperties.cartDistanceGapMax", "The distance between two carts above which they lose linkage and disconnect");
         config.setHeader("linkProperties.cartDistanceForcer", "Factor at which the gap is maintained, based on train velocity");
         config.setHeader("linkProperties.cartDistanceForcerConstant", "Factor at which the gap is maintained, always active");
