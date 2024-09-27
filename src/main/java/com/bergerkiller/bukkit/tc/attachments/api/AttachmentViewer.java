@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.api;
 
 import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
@@ -151,12 +152,26 @@ public interface AttachmentViewer extends TrainCarts.Provider {
     }
 
     /**
-     * Gets whether this viewer is online
+     * Gets whether the Player is logged on and has a living Entity on a World.
+     * If the player is respawning, this returns False. If it's important to know
+     * whether the player logged off, use {@link #isConnected()} instead.
      *
-     * @return True if online
+     * @return True if the Player is alive and connected
      */
     default boolean isValid() {
         return getPlayer().isValid();
+    }
+
+    /**
+     * Gets whether the Player is still connected to the server, and has joined it
+     * (past the login phase). This also returns True if the player is still connected
+     * but is dead and on the respawn screen.
+     *
+     * @return True if the Player is still connected to the server and has joined it
+     */
+    default boolean isConnected() {
+        Player player = getPlayer();
+        return player.isValid() || Bukkit.getPlayer(player.getUniqueId()) == player;
     }
 
     /**
