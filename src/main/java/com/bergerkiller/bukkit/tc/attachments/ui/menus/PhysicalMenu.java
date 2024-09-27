@@ -33,7 +33,7 @@ public class PhysicalMenu extends MapWidgetMenu {
     private int ticksPreviewVisible = 0;
 
     public PhysicalMenu() {
-        this.setBounds(5, 15, 118, 104);
+        this.setBounds(5, 15, 118, 107);
         this.setBackgroundColor(MapColorPalette.COLOR_ORANGE);
         this.wheelTexture = MapTexture.loadPluginResource(TrainCarts.plugin,
                 "com/bergerkiller/bukkit/tc/textures/attachments/wheel.png");
