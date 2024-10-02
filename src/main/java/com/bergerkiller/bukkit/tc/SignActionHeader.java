@@ -18,14 +18,10 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionType;
  * This class acts both as a read-only container, and as a TC sign identifier.
  */
 public class SignActionHeader {
-    private boolean power_inverted = false;
-    private boolean power_always_on = false;
-    private boolean power_always_off = false;
-    private boolean power_rising = false;
-    private boolean power_falling = false;
     private boolean is_converted = false;
     private boolean is_empty = false;
     private String rc_name = "";
+    private SignRedstoneMode redstoneMode = SignRedstoneMode.ON;
     private SignActionMode mode = SignActionMode.NONE;
     private String directions_str = null;
 
@@ -69,7 +65,7 @@ public class SignActionHeader {
      * @return power inverted property
      */
     public boolean isInverted() {
-        return power_inverted;
+        return redstoneMode.isInverted();
     }
 
     /**
@@ -78,7 +74,7 @@ public class SignActionHeader {
      * @return power always on
      */
     public boolean isAlwaysOn() {
-        return power_always_on;
+        return redstoneMode == SignRedstoneMode.ALWAYS;
     }
 
     /**
@@ -87,7 +83,7 @@ public class SignActionHeader {
      * @return power always off
      */
     public boolean isAlwaysOff() {
-        return power_always_off;
+        return redstoneMode == SignRedstoneMode.NEVER;
     }
 
     /**
@@ -96,7 +92,7 @@ public class SignActionHeader {
      * @return power on rising edge (power -> on)
      */
     public boolean onPowerRising() {
-        return power_rising;
+        return redstoneMode.isRisingPulse();
     }
 
     /**
@@ -105,7 +101,7 @@ public class SignActionHeader {
      * @return power on falling edge (power -> off)
      */
     public boolean onPowerFalling() {
-        return power_falling;
+        return redstoneMode.isFallingPulse();
     }
 
     /**
@@ -114,21 +110,7 @@ public class SignActionHeader {
      * @return redstone power state
      */
     public SignRedstoneMode getRedstoneMode() {
-        if (this.power_always_on) {
-            return SignRedstoneMode.ALWAYS;
-        } else if (this.power_always_off) {
-            return SignRedstoneMode.NEVER;
-        } else if (this.power_rising && this.power_falling) {
-            return SignRedstoneMode.PULSE_ALWAYS;
-        } else if (this.power_falling) {
-            return this.power_inverted ? SignRedstoneMode.PULSE_ON : SignRedstoneMode.PULSE_OFF;
-        } else if (this.power_rising) {
-            return this.power_inverted ? SignRedstoneMode.PULSE_OFF : SignRedstoneMode.PULSE_ON;
-        } else if (this.power_inverted) {
-            return SignRedstoneMode.OFF;
-        } else {
-            return SignRedstoneMode.ON;
-        }
+        return this.redstoneMode;
     }
 
     /**
@@ -137,57 +119,7 @@ public class SignActionHeader {
      * @param mode to set to
      */
     public void setRedstoneMode(SignRedstoneMode mode) {
-        switch (mode) {
-        case ALWAYS:
-            this.power_always_off = false;
-            this.power_always_on = true;
-            this.power_inverted = false;
-            this.power_falling = false;
-            this.power_rising = false;
-            break;
-        case NEVER:
-            this.power_always_off = true;
-            this.power_always_on = false;
-            this.power_inverted = false;
-            this.power_falling = false;
-            this.power_rising = false;
-            break;
-        case ON:
-            this.power_always_off = false;
-            this.power_always_on = false;
-            this.power_inverted = false;
-            this.power_falling = false;
-            this.power_rising = false;
-            break;
-        case OFF:
-            this.power_always_off = false;
-            this.power_always_on = false;
-            this.power_inverted = true;
-            this.power_falling = false;
-            this.power_rising = false;
-            break;
-        case PULSE_ALWAYS:
-            this.power_always_off = false;
-            this.power_always_on = false;
-            this.power_inverted = false;
-            this.power_falling = true;
-            this.power_rising = true;
-            break;
-        case PULSE_ON:
-            this.power_always_off = false;
-            this.power_always_on = false;
-            this.power_inverted = false;
-            this.power_falling = false;
-            this.power_rising = true;
-            break;
-        case PULSE_OFF:
-            this.power_always_off = false;
-            this.power_always_on = false;
-            this.power_inverted = false;
-            this.power_falling = true;
-            this.power_rising = false;
-            break;
-        }
+        this.redstoneMode = mode;
     }
 
     /**
@@ -414,40 +346,7 @@ public class SignActionHeader {
      * @return sign action type to send to the sign action handlers
      */
     public SignActionType getRedstoneAction(boolean newPowerState) {
-        if (this.power_always_on || this.power_always_off) {
-            // Always powered; redstone events are ignored
-            return SignActionType.NONE;
-        }
-
-        // When we handle both rising and falling edge, send a REDSTONE_ON signal
-        // When inverted, the signal becomes REDSTONE_OFF instead
-        if (this.power_rising && this.power_falling) {
-            return this.power_inverted ? SignActionType.REDSTONE_OFF : SignActionType.REDSTONE_ON;
-        }
-
-        // When we handle the rising edge only, send a REDSTONE_ON signal when power state goes high
-        // When inverted, the signal becomes REDSTONE_OFF instead
-        if (this.power_rising && !this.power_falling) {
-            if (newPowerState) {
-                return this.power_inverted ? SignActionType.REDSTONE_OFF : SignActionType.REDSTONE_ON;
-            } else {
-                return SignActionType.NONE;
-            }
-        }
-
-        // When we handle the falling edge only, send a REDSTONE_ON signal when power state goes low
-        // When inverted, the signal becomes REDSTONE_OFF instead
-        if (!this.power_rising && this.power_falling) {
-            if (!newPowerState) {
-                return this.power_inverted ? SignActionType.REDSTONE_OFF : SignActionType.REDSTONE_ON;
-            } else {
-                return SignActionType.NONE;
-            }
-        }
-
-        // When we don't handle rising/falling edge, switch between
-        return newPowerState != this.power_inverted ?
-                SignActionType.REDSTONE_ON : SignActionType.REDSTONE_OFF;
+        return this.redstoneMode.getRedstoneAction(newPowerState);
     }
 
     /**
@@ -460,11 +359,11 @@ public class SignActionHeader {
         if (type == SignActionType.NONE) {
             return false;
         }
-        if ((this.power_always_on || this.power_always_off) &&
+        if (!this.redstoneMode.isRespondingToRedstone() &&
             (type == SignActionType.REDSTONE_ON || type == SignActionType.REDSTONE_OFF)) {
             return true;
         }
-        if ((this.power_rising || this.power_falling) && !type.isRedstone()) {
+        if ((this.redstoneMode.isRisingPulse() || this.redstoneMode.isFallingPulse()) && !type.isRedstone()) {
             return true;
         }
         return false;
@@ -480,12 +379,7 @@ public class SignActionHeader {
         }
 
         // [+
-        String prefix = "[";
-        if (this.power_always_on) prefix += "+";
-        if (this.power_always_off) prefix += "-";
-        if (this.power_inverted) prefix += "!";
-        if (this.power_rising) prefix += "/";
-        if (this.power_falling) prefix += "\\";
+        String prefix = "[" + this.redstoneMode.getPattern();
 
         // :N
         String postfix = "";
@@ -586,24 +480,10 @@ public class SignActionHeader {
         }
 
         // Parse special mode characters at the start of the line
-        int idx = 1;
-        while (line.length() > idx) {
-            char c = line.charAt(idx);
-            if (c == '!') {
-                header.power_inverted = true;
-            } else if (c == '+') {
-                header.power_always_on = true;
-            } else if (c == '-') {
-                header.power_always_off = true;
-            } else if (c == '/') {
-                header.power_rising = true;
-            } else if (c == '\\') {
-                header.power_falling = true;
-            } else {
-                break;
-            }
-            idx++;
-        }
+        SignRedstoneMode.ParseResult redstoneParseResult = SignRedstoneMode.parse(line, 1);
+        header.setRedstoneMode(redstoneParseResult.mode);
+
+        int idx = redstoneParseResult.endIndex;
 
         // There must now be either a train, cart, or remote-control identification token here
         String token = line.substring(idx, line.length() - 1).toLowerCase(Locale.ENGLISH);
