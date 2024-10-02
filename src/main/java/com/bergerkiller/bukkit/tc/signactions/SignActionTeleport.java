@@ -161,6 +161,6 @@ public class SignActionTeleport extends SignAction {
     }
 
     private boolean matchMyWorlds(SignActionEvent info) {
-        return info.getLine(0).equalsIgnoreCase("[portal]") && info.hasRails();
+        return info.getHeader().getModeText().equals("portal") && info.hasRails();
     }
 }

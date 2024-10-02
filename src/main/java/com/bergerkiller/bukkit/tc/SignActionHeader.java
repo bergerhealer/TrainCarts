@@ -24,6 +24,7 @@ public class SignActionHeader {
     private SignRedstoneMode redstoneMode = SignRedstoneMode.ON;
     private SignActionMode mode = SignActionMode.NONE;
     private String directions_str = null;
+    private String modeText = "";
 
     // These are initialized/cached the first time rail enter directions are requested
     private RailPiece rail_enter_dirs_rail = null;
@@ -129,6 +130,17 @@ public class SignActionHeader {
      */
     public SignActionMode getMode() {
         return mode;
+    }
+
+    /**
+     * Gets the text that was used to parse {@link #getMode()}, remote control names
+     * and/or direction statements. If the mode is NONE (invalid), then this text can
+     * be used to match other types of headers providing they use [] syntax.
+     *
+     * @return Mode text
+     */
+    public String getModeText() {
+        return modeText;
     }
 
     /**
@@ -488,7 +500,8 @@ public class SignActionHeader {
         // There must now be either a train, cart, or remote-control identification token here
         String token = line.substring(idx, line.length() - 1).toLowerCase(Locale.ENGLISH);
         String after_token = "";
-        header.mode = SignActionMode.NONE;
+
+        header.modeText = token;
         if (token.startsWith("train ") && token.length() > 6) {
             header.mode = SignActionMode.RCTRAIN;
             after_token = line.substring(idx + 6, line.length() - 1);
