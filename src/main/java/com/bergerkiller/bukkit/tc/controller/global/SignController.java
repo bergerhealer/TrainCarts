@@ -27,9 +27,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPhysicsEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
-import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldInitEvent;
@@ -100,6 +98,11 @@ public class SignController implements LibraryComponent, Listener {
     @Override
     public void enable() {
         plugin.register(this);
+        if (Common.hasCapability("Common:SignEditTextEvent")) {
+            plugin.register(new SignControllerEditListenerBKCL(this));
+        } else {
+            plugin.register(new SignControllerEditListenerLegacy(this));
+        }
         updateTask.start(1, 1);
     }
 
@@ -307,39 +310,29 @@ public class SignController implements LibraryComponent, Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
-    public void onBlockPlaceSignCheck(BlockPlaceEvent event) {
-        Sign sign;
-        if (
-            !event.canBuild() ||
-            TrainCarts.isWorldDisabled(event) ||
-            !MaterialUtil.ISSIGN.get(event.getBlockPlaced()) ||
-            (sign = BlockUtil.getSign(event.getBlockPlaced())) == null
-        ) {
-            return;
+    protected void handleSignChange(SignBuildEvent event, Block signBlock, SignSide signSide, boolean isSignEdit) {
+        // Reset cache to make sure all signs are recomputed later, after the sign was made
+        // Doing it here, in the most generic case, so that custom addon signs are also refreshed
+        // TODO: Maybe only recalculate the rails impacted, or nearby the sign? This could be costly.
+        //
+        // NOW DISABLED. Handled by sign-adding logic in the sign controller now.
+        //RailLookup.forceRecalculation();
+
+        // Before handling placement, create an already-activated entry for this sign
+        // This makes sure that, if during the build handling the rail is requested or some
+        // complex logic occurs involving it, the sign can be found.
+        //
+        // No loadedChanged() event is fired, as handleBuild() already handles that there.
+        SignControllerWorld controller = this.forWorld(event.getBlock().getWorld());
+        Entry newSignEntry = controller.addSign(event.getBlock(), true, signSide.isFront());
+
+        // Handle building the sign. Might cancel it (permissions)
+        SignAction.handleBuild(event);
+
+        // If not cancelled, update later so the true text is known
+        if (newSignEntry != null && !event.isCancelled()) {
+            newSignEntry.updateRedstoneLater();
         }
-
-        // Mock a sign change event to handle building it
-        SignBuildEvent build_event = new SignBuildEvent(
-                event.getPlayer(),
-                TrackedSign.forRealSign(sign, true, null),
-                true
-        );
-        handleSignChange(build_event, SignSide.FRONT);
-
-        // If cancelled, cancel block placement too
-        if (build_event.isCancelled()) {
-            event.setBuild(false);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onSignChange(SignChangeEvent event) {
-        if (TrainCarts.isWorldDisabled(event)) {
-            return;
-        }
-
-        handleSignChange(new SignBuildEvent(event, true), SignSide.sideChanged(event));
 
         // This stuff only occurs on <= 1.19.4. On 1.20 the sign change is separate
         // from sign placement, so we shouldn't break the sign at all.
@@ -347,7 +340,7 @@ public class SignController implements LibraryComponent, Listener {
             // Properly give the sign back to the player that placed it
             // We do not want to place down an empty sign, that is annoying
             // If this is impossible for whatever reason, just drop it
-            Material signBlockType = event.getBlock().getType();
+            Material signBlockType = signBlock.getType();
             if (!Util.canInstantlyBuild(event.getPlayer()) && MaterialUtil.ISSIGN.get(signBlockType)) {
                 // Find the type of item matching the sign type
                 Material signItemType;
@@ -376,38 +369,13 @@ public class SignController implements LibraryComponent, Listener {
                     HumanHand.setItemInMainHand(event.getPlayer(), item);
                 } else {
                     // Drop the item
-                    Location loc = event.getBlock().getLocation().add(0.5, 0.5, 0.5);
+                    Location loc = signBlock.getLocation().add(0.5, 0.5, 0.5);
                     loc.getWorld().dropItemNaturally(loc, new ItemStack(signItemType, 1));
                 }
             }
 
             // Break the block
-            event.getBlock().setType(Material.AIR);
-        }
-    }
-
-    private void handleSignChange(SignBuildEvent event, SignSide signSide) {
-        // Reset cache to make sure all signs are recomputed later, after the sign was made
-        // Doing it here, in the most generic case, so that custom addon signs are also refreshed
-        // TODO: Maybe only recalculate the rails impacted, or nearby the sign? This could be costly.
-        //
-        // NOW DISABLED. Handled by sign-adding logic in the sign controller now.
-        //RailLookup.forceRecalculation();
-
-        // Before handling placement, create an already-activated entry for this sign
-        // This makes sure that, if during the build handling the rail is requested or some
-        // complex logic occurs involving it, the sign can be found.
-        //
-        // No loadedChanged() event is fired, as handleBuild() already handles that there.
-        SignControllerWorld controller = this.forWorld(event.getBlock().getWorld());
-        Entry newSignEntry = controller.addSign(event.getBlock(), true, signSide.isFront());
-
-        // Handle building the sign. Might cancel it (permissions)
-        SignAction.handleBuild(event);
-
-        // If not cancelled, update later so the true text is known
-        if (newSignEntry != null && !event.isCancelled()) {
-            newSignEntry.updateRedstoneLater();
+            signBlock.setType(Material.AIR);
         }
     }
 
