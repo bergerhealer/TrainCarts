@@ -9,8 +9,10 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.bergerkiller.bukkit.common.block.SignSide;
 import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.events.SignBuildEvent;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.utils.RecursionGuard;
 import org.bukkit.Bukkit;
@@ -318,14 +320,15 @@ public class SignController implements LibraryComponent, Listener {
         }
 
         // Mock a sign change event to handle building it
-        SignChangeEvent change_event = new SignChangeEvent(
-                event.getBlockPlaced(),
+        SignBuildEvent build_event = new SignBuildEvent(
                 event.getPlayer(),
-                sign.getLines());
-        handleSignChange(change_event);
+                TrackedSign.forRealSign(sign, true, null),
+                true
+        );
+        handleSignChange(build_event, SignSide.FRONT);
 
         // If cancelled, cancel block placement too
-        if (change_event.isCancelled()) {
+        if (build_event.isCancelled()) {
             event.setBuild(false);
         }
     }
@@ -336,7 +339,7 @@ public class SignController implements LibraryComponent, Listener {
             return;
         }
 
-        handleSignChange(event);
+        handleSignChange(new SignBuildEvent(event, true), SignSide.sideChanged(event));
 
         // This stuff only occurs on <= 1.19.4. On 1.20 the sign change is separate
         // from sign placement, so we shouldn't break the sign at all.
@@ -383,7 +386,7 @@ public class SignController implements LibraryComponent, Listener {
         }
     }
 
-    private void handleSignChange(SignChangeEvent event) {
+    private void handleSignChange(SignBuildEvent event, SignSide signSide) {
         // Reset cache to make sure all signs are recomputed later, after the sign was made
         // Doing it here, in the most generic case, so that custom addon signs are also refreshed
         // TODO: Maybe only recalculate the rails impacted, or nearby the sign? This could be costly.
@@ -397,7 +400,7 @@ public class SignController implements LibraryComponent, Listener {
         //
         // No loadedChanged() event is fired, as handleBuild() already handles that there.
         SignControllerWorld controller = this.forWorld(event.getBlock().getWorld());
-        Entry newSignEntry = controller.addSign(event.getBlock(), true, BlockUtil.isChangingFrontLines(event));
+        Entry newSignEntry = controller.addSign(event.getBlock(), true, signSide.isFront());
 
         // Handle building the sign. Might cancel it (permissions)
         SignAction.handleBuild(event);

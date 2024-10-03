@@ -244,11 +244,24 @@ public abstract class SignAction {
                 .handle(event.getPlayer());
     }
 
+    /**
+     * Handles the building of a sign.
+     *
+     * @deprecated Please use {@link #handleBuild(SignBuildEvent)}
+     * @param info SignChangeActionEvent
+     */
     @Deprecated
     public static void handleBuild(SignChangeActionEvent info) {
         handleBuild(new SignBuildEvent(info));
     }
 
+    /**
+     * Handles the building of a sign.
+     *
+     * @deprecated Please use {@link #handleBuild(SignBuildEvent)}
+     * @param event SignChangeEvent
+     */
+    @Deprecated
     public static void handleBuild(SignChangeEvent event) {
         handleBuild(new SignBuildEvent(event, true));
     }

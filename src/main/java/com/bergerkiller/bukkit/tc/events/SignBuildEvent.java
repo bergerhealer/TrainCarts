@@ -1,8 +1,17 @@
 package com.bergerkiller.bukkit.tc.events;
 
+import com.bergerkiller.bukkit.common.events.SignEditTextEvent;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.tc.PowerState;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
+import com.bergerkiller.bukkit.tc.utils.FakeSign;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.block.SignChangeEvent;
 
@@ -32,31 +41,9 @@ public class SignBuildEvent extends SignChangeActionEvent {
      *                    silent unless a permission-related issue occurs.
      */
     public SignBuildEvent(Player player, RailLookup.TrackedSign sign, boolean interactive) {
+        // Note: this constructor is called by TC-Coasters!
         super(player, sign, interactive);
         this.action = SignAction.getSignAction(this);
-    }
-
-    /**
-     * Constructs a new SignBuildEvent detecting the registered sign action based on the
-     * sign lines
-     *
-     * @param event SignChangeEvent describing the building of the new sign
-     * @param interactive Whether this is an interactive change. If true, then a
-     *                    sign build message is displayed. If not, the building is
-     *                    silent unless a permission-related issue occurs.
-     */
-    public SignBuildEvent(SignChangeEvent event, boolean interactive) {
-        super(event, interactive);
-        this.action = SignAction.getSignAction(this);
-    }
-
-    /**
-     * @deprecated Just here to keep an old deprecated handleBuild() API functional
-     */
-    @Deprecated
-    public SignBuildEvent(SignChangeActionEvent event) {
-        super(event);
-        this.action = SignAction.getSignAction(event);
     }
 
     /**
@@ -76,18 +63,33 @@ public class SignBuildEvent extends SignChangeActionEvent {
     }
 
     /**
-     * Constructs a new SignBuildEvent with a specified SignAction. Can be used if the SignAction
-     * is already known to eliminate an unneeded lookup.
+     * Constructs a new SignBuildEvent detecting the registered sign action based on the
+     * sign lines
      *
      * @param event SignChangeEvent describing the building of the new sign
      * @param interactive Whether this is an interactive change. If true, then a
      *                    sign build message is displayed. If not, the building is
      *                    silent unless a permission-related issue occurs.
-     * @param action Registered SignAction that manages execution of this sign
      */
-    public SignBuildEvent(SignChangeEvent event, boolean interactive, SignAction action) {
+    @Deprecated
+    public SignBuildEvent(SignChangeEvent event, boolean interactive) {
         super(event, interactive);
-        this.action = action;
+        this.action = SignAction.getSignAction(this);
+    }
+
+    /**
+     * @deprecated Just here to keep an old deprecated handleBuild() API functional
+     */
+    @Deprecated
+    public SignBuildEvent(SignChangeActionEvent event) {
+        super(event);
+        this.action = SignAction.getSignAction(event);
+    }
+
+    // For use with BKCLSignEditBuildEvent. No other use.
+    protected SignBuildEvent(Cancellable event, Player player, RailLookup.TrackedSign sign, boolean interactive) {
+        super(event, player, sign, interactive);
+        this.action = SignAction.getSignAction(this);;
     }
 
     /**
@@ -118,5 +120,114 @@ public class SignBuildEvent extends SignChangeActionEvent {
     @Override
     public HandlerList getHandlers() {
         return handlers;
+    }
+
+    /**
+     * Used for handling a BKCommonLib {@link SignEditTextEvent} as a SignBuildEvent.
+     * This will probably be removed when BKCommonLib 1.21.1-v2+ is a hard-dependency.
+     */
+    public static class BKCLSignEditBuildEvent extends SignBuildEvent {
+
+        public static SignBuildEvent create(SignEditTextEvent event, boolean interactive) {
+            return new BKCLSignEditBuildEvent(event, interactive);
+        }
+
+        private BKCLSignEditBuildEvent(SignEditTextEvent event, boolean interactive) {
+            super(event, event.getPlayer(), new TrackedEditedSign(event), interactive);
+        }
+
+        // Same as TrackedChangingSign, will replace it eventually
+        private static class TrackedEditedSign extends RailLookup.TrackedRealSign {
+            private final SignEditTextEvent event;
+            private final boolean front;
+
+            public TrackedEditedSign(SignEditTextEvent event) {
+                super(FakeSign.create(event.getBlock()), event.getBlock(), RailPiece.NONE);
+                this.front = event.getSide().isFront();
+                ((FakeSign) sign).setHandler(new FakeSign.HandlerSignFallback(signBlock) {
+                    @Override
+                    public String getFrontLine(int index) {
+                        return front ? event.getLine(index) : super.getFrontLine(index);
+                    }
+
+                    @Override
+                    public void setFrontLine(int index, String text) {
+                        if (front) {
+                            event.setLine(index, text);
+                        } else {
+                            super.setFrontLine(index, text);
+                        }
+                    }
+
+                    @Override
+                    public String getBackLine(int index) {
+                        return front ? super.getBackLine(index) : event.getLine(index);
+                    }
+
+                    @Override
+                    public void setBackLine(int index, String text) {
+                        if (front) {
+                            super.setBackLine(index, text);
+                        } else {
+                            event.setLine(index, text);
+                        }
+                    }
+                });
+                this.rail = null;
+                this.event = event;
+            }
+
+            @Override
+            public boolean isFrontText() {
+                return front;
+            }
+
+            @Override
+            public boolean verify() {
+                return false;
+            }
+
+            @Override
+            public boolean isRemoved() {
+                return !MaterialUtil.ISSIGN.get(event.getBlock());
+            }
+
+            @Override
+            public BlockFace getFacing() {
+                return BlockUtil.getFacing(event.getBlock());
+            }
+
+            @Override
+            public Block getAttachedBlock() {
+                return BlockUtil.getAttachedBlock(event.getBlock());
+            }
+
+            @Override
+            public String[] getExtraLines() {
+                return new String[0]; //TODO: important?
+            }
+
+            @Override
+            public PowerState getPower(BlockFace from) {
+                return PowerState.get(this.signBlock, from, (getAction() != null)
+                        ? PowerState.Options.SIGN_CONNECT_WIRE
+                        : PowerState.Options.SIGN);
+            }
+
+            @Override
+            public String getLine(int index) throws IndexOutOfBoundsException {
+                return event.getLine(index);
+            }
+
+            @Override
+            public void setLine(int index, String line) throws IndexOutOfBoundsException {
+                event.setLine(index, line);
+            }
+
+            @Override
+            public Object getUniqueKey() {
+                return this;
+            }
+        }
     }
 }

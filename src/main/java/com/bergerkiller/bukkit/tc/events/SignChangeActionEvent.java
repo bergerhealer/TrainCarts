@@ -60,7 +60,7 @@ public class SignChangeActionEvent extends SignActionEvent {
         this(event.event, event.player, event.getTrackedSign(), event.interactive);
     }
 
-    private SignChangeActionEvent(Cancellable event, Player player, TrackedSign sign, boolean interactive) {
+    protected SignChangeActionEvent(Cancellable event, Player player, TrackedSign sign, boolean interactive) {
         super(sign);
         this.event = event;
         this.player = player;
