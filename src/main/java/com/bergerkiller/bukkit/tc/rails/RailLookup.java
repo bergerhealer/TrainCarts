@@ -6,7 +6,6 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -32,7 +31,6 @@ import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.utils.FakeSign;
-import org.bukkit.event.block.SignChangeEvent;
 
 /**
  * Manages the {@link WorldRailLookup} caches for all worlds they exist on.
@@ -838,18 +836,6 @@ public final class RailLookup {
                 throw new IllegalArgumentException("No sign or sign block specified (null)");
             }
         }
-
-        /**
-         * Represents the temporary information of a sign just changed by a Player. The side
-         * modified by the Player is used. Changing the lines of this tracked sign will
-         * modify the event rather than writing to the sign state.
-         *
-         * @param event Sign change event
-         * @return TrackedSign tracking this changing sign
-         */
-        public static TrackedSign forChangingSign(SignChangeEvent event) {
-            return new TrackedChangingSign(event);
-        }
     }
 
     /**
@@ -925,7 +911,7 @@ public final class RailLookup {
      */
     public static abstract class TrackedRealSign extends TrackedSign {
 
-        TrackedRealSign(Sign sign, Block signBlock, RailPiece rail) {
+        protected TrackedRealSign(Sign sign, Block signBlock, RailPiece rail) {
             super(sign, signBlock, rail);
         }
 
@@ -945,7 +931,7 @@ public final class RailLookup {
         @Override
         public String toString() {
             StringBuilder str = new StringBuilder();
-            str.append((this instanceof TrackedChangingSign) ? "TrackedChangingSign{" : "TrackedRealSign{");
+            str.append(this.getClass().getSimpleName()).append('{');
             str.append("world=").append(signBlock.getWorld().getName());
             str.append(", x=").append(signBlock.getX());
             str.append(", y=").append(signBlock.getY());
@@ -960,99 +946,6 @@ public final class RailLookup {
             }
             str.append("]}");
             return str.toString();
-        }
-    }
-
-    private static class TrackedChangingSign extends TrackedRealSign {
-        private final SignChangeEvent event;
-        private final boolean front;
-
-        public TrackedChangingSign(SignChangeEvent event) {
-            super(FakeSign.create(event.getBlock()), event.getBlock(), RailPiece.NONE);
-            this.front = BlockUtil.isChangingFrontLines(event);
-            ((FakeSign) sign).setHandler(new FakeSign.HandlerSignFallback(signBlock) {
-                @Override
-                public String getFrontLine(int index) {
-                    return front ? event.getLine(index) : super.getFrontLine(index);
-                }
-
-                @Override
-                public void setFrontLine(int index, String text) {
-                    if (front) {
-                        event.setLine(index, text);
-                    } else {
-                        super.setFrontLine(index, text);
-                    }
-                }
-
-                @Override
-                public String getBackLine(int index) {
-                    return front ? super.getBackLine(index) : event.getLine(index);
-                }
-
-                @Override
-                public void setBackLine(int index, String text) {
-                    if (front) {
-                        super.setBackLine(index, text);
-                    } else {
-                        event.setLine(index, text);
-                    }
-                }
-            });
-            this.rail = null;
-            this.event = event;
-        }
-
-        @Override
-        public boolean isFrontText() {
-            return front;
-        }
-
-        @Override
-        public boolean verify() {
-            return false;
-        }
-
-        @Override
-        public boolean isRemoved() {
-            return !MaterialUtil.ISSIGN.get(event.getBlock());
-        }
-
-        @Override
-        public BlockFace getFacing() {
-            return BlockUtil.getFacing(event.getBlock());
-        }
-
-        @Override
-        public Block getAttachedBlock() {
-            return BlockUtil.getAttachedBlock(event.getBlock());
-        }
-
-        @Override
-        public String[] getExtraLines() {
-            return new String[0]; //TODO: important?
-        }
-
-        @Override
-        public PowerState getPower(BlockFace from) {
-            return PowerState.get(this.signBlock, from, (getAction() != null)
-                    ? PowerState.Options.SIGN_CONNECT_WIRE
-                    : PowerState.Options.SIGN);
-        }
-
-        @Override
-        public String getLine(int index) throws IndexOutOfBoundsException {
-            return event.getLine(index);
-        }
-
-        @Override
-        public void setLine(int index, String line) throws IndexOutOfBoundsException {
-            event.setLine(index, line);
-        }
-
-        @Override
-        public Object getUniqueKey() {
-            return this;
         }
     }
 
