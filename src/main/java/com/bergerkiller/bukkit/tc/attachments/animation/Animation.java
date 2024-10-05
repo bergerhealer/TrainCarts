@@ -3,9 +3,11 @@ package com.bergerkiller.bukkit.tc.attachments.animation;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.bukkit.util.Vector;
@@ -166,7 +168,7 @@ public class Animation implements Cloneable {
     /**
      * Resets the animation to the beginning, setting the running time to be
      * most appropriate for the animation options currently used. Use
-     * {@link #applyOptions(options)} prior to starting to set these options.
+     * {@link #applyOptions(AnimationOptions)} prior to starting to set these options.
      */
     public void start() {
         if (this._options.isReversed()) {
@@ -346,23 +348,54 @@ public class Animation implements Cloneable {
             }
         }
 
+        return findPlayPosition(scene, curr_time).toNode();
+    }
+
+    /**
+     * Calculates the exact play position into this animation for a given scene
+     * and time.
+     *
+     * @param scene Scene
+     * @param elapsedTime Time since the beginning of the scene
+     * @return Play Position
+     */
+    private PlayPosition findPlayPosition(Scene scene, double elapsedTime) {
+        if (scene.isSingleFrame()) {
+            return new PlayPosition(elapsedTime, scene.nodeBeginIndex(), this._nodes[scene.nodeBeginIndex()]);
+        }
+
         // Interpolate to find the correct animation node
-        for (int i = scene.nodeBeginIndex(); i <= scene.nodeEndIndex(); i++) {
-            AnimationNode node = this._nodes[i];
-            double duration = node.getDuration();
-            if (curr_time > duration) {
-                curr_time -= duration;
-                continue;
+        boolean playReversed = this._options.isReversed();
+        for (PlayPosition scenePosition : scene.iteratePlayPositions(this._nodes, this._options.isLooped())) {
+            PlayPosition result = scenePosition.findPosition(elapsedTime, playReversed);
+            if (result != null) {
+                return result;
             }
-            int next_i = (i == scene.nodeEndIndex()) ? scene.nodeBeginIndex() : (i + 1);
-            if (duration == 0.0) {
-                return this._nodes[this._options.isReversed() ? i : next_i]; // Bugs otherwise
-            }
-            return AnimationNode.interpolate(this._nodes[i], this._nodes[next_i], curr_time/duration);
         }
 
         // Should never be reached
-        return this._nodes[scene.nodeEndIndex()];
+        return new PlayPosition(scene.duration(), scene.nodeEndIndex(), this._nodes[scene.nodeEndIndex()]);
+    }
+
+    /**
+     * Looks up the time to play from the start of a scene to the play position specified
+     *
+     * @param scene Scene
+     * @param playPosition PlayPositionBetween
+     * @return Time from start of the scene
+     */
+    private double findTime(Scene scene, PlayPosition playPosition) {
+        double time = 0.0;
+        for (PlayPosition scenePosition : scene.iteratePlayPositions(this._nodes, this._options.isLooped())) {
+            if (scenePosition.node0Index() == playPosition.node0Index()) {
+                return scenePosition.elapsedTime() + playPosition.deltaTime();
+            } else {
+                time = scenePosition.elapsedTime();
+            }
+        }
+
+        // Probably never gets here?
+        return time;
     }
 
     /**
@@ -372,23 +405,16 @@ public class Animation implements Cloneable {
      * @param scene
      */
     private void updateScene(Scene scene) {
-        // Start duration offset
-        if (scene.nodeBeginIndex() < this._currentScene.nodeBeginIndex()) {
-            for (int i = scene.nodeBeginIndex(); i < this._currentScene.nodeBeginIndex(); i++) {
-                this._time += this._nodes[i].getDuration();
-            }
-        } else if (scene.nodeBeginIndex() > this._currentScene.nodeBeginIndex()) {
-            for (int i = this._currentScene.nodeBeginIndex(); i < scene.nodeBeginIndex(); i++) {
-                this._time -= this._nodes[i].getDuration();
-            }
-        }
+        // Find current play position node-wise
+        PlayPosition playPosition = findPlayPosition(this._currentScene, this._time);
 
-        // If already playing, ensure time stays within range (phase), loop or no loop
-        if (this._startedPlaying && (this._time < 0.0 || this._time > scene.duration())) {
-            this._time = (this._time % scene.duration());
-            if (this._time < 0.0) {
-                this._time += scene.duration(); // nega
-            }
+        // Is this position inside the new scene too?
+        // If not, hard reset to the beginning (or end, if reversed) of the scene
+        // to play the scene all over, acting as a hard reset.
+        if (scene.containsPosition(playPosition)) {
+            this._time = findTime(scene, playPosition);
+        } else {
+            this._time = this._options.isReversed() ? scene.duration() : 0.0;
         }
 
         // Assign
@@ -424,16 +450,11 @@ public class Animation implements Cloneable {
                     .nodeEndIndex();
         }
 
-        // Swap around if scenes are specified the wrong way around to avoid trouble
-        if (beginIndex > endIndex) {
-            int tmp = beginIndex;
-            beginIndex = endIndex;
-            endIndex = tmp;
-        }
-
+        // Use iterator to calculate the total duration of this scene
+        // This is including the loop-around bit!
         double duration = 0.0;
-        for (int n = beginIndex; n <= endIndex; n++) {
-            duration += this._nodes[n].getDuration();
+        for (PlayPosition position : PlayPosition.iterate(this._nodes, beginIndex, endIndex, true)) {
+            duration = position.elapsedTime();
         }
         return new Scene(beginIndex, endIndex, duration);
     }
@@ -499,8 +520,15 @@ public class Animation implements Cloneable {
             return this._nodeEnd;
         }
 
-        public int nodeCount() {
-            return this._nodeEnd - this._nodeBegin + 1;
+        /**
+         * Gets whether the scene is inside-out. In that case, the animation plays
+         * from the beginning, loops to the end of the animation, and then
+         * plays until the end node from the beginning of the animation.
+         *
+         * @return True if inside-out
+         */
+        public boolean isInsideOut() {
+            return this._nodeBegin > this._nodeEnd;
         }
 
         public double duration() {
@@ -515,6 +543,333 @@ public class Animation implements Cloneable {
          */
         public boolean isSingleFrame() {
             return this._nodeBegin == this._nodeEnd || this._duration <= 1e-20;
+        }
+
+        /**
+         * Gets whether a particular playback position is contained within this scene.
+         *
+         * @param playPosition PlayPositionBetween
+         * @return True if contained
+         */
+        public boolean containsPosition(PlayPosition playPosition) {
+            if (playPosition instanceof PlayPositionBetween) {
+                PlayPositionBetween between = (PlayPositionBetween) playPosition;
+                return isNodePlayed(between.node0Index()) && isNodePlayed(between.node1Index());
+            } else {
+                return isNodePlayed(playPosition.node0Index());
+            }
+        }
+
+        private boolean isNodePlayed(int nodeIndex) {
+            if (isInsideOut()) {
+                return nodeIndex >= this._nodeBegin || nodeIndex <= this._nodeEnd;
+            } else {
+                return nodeIndex >= this._nodeBegin && nodeIndex <= this._nodeEnd;
+            }
+        }
+
+        /**
+         * Iterates all the nodes that are part of this scene. All except the first node are iterated
+         * as {@link PlayPositionBetween} to have access to both nodes.
+         *
+         * @param nodes All animation nodes of the Animation
+         * @param looped Whether to loop around as part of the scene. In this case, an additional 'between'
+         *               is included to loop from the end back to the beginning.
+         * @return Iterable of PlayPosition (and PlayPositionBetween) values
+         */
+        public Iterable<PlayPosition> iteratePlayPositions(final AnimationNode[] nodes, final boolean looped) {
+            return PlayPosition.iterate(nodes, nodeBeginIndex(), nodeEndIndex(), looped);
+        }
+
+        @Override
+        public String toString() {
+            return "Scene{duration=" + this._duration + ", start=" + this._nodeBegin + ", end=" + this._nodeEnd + "}";
+        }
+    }
+
+    /**
+     * The play position of an animation. Contains the time (since the start node of the scene),
+     * and access the elapsed time and final (interpolated) node at this play position.
+     * Is an instance of {@link PlayPositionBetween} if interpolating between two
+     * animation nodes.
+     */
+    public static class PlayPosition {
+        private final double elapsedTime;
+        private final AnimationNode node0;
+        private final int node0Index;
+
+        public PlayPosition(double elapsedTime, int node0Index, AnimationNode node0) {
+            this.elapsedTime = elapsedTime;
+            this.node0Index = node0Index;
+            this.node0 = node0;
+        }
+
+        /**
+         * Gets the total amount of elapsed time since the start of the scene of the animation.
+         *
+         * @return Elapsed time
+         */
+        public double elapsedTime() {
+            return elapsedTime;
+        }
+
+        /**
+         * Gets the index of the node at theta 0 of interpolation.
+         *
+         * @return Index of Node0
+         */
+        public int node0Index() {
+            return node0Index;
+        }
+
+        /**
+         * Gets the node at theta 0 of interpolation. Same as {@link #toNode()} if
+         * this is an exact node play position in the animation.
+         *
+         * @return Node0
+         */
+        public AnimationNode node0() {
+            return this.node0;
+        }
+
+        /**
+         * Gets or calculated the animation node at the {@link #elapsedTime()}
+         *
+         * @return Node
+         */
+        public AnimationNode toNode() {
+            return this.node0; // No interpolation
+        }
+
+        /**
+         * Gets the amount of time that has elapsed interpolating this play position.
+         *
+         * @return Delta time
+         */
+        public double deltaTime() {
+            return 0.0;
+        }
+
+        /**
+         * Attempts to find another PlayPosition that that is within this same play
+         * position range, for the elapsedTime specified. Returns <i>null</i> if no such
+         * play position exists.
+         *
+         * @param elapsedTime Elapsed time
+         * @param playReversed Whether playback is reversed. Has special implications for dt=0 nodes
+         * @return Play Position
+         */
+        public PlayPosition findPosition(double elapsedTime, boolean playReversed) {
+            // For a non-between node, only exact time works
+            return (this.elapsedTime() == elapsedTime) ? this : null;
+        }
+
+        @Override
+        public String toString() {
+            return "Position{t=" + elapsedTime() + ", @ " + node0Index() + "}";
+        }
+
+        /**
+         * Iterates a range of nodes. All except the first node are iterated
+         * as {@link PlayPositionBetween} to have access to both nodes.
+         *
+         * @param nodes All animation nodes of the Animation
+         * @param nodeBeginIndex Index of the first node of the animation (inclusive), indexed into the nodes array
+         * @param nodeEndIndex Index of the last node of the animation (inclusive), indexed into the nodes array
+         * @param looped Whether to loop around at the end. In this case, an additional 'between'
+         *               is included to loop from the end back to the beginning.
+         * @return Iterable of PlayPosition (and PlayPositionBetween) values
+         */
+        public static Iterable<PlayPosition> iterate(
+                final AnimationNode[] nodes,
+                final int nodeBeginIndex,
+                final int nodeEndIndex,
+                final boolean looped
+        ) {
+            // Simplified if frozen on one node
+            if (nodeBeginIndex == nodeEndIndex) {
+                return Collections.singletonList(new PlayPosition(0.0, nodeBeginIndex, nodes[nodeBeginIndex]));
+            }
+
+            if (nodeBeginIndex > nodeEndIndex) {
+                // Iterate from the beginning to the end of the animation, and then around and til the end of the scene
+                return () -> new Iterator<PlayPosition>() {
+                    private double totalElapsedTime = 0.0;
+                    private int nodeIndex = nodeBeginIndex;
+                    private boolean isLoopedToBeginning = false;
+                    private boolean isLoopedToEndOfAnimation = false;
+
+                    @Override
+                    public boolean hasNext() {
+                        return nodeIndex >= 0;
+                    }
+
+                    @Override
+                    public PlayPosition next() {
+                        int currNodeIndex = this.nodeIndex;
+                        if (currNodeIndex < 0) {
+                            throw new NoSuchElementException();
+                        }
+
+                        AnimationNode currNode = nodes[currNodeIndex];
+                        double currElapsed = this.totalElapsedTime;
+                        this.totalElapsedTime += currNode.getDuration();
+
+                        if (isLoopedToBeginning) {
+                            this.nodeIndex = -1; // End
+                            return new PlayPosition(currElapsed, currNodeIndex, currNode);
+                        }
+
+                        int nextNodeIndex = currNodeIndex + 1;
+                        if (this.isLoopedToEndOfAnimation) {
+                            if (nextNodeIndex > nodeEndIndex) {
+                                if (looped) {
+                                    isLoopedToBeginning = true;
+                                    nextNodeIndex = nodeBeginIndex;
+                                } else {
+                                    this.nodeIndex = -1; // End
+                                    return new PlayPosition(currElapsed, currNodeIndex, currNode);
+                                }
+                            }
+                        } else if (nextNodeIndex >= nodes.length) {
+                            isLoopedToEndOfAnimation = true;
+                            nextNodeIndex = 0;
+                        }
+
+                        this.nodeIndex = nextNodeIndex;
+                        return new PlayPositionBetween(currElapsed, 0.0,
+                                currNodeIndex, currNode,
+                                nextNodeIndex, nodes[nextNodeIndex]);
+                    }
+                };
+            } else {
+                // Iterate from scene beginning to scene end
+                return () -> new Iterator<PlayPosition>() {
+                    private double totalElapsedTime = 0.0;
+                    private int nodeIndex = nodeBeginIndex;
+                    private boolean isLoopedToBeginning = false;
+
+                    @Override
+                    public boolean hasNext() {
+                        return nodeIndex >= 0;
+                    }
+
+                    @Override
+                    public PlayPosition next() {
+                        int currNodeIndex = this.nodeIndex;
+                        if (currNodeIndex < 0) {
+                            throw new NoSuchElementException();
+                        }
+
+                        AnimationNode currNode = nodes[currNodeIndex];
+                        double currElapsed = this.totalElapsedTime;
+                        this.totalElapsedTime += currNode.getDuration();
+
+                        int nextNodeIndex = currNodeIndex + 1;
+                        if (isLoopedToBeginning) {
+                            this.nodeIndex = -1; // End
+                            return new PlayPosition(currElapsed, currNodeIndex, currNode);
+                        }
+                        if (nextNodeIndex > nodeEndIndex) {
+                            if (looped) {
+                                isLoopedToBeginning = true;
+                                nextNodeIndex = nodeBeginIndex;
+                            } else {
+                                this.nodeIndex = -1; // End
+                                return new PlayPosition(currElapsed, currNodeIndex, currNode);
+                            }
+                        }
+
+                        this.nodeIndex = nextNodeIndex;
+                        return new PlayPositionBetween(currElapsed, 0.0,
+                                currNodeIndex, currNode,
+                                nextNodeIndex, nodes[nextNodeIndex]);
+                    }
+                };
+            }
+        }
+    }
+
+    /**
+     * The play position of an animation. Contains the time (since the start node of the scene),
+     * the two animation nodes and the theta interpolation position between the two.
+     */
+    public static class PlayPositionBetween extends PlayPosition {
+        public final double theta;
+        public final AnimationNode node1;
+        public final int node1Index;
+
+        public PlayPositionBetween(double elapsedTime, double theta, int node0Index, AnimationNode node0, int node1Index, AnimationNode node1) {
+            super(elapsedTime, node0Index, node0);
+            this.theta = theta;
+            this.node1 = node1;
+            this.node1Index = node1Index;
+        }
+
+        /**
+         * Gets the index of the node at theta 1 of interpolation.
+         *
+         * @return Index of Node1
+         */
+        public int node1Index() {
+            return node1Index;
+        }
+
+        /**
+         * Gets the node at theta 1 of interpolation.
+         *
+         * @return Node1
+         */
+        public AnimationNode node1() {
+            return this.node1;
+        }
+
+        /**
+         * Gets the theta (0.0 .. 1.0) of interpolation between the two nodes this
+         * play position is at.
+         *
+         * @return Theta
+         */
+        public double theta() {
+            return theta;
+        }
+
+        @Override
+        public PlayPosition findPosition(double elapsedTime, boolean playReversed) {
+            double delta = (elapsedTime - this.elapsedTime());
+            double duration = this.node0().getDuration();
+            if (delta == 0.0) {
+                if (duration > 0.0 || playReversed) {
+                    return new PlayPosition(elapsedTime, this.node0Index(), this.node0());
+                } else {
+                    return new PlayPosition(elapsedTime, this.node1Index(), this.node1());
+                }
+            } else {
+                if (delta == duration) {
+                    return new PlayPosition(elapsedTime, this.node1Index(), this.node1());
+                } else if (delta < duration) {
+                    return new PlayPositionBetween(elapsedTime, delta / duration,
+                            this.node0Index(), this.node0(),
+                            this.node1Index(), this.node1());
+                } else {
+                    return null;
+                }
+            }
+        }
+
+        @Override
+        public AnimationNode toNode() {
+            return AnimationNode.interpolate(node0(), node1(), theta());
+        }
+
+        @Override
+        public double deltaTime() {
+            return theta * this.node0().getDuration();
+        }
+
+        @Override
+        public String toString() {
+            return "PositionBetween{t=" + elapsedTime() + ", [" + node0Index() + " / " + node1Index() + "] @ " + theta() + "}";
         }
     }
 
