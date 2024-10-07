@@ -284,6 +284,12 @@ public class MapWidgetTransferFunctionItem extends MapWidget {
         @Override
         public void markChanged() {
             setFunction(function.getFunction());
+
+            // Also tell dialog, otherwise it doesn't commit it to the attachment
+            MapWidgetTransferFunctionDialog dialog = getCurrentDialog();
+            if (dialog != null) {
+                dialog.markChanged();
+            }
         }
 
         @Override
