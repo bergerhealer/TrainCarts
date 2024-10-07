@@ -41,21 +41,28 @@ public class TransferFunctionInputSpeed extends TransferFunctionInput {
         @Override
         public TransferFunctionInputSpeed load(TransferFunctionHost host, ConfigurationNode config) {
             TransferFunctionInputSpeed speed = new TransferFunctionInputSpeed();
-            speed.setMode(config.getOrDefault("mode", Mode.TRAIN));
+            speed.setSourceMode(config.getOrDefault("mode", SourceMode.TRAIN));
+            speed.setOutputMode(config.getOrDefault("output", OutputMode.SPEED));
             speed.updateSource(host);
             return speed;
         }
 
         @Override
         public void save(TransferFunctionHost host, ConfigurationNode config, TransferFunctionInputSpeed function) {
-            config.set("mode", function.mode);
+            config.set("mode", function.sourceMode);
+            config.set("output", function.outputMode);
         }
     };
 
-    private Mode mode = Mode.TRAIN;
+    private SourceMode sourceMode = SourceMode.TRAIN;
+    private OutputMode outputMode = OutputMode.SPEED;
 
-    public void setMode(Mode mode) {
-        this.mode = mode;
+    public void setSourceMode(SourceMode mode) {
+        this.sourceMode = mode;
+    }
+
+    public void setOutputMode(OutputMode mode) {
+        this.outputMode = mode;
     }
 
     @Override
@@ -65,16 +72,25 @@ public class TransferFunctionInputSpeed extends TransferFunctionInput {
 
     @Override
     public ReferencedSource createSource(TransferFunctionHost host) {
-        if (mode == Mode.TRAIN) {
+        // Source for speed
+        ReferencedSource result;
+        if (sourceMode == SourceMode.TRAIN) {
             MinecartMember<?> member = host.getMember();
             if (member != null) {
-                return new TrainSpeedReferencedSource(member);
+                result = new TrainSpeedReferencedSource(member);
             } else {
-                return ReferencedSource.NONE;
+                result = ReferencedSource.NONE;
             }
         } else {
-            return new AttachmentSpeedReferencedSource();
+            result = new AttachmentSpeedReferencedSource();
         }
+
+        // Derivative to track acceleration
+        if (outputMode == OutputMode.ACCELERATION) {
+            result = new AccelerationReferencedSource(result);
+        }
+
+        return result;
     }
 
     @Override
@@ -89,7 +105,8 @@ public class TransferFunctionInputSpeed extends TransferFunctionInput {
 
     @Override
     public void drawPreview(MapWidgetTransferFunctionItem widget, MapCanvas view) {
-        view.draw(MapFont.MINECRAFT, 0, 3, MapColorPalette.COLOR_GREEN, "<Move Speed>");
+        view.draw(MapFont.MINECRAFT, 0, 3, MapColorPalette.COLOR_GREEN,
+                outputMode == OutputMode.SPEED ? "<Move Speed>" : "<Move Accel.>");
     }
 
     @Override
@@ -107,16 +124,66 @@ public class TransferFunctionInputSpeed extends TransferFunctionInput {
             @Override
             public void onActivate() {
                 display.playSound(SoundEffect.CLICK);
-                mode = Mode.values()[(mode.ordinal() + 1) % Mode.values().length];
+                sourceMode = SourceMode.values()[(sourceMode.ordinal() + 1) % SourceMode.values().length];
                 updateSource(dialog.getHost());
                 updateText();
                 dialog.markChanged();
             }
 
             private void updateText() {
-                setText(mode.name());
+                setText(sourceMode.name());
             }
         }).setBounds(5, 27, 70, 13);
+
+        dialog.addLabel(5, 43, MapColorPalette.COLOR_RED, "Output:");
+        dialog.addWidget(new MapWidgetButton() {
+            @Override
+            public void onAttached() {
+                updateText();
+                super.onAttached();
+            }
+
+            @Override
+            public void onActivate() {
+                display.playSound(SoundEffect.CLICK);
+                outputMode = OutputMode.values()[(outputMode.ordinal() + 1) % SourceMode.values().length];
+                updateSource(dialog.getHost());
+                updateText();
+                dialog.markChanged();
+            }
+
+            private void updateText() {
+                setText(outputMode.name());
+            }
+        }).setBounds(5, 50, 70, 13);
+    }
+
+    private static class AccelerationReferencedSource extends ReferencedSource {
+        private final ReferencedSource base;
+        private double prevValue = Double.NaN;
+
+        public AccelerationReferencedSource(ReferencedSource base) {
+            this.base = base;
+        }
+
+        @Override
+        public void onTick() {
+            base.onTick();
+
+            double prevValue = this.prevValue;
+            double newValue = base.value();
+            this.value = Double.isNaN(prevValue) ? 0.0 : (newValue - prevValue);
+            this.prevValue = newValue;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o instanceof AccelerationReferencedSource) {
+                return ((AccelerationReferencedSource) o).base.equals(this.base);
+            } else {
+                return false;
+            }
+        }
     }
 
     private static class TrainSpeedReferencedSource extends ReferencedSource {
@@ -184,8 +251,13 @@ public class TransferFunctionInputSpeed extends TransferFunctionInput {
         }
     }
 
-    public enum Mode {
+    public enum SourceMode {
         TRAIN,
         ATTACHMENT
+    }
+
+    public enum OutputMode {
+        SPEED,
+        ACCELERATION
     }
 }
