@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.attachments;
 
-import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Map;
@@ -569,6 +568,7 @@ public class VirtualEntity extends VirtualSpawnableObject {
                         this.liveAbsPos.getX(), this.liveAbsPos.getY(), this.liveAbsPos.getZ(),
                         this.liveYaw, this.livePitch, false));
             }
+
             syncPositionSilent();
             refreshHeadRotation();
             return;

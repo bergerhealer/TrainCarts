@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
+import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
 
@@ -160,9 +161,9 @@ class SpectatorInput {
     }
 
     private void sendRotation(float pitch, float yaw) {
-        PacketPlayOutPositionHandle p = PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, yaw, pitch);
-        p.setRotationRelative(false);
-        player.send(p);
+        player.send(PacketPlayOutPositionHandle.createNew(
+                0.0, 0.0, 0.0, yaw, pitch,
+                RelativeFlags.RELATIVE_ROTATION.withAbsoluteRotation()));
     }
 
     private static boolean isUpsideDown(Quaternion q) {

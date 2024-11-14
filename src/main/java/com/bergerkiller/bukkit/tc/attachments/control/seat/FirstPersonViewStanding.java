@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
+import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
@@ -31,9 +32,10 @@ public class FirstPersonViewStanding extends FirstPersonViewDefault {
         if (!isReload && seat.isRotationLocked()) {
             // Body is locked, make the player face forwards according to the eye transform
             HeadRotation rot = HeadRotation.compute(getEyeTransform()).ensureLevel();
-            PacketPlayOutPositionHandle p = PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, rot.yaw, rot.pitch);
-            p.setRotationRelative(false);
-            viewer.send(p);
+
+            viewer.send(PacketPlayOutPositionHandle.createNew(
+                    0.0, 0.0, 0.0, rot.yaw, rot.pitch,
+                    RelativeFlags.RELATIVE_ROTATION.withAbsoluteRotation()));
         }
 
         // Move the player to where the player should be

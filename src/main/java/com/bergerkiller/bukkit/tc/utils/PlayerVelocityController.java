@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.utils;
 
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -154,9 +155,9 @@ public class PlayerVelocityController {
             PacketUtil.sendPacket(player, p2);
 
             // Force an absolute update to bring the client into a known good state
-            PacketPlayOutPositionHandle p = PacketPlayOutPositionHandle.createAbsolute(position.getX(), position.getY(), position.getZ(), 0.0f, 0.0f);
-            p.setRotationRelative(true);
-            PacketUtil.sendPacket(player, p);
+            PacketUtil.sendPacket(player, PacketPlayOutPositionHandle.createNew(
+                    position.getX(), position.getY(), position.getZ(), 0.0f, 0.0f,
+                    RelativeFlags.ABSOLUTE_POSITION.withRelativeRotation()));
 
             sentPositions.add(new SentAbsoluteUpdate(position.clone()));
         }
@@ -269,11 +270,15 @@ public class PlayerVelocityController {
                     input.updateLast();
 
                     if (translateVehicleSteer) {
-                        PacketPlayInSteerVehicleHandle steer = PacketPlayInSteerVehicleHandle.T.newHandleNull();
-                        steer.setForwards(input.horizontalInput.forwardsSteerInput());
-                        steer.setSideways(input.horizontalInput.sidewaysSteerInput());
-                        steer.setJump(input.verticalInput == VerticalPlayerInput.JUMP);
-                        steer.setUnmount(input.verticalInput == VerticalPlayerInput.SNEAK);
+                        PacketPlayInSteerVehicleHandle steer = PacketPlayInSteerVehicleHandle.createNew(
+                                input.horizontalInput.left(),
+                                input.horizontalInput.right(),
+                                input.horizontalInput.forwards(),
+                                input.horizontalInput.backwards(),
+                                input.verticalInput == VerticalPlayerInput.JUMP,
+                                input.verticalInput == VerticalPlayerInput.SNEAK,
+                                false);
+
                         PacketUtil.receivePacket(player, steer);
                     }
                 }

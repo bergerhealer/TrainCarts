@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
+import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
@@ -85,9 +86,10 @@ public class FirstPersonViewDefault extends FirstPersonView {
             } else if (seat.isRotationLocked()) {
                 // Body is locked, make the player face forwards according to the eye transform
                 HeadRotation rot = HeadRotation.compute(eyeTransform).ensureLevel();
-                PacketPlayOutPositionHandle p = PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, rot.yaw, rot.pitch);
-                p.setRotationRelative(false);
-                viewer.send(p);
+
+                viewer.send(PacketPlayOutPositionHandle.createNew(
+                        0.0, 0.0, 0.0, rot.yaw, rot.pitch,
+                        RelativeFlags.RELATIVE_ROTATION.withAbsoluteRotation()));
             }
 
             if (useFakeCamera) {
