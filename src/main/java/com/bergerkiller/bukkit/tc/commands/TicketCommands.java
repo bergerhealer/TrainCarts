@@ -2,9 +2,11 @@ package com.bergerkiller.bukkit.tc.commands;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import com.bergerkiller.bukkit.common.cloud.CloudLocalizedException;
+import com.bergerkiller.bukkit.common.cloud.parsers.QuotedArgumentParser;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -26,11 +28,14 @@ import org.incendo.cloud.annotation.specifier.Quoted;
 import org.incendo.cloud.annotations.Argument;
 import org.incendo.cloud.annotations.Command;
 import org.incendo.cloud.annotations.CommandDescription;
-import org.incendo.cloud.annotations.parser.Parser;
 import org.incendo.cloud.annotations.suggestion.Suggestions;
 import org.incendo.cloud.context.CommandContext;
 import org.incendo.cloud.context.CommandInput;
 import org.incendo.cloud.exception.InvalidCommandSenderException;
+import org.incendo.cloud.parser.ArgumentParseResult;
+import org.incendo.cloud.parser.ParserDescriptor;
+import org.incendo.cloud.suggestion.Suggestion;
+import org.incendo.cloud.suggestion.SuggestionProvider;
 
 public class TicketCommands {
 
@@ -39,19 +44,6 @@ public class TicketCommands {
         return TicketStore.getAll().stream()
                 .map(Ticket::getName)
                 .collect(Collectors.toList());
-    }
-
-    @Parser(suggestions = "ticketNames")
-    public Ticket parseTicket(final CommandContext<CommandSender> commandContext, final CommandInput commandInput) {
-        final String input = commandInput.peekString();
-        Ticket ticket = TicketStore.getTicket(input);
-        if (ticket == null) {
-            throw new CloudLocalizedException(commandContext,
-                    Localization.COMMAND_TICKET_NOTFOUND, input);
-        }
-
-        commandInput.readString();
-        return ticket;
     }
 
     public void init(CommandManager<CommandSender> manager) {
@@ -70,6 +62,29 @@ public class TicketCommands {
             }
             return ticket;
         });
+
+        manager.parserRegistry().registerParser(ParserDescriptor.of(new TicketParser().createParser(), Ticket.class));
+    }
+
+    private static class TicketParser implements QuotedArgumentParser<CommandSender, Ticket>, SuggestionProvider<CommandSender> {
+        @Override
+        public ArgumentParseResult<Ticket> parseQuotedString(CommandContext<CommandSender> commandContext, String inputString) {
+            Ticket ticket = TicketStore.getTicket(inputString);
+            if (ticket == null) {
+                return ArgumentParseResult.failure(new CloudLocalizedException(commandContext,
+                        Localization.COMMAND_TICKET_NOTFOUND, inputString));
+            }
+
+            return ArgumentParseResult.success(ticket);
+        }
+
+        @Override
+        public CompletableFuture<? extends Iterable<? extends Suggestion>> suggestionsFuture(CommandContext<CommandSender> context, CommandInput input) {
+            return CompletableFuture.completedFuture(TicketStore.getAll().stream()
+                    .map(Ticket::getName)
+                    .map(Suggestion::suggestion)
+                    .collect(Collectors.toList()));
+        }
     }
 
     @Command("train list tickets")
