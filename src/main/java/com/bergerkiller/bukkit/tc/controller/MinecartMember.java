@@ -504,9 +504,9 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // Refresh
         this.cachedOrientation_quat = orientation.clone();
         Vector ypr = this.cachedOrientation_quat.getYawPitchRoll();
-        this.cachedOrientation_yaw = (float) ypr.getY() - 90.0f;
-        this.cachedOrientation_pitch = (float) ypr.getX();
-        entity.setRotation(this.cachedOrientation_yaw, this.cachedOrientation_pitch);
+        entity.setRotation((float) ypr.getY() - 90.0f, (float) ypr.getX());
+        this.cachedOrientation_yaw = entity.loc.getYaw();
+        this.cachedOrientation_pitch = entity.loc.getPitch();
     }
 
     /**
