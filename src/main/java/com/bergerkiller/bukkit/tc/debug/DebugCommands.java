@@ -2,6 +2,13 @@ package com.bergerkiller.bukkit.tc.debug;
 
 import java.util.Collection;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.utils.DebugUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.wrappers.ItemDisplayMode;
+import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayItemEntity;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
@@ -497,5 +504,61 @@ public class DebugCommands {
             }
         }.start(5, 1);
         player.sendMessage("Started");
+    }
+
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
+    @Command("train debug display")
+    private void commandDebugDisplayEntity(final Player player, final TrainCarts plugin) {
+        final Location location = player.getEyeLocation();
+        final Matrix4x4 transform = Matrix4x4.fromLocation(location);
+
+        final VirtualDisplayItemEntity entity = new VirtualDisplayItemEntity(null);
+        entity.setItem(ItemDisplayMode.HEAD,
+                CommonItemStack.create(MaterialUtil.getFirst("JACK_O_LANTERN", "LEGACY_JACK_O_LANTERN"), 1)
+                        .toBukkit());
+        final AttachmentViewer viewer = plugin.getPacketQueueMap().getQueue(player);
+
+        entity.updatePosition(transform);
+        entity.syncPosition(true);
+        entity.spawn(viewer, new Vector());
+
+        new Task(plugin) {
+            double movement = 0.0;
+            double fx = 0.1;
+
+            @Override
+            public void run() {
+                boolean changed = false;
+                double x = DebugUtil.getDoubleValue("x", 0.0);
+                double y = DebugUtil.getDoubleValue("y", 0.0);
+                double z = DebugUtil.getDoubleValue("z", 0.0);
+                if (x != 0.0) {
+                    transform.rotateX(x);
+                    changed = true;
+                }
+                if (y != 0.0) {
+                    transform.rotateY(y);
+                    changed = true;
+                }
+                if (z != 0.0) {
+                    transform.rotateZ(z);
+                    changed = true;
+                }
+
+                if (changed) {
+                    Quaternion rot = transform.getRotation();
+                    // player.sendMessage("Quat " + rot.getX() + " / " + rot.getY() + " / " + rot.getZ() + " / " + rot.getW());
+                }
+
+                transform.worldTranslate(fx, 0.0, 0.0);
+                movement += fx;
+                if (Math.abs(movement) > 5.0) {
+                    fx = -fx;
+                }
+
+                entity.updatePosition(transform);
+                entity.syncPosition(true);
+            }
+        }.start(1, 1);
     }
 }
