@@ -286,6 +286,7 @@ public abstract class MinecartMemberStore {
         return spawn(plugin, at, false, type, config);
     }
 
+    @SuppressWarnings("deprecation")
     public static MinecartMember<?> spawn(TrainCarts plugin, Location at, boolean flipped, EntityType type, ConfigurationNode config) {
         MinecartMember<?> controller = createController(plugin, type);
         if (controller == null) {
@@ -303,7 +304,18 @@ public abstract class MinecartMemberStore {
             at = Util.invertRotation(at.clone());
         }
 
-        CommonEntity.spawn(type, at, controller, createNetworkController());
+        {
+            EntityNetworkController<?> networkController = createNetworkController();
+            if (networkController instanceof MinecartMemberNetwork) {
+                ((MinecartMemberNetwork) networkController).setInProcessOfSpawning(true);
+            }
+
+            CommonEntity.spawn(type, at, controller, networkController);
+
+            if (networkController instanceof MinecartMemberNetwork) {
+                ((MinecartMemberNetwork) networkController).setInProcessOfSpawning(false);
+            }
+        }
         controller.setDirectionForward(flipped);
         controller.updateDirection();
         MinecartMember<?> result = MemberSpawnEvent.call(controller).getMember();

@@ -32,6 +32,7 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
     private final TrainCarts plugin;
     private final RunOnceTask verifyExistsCheck;
     private MinecartMember<?> member = null;
+    private boolean isInProcessOfSpawning = false;
 
     public MinecartMemberNetwork(TrainCarts plugin) {
         this.plugin = plugin;
@@ -43,6 +44,9 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                 // It is not clear why this happens sometimes.
                 // Do this in another tick to avoid concurrent modification exceptions.
                 MinecartMember<?> member = getMember();
+                if (isInProcessOfSpawning) {
+                    return;
+                }
                 if (entity != null && (member == null || !member.getEntity().isSpawned())) {
                     World world = entity.getWorld();
                     if (world != null) {
@@ -55,6 +59,16 @@ public class MinecartMemberNetwork extends EntityNetworkController<CommonMinecar
                 }
             }
         };
+    }
+
+    /**
+     * Sets whether the underlying Member is in the process of being spawned. In that case it skips the usual
+     * checks for whether the entity is still alive/spawned.
+     *
+     * @param spawning True if in process of spawning
+     */
+    public void setInProcessOfSpawning(boolean spawning) {
+        isInProcessOfSpawning = spawning;
     }
 
     /**
