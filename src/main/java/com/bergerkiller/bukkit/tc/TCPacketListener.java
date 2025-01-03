@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.collections.ImplicitlySharedSet;
 import com.bergerkiller.bukkit.common.conversion.type.HandleConversion;
@@ -14,6 +15,7 @@ import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInSteerVehicleHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInUseEntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.EnumHandHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.player.EntityHumanHandle;
@@ -21,6 +23,7 @@ import com.bergerkiller.generated.net.minecraft.world.entity.player.EntityHumanH
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -65,6 +68,45 @@ class TCPacketListener implements PacketListener {
         Thread.dumpStack();
     }
 
+    private final Consumer<PacketReceiveEvent> steerHandler = Common.hasCapability("Common:PacketListener:SetPacket") ?
+            this::handleSteerNew : this::handleSteerLegacy;
+
+    private void handleSteerLegacy(PacketReceiveEvent event) {
+        CommonPacket packet = event.getPacket();
+        if (packet.read(PacketType.IN_STEER_VEHICLE.unmount)) {
+            Player player = event.getPlayer();
+
+            // Handle vehicle exit cancelling
+            if (player.getVehicle() == null) {
+                TCSeatChangeListener.markForUnmounting(traincarts, player);
+            } else if (!traincarts.handlePlayerVehicleChange(player, null)) {
+                packet.write(PacketType.IN_STEER_VEHICLE.unmount, false);
+            }
+        }
+    }
+
+    private void handleSteerNew(PacketReceiveEvent event) {
+        PacketPlayInSteerVehicleHandle steerPacket = PacketPlayInSteerVehicleHandle.createHandle(event.getPacket().getHandle());
+        if (steerPacket.isUnmount()) {
+            // Handle vehicle exit cancelling
+            Player player = event.getPlayer();
+            if (player.getVehicle() == null) {
+                TCSeatChangeListener.markForUnmounting(traincarts, player);
+            } else if (!traincarts.handlePlayerVehicleChange(player, null)) {
+                //packet.write(PacketType.IN_STEER_VEHICLE.unmount, false);
+                event.setPacket(PacketPlayInSteerVehicleHandle.createNew(
+                        steerPacket.isLeft(),
+                        steerPacket.isRight(),
+                        steerPacket.isForward(),
+                        steerPacket.isBackward(),
+                        steerPacket.isJump(),
+                        false,
+                        steerPacket.isSprint()
+                ));
+            }
+        }
+    }
+
     @Override
     public void onPacketReceive(PacketReceiveEvent event) {
         CommonPacket packet = event.getPacket();
@@ -87,13 +129,10 @@ class TCPacketListener implements PacketListener {
                 }
             }
         }
-        if (event.getType() == PacketType.IN_STEER_VEHICLE && packet.read(PacketType.IN_STEER_VEHICLE.unmount)) {
-            // Handle vehicle exit cancelling
-            if (player.getVehicle() == null) {
-                TCSeatChangeListener.markForUnmounting(traincarts, player);
-            } else if (!traincarts.handlePlayerVehicleChange(player, null)) {
-                packet.write(PacketType.IN_STEER_VEHICLE.unmount, false);
-            }
+
+        if (event.getType() == PacketType.IN_STEER_VEHICLE) {
+            steerHandler.accept(event);
+            return;
         }
 
         if (event.getType() == PacketType.IN_USE_ENTITY) {
