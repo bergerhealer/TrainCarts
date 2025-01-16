@@ -220,6 +220,7 @@ public abstract class RailTypeHorizontal extends RailType {
 
         Location at = this.findMinecartPos(railsBlock).getLocation();
         at.setDirection(FaceUtil.faceToVector(orientation));
+        at.setYaw(at.getYaw() - 90.0f); // Minecart entity Location is buggy and weird
         if (this.isUpsideDown(railsBlock)) {
             at.add(0.5, 1.0 + RailLogicHorizontal.Y_POS_OFFSET_UPSIDEDOWN, 0.5);
             at.setPitch(-180.0F);
