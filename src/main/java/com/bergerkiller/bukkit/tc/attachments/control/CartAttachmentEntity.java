@@ -277,7 +277,7 @@ public class CartAttachmentEntity extends CartAttachment {
         this.entity.setEntityType(entityType);
 
         // Minecarts have a 'strange' rotation point - fix it!
-        if (VirtualEntity.isMinecart(entityType)) {
+        if (this.entity.isMinecart() && !this.entity.isExperimentalMinecart()) {
             final double MINECART_CENTER_Y = 0.3765;
             this.entity.setPosition(new Vector(0.0, MINECART_CENTER_Y, 0.0));
             this.entity.setRelativeOffset(0.0, -MINECART_CENTER_Y, 0.0);

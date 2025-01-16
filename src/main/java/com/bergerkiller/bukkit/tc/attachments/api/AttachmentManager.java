@@ -30,6 +30,15 @@ public interface AttachmentManager {
     org.bukkit.World getWorld();
 
     /**
+     * Gets the features (feature flags) enabled on a World. This can be used
+     * by attachments to adjust their behavior depending on what (experimental)
+     * features are enabled.
+     *
+     * @return World features
+     */
+    AttachmentWorldFeatures getWorldFeatures();
+
+    /**
      * Gets the players who can currently view the attachments
      *
      * @return Collection of players

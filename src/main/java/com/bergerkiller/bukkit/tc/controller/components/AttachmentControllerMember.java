@@ -17,6 +17,7 @@ import java.util.logging.Level;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentWorldFeatures;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigListener;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfigModelTracker;
@@ -80,6 +81,7 @@ public class AttachmentControllerMember
     private Map<Entity, SeatHint> seatHints = new HashMap<Entity, SeatHint>();
     private final Map<Player, AttachmentViewer> viewers = new IdentityHashMap<>();
     private final Map<Entity, Vector> previousSeatPositions = new IdentityHashMap<>();
+    private final AttachmentWorldFeatures.Tracker worldFeaturesTracker = new AttachmentWorldFeatures.Tracker();
     private boolean changeListenerSeatsAddedOrRemoved = false;
     protected final ToggledState networkInvalid = new ToggledState();
     private boolean attached = false;
@@ -893,6 +895,11 @@ public class AttachmentControllerMember
     @Override
     public World getWorld() {
         return this.member.getWorld();
+    }
+
+    @Override
+    public AttachmentWorldFeatures getWorldFeatures() {
+        return this.worldFeaturesTracker.get(this.getWorld());
     }
 
     private void createRootAttachmentAndStartTracking() {

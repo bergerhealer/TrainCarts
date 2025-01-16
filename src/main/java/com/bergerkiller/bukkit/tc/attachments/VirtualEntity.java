@@ -1,14 +1,18 @@
 package com.bergerkiller.bukkit.tc.attachments;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundMoveMinecartPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.vehicle.NewMinecartBehaviorHandle;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -367,6 +371,10 @@ public class VirtualEntity extends VirtualSpawnableObject {
         return this.entityTypeIsMinecart;
     }
 
+    public boolean isExperimentalMinecart() {
+        return isMinecart() && manager != null && manager.getWorldFeatures().MINECART_IMPROVEMENTS;
+    }
+
     /**
      * Sets whether the controller entity metadata is used in place of this entity's metadata
      * 
@@ -456,8 +464,13 @@ public class VirtualEntity extends VirtualSpawnableObject {
             spawnPacket.setMotX(motion.getX());
             spawnPacket.setMotY(motion.getY());
             spawnPacket.setMotZ(motion.getZ());
-            spawnPacket.setYaw(this.syncYaw);
-            spawnPacket.setPitch(this.syncPitch);
+            if (this.isExperimentalMinecart()) {
+                spawnPacket.setYaw(180.0f - this.syncYaw);
+                spawnPacket.setPitch(this.syncPitch);
+            } else {
+                spawnPacket.setYaw(this.syncYaw);
+                spawnPacket.setPitch(this.syncPitch);
+            }
             viewer.send(spawnPacket);
 
             PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.entityId, getUsedMeta(), true);
@@ -539,6 +552,37 @@ public class VirtualEntity extends VirtualSpawnableObject {
         double dz = (this.liveAbsPos.getZ() - this.syncAbsPos.getZ());
         double abs_delta = Math.max(Math.max(Math.abs(dx), Math.abs(dy)), Math.abs(dz));
         boolean largeChange = (abs_delta > EntityNetworkController.MAX_RELATIVE_DISTANCE);
+
+        // For Minecart entities when the new movement behavior feature is enabled, we must use a different mechanism
+        // This uses LERP steps and does away with the non-precise protocol-ified positions
+        if (isExperimentalMinecart()) {
+            boolean isPitchGlitched = MathUtil.getAngleDifference(this.syncPitch, 180.0f) < 90.0f ||
+                                      MathUtil.getAngleDifference(this.livePitch, 180.0f) < 90.0f;
+
+            List<NewMinecartBehaviorHandle.LerpStepHandle> steps = new ArrayList<>(2);
+            if (isPitchGlitched) {
+                steps.add(NewMinecartBehaviorHandle.LerpStepHandle.createNew(
+                        syncAbsPos,
+                        new Vector(),
+                        180.0f - this.syncYaw,
+                        this.syncPitch,
+                        0.0f));
+            }
+            steps.add(NewMinecartBehaviorHandle.LerpStepHandle.createNew(
+                    liveAbsPos,
+                    new Vector(dx, dy, dz),
+                    180.0f - this.liveYaw,
+                    this.livePitch,
+                    1.0f));
+            ClientboundMoveMinecartPacketHandle p = ClientboundMoveMinecartPacketHandle.createNew(this.entityId, steps);
+            broadcast(p);
+
+            MathUtil.setVector(this.syncAbsPos, this.liveAbsPos);
+            this.syncYaw = liveYaw;
+            this.syncPitch = livePitch;
+
+            return;
+        }
 
         // Detect a glitched pitch rotation, and perform a respawn then
         if (this.respawnOnPitchFlip && this.syncPitch != this.livePitch && Util.isProtocolRotationGlitched(this.syncPitch, this.livePitch)) {
