@@ -1,11 +1,15 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.models;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
+import com.bergerkiller.bukkit.common.map.util.ItemModel;
+import com.bergerkiller.bukkit.common.map.util.ItemModelOverride;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -210,9 +214,63 @@ public class ResourcePackModelListing extends ListedRootLoader {
      */
     public void load(MapResourcePack resourcePack) {
         clear();
-
         this.resourcePack = resourcePack;
 
+        int totalCount;
+        if (Common.hasCapability("Common:ResourcePack:ItemModel")) {
+            totalCount = loadModernItemModels(resourcePack);
+        } else {
+            totalCount = loadLegacyPredicates(resourcePack);
+        }
+        if (totalCount > 0) {
+            logLoading("Resource pack item model lists loaded (" + totalCount + ")");
+        }
+    }
+
+    private int loadModernItemModels(MapResourcePack resourcePack) {
+        Set<String> allOverridedModels = resourcePack.listOverriddenItemModelNames();
+        if (allOverridedModels.isEmpty()) {
+            return 0;
+        }
+
+        logLoading("Loading resource pack item model lists");
+        int totalCount = 0;
+        for (String modelName : allOverridedModels) {
+            for (ItemModelOverride override : resourcePack.getItemModelConfig(modelName).listAllOverrides()) {
+                // Skip if no valid item exists
+                Optional<CommonItemStack> itemStack = override.getItemStack();
+                if (!itemStack.isPresent()) {
+                    continue;
+                }
+
+                // If this override always matches (a fallback), be more strict about the model names
+                // They must refer to a custom namespace for it to be listed
+                boolean strictNameSpaceCheck = override.isMatchingAlways();
+
+                for (ItemModel.MinecraftModel model : override.getOverrideModels()) {
+                    if (!model.hasValidModels()) {
+                        continue;
+                    }
+                    if (model.model.startsWith("minecraft:")) {
+                        continue;
+                    }
+                    if (strictNameSpaceCheck && !model.model.contains(":")) {
+                        continue;
+                    }
+
+                    // Figure out what the 'credit' are for this model by reading the actual model
+                    // No big deal if this fails.
+                    String credit = resourcePack.getModelInfo(model.model).getCredit();
+                    root.addListedItem(model.model, itemStack.get(), credit);
+                    totalCount++;
+                }
+            }
+        }
+        return totalCount;
+    }
+
+    @Deprecated
+    private int loadLegacyPredicates(MapResourcePack resourcePack) {
         // Figure out all minecraft items that are overrided by the resource pack
         boolean logged = false;
         Set<String> allOverridedModels = new HashSet<String>();
@@ -224,10 +282,11 @@ public class ResourcePackModelListing extends ListedRootLoader {
             allOverridedModels.addAll(p.listResources(ResourceType.MODELS, "item", false));
         }
         if (allOverridedModels.isEmpty()) {
-            return;
+            return 0;
         }
 
         // Figure out what ItemStack corresponds with each item model and register them all
+        int totalCount = 0;
         for (Material material : ItemUtil.getItemTypes()) {
             for (ItemStack item : ItemUtil.getItemVariants(material)) {
                 String path = "item/" + ModelInfoLookup.lookupItemRenderOptions(CommonItemStack.of(item)).lookupModelName();
@@ -250,12 +309,12 @@ public class ResourcePackModelListing extends ListedRootLoader {
 
                         ItemStack modelItem = override.applyToItem(item);
                         root.addListedItem(override.model, CommonItemStack.of(modelItem), credit);
+                        totalCount++;
                     }
                 }
             }
         }
-
-        logLoading("Resource pack item model lists loaded");
+        return totalCount;
     }
 
     private void logLoading(String message) {
