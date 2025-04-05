@@ -118,6 +118,7 @@ public class TCConfig {
     public static int maxCommandSelectorValues = 128;
     public static int maxConcurrentEffectLoops = 20;
     public static double spawnSignCooldown = -1.0;
+    public static double itemPickupRadius = 2.0;
     public static int maxCartsPerWorld = -1;
     public static int maxCartsPerTrain = -1;
     public static boolean maxCartsPerWorldCountUnloaded = false;
@@ -363,6 +364,9 @@ public class TCConfig {
         config.addHeader("allowSchematicAttachment", "This can be quite laggy, so only enable it if you can trust people with it");
         config.addHeader("allowSchematicAttachment", "Only works on Minecraft server/clients 1.19.4 and later");
         allowSchematicAttachment = config.get("allowSchematicAttachment", true);
+
+        config.setHeader("itemPickupRadius", "The radius with which minecarts with chest pick up items, when item pickup is enabled for the train");
+        itemPickupRadius = config.get("itemPickupRadius", 2.0);
 
         config.setHeader("legacySpeedLimiting", "\nBefore TrainCarts v1.12.2-v1 speed limiting was done on each individual axis");
         config.addHeader("legacySpeedLimiting", "This had a big impact on air physics, because it never made a good ellipse fall");

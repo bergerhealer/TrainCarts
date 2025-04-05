@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -76,7 +77,7 @@ public class MinecartMemberChest extends MinecartMember<CommonMinecartChest> {
         if (this.getProperties().canPickup()) {
             Inventory inv = entity.getInventory();
             double distance;
-            for (Entity e : entity.getNearbyEntities(2.0)) {
+            for (Entity e : entity.getNearbyEntities(TCConfig.itemPickupRadius)) {
                 if (!(e instanceof Item) || EntityUtil.isIgnored(e)) {
                     continue;
                 }
