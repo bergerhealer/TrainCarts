@@ -11,16 +11,15 @@ import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import org.bukkit.util.Vector;
 
-public class SignActionJumper extends SignAction {
+public class SignActionJumper extends TrainCartsSignAction {
 
     public static void jump(MinecartMember<?> member, Vector offset) {
         //TODO: Proper jumping action for accurate (block location) jump
         member.getEntity().vel.set(offset);
     }
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("jump") && info.getMode() != SignActionMode.NONE;
+    public SignActionJumper() {
+        super("jump");
     }
 
     @Override

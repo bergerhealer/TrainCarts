@@ -15,11 +15,10 @@ import org.bukkit.ChatColor;
  * The second line defines the box radius (x/y/z) around the sign blocking trains.
  * One value: cube, two values: dx+dz/dy, three x/y/z
  */
-public class SignActionMutex extends SignAction {
+public class SignActionMutex extends TrainCartsSignAction {
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("mutex", "smartmutex", "smutex");
+    public SignActionMutex() {
+        super("mutex", "smartmutex", "smutex");
     }
 
     @Override

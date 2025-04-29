@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.logging.Level;
@@ -16,6 +17,7 @@ import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.events.SignBuildEvent;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
+import com.bergerkiller.bukkit.tc.signactions.util.SignActionLookupMap;
 import com.bergerkiller.bukkit.tc.utils.RecursionGuard;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -1147,10 +1149,12 @@ public class SignController implements LibraryComponent, Listener {
             }
 
             private void detectSignAction(SignActionHeader header) {
-                SignAction action = SignAction.getSignAction(this.createSignActionEvent(header, RailPiece.NONE /* ignore */));
-                this.hasSignAction = action != null;
-                this.hasLoadedChangeHandler = action != null && CommonUtil.isMethodOverrided(
-                        SignAction.class, action.getClass(), "loadedChanged", SignActionEvent.class, boolean.class);
+                Optional<SignActionLookupMap.Entry> actionEntry = SignAction.getLookup().lookup(
+                        this.createSignActionEvent(header, RailPiece.NONE /* ignore */));
+
+                this.hasSignAction = actionEntry.isPresent();
+                this.hasLoadedChangeHandler = actionEntry.map(SignActionLookupMap.Entry::hasLoadedChangedHandler)
+                        .orElse(false);
             }
 
             public void setInitialPower(boolean powered) {

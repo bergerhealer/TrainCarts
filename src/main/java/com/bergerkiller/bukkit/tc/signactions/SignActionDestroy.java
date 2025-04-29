@@ -7,11 +7,10 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
-public class SignActionDestroy extends SignAction {
+public class SignActionDestroy extends TrainCartsSignAction {
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("destroy");
+    public SignActionDestroy() {
+        super("destroy");
     }
 
     @Override

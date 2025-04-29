@@ -22,11 +22,10 @@ import java.util.Set;
  * @author reeZZer
  * Me (Bergerkiller) gives a big thank-you to him for writing the economics for this feature :)
  */
-public class SignActionTicket extends SignAction {
+public class SignActionTicket extends TrainCartsSignAction {
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("ticket");
+    public SignActionTicket() {
+        super("ticket");
     }
 
     @Override

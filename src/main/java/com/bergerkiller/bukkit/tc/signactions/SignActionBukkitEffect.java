@@ -17,7 +17,7 @@ import org.bukkit.entity.Player;
  * It's kind of awful. But will stay around until we've made all sounds and particles available
  * in the attachments system.
  */
-public class SignActionBukkitEffect extends SignAction {
+public class SignActionBukkitEffect extends TrainCartsSignAction {
 
     public static Effect parse(SignActionEvent event) {
         Effect eff = new Effect();
@@ -36,9 +36,8 @@ public class SignActionBukkitEffect extends SignAction {
         return eff;
     }
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("beffect", "meffect", "peffect");
+    public SignActionBukkitEffect() {
+        super("beffect", "meffect", "peffect");
     }
 
     @Override

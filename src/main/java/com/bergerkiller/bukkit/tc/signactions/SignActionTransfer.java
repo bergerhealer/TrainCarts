@@ -26,7 +26,7 @@ import java.util.Locale;
 /**
  * Deals with item transfer between chests/furnaces/dispensers/other and the train
  */
-public class SignActionTransfer extends SignAction {
+public class SignActionTransfer extends TrainCartsSignAction {
     public static final String DEPOSIT = "deposit";
     public static final String COLLECT = "collect";
     public static final String KEY_TYPE_TARGET = "target";
@@ -56,10 +56,8 @@ public class SignActionTransfer extends SignAction {
         traincarts.putParsers(KEY_TYPE_TARGET, parsers);
     }
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.getMode() != SignActionMode.NONE && (!InteractType.parse(COLLECT, info.getLine(1)).isEmpty()
-                || !InteractType.parse(DEPOSIT, info.getLine(1)).isEmpty());
+    public SignActionTransfer() {
+        super(InteractType.getAllUniqueTypeIdentifiers());
     }
 
     @Override

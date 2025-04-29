@@ -17,10 +17,10 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
-public class SignActionSound extends SignAction {
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("sound", "msound");
+public class SignActionSound extends TrainCartsSignAction {
+
+    public SignActionSound() {
+        super("sound", "msound");
     }
 
     public ResourceKey<SoundEffect> getSound(SignActionEvent info) {

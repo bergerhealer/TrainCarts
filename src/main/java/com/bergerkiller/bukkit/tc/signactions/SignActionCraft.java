@@ -22,12 +22,11 @@ import org.bukkit.inventory.Inventory;
 
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getFirst;
 
-public class SignActionCraft extends SignAction {
+public class SignActionCraft extends TrainCartsSignAction {
     private static final Material WORKBENCH_TYPE = getFirst("CRAFTING_TABLE", "LEGACY_WORKBENCH");
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("craft");
+    public SignActionCraft() {
+        super("craft");
     }
 
     @Override

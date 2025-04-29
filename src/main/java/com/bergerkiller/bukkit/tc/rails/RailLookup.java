@@ -438,6 +438,16 @@ public final class RailLookup {
             this.railBlock = rail.block();
         }
 
+        // Only to be used by UnitTestTrackedSign() and cannot be used on a live server
+        private TrackedSign() {
+            this.sign = null;
+            this.signBlock = null;
+            this.signBlockHashCode = 0;
+            this.rail = null;
+            this.railType = RailType.NONE;
+            this.railBlock = null;
+        }
+
         /**
          * Verifies that this tracked sign with the same information is really still there on the server.
          * If the sign was removed, changed facing or the text was changed, will return false
@@ -1101,6 +1111,73 @@ public final class RailLookup {
         @Override
         public void setLine(int index, String line) throws IndexOutOfBoundsException {
             this.tracker.setBackLine(index, line);
+        }
+    }
+
+    /**
+     * TrackedSign to be used in Unit Tests. Cannot be used as a valid sign on an actual server,
+     * because it lacks any sign block information and breaks various APIs.
+     */
+    public static final class UnitTestTrackedSign extends TrackedSign {
+        private final String[] lines;
+
+        public static UnitTestTrackedSign of(String... lines) {
+            return new UnitTestTrackedSign(lines);
+        }
+
+        private UnitTestTrackedSign(String[] lines) {
+            super();
+            this.lines = lines;
+        }
+
+        @Override
+        public boolean verify() {
+            return true;
+        }
+
+        @Override
+        public boolean isRemoved() {
+            return false;
+        }
+
+        @Override
+        public BlockFace getFacing() {
+            return BlockFace.NORTH;
+        }
+
+        @Override
+        public Block getAttachedBlock() {
+            return null;
+        }
+
+        @Override
+        public String[] getExtraLines() {
+            return new String[0];
+        }
+
+        @Override
+        public PowerState getPower(BlockFace from) {
+            return PowerState.NONE;
+        }
+
+        @Override
+        public boolean isRealSign() {
+            return false;
+        }
+
+        @Override
+        public String getLine(int index) throws IndexOutOfBoundsException {
+            return lines[index];
+        }
+
+        @Override
+        public void setLine(int index, String line) throws IndexOutOfBoundsException {
+            throw new UnsupportedOperationException("Not supported for unit test tracked signs");
+        }
+
+        @Override
+        public Object getUniqueKey() {
+            return this;
         }
     }
 }

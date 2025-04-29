@@ -17,11 +17,10 @@ import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import org.bukkit.block.BlockFace;
 
-public class SignActionStation extends SignAction {
+public class SignActionStation extends TrainCartsSignAction {
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("station") && info.getMode() != SignActionMode.NONE;
+    public SignActionStation() {
+        super("station");
     }
 
     @Override

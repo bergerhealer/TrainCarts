@@ -8,7 +8,11 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
-public class SignActionAnnounce extends SignAction {
+public class SignActionAnnounce extends TrainCartsSignAction {
+
+    public SignActionAnnounce() {
+        super("announce");
+    }
 
     public static void sendMessage(SignActionEvent info, MinecartGroup group, String message) {
         for (MinecartMember<?> member : group) {
@@ -28,11 +32,6 @@ public class SignActionAnnounce extends SignAction {
             message.append(line);
         }
         return TrainCarts.getMessage(message.toString());
-    }
-
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("announce");
     }
 
     @Override

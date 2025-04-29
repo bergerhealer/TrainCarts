@@ -19,11 +19,10 @@ import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 
-public class SignActionWait extends SignAction {
+public class SignActionWait extends TrainCartsSignAction {
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("wait");
+    public SignActionWait() {
+        super("wait");
     }
 
     @Override

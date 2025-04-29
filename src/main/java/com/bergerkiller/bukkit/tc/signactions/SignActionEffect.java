@@ -18,11 +18,10 @@ import java.util.stream.Stream;
 /**
  * Plays or stops sound effects configured in the trains' attachments
  */
-public class SignActionEffect extends SignAction {
+public class SignActionEffect extends TrainCartsSignAction {
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("effect");
+    public SignActionEffect() {
+        super("effect");
     }
 
     @Override

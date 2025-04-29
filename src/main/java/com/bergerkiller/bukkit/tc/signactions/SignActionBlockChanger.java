@@ -19,7 +19,7 @@ import java.util.List;
 
 import org.bukkit.Material;
 
-public class SignActionBlockChanger extends SignAction {
+public class SignActionBlockChanger extends TrainCartsSignAction {
     public static final int BLOCK_OFFSET_NONE = TrainDisplayedBlocks.BLOCK_OFFSET_NONE;
 
     public static void setBlocks(Collection<MinecartMember<?>> members, TrainDisplayedBlocks config) {
@@ -68,9 +68,8 @@ public class SignActionBlockChanger extends SignAction {
         }
     }
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("blockchanger", "setblock", "changeblock");
+    public SignActionBlockChanger() {
+        super("blockchanger", "setblock", "changeblock");
     }
 
     @Override

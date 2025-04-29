@@ -17,7 +17,7 @@ import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
 
-public class SignActionProperties extends SignAction {
+public class SignActionProperties extends TrainCartsSignAction {
 
     private static PropertyParseResult.Reason parseAndSet(IProperties properties, SignActionEvent info, final boolean conditional) {
         return properties.parseAndSet(info.getLine(2),
@@ -33,9 +33,8 @@ public class SignActionProperties extends SignAction {
                                     })).getReason();
     }
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("property");
+    public SignActionProperties() {
+        super("property");
     }
 
     @Override

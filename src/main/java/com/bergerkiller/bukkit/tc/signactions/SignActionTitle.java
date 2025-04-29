@@ -13,7 +13,7 @@ import org.bukkit.entity.Player;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class SignActionTitle extends SignAction {
+public class SignActionTitle extends TrainCartsSignAction {
 
     private static void sendTitle(MinecartGroup group, TitleMessage message) {
         for (MinecartMember<?> member : group) {
@@ -27,9 +27,8 @@ public class SignActionTitle extends SignAction {
         }
     }
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("title");
+    public SignActionTitle() {
+        super("title");
     }
 
     @Override

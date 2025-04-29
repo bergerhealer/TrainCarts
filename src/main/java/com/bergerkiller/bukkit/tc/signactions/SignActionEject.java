@@ -19,11 +19,10 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-public class SignActionEject extends SignAction {
+public class SignActionEject extends TrainCartsSignAction {
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("eject");
+    public SignActionEject() {
+        super("eject");
     }
 
     @Override

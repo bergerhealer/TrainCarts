@@ -9,11 +9,10 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
-public class SignActionFlip extends SignAction {
+public class SignActionFlip extends TrainCartsSignAction {
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("flip");
+    public SignActionFlip() {
+        super("flip");
     }
 
     @Override

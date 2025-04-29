@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-public class SignActionSwitcher extends SignAction {
+public class SignActionSwitcher extends TrainCartsSignAction {
     private BlockMap<CounterState> switchedTimes = new BlockMap<>();
 
     private CounterState getSwitchedTimes(Block signblock) {
@@ -95,9 +95,8 @@ public class SignActionSwitcher extends SignAction {
         return statements;
     }
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("switcher", "tag");
+    public SignActionSwitcher() {
+        super("switcher", "tag");
     }
 
     @Override

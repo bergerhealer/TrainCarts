@@ -6,11 +6,10 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
-public class SignActionTrigger extends SignAction {
+public class SignActionTrigger extends TrainCartsSignAction {
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("trigger");
+    public SignActionTrigger() {
+        super("trigger");
     }
 
     @Override

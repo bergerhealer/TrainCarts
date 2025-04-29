@@ -21,11 +21,10 @@ import org.bukkit.inventory.ItemStack;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SignActionFuel extends SignAction {
+public class SignActionFuel extends TrainCartsSignAction {
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("fuel");
+    public SignActionFuel() {
+        super("fuel");
     }
 
     @Override

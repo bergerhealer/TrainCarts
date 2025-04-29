@@ -15,11 +15,10 @@ import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
-public class SignActionDestination extends SignAction {
+public class SignActionDestination extends TrainCartsSignAction {
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("destination");
+    public SignActionDestination() {
+        super("destination");
     }
 
     @Override

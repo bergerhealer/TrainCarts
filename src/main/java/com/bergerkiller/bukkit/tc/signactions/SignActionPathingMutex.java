@@ -15,11 +15,10 @@ import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
  * ahead of the train. This behaves similar to the waiter sign, but using the standard
  * mutex 'obstacle' logic instead.
  */
-public class SignActionPathingMutex extends SignAction {
+public class SignActionPathingMutex extends TrainCartsSignAction {
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("pmutex", "spmutex", "psmutex", "pathmutex", "pathingmutex");
+    public SignActionPathingMutex() {
+        super("pmutex", "spmutex", "psmutex", "pathmutex", "pathingmutex");
     }
 
     @Override

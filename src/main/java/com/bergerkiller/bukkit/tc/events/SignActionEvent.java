@@ -1218,6 +1218,16 @@ public class SignActionEvent extends Event implements Cancellable, TrainCarts.Pr
         return false;
     }
 
+    /**
+     * Gets the contents of the second line, cleaned from weird characters and padding spacing,
+     * all-lowercased. Useful for matching TrainCarts signs. Used in {@link #isType(String...)}
+     *
+     * @return All-lowercase second line on the sign, trimmed and cleaned from weird control characters
+     */
+    public String getLowerCaseSecondCleanedLine() {
+        return lowerSecondCleanedLine;
+    }
+
     @Override
     public String toString() {
         Block signBlock = this.sign.signBlock;

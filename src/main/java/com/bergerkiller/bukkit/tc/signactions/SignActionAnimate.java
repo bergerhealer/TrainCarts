@@ -10,11 +10,10 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
-public class SignActionAnimate extends SignAction {
+public class SignActionAnimate extends TrainCartsSignAction {
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("animate");
+    public SignActionAnimate() {
+        super("animate");
     }
 
     public void animate(SignActionEvent info) {

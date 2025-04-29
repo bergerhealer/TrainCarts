@@ -14,11 +14,10 @@ import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import org.bukkit.block.BlockFace;
 
-public class SignActionLauncher extends SignAction {
+public class SignActionLauncher extends TrainCartsSignAction {
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("launch");
+    public SignActionLauncher() {
+        super("launch");
     }
 
     @Override

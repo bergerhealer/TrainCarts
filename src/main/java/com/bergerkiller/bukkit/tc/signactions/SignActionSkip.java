@@ -16,11 +16,10 @@ import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
-public class SignActionSkip extends SignAction {
+public class SignActionSkip extends TrainCartsSignAction {
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("skip");
+    public SignActionSkip() {
+        super("skip");
     }
 
     @Override

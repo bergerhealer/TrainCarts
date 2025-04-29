@@ -30,12 +30,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class SignActionSpawn extends SignAction {
+public class SignActionSpawn extends TrainCartsSignAction {
     private static Map<OfflineBlock, Long> cooldownSpawnTimesBySign = new HashMap<>();
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return SpawnSign.isValid(info);
+    public SignActionSpawn() {
+        super("spawn"); // SpawnSign.isValid(info);
     }
 
     @Override

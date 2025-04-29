@@ -30,8 +30,12 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-public class SignActionDetector extends SignAction {
+public class SignActionDetector extends TrainCartsSignAction {
     public static final SignActionDetector INSTANCE = new SignActionDetector();
+
+    public SignActionDetector() {
+        super("detector");
+    }
 
     /**
      * Called during loading of TrainCarts to register the detector sign
@@ -148,11 +152,6 @@ public class SignActionDetector extends SignAction {
      */
     public void disable(TrainCarts plugin) {
         plugin.getOfflineSigns().unregisterHandler(DetectorSign.Metadata.class);
-    }
-
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info != null && info.getMode() != SignActionMode.NONE && info.isType("detect");
     }
 
     @Override

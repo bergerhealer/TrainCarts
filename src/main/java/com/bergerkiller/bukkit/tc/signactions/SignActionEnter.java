@@ -19,7 +19,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
-public class SignActionEnter extends SignAction {
+public class SignActionEnter extends TrainCartsSignAction {
 
     private static boolean canEnter(Entity entity, boolean enterPlayers, boolean enterMobs, boolean enterMisc) {
         if (entity instanceof Player) {
@@ -33,9 +33,8 @@ public class SignActionEnter extends SignAction {
         }
     }
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.getMode() != SignActionMode.NONE && info.isType("enter");
+    public SignActionEnter() {
+        super("enter");
     }
 
     @Override

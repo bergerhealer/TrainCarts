@@ -22,8 +22,8 @@ import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.pathfinding.PathPredictEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.SignRoutingEvent;
-import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign;
+import com.bergerkiller.bukkit.tc.signactions.util.SignActionLookupMap;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 
 import com.bergerkiller.generated.org.bukkit.block.SignHandle;
@@ -34,18 +34,25 @@ import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.SignChangeEvent;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.logging.Level;
 
+/**
+ * A handler for a unique sign that can respond to trains and redstone change events.
+ * When {@link #match(SignActionEvent)} returns true for a sign, this sign action
+ * will receive updates using {@link #execute(SignActionEvent)}.<br>
+ * <br>
+ * To register, call {@link #register(SignAction)}. Make sure to {@link #unregister(SignAction)}
+ * as well when your plugin disables again.<br>
+ * <br>
+ * If you want to use a standard [train] and [cart] syntax with an identifier put on
+ * the second line, use {@link TrainCartsSignAction} as a base class. This is slightly more
+ * efficient in its handling.
+ */
 public abstract class SignAction {
-    private static List<SignAction> actions = Collections.emptyList();
-    private static List<SignAction> actionsWithLoadedChangedHandler = Collections.emptyList();
+    private static SignActionLookupMap lookup = SignActionLookupMap.DISABLED;
 
     public static void init() {
-        actions = new ArrayList<>();
-        actionsWithLoadedChangedHandler = new ArrayList<>();
+        lookup = new SignActionLookupMap();
         register(new SignActionStation());
         register(new SignActionLauncher());
         register(new SignActionSwitcher());
@@ -83,8 +90,18 @@ public abstract class SignAction {
     }
 
     public static void deinit() {
-        actions = Collections.emptyList();
-        actionsWithLoadedChangedHandler = Collections.emptyList();
+        lookup = SignActionLookupMap.DISABLED;
+    }
+
+    /**
+     * Gets the SignAction lookup map in which all known SignActions are registered.
+     * The static methods in this class call into this same lookup map.
+     * Offers additional methods for internal use primarily.
+     *
+     * @return SignActionLookupMap
+     */
+    public static SignActionLookupMap getLookup() {
+        return lookup;
     }
 
     /**
@@ -94,12 +111,7 @@ public abstract class SignAction {
      * @return sign action, or null if not found
      */
     public static SignAction getSignAction(SignActionEvent event) {
-        for (SignAction action : actions) {
-            if (action.match(event) && action.verify(event)) {
-                return action;
-            }
-        }
-        return null;
+        return lookup.lookup(event).map(SignActionLookupMap.Entry::action).orElse(null);
     }
 
     /**
@@ -124,36 +136,11 @@ public abstract class SignAction {
      * @throws NullPointerException If the input action is null
      */
     public static <T extends SignAction> T register(T action, boolean priority) {
-        if (action == null) {
-            throw new NullPointerException("Action is null");
-        }
-        if (actions != Collections.EMPTY_LIST) {
-            if (priority) {
-                actions.add(0, action);
-            } else {
-                actions.add(action);
-            }
-
-            // If action implements loadedChanged(), also add it to the list of actions
-            // with such a handler
-            if (CommonUtil.isMethodOverrided(SignAction.class, action.getClass(), "loadedChanged", SignActionEvent.class, boolean.class)) {
-                if (priority) {
-                    actionsWithLoadedChangedHandler.add(0, action);
-                } else {
-                    actionsWithLoadedChangedHandler.add(action);
-                }
-            }
-
-            // TrackedSign stores a SignAction too - make sure this is wiped
-            RailLookup.forceRecalculation();
-        }
-        return action;
+        return lookup.register(action, priority);
     }
 
     public static void unregister(SignAction action) {
-        if (actions.isEmpty()) return;
-        actions.remove(action);
-        actionsWithLoadedChangedHandler.remove(action);
+        lookup.unregister(action);
     }
 
     /**
@@ -183,12 +170,10 @@ public abstract class SignAction {
      */
     public static void handleLoadChange(TrackedSign trackedSign, boolean loaded) {
         final SignActionEvent info = new SignActionEvent(trackedSign);
-        for (SignAction action : actionsWithLoadedChangedHandler) {
-            if (action.match(info) && action.verify(info)) {
-                action.loadedChanged(info, loaded);
-                return;
-            }
-        }
+
+        lookup.lookup(info, SignActionLookupMap.LookupMode.WITH_LOADED_CHANGED_HANDLER)
+                .map(SignActionLookupMap.Entry::action)
+                .ifPresent(e -> e.loadedChanged(info, loaded));
     }
 
     /**

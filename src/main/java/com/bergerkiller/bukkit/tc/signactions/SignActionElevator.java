@@ -19,7 +19,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 
-public class SignActionElevator extends SignAction {
+public class SignActionElevator extends TrainCartsSignAction {
     public static BlockTimeoutMap ignoreTimes = new BlockTimeoutMap();
 
     public static boolean isElevator(Sign sign) {
@@ -72,9 +72,8 @@ public class SignActionElevator extends SignAction {
         return rval;
     }
 
-    @Override
-    public boolean match(SignActionEvent info) {
-        return info.isType("elevator");
+    public SignActionElevator() {
+        super("elevator");
     }
 
     @Override
