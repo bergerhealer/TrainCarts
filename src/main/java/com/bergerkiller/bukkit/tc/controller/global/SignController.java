@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.events.SignBuildEvent;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
+import com.bergerkiller.bukkit.tc.rails.WorldRailLookup;
 import com.bergerkiller.bukkit.tc.utils.RecursionGuard;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -703,9 +704,13 @@ public class SignController implements LibraryComponent, Listener {
          */
         void updateSignFacing() {
             if (sign.getAttachedFace() != blocks.getAttachedFace()) {
-                blocks.forAllBlocks(this, world::removeChunkByBlockEntry);
-                blocks = SignBlocksAround.of(sign.getAttachedFace());
-                blocks.forAllBlocks(this, world::addChunkByBlockEntry);
+                if (hasSignActionEvents()) {
+                    blocks.forAllBlocks(this, world::removeChunkByBlockEntry);
+                    blocks = SignBlocksAround.of(sign.getAttachedFace());
+                    blocks.forAllBlocks(this, world::addChunkByBlockEntry);
+                } else {
+                    blocks = SignBlocksAround.of(sign.getAttachedFace());
+                }
             }
         }
 
@@ -793,6 +798,33 @@ public class SignController implements LibraryComponent, Listener {
                 world.getPlugin().getOfflineSigns().verifySign(sign.getSign(), false, null);
             }
 
+            // Detect when text is edited on a sign from having an action or not, or other way around
+            {
+                boolean wasRespondingToEvents = hasSignActionEvents();
+                if (frontChanged) {
+                    front.updateHasSignAction();
+                }
+                if (backChanged) {
+                    back.updateHasSignAction();
+                }
+                boolean nowRespondingToEvents = hasSignActionEvents();
+
+                if (wasRespondingToEvents && !nowRespondingToEvents) {
+                    this.blocks.forAllBlocks(this, world::removeChunkByBlockEntry);
+                } else if (!wasRespondingToEvents && nowRespondingToEvents) {
+                    this.blocks.forAllBlocks(this, world::addChunkByBlockEntry);
+
+                    // Invalidate signs in the RailTracker by-rail lookup cache right away
+                    // It relies on this by-block lookup so it's likely invalid now
+                    {
+                        WorldRailLookup railLookup = RailLookup.forWorldIfInitialized(world.getWorld());
+                        if (railLookup != null) {
+                            railLookup.discoverRailPieceFromSign(this.sign.getBlock()).forceCacheVerification();
+                        }
+                    }
+                }
+            }
+
             updateSignFacing();
 
             return true;
@@ -851,6 +883,16 @@ public class SignController implements LibraryComponent, Listener {
             } else if (destroyBack) {
                 world.getPlugin().getOfflineSigns().removeAll(signLastState.getBlock(), false);
             }
+        }
+
+        /**
+         * Gets whether this sign responds to redstone change events. If the sign isn't a TC
+         * sign, returns false if configuration disables handling of redstone in that case.
+         *
+         * @return True if this sign responds to redstone
+         */
+        public boolean hasSignActionEvents() {
+            return !TCConfig.onlyRegisteredSignsHandleRedstone || front.hasSignAction() || back.hasSignAction();
         }
 
         /**
@@ -958,7 +1000,7 @@ public class SignController implements LibraryComponent, Listener {
             private final GetLineFunction lineFunc;
             public String headerLine;
             private SignActionHeader cachedHeader;
-            private boolean cachedHasSignAction;
+            private boolean hasSignAction;
             public boolean powered;
             public boolean activated;
 
@@ -967,26 +1009,36 @@ public class SignController implements LibraryComponent, Listener {
                 this.lineFunc = lineFunc;
                 this.headerLine = lineFunc.getLine(sign, 0);
                 this.cachedHeader = SignActionHeader.parse(Util.cleanSignLine(headerLine));
-                this.cachedHasSignAction = this.checkHasSignAction(this.cachedHeader);
+                this.hasSignAction = this.checkHasSignAction(this.cachedHeader);
                 this.powered = false; // Initialized later on
                 this.activated = false; // Activated when neighbouring chunks load as well
             }
 
             public SignActionHeader getHeader() {
+                return syncAndGetHeader(false);
+            }
+
+            private SignActionHeader syncAndGetHeader(boolean alwaysCheckHasSignAction) {
                 String headerLine = lineFunc.getLine(sign, 0);
                 if (headerLine.equals(this.headerLine)) {
+                    if (alwaysCheckHasSignAction) {
+                        this.hasSignAction = this.checkHasSignAction(cachedHeader);
+                    }
                     return cachedHeader;
                 } else {
                     this.headerLine = headerLine;
                     SignActionHeader header = this.cachedHeader = SignActionHeader.parse(Util.cleanSignLine(headerLine));
-                    this.cachedHasSignAction = this.checkHasSignAction(header);
+                    this.hasSignAction = this.checkHasSignAction(header);
                     return header;
                 }
             }
 
+            public void updateHasSignAction() {
+                syncAndGetHeader(true);
+            }
+
             public boolean hasSignAction() {
-                //getHeader(); // This only works because we always call getHeader() prior...
-                return cachedHasSignAction;
+                return hasSignAction;
             }
 
             private boolean checkHasSignAction(SignActionHeader header) {

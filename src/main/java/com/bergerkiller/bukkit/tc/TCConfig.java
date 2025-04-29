@@ -95,6 +95,7 @@ public class TCConfig {
     public static boolean claimNewSavedModels = true;
     public static boolean onlyPoweredSwitchersDoPathFinding = true;
     public static boolean onlyEmptySwitchersDoPathFinding = false;
+    public static boolean onlyRegisteredSignsHandleRedstone = true;
     public static boolean enableSneakingInAttachmentEditor = false;
     public static boolean playHissWhenStopAtStation = true;
     public static boolean playHissWhenDestroyedBySign = true;
@@ -530,6 +531,13 @@ public class TCConfig {
         config.addHeader("onlyEmptySwitchersDoPathFinding", "If false, then statements on switcher signs complement the pathfinding functionality");
         config.addHeader("onlyEmptySwitchersDoPathFinding", "Default is false, which allows pathfinding to be a fallback case");
         onlyEmptySwitchersDoPathFinding = config.get("onlyEmptySwitchersDoPathFinding", false);
+
+        config.setHeader("onlyRegisteredSignsHandleRedstone", "\nWhether only SignAction-registered signs receive redstone change events");
+        config.addHeader("onlyRegisteredSignsHandleRedstone", "All TrainCarts signs are registered this way, so this should only be set to false");
+        config.addHeader("onlyRegisteredSignsHandleRedstone", "if there are (legacy) plugins that rely solely on the SignActionEvent to operate");
+        config.addHeader("onlyRegisteredSignsHandleRedstone", "Keeping this true will significantly improve performance, as non-tc (decorative) signs");
+        config.addHeader("onlyRegisteredSignsHandleRedstone", "are exempt from tracking");
+        onlyRegisteredSignsHandleRedstone = config.get("onlyRegisteredSignsHandleRedstone", true);
 
         config.setHeader("rerouteOnStartup", "\nWhen enabled, re-calculates all path finding routes on plugin startup");
         rerouteOnStartup = config.get("rerouteOnStartup", false);

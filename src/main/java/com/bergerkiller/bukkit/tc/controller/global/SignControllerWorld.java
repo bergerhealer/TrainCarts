@@ -501,7 +501,9 @@ public class SignControllerWorld {
             atChunk.add(entry);
         }
 
-        entry.blocks.forAllBlocks(entry, this::addChunkByBlockEntry);
+        if (entry.hasSignActionEvents()) {
+            entry.blocks.forAllBlocks(entry, this::addChunkByBlockEntry);
+        }
 
         this.controller.activateEntry(entry, true, !isSignChange, true, true);
 
@@ -528,7 +530,10 @@ public class SignControllerWorld {
                     if (!entry.verify()) {
                         // Remove loaded sign information
                         iter.remove();
-                        entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
+
+                        if (entry.hasSignActionEvents()) {
+                            entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
+                        }
 
                         // Remove from the offline signs cache as well
                         controller.getPlugin().getOfflineSigns().removeAll(entry.sign.getBlock());
@@ -641,7 +646,10 @@ public class SignControllerWorld {
                     } else {
                         // Sign is gone. Remove it.
                         entries.remove(entry);
-                        entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
+
+                        if (entry.hasSignActionEvents()) {
+                            entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
+                        }
                     }
                 }
             }
@@ -683,7 +691,10 @@ public class SignControllerWorld {
                     entriesAtChunk = new ArrayList<>();
                 }
                 entriesAtChunk.add(entry);
-                entry.blocks.forAllBlocks(entry, this::addChunkByBlockEntry);
+
+                if (entry.hasSignActionEvents()) {
+                    entry.blocks.forAllBlocks(entry, this::addChunkByBlockEntry);
+                }
             }
         }
         this.signsByChunk.put(chunkKey, entriesAtChunk);
@@ -763,10 +774,12 @@ public class SignControllerWorld {
         }
 
         // Remove entry from by-block mapping
-        entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
+        if (entry.hasSignActionEvents()) {
+            entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
+        }
     }
 
-    void removeChunkByBlockEntry(SignController.Entry entry, long key) {
+    protected void removeChunkByBlockEntry(SignController.Entry entry, long key) {
         removeChunkByBlockEntry(entry, key, false);
     }
 
