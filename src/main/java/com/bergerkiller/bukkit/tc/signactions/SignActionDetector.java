@@ -206,10 +206,6 @@ public class SignActionDetector extends SignAction {
 
     @Override
     public boolean build(SignChangeActionEvent event) {
-        if (!match(event)) {
-            return false;
-        }
-
         if (!SignBuildOptions.create()
                 .setPermission(Permission.BUILD_DETECTOR)
                 .setName("train detector")
