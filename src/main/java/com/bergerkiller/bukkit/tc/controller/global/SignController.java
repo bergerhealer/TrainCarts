@@ -478,18 +478,19 @@ public class SignController implements LibraryComponent, Listener {
     }
 
     void activateEntry(Entry entry) {
-        activateEntry(entry, false, true, true, true);
+        activateEntry(entry, false, true);
     }
 
-    void activateEntry(Entry entry, boolean refreshRailSigns, boolean handleLoadChange, boolean activateFront, boolean activateBack) {
+    void activateEntry(Entry entry, boolean refreshRailSigns, boolean handleLoadChange) {
         // Refresh signs mapped to rails at all times, if specified
         // The tracked rail is made available later on to handle the load change, if set
+        // Only load the tracked sign if there is an actual load-change handler for this sign
         TrackedSign frontTrackedSign = null, backTrackedSign = null;
         if (refreshRailSigns) {
-            if (activateFront && !entry.front.getHeader().isEmpty()) {
+            if (entry.front.hasLoadedChangeHandler()) {
                 frontTrackedSign = TrackedSign.forRealSign(entry.sign.getSign(), true, null);
             }
-            if (activateBack && !entry.back.getHeader().isEmpty()) {
+            if (entry.back.hasLoadedChangeHandler()) {
                 backTrackedSign = TrackedSign.forRealSign(entry.sign.getSign(), false, null);
             }
 
@@ -504,13 +505,13 @@ public class SignController implements LibraryComponent, Listener {
         // Skip if there is nothing to do
         boolean wasFrontActivated = entry.front.activated;
         boolean wasBackActivated = entry.back.activated;
-        if ((!activateFront || wasFrontActivated) && (!activateBack || wasBackActivated)) {
+        if (wasFrontActivated && wasBackActivated) {
             return;
         }
 
         Block b = entry.sign.getBlock();
         try {
-            entry.setActivated(activateFront, activateBack);
+            entry.activate();
 
             if (handleLoadChange) {
                 if (refreshRailSigns) {
@@ -521,10 +522,10 @@ public class SignController implements LibraryComponent, Listener {
                         SignAction.handleLoadChange(backTrackedSign, true);
                     }
                 } else {
-                    if (activateFront && !wasFrontActivated) {
+                    if (!wasFrontActivated) {
                         entry.front.handleLoadChange(true);
                     }
-                    if (activateBack && !wasBackActivated) {
+                    if (!wasBackActivated) {
                         entry.back.handleLoadChange(true);
                     }
                 }
@@ -734,7 +735,7 @@ public class SignController implements LibraryComponent, Listener {
         private SignChangeTracker signLastState; // Can be null if removed!
         public final SignControllerWorld world;
         public final SignControllerChunk chunk;
-        final SignSide front, back;
+        public final SignSide front, back;
         private final FastTrackedUpdateSet.Tracker<Entry> redstoneUpdateTracker;
         private final FastTrackedUpdateSet.Tracker<Entry> ignoreRedstoneUpdateTracker;
         final long blockKey;
@@ -878,10 +879,10 @@ public class SignController implements LibraryComponent, Listener {
             {
                 boolean hadSignActions = hasSignActionEvents();
                 if (frontChanged) {
-                    front.updateHasSignAction();
+                    front.updateSignAction();
                 }
                 if (backChanged) {
-                    back.updateHasSignAction();
+                    back.updateSignAction();
                 }
                 boolean nowHasSignActions = hasSignActionEvents();
                 if (hadSignActions != nowHasSignActions) {
@@ -1025,23 +1026,21 @@ public class SignController implements LibraryComponent, Listener {
             return PowerState.isSignPowered(this.sign.getBlock(), opt);
         }
 
-        void setActivated(boolean activateFront, boolean activateBack) {
+        void activate() {
             boolean powered;
-            if ((!activateFront || skipReadingPower(front.getHeader())) &&
-                (!activateBack || skipReadingPower(back.getHeader()))
+            if ((skipReadingPower(front.getHeader())) &&
+                (skipReadingPower(back.getHeader()))
             ) {
                 powered = false;
             } else {
                 powered = checkIsSignPowered();
             }
-            if (activateFront) {
-                front.activated = true;
-                front.setInitialPower(powered);
-            }
-            if (activateBack) {
-                back.activated = true;
-                back.setInitialPower(powered);
-            }
+
+            front.activated = true;
+            front.setInitialPower(powered);
+
+            back.activated = true;
+            back.setInitialPower(powered);
         }
 
         public void updateRedstonePower() {
@@ -1096,12 +1095,13 @@ public class SignController implements LibraryComponent, Listener {
             }
         }
 
-        class SignSide {
+        public class SignSide {
             private final boolean front;
             private final GetLineFunction lineFunc;
             public String headerLine;
             private SignActionHeader cachedHeader;
             private boolean hasSignAction;
+            private boolean hasLoadedChangeHandler;
             public boolean powered;
             public boolean activated;
 
@@ -1110,7 +1110,7 @@ public class SignController implements LibraryComponent, Listener {
                 this.lineFunc = lineFunc;
                 this.headerLine = lineFunc.getLine(sign, 0);
                 this.cachedHeader = SignActionHeader.parse(Util.cleanSignLine(headerLine));
-                this.hasSignAction = this.checkHasSignAction(this.cachedHeader);
+                this.detectSignAction(this.cachedHeader);
                 this.powered = false; // Initialized later on
                 this.activated = false; // Activated when neighbouring chunks load as well
             }
@@ -1123,18 +1123,18 @@ public class SignController implements LibraryComponent, Listener {
                 String headerLine = lineFunc.getLine(sign, 0);
                 if (headerLine.equals(this.headerLine)) {
                     if (alwaysCheckHasSignAction) {
-                        this.hasSignAction = this.checkHasSignAction(cachedHeader);
+                        this.detectSignAction(cachedHeader);
                     }
                     return cachedHeader;
                 } else {
                     this.headerLine = headerLine;
                     SignActionHeader header = this.cachedHeader = SignActionHeader.parse(Util.cleanSignLine(headerLine));
-                    this.hasSignAction = this.checkHasSignAction(header);
+                    this.detectSignAction(header);
                     return header;
                 }
             }
 
-            public void updateHasSignAction() {
+            public void updateSignAction() {
                 syncAndGetHeader(true);
             }
 
@@ -1142,8 +1142,15 @@ public class SignController implements LibraryComponent, Listener {
                 return hasSignAction;
             }
 
-            private boolean checkHasSignAction(SignActionHeader header) {
-                return SignAction.getSignAction(this.createSignActionEvent(header, RailPiece.NONE /* ignore */)) != null;
+            public boolean hasLoadedChangeHandler() {
+                return hasLoadedChangeHandler;
+            }
+
+            private void detectSignAction(SignActionHeader header) {
+                SignAction action = SignAction.getSignAction(this.createSignActionEvent(header, RailPiece.NONE /* ignore */));
+                this.hasSignAction = action != null;
+                this.hasLoadedChangeHandler = action != null && CommonUtil.isMethodOverrided(
+                        SignAction.class, action.getClass(), "loadedChanged", SignActionEvent.class, boolean.class);
             }
 
             public void setInitialPower(boolean powered) {
@@ -1158,7 +1165,7 @@ public class SignController implements LibraryComponent, Listener {
             }
 
             public void handleLoadChange(boolean loaded) {
-                if (!getHeader().isEmpty()) {
+                if (hasLoadedChangeHandler) {
                     SignAction.handleLoadChange(sign.getSign(), front, loaded);
                 }
             }

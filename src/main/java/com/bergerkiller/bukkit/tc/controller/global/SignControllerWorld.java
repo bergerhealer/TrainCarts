@@ -425,8 +425,7 @@ public class SignControllerWorld {
 
             if (existing != null) {
                 if (existing.verify()) {
-                    controller.activateEntry(existing, true, true,
-                            true, true);
+                    controller.activateEntry(existing, true, true);
                     return existing;
                 } else {
                     removeInvalidEntry(existing);
@@ -471,7 +470,7 @@ public class SignControllerWorld {
         // If the chunk initialized the by-neighbour-mapping before, adds it there too
         signChunk.addEntry(entry);
 
-        this.controller.activateEntry(entry, true, !isSignChange, true, true);
+        this.controller.activateEntry(entry, true, !isSignChange);
 
         return entry;
     }
