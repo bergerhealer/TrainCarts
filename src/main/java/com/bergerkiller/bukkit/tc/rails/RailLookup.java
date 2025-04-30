@@ -6,6 +6,8 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import com.bergerkiller.bukkit.tc.controller.global.SignController;
+import com.bergerkiller.bukkit.tc.controller.global.SignControllerWorld;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -1002,33 +1004,39 @@ public final class RailLookup {
 
             List<String> lines = new ArrayList<>();
 
-            // Find other TrackedSign instances which are below this sign, repeatedly
+            // Find other signs instances which are below this sign, repeatedly
             // Ignore tracked signs which match a SignAction by itself.
-            TrackedSign[] signs = rail.signs();
+            // For this we use the SignController findNearby with a flag to include all
+            // signs in the results, not just ones that have sign actions.
+            //
+            // RailPiece signs() cannot be used, because those signs are only those
+            // that have sign actions.
             Block signBlock = this.signBlock.getRelative(BlockFace.DOWN);
-            boolean found;
-            do {
-                found = false;
-                for (TrackedSign sign : signs) {
-                    if (!(sign instanceof TrackedRealSignBase) || sign.getAction() != null) {
-                        continue;
-                    }
-                    if (((TrackedRealSignBase) sign).isFrontText() != isFrontText()) {
-                        continue;
-                    }
+            SignControllerWorld signController = plugin.getSignController().forWorld(rail.world());
 
-                    if (sign.signBlock.equals(signBlock)) {
-                        for (int i = 0; i < 4; i++) {
-                            lines.add(sign.getLine(i));
-                        }
-                        found = true;
-                        signBlock = signBlock.getRelative(BlockFace.DOWN);
-                        break;
-                    }
+            while (true) {
+                SignController.Entry entry = signController.findForSign(signBlock, false);
+                if (entry == null) {
+                    break;
                 }
-            } while (found);
+                if (entry.sign.getFacing() != facing) {
+                    break;
+                }
 
-            return lines.toArray(new String[lines.size()]);
+                // Load the sign, make sure it isn't an action sign itself
+                TrackedSign sign = isFrontText() ? entry.createFrontTrackedSign(rail)
+                                                 : entry.createBackTrackedSign(rail);
+                if (sign.getAction() != null) {
+                    break;
+                }
+
+                for (int i = 0; i < 4; i++) {
+                    lines.add(sign.getLine(i));
+                }
+                signBlock = signBlock.getRelative(BlockFace.DOWN);
+            }
+
+            return lines.toArray(new String[0]);
         }
 
         @Override

@@ -5,7 +5,6 @@ import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.LongUnaryOperator;
@@ -50,7 +49,7 @@ public class SignControllerWorld {
     private final SignController controller;
     private final World world;
     private final OfflineWorld offlineWorld;
-    private final LongHashMap<List<SignController.Entry>> signsByChunk = new LongHashMap<>();
+    private final LongHashMap<SignControllerChunk> signChunks = new LongHashMap<>();
     private final LongHashMap<SignController.EntryList> signsByNeighbouringBlock = new LongHashMap<>();
     private final ChunkFutureProvider chunkFutureProvider;
     private boolean needsInitialization;
@@ -116,10 +115,16 @@ public class SignControllerWorld {
     /**
      * Looks up the signs that exist at, or neighbouring, the specified block.
      *
-     * @param block
+     * @param block Block middle
+     * @param mustHaveSignActions Whether the signs to look for must have sign actions, such as
+     *                            redstone change handlers or train activation.
      * @return Entries nearby
      */
-    public SignController.Entry[] findNearby(Block block) {
+    public SignController.Entry[] findNearby(Block block, boolean mustHaveSignActions) {
+        if (!checkMayHaveSignsNearby(block.getX(), block.getY(), block.getZ(), 1, mustHaveSignActions)) {
+            return SignController.EntryList.NONE.values();
+        }
+
         return findNearby(LongBlockCoordinates.map(block.getX(), block.getY(), block.getZ()));
     }
 
@@ -129,18 +134,20 @@ public class SignControllerWorld {
      * @param blockCoordinatesKey Key created using {@link LongBlockCoordinates#map(int, int, int)}
      * @return Entries nearby
      */
-    public SignController.Entry[] findNearby(long blockCoordinatesKey) {
+    SignController.Entry[] findNearby(long blockCoordinatesKey) {
         return signsByNeighbouringBlock.getOrDefault(blockCoordinatesKey, SignController.EntryList.NONE).values();
     }
 
     /**
      * Looks up the entry for a specific sign
      *
-     * @param signBlock
+     * @param signBlock Sign Block
+     * @param mustHaveSignActions Whether the sign to look for must have sign actions, such as
+     *                            redstone change handlers or train activation.
      * @return Entry if found, null otherwise
      */
-    public SignController.Entry findForSign(Block signBlock) {
-        for (Entry entry : findNearby(signBlock)) {
+    public SignController.Entry findForSign(Block signBlock, boolean mustHaveSignActions) {
+        for (Entry entry : findNearby(signBlock, mustHaveSignActions)) {
             if (entry.sign.getBlock().equals(signBlock)) {
                 return entry;
             }
@@ -152,12 +159,17 @@ public class SignControllerWorld {
      * Calls a function on all signs at or neighbouring a specified block.
      * Before it calls the handler, verifies the sign still truly exists.
      *
-     * @param block
+     * @param block Near Block
+     * @param mustHaveSignActions Whether the sign to look for must have sign actions, such as
+     *                            redstone change handlers or train activation.
      * @param handler
      */
-    public void forEachNearbyVerify(Block block, Consumer<SignController.Entry> handler) {
-        for (SignController.Entry entry : this.findNearby(block)) {
+    public void forEachNearbyVerify(Block block, boolean mustHaveSignActions, Consumer<SignController.Entry> handler) {
+        for (SignController.Entry entry : this.findNearby(block, mustHaveSignActions)) {
             if (entry.verify()) {
+                if (mustHaveSignActions && !entry.hasSignActionEvents()) {
+                    continue;
+                }
                 handler.accept(entry);
             } else {
                 removeInvalidEntry(entry);
@@ -173,14 +185,16 @@ public class SignControllerWorld {
      *
      * @param block Column start block
      * @param direction Column direction
+     * @param mustHaveSignActions Whether the signs to look for must have sign actions, such as
+     *                            redstone change handlers or train activation.
      * @param handler Handler accepting the sign
      */
-    public void forEachSignInColumn(Block block, BlockFace direction, Consumer<SignChangeTracker> handler) {
+    public void forEachSignInColumn(Block block, BlockFace direction, boolean mustHaveSignActions, Consumer<SignChangeTracker> handler) {
         int bx = block.getX();
         int by = block.getY();
         int bz = block.getZ();
         int checkBorder = FaceUtil.isVertical(direction) ? 0 : 1;
-        if (!checkMayHaveSignsNearby(bx, by, bz, checkBorder)) {
+        if (!checkMayHaveSignsNearby(bx, by, bz, checkBorder, mustHaveSignActions)) {
             return;
         }
 
@@ -192,7 +206,10 @@ public class SignControllerWorld {
             for (SignController.Entry entry : this.findNearby(key)) {
                 if (verifySignColumnSlice(key, direction, steps == 0, entry)) {
                     foundSigns = true;
-                    handler.accept(entry.sign);
+
+                    if (!mustHaveSignActions|| entry.hasSignActionEvents()) {
+                        handler.accept(entry.sign);
+                    }
                 }
             }
 
@@ -210,7 +227,7 @@ public class SignControllerWorld {
             if (!FaceUtil.isVertical(direction)) {
                 bx += direction.getModX();
                 bz += direction.getModZ();
-                if (!checkMayHaveSignsNearby(bx, by, bz, checkBorder)) {
+                if (!checkMayHaveSignsNearby(bx, by, bz, checkBorder, mustHaveSignActions)) {
                     break;
                 }
             }
@@ -225,11 +242,13 @@ public class SignControllerWorld {
      *
      * @param block Column start block
      * @param direction Column direction
+     * @param mustHaveSignActions Whether the signs to look for must have sign actions, such as
+     *                            redstone change handlers or train activation.
      * @return True if there are wall signs attached to this block, False if not
      */
-    public boolean hasSignsAroundColumn(Block block, BlockFace direction) {
+    public boolean hasSignsAroundColumn(Block block, BlockFace direction, boolean mustHaveSignActions) {
         int checkBorder = FaceUtil.isVertical(direction) ? 0 : 1;
-        if (!checkMayHaveSignsNearby(block.getX(), block.getY(), block.getZ(), checkBorder)) {
+        if (!checkMayHaveSignsNearby(block.getX(), block.getY(), block.getZ(), checkBorder, mustHaveSignActions)) {
             return false;
         }
 
@@ -250,80 +269,31 @@ public class SignControllerWorld {
      * @param y Search Y-position
      * @param z Search Z-position
      * @param border X/Z chunk border check distance
+     * @param mustHaveSignActions Whether the signs to look for must have sign actions, such as
+     *                            redstone change handlers or train activation.
      * @return True if signs might be nearby. False if there definitely are no signs.
      */
-    private boolean checkMayHaveSignsNearby(int x, int y, int z, int border) {
+    private boolean checkMayHaveSignsNearby(int x, int y, int z, int border, boolean mustHaveSignActions) {
         boolean result;
         int cx = x >> 4;
         int cz = z >> 4;
-        result = checkChunkMayHaveSigns(cx, cz, x, y, z);
+        result = getSignChunk(cx, cz).checkMayHaveSigns(x, y, z, mustHaveSignActions);
 
         int bx = x & 0xF;
         if (bx <= border) {
-            result |= checkChunkMayHaveSigns(cx - 1, cz, x, y, z);
+            result |= getSignChunk(cx - 1, cz).checkMayHaveSigns(x, y, z, mustHaveSignActions);
         } else if (bx >= (15-border)) {
-            result |= checkChunkMayHaveSigns(cx + 1, cz, x, y, z);
+            result |= getSignChunk(cx + 1, cz).checkMayHaveSigns(x, y, z, mustHaveSignActions);
         }
 
         int bz = z & 0xF;
         if (bz <= border) {
-            result |= checkChunkMayHaveSigns(cx, cz - 1, x, y, z);
+            result |= getSignChunk(cx, cz - 1).checkMayHaveSigns(x, y, z, mustHaveSignActions);
         } else if (bz >= (15-border)) {
-            result |= checkChunkMayHaveSigns(cx, cz + 1, x, y, z);
+            result |= getSignChunk(cx, cz + 1).checkMayHaveSigns(x, y, z, mustHaveSignActions);
         }
+
         return result;
-    }
-
-    /**
-     * Checks whether a Chunk position has a particular sign nearby a given x/y/z.
-     * This checks whether that could be the case, and may also return true when
-     * this isn't certain.
-     * Will (sync) load the chunk if no sign information is available yet.
-     *
-     * @param cx Chunk X-coordinate
-     * @param cz Chunk Z-coordinate
-     * @param x Search X-position
-     * @param y Search Y-position
-     * @param z Search Z-position
-     * @return True if signs might be nearby
-     */
-    private boolean checkChunkMayHaveSigns(int cx, int cz, int x, int y, int z) {
-        // Find signs in this chunk. Load chunk if no data about it is loaded in yet.
-        List<SignController.Entry> signsAtChunk;
-        {
-            long key = MathUtil.longHashToLong(cx, cz);
-            if ((signsAtChunk = this.signsByChunk.get(key)) == null) {
-                // Note: On Paper, getChunkAt() will already fire ChunkLoad, and thus loadChunk
-                //       Because of this, the extra loadChunk will do nothing (already loaded, ignore)
-                //       On Spigot however, this does not happen, and the extra loadChunk() is required.
-                signsAtChunk = this.loadChunk(world.getChunkAt(cx, cz));
-            }
-        }
-
-        // Check sign count
-        // When there's no signs, skip creating an iterator and fail instantly
-        // When there's too many signs, omit searching for them as that would be unneededly slow
-        {
-            int count = signsAtChunk.size();
-            if (count == 0) {
-                return false;
-            } else if (count > 20) {
-                return true;
-            }
-        }
-
-        // Check whether any signs are neighbouring this x/y/z
-        for (SignController.Entry entry : signsAtChunk) {
-            Block b = entry.getBlock();
-            if (Math.abs(b.getX() - x) <= 2 &&
-                Math.abs(b.getY() - y) <= 2 &&
-                Math.abs(b.getZ() - z) <= 2
-            ) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -442,7 +412,7 @@ public class SignControllerWorld {
      */
     public SignController.Entry addSign(Block signBlock, boolean isSignChange, boolean frontText) {
         // Find/activate an existing sign
-        SignController.Entry existing = this.findForSign(signBlock);
+        SignController.Entry existing = this.findForSign(signBlock, false);
         if (existing != null) {
             if (isSignChange) {
                 if (existing.verifyBeforeSignChange(frontText)) {
@@ -485,25 +455,21 @@ public class SignControllerWorld {
      * @return Entry created for this new sign
      */
     private SignController.Entry createNewSign(Sign sign, boolean isSignChange) {
-        // Create entry. Add it to by-chunk and by-block mapping.
         Block signBlock = sign.getBlock();
+
+        SignControllerChunk signChunk = this.getSignChunk(
+                MathUtil.toChunk(signBlock.getX()),
+                MathUtil.toChunk(signBlock.getZ()));
+
+        // Create entry
         SignController.Entry entry = this.controller.createEntry(sign,
                 this,
-                LongBlockCoordinates.map(signBlock.getX(), signBlock.getY(), signBlock.getZ()),
-                MathUtil.longHashToLong(MathUtil.toChunk(signBlock.getX()),
-                                        MathUtil.toChunk(signBlock.getZ())));
-        {
-            List<SignController.Entry> atChunk = this.signsByChunk.get(entry.chunkKey);
-            if (atChunk == null || atChunk.isEmpty()) {
-                atChunk = new ArrayList<>();
-                this.signsByChunk.put(entry.chunkKey, atChunk);
-            }
-            atChunk.add(entry);
-        }
+                signChunk,
+                LongBlockCoordinates.map(signBlock.getX(), signBlock.getY(), signBlock.getZ()));
 
-        if (entry.hasSignActionEvents()) {
-            entry.blocks.forAllBlocks(entry, this::addChunkByBlockEntry);
-        }
+        // Add it to the chunk.
+        // If the chunk initialized the by-neighbour-mapping before, adds it there too
+        signChunk.addEntry(entry);
 
         this.controller.activateEntry(entry, true, !isSignChange, true, true);
 
@@ -518,27 +484,25 @@ public class SignControllerWorld {
      * @return Information about the number of signs added/removed thanks to refreshing
      */
     public RefreshResult refreshInChunk(Chunk chunk) {
-        long chunkKey = MathUtil.longHashToLong(chunk.getX(), chunk.getZ());
+        long chunkKey = SignControllerChunk.getKeyOf(chunk);
 
         // Verify existence of signs we already had. Remove if missing.
         int numRemoved = 0;
         {
-            List<SignController.Entry> atChunk = this.signsByChunk.get(chunkKey);
-            if (atChunk != null && !atChunk.isEmpty()) {
-                for (Iterator<SignController.Entry> iter = atChunk.iterator(); iter.hasNext();) {
-                    SignController.Entry entry = iter.next();
-                    if (!entry.verify()) {
-                        // Remove loaded sign information
-                        iter.remove();
+            SignControllerChunk signChunk = this.signChunks.get(chunkKey);
 
-                        if (entry.hasSignActionEvents()) {
-                            entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
-                        }
-
-                        // Remove from the offline signs cache as well
-                        controller.getPlugin().getOfflineSigns().removeAll(entry.sign.getBlock());
-                        numRemoved++;
+            if (signChunk != null && signChunk.hasSigns()) {
+                for (SignController.Entry entry : signChunk.getEntries()) {
+                    if (entry.verify()) {
+                        continue;
                     }
+
+                    // Remove loaded sign information
+                    signChunk.removeEntry(entry);
+
+                    // Remove from the offline signs cache as well
+                    controller.getPlugin().getOfflineSigns().removeAll(entry.sign.getBlock());
+                    numRemoved++;
                 }
             }
         }
@@ -548,7 +512,7 @@ public class SignControllerWorld {
         for (BlockState blockState : this.getBlockStatesSafe(chunk)) {
             if (blockState instanceof Sign) {
                 Block signBlock = blockState.getBlock();
-                SignController.Entry existing = this.findForSign(signBlock);
+                SignController.Entry existing = this.findForSign(signBlock, false);
                 if (existing != null) {
                     controller.activateEntry(existing);
                     continue;
@@ -566,10 +530,12 @@ public class SignControllerWorld {
      * Removes all data cached/stored in this World
      */
     void clear() {
-        for (List<SignController.Entry> atChunk : this.signsByChunk.values()) {
-            atChunk.forEach(SignController.Entry::remove);
+        for (SignControllerChunk chunk : this.signChunks.values()) {
+            for (SignController.Entry e : chunk.getEntries()) {
+                e.remove();
+            }
         }
-        this.signsByChunk.clear();
+        this.signChunks.clear();
         this.signsByNeighbouringBlock.clear();
     }
 
@@ -602,13 +568,15 @@ public class SignControllerWorld {
             Predicate<SignController.Entry> verify,
             Consumer<SignController.Entry> handler
     ) {
-        List<SignController.Entry> entries = this.signsByChunk.get(chunk.getX(), chunk.getZ());
-        if (entries == null || entries.isEmpty()) {
+        SignControllerChunk signChunk = this.signChunks.get(chunk.getX(), chunk.getZ());
+        if (signChunk == null || !signChunk.hasSigns()) {
             return;
         }
 
         int retryLimit = 100;
         while (true) {
+            Entry[] entries = signChunk.getEntries();
+
             // Check that any of the entries need activating/de-activating at all
             {
                 boolean hasEntriesToHandle = false;
@@ -638,66 +606,77 @@ public class SignControllerWorld {
             // We might find some signs become invalid - remove from original list.
             // Risks concurrent modification if SignAction loadedChanged modifies this,
             // so iterate a copy.
-            for (SignController.Entry entry : new ArrayList<>(entries)) {
+            for (SignController.Entry entry : entries) {
                 if (entry.front.activated != activating || entry.back.activated != activating) {
                     if (verify.test(entry)) {
                         // Callbacks
                         handler.accept(entry);
                     } else {
                         // Sign is gone. Remove it.
-                        entries.remove(entry);
-
-                        if (entry.hasSignActionEvents()) {
-                            entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
-                        }
+                        // Won't modify the immutable entries array.
+                        signChunk.removeEntry(entry);
                     }
                 }
             }
         }
     }
 
+    private SignControllerChunk getSignChunk(int cx, int cz) {
+        long key = MathUtil.longHashToLong(cx, cz);
+        SignControllerChunk signChunk;
+        if ((signChunk = this.signChunks.get(key)) == null) {
+            // Note: On Paper, getChunkAt() will already fire ChunkLoad, and thus loadChunk
+            //       Because of this, the extra loadChunk will do nothing (already loaded, ignore)
+            //       On Spigot however, this does not happen, and the extra loadChunk() is required.
+            signChunk = this.loadChunk(world.getChunkAt(cx, cz));
+        }
+
+        return signChunk;
+    }
+
     /**
      * Adds data about signs stored in a particular chunk
      *
      * @param chunk
+     * @return SignControllerChunk with loaded sign details
      */
-    List<SignController.Entry> loadChunk(Chunk chunk) {
+    SignControllerChunk loadChunk(Chunk chunk) {
+        long chunkKey = SignControllerChunk.getKeyOf(chunk);
+
         // If this sign cache hasn't been initialized with all loaded chunks yet, don't do anything here
         if (this.needsInitialization) {
-            return Collections.emptyList();
+            return new SignControllerChunk(chunkKey);
         }
-
-        long chunkKey = MathUtil.longHashToLong(chunk.getX(), chunk.getZ());
 
         // The loadChunk() always fires twice: once when requested from a lookup function of this
         // controller, again because of the ChunkLoadEvent. The behavior and timing of these
         // things differ between Paper and Spigot. The below check ensures initialization
         // of the chunk-sign metadata only occurs once.
         {
-            List<SignController.Entry> existingEntriesAtChunk = this.signsByChunk.get(chunkKey);
-            if (existingEntriesAtChunk != null) {
-                return existingEntriesAtChunk;
+            SignControllerChunk existingSignChunk = this.signChunks.get(chunkKey);
+            if (existingSignChunk != null) {
+                return existingSignChunk;
             }
         }
 
-        List<SignController.Entry> entriesAtChunk = Collections.emptyList();
+        SignControllerChunk newSignChunk = new SignControllerChunk(chunkKey);
+        List<SignController.Entry> newEntriesAtChunk = Collections.emptyList();
         for (BlockState blockState : getBlockStatesSafe(chunk)) {
             if (blockState instanceof Sign) {
                 SignController.Entry entry = this.controller.createEntry((Sign) blockState,
                         this,
-                        LongBlockCoordinates.map(blockState.getX(), blockState.getY(), blockState.getZ()),
-                        chunkKey);
-                if (entriesAtChunk.isEmpty()) {
-                    entriesAtChunk = new ArrayList<>();
+                        newSignChunk,
+                        LongBlockCoordinates.map(blockState.getX(), blockState.getY(), blockState.getZ()));
+                if (newEntriesAtChunk.isEmpty()) {
+                    newEntriesAtChunk = new ArrayList<>();
                 }
-                entriesAtChunk.add(entry);
-
-                if (entry.hasSignActionEvents()) {
-                    entry.blocks.forAllBlocks(entry, this::addChunkByBlockEntry);
-                }
+                newEntriesAtChunk.add(entry);
             }
         }
-        this.signsByChunk.put(chunkKey, entriesAtChunk);
+
+        newSignChunk.initialize(newEntriesAtChunk);
+
+        this.signChunks.put(chunkKey, newSignChunk);
 
         // Once all this chunk's neighbours are loaded as well, initialize the initial power state of the sign
         this.chunkFutureProvider.trackNeighboursLoaded(chunk, ChunkNeighbourList.neighboursOf(chunk, 1), new ChunkStateListener() {
@@ -724,7 +703,7 @@ public class SignControllerWorld {
             }
         });
 
-        return entriesAtChunk;
+        return newSignChunk;
     }
 
     private Collection<BlockState> getBlockStatesSafe(Chunk chunk) {
@@ -752,38 +731,31 @@ public class SignControllerWorld {
             return;
         }
 
-        List<SignController.Entry> atChunk = this.signsByChunk.remove(chunk.getX(), chunk.getZ());
-        if (atChunk != null && !atChunk.isEmpty()) {
+        SignControllerChunk signChunk = this.signChunks.remove(chunk.getX(), chunk.getZ());
+        if (signChunk != null && signChunk.hasSigns()) {
             // Remove all entries from the by-neighbour-block mapping
-            for (SignController.Entry entry : atChunk) {
+            for (SignController.Entry entry : signChunk.getEntries()) {
                 // De-activate first, if it was activated still
                 if (!entry.sign.isRemoved()) {
                     entry.deactivate();
                 }
 
-                entry.blocks.forAllBlocks(entry, (e, key) -> removeChunkByBlockEntry(e, key, true));
+                entry.unregisterInNeighbouringBlocks(true);
             }
         }
     }
 
     void removeInvalidEntry(SignController.Entry entry) {
         // Remove entry from by-chunk mapping
-        List<SignController.Entry> atChunk = this.signsByChunk.get(entry.chunkKey);
-        if (atChunk != null && atChunk.remove(entry) && atChunk.isEmpty()) {
-            this.signsByChunk.remove(entry.chunkKey);
-        }
-
-        // Remove entry from by-block mapping
-        if (entry.hasSignActionEvents()) {
-            entry.blocks.forAllBlocks(entry, this::removeChunkByBlockEntry);
-        }
+        entry.chunk.removeEntry(entry);
+        entry.unregisterInNeighbouringBlocks();
     }
 
     protected void removeChunkByBlockEntry(SignController.Entry entry, long key) {
         removeChunkByBlockEntry(entry, key, false);
     }
 
-    private void removeChunkByBlockEntry(SignController.Entry entry, long key, boolean purgeAllInSameChunk) {
+    protected void removeChunkByBlockEntry(SignController.Entry entry, long key, boolean purgeAllInSameChunk) {
         SignController.EntryList oldEntryList = this.signsByNeighbouringBlock.remove(key);
         if (oldEntryList == null || (purgeAllInSameChunk && LongBlockCoordinates.getChunkEdgeDistance(key) >= 2)) {
             return;
@@ -791,16 +763,8 @@ public class SignControllerWorld {
 
         // Slow method - we have to remove entries at chunk boundaries carefully, so we don't touch
         // entries that refer to signs in neighbouring (still loaded!) chunks.
-        SignController.Entry[] oldEntries = oldEntryList.unsortedValues();
-        SignController.EntryList newEntryList = SignController.EntryList.NONE;
-        int numNewEntries = 0;
-        int len = oldEntries.length;
-        while (--len >= 0) {
-            SignController.Entry e = oldEntries[len];
-            if (e != entry && (!purgeAllInSameChunk || e.chunkKey != entry.chunkKey)) {
-                newEntryList = newEntryList.add(e);
-            }
-        }
+        SignController.EntryList newEntryList = oldEntryList.filter(
+                e -> e != entry && (!purgeAllInSameChunk || e.chunk != entry.chunk));
 
         // Put if there are entries to keep
         if (newEntryList.count() > 0) {
@@ -820,7 +784,7 @@ public class SignControllerWorld {
         }
 
         @Override
-        public SignController.Entry[] findNearby(Block block) {
+        public SignController.Entry[] findNearby(Block block, boolean mustHaveSignActions) {
             return SignController.EntryList.NONE.values();
         }
 
@@ -835,8 +799,8 @@ public class SignControllerWorld {
         }
 
         @Override
-        List<SignController.Entry> loadChunk(Chunk chunk) {
-            return Collections.emptyList();
+        SignControllerChunk loadChunk(Chunk chunk) {
+            return new SignControllerChunk(SignControllerChunk.getKeyOf(chunk));
         }
 
         @Override

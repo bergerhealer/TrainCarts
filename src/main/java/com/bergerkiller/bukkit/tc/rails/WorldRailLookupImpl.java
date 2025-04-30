@@ -155,7 +155,7 @@ final class WorldRailLookupImpl implements WorldRailLookup {
     /**
      * Completely clears the cache. Be very aware that this will cause some information to go
      * out of sync, if information is still stored, such as the Minecart Members that are on
-     * particular rails. If that's a problem, use {@link #forceRecalculation()} instead.<Br>
+     * particular rails. If that's a problem, use {@link #refreshAllBuckets()} instead.<Br>
      * <br>
      * Should be called when this by-world lookup is deleted and shouldn't be used, anymore.
      */
@@ -400,7 +400,7 @@ final class WorldRailLookupImpl implements WorldRailLookup {
                 if (blockData.isType(SIGN_POST_TYPE)) {
                     hasSigns = true;
                 } else {
-                    hasSigns = this.signController.hasSignsAroundColumn(block, dir.getOppositeFace());
+                    hasSigns = this.signController.hasSignsAroundColumn(block, dir.getOppositeFace(), false);
                 }
             }
         }

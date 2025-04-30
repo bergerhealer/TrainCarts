@@ -568,7 +568,7 @@ public abstract class RailType {
             return;
         }
 
-        signController.forEachSignInColumn(columnStart, direction, tracker -> {
+        signController.forEachSignInColumn(columnStart, direction, true, tracker -> {
             result.add(TrackedSign.forRealSign(tracker, true, railPiece));
             if (CommonCapabilities.HAS_SIGN_BACK_TEXT) {
                 result.add(TrackedSign.forRealSign(tracker, false, railPiece));

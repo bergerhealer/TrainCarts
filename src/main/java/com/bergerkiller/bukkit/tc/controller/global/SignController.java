@@ -4,7 +4,9 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -14,7 +16,6 @@ import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.events.SignBuildEvent;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
-import com.bergerkiller.bukkit.tc.rails.WorldRailLookup;
 import com.bergerkiller.bukkit.tc.utils.RecursionGuard;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -208,11 +209,13 @@ public class SignController implements LibraryComponent, Listener {
      * Calls a function on all signs at or neighbouring a specified block.
      * Before it calls the handler, verifies the sign still truly exists.
      *
-     * @param block
-     * @param handler
+     * @param block Near Block
+     * @param mustHaveSignActions Whether the signs to look for must have sign actions, such as
+     *                            redstone change handlers or train activation.
+     * @param handler Callback for each entry
      */
-    public void forEachNearbyVerify(Block block, Consumer<SignController.Entry> handler) {
-        forWorld(block.getWorld()).forEachNearbyVerify(block, handler);
+    public void forEachNearbyVerify(Block block, boolean mustHaveSignActions, Consumer<SignController.Entry> handler) {
+        forWorld(block.getWorld()).forEachNearbyVerify(block, mustHaveSignActions, handler);
     }
 
     /**
@@ -224,7 +227,7 @@ public class SignController implements LibraryComponent, Listener {
         final Block att = BlockUtil.getAttachedBlock(lever);
 
         // Check whether there are any signs attached to the same block the lever is
-        forEachNearbyVerify(att, entry -> {
+        forEachNearbyVerify(att, true, entry -> {
             // If attached to the same block as the lever, ignore
             if (entry.sign.isAttachedTo(att)) {
                 entry.ignoreRedstone();
@@ -252,7 +255,7 @@ public class SignController implements LibraryComponent, Listener {
      */
     public void notifySignChanged(SignChangeTracker tracker) {
         SignControllerWorld worldController = forWorld(tracker.getWorld());
-        Entry entry = worldController.findForSign(tracker.getBlock());
+        Entry entry = worldController.findForSign(tracker.getBlock(), false);
         if (entry != null) {
             if (entry.sign != tracker) {
                 entry.sign.update();
@@ -384,7 +387,7 @@ public class SignController implements LibraryComponent, Listener {
     public void onBlockBreak(BlockBreakEvent event) {
         Block block = event.getBlock();
         SignControllerWorld controller = forWorld(block.getWorld());
-        Entry e = controller.findForSign(block);
+        Entry e = controller.findForSign(block, false);
         if (e != null) {
             // Make sure before true handling is done, we update the sign itself
             // That way we know what the text was after the sign is destroyed
@@ -414,13 +417,13 @@ public class SignController implements LibraryComponent, Listener {
 
         if (this.blockPhysicsFireForSigns) {
             // Check block is a sign
-            Entry e = controller.findForSign(block);
+            Entry e = controller.findForSign(block, true);
             if (e != null) {
                 e.updateRedstoneLater();
             }
         } else {
             // Check signs are nearby
-            for (Entry e : controller.findNearby(block)) {
+            for (Entry e : controller.findNearby(block, true)) {
                 e.updateRedstoneLater();
             }
         }
@@ -435,7 +438,7 @@ public class SignController implements LibraryComponent, Listener {
         // Refresh nearby signs
         {
             Block block = event.getBlock();
-            for (Entry e : forWorld(block.getWorld()).findNearby(block)) {
+            for (Entry e : forWorld(block.getWorld()).findNearby(block, true)) {
                 e.updateRedstoneLater();
             }
         }
@@ -445,7 +448,7 @@ public class SignController implements LibraryComponent, Listener {
         if (event_block_data.isType(Material.LEVER)) {
             final Block leverBlock = event.getBlock();
             final boolean isPowered = event.getNewCurrent() > 0;
-            this.forEachNearbyVerify(leverBlock, entry -> {
+            this.forEachNearbyVerify(leverBlock, true, entry -> {
                 Block signBlock = entry.getBlock();
                 if (leverBlock.getX() == signBlock.getX() &&
                     leverBlock.getZ() == signBlock.getZ() &&
@@ -470,8 +473,8 @@ public class SignController implements LibraryComponent, Listener {
         }
     }
 
-    Entry createEntry(Sign sign, SignControllerWorld world, long blockKey, long chunkKey) {
-        return new Entry(sign, world, blockKey, chunkKey, this);
+    Entry createEntry(Sign sign, SignControllerWorld world, SignControllerChunk chunk, long blockKey) {
+        return new Entry(sign, world, chunk, blockKey, this);
     }
 
     void activateEntry(Entry entry) {
@@ -655,9 +658,72 @@ public class SignController implements LibraryComponent, Listener {
             }
         }
 
-        public static EntryList of(Entry entry) {
+        public boolean contains(Entry entry) {
+            for (Entry value : this.values) {
+                if (value == entry) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public EntryList filter(Predicate<Entry> filter) {
+            Entry[] values = this.values;
+            int len = values.length;
+
+            // Count how many entries pass the filter
+            int numPassingFilter = 0;
+            for (int i = 0; i < len; i++) {
+                if (filter.test(values[i])) {
+                    numPassingFilter++;
+                }
+            }
+
+            // Optimizations
+            if (numPassingFilter == len) {
+                return this;
+            } else if (numPassingFilter == 0) {
+                return NONE;
+            }
+
+            // Create a new array of entries with just the ones that pass the filter
+            Entry[] filteredValues = new Entry[numPassingFilter];
+            int currentIndex = 0;
+            for (int i = 0; i < len; i++) {
+                Entry e = values[i];
+                if (filter.test(e)) {
+                    filteredValues[currentIndex++] = e;
+                }
+            }
+            return new EntryList(filteredValues, this.sorted);
+        }
+
+        public static EntryList of(List<Entry> entries) {
+            int count = entries.size();
+            if (count == 0) {
+                return NONE;
+            } else if (count == 1) {
+                return entries.get(0).singletonList;
+            } else {
+                return new EntryList(entries.toArray(new Entry[0]), false);
+            }
+        }
+
+        public static EntryList createSingleton(Entry entry) {
             return new EntryList(new Entry[] { entry }, true);
         }
+    }
+
+    /**
+     * A single Minecraft chunk, with information about the signs that exist inside.
+     * Keeps track of whether these signs have been registered in the by-neighbouring-block
+     * mapping.
+     */
+    public static final class ChunkEntryList {
+        public EntryList entries = EntryList.NONE;
+        public boolean isNeighbouringBlocksLoaded = false;
+
+
     }
 
     /**
@@ -667,25 +733,27 @@ public class SignController implements LibraryComponent, Listener {
         public final SignChangeTracker sign;
         private SignChangeTracker signLastState; // Can be null if removed!
         public final SignControllerWorld world;
+        public final SignControllerChunk chunk;
         final SignSide front, back;
         private final FastTrackedUpdateSet.Tracker<Entry> redstoneUpdateTracker;
         private final FastTrackedUpdateSet.Tracker<Entry> ignoreRedstoneUpdateTracker;
         final long blockKey;
         SignBlocksAround blocks;
-        final long chunkKey;
+        private boolean registeredInNeighbouringBlocks;
         final EntryList singletonList;
 
-        private Entry(Sign sign, SignControllerWorld world, long blockKey, long chunkKey, SignController controller) {
+        private Entry(Sign sign, SignControllerWorld world, SignControllerChunk chunk, long blockKey, SignController controller) {
             this.sign = SignChangeTracker.track(sign);
             this.world = world;
+            this.chunk = chunk;
             this.front = new SignSide(true, SignChangeTracker::getFrontLine);
             this.back = new SignSide(false, SignChangeTracker::getBackLine);
             this.redstoneUpdateTracker = controller.pendingRedstoneUpdates.track(this);
             this.ignoreRedstoneUpdateTracker = controller.ignoreRedstoneUpdates.track(this);
             this.blockKey = blockKey;
-            this.chunkKey = chunkKey;
             this.blocks = SignBlocksAround.of(this.sign.getAttachedFace());
-            this.singletonList = EntryList.of(this);
+            this.registeredInNeighbouringBlocks = false;
+            this.singletonList = EntryList.createSingleton(this);
             this.updateLastSignState();
         }
 
@@ -704,7 +772,7 @@ public class SignController implements LibraryComponent, Listener {
          */
         void updateSignFacing() {
             if (sign.getAttachedFace() != blocks.getAttachedFace()) {
-                if (hasSignActionEvents()) {
+                if (registeredInNeighbouringBlocks) {
                     blocks.forAllBlocks(this, world::removeChunkByBlockEntry);
                     blocks = SignBlocksAround.of(sign.getAttachedFace());
                     blocks.forAllBlocks(this, world::addChunkByBlockEntry);
@@ -724,6 +792,14 @@ public class SignController implements LibraryComponent, Listener {
 
         public SignActionHeader getBackHeader() {
             return this.back.getHeader();
+        }
+
+        public TrackedSign createFrontTrackedSign(RailPiece rail) {
+            return this.front.createTrackedSign(rail);
+        }
+
+        public TrackedSign createBackTrackedSign(RailPiece rail) {
+            return this.back.createTrackedSign(rail);
         }
 
         /**
@@ -800,28 +876,16 @@ public class SignController implements LibraryComponent, Listener {
 
             // Detect when text is edited on a sign from having an action or not, or other way around
             {
-                boolean wasRespondingToEvents = hasSignActionEvents();
+                boolean hadSignActions = hasSignActionEvents();
                 if (frontChanged) {
                     front.updateHasSignAction();
                 }
                 if (backChanged) {
                     back.updateHasSignAction();
                 }
-                boolean nowRespondingToEvents = hasSignActionEvents();
-
-                if (wasRespondingToEvents && !nowRespondingToEvents) {
-                    this.blocks.forAllBlocks(this, world::removeChunkByBlockEntry);
-                } else if (!wasRespondingToEvents && nowRespondingToEvents) {
-                    this.blocks.forAllBlocks(this, world::addChunkByBlockEntry);
-
-                    // Invalidate signs in the RailTracker by-rail lookup cache right away
-                    // It relies on this by-block lookup so it's likely invalid now
-                    {
-                        WorldRailLookup railLookup = RailLookup.forWorldIfInitialized(world.getWorld());
-                        if (railLookup != null) {
-                            railLookup.discoverRailPieceFromSign(this.sign.getBlock()).forceCacheVerification();
-                        }
-                    }
+                boolean nowHasSignActions = hasSignActionEvents();
+                if (hadSignActions != nowHasSignActions) {
+                    chunk.updateEntryHasSignActions(this, nowHasSignActions);
                 }
             }
 
@@ -893,6 +957,43 @@ public class SignController implements LibraryComponent, Listener {
          */
         public boolean hasSignActionEvents() {
             return !TCConfig.onlyRegisteredSignsHandleRedstone || front.hasSignAction() || back.hasSignAction();
+        }
+
+        /**
+         * Registers this entry in the WorldController by-neighbouring-block mapping.
+         * 
+         * @see SignControllerWorld#addChunkByBlockEntry(Entry, long) 
+         */
+        void registerInNeighbouringBlocks() {
+            if (!registeredInNeighbouringBlocks) {
+                registeredInNeighbouringBlocks = true;
+                blocks.forAllBlocks(this, world::addChunkByBlockEntry);
+            }
+        }
+
+        /**
+         * Un-registers this entry in the WorldController by-neighbouring-block mapping.
+         *
+         * @see SignControllerWorld#removeChunkByBlockEntry(Entry, long)
+         */
+        void unregisterInNeighbouringBlocks() {
+            unregisterInNeighbouringBlocks(false);
+        }
+
+        /**
+         * Un-registers this entry in the WorldController by-neighbouring-block mapping.
+         *
+         * @see SignControllerWorld#removeChunkByBlockEntry(Entry, long) 
+         */
+        void unregisterInNeighbouringBlocks(boolean purgeAllInSameChunk) {
+            if (registeredInNeighbouringBlocks) {
+                registeredInNeighbouringBlocks = false;
+                if (purgeAllInSameChunk) {
+                    blocks.forAllBlocks(this, (e, key) -> world.removeChunkByBlockEntry(e, key, true));
+                } else {
+                    blocks.forAllBlocks(this, world::removeChunkByBlockEntry);
+                }
+            }
         }
 
         /**
@@ -1084,10 +1185,18 @@ public class SignController implements LibraryComponent, Listener {
                 SignAction.executeAll(info, SignActionType.REDSTONE_CHANGE);
             }
 
-            private SignActionEvent createSignActionEvent(SignActionHeader header, RailPiece rail) {
+            public TrackedSign createTrackedSign(RailPiece rail) {
+                return createTrackedSign(this.getHeader(), rail);
+            }
+
+            private TrackedSign createTrackedSign(SignActionHeader header, RailPiece rail) {
                 TrackedSign trackedSign = TrackedSign.forRealSign(sign, front, rail);
                 trackedSign.setCachedHeader(header);
-                return new SignActionEvent(trackedSign);
+                return trackedSign;
+            }
+
+            private SignActionEvent createSignActionEvent(SignActionHeader header, RailPiece rail) {
+                return new SignActionEvent(createTrackedSign(header, rail));
             }
         }
 
