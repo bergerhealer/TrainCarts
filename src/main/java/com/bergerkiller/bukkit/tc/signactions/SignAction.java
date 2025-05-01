@@ -52,7 +52,7 @@ public abstract class SignAction {
     private static SignActionLookupMap lookup = SignActionLookupMap.DISABLED;
 
     public static void init() {
-        lookup = new SignActionLookupMap();
+        lookup = SignActionLookupMap.create();
         register(new SignActionStation());
         register(new SignActionLauncher());
         register(new SignActionSwitcher());
@@ -98,7 +98,7 @@ public abstract class SignAction {
      * The static methods in this class call into this same lookup map.
      * Offers additional methods for internal use primarily.
      *
-     * @return SignActionLookupMap
+     * @return SignActionLookupMapImpl
      */
     public static SignActionLookupMap getLookup() {
         return lookup;

@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.signactions.util.SignActionLookupMap;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -11,7 +12,7 @@ import java.util.List;
  * identifier put on the second line. Only this syntax is supported.
  * Some optimizations are employed to do this matching more efficiently.
  *
- * @see com.bergerkiller.bukkit.tc.signactions.util.SignActionLookupMap SignActionLookupMap
+ * @see SignActionLookupMap#create()
  */
 public abstract class TrainCartsSignAction extends SignAction {
     private final String[] typeIdentifiers;

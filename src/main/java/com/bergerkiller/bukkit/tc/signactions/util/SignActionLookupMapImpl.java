@@ -21,23 +21,7 @@ import java.util.function.Predicate;
  * structure for registered {@link TrainCartsSignAction} instances to avoid iterating
  * and checking String startsWith for every sign in a loop.
  */
-public class SignActionLookupMap {
-    /**
-     * Is used when TrainCarts is in a disabled state, and no new actions can be
-     * registered, and no actions exist anymore.
-     */
-    public static final SignActionLookupMap DISABLED = new SignActionLookupMap() {
-        @Override
-        public Optional<Entry> lookup(SignActionEvent event, LookupMode lookupMode) {
-            return Optional.empty();
-        }
-
-        @Override
-        public <T extends SignAction> T register(T action, boolean priority) {
-            return action; // No-Op
-        }
-    };
-
+class SignActionLookupMapImpl implements SignActionLookupMap {
     // All registered sign actions. Also controls order in which actions are matched.
     private final PriorityEntryList allEntries = new PriorityEntryList();
     // TrainCarts signs
@@ -46,10 +30,7 @@ public class SignActionLookupMap {
     // This includes third-party plugin sign actions that don't yet use TrainCartsSignAction
     private final PriorityEntryList nonTrainCartsEntries = new PriorityEntryList();;
 
-    public Optional<Entry> lookup(SignActionEvent event) {
-        return lookup(event, LookupMode.ALL);
-    }
-
+    @Override
     public Optional<Entry> lookup(SignActionEvent event, LookupMode lookupMode) {
         // If sign is not a traincarts sign, only try to match a non-traincarts sign
         if (!event.getHeader().isValid()) {
@@ -152,6 +133,7 @@ public class SignActionLookupMap {
         return Optional.empty();
     }
 
+    @Override
     public <T extends SignAction> T register(T action, boolean priority) {
         if (action == null) {
             throw new IllegalArgumentException("SignAction is null");
@@ -192,6 +174,7 @@ public class SignActionLookupMap {
         return action;
     }
 
+    @Override
     public void unregister(SignAction action) {
         EntryImpl e = allEntries.remove(action);
         if (e == null) {
@@ -358,43 +341,5 @@ public class SignActionLookupMap {
         public int compareTo(EntryImpl entry) {
             return Integer.compare(orderIndex, entry.orderIndex);
         }
-    }
-
-    /**
-     * A registered entry inside this lookup map. Has extra metadata information
-     * about the registered entry.
-     */
-    public interface Entry {
-        /**
-         * Gets the registered SignAction implementation
-         *
-         * @return SignAction
-         */
-        SignAction action();
-
-        /**
-         * Gets whether the {@link #action()} has the {@link SignAction#loadedChanged(SignActionEvent, boolean)}
-         * callback overridden.
-         *
-         * @return True if loadedChanged is handled by the action
-         */
-        boolean hasLoadedChangedHandler();
-    }
-
-    public enum LookupMode implements Predicate<EntryImpl> {
-        /** Allow all sign actions registered to match */
-        ALL {
-            @Override
-            public boolean test(EntryImpl e) {
-                return true;
-            }
-        },
-        /** Only try matching sign actions that have a loaded changed handler */
-        WITH_LOADED_CHANGED_HANDLER {
-            @Override
-            public boolean test(EntryImpl e) {
-                return e.hasLoadedChangedHandler;
-            }
-        };
     }
 }
