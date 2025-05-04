@@ -48,7 +48,7 @@ public final class ListedItemModel extends ListedEntry {
     private void initializeItem() {
         item.hideAllAttributes();
 
-        String origItemName = this.item.getCustomNameMessage();
+        String origItemName = this.item.getDisplayNameMessage();
         item.setCustomNameMessage(ChatColor.AQUA + name);
         item.addLoreMessage(ChatColor.WHITE.toString() + ChatColor.ITALIC + fullPath);
 
