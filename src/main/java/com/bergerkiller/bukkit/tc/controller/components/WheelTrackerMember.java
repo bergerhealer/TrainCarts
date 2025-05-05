@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.controller.components;
 import java.util.Collections;
 import java.util.List;
 
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.bases.mutable.LocationAbstract;
@@ -27,6 +28,7 @@ public class WheelTrackerMember {
     private final Wheel _front;
     private final Wheel _back;
     private Quaternion _orientation_last = null;
+    private Vector _asyncPosition = null;
     private Vector _position = null;
     private double _centripetalForce = 0.0;
     private double _bankingRoll = 0.0;
@@ -112,6 +114,15 @@ public class WheelTrackerMember {
      */
     public Vector getPosition() {
         if (this._position == null) {
+            // This really won't work async, return a snapshot from last time instead in those cases
+            if (!CommonUtil.isMainThread()) {
+                Vector p = this._asyncPosition;
+                if (p == null) {
+                    p = this._owner.getEntity().loc.vector();
+                }
+                return p;
+            }
+
             // Take average of the two wheel positions for where the Minecart should be
             double diff = (back().getDistance() - front().getDistance());
 
@@ -131,6 +142,7 @@ public class WheelTrackerMember {
             }
             this._position.multiply(0.5);
             this._position.add(this._owner.getEntity().loc.vector());
+            this._asyncPosition = this._position;
         }
         return this._position;
     }

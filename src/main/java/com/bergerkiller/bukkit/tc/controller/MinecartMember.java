@@ -462,11 +462,12 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             this.cachedOrientation_pitch = entity.loc.getPitch();
             this.cachedOrientation_quat = null;
         }
-        if (this.cachedOrientation_quat == null) {
-            this.cachedOrientation_quat = Quaternion.fromYawPitchRoll(this.cachedOrientation_pitch,
+        Quaternion orientation = this.cachedOrientation_quat;
+        if (orientation == null) {
+            this.cachedOrientation_quat = orientation = Quaternion.fromYawPitchRoll(this.cachedOrientation_pitch,
                     this.cachedOrientation_yaw + 90.0f, 0.0f);
         }
-        return this.cachedOrientation_quat.clone();
+        return orientation.clone();
     }
 
     /**
