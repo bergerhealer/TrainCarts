@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.controller.EntityPositionApplier;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -106,6 +107,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     public static final double GRAVITY_MULTIPLIER_RAILED = 0.015625;
     public static final double GRAVITY_MULTIPLIER = 0.04;
     public static final int MAXIMUM_DAMAGE_SUSTAINED = 40;
+    private static final boolean HAS_SCOREBOARD_TAGS = Common.evaluateMCVersion(">=", "1.10.2");
     private final TrainCarts traincarts;
     protected final ToggledState forcedBlockUpdate = new ToggledState(true);
     private final SignTrackerMember signTracker;
@@ -323,17 +325,25 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     @SuppressWarnings("deprecation")
     public void onTrainSaved(ConfigurationNode data) {
         if (entity != null) {
-            int offset = entity.getBlockOffset();
-            BlockData block = entity.getBlock();
-            boolean hasOffset = (offset != Util.getDefaultDisplayedBlockOffset());
-            boolean hasBlock = (block != null && block != BlockData.AIR);
-            if (hasOffset || hasBlock) {
-                // Save displayed block information
-                ConfigurationNode displayedBlock = data.getNode("displayedBlock");
-                displayedBlock.set("offset", hasOffset ? offset : null);
-                displayedBlock.set("type", hasBlock ? block.getCombinedId() : null);
-            } else {
-                data.remove("displayedBlock");
+            // Displayed block and block offset
+            {
+                int offset = entity.getBlockOffset();
+                BlockData block = entity.getBlock();
+                boolean hasOffset = (offset != Util.getDefaultDisplayedBlockOffset());
+                boolean hasBlock = (block != null && block != BlockData.AIR);
+                if (hasOffset || hasBlock) {
+                    // Save displayed block information
+                    ConfigurationNode displayedBlock = data.getNode("displayedBlock");
+                    displayedBlock.set("offset", hasOffset ? offset : null);
+                    displayedBlock.set("type", hasBlock ? block.getCombinedId() : null);
+                } else {
+                    data.remove("displayedBlock");
+                }
+            }
+
+            // Scoreboard tags
+            if (HAS_SCOREBOARD_TAGS) {
+                saveScoreboardTags(entity.getEntity(), data);
             }
         }
     }
@@ -346,15 +356,49 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      */
     @SuppressWarnings("deprecation")
     public void onTrainSpawned(ConfigurationNode data) {
-        if (entity != null && data.isNode("displayedBlock")) {
-            ConfigurationNode displayedBlock = data.getNode("displayedBlock");
-            if (displayedBlock.contains("offset")) {
-                entity.setBlockOffset(displayedBlock.get("offset", Util.getDefaultDisplayedBlockOffset()));
+        if (entity != null) {
+            // Displayed block and block offset
+            if (data.isNode("displayedBlock")) {
+                ConfigurationNode displayedBlock = data.getNode("displayedBlock");
+                if (displayedBlock.contains("offset")) {
+                    entity.setBlockOffset(displayedBlock.get("offset", Util.getDefaultDisplayedBlockOffset()));
+                }
+                if (displayedBlock.contains("type")) {
+                    BlockData type = BlockData.fromCombinedId(displayedBlock.get("type", 0));
+                    if (type != null && type != BlockData.AIR) {
+                        entity.setBlock(type);
+                    }
+                }
             }
-            if (displayedBlock.contains("type")) {
-                BlockData type = BlockData.fromCombinedId(displayedBlock.get("type", 0));
-                if (type != null && type != BlockData.AIR) {
-                    entity.setBlock(type);
+
+            // Scoreboard tags
+            if (HAS_SCOREBOARD_TAGS) {
+                loadScoreboardTags(entity.getEntity(), data);
+            }
+        }
+    }
+
+    private void saveScoreboardTags(Entity entity, ConfigurationNode data) {
+        Set<String> tags = entity.getScoreboardTags();
+        if (!tags.isEmpty()) {
+            data.set("entityTags", new ArrayList<>(tags));
+        } else {
+            data.remove("entityTags");
+        }
+    }
+
+    private void loadScoreboardTags(Entity entity, ConfigurationNode data) {
+        if (data.contains("entityTags")) {
+            Set<String> existingTags = entity.getScoreboardTags();
+            List<String> tags = data.getList("entityTags", String.class);
+            for (String existingTag : existingTags) {
+                if (!tags.contains(existingTag)) {
+                    entity.removeScoreboardTag(existingTag);
+                }
+            }
+            for (String tag : tags) {
+                if (!existingTags.contains(tag)) {
+                    entity.addScoreboardTag(tag);
                 }
             }
         }
