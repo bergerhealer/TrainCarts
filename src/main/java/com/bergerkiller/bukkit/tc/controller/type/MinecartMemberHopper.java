@@ -1,18 +1,18 @@
 package com.bergerkiller.bukkit.tc.controller.type;
 
+import com.bergerkiller.bukkit.tc.controller.persistence.MinecartInventoryPersistentCartAttribute;
 import org.bukkit.block.Block;
 import org.bukkit.inventory.ItemStack;
 
-import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartHopper;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
 public class MinecartMemberHopper extends MinecartMember<CommonMinecartHopper> {
 
     public MinecartMemberHopper(TrainCarts plugin) {
         super(plugin);
+        this.addPersistentCartAttribute(new MinecartInventoryPersistentCartAttribute());
     }
 
     @Override
@@ -65,17 +65,5 @@ public class MinecartMemberHopper extends MinecartMember<CommonMinecartHopper> {
         super.onItemSet(index, item);
         // Mark the Entity as changed
         onPropertiesChanged();
-    }
-
-    @Override
-    public void onTrainSaved(ConfigurationNode data) {
-        super.onTrainSaved(data);
-        Util.saveInventoryToConfig(entity.getInventory(), data);
-    }
-
-    @Override
-    public void onTrainSpawned(ConfigurationNode data) {
-        super.onTrainSpawned(data);
-        Util.loadInventoryFromConfig(entity.getInventory(), data);
     }
 }

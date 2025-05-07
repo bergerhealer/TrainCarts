@@ -2,11 +2,11 @@ package com.bergerkiller.bukkit.tc.controller.type;
 
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.MaterialTypeProperty;
-import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartFurnace;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.common.wrappers.InteractionResult;
+import com.bergerkiller.bukkit.tc.controller.persistence.FuelPersistentCartAttribute;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SlowdownMode;
@@ -35,6 +35,7 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
 
     public MinecartMemberFurnace(TrainCarts plugin) {
         super(plugin);
+        this.addPersistentCartAttribute(new FuelPersistentCartAttribute());
     }
 
     @Override
@@ -205,24 +206,5 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
         super.onItemSet(index, item);
         // Mark the Entity as changed
         onPropertiesChanged();
-    }
-
-    @Override
-    public void onTrainSaved(ConfigurationNode data) {
-        super.onTrainSaved(data);
-        if (this.getEntity().getFuelTicks() > 0) {
-            data.set("fuel", this.entity.getFuelTicks());
-        }
-    }
-
-    @Override
-    public void onTrainSpawned(ConfigurationNode data) {
-        super.onTrainSpawned(data);
-        if (data.contains("fuel")) {
-            this.entity.setFuelTicks(data.get("fuel", 0));
-        } else {
-            this.entity.setFuelTicks(0);
-        }
-        this.entity.setSmoking(this.entity.getFuelTicks() > 0);
     }
 }

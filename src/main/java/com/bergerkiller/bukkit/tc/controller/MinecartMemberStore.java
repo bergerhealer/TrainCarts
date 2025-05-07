@@ -325,8 +325,10 @@ public abstract class MinecartMemberStore {
         if (config != null) {
             controller.setUnloaded(true);
             controller.getProperties().load(config);
-            if (config.isNode("data")) {
-                controller.onTrainSpawned(config.getNode("data"));
+
+            ConfigurationNode dataNode = config.getNodeIfExists("data");
+            if (dataNode != null) {
+                controller.onTrainSpawned(dataNode);
             }
         }
 

@@ -1,16 +1,15 @@
 package com.bergerkiller.bukkit.tc.controller.type;
 
-import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecartChest;
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.controller.persistence.MinecartInventoryPersistentCartAttribute;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import org.bukkit.Effect;
 import org.bukkit.Material;
@@ -23,6 +22,7 @@ public class MinecartMemberChest extends MinecartMember<CommonMinecartChest> {
 
     public MinecartMemberChest(TrainCarts plugin) {
         super(plugin);
+        this.addPersistentCartAttribute(new MinecartInventoryPersistentCartAttribute());
     }
 
     @Override
@@ -112,17 +112,5 @@ public class MinecartMemberChest extends MinecartMember<CommonMinecartChest> {
         super.onItemSet(index, item);
         // Mark the Entity as changed
         onPropertiesChanged();
-    }
-
-    @Override
-    public void onTrainSaved(ConfigurationNode data) {
-        super.onTrainSaved(data);
-        Util.saveInventoryToConfig(entity.getInventory(), data);
-    }
-
-    @Override
-    public void onTrainSpawned(ConfigurationNode data) {
-        super.onTrainSpawned(data);
-        Util.loadInventoryFromConfig(entity.getInventory(), data);
     }
 }
