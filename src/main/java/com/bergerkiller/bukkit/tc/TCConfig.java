@@ -359,6 +359,8 @@ public class TCConfig {
 
         config.setHeader("allowUpsideDownRails", "\nWhether upside-down rail functionality is enabled on the server");
         config.addHeader("allowUpsideDownRails", "When disabled, minecarts can not be rotated upside-down");
+        config.addHeader("allowUpsideDownRails", "With this enabled, rails will not break when they have a solid block above them");
+        config.addHeader("allowUpsideDownRails", "This does mean that vanilla duper mechanics that rely on breaking powered rails might not work");
         allowUpsideDownRails = config.get("allowUpsideDownRails", true);
 
         config.setHeader("allowSchematicAttachment", "\nWhether to enable WorldEdit schematics to be loaded in as a SCHEMATIC attachment");
