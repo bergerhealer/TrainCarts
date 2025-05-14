@@ -1,5 +1,5 @@
 [versions]
-bkcommonlib = "1.21.4-v1-SNAPSHOT"
+bkcommonlib = "1.21.5-v2-SNAPSHOT"
 junit = "4.11"
 lightapi-fork = "3.4.2-SNAPSHOT"
 lightapi-v5 = "5.0.0"

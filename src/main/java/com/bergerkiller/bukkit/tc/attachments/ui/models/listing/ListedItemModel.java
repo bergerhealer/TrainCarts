@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import org.bukkit.ChatColor;
 import org.bukkit.inventory.ItemStack;
@@ -15,6 +16,8 @@ import com.bergerkiller.bukkit.common.utils.ItemUtil;
  * An item model from the resource pack that should be listed
  */
 public final class ListedItemModel extends ListedEntry {
+    private static final boolean CAN_SHOW_ITEM_MODEL_LORE = Common.hasCapability("Common:CommonItemStack:ItemModel");
+
     private final String fullPath;
     private final String path;
     private final String name;
@@ -58,6 +61,10 @@ public final class ListedItemModel extends ListedEntry {
             addLoreProperty(item, "Item", origItemName);
         }
 
+        if (CAN_SHOW_ITEM_MODEL_LORE) {
+            showItemModelInfo(item);
+        }
+
         if (item.hasCustomModelData()) {
             addLoreProperty(item, "Custom model data", item.getCustomModelData());
         }
@@ -78,6 +85,12 @@ public final class ListedItemModel extends ListedEntry {
 
     private static void addLoreProperty(CommonItemStack item, String name, Object value) {
         item.addLoreMessage(ChatColor.DARK_GRAY + name + ": " + ChatColor.GRAY + value);
+    }
+
+    private static void showItemModelInfo(CommonItemStack item) {
+        if (item.hasItemModel()) {
+            addLoreProperty(item, "Item Model", item.getItemModel().toString());
+        }
     }
 
     @Override

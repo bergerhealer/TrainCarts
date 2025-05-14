@@ -1,6 +1,11 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.models;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -234,9 +239,10 @@ public class ResourcePackModelListing extends ListedRootLoader {
         }
 
         logLoading("Loading resource pack item model lists");
-        int totalCount = 0;
-        for (String modelName : allOverridedModels) {
-            for (ItemModelOverride override : resourcePack.getItemModelConfig(modelName).listAllOverrides()) {
+
+        Map<String, List<CommonItemStack>> itemModels = new HashMap<>();
+        for (String itemModelName : allOverridedModels) {
+            for (ItemModelOverride override : resourcePack.getItemModelConfig(itemModelName).listAllOverrides()) {
                 // Skip if no valid item exists
                 Optional<CommonItemStack> itemStack = override.getItemStack();
                 if (!itemStack.isPresent()) {
@@ -257,16 +263,46 @@ public class ResourcePackModelListing extends ListedRootLoader {
                     if (strictNameSpaceCheck && !model.model.contains(":")) {
                         continue;
                     }
-
-                    // Figure out what the 'credit' are for this model by reading the actual model
-                    // No big deal if this fails.
-                    String credit = resourcePack.getModelInfo(model.model).getCredit();
-                    root.addListedItem(model.model, itemStack.get(), credit);
-                    totalCount++;
+                    itemModels.computeIfAbsent(model.model, m -> new ArrayList<>()).add(itemStack.get());
                 }
             }
         }
-        return totalCount;
+
+        for (Map.Entry<String, List<CommonItemStack>> e : itemModels.entrySet()) {
+            // If more than one item displays this model, pick one that is supported on the most clients
+            // This is done by sorting the most compatible item to the front
+            if (e.getValue().size() > 1 && CAN_SORT_DUPLICATE_ITEMS) {
+                e.getValue().sort(new DuplicateItemComparator());
+            }
+
+            // Figure out what the 'credit' are for this model by reading the actual model
+            // No big deal if this fails.
+            String credit = resourcePack.getModelInfo(e.getKey()).getCredit();
+            root.addListedItem(e.getKey(), e.getValue().get(0), credit);
+        }
+
+        return itemModels.size();
+    }
+
+    private static final boolean CAN_SORT_DUPLICATE_ITEMS = Common.hasCapability("Common:CommonItemStack:ItemModel");
+
+    private static class DuplicateItemComparator implements Comparator<CommonItemStack> {
+        @Override
+        public int compare(CommonItemStack item1, CommonItemStack item2) {
+            // Prefer items that do NOT use the item_model data component for better backwards-compatibility
+            boolean hasItemModel = item1.hasItemModel();
+            if (hasItemModel != item2.hasItemModel()) {
+                return hasItemModel ? 1 : -1;
+            }
+
+            // Prefer items that do NOT use custom model data for better backwards-compatibility
+            boolean hasCustomData = item1.hasCustomModelData();
+            if (hasCustomData != item2.hasCustomModelData()) {
+                return hasCustomData ? 1 : -1;
+            }
+
+            return 0;
+        }
     }
 
     @Deprecated
