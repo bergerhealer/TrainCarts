@@ -9,7 +9,9 @@ import java.util.logging.Level;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -44,6 +46,7 @@ import com.google.common.io.ByteStreams;
 public class TrainChestItemUtil {
     private static final String IDENTIFIER = "Traincarts.chest";
     private static final String TITLE = "Traincarts Chest";
+    private static final boolean CAN_USE_NEW_BKCL_ITEM_APIS = Common.hasCapability("Common:CommonItemStack:AddGlint");
 
     /** How much extra distance to look for members to auto-connect with. Emulates 'reach' */
     private static final double AUTOCONNECT_EXTRA_DISTANCE = 1.0;
@@ -52,7 +55,6 @@ public class TrainChestItemUtil {
 
     public static ItemStack createItem() {
         CommonItemStack item = CommonItemStack.create(Material.ENDER_CHEST, 1)
-                .addUnsafeEnchantment(Enchantment.ARROW_DAMAGE, 1)
                 .updateCustomData(tag -> {
                     tag.putValue("plugin", TrainCarts.plugin.getName());
                     tag.putValue("identifier", IDENTIFIER);
@@ -62,8 +64,17 @@ public class TrainChestItemUtil {
                     tag.putValue("HideFlags", 1);
                 })
                 .hideAllAttributes();
+        if (CAN_USE_NEW_BKCL_ITEM_APIS) {
+            applyNewBKCLChanges(item);
+        } else {
+            item.addUnsafeEnchantment(Enchantment.ARROW_DAMAGE, 1);
+        }
         updateTitle(item);
         return item.toBukkit();
+    }
+
+    private static void applyNewBKCLChanges(CommonItemStack item) {
+        item.addGlint().mimicAsType(MaterialUtil.getFirst("PAPER", "LEGACY_PAPER"));
     }
 
     private static void updateTitle(CommonItemStack item) {
