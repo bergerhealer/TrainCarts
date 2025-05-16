@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.common.wrappers.Brightness;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
+import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
@@ -25,7 +26,9 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.EntityType;
 import org.bukkit.util.Vector;
 
+import java.util.Optional;
 import java.util.UUID;
+import java.util.function.IntFunction;
 
 /**
  * Extra utilities to move a 1.19.4+ Display entity around
@@ -62,6 +65,7 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
     public static final DataWatcher.Prototype BASE_DISPLAY_METADATA = DataWatcher.Prototype.build()
             .setClientDefault(DisplayHandle.DATA_INTERPOLATION_DURATION, 0)
             .set(DisplayHandle.DATA_INTERPOLATION_DURATION, 3)
+            .set(DisplayHandle.DATA_POS_ROT_INTERPOLATION_DURATION, 3) // Only seen by 1.20.2+ clients
             .setClientDefault(DisplayHandle.DATA_INTERPOLATION_START_DELTA_TICKS, 0)
             .setClientDefault(DisplayHandle.DATA_SCALE, new Vector(1, 1, 1))
             .setClientDefault(DisplayHandle.DATA_TRANSLATION, new Vector())
@@ -170,8 +174,10 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
 
     @Override
     protected void sendSpawnPackets(AttachmentViewer viewer, Vector motion) {
-        // Spawn invisible marker armorstand mount
-        {
+        boolean canInterpolate = viewer.supportsDisplayEntityLocationInterpolation();
+
+        // Spawn invisible marker armorstand mount to perform the movement, if interpolation isn't supported
+        if (!canInterpolate) {
             PacketPlayOutSpawnEntityLivingHandle spawnPacket = PacketPlayOutSpawnEntityLivingHandle.createNew();
             spawnPacket.setEntityId(this.mountEntityId);
             spawnPacket.setEntityUUID(UUID.randomUUID());
@@ -206,16 +212,23 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
             viewer.send(PacketPlayOutEntityMetadataHandle.createNew(this.displayEntityId, metadata, true));
         }
 
-        // Mount the display entity inside the mount
-        viewer.getVehicleMountController().mount(this.mountEntityId, this.displayEntityId);
+        if (!canInterpolate) {
+            // Mount the display entity inside the mount
+            viewer.getVehicleMountController().mount(this.mountEntityId, this.displayEntityId);
+        }
     }
 
     @Override
     protected void sendDestroyPackets(AttachmentViewer viewer) {
-        viewer.send(PacketPlayOutEntityDestroyHandle.createNewMultiple(
-                new int[] { this.displayEntityId, this.mountEntityId }));
-        viewer.getVehicleMountController().remove(this.displayEntityId);
-        viewer.getVehicleMountController().remove(this.mountEntityId);
+        if (viewer.supportsDisplayEntityLocationInterpolation()) {
+            viewer.send(PacketPlayOutEntityDestroyHandle.createNewSingle(this.displayEntityId));
+            viewer.getVehicleMountController().remove(this.displayEntityId);
+        } else {
+            viewer.send(PacketPlayOutEntityDestroyHandle.createNewMultiple(
+                    new int[] { this.displayEntityId, this.mountEntityId }));
+            viewer.getVehicleMountController().remove(this.displayEntityId);
+            viewer.getVehicleMountController().remove(this.mountEntityId);
+        }
     }
 
     @Override
@@ -242,34 +255,75 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
         metadata.forceSet(DisplayHandle.DATA_INTERPOLATION_START_DELTA_TICKS, 0);
 
         // Force an absolute teleport if the change is too big
-        double dx = 0.0, dy = 0.0, dz = 0.0;
+        final double dx, dy, dz;
         if (!absolute) {
             dx = (livePos.getX() - syncPos.getX());
             dy = (livePos.getY() - syncPos.getY());
             dz = (livePos.getZ() - syncPos.getZ());
             double abs_delta = Math.max(Math.max(Math.abs(dx), Math.abs(dy)), Math.abs(dz));
             absolute = (abs_delta > EntityNetworkController.MAX_RELATIVE_DISTANCE);
+        } else {
+            dx = 0.0;
+            dy = 0.0;
+            dz = 0.0;
         }
 
         if (absolute) {
             // Teleport the entity
             MathUtil.setVector(syncPos, livePos);
-            broadcast(PacketPlayOutEntityTeleportHandle.createNew(mountEntityId,
+
+            syncPositionLogic(id -> PacketPlayOutEntityTeleportHandle.createNew(id,
                     syncPos.getX(), syncPos.getY(), syncPos.getZ(),
                     0.0f, 0.0f, false));
         } else {
             // Perform a relative movement update
-            PacketPlayOutEntityHandle.PacketPlayOutRelEntityMoveHandle packet = PacketPlayOutEntityHandle.PacketPlayOutRelEntityMoveHandle.createNew(
-                    mountEntityId,
-                    dx, dy, dz,
-                    false);
+            PacketPlayOutEntityHandle.PacketPlayOutRelEntityMoveHandle packet = syncPositionLogicAlwaysCreate(
+                    id -> PacketPlayOutEntityHandle.PacketPlayOutRelEntityMoveHandle.createNew(id,
+                            dx, dy, dz,
+                            false));
 
             MathUtil.addToVector(syncPos, packet.getDeltaX(), packet.getDeltaY(), packet.getDeltaZ());
-            broadcast(packet);
         }
 
         // Send metadata changes to update the orientation
         syncMeta();
+    }
+
+    private <T extends PacketHandle> T syncPositionLogicAlwaysCreate(IntFunction<T> packetCreator) {
+        return syncPositionLogic(packetCreator).orElseGet(() -> packetCreator.apply(displayEntityId));
+    }
+
+    /**
+     * Helper function. Automatically builds the right packet for synchronizing position using
+     * the mount versus the display entity itself, depending on if this is supported by
+     * the client(s).
+     *
+     * @param packetCreator Callback to create the packet to send, with as input the entity id
+     *                      to sync
+     */
+    private <T extends PacketHandle> Optional<T> syncPositionLogic(IntFunction<T> packetCreator) {
+        T packetForNewClients = null;
+        T packetForOldClients = null;
+        for (AttachmentViewer viewer : getViewers()) {
+            if (viewer.supportsDisplayEntityLocationInterpolation()) {
+                if (packetForNewClients == null) {
+                    packetForNewClients = packetCreator.apply(displayEntityId);
+                }
+                viewer.send(packetForNewClients);
+            } else {
+                if (packetForOldClients == null) {
+                    packetForOldClients = packetCreator.apply(mountEntityId);
+                }
+                viewer.send(packetForOldClients);
+            }
+        }
+        if (packetForNewClients != null) {
+            return Optional.of(packetForNewClients);
+        } else if (packetForOldClients != null) {
+            return Optional.of(packetForOldClients);
+        } else {
+            return Optional.empty();
+        }
     }
 
     protected void syncMeta() {
