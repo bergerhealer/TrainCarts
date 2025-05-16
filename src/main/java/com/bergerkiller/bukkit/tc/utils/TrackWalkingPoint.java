@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.utils;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPath;
@@ -95,12 +96,17 @@ public class TrackWalkingPoint {
     }
 
     public TrackWalkingPoint(Block startRail, BlockFace motionFace) {
+        this(startRail, FaceUtil.faceToVector(motionFace));
+    }
+
+    public TrackWalkingPoint(Block startRail, Vector motion) {
         this.state = new RailState();
         this.state.position().relative = false;
         if (startRail != null) {
             this.state.setRailPiece(RailPiece.create(RailType.getType(startRail), startRail));
-            this.state.position().setMotion(motionFace);
-            this.state.position().setLocation(this.state.railType().getSpawnLocation(startRail, motionFace));
+            this.state.position().setMotion(motion);
+            this.state.position().setLocation(this.state.railType().getSpawnLocation(startRail,
+                    FaceUtil.vectorToBlockFace(motion, false)));
             this.state.initEnterDirection(); // Not loadRailInformation because we go type -> spawn location
             this.currentRailLogic = this.state.loadRailLogic();
             this.currentRailPath = this.currentRailLogic.getPath();

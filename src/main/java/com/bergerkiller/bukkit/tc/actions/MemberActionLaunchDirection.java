@@ -14,10 +14,14 @@ import java.io.IOException;
 
 public class MemberActionLaunchDirection extends MemberActionLaunch implements MovementAction {
     private BlockFace direction;
+    private Vector directionVector;
+    private boolean isFaceDirection;
     private boolean directionWasCorrected;
 
     public MemberActionLaunchDirection() {
         this.direction = BlockFace.SELF;
+        this.directionVector = new Vector();
+        this.isFaceDirection = true;
         this.directionWasCorrected = false;
     }
 
@@ -35,7 +39,17 @@ public class MemberActionLaunchDirection extends MemberActionLaunch implements M
         this.init(config, targetvelocity, targetspeedlimit);
     }
 
+    public void init(LauncherConfig config, double targetvelocity, double targetspeedlimit, Vector direction) {
+        this.setDirection(direction);
+        this.init(config, targetvelocity, targetspeedlimit);
+    }
+
     public void init(LauncherConfig config, double targetvelocity, BlockFace direction) {
+        this.setDirection(direction);
+        this.init(config, targetvelocity);
+    }
+
+    public void init(LauncherConfig config, double targetvelocity, Vector direction) {
         this.setDirection(direction);
         this.init(config, targetvelocity);
     }
@@ -45,7 +59,17 @@ public class MemberActionLaunchDirection extends MemberActionLaunch implements M
         this.initTime(timeTicks, targetvelocity);
     }
 
+    public void initTime(int timeTicks, double targetvelocity, Vector direction) {
+        this.setDirection(direction);
+        this.initTime(timeTicks, targetvelocity);
+    }
+
     public void initDistance(double targetdistance, double targetvelocity, BlockFace direction) {
+        this.setDirection(direction);
+        this.initDistance(targetdistance, targetvelocity);
+    }
+
+    public void initDistance(double targetdistance, double targetvelocity, Vector direction) {
         this.setDirection(direction);
         this.initDistance(targetdistance, targetvelocity);
     }
@@ -56,10 +80,38 @@ public class MemberActionLaunchDirection extends MemberActionLaunch implements M
         }
 
         this.direction = direction;
+        this.directionVector = (direction == BlockFace.SELF)
+                ? new Vector() : FaceUtil.faceToVector(direction).normalize();
+        this.isFaceDirection = true;
+    }
+
+    public void setDirection(Vector direction) {
+        if (direction == null) {
+            throw new IllegalArgumentException("Direction is null");
+        }
+
+        this.direction = FaceUtil.vectorToBlockFace(direction, true);
+        this.directionVector = direction;
+        this.isFaceDirection = false;
     }
 
     public BlockFace getDirection() {
         return this.direction;
+    }
+
+    public Vector getDirectionVector() {
+        return this.directionVector;
+    }
+
+    /**
+     * Gets whether the direction launched into is an exact BlockFace direction.
+     * Basically tracks which of the setDirection() methods was used to set up
+     * this launch action. Internal use, mostly.
+     *
+     * @return True if the direction is that of a BlockFace
+     */
+    public boolean isFaceDirection() {
+        return this.isFaceDirection;
     }
 
     public void setDirectionCorrected(boolean corrected) {
@@ -92,7 +144,7 @@ public class MemberActionLaunchDirection extends MemberActionLaunch implements M
             Vector vel = this.getMember().getEntity().getVelocity();
             if (vel.lengthSquared() > 1e-20) {
                 this.directionWasCorrected = true;
-                if (vel.dot(FaceUtil.faceToVector(this.direction)) < 0.0) {
+                if (vel.dot(this.directionVector) < 0.0) {
                     this.getGroup().reverse();
                 }
             }
@@ -118,6 +170,15 @@ public class MemberActionLaunchDirection extends MemberActionLaunch implements M
                 Util.writeVariableLengthInt(stream, action.getDirection().ordinal());
                 stream.writeBoolean(action.isDirectionCorrected());
             });
+            if (!action.isFaceDirection()) {
+                data.addChild("launch-direction-vector", stream -> {
+                    Vector v = action.getDirectionVector();
+                    stream.writeDouble(v.getX());
+                    stream.writeDouble(v.getY());
+                    stream.writeDouble(v.getZ());
+                });
+            }
+
             return true;
         }
 
@@ -133,6 +194,13 @@ public class MemberActionLaunchDirection extends MemberActionLaunch implements M
                         ? faces[blockFaceOrd] : BlockFace.NORTH);
                 action.setDirectionCorrected(stream.readBoolean());
             }
+
+            // If a direction vector was also set, that one overrides the BlockFace one
+            // We keep the direction corrected information we read before
+            data.tryReadChild("launch-direction-vector", stream -> {
+                Vector v = new Vector(stream.readDouble(), stream.readDouble(), stream.readDouble());
+                action.setDirection(v);
+            });
 
             return action;
         }

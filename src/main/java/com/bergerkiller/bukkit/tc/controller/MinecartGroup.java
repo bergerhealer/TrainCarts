@@ -9,10 +9,12 @@ import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.inventory.MergedInventory;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet.LongIterator;
+import com.bergerkiller.bukkit.tc.actions.MemberActionLaunchDirection;
 import com.bergerkiller.bukkit.tc.controller.components.SignTracker;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
@@ -745,10 +747,13 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
 
     /**
      * A simple version of teleport where the inertia of the train is maintained
+     *
+     * @param railBlock Start rail block
+     * @param direction Launch direction BlockFace
      */
-    public void teleportAndGo(Block start, BlockFace direction) {
+    public void teleportAndGo(Block railBlock, BlockFace direction) {
         double force = this.getAverageForce();
-        this.teleport(start, direction);
+        this.teleport(railBlock, direction);
         this.stop();
         this.getActions().clear();
         if (Math.abs(force) > 0.01) {
@@ -756,9 +761,31 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         }
     }
 
-    public void teleport(Block start, BlockFace direction) {
+    /**
+     * A simple version of teleport where the inertia of the train is maintained
+     *
+     * @param railBlock Start rail block
+     * @param direction Launch direction Vector
+     */
+    public void teleportAndGo(Block railBlock, Vector direction) {
+        double forwardVelocity = this.getAverageForce();
+        this.teleport(railBlock, direction);
+        this.stop();
+        this.getActions().clear();
+        if (Math.abs(forwardVelocity) > 0.01) {
+            MemberActionLaunchDirection action = new MemberActionLaunchDirection();
+            action.initDistance(1.0, forwardVelocity, direction);
+            this.tail().getActions().addGroupAction(action);
+        }
+    }
+
+    public void teleport(Block startRailBlock, BlockFace direction) {
+        teleport(startRailBlock, FaceUtil.faceToVector(direction));
+    }
+
+    public void teleport(Block startRailBlock, Vector direction) {
         Location[] locations = new Location[this.size()];
-        TrackWalkingPoint walker = new TrackWalkingPoint(start, direction);
+        TrackWalkingPoint walker = new TrackWalkingPoint(startRailBlock, direction);
         walker.skipFirst();
         for (int i = 0; i < locations.length; i++) {
             boolean canMove;

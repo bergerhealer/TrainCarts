@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.tc.Util;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -144,6 +145,28 @@ public final class OfflineDataBlock {
     }
 
     /**
+     * Chains {@link #findChild(String)} and {@link OfflineDataBlock#readData()} with
+     * a callback to read that data, if the child exists.
+     *
+     * @param name Name of the data block
+     * @param reader Callback reader that will read the data of the child data block,
+     *               if it exists
+     * @return True if the data block existed, False if not
+     * @throws IOException
+     */
+    public boolean tryReadChild(String name, DataReader reader) throws IOException {
+        OfflineDataBlock block = findChild(name).orElse(null);
+        if (block == null) {
+            return false;
+        }
+
+        try (DataInputStream stream = block.readData()) {
+            reader.read(stream);
+        }
+        return true;
+    }
+
+    /**
      * Adds a child to this data block with the name specified, and no data
      *
      * @param name Name of the child
@@ -239,6 +262,11 @@ public final class OfflineDataBlock {
     @FunctionalInterface
     public interface DataWriter extends AbortableDataWriter {
         void write(DataOutputStream stream) throws IOException;
+    }
+
+    @FunctionalInterface
+    public interface DataReader {
+        void read(DataInputStream stream) throws IOException;
     }
 
     /**
