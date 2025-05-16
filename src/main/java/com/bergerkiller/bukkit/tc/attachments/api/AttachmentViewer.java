@@ -206,6 +206,16 @@ public interface AttachmentViewer extends TrainCarts.Provider {
     }
 
     /**
+     * Gets whether this viewer, and the server itself, can support the use of display entities
+     * and teleporting them smoothly with interpolation. This is since 1.20.2.
+     *
+     * @return True if display entity location interpolation is supported for this client
+     */
+    default boolean supportsDisplayEntityLocationInterpolation() {
+        return CommonCapabilities.HAS_DISPLAY_ENTITY_LOCATION_INTERPOLATION && evaluateGameVersion(">=", "1.20.2");
+    }
+
+    /**
      * Gets the offset at which a player sits on a surface. Mounts must be adjusted to take this
      * into account.
      *
