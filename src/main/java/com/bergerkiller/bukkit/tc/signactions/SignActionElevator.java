@@ -49,7 +49,7 @@ public class SignActionElevator extends TrainCartsSignAction {
         TrackWalkingPoint p = new TrackWalkingPoint(state);
         p.setLoopFilter(true);
         p.skipFirst();
-        p.move(32.0);
+        p.move(16.0);
         return p.movedTotal;
     }
 
