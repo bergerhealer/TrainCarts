@@ -72,7 +72,7 @@ public abstract class SignAction {
         register(new SignActionDestination());
         register(new SignActionBlocker());
         register(new SignActionWait());
-        register(new SignActionElevator());
+        register(SignActionElevator.INSTANCE);
         register(new SignActionTicket());
         register(new SignActionAnnounce());
         register(new SignActionEffect());

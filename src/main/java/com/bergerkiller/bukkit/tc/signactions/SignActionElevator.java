@@ -1,79 +1,56 @@
 package com.bergerkiller.bukkit.tc.signactions;
 
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.Permission;
-import com.bergerkiller.bukkit.tc.SignActionHeader;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
-import com.bergerkiller.bukkit.tc.rails.type.RailType;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.utils.BlockTimeoutMap;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
-import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 
-import java.util.Locale;
-
-import org.bukkit.block.Block;
+import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.Sign;
+import org.bukkit.util.Vector;
 
 public class SignActionElevator extends TrainCartsSignAction {
-    public static BlockTimeoutMap ignoreTimes = new BlockTimeoutMap();
-
-    public static boolean isElevator(Sign sign) {
-        if (SignActionHeader.parseFromSign(sign).isValid()) {
-            if (Util.getCleanLine(sign, 1).toLowerCase(Locale.ENGLISH).startsWith("elevator")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public static Block findElevator(Block from, BlockFace mode) {
-        while ((from = Util.findRailsVertical(from, mode)) != null) {
-            for (Block signblock : Util.getSignsFromRails(from)) {
-                if (isElevator(BlockUtil.getSign(signblock))) {
-                    return from;
-                }
-            }
-        }
-        return null;
-    }
-
-    public static Block findElevator(Block from, BlockFace mode, int elevatorCount) {
-        while ((from = findElevator(from, mode)) != null) {
-            if (--elevatorCount <= 0) {
-                return from;
-            }
-        }
-        return null;
-    }
-
-    public static BlockFace getSpawnDirection(Block destrail) {
-        return getSpawnDirection(destrail, FaceUtil.getFaces(Util.getRailsRO(destrail).getDirection().getOppositeFace()));
-    }
-
-    public static BlockFace getSpawnDirection(Block destrail, BlockFace[] possible) {
-        //find out which direction is best for this occasion
-        BlockFace rval = possible[0];
-        int dist = 0;
-        int i = 0;
-        for (BlockFace f : possible) {
-            TrackIterator iter = new TrackIterator(destrail, f);
-            final int lim = 4;
-            for (i = 0; i < lim && iter.hasNext(); i++) iter.next();
-            if (i > dist) {
-                rval = f;
-                dist = i;
-            }
-        }
-        return rval;
-    }
+    public static final SignActionElevator INSTANCE = new SignActionElevator();
+    public final BlockTimeoutMap ignoreTimes = new BlockTimeoutMap();
 
     public SignActionElevator() {
         super("elevator");
+    }
+
+    public ElevatorRail findNextElevator(RailPiece from, BlockFace direction, int elevatorCount) {
+        while ((from = Util.findNextRailPiece(from.block(), direction)) != null) {
+            for (RailLookup.TrackedSign sign : from.signs()) {
+                if (sign.getAction() != this) {
+                    continue;
+                }
+
+                // Skip a number of elevator-capable rail blocks
+                if (--elevatorCount > 0) {
+                    break;
+                }
+
+                // Found our elevator
+                return new ElevatorRail(from, sign);
+            }
+        }
+        return null;
+    }
+
+    private static double getTrackDistance(RailState state) {
+        TrackWalkingPoint p = new TrackWalkingPoint(state);
+        p.setLoopFilter(true);
+        p.skipFirst();
+        p.move(32.0);
+        return p.movedTotal;
     }
 
     @Override
@@ -84,6 +61,7 @@ public class SignActionElevator extends TrainCartsSignAction {
         if (!info.isAction(SignActionType.GROUP_ENTER, SignActionType.REDSTONE_CHANGE)) {
             return;
         }
+
         // Is it allowed?
         if (ignoreTimes.isMarked(info.getRails(), 1000)) {
             return;
@@ -101,39 +79,25 @@ public class SignActionElevator extends TrainCartsSignAction {
 
         // Possible amounts to skip?
         int elevatorCount = ParseUtil.parseInt(info.getLine(2), 1);
-        Block dest = findElevator(info.getRails(), mode, elevatorCount);
-        if (!forced && dest == null) {
-            dest = findElevator(info.getRails(), mode.getOppositeFace(), elevatorCount);
+
+        // Look up the rail above or below this one that has an elevator sign on it
+        // If we don't find it in the initial direction and none was set on the sign, try
+        // in the opposite direction as well
+        ElevatorRail nextElevator = findNextElevator(info.getRailPiece(), mode, elevatorCount);
+        if (!forced && nextElevator == null) {
+            nextElevator = findNextElevator(info.getRailPiece(), mode.getOppositeFace(), elevatorCount);
         }
-        if (dest == null) {
+        if (nextElevator == null) {
             return;
         }
-        ignoreTimes.mark(dest);
 
-        // First, use the sign direction
-        Sign destsign = null;
-        for (Block signblock : Util.getSignsFromRails(dest)) {
-            if (isElevator(destsign = BlockUtil.getSign(signblock))) {
-                break;
-            }
-        }
+        ignoreTimes.mark(nextElevator.rail.block());
 
-        // Facing towards a rail direction?
-        BlockFace[] startDirs = RailType.getType(dest).getPossibleDirections(dest);
-        BlockFace launchDir = null;
-        if (destsign != null) {
-            BlockFace signdir = BlockUtil.getFacing(destsign.getBlock());
-            if (startDirs[0] == signdir || startDirs[1] == signdir) {
-                launchDir = signdir;
-            }
-        }
-        if (launchDir == null) {
-            // Find out which direction is best
-            launchDir = getSpawnDirection(dest, startDirs);
-        }
+        // Of the rail the next elevator sign is on, find out how to teleport the train to it
+        RailState spawnState = nextElevator.findSpawnState(info);
 
         // Teleport train
-        info.getGroup().teleportAndGo(dest, launchDir);
+        info.getGroup().teleportAndGo(spawnState.railBlock(), spawnState.motionVector());
     }
 
     @Override
@@ -144,5 +108,55 @@ public class SignActionElevator extends TrainCartsSignAction {
                 .setDescription("teleport trains vertically")
                 .setTraincartsWIKIHelp("TrainCarts/Signs/Elevator")
                 .handle(event);
+    }
+
+    /**
+     * A rail block with an elevator sign on it
+     */
+    public static class ElevatorRail {
+        public final RailPiece rail;
+        public final RailLookup.TrackedSign sign;
+
+        public ElevatorRail(RailPiece rail, RailLookup.TrackedSign sign) {
+            this.rail = rail;
+            this.sign = sign;
+        }
+
+        public RailState findSpawnState(SignActionEvent info) {
+            // Of the rail the next elevator sign is on, figure out the motion vector over it
+            // This is done by evaluating the Rail-logic path when spawning on top of it
+            RailState spawnState = RailState.getSpawnState(this.rail);
+
+            // Was a direction explicitly stated on the last line of THIS sign? If so, honor that
+            // We ignore configuration of the sign elevated to, to allow for more options
+            Direction launchDirection = Direction.parse(info.getLine(3));
+            if (launchDirection != Direction.NONE) {
+                if (spawnState.position().motDot(launchDirection.getDirection(info.getFacing(), info.getCartEnterFace())) < 0.0) {
+                    spawnState.position().invertMotion();
+                }
+                return spawnState;
+            }
+
+            // If no direction set, first try to see if the sign face points exactly into one of the directions
+            // This mostly only works for vanilla rails
+            {
+                Vector signForward = FaceUtil.faceToVector(this.sign.getFacing());
+                double dot = signForward.dot(spawnState.motionVector());
+                if (Math.abs(dot) > MathUtil.HALFROOTOFTWO) {
+                    if (dot < 0.0) {
+                        spawnState.position().invertMotion();
+                    }
+                    return spawnState;
+                }
+            }
+
+            // If facing away from the track, teleport to one with the longest track following the rail block
+            RailState spawnStateReverse = spawnState.cloneAndInvertMotion();
+            if (getTrackDistance(spawnStateReverse) > getTrackDistance(spawnState)) {
+                return spawnStateReverse;
+            } else {
+                return spawnState;
+            }
+        }
     }
 }

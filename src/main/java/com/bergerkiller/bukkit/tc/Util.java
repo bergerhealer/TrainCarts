@@ -245,26 +245,58 @@ public class Util {
         return RailLookup.discoverRailPieceFromSign(signblock).block();
     }
 
+    /**
+     * Looks up the next valid rail block up or down relative to another block.
+     *
+     * @param from Starting Block
+     * @param mode Vertical direction
+     * @return Next rail block, or null if none was found
+     * @deprecated Use {@link #findNextRailPiece(Block, BlockFace)} instead to
+     *             give more useful information like rail type and signs
+     */
+    @Deprecated
     public static Block findRailsVertical(Block from, BlockFace mode) {
-        int sy = from.getY();
-        int x = from.getX();
-        int z = from.getZ();
-        World world = from.getWorld();
+        RailPiece piece = findNextRailPiece(from, mode);
+        return piece == null ? null : piece.block();
+    }
+
+    /**
+     * Looks up the next valid rail block and type in a direction relative to another block.
+     *
+     * @param from Starting Block
+     * @param mode Look direction. Usually vertical but supports all axis.
+     * @return Next rail piece, or null if none was found
+     */
+    public static RailPiece findNextRailPiece(Block from, BlockFace mode) {
         int maxSteps = 1024;
+        World world = from.getWorld();
+        Block block = from;
         if (mode == BlockFace.DOWN) {
             int min = WorldUtil.getWorldMinimumHeight(world);
-            for (int y = sy - 1; y > min && --maxSteps > 0; --y) {
-                Block block = world.getBlockAt(x, y, z);
-                if (RailType.getType(block) != RailType.NONE) {
-                    return block;
+            int y = block.getY();
+            while (--y >= min && --maxSteps > 0) {
+                block = block.getRelative(mode);
+                RailType type = RailType.getType(block);
+                if (type != RailType.NONE) {
+                    return RailPiece.create(type, block);
                 }
             }
         } else if (mode == BlockFace.UP) {
             int max = WorldUtil.getWorldMaximumHeight(world);
-            for (int y = sy + 1; y < max && --maxSteps > 0; y++) {
-                Block block = world.getBlockAt(x, y, z);
-                if (RailType.getType(block) != RailType.NONE) {
-                    return block;
+            int y = block.getY();
+            while (++y < max && --maxSteps > 0) {
+                block = block.getRelative(mode);
+                RailType type = RailType.getType(block);
+                if (type != RailType.NONE) {
+                    return RailPiece.create(type, block);
+                }
+            }
+        } else {
+            while (--maxSteps > 0) {
+                block = block.getRelative(mode);
+                RailType type = RailType.getType(block);
+                if (type != RailType.NONE) {
+                    return RailPiece.create(type, block);
                 }
             }
         }
