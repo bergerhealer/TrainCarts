@@ -96,7 +96,7 @@ public class TrackWalkingPoint {
     }
 
     public TrackWalkingPoint(Block startRail, BlockFace motionFace) {
-        this(startRail, FaceUtil.faceToVector(motionFace));
+        this(startRail, motionFace == null ? null : FaceUtil.faceToVector(motionFace));
     }
 
     public TrackWalkingPoint(Block startRail, Vector motion) {
