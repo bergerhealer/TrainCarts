@@ -122,7 +122,7 @@ public class SignControllerWorld {
      * @return Entries nearby
      */
     public SignController.Entry[] findNearby(Block block, boolean mustHaveSignActions) {
-        if (!checkMayHaveSignsNearby(block.getX(), block.getY(), block.getZ(), 1, mustHaveSignActions)) {
+        if (!initializeNearbySigns(block.getX(), block.getY(), block.getZ(), 1, mustHaveSignActions)) {
             return SignController.EntryList.NONE.values();
         }
 
@@ -132,7 +132,7 @@ public class SignControllerWorld {
     /**
      * Looks up the signs that exist at, or neighbouring, the specified block.
      * <b>Does not initialize the by-block mapping for chunks nearby.</b>
-     * The {@link #checkMayHaveSignsNearby(int, int, int, int, boolean)} method must
+     * The {@link #initializeNearbySigns(int, int, int, int, boolean)} method must
      * be called prior to initialize it as needed.
      *
      * @param blockCoordinatesKey Key created using {@link LongBlockCoordinates#map(int, int, int)}
@@ -197,7 +197,7 @@ public class SignControllerWorld {
         int by = block.getY();
         int bz = block.getZ();
         int checkBorder = FaceUtil.isVertical(direction) ? 0 : 1;
-        if (!checkMayHaveSignsNearby(bx, by, bz, checkBorder, mustHaveSignActions)) {
+        if (!initializeNearbySigns(bx, by, bz, checkBorder, mustHaveSignActions)) {
             return;
         }
 
@@ -230,7 +230,7 @@ public class SignControllerWorld {
             if (!FaceUtil.isVertical(direction)) {
                 bx += direction.getModX();
                 bz += direction.getModZ();
-                if (!checkMayHaveSignsNearby(bx, by, bz, checkBorder, mustHaveSignActions)) {
+                if (!initializeNearbySigns(bx, by, bz, checkBorder, mustHaveSignActions)) {
                     break;
                 }
             }
@@ -251,7 +251,7 @@ public class SignControllerWorld {
      */
     public boolean hasSignsAroundColumn(Block block, BlockFace direction, boolean mustHaveSignActions) {
         int checkBorder = FaceUtil.isVertical(direction) ? 0 : 1;
-        if (!checkMayHaveSignsNearby(block.getX(), block.getY(), block.getZ(), checkBorder, mustHaveSignActions)) {
+        if (!initializeNearbySigns(block.getX(), block.getY(), block.getZ(), checkBorder, mustHaveSignActions)) {
             return false;
         }
 
@@ -267,6 +267,7 @@ public class SignControllerWorld {
     /**
      * Checks whether at a block position, signs might be nearby.
      * Chunks that need to be checked are loaded (sync) as needed.
+     * Every tick the sign entries in the chunk(s) are refreshed and checked for removal.
      *
      * @param x Search X-position
      * @param y Search Y-position
@@ -276,7 +277,7 @@ public class SignControllerWorld {
      *                            redstone change handlers or train activation.
      * @return True if signs might be nearby. False if there definitely are no signs.
      */
-    private boolean checkMayHaveSignsNearby(int x, int y, int z, int border, boolean mustHaveSignActions) {
+    private boolean initializeNearbySigns(int x, int y, int z, int border, boolean mustHaveSignActions) {
         int serverTick = CommonUtil.getServerTicks();
 
         boolean result;
@@ -362,7 +363,7 @@ public class SignControllerWorld {
     public void detectNewSigns(Block around) {
         long blockKey = LongBlockCoordinates.map(around);
 
-        final Entry[] nearby = checkMayHaveSignsNearby(around.getX(), around.getY(), around.getZ(), 1, false)
+        final Entry[] nearby = initializeNearbySigns(around.getX(), around.getY(), around.getZ(), 1, false)
                 ? getNearbySignsUnsafe(blockKey) : SignController.EntryList.NONE.unsortedValues();
 
         LongBlockCoordinates.forAllBlockSidesAndSelf(blockKey, (face, key) -> {
