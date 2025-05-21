@@ -126,16 +126,19 @@ public class SignControllerWorld {
             return SignController.EntryList.NONE.values();
         }
 
-        return findNearby(LongBlockCoordinates.map(block.getX(), block.getY(), block.getZ()));
+        return getNearbySignsUnsafe(LongBlockCoordinates.map(block.getX(), block.getY(), block.getZ()));
     }
 
     /**
      * Looks up the signs that exist at, or neighbouring, the specified block.
+     * <b>Does not initialize the by-block mapping for chunks nearby.</b>
+     * The {@link #checkMayHaveSignsNearby(int, int, int, int, boolean)} method must
+     * be called prior to initialize it as needed.
      *
      * @param blockCoordinatesKey Key created using {@link LongBlockCoordinates#map(int, int, int)}
      * @return Entries nearby
      */
-    SignController.Entry[] findNearby(long blockCoordinatesKey) {
+    SignController.Entry[] getNearbySignsUnsafe(long blockCoordinatesKey) {
         return signsByNeighbouringBlock.getOrDefault(blockCoordinatesKey, SignController.EntryList.NONE).values();
     }
 
@@ -203,7 +206,7 @@ public class SignControllerWorld {
         int steps = 0;
         while (true) {
             boolean foundSigns = false;
-            for (SignController.Entry entry : this.findNearby(key)) {
+            for (SignController.Entry entry : this.getNearbySignsUnsafe(key)) {
                 if (verifySignColumnSlice(key, direction, steps == 0, entry)) {
                     foundSigns = true;
 
@@ -253,7 +256,7 @@ public class SignControllerWorld {
         }
 
         long key = LongBlockCoordinates.map(block.getX(), block.getY(), block.getZ());
-        for (SignController.Entry entry : this.findNearby(key)) {
+        for (SignController.Entry entry : this.getNearbySignsUnsafe(key)) {
             if (verifySignColumnSlice(key, direction, true, entry)) {
                 return true;
             }
@@ -300,7 +303,6 @@ public class SignControllerWorld {
 
     /**
      * Verifies whether a particular sign is a part of a rail sign column, or not.
-     * Also checks the sign actually exists still.
      *
      * @param key Block coordinate key
      * @param direction Sign column direction
@@ -313,12 +315,6 @@ public class SignControllerWorld {
         // Find relative direction the sign is at
         BlockFace offset = LongBlockCoordinates.findDirection(entry.blockKey, key);
         if (offset == null) {
-            return false;
-        }
-
-        // Check sign still exists
-        if (!entry.verify()) {
-            entry.removeInvalidEntry();
             return false;
         }
 
@@ -365,7 +361,10 @@ public class SignControllerWorld {
      */
     public void detectNewSigns(Block around) {
         long blockKey = LongBlockCoordinates.map(around);
-        Entry[] nearby = findNearby(blockKey);
+
+        final Entry[] nearby = checkMayHaveSignsNearby(around.getX(), around.getY(), around.getZ(), 1, false)
+                ? getNearbySignsUnsafe(blockKey) : SignController.EntryList.NONE.unsortedValues();
+
         LongBlockCoordinates.forAllBlockSidesAndSelf(blockKey, (face, key) -> {
             // Check not already in the nearby mapping
             for (Entry e : nearby) {
