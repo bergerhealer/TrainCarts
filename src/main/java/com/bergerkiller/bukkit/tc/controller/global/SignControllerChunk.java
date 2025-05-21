@@ -25,6 +25,8 @@ public class SignControllerChunk {
     private SignController.EntryList entriesWithSignActions = null; // Not initialized
     /** Whether all these signs have been registered in the by-neighbouring-blocks logic */
     private LoadLevel neighbouringBlocksLoadLevel = LoadLevel.NOT_LOADED;
+    /** The tick that the entries inside were last verified. At most we try to verify once a tick while in use */
+    private int lastVerifyTick = -1;
 
     public static long getKeyOf(Chunk chunk) {
         return MathUtil.longHashToLong(chunk.getX(), chunk.getZ());
@@ -137,6 +139,19 @@ public class SignControllerChunk {
     }
 
     /**
+     * Calls {@link SignController.Entry#verify()} on all the entries inside this chunk.
+     * Signs that no longer exist are removed. Signs that change text are refreshed.
+     * This includes going between detecting them as TrainCarts signs and not.
+     */
+    public void verifyEntries() {
+        for (SignController.Entry e : getEntries()) {
+            if (!e.verify()) {
+                e.removeInvalidEntry();
+            }
+        }
+    }
+
+    /**
      * Checks whether this chunk has a particular sign nearby a given x/y/z.
      * This checks whether that could be the case, and may also return true when
      * this isn't certain.
@@ -150,9 +165,15 @@ public class SignControllerChunk {
      *                            feature sign actions (redstone events, train activation).
      *                            Should be false when looking for all signs, such as is the
      *                            case for "signs below sign" extended text logic.
+     * @param currentTick Current server tick value. Used to auto-verify signs periodically.
      * @return True if signs might be nearby
      */
-    public boolean checkMayHaveSigns(int x, int y, int z, boolean mustHaveSignActions) {
+    public boolean checkMayHaveSigns(int x, int y, int z, boolean mustHaveSignActions, int currentTick) {
+        if (currentTick != lastVerifyTick) {
+            lastVerifyTick = currentTick;
+            verifyEntries();
+        }
+
         SignController.EntryList entries;
         if (mustHaveSignActions) {
             // Cache a separate list of entries that have sign action events

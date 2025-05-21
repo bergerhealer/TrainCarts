@@ -263,7 +263,7 @@ public class SignController implements LibraryComponent, Listener {
                 entry.sign.update();
             }
             if (!entry.verifyAfterUpdate(true, true)) {
-                worldController.removeInvalidEntry(entry);
+                entry.removeInvalidEntry();
             }
         }
     }
@@ -806,9 +806,20 @@ public class SignController implements LibraryComponent, Listener {
         }
 
         /**
+         * Removes this entry from the by-chunk and neighbouring blocks mapping
+         */
+        void removeInvalidEntry() {
+            // Remove entry from by-chunk mapping
+            chunk.removeEntry(this);
+            unregisterInNeighbouringBlocks();
+            // Event handling
+            this.onRemoved();
+        }
+
+        /**
          * Called when the Entry is removed from a cache
          */
-        void remove() {
+        void onRemoved() {
             this.redstoneUpdateTracker.untrack();
             this.ignoreRedstoneUpdateTracker.untrack();
         }

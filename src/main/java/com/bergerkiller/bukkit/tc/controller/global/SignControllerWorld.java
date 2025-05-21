@@ -11,6 +11,7 @@ import java.util.function.LongUnaryOperator;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
@@ -165,15 +166,14 @@ public class SignControllerWorld {
      * @param handler
      */
     public void forEachNearbyVerify(Block block, boolean mustHaveSignActions, Consumer<SignController.Entry> handler) {
+        // Note: findNearby already does verification every tick as part of the chunk refreshing
+        // This must happen there because whether entries can be found near blocks or not can also change
+        // when the sign goes from being a TrainCarts sign to not.
         for (SignController.Entry entry : this.findNearby(block, mustHaveSignActions)) {
-            if (entry.verify()) {
-                if (mustHaveSignActions && !entry.hasSignActionEvents()) {
-                    continue;
-                }
-                handler.accept(entry);
-            } else {
-                removeInvalidEntry(entry);
+            if (mustHaveSignActions && !entry.hasSignActionEvents()) {
+                continue;
             }
+            handler.accept(entry);
         }
     }
 
@@ -274,23 +274,25 @@ public class SignControllerWorld {
      * @return True if signs might be nearby. False if there definitely are no signs.
      */
     private boolean checkMayHaveSignsNearby(int x, int y, int z, int border, boolean mustHaveSignActions) {
+        int serverTick = CommonUtil.getServerTicks();
+
         boolean result;
         int cx = x >> 4;
         int cz = z >> 4;
-        result = getSignChunk(cx, cz).checkMayHaveSigns(x, y, z, mustHaveSignActions);
+        result = getSignChunk(cx, cz).checkMayHaveSigns(x, y, z, mustHaveSignActions, serverTick);
 
         int bx = x & 0xF;
         if (bx <= border) {
-            result |= getSignChunk(cx - 1, cz).checkMayHaveSigns(x, y, z, mustHaveSignActions);
+            result |= getSignChunk(cx - 1, cz).checkMayHaveSigns(x, y, z, mustHaveSignActions, serverTick);
         } else if (bx >= (15-border)) {
-            result |= getSignChunk(cx + 1, cz).checkMayHaveSigns(x, y, z, mustHaveSignActions);
+            result |= getSignChunk(cx + 1, cz).checkMayHaveSigns(x, y, z, mustHaveSignActions, serverTick);
         }
 
         int bz = z & 0xF;
         if (bz <= border) {
-            result |= getSignChunk(cx, cz - 1).checkMayHaveSigns(x, y, z, mustHaveSignActions);
+            result |= getSignChunk(cx, cz - 1).checkMayHaveSigns(x, y, z, mustHaveSignActions, serverTick);
         } else if (bz >= (15-border)) {
-            result |= getSignChunk(cx, cz + 1).checkMayHaveSigns(x, y, z, mustHaveSignActions);
+            result |= getSignChunk(cx, cz + 1).checkMayHaveSigns(x, y, z, mustHaveSignActions, serverTick);
         }
 
         return result;
@@ -316,7 +318,7 @@ public class SignControllerWorld {
 
         // Check sign still exists
         if (!entry.verify()) {
-            removeInvalidEntry(entry);
+            entry.removeInvalidEntry();
             return false;
         }
 
@@ -350,7 +352,7 @@ public class SignControllerWorld {
         } else {
             // Doesn't map to either legacy wall or sign post type
             // Assume it's not a sign at all and remove it
-            this.removeInvalidEntry(entry);
+            entry.removeInvalidEntry();
             return false;
         }
     }
@@ -418,7 +420,7 @@ public class SignControllerWorld {
                 if (existing.verifyBeforeSignChange(frontText)) {
                     return existing;
                 } else {
-                    removeInvalidEntry(existing);
+                    existing.removeInvalidEntry();
                     existing = null;
                 }
             }
@@ -428,7 +430,7 @@ public class SignControllerWorld {
                     controller.activateEntry(existing, true, true);
                     return existing;
                 } else {
-                    removeInvalidEntry(existing);
+                    existing.removeInvalidEntry();
                     existing = null;
                 }
             }
@@ -502,6 +504,9 @@ public class SignControllerWorld {
                     // Remove from the offline signs cache as well
                     controller.getPlugin().getOfflineSigns().removeAll(entry.sign.getBlock());
                     numRemoved++;
+
+                    // Event handling
+                    entry.onRemoved();
                 }
             }
         }
@@ -531,7 +536,7 @@ public class SignControllerWorld {
     void clear() {
         for (SignControllerChunk chunk : this.signChunks.values()) {
             for (SignController.Entry e : chunk.getEntries()) {
-                e.remove();
+                e.onRemoved();
             }
         }
         this.signChunks.clear();
@@ -613,7 +618,7 @@ public class SignControllerWorld {
                     } else {
                         // Sign is gone. Remove it.
                         // Won't modify the immutable entries array.
-                        signChunk.removeEntry(entry);
+                        entry.removeInvalidEntry();
                     }
                 }
             }
@@ -742,12 +747,6 @@ public class SignControllerWorld {
                 entry.unregisterInNeighbouringBlocks(true);
             }
         }
-    }
-
-    void removeInvalidEntry(SignController.Entry entry) {
-        // Remove entry from by-chunk mapping
-        entry.chunk.removeEntry(entry);
-        entry.unregisterInNeighbouringBlocks();
     }
 
     protected void removeChunkByBlockEntry(SignController.Entry entry, long key) {
