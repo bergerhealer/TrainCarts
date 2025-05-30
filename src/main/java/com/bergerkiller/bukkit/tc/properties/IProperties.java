@@ -443,7 +443,20 @@ public interface IProperties extends IParsable, TrainCarts.Provider {
      * 
      * @return next destination on the route, empty String if none exists
      */
-    String getNextDestinationOnRoute();
+    default String getNextDestinationOnRoute() {
+        return getNextDestinationOnRoute(this.getDestination());
+    }
+
+    /**
+     * Gets the next destination on the route set at {@link #getDestinationRoute()}.
+     * If no route is set, or the current destination of this train is not part
+     * of the route, then an empty String is returned.
+     *
+     * @param currentDestination The current destination, of which the next one needs
+     *                           tp be picked.
+     * @return next destination on the route, empty String if none exists
+     */
+    String getNextDestinationOnRoute(String currentDestination);
 
     /**
      * Sets the Enter Message displayed when a player enters

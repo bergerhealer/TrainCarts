@@ -952,6 +952,16 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     @Override
+    public String getNextDestinationOnRoute(String currentDestination) {
+        for (CartProperties prop : this) {
+            if (!prop.getDestinationRoute().isEmpty()) {
+                return prop.getNextDestinationOnRoute(currentDestination);
+            }
+        }
+        return "";
+    }
+
+    @Override
     public void clearDestination() {
         for (CartProperties prop : this) {
             prop.clearDestination();

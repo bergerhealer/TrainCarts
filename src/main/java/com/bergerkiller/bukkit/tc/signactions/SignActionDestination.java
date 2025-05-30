@@ -128,18 +128,21 @@ public class SignActionDestination extends TrainCartsSignAction {
         // If the destination name of the sign itself is empty, then this sign
         // always sets the destination to what is on the sign.
         // This acts similar to the property destination sign
-        if (info.getLine(2).isEmpty()) {
+        String signDestination = info.getLine(2);
+        if (signDestination.isEmpty()) {
             return newDestination;
         }
 
         // If the destination of this sign is not one the train is going for,
         // do not set a new destination just yet.
-        if (cart.hasDestination() && !cart.getDestination().equals(info.getLine(2))) {
+        if (cart.hasDestination() && !cart.getDestination().equals(signDestination)) {
             return null;
         }
 
-        // Use next destination on route if one is used, otherwise use the fourth line for it
-        String nextOnRoute = cart.getNextDestinationOnRoute();
+        // Pick the next destination on the route from the name of the destination sign triggered
+        // The train had no destination set yet, picks the next one assuming it activated a route
+        // starting with this destination sign.
+        String nextOnRoute = cart.getNextDestinationOnRoute(signDestination);
 
         // If this sign does not declare a destination of itself, and the cart has a destination
         // that is not part of the route, assume that the route should be restarted anyways.

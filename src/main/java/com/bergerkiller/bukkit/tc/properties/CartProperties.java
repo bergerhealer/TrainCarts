@@ -586,7 +586,7 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
     }
 
     @Override
-    public String getNextDestinationOnRoute() {
+    public String getNextDestinationOnRoute(String currentDestination) {
         List<String> destinationRoute = this.getDestinationRoute();
         if (destinationRoute.isEmpty()) {
             return "";
@@ -601,18 +601,17 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
 
         // If no destination is set, then we go to whatever index we were last at
         // By default this is 0 (start of the route)
-        String destination = this.getDestination();
-        if (destination.isEmpty()) {
+        if (currentDestination == null || currentDestination.isEmpty()) {
             return destinationRoute.get(destinationRouteIndex);
         }
 
         int index;
-        if (destination.equals(destinationRoute.get(destinationRouteIndex))) {
+        if (currentDestination.equals(destinationRoute.get(destinationRouteIndex))) {
             // If current destination matches the current route at the index, pick next one in the list
             index = destinationRouteIndex;
         } else {
             // Index is wrong / out of order destination, pick first one that matches
-            index = destinationRoute.indexOf(destination);
+            index = destinationRoute.indexOf(currentDestination);
             if (index == -1) {
                 return ""; // it's not on the route!
             }
