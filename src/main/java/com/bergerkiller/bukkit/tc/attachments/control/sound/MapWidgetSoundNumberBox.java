@@ -28,7 +28,7 @@ public abstract class MapWidgetSoundNumberBox extends MapWidgetSoundElement impl
     private double defaultValue = 0.0;
     private double _incr = 0.01;
     private double _min = 0.0;
-    private double _max = 5.0;
+    private double _max = 100.0;
     private int _holdEnterProgress = 0;
     private int _holdEnterMaximum = 15;
 
