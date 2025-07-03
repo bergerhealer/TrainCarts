@@ -37,7 +37,7 @@ public enum InteractType {
         return Stream.concat(
                    Stream.concat(
                        Stream.of(COLLECT_TARGETS),
-                       Stream.of(COLLECT_TARGETS)
+                       Stream.of(DEPOSIT_TARGETS)
                    ).map(target -> target.prefix),
                    Stream.of("collect", "deposit")
                ).toArray(String[]::new);
