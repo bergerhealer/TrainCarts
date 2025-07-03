@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.stream.Stream;
 
 /**
@@ -51,7 +52,7 @@ public enum InteractType {
      * @return A collection of InteractTypes represented
      */
     public static Collection<InteractType> parse(String root, String name) {
-        name = name.toLowerCase();
+        name = name.toLowerCase(Locale.ENGLISH);
         LinkedHashSet<InteractType> typesToCheck = new LinkedHashSet<>();
         if (root.equals("collect")) {
             for (TargetInOut target : COLLECT_TARGETS) {
