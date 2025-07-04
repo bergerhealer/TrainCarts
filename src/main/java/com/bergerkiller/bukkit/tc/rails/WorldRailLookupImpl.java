@@ -526,7 +526,9 @@ final class WorldRailLookupImpl implements WorldRailLookup {
         // Query the registered Rail Types for whether they exist at this position
         Block positionBlock = positionOfflineBlock.getLoadedBlock();
         if (positionBlock == null) {
-            if (!this.isValid()) {
+            if (this.isValid()) {
+                return NO_RAILS_AT_POSITION; // World not loaded?
+            } else {
                 throw new ClosedException();
             }
         }
