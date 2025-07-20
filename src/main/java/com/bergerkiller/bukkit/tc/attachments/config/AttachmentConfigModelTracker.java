@@ -124,11 +124,15 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
     private DeepAttachmentConfig createAttachmentConfig(PositionAccess position, DeepAttachmentConfig parent, AttachmentConfig base, List<AttachmentConfig.RootReference> modelRoots) {
         if (base == null) {
             throw new IllegalArgumentException("Base attachment configuration cannot be null");
-        } else if (base instanceof AttachmentConfig.Model) {
-            return new DeepModelAttachmentConfig(position, parent, (AttachmentConfig.Model) base, modelRoots);
-        } else {
-            return new DeepAttachmentConfig(position, parent, base, modelRoots);
         }
+        DeepAttachmentConfig config;
+        if (base instanceof AttachmentConfig.Model) {
+            config = new DeepModelAttachmentConfig(position, parent, (AttachmentConfig.Model) base, modelRoots);
+        } else {
+            config = new DeepAttachmentConfig(position, parent, base);
+        }
+        config.initChildren(modelRoots);
+        return config;
     }
 
     /**
@@ -149,23 +153,27 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
          * @param position Parent-to-child and yaml path position information
          * @param parent Parent attachment, null for root
          * @param base Base attachment that this deep attachment proxies
-         * @param modelRoots List of model attachment root references. Is null when
-         *                   tracked using change listeners, is a list to add roots to
-         *                   when creating an untracked configuration snapshot.
          */
         public DeepAttachmentConfig(
                 PositionAccess position,
                 DeepAttachmentConfig parent,
-                AttachmentConfig base,
-                List<AttachmentConfig.RootReference> modelRoots)
+                AttachmentConfig base)
         {
             this.position = position;
             this.parent = parent;
             this.base = base;
+            this.children = new ArrayList<>(base.children().size() + 1);
+        }
 
-            List<AttachmentConfig> baseChildren = base.children();
-            this.children = new ArrayList<>(baseChildren.size() + 1);
-            for (AttachmentConfig baseChild : baseChildren) {
+        /**
+         * Initializes the child models of this model
+         *
+         * @param modelRoots List of model attachment root references. Is null when
+         *                   tracked using change listeners, is a list to add roots to
+         *                   when creating an untracked configuration snapshot.
+         */
+        public void initChildren(List<AttachmentConfig.RootReference> modelRoots) {
+            for (AttachmentConfig baseChild : base.children()) {
                 this.children.add(createAttachmentConfig(position.forChildren(), this, baseChild, modelRoots));
             }
         }
@@ -363,7 +371,7 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
         private DeepAttachmentConfig modelChild;
 
         public DeepModelAttachmentConfig(PositionAccess position, DeepAttachmentConfig parent, AttachmentConfig.Model base, List<AttachmentConfig.RootReference> modelRoots) {
-            super(position, parent, base, modelRoots);
+            super(position, parent, base);
             this.baseModel = base;
 
             // Check this name isn't already used. If it is, abort adding the base model
