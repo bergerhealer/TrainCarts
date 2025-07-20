@@ -125,6 +125,7 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
         if (base == null) {
             throw new IllegalArgumentException("Base attachment configuration cannot be null");
         }
+
         DeepAttachmentConfig config;
         if (base instanceof AttachmentConfig.Model) {
             config = new DeepModelAttachmentConfig(position, parent, (AttachmentConfig.Model) base, modelRoots);
@@ -367,6 +368,7 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
      */
     private class DeepModelAttachmentConfig extends DeepAttachmentConfig implements AttachmentConfig.Model {
         private final AttachmentConfig.Model baseModel;
+        private final AttachmentConfigTracker modelTracker;
         private final DeepAttachmentTrackerProxy proxy;
         private DeepAttachmentConfig modelChild;
 
@@ -378,30 +380,19 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
             if (parent != null && parent.isModelUsed(base.modelName())) {
                 this.modelChild = null;
                 this.proxy = null;
+                this.modelTracker = null;
                 return;
             }
 
             // Find the configuration tracker to use for this model name
-            AttachmentConfigTracker modelTracker = findModelConfig(base.modelName());
+            this.modelTracker = findModelConfig(base.modelName());
 
             // If modelRoots is not null, then this configuration is a snapshot, and all we got to
             // do is retrieve the current root snapshot and create its configuration elements.
             // The proxy field will remain null / unset
+            //
+            // Extra logic is handled in initChildren()
             if (modelRoots != null) {
-                AttachmentConfig.RootReference modelRoot = modelTracker.getRoot();
-                modelRoots.add(modelRoot);
-
-                // Do not load in empty configurations as model childs
-                if (modelRoot.get().isEmptyConfig()) {
-                    this.modelChild = null;
-                    this.proxy = null;
-                    return;
-                }
-
-                // Has a valid configuration, load it in
-                this.modelChild = createAttachmentConfig(new PositionAccessModelChild(DeepModelAttachmentConfig.this),
-                        DeepModelAttachmentConfig.this, modelRoot.get(), modelRoots);
-                this.children.add(this.modelChild);
                 this.proxy = null;
                 return;
             }
@@ -427,9 +418,39 @@ public abstract class AttachmentConfigModelTracker extends AttachmentConfigTrack
                     }
                 }
             };
+        }
+
+        @Override
+        public void initChildren(List<AttachmentConfig.RootReference> modelRoots) {
+            // Is null if an infinite recursion is detected, don't add children either.
+            if (modelTracker == null) {
+                return;
+            }
+
+            // Load in the direct children of this model first
+            super.initChildren(modelRoots);
+
+            // Then the model itself
+            if (modelRoots != null) {
+                AttachmentConfig.RootReference modelRoot = modelTracker.getRoot();
+                modelRoots.add(modelRoot);
+
+                // Do not load in empty configurations as model childs
+                if (modelRoot.get().isEmptyConfig()) {
+                    this.modelChild = null;
+                    return;
+                }
+
+                // Has a valid configuration, load it in
+                this.modelChild = createAttachmentConfig(new PositionAccessModelChild(DeepModelAttachmentConfig.this),
+                        DeepModelAttachmentConfig.this, modelRoot.get(), modelRoots);
+                this.children.add(this.modelChild);
+            }
 
             // Initialize the model child and start tracking changes that happen
-            this.proxy.start();
+            if (this.proxy != null) {
+                this.proxy.start();
+            }
         }
 
         @Override
