@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.global;
 
+import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PlayerGameInfo;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -32,7 +33,7 @@ class BundlerPacketQueue extends PacketQueue {
     protected BundlerPacketQueue(TrainCarts plugin, Player player, PlayerGameInfo playerGameInfo, CircularFIFOQueue<CommonPacket> queue) {
         super(plugin, player, playerGameInfo, queue);
         this.buffer = new Object[256];
-        this.supportsDisplayEntityLocationInterpolation = this.evaluateGameVersion(">=", "1.20.2");
+        this.supportsDisplayEntityLocationInterpolation = CommonCapabilities.HAS_DISPLAY_ENTITY_LOCATION_INTERPOLATION && this.evaluateGameVersion(">=", "1.20.2");
     }
 
     /**
