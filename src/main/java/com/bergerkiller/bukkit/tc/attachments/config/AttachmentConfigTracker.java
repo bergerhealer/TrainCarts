@@ -14,8 +14,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -32,6 +34,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
     private final SyncTask syncTask;
     private final Map<ConfigurationNode, TrackedAttachmentConfig> byConfig;
     private final List<AttachmentConfig.Change> pendingChanges;
+    private final Set<TrackedAttachmentConfig> attachmentsWithChanges = new LinkedHashSet<>();
     private boolean isSynchronizing = false;
     private TrackedAttachmentConfig root;
     private int modificationCount = 0;
@@ -96,7 +99,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         root = createNewRoot(completeConfig);
         root.addToTracker();
         completeConfig.addChangeListener(this);
-        pendingChanges.clear();
+        resetChanges();
         modificationCount++;
     }
 
@@ -105,11 +108,16 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         modificationCount++;
         completeConfig.removeChangeListener(this);
         completeConfig = null;
-        pendingChanges.clear();
+        resetChanges();
         root = null;
         if (syncTask != null) {
             syncTask.cancel();
         }
+    }
+
+    private void resetChanges() {
+        pendingChanges.clear();
+        attachmentsWithChanges.clear();
     }
 
     @Override
@@ -209,6 +217,16 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         try {
             processYamlChanges();
 
+            // Process the CHANGED messages. Skip those of attachment configurations that have been removed.
+            if (!attachmentsWithChanges.isEmpty()) {
+                for (TrackedAttachmentConfig config : attachmentsWithChanges) {
+                    if (!config.isRemoved()) {
+                        addChange(AttachmentConfig.ChangeType.CHANGED, config);
+                    }
+                }
+                attachmentsWithChanges.clear();
+            }
+
             // Notify all the changes we've gathered to all registered listeners
             if (!pendingChanges.isEmpty()) {
                 // Add a SYNCHRONIZED change at the end
@@ -218,7 +236,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
             }
         } finally {
             isSynchronizing = false;
-            pendingChanges.clear();
+            resetChanges();
         }
     }
 
@@ -228,7 +246,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
         {
             ConfigurationNode config = completeConfigSupplier.get();
             if (config != completeConfig) {
-                pendingChanges.clear();
+                resetChanges();
                 completeConfig.removeChangeListener(this);
                 completeConfig = config;
                 root.swap(createNewRoot(config));
@@ -466,7 +484,7 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
             parent.children.remove(this);
             this.removeFromTracker();
 
-            // Recalculate child indicates of parent attachments
+            // Recalculate child indices of parent attachments
             int size = parent.children.size();
             for (int i = 0; i < size; i++) {
                 parent.children.get(i).childIndex = i;
@@ -557,7 +575,11 @@ public class AttachmentConfigTracker extends AttachmentConfigTrackerBase impleme
                 if (configChanged) {
                     configChanged = false;
                     if (handleLoad()) {
-                        addChange(ChangeType.CHANGED, this);
+                        // We track all CHANGED messages separately, so that if further REMOVE/ADD occur,
+                        // the index isn't all messed up and errors occur later on in handling it.
+                        // This also avoids handling a CHANGED for attachments that are then just removed
+                        // again.
+                        attachmentsWithChanges.add(this);
 
                         // If this attachment had attachments, but now the 'attachments' field is gone,
                         // OR the attachment had no attachments but now the 'attachments' field exists,
