@@ -115,10 +115,6 @@ public class AttachmentConfigTrackerTest {
                     .assertConfig(cfg -> assertEquals("item4", cfg.get("itemstack", "")))
                     .assertNoMoreChildren();
 
-            // Second item changed itemstack value
-            tracker.assertChanged("ITEM", 1)
-                    .assertConfig(cfg -> assertEquals("item5", cfg.get("itemstack", "")));
-
             // Second item had 3 children, which are now removed. These removals should happen now.
             tracker.assertRemoved("ITEM", 1, 0)
                     .assertNoMoreChildren();
@@ -126,6 +122,10 @@ public class AttachmentConfigTrackerTest {
                     .assertNoMoreChildren();
             tracker.assertRemoved("ITEM", 1, 0)
                     .assertNoMoreChildren();
+
+            // Second item changed itemstack value
+            tracker.assertChanged("ITEM", 1)
+                    .assertConfig(cfg -> assertEquals("item5", cfg.get("itemstack", "")));
 
             // Done
             tracker.assertSynchronized("EMPTY");
@@ -147,10 +147,6 @@ public class AttachmentConfigTrackerTest {
             tracker.assertAdded("SEAT", 0)
                     .assertNoMoreChildren();
 
-            // Second attachment changed itemstack (now mid item)
-            tracker.assertChanged("ITEM", 1)
-                    .assertConfig(cfg -> assertEquals("miditem", cfg.get("itemstack", "")));
-
             // Now the three items are re-added
             tracker.assertAdded("ITEM", 1, 0)
                     .assertConfig(cfg -> assertEquals("item1", cfg.get("itemstack", "")))
@@ -161,6 +157,10 @@ public class AttachmentConfigTrackerTest {
             tracker.assertAdded("ITEM", 1, 2)
                     .assertConfig(cfg -> assertEquals("item3", cfg.get("itemstack", "")))
                     .assertNoMoreChildren();
+
+            // Second attachment changed itemstack (now mid item)
+            tracker.assertChanged("ITEM", 1)
+                    .assertConfig(cfg -> assertEquals("miditem", cfg.get("itemstack", "")));
 
             // Done
             tracker.assertSynchronized("EMPTY");
@@ -392,12 +392,13 @@ public class AttachmentConfigTrackerTest {
         woo.getNodeList("attachments").add(mid);
 
         tracker.sync();
-        tracker.assertChanged("WOO", 1); // Changed because we added the "attachments" field
-                                                      // TODO: Do we try to fix this or nah?
+
         tracker.assertAdded("EMPTY", 1, 0)
                .assertChild("SEAT")
                .assertChild("ITEM")
                .assertNoMoreChildren();
+        tracker.assertChanged("WOO", 1); // Changed because we added the "attachments" field
+                                                      // TODO: Do we try to fix this or nah?
         tracker.assertSynchronized("ENTITY");
         tracker.assertNone();
     }

@@ -291,11 +291,11 @@ public class AttachmentConfigModelTrackerTest {
             item.getNodeList("attachments").add(newAttachment);
 
             tracker.sync();
-            tracker.assertChanged("ITEM", 0, 0, 1); // Because of creating the 'attachments' field
             tracker.assertAdded("MAINADD", 0, 0, 1, 0)
                     .assertChild("SUBADDONE")
                     .assertChild("SUBADDTWO")
                     .assertNoMoreChildren();
+            tracker.assertChanged("ITEM", 0, 0, 1); // Because of creating the 'attachments' field
             tracker.assertSynchronized("MODEL");
             tracker.assertNone();
         }
@@ -360,11 +360,11 @@ public class AttachmentConfigModelTrackerTest {
             item.getNodeList("attachments").add(newAttachment);
 
             tracker.sync();
-            tracker.assertChanged("ITEM", 0, 1); // Because of creating the 'attachments' field
             tracker.assertAdded("MAINADD", 0, 1, 0)
                     .assertChild("SUBADDONE")
                     .assertChild("SUBADDTWO")
                     .assertNoMoreChildren();
+            tracker.assertChanged("ITEM", 0, 1); // Because of creating the 'attachments' field
             tracker.assertSynchronized("ENTITY");
             tracker.assertNone();
         }
