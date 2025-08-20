@@ -5,8 +5,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.cloud.CloudLocalizedException;
 import com.bergerkiller.bukkit.common.cloud.parsers.QuotedArgumentParser;
 import com.bergerkiller.bukkit.tc.Util;
@@ -44,6 +46,7 @@ import org.incendo.cloud.component.CommandComponent;
 import org.incendo.cloud.context.CommandContext;
 import org.incendo.cloud.context.CommandInput;
 import org.incendo.cloud.parser.ArgumentParseResult;
+import org.incendo.cloud.parser.ArgumentParser;
 import org.incendo.cloud.parser.ParserParameters;
 import org.incendo.cloud.services.type.ConsumerService;
 import org.incendo.cloud.suggestion.BlockingSuggestionProvider;
@@ -52,6 +55,29 @@ import org.incendo.cloud.suggestion.BlockingSuggestionProvider;
  * Commands to modify an existing saved train
  */
 public class SavedTrainCommands {
+    //TODO: Adds support for this for older BKCL builds which didn't have this API
+    public static final Function<ArgumentParser<?, ?>, QuotedArgumentParser<?, ?>> TO_QUOTED_ARGUMENT_PARSER = getToQuotedArgumentParserMethod();
+    private static Function<ArgumentParser<?, ?>, QuotedArgumentParser<?, ?>> getToQuotedArgumentParserMethod() {
+        if (Common.hasCapability("Common:Cloud:QuotedArgumentParserFromParser")) {
+            return QuotedArgumentParser::getFromParser;
+        } else {
+            return parser -> {
+                if (parser == null) {
+                    return null;
+                } else if (!parser.getClass().getName().equals("com.bergerkiller.bukkit.common.cloud.parsers.QuotedArgumentParserProxy")) {
+                    return null;
+                }
+
+                try {
+                    java.lang.reflect.Field f = parser.getClass().getDeclaredField("parser");
+                    f.setAccessible(true);
+                    return (QuotedArgumentParser<?, ?>) f.get(parser);
+                } catch (Throwable t) {
+                    return null;
+                }
+            };
+        }
+    }
 
     @Suggestions("savedtrainmodules")
     public List<String> getSavedTrainModuleNames(final CommandContext<CommandSender> context, final String input) {
@@ -78,7 +104,7 @@ public class SavedTrainCommands {
             // Find SavedTrainPropertiesParser. If used, process the post-logic code down below.
             SavedTrainPropertiesParser parser = postProcessContext.command().components().stream()
                     .map(CommandComponent::parser)
-                    .map(Util.TO_QUOTED_ARGUMENT_PARSER)
+                    .map(TO_QUOTED_ARGUMENT_PARSER)
                     .filter(SavedTrainPropertiesParser.class::isInstance)
                     .map(SavedTrainPropertiesParser.class::cast)
                     .findFirst().orElse(null);
