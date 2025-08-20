@@ -23,6 +23,7 @@ import java.util.function.Predicate;
 import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.common.Common;
+import com.bergerkiller.bukkit.common.cloud.parsers.QuotedArgumentParser;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
@@ -88,6 +89,7 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bergerkiller.generated.net.minecraft.server.level.EntityTrackerEntryStateHandle;
 import com.bergerkiller.generated.net.minecraft.world.level.chunk.ChunkHandle;
 import com.bergerkiller.generated.net.minecraft.world.phys.AxisAlignedBBHandle;
+import org.incendo.cloud.parser.ArgumentParser;
 
 public class Util {
     public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
@@ -2215,5 +2217,29 @@ public class Util {
                 || c >= 'a' && c <= 'z'
                 || c == '_' || c == '-'
                 || c == '.' || c == '+';
+    }
+
+    //TODO: Adds support for this for older BKCL builds which didn't have this API
+    public static final Function<ArgumentParser<?, ?>, QuotedArgumentParser<?, ?>> TO_QUOTED_ARGUMENT_PARSER = getToQuotedArgumentParserMethod();
+    private static Function<ArgumentParser<?, ?>, QuotedArgumentParser<?, ?>> getToQuotedArgumentParserMethod() {
+        if (Common.hasCapability("Common:Cloud:QuotedArgumentParserFromParser")) {
+            return QuotedArgumentParser::getFromParser;
+        } else {
+            return parser -> {
+                if (parser == null) {
+                    return null;
+                } else if (!parser.getClass().getName().equals("com.bergerkiller.bukkit.common.cloud.parsers.QuotedArgumentParserProxy")) {
+                    return null;
+                }
+
+                try {
+                    java.lang.reflect.Field f = parser.getClass().getDeclaredField("parser");
+                    f.setAccessible(true);
+                    return (QuotedArgumentParser<?, ?>) f.get(parser);
+                } catch (Throwable t) {
+                    return null;
+                }
+            };
+        }
     }
 }

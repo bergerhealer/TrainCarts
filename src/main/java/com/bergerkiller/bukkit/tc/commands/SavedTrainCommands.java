@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import com.bergerkiller.bukkit.common.cloud.CloudLocalizedException;
 import com.bergerkiller.bukkit.common.cloud.parsers.QuotedArgumentParser;
+import com.bergerkiller.bukkit.tc.Util;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -77,6 +78,7 @@ public class SavedTrainCommands {
             // Find SavedTrainPropertiesParser. If used, process the post-logic code down below.
             SavedTrainPropertiesParser parser = postProcessContext.command().components().stream()
                     .map(CommandComponent::parser)
+                    .map(Util.TO_QUOTED_ARGUMENT_PARSER)
                     .filter(SavedTrainPropertiesParser.class::isInstance)
                     .map(SavedTrainPropertiesParser.class::cast)
                     .findFirst().orElse(null);
