@@ -157,10 +157,11 @@ public class SignActionTeleport extends SignAction {
                 .setName("train teleporter")
                 .setDescription("teleport trains large distances to another teleporter sign")
                 .setTraincartsWIKIHelp("TrainCarts/Signs/Teleporter")
+                .setShowBuildMessage(event.hasRails())
                 .handle(event);
     }
 
     private boolean matchMyWorlds(SignActionEvent info) {
-        return info.getHeader().getModeText().equals("portal") && info.hasRails();
+        return info.getHeader().getModeText().equals("portal");
     }
 }

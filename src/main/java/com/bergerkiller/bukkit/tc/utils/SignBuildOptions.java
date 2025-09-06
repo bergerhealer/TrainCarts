@@ -17,6 +17,7 @@ import com.bergerkiller.bukkit.tc.Localization;
  * called to handle everything.
  */
 public class SignBuildOptions {
+    private boolean showBuildMessage = true;
     private String permission = null;
     private String name = null;
     private String helpURL = null;
@@ -133,6 +134,18 @@ public class SignBuildOptions {
     }
 
     /**
+     * Sets whether to show a successful build message to the player when permissions are met.
+     * By default is true.
+     *
+     * @param show True to show the build message (as configured)
+     * @return this
+     */
+    public SignBuildOptions setShowBuildMessage(boolean show) {
+        this.showBuildMessage = show;
+        return this;
+    }
+
+    /**
      * Checks that the player has permission to build this type of sign at all.
      * Sends a message indicating the player can't if this returns false.
      *
@@ -156,6 +169,10 @@ public class SignBuildOptions {
      * @param player The player to send the build message to
      */
     public void showBuildMessage(Player player) {
+        if (!showBuildMessage) {
+            return;
+        }
+
         // Tell what sign was just built
         if (name != null) {
             ChatText message = ChatText.fromMessage(ChatColor.YELLOW + "You built a ");
