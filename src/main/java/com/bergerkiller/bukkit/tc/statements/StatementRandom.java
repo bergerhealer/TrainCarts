@@ -32,7 +32,7 @@ public class StatementRandom extends Statement {
             }
             chance = MathUtil.clamp(chance, 0.0, 1.0);
         }
-        return Math.random() <= chance;
+        return Math.random() < chance;
     }
 
     @Override
