@@ -148,6 +148,32 @@ public interface EffectLoop {
         default void play(EffectLoop loop) {
             play(loop, RunMode.ASYNCHRONOUS);
         }
+
+        /**
+         * Schedules a callback to be called asynchronously after a delay has elapsed
+         * in this player.
+         *
+         * @param delay Time delay until the task callback runs
+         * @param task Task callback
+         * @return DelayedEffectTask which can be run right away or cancelled
+         */
+        default DelayedEffectTask scheduleTask(Time delay, Runnable task) {
+            return scheduleTask(delay, task, RunMode.ASYNCHRONOUS);
+        }
+
+        /**
+         * Schedules a callback to be called after a delay has elapsed in this player.
+         *
+         * @param delay Time delay until the task callback runs
+         * @param task Task callback
+         * @param runMode Running mode (synchronous or asynchronous)
+         * @return DelayedEffectTask which can be run right away or cancelled
+         */
+        default DelayedEffectTask scheduleTask(Time delay, Runnable task, EffectLoop.RunMode runMode) {
+            DelayedEffectTask delayedTask = new DelayedEffectTask(delay, task);
+            play(delayedTask, runMode);
+            return delayedTask;
+        }
     }
 
     /**
@@ -162,6 +188,7 @@ public interface EffectLoop {
             }
         };
         public static final Time ONE_TICK = nanos(50000000L);
+        public static final Time NEVER = new Time(Double.MAX_VALUE, Long.MAX_VALUE);
         public final double seconds;
         public final long nanos;
 
@@ -174,12 +201,15 @@ public interface EffectLoop {
         }
 
         private Time(double seconds) {
-            this.seconds = seconds;
-            this.nanos = (long) (seconds * 1_000_000_000.0);
+            this(seconds, (long) (seconds * 1_000_000_000.0));
         }
 
         private Time(long nanos) {
-            this.seconds = (double) nanos / 1_000_000_000.0;
+            this((double) nanos / 1_000_000_000.0, nanos);
+        }
+
+        private Time(double seconds, long nanos) {
+            this.seconds = seconds;
             this.nanos = nanos;
         }
 
@@ -190,6 +220,16 @@ public interface EffectLoop {
          */
         public boolean isZero() {
             return nanos == 0L;
+        }
+
+        /**
+         * Gets whether this is a 'never' duration. One that indicates it should
+         * never occur. The time is set to the maximum possible.
+         *
+         * @return True if never
+         */
+        public boolean isNever() {
+            return nanos == Long.MAX_VALUE;
         }
 
         /**
@@ -279,6 +319,17 @@ public interface EffectLoop {
                 return ((Time) o).nanos == nanos;
             } else {
                 return false;
+            }
+        }
+
+        @Override
+        public String toString() {
+            if (isNever()) {
+                return "Time{NEVER}";
+            } else if (isZero()) {
+                return "Time{ZERO}";
+            } else {
+                return String.format("Time{%.3f seconds, %d nanos}", seconds, nanos);
             }
         }
     }

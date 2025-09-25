@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentNameLookup;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentSelection;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentSelector;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
+import com.bergerkiller.bukkit.tc.attachments.control.effect.DelayedEffectTask;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.EffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.ScheduledEffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.control.sequencer.MapWidgetSequencerConfigurationMenu;
@@ -34,6 +35,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 /**
@@ -165,6 +167,7 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
     private static final int STATE_STOP_REQUESTED = 2;
     private static final int STATE_IMMEDIATE_STOP_REQUESTED = 3;
 
+    private final EffectLoop.Player player = TrainCarts.plugin.getEffectLoopPlayerController().createPlayer(20);
     private final SequencerTransferFunctionHost functionHost = new SequencerTransferFunctionHost();
     private final EnumMap<SequencerMode, SequencerGroup> sequencerGroups;
     private SequencerGroup currentGroup;
@@ -195,6 +198,9 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
     @Override
     public void onDetached() {
         immediateStop();
+        for (SequencerGroup group : sequencerGroups.values()) {
+            group.onDetached();
+        }
     }
 
     /**
@@ -243,7 +249,6 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
             int prevState = playState.getAndSet(STATE_PLAYING);
             if (prevState == STATE_NOT_PLAYING) {
                 // Schedule an EffectLoop to be played, updating this attachment
-                EffectLoop.Player player = TrainCarts.plugin.getEffectLoopPlayerController().createPlayer(5);
                 (new ActiveEffectLoop(player, runMode)).play();
             }
         } else {
@@ -251,6 +256,9 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
         }
     }
 
+    /**
+     * Called when this sequencer attachment was detached or the train was unloaded
+     */
     private void immediateStop() {
         autoPlayStatus = SequencerPlayStatus.STOPPED_AUTOMATIC;
         playStatus = SequencerPlayStatus.STOPPED_AUTOMATIC;
@@ -497,6 +505,10 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
             return mode;
         }
 
+        public void onDetached() {
+            effects.forEach(SequencerEffect::onRemoved);
+        }
+
         public void load(ConfigurationNode config) {
             // Reset if there is no configuration
             if (config == null || config.isEmpty()) {
@@ -531,7 +543,7 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
                     // If not found, create a new one.
                     SequencerEffect effect = effectsByConfig.remove(effectConfig);
                     if (effect == null) {
-                        effect = new SequencerEffect();
+                        effect = new SequencerEffect(this);
                     }
 
                     // Load it
@@ -643,6 +655,7 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
      * A single effect part of a group
      */
     public static class SequencerEffect implements EffectSink, Tickable {
+        private final SequencerGroup group;
         private AttachmentSelection<EffectAttachment> effectAttachments = AttachmentSelection.none(EffectAttachment.class);
         private final ConfigLoadedValue<TransferFunction> activeFunction = new ConfigLoadedValue<>(TransferFunctionBoolean.TRUE);
         private final ConfigLoadedValue<TransferFunction> volumeFunction = new ConfigLoadedValue<>(TransferFunctionConstant.of(1.0));
@@ -651,12 +664,22 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
         private SequencerType sequencerType = null;
         private boolean active;
         private double volume, pitch;
+        private EffectLoop.Time stopAfterTime = EffectLoop.Time.NEVER;
+        private final AtomicReference<DelayedEffectTask> pendingStop = new AtomicReference<>(null);
 
-        public SequencerEffect() {
+        public SequencerEffect(SequencerGroup group) {
+            this.group = group;
         }
 
+        /**
+         * Called when this sequencer effect is removed from the configuration, or when the
+         * sequencer attachment is detached (train unloads or is deleted).
+         */
         public void onRemoved() {
-
+            DelayedEffectTask task = pendingStop.getAndSet(null);
+            if (task != null) {
+                task.runNow();
+            }
         }
 
         @Override
@@ -673,9 +696,28 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
         @Override
         public void playEffect(EffectOptions options) {
             if (active) {
-                final EffectOptions adjusted = (volume != 1.0 || pitch != 1.0)
-                        ? options.multiply(volume, pitch) : options;
-                effectAttachments.forEach(e -> e.playEffect(adjusted));
+                EffectLoop.Time stopAfterTime = this.stopAfterTime;
+                if (stopAfterTime.isZero()) {
+                    // If zero, this effect stops the effect from playing rather than starts it
+                    effectAttachments.forEach(EffectAttachment::stopEffect);
+                } else {
+                    // Start the effect
+                    final EffectOptions adjusted = (volume != 1.0 || pitch != 1.0)
+                            ? options.multiply(volume, pitch) : options;
+                    effectAttachments.forEach(e -> e.playEffect(adjusted));
+
+                    // Stop effect again after a delay, if configured
+                    if (!stopAfterTime.isNever()) {
+                        DelayedEffectTask newTask = group.sequencer.player.scheduleTask(stopAfterTime,
+                                () -> effectAttachments.forEach(EffectAttachment::stopEffect),
+                                group.sequencer.runMode);
+
+                        DelayedEffectTask prevTask = pendingStop.getAndSet(newTask);
+                        if (prevTask != null) {
+                            prevTask.cancel();
+                        }
+                    }
+                }
             }
         }
 
@@ -701,6 +743,13 @@ public class CartAttachmentSequencer extends CartAttachment implements Attachmen
 
             // Pitch
             pitchFunction.load(config.getNodeIfExists("pitch"), sequencer.functionHost::loadFunction);
+
+            // Stop-After time
+            {
+                Double stopAfterTimeSeconds = config.getOrDefault("stopAfter", Double.class, null);
+                stopAfterTime = (stopAfterTimeSeconds != null) ? EffectLoop.Time.seconds(stopAfterTimeSeconds)
+                                                               : EffectLoop.Time.NEVER;
+            }
 
             // Sequencer Type + Load configuration for it into an EffectLoop
             {

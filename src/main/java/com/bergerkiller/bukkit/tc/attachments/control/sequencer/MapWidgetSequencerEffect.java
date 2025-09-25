@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentSelector;
 import com.bergerkiller.bukkit.tc.attachments.control.effect.ScheduledEffectLoop;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentSelector;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionItem;
 import com.bergerkiller.bukkit.tc.controller.functions.ui.MapWidgetTransferFunctionSingleConfigItem;
 import com.bergerkiller.bukkit.tc.controller.functions.TransferFunction;
@@ -231,7 +232,7 @@ public class MapWidgetSequencerEffect extends MapWidget {
 
         public ConfigureDialog() {
             setPositionAbsolute(true);
-            setBounds(14, 30, 100, 82);
+            setBounds(14, 21, 100, 95);
             setBackgroundColor(MapColorPalette.getColor(72, 108, 152));
             labelColor = MapColorPalette.COLOR_BLACK;
         }
@@ -246,25 +247,60 @@ public class MapWidgetSequencerEffect extends MapWidget {
                 public TransferFunction createDefault() {
                     return TransferFunctionBoolean.TRUE;
                 }
-            }).setBounds(5, 12, getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
+            }).setBounds(5, 11, getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
 
-            addLabel(5, 29, "Volume");
+            addLabel(5, 28, "Volume");
             addWidget(new MapWidgetTransferFunctionSingleConfigItem(host, config, "volume", () -> false) {
                 @Override
                 public TransferFunction createDefault() {
                     return TransferFunctionConstant.of(1.0);
                 }
-            }).setBounds(5, 36, getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
+            }).setBounds(5, 34, getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
 
-            addLabel(5, 53, "Pitch");
+            addLabel(5, 51, "Pitch");
             addWidget(new MapWidgetTransferFunctionSingleConfigItem(host, config, "pitch", () -> false) {
                 @Override
                 public TransferFunction createDefault() {
                     return TransferFunctionConstant.of(1.0);
                 }
-            }).setBounds(5, 60, getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
+            }).setBounds(5, 57, getWidth() - 10, MapWidgetTransferFunctionItem.HEIGHT);
+
+            addLabel(5, 74, "Stop After (s)");
+            addWidget(new AutoStopDelayNumberBox()).setBounds(5, 80, getWidth() - 10, 11);
 
             super.onAttached();
+        }
+    }
+
+    private class AutoStopDelayNumberBox extends MapWidgetNumberBox {
+        public AutoStopDelayNumberBox() {
+            this.setRange(0.0, 3600.0);
+        }
+
+        @Override
+        public void onAttached() {
+            Double value = config.getOrDefault("stopAfter", Double.class, null);
+            if (value != null) {
+                setInitialValue(value);
+                setTextOverride(null);
+            } else {
+                setInitialValue(0.0);
+                setTextOverride("Not Set");
+            }
+
+            super.onAttached();
+        }
+
+        @Override
+        public void onResetValue() {
+            config.remove("stopAfter");
+            setTextOverride("Not Set");
+        }
+
+        @Override
+        public void onValueChanged() {
+            config.set("stopAfter", getValue());
+            setTextOverride(null);
         }
     }
 
