@@ -113,6 +113,33 @@ public class CartAttachmentSchematic extends CartAttachment {
 
         @Override
         public void createPositionMenu(PositionMenu.Builder builder) {
+            builder.addRow(menu -> (new MapWidgetButton() {
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    updateText(menu.getPositionConfigValue("clipEnabled", true));
+                }
+
+                @Override
+                public void onActivate() {
+                    boolean enabled = !menu.getPositionConfigValue("clipEnabled", true);
+                    menu.updatePositionConfig(config -> {
+                        if (enabled) {
+                            config.remove("clipEnabled");
+                        } else {
+                            config.set("clipEnabled", false);
+                        }
+                    });
+                    updateText(enabled);
+                }
+
+                private void updateText(boolean enabled) {
+                    this.setText(enabled ? "Enabled" : "Disabled");
+                }
+            }).setBounds(32, 0, 72, 11))
+                    .addLabel(0, 3, "Clipping")
+                    .setSpacingAbove(3);
+
             builder.addPositionSlider("originX", "Origin X", "Schematic Origin X-Coordinate", 0.0)
                    .setSpacingAbove(3);
             builder.addPositionSlider("originY", "Origin Y", "Schematic Origin Y-Coordinate", 0.0);
@@ -186,6 +213,8 @@ public class CartAttachmentSchematic extends CartAttachment {
     @Override
     public void onLoad(ConfigurationNode config) {
         schematic.setScale(getConfiguredPosition().size);
+        schematic.setHasClipping(config.getOrDefault("position.clipEnabled", true));
+
         schematic.setSpacing(new Vector(
                 config.getOrDefault("position.spacingX", 0.0),
                 config.getOrDefault("position.spacingY", 0.0),

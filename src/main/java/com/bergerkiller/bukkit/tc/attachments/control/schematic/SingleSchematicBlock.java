@@ -61,15 +61,12 @@ class SingleSchematicBlock {
      * @param scale New scale factor
      * @param origin Origin position relative to which the root armorstand is placed
      * @param spacing New spacing
-     * @param bb Bounding box size (width and height)
      */
-    public void setScaleAndSpacing(Vector scale, Vector origin, Vector spacing, Float bb) {
+    public void setScaleAndSpacing(Vector scale, Vector origin, Vector spacing) {
         sx = scale.getX() * (x + (spacing.getX() * (x + 0.5))) - origin.getX();
         sy = scale.getY() * (y + (spacing.getY() * y)) - origin.getY();
         sz = scale.getZ() * (z + (spacing.getZ() * (z + 0.5))) - origin.getZ();
         metadata.set(DisplayHandle.DATA_SCALE, scale);
-        metadata.set(DisplayHandle.DATA_WIDTH, bb);
-        metadata.set(DisplayHandle.DATA_HEIGHT, bb);
     }
 
     /**
@@ -77,13 +74,20 @@ class SingleSchematicBlock {
      *
      * @param scale New scale factor
      * @param origin Origin position relative to which the root armorstand is placed
-     * @param bb Bounding box size (width and height)
      */
-    public void setScaleZeroSpacing(Vector scale, Vector origin, Float bb) {
+    public void setScaleZeroSpacing(Vector scale, Vector origin) {
         sx = scale.getX() * x - origin.getX();
         sy = scale.getY() * y - origin.getY();
         sz = scale.getZ() * z - origin.getZ();
         metadata.set(DisplayHandle.DATA_SCALE, scale);
+    }
+
+    /**
+     * Refreshes the bounding box used for the block (clipping)
+     *
+     * @param bb Bounding box size (width and height)
+     */
+    public void setClipBox(Float bb) {
         metadata.set(DisplayHandle.DATA_WIDTH, bb);
         metadata.set(DisplayHandle.DATA_HEIGHT, bb);
     }

@@ -45,7 +45,8 @@ public class MovingSchematic extends VirtualSpawnableObject {
     private final Vector spacing = new Vector(0.0, 0.0, 0.0);
     private boolean hasSpacing = false;
     private boolean hasOrigin = false;
-    private float bbSize = 1.0F;
+    private boolean hasClipping = true;
+    private float bbSize = 1.5F; // Default value
     private int[] cachedBlockEntityIds = null;
     private boolean hasKnownPosition = false;
 
@@ -83,10 +84,11 @@ public class MovingSchematic extends VirtualSpawnableObject {
             this.cachedBlockEntityIds = null;
             if (hasKnownPosition) {
                 if (hasSpacing) {
-                    block.setScaleAndSpacing(scale, origin, spacing, bbSize);
+                    block.setScaleAndSpacing(scale, origin, spacing);
                 } else {
-                    block.setScaleZeroSpacing(scale, origin, bbSize);
+                    block.setScaleZeroSpacing(scale, origin);
                 }
+                block.setClipBox(bbSize);
                 block.sync(liveRot, Collections.emptyList());
                 forAllViewers(v -> block.spawn(v, syncPos, new Vector(0.0, 0.0, 0.0)));
             }
@@ -144,6 +146,13 @@ public class MovingSchematic extends VirtualSpawnableObject {
         return entityId == mountEntityId; // Others can't be interacted with, so ignore those
     }
 
+    public void setHasClipping(boolean clipping) {
+        if (this.hasClipping != clipping) {
+            this.hasClipping = clipping;
+            rescaleAllBlocks();
+        }
+    }
+
     public void setScale(Vector3 scale) {
         if (this.scale.getX() != scale.x || this.scale.getY() != scale.y || this.scale.getZ() != scale.z) {
             MathUtil.setVector(this.scale, scale.x, scale.y, scale.z);
@@ -183,17 +192,29 @@ public class MovingSchematic extends VirtualSpawnableObject {
     }
 
     private void rescaleAllBlocks() {
-        bbSize = (float) (VirtualDisplayEntity.BBOX_FACT * Util.absMaxAxis(blockBounds.toVector().add(spacing).multiply(scale)));
+        float newBBSize = this.hasClipping
+                ? (float) (VirtualDisplayEntity.BBOX_FACT * Util.absMaxAxis(blockBounds.toVector().add(spacing).multiply(scale)))
+                : 0.0f;
+
+        boolean clipChanged = (this.bbSize != newBBSize);
+        this.bbSize = newBBSize;
+
         if (hasKnownPosition) {
             Float bbSize = Float.valueOf(this.bbSize);
             if (hasSpacing) {
                 for (SingleSchematicBlock block : blocks) {
-                    block.setScaleAndSpacing(scale, origin, spacing, bbSize);
+                    block.setScaleAndSpacing(scale, origin, spacing);
+                    if (clipChanged) {
+                        block.setClipBox(bbSize);
+                    }
                     block.sync(liveRot, getViewers());
                 }
             } else {
                 for (SingleSchematicBlock block : blocks) {
-                    block.setScaleZeroSpacing(scale, origin, bbSize);
+                    block.setScaleZeroSpacing(scale, origin);
+                    if (clipChanged) {
+                        block.setClipBox(bbSize);
+                    }
                     block.sync(liveRot, getViewers());
                 }
             }
