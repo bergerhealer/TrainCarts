@@ -71,8 +71,7 @@ public class MapWidgetSequencerEffectGroup extends MapWidget {
     public MapWidgetSequencerEffectGroup addEffect(MapWidgetSequencerEffect effect) {
         this.effects.add(effect);
         if (!effect.getConfig().hasParent()) {
-            //TODO: Replace with getNodeList(path, false) when BKCommonLib 1.20.2-v3 or later is a hard-depend
-            this.writeConfig().getList("effects").add(effect.getConfig());
+            this.writeConfig().getNodeList("effects", false).add(effect.getConfig());
         }
         if (!this.duration.isZero()) {
             addEffectWidget(effect);

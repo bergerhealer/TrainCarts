@@ -102,11 +102,7 @@ public class SignController implements LibraryComponent, Listener {
     @Override
     public void enable() {
         plugin.register(this);
-        if (Common.hasCapability("Common:SignEditTextEvent")) {
-            plugin.register(new SignControllerEditListenerBKCL(this));
-        } else {
-            plugin.register(new SignControllerEditListenerLegacy(this));
-        }
+        plugin.register(new SignControllerEditListener(this));
         updateTask.start(1, 1);
     }
 

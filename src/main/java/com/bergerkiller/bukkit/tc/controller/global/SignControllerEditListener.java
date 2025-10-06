@@ -11,10 +11,10 @@ import org.bukkit.event.Listener;
  * Uses BKCommonLib's {@link SignEditTextEvent} to track when signs are edited
  * or placed by players.
  */
-class SignControllerEditListenerBKCL implements Listener {
+class SignControllerEditListener implements Listener {
     private final SignController controller;
 
-    public SignControllerEditListenerBKCL(SignController controller) {
+    public SignControllerEditListener(SignController controller) {
         this.controller = controller;
     }
 

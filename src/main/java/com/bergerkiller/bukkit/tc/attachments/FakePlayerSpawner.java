@@ -211,8 +211,8 @@ public enum FakePlayerSpawner {
                 playerListName = ChatText.fromMessage("Dummy");
             } else {
                 // Send game profile information of the online player
-                newFakeGameProfile = GameProfileHandle.createNew(uuid, this._playerName);
-                newFakeGameProfile.setAllProperties(GameProfileHandle.getForPlayer(player));
+                newFakeGameProfile = GameProfileHandle.createNew(uuid, this._playerName)
+                        .withPropertiesOf(GameProfileHandle.getForPlayer(player));
                 playerListName = ChatText.fromMessage(player.getPlayerListName()); //TODO: Use components
             }
             ClientboundPlayerInfoUpdatePacketHandle newInfoPacket = ClientboundPlayerInfoUpdatePacketHandle.createNew();
@@ -312,12 +312,11 @@ public enum FakePlayerSpawner {
      * @return game profile
      */
     public static GameProfileHandle createDummyPlayerProfile(UUID uuid, String playerName) {
-        GameProfileHandle newFakeGameProfile = GameProfileHandle.createNew(uuid, playerName);
-        newFakeGameProfile.putProperty("textures", PropertyHandle.createNew(
-                "textures",
-                "ewogICJ0aW1lc3RhbXAiIDogMTY0Mjc4NTAwMzQ3NywKICAicHJvZmlsZUlkIiA6ICIwNjNhMTc2Y2RkMTU0ODRiYjU1MjRhNjQyMGM1YjdhNCIsCiAgInByb2ZpbGVOYW1lIiA6ICJkYXZpcGF0dXJ5IiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlL2YzMzBlNjk1OTc4ZTgyZDE1M2IxZmRhMWM1NjE2OTA3NGUyNzZlNTMzODY2ZGE3OWFkZDQzZDIwMTczNzUxYWUiCiAgICB9CiAgfQp9",
-                "s1s8RzOgcymEF56ow13Vvw0UfvhJG1PY7Qh5A5kpBi5uscbwaI/ib3QfK5wll4Gge06JreHAGbHIiTx1jAX17ciJQHhWvSF3/VnnnZaLEyXo3xWaOwFEIedGgUeqv9RigMJbJKvLqA0hQ1ezhwTGylQCLhz5Pxrsqtj+x6sozqRmL6YvLm+xTwAH2r5bj5luRrakgRYpG5kOh2ykYGwL4PEgU1yaZB7pcpnRfwOX2a/qm2e0l9RGDAW1X36fJ9w/kUzPVZSD9yXMu4XX6NVXn1fmhFeezfqVEtbQTozCVoEbLh3828rY+P7U5b8GfdHWM9hs5Ukc7dcLfzcwPU2bRTfvT0t95BdKI5P9bDlchqBGQFNQ49ii9dwZ4+JxLBTWQT/7/X5XsfpNKl96GVnPfVZ49hczx6O923XdD3j7MknDC11ZA8KGo03nNmz2cPqLKUfhyqmSCvQA70A9DBKP4Ys35I3HkiS3Qxrd6bdNtrixys7oJmGA8MUf1tyDW2w9tq3S5+nHLUnMahhqSzToznIt3cu+OVEbjVbaM9LGj5VK3H7M3brkb1C4jRRYL3Pia3cck9BtLEvx42gjCfA2rqXR6YxOMcq3GuunwtC1oRfrocRzW73qg0gCDVHCAdcfazmKWwCh3h6dvxOy7GaXKQaNKKdF1rxfsvYT+8zLwOQ="));
-        return newFakeGameProfile;
+        return GameProfileHandle.createNew(uuid, playerName)
+                .withPropertyPut("textures", PropertyHandle.createNew(
+                        "textures",
+                        "ewogICJ0aW1lc3RhbXAiIDogMTY0Mjc4NTAwMzQ3NywKICAicHJvZmlsZUlkIiA6ICIwNjNhMTc2Y2RkMTU0ODRiYjU1MjRhNjQyMGM1YjdhNCIsCiAgInByb2ZpbGVOYW1lIiA6ICJkYXZpcGF0dXJ5IiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlL2YzMzBlNjk1OTc4ZTgyZDE1M2IxZmRhMWM1NjE2OTA3NGUyNzZlNTMzODY2ZGE3OWFkZDQzZDIwMTczNzUxYWUiCiAgICB9CiAgfQp9",
+                        "s1s8RzOgcymEF56ow13Vvw0UfvhJG1PY7Qh5A5kpBi5uscbwaI/ib3QfK5wll4Gge06JreHAGbHIiTx1jAX17ciJQHhWvSF3/VnnnZaLEyXo3xWaOwFEIedGgUeqv9RigMJbJKvLqA0hQ1ezhwTGylQCLhz5Pxrsqtj+x6sozqRmL6YvLm+xTwAH2r5bj5luRrakgRYpG5kOh2ykYGwL4PEgU1yaZB7pcpnRfwOX2a/qm2e0l9RGDAW1X36fJ9w/kUzPVZSD9yXMu4XX6NVXn1fmhFeezfqVEtbQTozCVoEbLh3828rY+P7U5b8GfdHWM9hs5Ukc7dcLfzcwPU2bRTfvT0t95BdKI5P9bDlchqBGQFNQ49ii9dwZ4+JxLBTWQT/7/X5XsfpNKl96GVnPfVZ49hczx6O923XdD3j7MknDC11ZA8KGo03nNmz2cPqLKUfhyqmSCvQA70A9DBKP4Ys35I3HkiS3Qxrd6bdNtrixys7oJmGA8MUf1tyDW2w9tq3S5+nHLUnMahhqSzToznIt3cu+OVEbjVbaM9LGj5VK3H7M3brkb1C4jRRYL3Pia3cck9BtLEvx42gjCfA2rqXR6YxOMcq3GuunwtC1oRfrocRzW73qg0gCDVHCAdcfazmKWwCh3h6dvxOy7GaXKQaNKKdF1rxfsvYT+8zLwOQ="));
     }
 
     private static class ProfileState {
