@@ -178,7 +178,7 @@ public class VirtualArrowItem {
         if (this.entityId == -1) {
             this.entityId = EntityUtil.getUniqueEntityId();
         }
-        PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.T.newHandleNull();
+        PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.createNew();
         spawnPacket.setEntityId(this.entityId);
         spawnPacket.setEntityUUID(UUID.randomUUID());
         spawnPacket.setEntityType(EntityType.ARMOR_STAND);

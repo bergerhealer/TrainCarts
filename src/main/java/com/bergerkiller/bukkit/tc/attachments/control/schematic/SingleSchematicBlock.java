@@ -125,7 +125,7 @@ class SingleSchematicBlock {
      * @param motion Initial motion
      */
     public void spawn(AttachmentViewer viewer, Vector position, Vector motion) {
-        PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.T.newHandleNull();
+        PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.createNew();
         spawnPacket.setEntityId(entityId);
         spawnPacket.setEntityUUID(entityUUID);
         spawnPacket.setEntityType(VirtualDisplayEntity.BLOCK_DISPLAY_ENTITY_TYPE);

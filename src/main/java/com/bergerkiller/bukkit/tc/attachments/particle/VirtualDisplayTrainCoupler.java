@@ -90,7 +90,7 @@ public class VirtualDisplayTrainCoupler extends VirtualTrainCoupler {
     protected void sendSpawnPackets(AttachmentViewer viewer, Vector motion) {
         // Spawn the display entity itself
         {
-            PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.T.newHandleNull();
+            PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.createNew();
             spawnPacket.setEntityId(this.entityId);
             spawnPacket.setEntityUUID(this.entityUUID);
             spawnPacket.setEntityType(VirtualDisplayEntity.BLOCK_DISPLAY_ENTITY_TYPE);

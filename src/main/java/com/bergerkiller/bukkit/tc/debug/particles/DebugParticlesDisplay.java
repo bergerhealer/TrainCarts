@@ -119,7 +119,7 @@ class DebugParticlesDisplay extends DebugParticles {
 
         // Spawn the display entity itself
         {
-            PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.T.newHandleNull();
+            PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.createNew();
             spawnPacket.setEntityId(entityId);
             spawnPacket.setEntityUUID(entityUUID);
             spawnPacket.setEntityType(VirtualDisplayEntity.BLOCK_DISPLAY_ENTITY_TYPE);
@@ -173,7 +173,7 @@ class DebugParticlesDisplay extends DebugParticles {
 
         // Spawn the display entity itself
         {
-            PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.T.newHandleNull();
+            PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.createNew();
             spawnPacket.setEntityId(entityId);
             spawnPacket.setEntityUUID(entityUUID);
             spawnPacket.setEntityType(VirtualDisplayEntity.BLOCK_DISPLAY_ENTITY_TYPE);

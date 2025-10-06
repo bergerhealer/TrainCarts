@@ -454,7 +454,7 @@ public class VirtualEntity extends VirtualSpawnableObject {
             viewer.sendEntityLivingSpawnPacket(spawnPacket, getUsedMeta());
         } else {
             // Spawn entity (generic)
-            PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.T.newHandleNull();
+            PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.createNew();
             spawnPacket.setEntityId(this.entityId);
             spawnPacket.setEntityUUID(this.entityUUID);
             spawnPacket.setEntityType(this.entityType);

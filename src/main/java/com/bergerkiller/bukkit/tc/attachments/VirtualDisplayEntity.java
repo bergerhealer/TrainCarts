@@ -196,7 +196,7 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
 
         // Spawn the display entity itself
         {
-            PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.T.newHandleNull();
+            PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.createNew();
             spawnPacket.setEntityId(this.displayEntityId);
             spawnPacket.setEntityUUID(this.displayEntityUUID);
             spawnPacket.setEntityType(this.entityType);
