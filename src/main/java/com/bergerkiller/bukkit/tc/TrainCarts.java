@@ -690,7 +690,7 @@ public class TrainCarts extends PluginBase {
         this.chunkPreloadTasks.add(preloadTask);
     }
 
-    public void loadConfig() {
+    private void loadConfig(boolean isEnabling) {
         config = new FileConfiguration(this);
         config.load();
         TCConfig.load(this, config);
@@ -702,6 +702,14 @@ public class TrainCarts extends PluginBase {
         // Load this one right away
         this.modelListing = new ResourcePackModelListing(this);
         this.modelListing.load(TCConfig.resourcePack);
+
+        if (!isEnabling) {
+            this.signController.updateEnabled();
+        }
+    }
+
+    public void loadConfig() {
+        loadConfig(false);
     }
 
     @Override
@@ -798,7 +806,7 @@ public class TrainCarts extends PluginBase {
 
         // Load configuration. Must occur before dependencies as some dependencies might be
         // disabled using TC's configuration.
-        loadConfig();
+        loadConfig(true);
 
         // Ensure dependencies are loaded in at this point, they must be available when
         // trains load in. There might be some dependencies we want to skip, in that case,

@@ -277,10 +277,15 @@ public class DebugCommands {
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
     @Command("train debug fix signs")
     @CommandDescription("Forcibly recalculates all cached sign information near the player")
-    private void commandDebugCheckWheelTracker(
+    private void commandDebugFixSigns(
             final Player player,
             final TrainCarts plugin
     ) {
+        if (!TCConfig.enableVanillaActionSigns) {
+            player.sendMessage(ChatColor.RED + "Vanilla action signs are disabled in TrainCarts config.yml!");
+            return;
+        }
+
         int radius = Bukkit.getViewDistance() - 1; // 1 less, chunks need chunks loaded around it
         IntVector2 mid = IntVector3.blockOf(player.getLocation()).toChunkCoordinates();
         SignControllerWorld controller = plugin.getSignController().forWorld(player.getWorld());

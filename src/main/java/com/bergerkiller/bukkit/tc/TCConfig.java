@@ -128,6 +128,7 @@ public class TCConfig {
     public static Set<Material> allowedBlockBreakTypes = new HashSet<>();
     public static ConfiguredWorldSet enabledWorlds = new ConfiguredWorldSet();
     public static ConfiguredWorldSet disabledWorlds = new ConfiguredWorldSet();
+    public static boolean enableVanillaActionSigns = true;
     public static Map<String, ItemParser[]> parsers = new HashMap<>();
     public static MapResourcePack resourcePack = MapResourcePack.SERVER;
     public static Map<String, Animation> defaultAnimations = new HashMap<>();
@@ -438,6 +439,10 @@ public class TCConfig {
         config.setHeader("activatorEjectEnabled", "Whether powered activator rails eject players inside Minecarts (Vanilla)");
         config.addHeader("activatorEjectEnabled", "If activator rails are used for decoration purposes, this should be disabled");
         activatorEjectEnabled = config.get("activatorEjectEnabled", true);
+
+        config.setHeader("enableVanillaActionSigns", "\nWhether action signs (https://wiki.traincarts.net/p/TrainCarts/Signs) using Vanilla Minecraft signs are enabled");
+        config.addHeader("enableVanillaActionSigns", "When disabled, other signs (TC-Coasters signs) will still function. Only affects vanilla block signs.");
+        enableVanillaActionSigns = config.get("enableVanillaActionSigns", true);
 
         config.setHeader("enabledWorlds", "\nA list of world names where TrainCarts should be enabled");
         config.addHeader("enabledWorlds", "If this list is empty, all worlds are enabled except those listed in disabledWorlds");

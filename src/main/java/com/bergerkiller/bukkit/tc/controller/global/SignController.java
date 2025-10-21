@@ -13,6 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.bergerkiller.bukkit.common.block.SignSide;
+import com.bergerkiller.bukkit.common.events.SignEditTextEvent;
 import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.events.SignBuildEvent;
@@ -74,7 +75,7 @@ public class SignController implements LibraryComponent, Listener {
     private final FastTrackedUpdateSet<Entry> pendingRedstoneUpdates = new FastTrackedUpdateSet<Entry>();
     private final FastTrackedUpdateSet<Entry> ignoreRedstoneUpdates = new FastTrackedUpdateSet<Entry>();
     private final boolean blockPhysicsFireForSigns;
-    private boolean disabled = false;
+    private boolean enabled = true; // On startup assume enabled so it works properly during load
     private SignControllerWorld byWorldLastGet = NONE;
     private final RedstoneUpdateTask updateTask;
     private boolean redstonePhysicsSuppressed = false;
@@ -99,21 +100,42 @@ public class SignController implements LibraryComponent, Listener {
         return plugin;
     }
 
+    /**
+     * Updates whether this sign controller is enabled.
+     * This is controlled by {@link TCConfig#enableVanillaActionSigns}.
+     */
+    public void updateEnabled() {
+        if (TCConfig.enableVanillaActionSigns) {
+            plugin.register(this);
+            updateTask.start(1, 1);
+            if (!enabled) {
+                enabled = true;
+
+                // Ensure the sign state for all worlds are re-initialized
+                for (World world : Bukkit.getWorlds()) {
+                    forWorld(world);
+                }
+            }
+        } else {
+            disable();
+        }
+    }
+
     @Override
     public void enable() {
-        plugin.register(this);
-        plugin.register(new SignControllerEditListener(this));
-        updateTask.start(1, 1);
+        updateEnabled();
     }
 
     @Override
     public void disable() {
-        byWorld.values().forEach(SignControllerWorld::clear);
-        byWorld.clear();
-        pendingRedstoneUpdates.clear();
-        byWorldLastGet = NONE;
-        updateTask.stop();
-        disabled = true;
+        if (enabled) {
+            byWorld.values().forEach(SignControllerWorld::clear);
+            byWorld.clear();
+            pendingRedstoneUpdates.clear();
+            byWorldLastGet = NONE;
+            updateTask.stop();
+            enabled = false;
+        }
     }
 
     /**
@@ -147,8 +169,9 @@ public class SignController implements LibraryComponent, Listener {
             return c;
         } else if ((c = byWorld.get(world)) != null) {
             return byWorldLastGet = c;
-        } else if (disabled) {
-            throw new IllegalStateException("Can't use SignController, Traincarts is disabled!");
+        } else if (!enabled) {
+            // No initialization needed, acts as a no-op empty world
+            return new SignControllerWorld.SignControllerWorldDisabled(SignController.this, world);
         } else {
             if (TrainCarts.isWorldDisabled(world)) {
                 c = new SignControllerWorld.SignControllerWorldDisabled(SignController.this, world);
@@ -178,8 +201,9 @@ public class SignController implements LibraryComponent, Listener {
             return c;
         } else if ((c = byWorld.get(world)) != null) {
             return byWorldLastGet = c;
-        } else if (disabled) {
-            throw new IllegalStateException("Can't use SignController, Traincarts is disabled!");
+        } else if (!enabled) {
+            // No initialization needed, acts as a no-op empty world
+            return new SignControllerWorld.SignControllerWorldDisabled(SignController.this, world);
         } else {
             if (TrainCarts.isWorldDisabled(world)) {
                 c = new SignControllerWorld.SignControllerWorldDisabled(SignController.this, world);
@@ -310,6 +334,16 @@ public class SignController implements LibraryComponent, Listener {
         if (controller != null) {
             controller.unloadChunk(event.getChunk());
         }
+    }
+
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    private void onSignEditText(SignEditTextEvent event) {
+        if (TrainCarts.isWorldDisabled(event)) {
+            return;
+        }
+        handleSignChange(SignBuildEvent.BKCLSignEditBuildEvent.create(event, true),
+                event.getBlock(), event.getSide(),
+                event.getEditReason() != SignEditTextEvent.EditReason.CTRL_PICK_PLACE);
     }
 
     protected void handleSignChange(SignBuildEvent event, Block signBlock, SignSide signSide, boolean isSignEdit) {
