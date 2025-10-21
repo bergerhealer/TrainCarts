@@ -129,6 +129,7 @@ public class SignController implements LibraryComponent, Listener {
     @Override
     public void disable() {
         if (enabled) {
+            CommonUtil.unregisterListener(this);
             byWorld.values().forEach(SignControllerWorld::clear);
             byWorld.clear();
             pendingRedstoneUpdates.clear();
