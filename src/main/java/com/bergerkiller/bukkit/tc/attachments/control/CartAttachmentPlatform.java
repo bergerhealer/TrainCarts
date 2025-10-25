@@ -6,24 +6,20 @@ import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
+import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
-import com.bergerkiller.generated.net.minecraft.world.entity.monster.EntityShulkerHandle;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Player;
-import org.bukkit.util.Vector;
+import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSizeBox;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapTexture;
-import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
-import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
-public class CartAttachmentPlatform extends CartAttachment {
+public abstract class CartAttachmentPlatform extends CartAttachment {
+    protected static final Vector3 DEFAULT_SIZE = new Vector3(1.0, 1.0, 1.0);
     public static final AttachmentType TYPE = new AttachmentType() {
         @Override
         public String getID() {
@@ -37,7 +33,11 @@ public class CartAttachmentPlatform extends CartAttachment {
 
         @Override
         public Attachment createController(ConfigurationNode config) {
-            return new CartAttachmentPlatform();
+            if (isShulkerModeInConfig(config)) {
+                return new CartAttachmentPlatformShulker();
+            } else {
+                return new CartAttachmentPlatformPlane();
+            }
         }
 
         @Override
@@ -68,100 +68,56 @@ public class CartAttachmentPlatform extends CartAttachment {
                 }
             }).setBounds(0, 15, 100, 12);
         }
+
+        @Override
+        public void createPositionMenu(PositionMenu.Builder builder) {
+            builder.addRow(menu -> new MapWidgetSizeBox() {
+                        @Override
+                        public void onAttached() {
+                            super.onAttached();
+
+                            ConfigurationNode positionConfig = menu.getPositionConfig();
+                            if (positionConfig.contains("sizeX") || positionConfig.contains("sizeZ")) {
+                                setTextOverride(null);
+                                setInitialSize(positionConfig.getOrDefault("sizeX", DEFAULT_SIZE.x),
+                                               positionConfig.getOrDefault("sizeY", DEFAULT_SIZE.y),
+                                               positionConfig.getOrDefault("sizeZ", DEFAULT_SIZE.z));
+                            } else {
+                                setTextOverride("Shulker");
+                                setInitialSize(DEFAULT_SIZE.x, DEFAULT_SIZE.y, DEFAULT_SIZE.z);
+                            }
+                        }
+
+                        @Override
+                        public void onSizeChanged() {
+                            setTextOverride(null);
+                            menu.updatePositionConfig(config -> {
+                                config.set("sizeX", x.getValue());
+                                config.set("sizeY", y.getValue());
+                                config.set("sizeZ", z.getValue());
+                            });
+                        }
+
+                        @Override
+                        public void onUniformResetValue() {
+                            setTextOverride("Shulker");
+                            menu.updatePositionConfig(config -> {
+                                config.remove("sizeX");
+                                config.remove("sizeY");
+                                config.remove("sizeZ");
+                            });
+                        }
+                    }.setYAxisEnabled(false)
+                     .setBounds(25, 0, menu.getSliderWidth(), 24))
+                    .addLabel(0, 3, "Size X")
+                    .addLabel(0, 15, "Size Z")
+                    .setSpacingAbove(3);
+        }
     };
 
-    private VirtualEntity actual;
-    private VirtualEntity entity;
-
-    @Override
-    public void onDetached() {
-        super.onDetached();
-        this.entity = null;
-        this.actual = null;
-    }
-
-    @Override
-    public void onAttached() {
-        super.onAttached();
-
-        this.actual = new VirtualEntity(this.getManager());
-        this.actual.setEntityType(EntityType.SHULKER);
-        this.actual.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
-        this.actual.getMetaData().setClientByteDefault(EntityShulkerHandle.DATA_COLOR, Color.DEFAULT.ordinal());
-
-        // Shulker boxes fail to move, and must be inside a vehicle to move at all
-        // Handle this logic here. It seems that the position of the chicken is largely irrelevant.
-        this.entity = new VirtualEntity(this.getManager());
-        this.entity.setEntityType(EntityType.CHICKEN);
-        this.entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
-        this.entity.getMetaData().set(EntityHandle.DATA_NO_GRAVITY, true);
-        this.entity.setRelativeOffset(0.0, -0.32, 0.0);
-    }
-
-    @Override
-    public void onLoad(ConfigurationNode config) {
-        Color color = config.getOrDefault("shulkerColor", Color.DEFAULT);
-        this.actual.getMetaData().set(EntityShulkerHandle.DATA_COLOR, (byte) color.ordinal());
-    }
-
-    @Override
-    public boolean containsEntityId(int entityId) {
-        return this.entity.getEntityId() == entityId ||
-               this.actual.getEntityId() == entityId;
-    }
-
-    @Override
-    public int getMountEntityId() {
-        return this.actual.getEntityId();
-    }
-
-    @Override
-    public void applyPassengerSeatTransform(Matrix4x4 transform) {
-        Matrix4x4 relativeMatrix = new Matrix4x4();
-        relativeMatrix.translate(0.0, 1.0, 0.0);
-        Matrix4x4.multiply(relativeMatrix, transform, transform);
-    }
-
-    @Override
-    @Deprecated
-    public void makeVisible(Player player) {
-        makeVisible(getManager().asAttachmentViewer(player));
-    }
-
-    @Override
-    @Deprecated
-    public void makeHidden(Player player) {
-        makeHidden(getManager().asAttachmentViewer(player));
-    }
-
-    @Override
-    public void makeVisible(AttachmentViewer viewer) {
-        // Send entity spawn packet
-        actual.spawn(viewer, new Vector());
-        entity.spawn(viewer, new Vector());
-        viewer.getVehicleMountController().mount(entity.getEntityId(), actual.getEntityId());
-    }
-
-    @Override
-    public void makeHidden(AttachmentViewer viewer) {
-        // Send entity destroy packet
-        actual.destroy(viewer);
-        entity.destroy(viewer);
-    }
-
-    @Override
-    public void onTransformChanged(Matrix4x4 transform) {
-        this.entity.updatePosition(transform);
-        this.actual.updatePosition(transform);
-        this.actual.syncMetadata();
-    }
-
-    @Override
-    public void onMove(boolean absolute) {
-        this.entity.syncPosition(absolute);
-
-        // Must not send move packets of the mounted shulker. This causes glitches since MC 1.17
-        this.actual.syncPositionSilent();
+    protected static boolean isShulkerModeInConfig(ConfigurationNode config) {
+        ConfigurationNode position = config.getNodeIfExists("position");
+        return position == null || (!position.contains("sizeX") && !position.contains("sizeZ"));
     }
 
     @Override

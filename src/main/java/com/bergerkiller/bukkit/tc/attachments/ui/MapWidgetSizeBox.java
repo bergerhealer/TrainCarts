@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.ui;
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import org.bukkit.util.Vector;
 
 import java.util.function.Consumer;
@@ -58,7 +59,8 @@ public abstract class MapWidgetSizeBox extends MapWidget {
     private boolean suppressSizeChanges = false;
     private boolean uniformFocusActive = false;
     private double defaultValue = 1.0;
-    private boolean canBeNegative = false;
+    private boolean enableY = true;
+    private int lastUniformResetTick = -1;
 
     public MapWidgetSizeBox() {
         this.setRetainChildWidgets(true);
@@ -95,6 +97,27 @@ public abstract class MapWidgetSizeBox extends MapWidget {
     }
 
     /**
+     * Sets whether the Y-size can be configured, or if its kept hidden and unchanged
+     * for a 2D plane. When disabled, the user cannot change the size y value,
+     * but values set programmatically do persist.
+     *
+     * @param enableY True to show the Y-axis (default true)
+     * @return this
+     */
+    public MapWidgetSizeBox setYAxisEnabled(boolean enableY) {
+        if (this.enableY != enableY) {
+            this.enableY = enableY;
+            if (enableY) {
+                this.addWidget(y);
+            } else {
+                this.removeWidget(y);
+            }
+            this.onBoundsChanged();
+        }
+        return this;
+    }
+
+    /**
      * Sets the x/y/z coordinate range bounds and the default value to set when ENTER is kept
      * pressed for a short time.
      * @param canBeNegative Whether the number can go below 0
@@ -116,6 +139,13 @@ public abstract class MapWidgetSizeBox extends MapWidget {
      * {@link #setInitialSize(double, double, double)} is used.
      */
     public abstract void onSizeChanged();
+
+    /**
+     * Called when all the axis are reset simultaneously
+     */
+    public void onUniformResetValue() {
+        forAllAxis(a -> a.setValue(defaultValue));
+    }
 
     /**
      * Sets the size displayed. Will fire {@link #onSizeChanged()}
@@ -146,11 +176,24 @@ public abstract class MapWidgetSizeBox extends MapWidget {
         z.setInitialValue(sz);
     }
 
+    /**
+     * Displays text in the number boxes instead of the current value
+     *
+     * @param text Text override, null to hide again and show the number
+     * @return this
+     */
+    public MapWidgetSizeBox setTextOverride(String text) {
+        forAllAxis(a -> a.setTextOverride(text));
+        return this;
+    }
+
     @Override
     public void onBoundsChanged() {
-        int selHeight = (this.getHeight() - 2) / 3;
+        int selHeight = (this.getHeight() - 2) / (enableY ? 3 : 2);
         x.setBounds(0, 0, getWidth(), selHeight);
-        y.setBounds(0, (getHeight() - selHeight) / 2, getWidth(), selHeight);
+        if (enableY) {
+            y.setBounds(0, (getHeight() - selHeight) / 2, getWidth(), selHeight);
+        }
         z.setBounds(0, getHeight() - selHeight, getWidth(), selHeight);
     }
 
@@ -162,16 +205,18 @@ public abstract class MapWidgetSizeBox extends MapWidget {
         double absZ = Math.abs(uniformFocusStart.getZ());
 
         suppressSizeChanges = true;
-        if (Math.max(Math.max(absX, absY), absZ) == 0.0) {
+        if (absX == 0.0 && absZ == 0.0 && (!enableY || absY == 0.0)) {
             // All axis values are 0. Uniform scale them with the increase
             double value = MapWidgetNumberBox.scaledIncrease(x.getValue(), increase, repeat);
             x.setValue(value);
-            y.setValue(value);
+            if (enableY) {
+                y.setValue(value);
+            }
             z.setValue(value);
-        } else if (absX > absZ && absX > absY) {
+        } else if (absX > absZ && (!enableY || absX > absY)) {
             // X is highest, increase X and adjust the other axis in same proportions
             scaleAxisByIncreasing(x, uniformFocusStart.getX(), increase, repeat);
-        } else if (absY > absX && absY > absZ) {
+        } else if (enableY && absY > absX && absY > absZ) {
             // Y is highest, increase Y and adjust the other axis in same proportions
             scaleAxisByIncreasing(y, uniformFocusStart.getY(), increase, repeat);
         } else {
@@ -186,7 +231,7 @@ public abstract class MapWidgetSizeBox extends MapWidget {
         axis.setValue(MapWidgetNumberBox.scaledIncrease(axis.getValue(), increase, repeat));
         double scale = axis.getValue() / uniformStart;
         if (axis != x) x.setValue(roundByIncrease(uniformFocusStart.getX() * scale, increase));
-        if (axis != y) y.setValue(roundByIncrease(uniformFocusStart.getY() * scale, increase));
+        if (axis != y && enableY) y.setValue(roundByIncrease(uniformFocusStart.getY() * scale, increase));
         if (axis != z) z.setValue(roundByIncrease(uniformFocusStart.getZ() * scale, increase));
     }
 
@@ -266,7 +311,9 @@ public abstract class MapWidgetSizeBox extends MapWidget {
 
     private void forAllAxis(Consumer<MapWidgetNumberBox> action) {
         action.accept(x);
-        action.accept(y);
+        if (enableY) {
+            action.accept(y);
+        }
         action.accept(z);
     }
 
@@ -280,7 +327,14 @@ public abstract class MapWidgetSizeBox extends MapWidget {
 
         @Override
         public void onResetValue() {
-            setValue(defaultValue);
+            if (isUniformFocused()) {
+                if (lastUniformResetTick != CommonUtil.getServerTicks()) {
+                    lastUniformResetTick = CommonUtil.getServerTicks();
+                    onUniformResetValue();
+                }
+            } else {
+                setValue(defaultValue);
+            }
         }
 
         @Override
