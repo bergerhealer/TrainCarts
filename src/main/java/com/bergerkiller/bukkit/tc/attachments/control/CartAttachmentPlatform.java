@@ -17,6 +17,7 @@ import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
+import org.bukkit.entity.Player;
 
 public abstract class CartAttachmentPlatform extends CartAttachment {
     protected static final Vector3 DEFAULT_SIZE = new Vector3(1.0, 1.0, 1.0);
@@ -118,6 +119,18 @@ public abstract class CartAttachmentPlatform extends CartAttachment {
     protected static boolean isShulkerModeInConfig(ConfigurationNode config) {
         ConfigurationNode position = config.getNodeIfExists("position");
         return position == null || (!position.contains("sizeX") && !position.contains("sizeZ"));
+    }
+
+    @Override
+    @Deprecated
+    public void makeVisible(Player player) {
+        makeVisible(getManager().asAttachmentViewer(player));
+    }
+
+    @Override
+    @Deprecated
+    public void makeHidden(Player player) {
+        makeHidden(getManager().asAttachmentViewer(player));
     }
 
     @Override

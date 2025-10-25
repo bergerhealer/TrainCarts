@@ -44,4 +44,19 @@ public abstract class VirtualBoundingBox extends VirtualSpawnableObject {
             return new VirtualFishingBoundingBox(manager);
         }
     }
+
+    /**
+     * Creates the most appropriate virtual bounding box entity for
+     * showing the bottom plane of a bounding box.
+     *
+     * @param manager AttachmentManager
+     * @return VirtualBoundingBox fake entity
+     */
+    public static VirtualBoundingBox createPlane(AttachmentManager manager) {
+        if (CommonCapabilities.HAS_DISPLAY_ENTITY) {
+            return new VirtualHybridBoundingPlane(manager);
+        } else {
+            return new VirtualFishingBoundingPlane(manager);
+        }
+    }
 }

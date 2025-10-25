@@ -118,6 +118,14 @@ public class CartAttachmentHitBox extends CartAttachment {
     }
 
     @Override
+    public void makeHidden(AttachmentViewer viewer) {
+        if (box != null) {
+            box.makeHidden(viewer);
+        }
+        despawnHitBoxForViewer(viewer);
+    }
+
+    @Override
     public boolean containsEntityId(int id) {
         return id == hitboxEntityId;
     }
@@ -164,14 +172,6 @@ public class CartAttachmentHitBox extends CartAttachment {
 
         // Adjust for the size of the bounding box of the entity itself
         return eyePosition.add(eyeDirection.multiply(distanceToBox + 0.5 * sizeMode.size));
-    }
-
-    @Override
-    public void makeHidden(AttachmentViewer viewer) {
-        if (box != null) {
-            box.makeHidden(viewer);
-        }
-        despawnHitBoxForViewer(viewer);
     }
 
     /**
