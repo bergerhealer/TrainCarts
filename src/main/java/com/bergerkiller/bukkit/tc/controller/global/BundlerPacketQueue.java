@@ -23,7 +23,7 @@ import java.util.concurrent.locks.StampedLock;
  * it uses the ordinary base asynchronous FIFO queue.
  */
 class BundlerPacketQueue extends PacketQueue {
-    private static final int MAX_PACKETS_PER_BUNDLE = 4095;
+    private static final int MAX_PACKETS_PER_BUNDLE = 4092;
     private final StampedLock lock = new StampedLock();
     private final AtomicInteger bufferIndex = new AtomicInteger(Integer.MIN_VALUE);
     private final ArrayList<Object> fallbackBuffer = new ArrayList<>();
