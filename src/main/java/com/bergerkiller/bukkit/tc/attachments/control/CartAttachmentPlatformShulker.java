@@ -7,7 +7,6 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.monster.EntityShulkerHandle;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 /**
@@ -78,18 +77,6 @@ public class CartAttachmentPlatformShulker extends CartAttachmentPlatform {
         Matrix4x4 relativeMatrix = new Matrix4x4();
         relativeMatrix.translate(0.0, 1.0, 0.0);
         Matrix4x4.multiply(relativeMatrix, transform, transform);
-    }
-
-    @Override
-    @Deprecated
-    public void makeVisible(Player player) {
-        makeVisible(getManager().asAttachmentViewer(player));
-    }
-
-    @Override
-    @Deprecated
-    public void makeHidden(Player player) {
-        makeHidden(getManager().asAttachmentViewer(player));
     }
 
     @Override
