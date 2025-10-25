@@ -7,6 +7,8 @@ import org.bukkit.ChatColor;
 import org.bukkit.util.Vector;
 
 /**
+ * Shows all 6 sides of a bounding box.<br>
+ * <br>
  * Dynamically switches between showing the fishing rods for &lt;= 1.19.3 clients (viaversion)
  * and display entity bounding boxes (>= 1.19.4)
  */
