@@ -122,6 +122,7 @@ public abstract class CartAttachment implements Attachment {
         AttachmentTypeRegistry.instance().register(CartAttachmentSeat.TYPE);
         AttachmentTypeRegistry.instance().register(CartAttachmentText.TYPE);
         AttachmentTypeRegistry.instance().register(CartAttachmentHitBox.TYPE);
+        //AttachmentTypeRegistry.instance().register(CartAttachmentHitBoxTest.TYPE);
         AttachmentTypeRegistry.instance().register(CartAttachmentSound.TYPE);
         AttachmentTypeRegistry.instance().register(CartAttachmentSequencer.TYPE);
 

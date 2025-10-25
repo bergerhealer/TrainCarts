@@ -29,6 +29,7 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityAgeableHandle
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.InteractionHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.monster.EntitySlimeHandle;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -45,63 +46,15 @@ import java.util.UUID;
 public class CartAttachmentHitBox extends CartAttachment {
     private static final Vector3 DEFAULT_SCALE = new Vector3(1.0, 1.0, 1.0);
 
-    public static final AttachmentType TYPE = new AttachmentType() {
+    public static final AttachmentType TYPE = new BaseHitBoxType() {
         @Override
         public String getID() {
             return "HITBOX";
         }
 
         @Override
-        public double getSortPriority() {
-            return 1.0;
-        }
-
-        @Override
-        public MapTexture getIcon(ConfigurationNode config) {
-            return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/hitbox.png");
-        }
-
-        @Override
         public Attachment createController(ConfigurationNode config) {
             return new CartAttachmentHitBox();
-        }
-
-        @Override
-        public void migrateConfiguration(ConfigurationNode config) {
-            if (config.isNode("size")) {
-                ConfigurationNode size = config.getNode("size");
-                config.set("position.sizeX", size.get("x", 1.0));
-                config.set("position.sizeY", size.get("y", 1.0));
-                config.set("position.sizeZ", size.get("z", 1.0));
-                size.remove();
-            }
-        }
-
-        @Override
-        public void createPositionMenu(PositionMenu.Builder builder) {
-            builder.addRow(menu -> new MapWidgetSizeBox() {
-                @Override
-                public void onAttached() {
-                    super.onAttached();
-
-                    setSize(menu.getPositionConfigValue("sizeX", DEFAULT_SCALE.x),
-                            menu.getPositionConfigValue("sizeY", DEFAULT_SCALE.y),
-                            menu.getPositionConfigValue("sizeZ", DEFAULT_SCALE.z));
-                }
-
-                @Override
-                public void onSizeChanged() {
-                    menu.updatePositionConfig(config -> {
-                        config.set("sizeX", x.getValue());
-                        config.set("sizeY", y.getValue());
-                        config.set("sizeZ", z.getValue());
-                    });
-                }
-            }.setBounds(25, 0, menu.getSliderWidth(), 35))
-                    .addLabel(0, 3, "Size X")
-                    .addLabel(0, 15, "Size Y")
-                    .addLabel(0, 27, "Size Z")
-                    .setSpacingAbove(3);
         }
     };
 
@@ -221,25 +174,43 @@ public class CartAttachmentHitBox extends CartAttachment {
         despawnHitBoxForViewer(viewer);
     }
 
-    @Override
-    public void onFocus() {
-        if (box == null) {
-            box = new Box(getManager(), bbox);
-            box.entity.setGlowColor(HelperMethods.getFocusGlowColor(this));
-            for (AttachmentViewer viewer : this.getAttachmentViewers()) {
-                box.makeVisible(viewer);
+    /**
+     * Gets the oriented bounding box that defines the shape of this hitbox attachment
+     * at the current time. Is kept updated.
+     *
+     * @return OrientedBoundingBox bbox
+     */
+    public OrientedBoundingBox getBoundingBox() {
+        return bbox;
+    }
+
+    public void setBoxColor(ChatColor color) {
+        if (color != null) {
+            if (box == null) {
+                box = new Box(getManager(), bbox);
+                box.entity.setGlowColor(color);
+                for (AttachmentViewer viewer : this.getAttachmentViewers()) {
+                    box.makeVisible(viewer);
+                }
+            } else {
+                box.entity.setGlowColor(color);
             }
         } else {
-            box.entity.setGlowColor(HelperMethods.getFocusGlowColor(this));
+            if (box != null) {
+                box.entity.setGlowColor(null);
+                box.tickLastHidden = CommonUtil.getServerTicks();
+            }
         }
     }
 
     @Override
+    public void onFocus() {
+        setBoxColor(HelperMethods.getFocusGlowColor(this));
+    }
+
+    @Override
     public void onBlur() {
-        if (box != null) {
-            box.entity.setGlowColor(null);
-            box.tickLastHidden = CommonUtil.getServerTicks();
-        }
+        setBoxColor(null);
     }
 
     @Override
@@ -421,6 +392,56 @@ public class CartAttachmentHitBox extends CartAttachment {
                 }
             }
             return SMALLEST;
+        }
+    }
+
+    protected static abstract class BaseHitBoxType implements AttachmentType {
+        @Override
+        public double getSortPriority() {
+            return 1.0;
+        }
+
+        @Override
+        public MapTexture getIcon(ConfigurationNode config) {
+            return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/hitbox.png");
+        }
+
+        @Override
+        public void migrateConfiguration(ConfigurationNode config) {
+            if (config.isNode("size")) {
+                ConfigurationNode size = config.getNode("size");
+                config.set("position.sizeX", size.get("x", 1.0));
+                config.set("position.sizeY", size.get("y", 1.0));
+                config.set("position.sizeZ", size.get("z", 1.0));
+                size.remove();
+            }
+        }
+
+        @Override
+        public void createPositionMenu(PositionMenu.Builder builder) {
+            builder.addRow(menu -> new MapWidgetSizeBox() {
+                        @Override
+                        public void onAttached() {
+                            super.onAttached();
+
+                            setSize(menu.getPositionConfigValue("sizeX", DEFAULT_SCALE.x),
+                                    menu.getPositionConfigValue("sizeY", DEFAULT_SCALE.y),
+                                    menu.getPositionConfigValue("sizeZ", DEFAULT_SCALE.z));
+                        }
+
+                        @Override
+                        public void onSizeChanged() {
+                            menu.updatePositionConfig(config -> {
+                                config.set("sizeX", x.getValue());
+                                config.set("sizeY", y.getValue());
+                                config.set("sizeZ", z.getValue());
+                            });
+                        }
+                    }.setBounds(25, 0, menu.getSliderWidth(), 35))
+                    .addLabel(0, 3, "Size X")
+                    .addLabel(0, 15, "Size Y")
+                    .addLabel(0, 27, "Size Z")
+                    .setSpacingAbove(3);
         }
     }
 }
