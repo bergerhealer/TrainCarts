@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.utils;
+package com.bergerkiller.bukkit.tc.controller.player;
 
 import java.util.logging.Level;
 
@@ -28,7 +28,7 @@ import com.bergerkiller.generated.net.minecraft.server.level.EntityPlayerHandle;
  * To mitigate this, it tracks incoming player input packets to detect these
  * missed velocity packets and adjust accordingly.
  */
-public class PlayerVelocityController {
+public class PlayerMovementController {
     private static final double INPUT_MOTION = (double) (0.5F * 0.98F);
     private static final double INPUT_MOTION_DIAG = 0.3535533905932737622; // = sqrt(0.25*0.25 + 0.25*0.25) because of normalization
     private static final double MIN_MOTION = 0.003; // Any motion below this does not result in a position update on the client
@@ -42,7 +42,7 @@ public class PlayerVelocityController {
     private Vector lastSyncPos = null;
     private volatile boolean translateVehicleSteer = false;
 
-    public PlayerVelocityController(Player player) {
+    public PlayerMovementController(Player player) {
         this.player = player;
     }
 
@@ -250,7 +250,7 @@ public class PlayerVelocityController {
             }
             if (event.getType() == PacketType.IN_POSITION || event.getType() == PacketType.IN_POSITION_LOOK) {
                 PacketPlayInFlyingHandle p = PacketPlayInFlyingHandle.createHandle(event.getPacket().getHandle());
-                synchronized (PlayerVelocityController.this) {
+                synchronized (PlayerMovementController.this) {
                     PlayerPositionInput input = this.input;
                     MathUtil.setVector(input.currPosition, p.getX(), p.getY(), p.getZ());
 
