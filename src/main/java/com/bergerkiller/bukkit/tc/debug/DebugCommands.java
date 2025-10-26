@@ -390,7 +390,7 @@ public class DebugCommands {
 
         new Task(plugin) {
             Quaternion rotation = new Quaternion();
-            PlayerMovementController controller = new PlayerMovementController(player);
+            PlayerMovementController controller = PlayerMovementController.create(plugin.getPacketQueueMap().getQueue(player));
             Location loc = player.getLocation();
             int ctr = 0;
             final int duration = 200000;
@@ -471,10 +471,10 @@ public class DebugCommands {
 
         new Task(plugin) {
             Quaternion rotation = new Quaternion();
-            PlayerMovementController controller = new PlayerMovementController(player);
+            PlayerMovementController controller = PlayerMovementController.create(plugin.getPacketQueueMap().getQueue(player));
             int ctr = 0;
             final int duration = 200000;
-            
+
             @Override
             public void run() {
                 ++ctr;
