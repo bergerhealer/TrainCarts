@@ -44,7 +44,7 @@ import com.bergerkiller.bukkit.tc.debug.types.DebugToolTypeTrackDistance;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.EventListenerHook;
-import com.bergerkiller.bukkit.tc.utils.PlayerVelocityController;
+import com.bergerkiller.bukkit.tc.controller.player.PlayerMovementController;
 import org.incendo.cloud.annotation.specifier.Quoted;
 import org.incendo.cloud.annotations.Argument;
 import org.incendo.cloud.annotations.Command;
@@ -390,7 +390,7 @@ public class DebugCommands {
 
         new Task(plugin) {
             Quaternion rotation = new Quaternion();
-            PlayerVelocityController controller = new PlayerVelocityController(player);
+            PlayerMovementController controller = new PlayerMovementController(player);
             Location loc = player.getLocation();
             int ctr = 0;
             final int duration = 200000;
@@ -433,8 +433,8 @@ public class DebugCommands {
                 controller.setPosition(loc.toVector());
                 
                 speed *= 0.9;
-                if (controller.horizontalInput() != PlayerVelocityController.HorizontalPlayerInput.NONE ||
-                    controller.verticalInput() != PlayerVelocityController.VerticalPlayerInput.NONE) {
+                if (controller.horizontalInput() != PlayerMovementController.HorizontalPlayerInput.NONE ||
+                    controller.verticalInput() != PlayerMovementController.VerticalPlayerInput.NONE) {
                     
                     lastMotion = new Vector();
                     speed += 0.2;
@@ -443,7 +443,7 @@ public class DebugCommands {
                 }
                 
                 Quaternion q = Quaternion.fromLookDirection(player.getEyeLocation().getDirection(), new Vector(0, 1, 0));
-                if (controller.verticalInput() == PlayerVelocityController.VerticalPlayerInput.JUMP) {
+                if (controller.verticalInput() == PlayerMovementController.VerticalPlayerInput.JUMP) {
                     lastMotion.add(q.upVector());
                 }
                 if (controller.horizontalInput().forwards()) {
@@ -471,7 +471,7 @@ public class DebugCommands {
 
         new Task(plugin) {
             Quaternion rotation = new Quaternion();
-            PlayerVelocityController controller = new PlayerVelocityController(player);
+            PlayerMovementController controller = new PlayerMovementController(player);
             int ctr = 0;
             final int duration = 200000;
             

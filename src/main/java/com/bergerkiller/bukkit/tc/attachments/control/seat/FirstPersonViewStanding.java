@@ -1,12 +1,12 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.controller.player.PlayerMovementController;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.bukkit.tc.utils.PlayerVelocityController;
 
 /**
  * Doesn't seat the player in any mount, leaving the player standing. Velocity movement control is used
@@ -14,7 +14,7 @@ import com.bergerkiller.bukkit.tc.utils.PlayerVelocityController;
  */
 public class FirstPersonViewStanding extends FirstPersonViewDefault {
     // Used for first-person player position control
-    private PlayerVelocityController _velocityControl = null;
+    private PlayerMovementController _velocityControl = null;
 
     public FirstPersonViewStanding(CartAttachmentSeat seat, AttachmentViewer player) {
         super(seat, player);
@@ -61,7 +61,7 @@ public class FirstPersonViewStanding extends FirstPersonViewDefault {
 
     private void updateVelocityControl() {
         if (_velocityControl == null) {
-            _velocityControl = new PlayerVelocityController(player.getPlayer());
+            _velocityControl = new PlayerMovementController(player.getPlayer());
             _velocityControl.translateVehicleSteer(true);
         }
 
