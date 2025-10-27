@@ -13,36 +13,36 @@ public class VirtualDisplayBoundingBox extends VirtualDisplayBoundingPlane {
         super(manager);
     }
 
-    protected void loadLines(List<Line> lines) {
+    protected void loadParts(List<Part> parts) {
         // Bottom plane
         // Along X
-        lines.add(Line.transform(t -> t.applyPosition(0.0, 1.0, 1.0)
+        parts.add(Line.transform(t -> t.applyPosition(0.0, 1.0, 1.0)
                 .applyScaleX(1.0)));
-        lines.add(Line.transform(t -> t.applyPosition(0.0, 0.0, 1.0)
+        parts.add(Line.transform(t -> t.applyPosition(0.0, 0.0, 1.0)
                 .applyScaleX(1.0)));
-        lines.add(Line.transform(t -> t.applyPosition(0.0, 1.0, 0.0)
+        parts.add(Line.transform(t -> t.applyPosition(0.0, 1.0, 0.0)
                 .applyScaleX(1.0)));
-        lines.add( Line.transform(t -> t.applyPosition(0.0, 0.0, 0.0)
+        parts.add( Line.transform(t -> t.applyPosition(0.0, 0.0, 0.0)
                 .applyScaleX(1.0)));
 
         // Along Z
-        lines.add(Line.transform(t -> t.applyPosition(1.0, 1.0, 0.0)
+        parts.add(Line.transform(t -> t.applyPosition(1.0, 1.0, 0.0)
                 .applyScaleZ(1.0)));
-        lines.add(Line.transform(t -> t.applyPosition(1.0, 0.0, 0.0)
+        parts.add(Line.transform(t -> t.applyPosition(1.0, 0.0, 0.0)
                 .applyScaleZ(1.0)));
-        lines.add(Line.transform(t -> t.applyPosition(0.0, 1.0, 0.0)
+        parts.add(Line.transform(t -> t.applyPosition(0.0, 1.0, 0.0)
                 .applyScaleZ(1.0)));
-        lines.add(Line.transform(t -> t.applyPosition(0.0, 0.0, 0.0)
+        parts.add(Line.transform(t -> t.applyPosition(0.0, 0.0, 0.0)
                 .applyScaleZ(1.0)));
 
         // Along Y
-        lines.add(Line.transform(t -> t.applyPosition(1.0, 0.0, 1.0)
+        parts.add(Line.transform(t -> t.applyPosition(1.0, 0.0, 1.0)
                 .applyScaleY(1.0)));
-        lines.add(Line.transform(t -> t.applyPosition(1.0, 0.0, 0.0)
+        parts.add(Line.transform(t -> t.applyPosition(1.0, 0.0, 0.0)
                 .applyScaleY(1.0)));
-        lines.add(Line.transform(t -> t.applyPosition(0.0, 0.0, 1.0)
+        parts.add(Line.transform(t -> t.applyPosition(0.0, 0.0, 1.0)
                 .applyScaleY(1.0)));
-        lines.add(Line.transform(t -> t.applyPosition(0.0, 0.0, 0.0)
+        parts.add(Line.transform(t -> t.applyPosition(0.0, 0.0, 0.0)
                 .applyScaleY(1.0)));
     }
 }
