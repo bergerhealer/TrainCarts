@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.util.Vector;
 
 /**
@@ -13,12 +14,18 @@ import org.bukkit.util.Vector;
  * and display entity bounding boxes (>= 1.19.4)
  */
 public class VirtualHybridBoundingPlane extends VirtualBoundingBox {
+    private final Material solidFloorMaterial;
     private OrientedBoundingBox lastBB;
     private VirtualFishingBoundingPlane fishPlane;
     private VirtualDisplayBoundingPlane displayPlane;
 
     public VirtualHybridBoundingPlane(AttachmentManager manager) {
+        this(manager, null);
+    }
+
+    public VirtualHybridBoundingPlane(AttachmentManager manager, Material solidFloorMaterial) {
         super(manager);
+        this.solidFloorMaterial = solidFloorMaterial;
     }
 
     @Override
@@ -46,7 +53,7 @@ public class VirtualHybridBoundingPlane extends VirtualBoundingBox {
     protected void sendSpawnPackets(AttachmentViewer viewer, Vector motion) {
         if (viewer.supportsDisplayEntities()) {
             if (displayPlane == null) {
-                displayPlane = new VirtualDisplayBoundingPlane(manager);
+                displayPlane = new VirtualDisplayBoundingPlane(manager, solidFloorMaterial);
                 displayPlane.setGlowColor(getGlowColor());
                 displayPlane.update(lastBB);
             }

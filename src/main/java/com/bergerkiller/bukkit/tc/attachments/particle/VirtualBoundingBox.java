@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.tc.attachments.VirtualSpawnableObject;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
+import org.bukkit.Material;
 import org.bukkit.util.Vector;
 
 /**
@@ -53,8 +54,21 @@ public abstract class VirtualBoundingBox extends VirtualSpawnableObject {
      * @return VirtualBoundingBox fake entity
      */
     public static VirtualBoundingBox createPlane(AttachmentManager manager) {
+        return createPlane(manager, null);
+    }
+
+    /**
+     * Creates the most appropriate virtual bounding box entity for
+     * showing the bottom plane of a bounding box.
+     *
+     * @param manager AttachmentManager
+     * @param solidFloorMaterial Material to use as a solid floor when displayed using
+     *                           display entities. Null to omit.
+     * @return VirtualBoundingBox fake entity
+     */
+    public static VirtualBoundingBox createPlane(AttachmentManager manager, Material solidFloorMaterial) {
         if (CommonCapabilities.HAS_DISPLAY_ENTITY) {
-            return new VirtualHybridBoundingPlane(manager);
+            return new VirtualHybridBoundingPlane(manager, solidFloorMaterial);
         } else {
             return new VirtualFishingBoundingPlane(manager);
         }
