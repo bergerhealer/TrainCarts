@@ -1,27 +1,9 @@
 package com.bergerkiller.bukkit.tc.controller.player;
 
-import java.util.logging.Level;
-
-import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
-
-import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
-import com.bergerkiller.bukkit.common.events.PacketSendEvent;
-import com.bergerkiller.bukkit.common.protocol.PacketListener;
-import com.bergerkiller.bukkit.common.protocol.PacketType;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
-import com.bergerkiller.bukkit.common.wrappers.PlayerAbilities;
-import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInAbilitiesHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInFlyingHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInSteerVehicleHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutAbilitiesHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityVelocityHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
-import com.bergerkiller.generated.net.minecraft.server.level.EntityPlayerHandle;
 
 /**
  * Moves a player (in first person) to a target position using velocity updates.
@@ -30,17 +12,26 @@ import com.bergerkiller.generated.net.minecraft.server.level.EntityPlayerHandle;
  * missed velocity packets and adjust accordingly.
  */
 public abstract class PlayerMovementController {
-    private static final double INPUT_MOTION = (double) (0.5F * 0.98F);
-    private static final double INPUT_MOTION_DIAG = 0.3535533905932737622; // = sqrt(0.25*0.25 + 0.25*0.25) because of normalization
+    private static final boolean HAS_INPUT_PACKET = Common.evaluateMCVersion(">=", "1.21.2");
 
+    protected final AttachmentViewer viewer;
     protected final Player player;
+    private boolean syncAsArmorstand = true;
+    private Vector lastSyncPos = null;
+    protected volatile boolean translateVehicleSteer = false;
+    protected boolean isFlightForced = false;
 
     public static PlayerMovementController create(AttachmentViewer viewer) {
-        return new PlayerMovementControllerLegacy(viewer.getPlayer());
+        if (HAS_INPUT_PACKET && viewer.evaluateGameVersion(">=", "1.21.2")) {
+            return new PlayerMovementControllerPredictedModern(viewer);
+        } else {
+            return new PlayerMovementControllerPredictedLegacy(viewer);
+        }
     }
 
-    protected PlayerMovementController(Player player) {
-        this.player = player;
+    protected PlayerMovementController(AttachmentViewer viewer) {
+        this.viewer = viewer;
+        this.player = viewer.getPlayer();
     }
 
     /**
@@ -50,7 +41,12 @@ public abstract class PlayerMovementController {
      *
      * @param sync Whether to sync as armorstand. True by default.
      */
-    public abstract void setSyncAsArmorstand(boolean sync);
+    public void setSyncAsArmorstand(boolean sync) {
+        this.syncAsArmorstand = sync;
+        if (!sync) {
+            lastSyncPos = null;
+        }
+    }
 
     /**
      * Whether to translate player input into vehicle steering packets. This makes it so that
@@ -59,7 +55,9 @@ public abstract class PlayerMovementController {
      *
      * @param translate True to translate as vehicle steer. False by default.
      */
-    public abstract void translateVehicleSteer(boolean translate);
+    public void translateVehicleSteer(boolean translate) {
+        translateVehicleSteer = translate;
+    }
 
     public abstract HorizontalPlayerInput horizontalInput();
 
@@ -67,7 +65,38 @@ public abstract class PlayerMovementController {
 
     public abstract void stop();
 
-    public abstract void setPosition(Vector position);
+    public final void setPosition(Vector position) {
+        // If synchronizing as armor stand, modify the position to be 3/4th
+        if (syncAsArmorstand) {
+            if (lastSyncPos == null) {
+                lastSyncPos = position.clone();
+            } else {
+                lastSyncPos.add(position.clone().subtract(lastSyncPos).multiply(1.0 / 3.0));
+            }
+            position = lastSyncPos;
+        }
+
+        syncPosition(position);
+    }
+
+    protected abstract void syncPosition(Vector position);
+
+    protected void setFlightForced(boolean forced) {
+        if (forced) {
+            // Important player is set to fly mode regularly
+            if (!player.isFlying()) {
+                if (!player.getAllowFlight()) {
+                    isFlightForced = true;
+                    player.setAllowFlight(true);
+                }
+
+                player.setFlying(true);
+            }
+        } else if (isFlightForced) {
+            isFlightForced = false;
+            player.setAllowFlight(false);
+        }
+    }
 
     /**
      * Forward motion vector for all possible (float) yaw values.
@@ -133,7 +162,15 @@ public abstract class PlayerMovementController {
         }
 
         public double getMotion(float speed) {
-            return 0.5 * (double) (speed * this.yya);
+            return (speed * this.yya);
+        }
+
+        public static VerticalPlayerInput fromSteer(boolean jump, boolean sneak) {
+            if (jump == sneak) {
+                return NONE;
+            } else {
+                return jump ? JUMP : SNEAK;
+            }
         }
     }
 
@@ -142,15 +179,15 @@ public abstract class PlayerMovementController {
      */
     public static enum HorizontalPlayerInput {
 
-        NONE(0.0f, 0.0f),
-        FORWARDS(0.0f, INPUT_MOTION),
-        BACKWARDS(0.0f, -INPUT_MOTION),
-        LEFT(INPUT_MOTION, 0.0f),
-        RIGHT(-INPUT_MOTION, 0.0f),
-        FORWARDS_LEFT(INPUT_MOTION_DIAG, INPUT_MOTION_DIAG),
-        FORWARDS_RIGHT(-INPUT_MOTION_DIAG, INPUT_MOTION_DIAG),
-        BACKWARDS_LEFT(INPUT_MOTION_DIAG, -INPUT_MOTION_DIAG),
-        BACKWARDS_RIGHT(-INPUT_MOTION_DIAG, -INPUT_MOTION_DIAG);
+        NONE(0.0, 0.0),
+        FORWARDS(0.0, 1.0),
+        BACKWARDS(0.0, -1.0),
+        LEFT(1.0, 0.0f),
+        RIGHT(-1.0, 0.0f),
+        FORWARDS_LEFT(1.0, 1.0),
+        FORWARDS_RIGHT(-1.0, 1.0),
+        BACKWARDS_LEFT(1.0, -1.0),
+        BACKWARDS_RIGHT(-1.0, -1.0);
 
         static {
             // This stores the most likely next horizontal input received given a current horizontal input
@@ -169,36 +206,43 @@ public abstract class PlayerMovementController {
             BACKWARDS_RIGHT .setNext( BACKWARDS_RIGHT, BACKWARDS, RIGHT, NONE, BACKWARDS_LEFT, FORWARDS, LEFT, FORWARDS_RIGHT, FORWARDS_LEFT );
         }
 
-        private final double xxa, zza;
+        private final double left, forward;
+        private final boolean is_diagonal;
         private HorizontalPlayerInput[] next;
 
-        private HorizontalPlayerInput(double xxa, double zza) {
-            this.xxa = xxa;
-            this.zza = zza;
+        HorizontalPlayerInput(double left, double forward) {
+            this.left = left;
+            this.forward = forward;
+            this.is_diagonal = (left != 0.0 && forward != 0.0);
         }
 
-        public float forwardsSteerInput() {
-            return (float) zza;
+        public double forwardSteerInput() {
+            return forward;
+        }
+
+        public double leftSteerInput() {
+            return left;
         }
 
         public boolean forwards() {
-            return zza > 0.0;
+            return forward > 0.0;
         }
 
         public boolean backwards() {
-            return zza < 0.0;
-        }
-
-        public float sidewaysSteerInput() {
-            return (float) xxa;
+            return forward < 0.0;
         }
 
         public boolean left() {
-            return xxa > 0.0;
+            return left > 0.0;
         }
 
         public boolean right() {
-            return xxa < 0.0;
+            return left < 0.0;
+        }
+
+        /** When player pressed both the forward/backward and the left/right button */
+        public boolean diagonal() {
+            return is_diagonal;
         }
 
         // Set in c;init
@@ -216,14 +260,36 @@ public abstract class PlayerMovementController {
             return this.next;
         }
 
-        public Vector getMotion(ForwardMotion forward, float speed) {
-            double speedDbl = (double) speed;
-            double xxa = this.xxa * speedDbl; // left/right
-            double zza = this.zza * speedDbl; // forward/backward
-
-            return new Vector(zza * forward.dx + xxa * forward.dz,
-                              0.0,
-                              zza * forward.dz - xxa * forward.dx);
+        public static HorizontalPlayerInput fromSteer(boolean left, boolean right, boolean forwards, boolean backwards) {
+            if (left && right) {
+                left = right = false;
+            }
+            if (forwards && backwards) {
+                forwards = backwards = false;
+            }
+            if (forwards) {
+                if (left) {
+                    return FORWARDS_LEFT;
+                } else if (right) {
+                    return FORWARDS_RIGHT;
+                } else {
+                    return FORWARDS;
+                }
+            } else if (backwards) {
+                if (left) {
+                    return BACKWARDS_LEFT;
+                } else if (right) {
+                    return BACKWARDS_RIGHT;
+                } else {
+                    return BACKWARDS;
+                }
+            } else if (left) {
+                return LEFT;
+            } else if (right) {
+                return RIGHT;
+            } else {
+                return NONE;
+            }
         }
     }
 }

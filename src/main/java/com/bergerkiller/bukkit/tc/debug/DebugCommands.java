@@ -1,12 +1,16 @@
 package com.bergerkiller.bukkit.tc.debug;
 
 import java.util.Collection;
+import java.util.Collections;
 
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.DebugUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.ItemDisplayMode;
+import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
@@ -15,6 +19,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
@@ -465,7 +470,12 @@ public class DebugCommands {
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
     @Command("train debug pvc swing")
-    private void commandTestSwing(final Player player, final TrainCarts plugin) {
+    private void commandTestSwing(
+            final Player player,
+            final TrainCarts plugin,
+            final @Flag("no_horizontal") boolean no_horizontal,
+            final @Flag("no_vertical") boolean no_vertical
+    ) {
         final double radius = 10.0;
         final Vector center = new Vector(-175.5, 4.1 + radius, 354.5);
 
@@ -499,6 +509,14 @@ public class DebugCommands {
                 }
                 
                 Vector pos = center.clone().add(rotation.forwardVector().multiply(radius));
+                if (no_horizontal) {
+                    pos.setX(center.getX());
+                    pos.setZ(center.getZ());
+                }
+                if (no_vertical) {
+                    pos.setY(center.getY());
+                }
+
                 if (ctr <= 1) {
                     Location loc = player.getLocation();
                     loc.setX(pos.getX());
@@ -571,5 +589,48 @@ public class DebugCommands {
                 entity.syncPosition(true);
             }
         }.start(1, 1);
+    }
+
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
+    @Command("train debug sendpos")
+    private void commandDebugSendPositionPacket(
+            final Player player,
+            final TrainCarts plugin,
+            final @Flag(value="x") Double x,
+            final @Flag(value="y") Double y,
+            final @Flag(value="z") Double z,
+            final @Flag(value="yaw") Float yaw,
+            final @Flag(value="pitch") Float pitch,
+            final @Flag(value="dx") Double dx,
+            final @Flag(value="dy") Double dy,
+            final @Flag(value="dz") Double dz,
+            final @Flag(value="relpos") boolean relpos,
+            final @Flag(value="reldeltapos") boolean reldeltapos,
+            final @Flag(value="relrot") boolean relrot
+    ) {
+        double p_x = LogicUtil.fixNull(x, 0.0);
+        double p_y = LogicUtil.fixNull(y, 0.0);
+        double p_z = LogicUtil.fixNull(z, 0.0);
+        float p_yaw = LogicUtil.fixNull(yaw, 0.0f);
+        float p_pitch = LogicUtil.fixNull(pitch, 0.0f);
+        double p_dx = LogicUtil.fixNull(dx, 0.0);
+        double p_dy = LogicUtil.fixNull(dy, 0.0);
+        double p_dz = LogicUtil.fixNull(dz, 0.0);
+        RelativeFlags flags = RelativeFlags.fromRawRelativeFlags(Collections.emptySet());
+        if (relpos) {
+            flags = flags.withRelativeX().withRelativeY().withRelativeZ();
+        }
+        if (reldeltapos) {
+            flags = flags.withRelativeDeltaX().withRelativeDeltaY().withRelativeDeltaZ();
+        }
+        if (relrot) {
+            flags = flags.withRelativeRotation();
+        }
+        flags = flags.withRelativeDeltaRotation();
+
+        PacketUtil.sendPacket(player, PacketPlayOutPositionHandle.createNew(
+                p_x, p_y, p_z, p_yaw, p_pitch,
+                p_dx, p_dy, p_dz,
+                flags));
     }
 }
