@@ -34,10 +34,10 @@ public abstract class CartAttachmentPlatform extends CartAttachment {
 
         @Override
         public Attachment createController(ConfigurationNode config) {
-            if (isShulkerModeInConfig(config)) {
-                return new CartAttachmentPlatformShulker();
-            } else {
+            if (readPlatformMode(config) == PlatformMode.PLANE) {
                 return new CartAttachmentPlatformPlane();
+            } else {
+                return new CartAttachmentPlatformShulker();
             }
         }
 
@@ -78,20 +78,24 @@ public abstract class CartAttachmentPlatform extends CartAttachment {
                             super.onAttached();
 
                             ConfigurationNode positionConfig = menu.getPositionConfig();
-                            if (positionConfig.contains("sizeX") || positionConfig.contains("sizeZ")) {
+                            setInitialSize(
+                                    positionConfig.getOrDefault("sizeX", DEFAULT_SIZE.x),
+                                    positionConfig.getOrDefault("sizeY", DEFAULT_SIZE.y),
+                                    positionConfig.getOrDefault("sizeZ", DEFAULT_SIZE.z));
+
+                            if (readPlatformMode(menu.getConfig()) != PlatformMode.SHULKER) {
                                 setTextOverride(null);
-                                setInitialSize(positionConfig.getOrDefault("sizeX", DEFAULT_SIZE.x),
-                                               positionConfig.getOrDefault("sizeY", DEFAULT_SIZE.y),
-                                               positionConfig.getOrDefault("sizeZ", DEFAULT_SIZE.z));
                             } else {
                                 setTextOverride("Shulker");
-                                setInitialSize(DEFAULT_SIZE.x, DEFAULT_SIZE.y, DEFAULT_SIZE.z);
                             }
                         }
 
                         @Override
                         public void onSizeChanged() {
                             setTextOverride(null);
+                            menu.updateConfig(config -> {
+                                config.set("platformMode", PlatformMode.PLANE);
+                            });
                             menu.updatePositionConfig(config -> {
                                 config.set("sizeX", x.getValue());
                                 config.set("sizeY", y.getValue());
@@ -102,6 +106,9 @@ public abstract class CartAttachmentPlatform extends CartAttachment {
                         @Override
                         public void onUniformResetValue() {
                             setTextOverride("Shulker");
+                            menu.updateConfig(config -> {
+                                config.remove("platformMode");
+                            });
                             menu.updatePositionConfig(config -> {
                                 config.remove("sizeX");
                                 config.remove("sizeY");
@@ -116,9 +123,8 @@ public abstract class CartAttachmentPlatform extends CartAttachment {
         }
     };
 
-    protected static boolean isShulkerModeInConfig(ConfigurationNode config) {
-        ConfigurationNode position = config.getNodeIfExists("position");
-        return position == null || (!position.contains("sizeX") && !position.contains("sizeZ"));
+    protected static PlatformMode readPlatformMode(ConfigurationNode config) {
+        return config.getOrDefault("platformMode", PlatformMode.SHULKER);
     }
 
     @Override
@@ -158,5 +164,10 @@ public abstract class CartAttachmentPlatform extends CartAttachment {
         RED,
         BLACK,
         DEFAULT
+    }
+
+    public enum PlatformMode {
+        SHULKER,
+        PLANE
     }
 }
