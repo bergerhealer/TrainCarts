@@ -20,6 +20,7 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlay
 import com.bergerkiller.generated.net.minecraft.world.entity.DisplayHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.util.Vector;
 
@@ -36,10 +37,11 @@ import java.util.stream.Collectors;
  * the bottom of a bounding box.
  */
 public class VirtualDisplayBoundingPlane extends VirtualBoundingBox {
+    private final Material solidFloorMaterial;
     private final int mountEntityId;
-    private final List<Line> lines;
-    private final int[] lineEntityIds;
-    private final List<UUID> lineEntityUUIDs;
+    private final List<Part> parts;
+    private final int[] allEntityIds;
+    private final List<UUID> allEntityUUIDs;
 
     // Position info
     private final Vector position = new Vector();
@@ -47,27 +49,39 @@ public class VirtualDisplayBoundingPlane extends VirtualBoundingBox {
     private final Quaternion rotation = new Quaternion();
 
     public VirtualDisplayBoundingPlane(AttachmentManager manager) {
-        super(manager);
-        this.mountEntityId = EntityUtil.getUniqueEntityId();
-        {
-            ArrayList<Line> tmp = new ArrayList<>(12);
-            this.loadLines(tmp);
-            tmp.trimToSize();
-            this.lines = Collections.unmodifiableList(tmp);
-        }
-        this.lineEntityIds = lines.stream().mapToInt(l -> l.entityId).toArray();
-        this.lineEntityUUIDs = lines.stream().map(l -> l.entityUUID).collect(Collectors.toList());
+        this(manager, null);
     }
 
-    protected void loadLines(List<Line> lines) {
+    public VirtualDisplayBoundingPlane(AttachmentManager manager, Material solidFloorMaterial) {
+        super(manager);
+        this.solidFloorMaterial = solidFloorMaterial;
+        this.mountEntityId = EntityUtil.getUniqueEntityId();
+        {
+            ArrayList<Part> tmp = new ArrayList<>(12);
+            this.loadParts(tmp);
+            tmp.trimToSize();
+            this.parts = Collections.unmodifiableList(tmp);
+        }
+
+        this.allEntityIds = parts.stream().mapToInt(l -> l.entityId).toArray();
+        this.allEntityUUIDs = parts.stream().map(l -> l.entityUUID).collect(Collectors.toList());
+    }
+
+    protected void loadParts(List<Part> parts) {
+        // Bottom platform
+        if (solidFloorMaterial != null) {
+            parts.add(new Platform(solidFloorMaterial, t -> t.applyPosition(0.0, 0.0, 0.0)
+                    .applyScaleXZ(1.0)));
+        }
+
         // Bottom plane
-        lines.add(Line.transform(t -> t.applyPosition(0.0, 0.0, 1.0)
+        parts.add(Line.transform(t -> t.applyPosition(0.0, 0.0, 1.0)
                 .applyScaleX(1.0)));
-        lines.add( Line.transform(t -> t.applyPosition(0.0, 0.0, 0.0)
+        parts.add( Line.transform(t -> t.applyPosition(0.0, 0.0, 0.0)
                 .applyScaleX(1.0)));
-        lines.add(Line.transform(t -> t.applyPosition(1.0, 0.0, 0.0)
+        parts.add(Line.transform(t -> t.applyPosition(1.0, 0.0, 0.0)
                 .applyScaleZ(1.0)));
-        lines.add(Line.transform(t -> t.applyPosition(0.0, 0.0, 0.0)
+        parts.add(Line.transform(t -> t.applyPosition(0.0, 0.0, 0.0)
                 .applyScaleZ(1.0)));
     }
 
@@ -79,16 +93,16 @@ public class VirtualDisplayBoundingPlane extends VirtualBoundingBox {
 
         double minSize = 0.02 * Util.absMinAxis(size);
         double lineThickness = Math.min(0.3, minSize);
-        for (Line line : lines) {
-            LineTransformer transformer = new LineTransformer(line.metadata, lineThickness);
-            line.transform.accept(transformer);
+        for (Part part : parts) {
+            PartTransformer transformer = new PartTransformer(part.metadata, lineThickness);
+            part.transform.accept(transformer);
         }
     }
 
     @Override
     protected void sendSpawnPackets(AttachmentViewer viewer, Vector motion) {
-        for (Line line : lines) {
-            line.spawn(viewer, position, motion);
+        for (Part part : parts) {
+            part.spawn(viewer, position, motion);
         }
 
         // Spawn invisible marker armorstand mount
@@ -110,12 +124,12 @@ public class VirtualDisplayBoundingPlane extends VirtualBoundingBox {
         }
 
         // Mount all line blocks into the armorstand
-        viewer.send(PacketPlayOutMountHandle.createNew(mountEntityId, lineEntityIds));
+        viewer.send(PacketPlayOutMountHandle.createNew(mountEntityId, allEntityIds));
     }
 
     @Override
     protected void sendDestroyPackets(AttachmentViewer viewer) {
-        int[] ids = Arrays.copyOf(lineEntityIds, lineEntityIds.length + 1);
+        int[] ids = Arrays.copyOf(allEntityIds, allEntityIds.length + 1);
         ids[ids.length - 1] = mountEntityId;
         viewer.send(PacketPlayOutEntityDestroyHandle.createNewMultiple(ids));
     }
@@ -123,21 +137,21 @@ public class VirtualDisplayBoundingPlane extends VirtualBoundingBox {
     @Override
     protected void applyGlowing(ChatColor color) {
         byte data = (color != null) ? (byte) EntityHandle.DATA_FLAG_GLOWING : (byte) 0;
-        for (Line line : lines) {
-            line.metadata.set(EntityHandle.DATA_FLAGS, data);
+        for (Part part : parts) {
+            part.metadata.set(EntityHandle.DATA_FLAGS, data);
         }
     }
 
     @Override
     protected void applyGlowColorForViewer(AttachmentViewer viewer, ChatColor color) {
-        viewer.updateGlowColor(lineEntityUUIDs, color);
+        viewer.updateGlowColor(allEntityUUIDs, color);
     }
 
     @Override
     public void syncPosition(boolean absolute) {
         // Sync metadata of the display blocks
-        for (Line line : lines) {
-            broadcast(line.createMetaPacket(false));
+        for (Part part : parts) {
+            broadcast(part.createMetaPacket(false));
         }
 
         // Just sync absolute all the time, this isn't used often enough for it to warrant a lot of code
@@ -152,38 +166,17 @@ public class VirtualDisplayBoundingPlane extends VirtualBoundingBox {
         return entityId == mountEntityId;
     }
 
-    protected static class Line {
-        private final Consumer<LineTransformer> transform;
+    protected abstract static class Part {
+        public final Consumer<PartTransformer> transform;
         public final int entityId;
         public final UUID entityUUID;
-        private final DataWatcher metadata;
+        public final DataWatcher metadata;
 
-        private static final DataWatcher.Prototype LINE_METADATA = DataWatcher.Prototype.build()
-                .setClientByteDefault(EntityHandle.DATA_FLAGS, 0)
-                .setClientDefault(DisplayHandle.DATA_TRANSLATION, new Vector())
-                .setClientDefault(DisplayHandle.DATA_LEFT_ROTATION, new Quaternion())
-                .setClientDefault(DisplayHandle.DATA_SCALE, new Vector(1, 1, 1))
-                .setClientDefault(DisplayHandle.DATA_INTERPOLATION_DURATION, 0)
-                .set(DisplayHandle.DATA_INTERPOLATION_DURATION, 3)
-                .setClientDefault(DisplayHandle.DATA_INTERPOLATION_START_DELTA_TICKS, 0)
-                .setClientDefault(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, BlockData.AIR)
-                .set(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, BlockData.fromMaterial(
-                        MaterialUtil.getMaterial("BLACK_CONCRETE")))
-                .create();
-
-        public static Line transform(Consumer<LineTransformer> transform) {
-            return new Line(transform);
-        }
-
-        private Line(Consumer<LineTransformer> transform) {
+        public Part(DataWatcher metadata, Consumer<PartTransformer> transform) {
             this.transform = transform;
-            entityId = EntityUtil.getUniqueEntityId();
-            entityUUID = UUID.randomUUID();
-            metadata = LINE_METADATA.create();
-        }
-
-        public PacketPlayOutEntityMetadataHandle createMetaPacket(boolean includeUnchangedData) {
-            return PacketPlayOutEntityMetadataHandle.createNew(this.entityId, metadata, includeUnchangedData);
+            this.entityId = EntityUtil.getUniqueEntityId();
+            this.entityUUID = UUID.randomUUID();
+            this.metadata = metadata;
         }
 
         public void spawn(AttachmentViewer viewer, Vector position, Vector motion) {
@@ -205,13 +198,62 @@ public class VirtualDisplayBoundingPlane extends VirtualBoundingBox {
                 viewer.send(createMetaPacket(true));
             }
         }
+
+        public PacketPlayOutEntityMetadataHandle createMetaPacket(boolean includeUnchangedData) {
+            return PacketPlayOutEntityMetadataHandle.createNew(this.entityId, metadata, includeUnchangedData);
+        }
     }
 
-    protected class LineTransformer {
+    protected static class Line extends Part {
+
+        private static final DataWatcher.Prototype LINE_METADATA = DataWatcher.Prototype.build()
+                .setClientByteDefault(EntityHandle.DATA_FLAGS, 0)
+                .setClientDefault(DisplayHandle.DATA_TRANSLATION, new Vector())
+                .setClientDefault(DisplayHandle.DATA_LEFT_ROTATION, new Quaternion())
+                .setClientDefault(DisplayHandle.DATA_SCALE, new Vector(1, 1, 1))
+                .setClientDefault(DisplayHandle.DATA_INTERPOLATION_DURATION, 0)
+                .set(DisplayHandle.DATA_INTERPOLATION_DURATION, 3)
+                .setClientDefault(DisplayHandle.DATA_INTERPOLATION_START_DELTA_TICKS, 0)
+                .setClientDefault(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, BlockData.AIR)
+                .set(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, BlockData.fromMaterial(
+                        MaterialUtil.getMaterial("BLACK_CONCRETE")))
+                .create();
+
+        public static Line transform(Consumer<PartTransformer> transform) {
+            return new Line(transform);
+        }
+
+        private Line(Consumer<PartTransformer> transform) {
+            super(LINE_METADATA.create(), transform);
+        }
+    }
+
+    protected static class Platform extends Part {
+
+        private static final DataWatcher.Prototype PLATFORM_METADATA = DataWatcher.Prototype.build()
+                .setClientByteDefault(EntityHandle.DATA_FLAGS, 0)
+                .setClientDefault(DisplayHandle.DATA_TRANSLATION, new Vector())
+                .setClientDefault(DisplayHandle.DATA_LEFT_ROTATION, new Quaternion())
+                .setClientDefault(DisplayHandle.DATA_SCALE, new Vector(1, 1, 1))
+                .setClientDefault(DisplayHandle.DATA_INTERPOLATION_DURATION, 0)
+                .set(DisplayHandle.DATA_INTERPOLATION_DURATION, 3)
+                .setClientDefault(DisplayHandle.DATA_INTERPOLATION_START_DELTA_TICKS, 0)
+                .setClientDefault(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, BlockData.AIR)
+                .set(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, BlockData.fromMaterial(
+                        MaterialUtil.getMaterial("BLACK_CONCRETE")))
+                .create();
+
+        public Platform(Material material, Consumer<PartTransformer> transform) {
+            super(PLATFORM_METADATA.create(), transform);
+            this.metadata.set(DisplayHandle.BlockDisplayHandle.DATA_BLOCK_STATE, BlockData.fromMaterial(material));
+        }
+    }
+
+    protected class PartTransformer {
         public final DataWatcher metadata;
         public final double lineThickness;
 
-        public LineTransformer(DataWatcher metadata, double lineThickness) {
+        public PartTransformer(DataWatcher metadata, double lineThickness) {
             this.metadata = metadata;
             this.lineThickness = lineThickness;
         }
@@ -224,7 +266,7 @@ public class VirtualDisplayBoundingPlane extends VirtualBoundingBox {
          * @param tz Position weight (Z)
          * @return this
          */
-        public LineTransformer applyPosition(double tx, double ty, double tz) {
+        public PartTransformer applyPosition(double tx, double ty, double tz) {
             Vector v = new Vector((-0.5 + tx) * size.getX() - tx * lineThickness,
                     (-0.5 + ty) * size.getY() - ty * lineThickness,
                     (-0.5 + tz) * size.getZ() - tz * lineThickness);
@@ -235,17 +277,22 @@ public class VirtualDisplayBoundingPlane extends VirtualBoundingBox {
             return this;
         }
 
-        public LineTransformer applyScaleX(double x) {
+        public PartTransformer applyScaleXZ(double xz) {
+            metadata.forceSet(DisplayHandle.DATA_SCALE, new Vector(size.getX() * xz, lineThickness, size.getZ() * xz));
+            return this;
+        }
+
+        public PartTransformer applyScaleX(double x) {
             metadata.forceSet(DisplayHandle.DATA_SCALE, new Vector(size.getX() * x, lineThickness, lineThickness));
             return this;
         }
 
-        public LineTransformer applyScaleY(double y) {
+        public PartTransformer applyScaleY(double y) {
             metadata.forceSet(DisplayHandle.DATA_SCALE, new Vector(lineThickness, size.getY() * y, lineThickness));
             return this;
         }
 
-        public LineTransformer applyScaleZ(double z) {
+        public PartTransformer applyScaleZ(double z) {
             metadata.forceSet(DisplayHandle.DATA_SCALE, new Vector(lineThickness, lineThickness, size.getZ() * z));
             return this;
         }
