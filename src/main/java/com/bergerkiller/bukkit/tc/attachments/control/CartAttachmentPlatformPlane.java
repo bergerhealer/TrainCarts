@@ -11,8 +11,12 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.particle.VirtualBoundingBox;
+import com.bergerkiller.bukkit.tc.controller.player.PlayerMovementController;
 import org.bukkit.ChatColor;
 import org.bukkit.util.Vector;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A 2D plane (can tilt) above which players are kept positioned. The
@@ -86,6 +90,17 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
         setPlaneColor(null);
     }
 
+    private final List<LockedPlayer> lockedPlayers = new ArrayList<>();
+
+    private boolean isLocked(AttachmentViewer viewer) {
+        for (LockedPlayer player : lockedPlayers) {
+            if (player.viewer.getPlayer() == viewer.getPlayer()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public void onTick() {
         if (plane != null && !this.isFocused() &&
@@ -93,6 +108,40 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
         ) {
             plane.entity.destroyForAll();
             plane = null;
+        }
+
+        Vector halfSize = bbox.getSize().clone().multiply(0.5);
+        for (AttachmentViewer viewer : getAttachmentViewers()) {
+            if (isLocked(viewer)) {
+                continue;
+            }
+
+            Quaternion q = bbox.getOrientation();
+            Vector pos = viewer.getPlayer().getLocation().toVector();
+            pos.subtract(bbox.getPosition());
+            q.invTransformPoint(pos);
+            if (
+                    Math.abs(pos.getX()) < halfSize.getX()
+                            && Math.abs(pos.getZ()) < halfSize.getZ()
+                            && pos.getY() >= 0.0 && pos.getY() <= 3.0
+            ) {
+                System.out.println("LOCK: " + pos);
+                lockedPlayers.add(new LockedPlayer(viewer, pos.getX(), pos.getZ()));
+            }
+        }
+
+        lockedPlayers.removeIf(p -> {
+            if (p.isUnlocked()) {
+                p.unlock();
+                return true;
+            } else {
+                return false;
+            }
+        });
+
+        // lock em
+        for (LockedPlayer player : lockedPlayers) {
+            player.lock(bbox);
         }
     }
 
@@ -110,6 +159,40 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
     public void onMove(boolean absolute) {
         if (plane != null) {
             plane.sync();
+        }
+    }
+
+    private static class LockedPlayer {
+        public final AttachmentViewer viewer;
+        public final double rx, rz;
+        public PlayerMovementController pvc;
+
+        public LockedPlayer(AttachmentViewer viewer, double rx, double rz) {
+            this.viewer = viewer;
+            this.rx = rx;
+            this.rz = rz;
+        }
+
+        public boolean isUnlocked() {
+            return !viewer.getPlayer().isValid() || viewer.getPlayer().isSneaking();
+        }
+
+        public void lock(OrientedBoundingBox bbox) {
+            if (pvc == null) {
+                pvc = PlayerMovementController.create(viewer);
+            }
+
+            Vector pos = new Vector(rx, 0.0, rz);
+            bbox.getOrientation().transformPoint(pos);
+            pos.add(bbox.getPosition());
+
+            pvc.setPosition(pos);
+        }
+
+        public void unlock() {
+            if (pvc != null) {
+                pvc.stop();
+            }
         }
     }
 

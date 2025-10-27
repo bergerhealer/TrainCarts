@@ -1,117 +1,80 @@
 package com.bergerkiller.bukkit.tc.controller.player;
 
-import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
-import com.bergerkiller.bukkit.common.events.PacketSendEvent;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
+import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
-import com.bergerkiller.bukkit.common.wrappers.PlayerAbilities;
-import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInAbilitiesHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInFlyingHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInSteerVehicleHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutAbilitiesHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityVelocityHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
-import com.bergerkiller.generated.net.minecraft.server.level.EntityPlayerHandle;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import java.util.logging.Level;
 
 /**
- * Before Minecraft 1.21.2 there was no player input packet, and we had to
- * rely on motion prediction to detect the input the player sent.
+ * A player movement controller based upon client state prediction. Keeps track of a chain of state
+ * changes the player has gone through, and uses that to detect which packets the client has
+ * received from what we have sent. This is done by doing exact-double equality checks. This
+ * minimizes the chance of misses.<br>
+ * <br>
+ * It is essential that the client is unmodded and has the same flight behavior as vanilla Minecraft.
  */
-class PlayerMovementControllerLegacy extends PlayerMovementController {
-    private static final double INPUT_MOTION = (double) (0.5F * 0.98F);
-    private static final double INPUT_MOTION_DIAG = 0.3535533905932737622; // = sqrt(0.25*0.25 + 0.25*0.25) because of normalization
-    private static final double MIN_MOTION = 0.003; // Any motion below this does not result in a position update on the client
-    private static final MovementFrictionUpdate FRICTION_UPDATE = new MovementFrictionUpdate();
-    private PositionTracker tracker = null;
-    private final SentPositionChain sentPositions = new SentPositionChain();
-    private boolean isSynchronized = false;
-    private boolean syncAsArmorstand = true;
-    private boolean isFlightForced = false;
-    private Vector lastSyncPos = null;
-    private volatile boolean translateVehicleSteer = false;
-
-    public PlayerMovementControllerLegacy(Player player) {
-        super(player);
-    }
-
+abstract class PlayerMovementControllerPredicted extends PlayerMovementController {
     /**
-     * Sets whether position updates are synchronized as if the player is an Armorstand entity.
-     * This makes it so that the player moves in sync with surrounding armor stand entities.
-     * This is true by default.
-     *
-     * @param sync Whether to sync as armorstand. True by default.
+     * Enable to diagnose desynchronization issues ingame.
+     * Use /debugvar testcase true to generate test cases on first player input.
      */
-    public void setSyncAsArmorstand(boolean sync) {
-        this.syncAsArmorstand = sync;
-        if (!sync) {
-            lastSyncPos = null;
+    protected static final boolean DEBUG_MODE = true;
+
+    /** Any motion below this does not result in a position update on the client */
+    protected static final double MIN_MOTION = 0.003;
+
+    protected static final MovementFrictionUpdate FRICTION_UPDATE = new MovementFrictionUpdate();
+    protected final SentPositionChain sentPositions = new SentPositionChain();
+    protected boolean isSynchronized = false;
+    protected PositionTracker tracker = null;
+
+    protected PlayerMovementControllerPredicted(AttachmentViewer viewer) {
+        super(viewer);
+        if (DEBUG_MODE) {
+            // Make command available
+            DebugUtil.getBooleanValue("testcase", false);
         }
     }
 
-    /**
-     * Whether to translate player input into vehicle steering packets. This makes it so that
-     * player input while standing is still handled by the server as if the player is pressing
-     * w/a/s/d etc. in a vehicle.
-     *
-     * @param translate True to translate as vehicle steer. False by default.
-     */
-    public void translateVehicleSteer(boolean translate) {
-        this.translateVehicleSteer = translate;
-    }
+    protected abstract void sendPosition(Vector position);
 
+    protected abstract PositionTracker createTracker(AttachmentViewer viewer);
+
+    @Override
     public synchronized HorizontalPlayerInput horizontalInput() {
         PositionTracker tracker = this.tracker;
-        return (tracker == null) ? HorizontalPlayerInput.NONE : tracker.input.horizontalInput;
+        return (tracker == null) ? HorizontalPlayerInput.NONE : tracker.input.lastHorizontalInput;
     }
 
+    @Override
     public synchronized VerticalPlayerInput verticalInput() {
         PositionTracker tracker = this.tracker;
-        return (tracker == null) ? VerticalPlayerInput.NONE : tracker.input.verticalInput;
+        return (tracker == null) ? VerticalPlayerInput.NONE : tracker.input.lastVerticalInput;
     }
 
+    @Override
     public synchronized void stop() {
         if (tracker != null) {
-            TrainCarts.plugin.unregister(tracker);
+            viewer.getTrainCarts().unregister(tracker);
         }
-        if (isFlightForced) {
-            player.setAllowFlight(false);
-            isFlightForced = false;
-        }
+        setFlightForced(false);
     }
 
-    public synchronized void setPosition(Vector position) {
-        // If synchronizing as armor stand, modify the position to be 3/4th
-        if (syncAsArmorstand) {
-            if (lastSyncPos == null) {
-                lastSyncPos = position.clone();
-            } else {
-                lastSyncPos.add(position.clone().subtract(lastSyncPos).multiply(1.0 / 3.0));
-            }
-            position = lastSyncPos;
-        }
-
+    @Override
+    protected synchronized final void syncPosition(Vector position) {
         if (tracker == null) {
-            tracker = new PositionTracker(player);
-            TrainCarts.plugin.register(tracker, PacketType.IN_POSITION, PacketType.IN_POSITION_LOOK, PacketType.IN_ABILITIES);
+            tracker = createTracker(viewer);
+            viewer.getTrainCarts().register(tracker, tracker.getPacketTypes());
         }
 
         // Important player is set to fly mode regularly
-        if (!player.isFlying()) {
-            if (!player.getAllowFlight()) {
-                isFlightForced = true;
-                player.setAllowFlight(true);
-            }
-
-            player.setFlying(true);
-        }
+        setFlightForced(true);
 
         // If too many packets remain unacknowledged (>2s) in the chain, reset
         if (sentPositions.size() > 40) {
@@ -122,41 +85,11 @@ class PlayerMovementControllerLegacy extends PlayerMovementController {
         // For debug
         //Vector previousPosition = sentPositions.getCurrentPosition().clone();
 
-        if (isSynchronized) {
-            // Perform a relative velocity update
-
-            // Compute velocity, adjust for natural slowdown rate on the client
-            // If too small, set to 0, as the client will just ignore it otherwise
-            // which would cause a desync.
-            Vector diff = position.clone().subtract(sentPositions.getCurrentPosition());
-            if (Math.abs(diff.getX()) < MIN_MOTION) {
-                diff.setX(0.0);
-            }
-            if (Math.abs(diff.getY()) < MIN_MOTION) {
-                diff.setY(0.0);
-            }
-            if (Math.abs(diff.getZ()) < MIN_MOTION) {
-                diff.setZ(0.0);
-            }
-
-            PacketPlayOutEntityVelocityHandle p = PacketPlayOutEntityVelocityHandle.createNew(player.getEntityId(),
-                    diff.getX(), diff.getY(), diff.getZ());
-            PacketUtil.sendPacket(player, p);
-
-            sentPositions.add(new SentMotionUpdate(new Vector(p.getMotX(), p.getMotY(), p.getMotZ())));
-        } else {
-            // Reset velocity to 0
-            PacketPlayOutEntityVelocityHandle p2 = PacketPlayOutEntityVelocityHandle.createNew(player.getEntityId(),
-                    0.0, 0.0, 0.0);
-            PacketUtil.sendPacket(player, p2);
-
-            // Force an absolute update to bring the client into a known good state
-            PacketUtil.sendPacket(player, PacketPlayOutPositionHandle.createNew(
-                    position.getX(), position.getY(), position.getZ(), 0.0f, 0.0f,
-                    RelativeFlags.ABSOLUTE_POSITION.withRelativeRotation()));
-
-            sentPositions.add(new SentAbsoluteUpdate(position.clone()));
+        if (DEBUG_MODE && !isSynchronized) {
+            player.sendMessage("DESYNC DETECTED!");
         }
+
+        this.sendPosition(position);
 
         // Logging for debug
         /*
@@ -170,150 +103,65 @@ class PlayerMovementControllerLegacy extends PlayerMovementController {
         */
     }
 
-    private synchronized void receiveInput(PlayerPositionInput input) {
-        // Try various types of player input
-        // If the horizontal axis match, checks against the vertical input modes as well
-        for (HorizontalPlayerInput hor : input.horizontalInput.getNextLikelyInputs()) {
-            ConsumeResult result = sentPositions.tryConsumeHorizontalInput(input, hor);
-            if (result != ConsumeResult.FAILED) {
-                isSynchronized = result.isSynchronized();
-
-                // [Debug] Send message to player with the current input
-                /*
-                if (input.horizontalInput != HorizontalPlayerInput.NONE || input.verticalInput != VerticalPlayerInput.NONE) {
-                    if (input.horizontalInput == HorizontalPlayerInput.NONE) {
-                        player.sendMessage("INPUT: " + input.verticalInput);
-                    } else if (input.verticalInput == VerticalPlayerInput.NONE) {
-                        player.sendMessage("INPUT: " + input.horizontalInput);
-                    } else {
-                        player.sendMessage("INPUT: " + input.horizontalInput + " + " + input.verticalInput);
-                    }
-                }
-                */
-                return;
-            }
-        }
-
-        /*
-        log("[FORWARD] " + input.currForward);
-        log("[PREVIOUS] " + strVec(input.lastPosition));
-        log("[BORKED] " + strVec(input.currPosition));
-        log("[MOTION] " + strVec(input.lastMotion));
-
-        String str = "Updates in flight predictions:";
-        for (SentPositionUpdate p = sentPositions.next; p != null; p = p.next) {
-            str += "\n" + p.debugPrediction(input);
-        }
-        str += "\n" + FRICTION_UPDATE.debugPrediction(input);
-        log(str);
-        */
-
-        // As an absolute fallback
-        input.setLastMotionUsingPositionChanges();
-
-        // Assume that player input happened. Send absolute updates only until we're back in sync.
-        if (isSynchronized) {
-            sentPositions.clear(); // All garbage now
-        }
-        isSynchronized = false;
-    }
-
     @SuppressWarnings("unused")
-    private static void log(String msg) {
+    protected static void log(String msg) {
         TrainCarts.plugin.getLogger().log(Level.INFO, msg);
     }
 
-    private static boolean isVectorExactlyEqual(Vector v0, Vector v1) {
+    protected static boolean isVectorExactlyEqual(Vector v0, Vector v1) {
         return v0.getX() == v1.getX() && v0.getY() == v1.getY() && v0.getZ() == v1.getZ();
     }
 
-    private static String strVec(Vector v) {
+    protected static String strVec(Vector v) {
         return v.getX() + " // " + v.getY() + " // " + v.getZ();
     }
 
-    private class PositionTracker implements PacketListener {
-        private final PlayerPositionInput input;
-        private boolean lastPositionWasLook = false;
+    protected static abstract class PositionTracker implements PacketListener {
+        protected final PlayerPositionInput input;
 
-        public PositionTracker(Player player) {
-            this.input = new PlayerPositionInput(player);
+        public PositionTracker(AttachmentViewer viewer) {
+            this.input = new PlayerPositionInput(viewer);
         }
 
-        @Override
-        public void onPacketReceive(PacketReceiveEvent event) {
-            if (event.getPlayer() != player) {
-                return;
-            }
-            if (event.getType() == PacketType.IN_POSITION || event.getType() == PacketType.IN_POSITION_LOOK) {
-                PacketPlayInFlyingHandle p = PacketPlayInFlyingHandle.createHandle(event.getPacket().getHandle());
-                synchronized (this) {
-                    PlayerPositionInput input = this.input;
-                    MathUtil.setVector(input.currPosition, p.getX(), p.getY(), p.getZ());
-
-                    if (event.getType() == PacketType.IN_POSITION_LOOK) {
-                        input.currForward = ForwardMotion.get(p.getYaw());
-                        lastPositionWasLook = true;
-                    } else if (lastPositionWasLook) {
-                        // Sometimes a position packet is sent after a look with the same position
-                        // Ignore those.
-                        lastPositionWasLook = false; // Reset
-                        if (isVectorExactlyEqual(input.lastPosition, input.currPosition)) {
-                            return;
-                        }
-                    }
-
-                    receiveInput(input);
-                    input.updateLast();
-
-                    if (translateVehicleSteer) {
-                        PacketPlayInSteerVehicleHandle steer = PacketPlayInSteerVehicleHandle.createNew(
-                                input.horizontalInput.left(),
-                                input.horizontalInput.right(),
-                                input.horizontalInput.forwards(),
-                                input.horizontalInput.backwards(),
-                                input.verticalInput == VerticalPlayerInput.JUMP,
-                                input.verticalInput == VerticalPlayerInput.SNEAK,
-                                false);
-
-                        PacketUtil.receivePacket(player, steer);
-                    }
-                }
-            } else if (event.getType() == PacketType.IN_ABILITIES) {
-                PacketPlayInAbilitiesHandle p = PacketPlayInAbilitiesHandle.createHandle(event.getPacket().getHandle());
-                if (!p.isFlying()) {
-                    event.setCancelled(true);
-                    PlayerAbilities pa = EntityPlayerHandle.fromBukkit(event.getPlayer()).getAbilities();
-                    PacketPlayOutAbilitiesHandle pp = PacketPlayOutAbilitiesHandle.createNew(pa);
-                    PacketUtil.queuePacket(event.getPlayer(), pp);
-                }
-            }
-        }
-
-        @Override
-        public void onPacketSend(PacketSendEvent event) {
-        }
+        public abstract PacketType[] getPacketTypes();
     }
 
-    private static final class PlayerPositionInput {
+    protected static final class PlayerPositionInput {
         @SuppressWarnings("unused")
         public final Player player;
         public final Vector lastPosition;
         public final Vector lastMotion;
         public final Vector currPosition;
+        public float currYaw;
         public ForwardMotion currForward;
         public float currSpeed;
-        public HorizontalPlayerInput horizontalInput;
-        public VerticalPlayerInput verticalInput;
+        public HorizontalPlayerInput lastHorizontalInput;
+        public VerticalPlayerInput lastVerticalInput;
+        public HorizontalPlayerInput currHorizontalInput;
+        public VerticalPlayerInput currVerticalInput;
 
-        public PlayerPositionInput(Player player) {
-            this.player = player;
+        /** When player presses both forward and left for example, this factor is used */
+        public final double diagonalSpeedFactor;
+
+        public PlayerPositionInput(AttachmentViewer viewer) {
+            this.player = viewer.getPlayer();
             this.lastPosition = player.getLocation().toVector();
             this.lastMotion = player.getVelocity();
             this.currPosition = player.getLocation().toVector();
-            this.currForward = ForwardMotion.get(player.getEyeLocation().getYaw());
-            this.currSpeed = 0.1f; //TODO: Variable
-            this.horizontalInput = HorizontalPlayerInput.NONE;
-            this.verticalInput = VerticalPlayerInput.NONE;
+            this.currYaw = player.getEyeLocation().getYaw();
+            this.currForward = ForwardMotion.get(currYaw);
+            this.currSpeed = 0.5F * player.getFlySpeed();
+            this.lastHorizontalInput = HorizontalPlayerInput.NONE;
+            this.lastVerticalInput = VerticalPlayerInput.NONE;
+            this.currHorizontalInput = HorizontalPlayerInput.NONE;
+            this.currVerticalInput = VerticalPlayerInput.NONE;
+
+            // I have NO idea why the client is inconsistent like that
+            if (viewer.evaluateGameVersion(">=", "1.21.8")) {
+                this.diagonalSpeedFactor = 0.7071067094802855;
+            } else {
+                this.diagonalSpeedFactor = 0.7071067811865475244;
+            }
         }
 
         public void setLastMotionUsingPositionChanges() {
@@ -322,15 +170,46 @@ class PlayerMovementControllerLegacy extends PlayerMovementController {
             lastMotion.setZ(currPosition.getZ() - lastPosition.getZ());
         }
 
+        public void updateYaw(float yaw) {
+            this.currYaw = yaw;
+            this.currForward = ForwardMotion.get(yaw);
+        }
+
         public void updateLast() {
             MathUtil.setVector(lastPosition, currPosition);
+            lastHorizontalInput = currHorizontalInput;
+            lastVerticalInput = currVerticalInput;
+        }
+
+        public Vector getPlayerInputMotion(HorizontalPlayerInput horizontalPlayerInput) {
+            Vector additionalMotion = getPlayerHorizontalInputMotion(horizontalPlayerInput);
+            additionalMotion.setY(lastVerticalInput.getMotion(currSpeed));
+            return additionalMotion;
+        }
+
+        public Vector getPlayerHorizontalInputMotion(HorizontalPlayerInput input) {
+            double speedDbl = (double) currSpeed;
+
+            if (input.diagonal()) {
+                speedDbl *= diagonalSpeedFactor;
+            } else {
+                speedDbl *= 0.98F;
+            }
+
+            double left = input.leftSteerInput() * speedDbl; // left/right
+            double forward = input.forwardSteerInput() * speedDbl; // forward/backward
+
+            return new Vector(
+                    forward * currForward.dx + left * currForward.dz,
+                    0.0,
+                    forward * currForward.dz - left * currForward.dx);
         }
     }
 
     /**
      * A type of update sent to the client to change the position of the player in some way
      */
-    private static abstract class SentPositionUpdate {
+    protected static abstract class SentPositionUpdate {
         protected SentPositionUpdate next = null;
 
         /**
@@ -354,10 +233,8 @@ class PlayerMovementControllerLegacy extends PlayerMovementController {
         public abstract Vector getMotion(Vector previousPosition);
 
         @SuppressWarnings("unused")
-        public String debugPrediction(PlayerPositionInput input) {
+        public String debugPrediction(PlayerPositionInput input, Vector additionalMotion) {
             Vector newPosition = input.lastPosition.clone();
-            Vector additionalMotion = input.horizontalInput.getMotion(input.currForward, input.currSpeed);
-            additionalMotion.setY(input.verticalInput.getMotion(input.currSpeed));
             Vector outMotion = new Vector();
             this.apply(newPosition, additionalMotion, input.lastMotion, outMotion);
 
@@ -380,7 +257,7 @@ class PlayerMovementControllerLegacy extends PlayerMovementController {
         public boolean detectAsInput(PlayerPositionInput input, HorizontalPlayerInput horizontalInput,
                                      Vector additionalMotion, Vector outMotion, Vector tmp) {
             // First try with the last-known vertical input of the player
-            additionalMotion.setY(input.verticalInput.getMotion(input.currSpeed));
+            additionalMotion.setY(input.lastVerticalInput.getMotion(input.currSpeed));
             MathUtil.setVector(tmp, input.lastPosition);
             this.apply(tmp, additionalMotion, input.lastMotion, outMotion);
 
@@ -394,7 +271,7 @@ class PlayerMovementControllerLegacy extends PlayerMovementController {
             if (tmp.getY() != currPos.getY()) {
                 boolean foundMatchingVerticalInput = false;
                 for (VerticalPlayerInput vertInput : VerticalPlayerInput.values()) {
-                    if (vertInput == input.verticalInput) {
+                    if (vertInput == input.currVerticalInput) {
                         continue; // Already checked
                     }
 
@@ -402,7 +279,7 @@ class PlayerMovementControllerLegacy extends PlayerMovementController {
                     MathUtil.setVector(tmp, input.lastPosition);
                     this.apply(tmp, additionalMotion, input.lastMotion, outMotion);
                     if (tmp.getY() == currPos.getY()) {
-                        input.verticalInput = vertInput;
+                        input.currVerticalInput = vertInput;
                         foundMatchingVerticalInput = true;
                         break;
                     }
@@ -412,13 +289,13 @@ class PlayerMovementControllerLegacy extends PlayerMovementController {
                 }
             }
 
-            input.horizontalInput = horizontalInput;
+            input.currHorizontalInput = horizontalInput;
             MathUtil.setVector(input.lastMotion, outMotion);
             return true;
         }
     }
 
-    private static final class SentPositionChain extends SentPositionUpdate {
+    protected static final class SentPositionChain extends SentPositionUpdate {
         private final Vector currentPosition = new Vector();
         private SentPositionUpdate last = this;
         private int count = 0;
@@ -453,8 +330,11 @@ class PlayerMovementControllerLegacy extends PlayerMovementController {
             return new Vector();
         }
 
-        public ConsumeResult tryConsumeHorizontalInput(PlayerPositionInput input, HorizontalPlayerInput horizontalInput) {
-            Vector additionalMotion = horizontalInput.getMotion(input.currForward, input.currSpeed);
+        public ConsumeResult tryConsumeHorizontalInput(
+                final PlayerPositionInput input,
+                final HorizontalPlayerInput horizontalInput,
+                final Vector additionalMotion
+        ) {
             Vector outMotion = new Vector();
             Vector tmp = new Vector();
 
@@ -534,7 +414,7 @@ class PlayerMovementControllerLegacy extends PlayerMovementController {
         }
     }
 
-    private static final class SentMotionUpdate extends SentPositionUpdate {
+    protected static final class SentMotionUpdate extends SentPositionUpdate {
         private final Vector motion;
 
         public SentMotionUpdate(Vector motion) {
@@ -559,7 +439,7 @@ class PlayerMovementControllerLegacy extends PlayerMovementController {
         }
     }
 
-    private static final class SentAbsoluteUpdate extends SentPositionUpdate {
+    protected static final class SentAbsoluteUpdate extends SentPositionUpdate {
         private final Vector position;
 
         public SentAbsoluteUpdate(Vector position) {
@@ -581,7 +461,7 @@ class PlayerMovementControllerLegacy extends PlayerMovementController {
         }
     }
 
-    private static final class MovementFrictionUpdate extends SentPositionUpdate {
+    protected static final class MovementFrictionUpdate extends SentPositionUpdate {
 
         @Override
         public void apply(Vector position, Vector additionalMotion, Vector lastMotion, Vector outMotion) {
@@ -607,7 +487,7 @@ class PlayerMovementControllerLegacy extends PlayerMovementController {
         }
     }
 
-    private static enum ConsumeResult {
+    protected enum ConsumeResult {
         FAILED(false),
         OK(true),
         LARGE_PACKET_DROP(false);
