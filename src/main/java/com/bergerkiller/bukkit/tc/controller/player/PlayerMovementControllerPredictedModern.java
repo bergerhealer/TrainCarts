@@ -18,6 +18,8 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlay
 import com.bergerkiller.generated.net.minecraft.server.level.EntityPlayerHandle;
 import org.bukkit.util.Vector;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 /**
  * After Minecraft 1.21.2 the player sends their input to the server, as well as a
  * tick-end packet to synchronize everything. This makes it very easy to keep track
@@ -25,6 +27,7 @@ import org.bukkit.util.Vector;
  * position inputs that come in.
  */
 class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPredicted {
+    protected final AtomicReference<Vector> lastPosition = new AtomicReference<>(null);
 
     protected PlayerMovementControllerPredictedModern(AttachmentViewer viewer) {
         super(viewer);
@@ -43,7 +46,11 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
             .withRelativeRotation();
 
     @Override
-    protected synchronized void sendPosition(Vector position) {
+    protected void sendPosition(Vector position) {
+        lastPosition.set(position);
+    }
+
+    protected synchronized void schedulePosition(Vector position) {
         if (isSynchronized) {
             // Perform a relative velocity update
 
@@ -170,6 +177,8 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
     }
 
     private class PositionTrackerModern extends PositionTracker {
+        private Vector lastSentPosition = null;
+        private final Vector lastSentMotion = new Vector();
 
         public PositionTrackerModern(AttachmentViewer viewer) {
             super(viewer);
@@ -225,6 +234,22 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
                 // Synchronize everything on every client tick
                 receiveInput(input);
                 input.updateLast();
+
+                Vector next = lastPosition.getAndSet(null);
+                if (next != null) {
+                    if (lastSentPosition != null) {
+                        MathUtil.setVector(lastSentMotion, next);
+                        lastSentMotion.subtract(lastSentPosition);
+                        MathUtil.setVector(lastSentPosition, next);
+                    } else {
+                        lastSentPosition = next.clone();
+                    }
+
+                    schedulePosition(next);
+                } else {
+                    lastSentPosition.add(lastSentMotion);
+                    schedulePosition(lastSentPosition);
+                }
             }
         }
 
