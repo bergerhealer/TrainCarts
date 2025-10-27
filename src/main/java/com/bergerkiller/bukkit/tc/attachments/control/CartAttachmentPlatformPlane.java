@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
@@ -201,7 +202,7 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
         private int tickLastHidden = 0;
 
         public Plane(AttachmentManager manager, OrientedBoundingBox bbox) {
-            this.entity = VirtualBoundingBox.createPlane(manager);
+            this.entity = VirtualBoundingBox.createPlane(manager, MaterialUtil.getFirst("ICE", "LEGACY_ICE"));
             this.entity.update(bbox);
         }
 
