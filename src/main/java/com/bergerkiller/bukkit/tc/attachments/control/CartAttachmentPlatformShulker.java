@@ -54,7 +54,7 @@ public class CartAttachmentPlatformShulker extends CartAttachmentPlatform {
         }
 
         // Switches between attachment implementation class
-        if (!isShulkerModeInConfig(config)) {
+        if (readPlatformMode(config) != PlatformMode.SHULKER) {
             return false;
         }
 
