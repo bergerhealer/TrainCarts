@@ -136,9 +136,6 @@ public class FirstPersonViewDefault extends FirstPersonView {
 
         // Reset everything smooth coasters has changed when the player exits the seat
         if (!isReload && seat.useSmoothCoasters()) {
-            seat.getPlugin().getSmoothCoastersAPI().setEntityRotation(
-                    viewer.getSmoothCoastersNetwork(), viewer.getPlayer(), viewer.getEntityId(),
-                    0.0f, 0.0f, 0.0f, 1.0f, (byte) 0);
             seat.getPlugin().getSmoothCoastersAPI().resetRotation(
                     viewer.getSmoothCoastersNetwork(), viewer.getPlayer());
             seat.getPlugin().getSmoothCoastersAPI().resetRotationLimit(
