@@ -1,7 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.controller.player.PlayerMovementController;
+import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
