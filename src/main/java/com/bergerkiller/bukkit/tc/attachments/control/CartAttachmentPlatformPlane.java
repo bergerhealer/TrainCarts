@@ -31,7 +31,7 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
     @Override
     public void onLoad(ConfigurationNode config) {
         Vector3 size = LogicUtil.fixNull(this.getConfiguredPosition().size, DEFAULT_SIZE);
-        bbox.setSize(new Vector(size.x, size.y, size.z));
+        bbox.setSize(new Vector(size.x, 0.0, size.z));
     }
 
     @Override
