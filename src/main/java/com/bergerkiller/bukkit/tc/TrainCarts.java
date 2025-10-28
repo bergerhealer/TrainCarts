@@ -25,6 +25,7 @@ import com.bergerkiller.bukkit.tc.actions.Action;
 import com.bergerkiller.bukkit.tc.actions.registry.ActionRegistry;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModelStore;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentLight;
@@ -40,11 +41,11 @@ import com.bergerkiller.bukkit.tc.commands.selector.SelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.commands.selector.TCSelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.controller.*;
 import com.bergerkiller.bukkit.tc.controller.global.EffectLoopPlayerController;
-import com.bergerkiller.bukkit.tc.controller.global.PacketQueueMap;
 import com.bergerkiller.bukkit.tc.controller.global.SignController;
 import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
 import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayerStore;
 import com.bergerkiller.bukkit.tc.controller.global.TrainUpdateController;
+import com.bergerkiller.bukkit.tc.controller.player.TrainCartsAttachmentViewerMap;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.locator.TrainLocator;
@@ -128,7 +129,7 @@ public class TrainCarts extends PluginBase {
     private final ActionRegistry actionRegistry = new ActionRegistry(this);
     private final TrackedSignLookup trackedSignLookup = new TrackedSignLookup(this);
     private final SignController signController = new SignController(this);
-    private final PacketQueueMap packetQueueMap = new PacketQueueMap(this);
+    private final TrainCartsAttachmentViewerMap attachmentViewerMap = new TrainCartsAttachmentViewerMap(this);
     private ResourcePackModelListing modelListing = new ResourcePackModelListing(); // Uninitialized
     private final WorldEditSchematicLoader worldEditSchematicLoader = new WorldEditSchematicLoader(this);
     private final TrainCartsPlayerStore playerStore = new TrainCartsPlayerStore(this);
@@ -402,13 +403,25 @@ public class TrainCarts extends PluginBase {
     }
 
     /**
-     * Gets the packet queue map, which stores special queues per player to send packets
-     * asynchronously.
+     * Gets the attachment viewer map, which stores special queues per player to send packets
+     * asynchronously among other utilities. Primarily for internal use only.
      *
      * @return packet queue map
      */
-    public PacketQueueMap getPacketQueueMap() {
-        return this.packetQueueMap;
+    public TrainCartsAttachmentViewerMap getAttachmentViewers() {
+        return this.attachmentViewerMap;
+    }
+
+    /**
+     * Gets the AttachmentViewer of a Player, which can be used with the Attachments API.
+     * Returned value is cached and reused for online players, cleaned up when they go
+     * offline.
+     *
+     * @param player Player
+     * @return AttachmentViewer
+     */
+    public AttachmentViewer getAttachmentViewer(Player player) {
+        return this.attachmentViewerMap.getViewer(player);
     }
 
     /**

@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Random;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.tc.controller.player.TrainCartsAttachmentViewerMap;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.bergerkiller.bukkit.common.Task;
@@ -238,8 +239,8 @@ public class TrainUpdateController {
             // packets queued up so far. By doing this before the actual sending, we give the server
             // a full tick time to process everything.
             // This also activates bundler mode for 1.19.4+ clients.
-            PacketQueueMap packetQueues = plugin.getPacketQueueMap();
-            packetQueues.forAllQueues(PacketQueue::syncBegin);
+            TrainCartsAttachmentViewerMap viewerMap = plugin.getAttachmentViewers();
+            viewerMap.forAllPacketQueues(PacketQueue::syncBegin);
 
             // Actual sending of network updates
             try (ImplicitlySharedSet<MinecartGroup> groups = MinecartGroupStore.getGroups().clone()) {
@@ -249,7 +250,7 @@ public class TrainUpdateController {
                 plugin.getEffectLoopPlayerController().updateSync();
             } finally {
                 // Send the bundler packets / cleanup
-                packetQueues.forAllQueues(PacketQueue::syncEnd);
+                viewerMap.forAllPacketQueues(PacketQueue::syncEnd);
             }
         }
     }

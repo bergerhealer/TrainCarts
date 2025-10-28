@@ -63,13 +63,13 @@ public class PhysicalMemberPreview {
 
             @Override
             public Player onAdded(Player value) {
-                spawn(TrainCarts.plugin.getPacketQueueMap().getQueue(value));
+                spawn(TrainCarts.plugin.getAttachmentViewer(value));
                 return value;
             }
 
             @Override
             public void onRemoved(Player item) {
-                destroy(TrainCarts.plugin.getPacketQueueMap().getQueue(item));
+                destroy(TrainCarts.plugin.getAttachmentViewer(item));
             }
         });
     }

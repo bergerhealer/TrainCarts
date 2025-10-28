@@ -106,7 +106,7 @@ public class TCListener implements Listener {
         plugin.getTeamProvider().reset(event.getPlayer());
 
         // Disable any active packet queues
-        plugin.getPacketQueueMap().remove(event.getPlayer());
+        plugin.getAttachmentViewers().remove(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.LOWEST)

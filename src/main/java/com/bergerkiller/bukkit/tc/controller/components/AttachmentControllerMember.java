@@ -691,7 +691,7 @@ public class AttachmentControllerMember
 
     @Override
     public AttachmentViewer asAttachmentViewer(Player player) {
-        return plugin.getPacketQueueMap().getQueue(player);
+        return plugin.getAttachmentViewer(player);
     }
 
     /**

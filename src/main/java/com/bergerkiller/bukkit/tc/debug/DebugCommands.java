@@ -521,7 +521,7 @@ public class DebugCommands {
         entity.setItem(ItemDisplayMode.HEAD,
                 CommonItemStack.create(MaterialUtil.getFirst("JACK_O_LANTERN", "LEGACY_JACK_O_LANTERN"), 1)
                         .toBukkit());
-        final AttachmentViewer viewer = plugin.getPacketQueueMap().getQueue(player);
+        final AttachmentViewer viewer = plugin.getAttachmentViewer(player);
 
         entity.updatePosition(transform);
         entity.syncPosition(true);

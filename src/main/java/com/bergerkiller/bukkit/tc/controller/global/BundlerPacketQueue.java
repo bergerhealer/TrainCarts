@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.tc.controller.global;
 
-import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PlayerGameInfo;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -28,12 +27,10 @@ class BundlerPacketQueue extends PacketQueue {
     private final AtomicInteger bufferIndex = new AtomicInteger(Integer.MIN_VALUE);
     private final ArrayList<Object> fallbackBuffer = new ArrayList<>();
     private Object[] buffer;
-    private final boolean supportsDisplayEntityLocationInterpolation;
 
     protected BundlerPacketQueue(TrainCarts plugin, Player player, PlayerGameInfo playerGameInfo, CircularFIFOQueue<CommonPacket> queue) {
         super(plugin, player, playerGameInfo, queue);
         this.buffer = new Object[256];
-        this.supportsDisplayEntityLocationInterpolation = CommonCapabilities.HAS_DISPLAY_ENTITY_LOCATION_INTERPOLATION && this.evaluateGameVersion(">=", "1.20.2");
     }
 
     /**
@@ -119,16 +116,6 @@ class BundlerPacketQueue extends PacketQueue {
     public void syncEnd() {
         super.syncEnd();
         stopBundling();
-    }
-
-    @Override
-    public boolean supportsDisplayEntities() {
-        return true; // Optimization. We know this is true as this only works on 1.19.4+
-    }
-
-    @Override
-    public boolean supportsDisplayEntityLocationInterpolation() {
-        return supportsDisplayEntityLocationInterpolation;
     }
 
     @Override

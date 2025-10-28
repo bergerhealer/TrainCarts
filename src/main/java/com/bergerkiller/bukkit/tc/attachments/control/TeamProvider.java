@@ -403,7 +403,7 @@ public class TeamProvider {
         private final ArrayList<ViewedTeam> teams;
 
         public ViewerState(Player viewer) {
-            this(plugin.getPacketQueueMap().getQueue(viewer));
+            this(plugin.getAttachmentViewer(viewer));
         }
 
         public ViewerState(AttachmentViewer viewer) {
