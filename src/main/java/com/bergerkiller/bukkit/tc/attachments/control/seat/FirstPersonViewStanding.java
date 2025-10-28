@@ -61,7 +61,7 @@ public class FirstPersonViewStanding extends FirstPersonViewDefault {
 
     private void updateVelocityControl() {
         if (_velocityControl == null) {
-            _velocityControl = PlayerMovementController.create(player);
+            _velocityControl = getViewer().controlMovement();
             _velocityControl.translateVehicleSteer(true);
         }
 
