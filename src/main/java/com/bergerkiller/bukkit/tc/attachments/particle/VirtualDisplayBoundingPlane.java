@@ -70,8 +70,7 @@ public class VirtualDisplayBoundingPlane extends VirtualBoundingBox {
     protected void loadParts(List<Part> parts) {
         // Bottom platform
         if (solidFloorMaterial != null) {
-            parts.add(new Platform(solidFloorMaterial, t -> t.applyPosition(0.0, 0.0, 0.0)
-                    .applyScaleXZ(1.0)));
+            parts.add(new Platform(solidFloorMaterial, t -> t.applyPlatformTransform()));
         }
 
         // Bottom plane
@@ -92,7 +91,7 @@ public class VirtualDisplayBoundingPlane extends VirtualBoundingBox {
         rotation.setTo(boundingBox.getOrientation());
 
         double minSize = 0.02 * Util.absMinAxis(size);
-        double lineThickness = Math.min(0.3, minSize);
+        double lineThickness = MathUtil.clamp(minSize, 0.02, 0.3);
         for (Part part : parts) {
             PartTransformer transformer = new PartTransformer(part.metadata, lineThickness);
             part.transform.accept(transformer);
@@ -138,7 +137,9 @@ public class VirtualDisplayBoundingPlane extends VirtualBoundingBox {
     protected void applyGlowing(ChatColor color) {
         byte data = (color != null) ? (byte) EntityHandle.DATA_FLAG_GLOWING : (byte) 0;
         for (Part part : parts) {
-            part.metadata.set(EntityHandle.DATA_FLAGS, data);
+            if (part instanceof Line) {
+                part.metadata.set(EntityHandle.DATA_FLAGS, data);
+            }
         }
     }
 
@@ -258,6 +259,15 @@ public class VirtualDisplayBoundingPlane extends VirtualBoundingBox {
             this.lineThickness = lineThickness;
         }
 
+        public PartTransformer applyRelativePosition(double x, double y, double z) {
+            Vector v = new Vector(x, y, z);
+            rotation.transformPoint(v);
+            metadata.forceSet(DisplayHandle.DATA_LEFT_ROTATION, rotation);
+            metadata.forceSet(DisplayHandle.DATA_TRANSLATION, v);
+            metadata.forceSet(DisplayHandle.DATA_INTERPOLATION_START_DELTA_TICKS, 0);
+            return this;
+        }
+
         /**
          * Generates the starting position of the line
          *
@@ -267,18 +277,22 @@ public class VirtualDisplayBoundingPlane extends VirtualBoundingBox {
          * @return this
          */
         public PartTransformer applyPosition(double tx, double ty, double tz) {
-            Vector v = new Vector((-0.5 + tx) * size.getX() - tx * lineThickness,
+            return applyRelativePosition(
+                    (-0.5 + tx) * size.getX() - tx * lineThickness,
                     (-0.5 + ty) * size.getY() - ty * lineThickness,
                     (-0.5 + tz) * size.getZ() - tz * lineThickness);
-            rotation.transformPoint(v);
-            metadata.forceSet(DisplayHandle.DATA_LEFT_ROTATION, rotation);
-            metadata.forceSet(DisplayHandle.DATA_TRANSLATION, v);
-            metadata.forceSet(DisplayHandle.DATA_INTERPOLATION_START_DELTA_TICKS, 0);
-            return this;
         }
 
-        public PartTransformer applyScaleXZ(double xz) {
-            metadata.forceSet(DisplayHandle.DATA_SCALE, new Vector(size.getX() * xz, lineThickness, size.getZ() * xz));
+        public PartTransformer applyPlatformTransform() {
+            applyRelativePosition(
+                    -0.5 * size.getX() + lineThickness,
+                    -0.5 * size.getY(),
+                    -0.5 * size.getZ() + lineThickness);
+
+            metadata.forceSet(DisplayHandle.DATA_SCALE, new Vector(
+                    Math.max(0.0, size.getX() - 2.0 * lineThickness),
+                    lineThickness,
+                    Math.max(0.0, size.getZ() - 2.0 * lineThickness)));
             return this;
         }
 
