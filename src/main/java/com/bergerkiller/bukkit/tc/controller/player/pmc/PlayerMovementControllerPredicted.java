@@ -1,7 +1,5 @@
 package com.bergerkiller.bukkit.tc.controller.player.pmc;
 
-import com.bergerkiller.bukkit.common.protocol.PacketListener;
-import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -32,10 +30,13 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
     protected static final MovementFrictionUpdate FRICTION_UPDATE = new MovementFrictionUpdate();
     protected final SentPositionChain sentPositions = new SentPositionChain();
     protected boolean isSynchronized = false;
-    protected PositionTracker tracker = null;
 
-    protected PlayerMovementControllerPredicted(AttachmentViewer viewer) {
-        super(viewer);
+    /** Keeps track of the position and other inputs received from the client */
+    protected final PlayerPositionInput input;
+
+    protected PlayerMovementControllerPredicted(ControllerType type, AttachmentViewer viewer) {
+        super(type, viewer);
+        this.input = new PlayerPositionInput(viewer);
         if (DEBUG_MODE) {
             // Make command available
             DebugUtil.getBooleanValue("testcase", false);
@@ -44,35 +45,18 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
 
     protected abstract void sendPosition(Vector position);
 
-    protected abstract PositionTracker createTracker(AttachmentViewer viewer);
-
     @Override
     public synchronized HorizontalPlayerInput horizontalInput() {
-        PositionTracker tracker = this.tracker;
-        return (tracker == null) ? HorizontalPlayerInput.NONE : tracker.input.lastHorizontalInput;
+        return input.lastHorizontalInput;
     }
 
     @Override
     public synchronized VerticalPlayerInput verticalInput() {
-        PositionTracker tracker = this.tracker;
-        return (tracker == null) ? VerticalPlayerInput.NONE : tracker.input.lastVerticalInput;
-    }
-
-    @Override
-    public synchronized void stop() {
-        if (tracker != null) {
-            viewer.getTrainCarts().unregister(tracker);
-        }
-        setFlightForced(false);
+        return input.lastVerticalInput;
     }
 
     @Override
     protected synchronized final void syncPosition(Vector position) {
-        if (tracker == null) {
-            tracker = createTracker(viewer);
-            viewer.getTrainCarts().register(tracker, tracker.getPacketTypes());
-        }
-
         // Important player is set to fly mode regularly
         setFlightForced(true);
 
@@ -114,16 +98,6 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
 
     protected static String strVec(Vector v) {
         return v.getX() + " // " + v.getY() + " // " + v.getZ();
-    }
-
-    protected static abstract class PositionTracker implements PacketListener {
-        protected final PlayerPositionInput input;
-
-        public PositionTracker(AttachmentViewer viewer) {
-            this.input = new PlayerPositionInput(viewer);
-        }
-
-        public abstract PacketType[] getPacketTypes();
     }
 
     protected static final class PlayerPositionInput {

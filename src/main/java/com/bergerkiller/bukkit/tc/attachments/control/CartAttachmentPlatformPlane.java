@@ -180,7 +180,7 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
 
         public void lock(OrientedBoundingBox bbox) {
             if (pvc == null) {
-                pvc = PlayerMovementController.create(viewer);
+                pvc = viewer.controlMovement();
             }
 
             Vector pos = new Vector(rx, 0.0, rz);

@@ -24,9 +24,10 @@ import org.bukkit.util.Vector;
  * themselves as they come in.
  */
 class PlayerMovementControllerPredictedLegacy extends PlayerMovementControllerPredicted {
+    private boolean lastPositionWasLook = false;
 
-    protected PlayerMovementControllerPredictedLegacy(AttachmentViewer viewer) {
-        super(viewer);
+    protected PlayerMovementControllerPredictedLegacy(ControllerType type, AttachmentViewer viewer) {
+        super(type, viewer);
     }
 
     @Override
@@ -66,11 +67,6 @@ class PlayerMovementControllerPredictedLegacy extends PlayerMovementControllerPr
 
             sentPositions.add(new SentAbsoluteUpdate(position.clone()));
         }
-    }
-
-    @Override
-    protected PositionTracker createTracker(AttachmentViewer viewer) {
-        return new PositionTrackerLegacy(viewer);
     }
 
     private synchronized void receiveInput(PlayerPositionInput input) {
@@ -125,72 +121,54 @@ class PlayerMovementControllerPredictedLegacy extends PlayerMovementControllerPr
         isSynchronized = false;
     }
 
-    private class PositionTrackerLegacy extends PositionTracker {
-        private boolean lastPositionWasLook = false;
+    @Override
+    public void onPacketReceive(PacketReceiveEvent event) {
+        if (event.getType() == PacketType.IN_POSITION || event.getType() == PacketType.IN_POSITION_LOOK) {
+            PacketPlayInFlyingHandle p = PacketPlayInFlyingHandle.createHandle(event.getPacket().getHandle());
+            synchronized (PlayerMovementControllerPredictedLegacy.this) {
+                PlayerPositionInput input = this.input;
+                MathUtil.setVector(input.currPosition, p.getX(), p.getY(), p.getZ());
 
-        public PositionTrackerLegacy(AttachmentViewer viewer) {
-            super(viewer);
-        }
-
-        @Override
-        public PacketType[] getPacketTypes() {
-            return new PacketType[] {
-                    PacketType.IN_POSITION, PacketType.IN_POSITION_LOOK, PacketType.IN_ABILITIES
-            };
-        }
-
-        @Override
-        public void onPacketReceive(PacketReceiveEvent event) {
-            if (event.getPlayer() != player) {
-                return;
-            }
-            if (event.getType() == PacketType.IN_POSITION || event.getType() == PacketType.IN_POSITION_LOOK) {
-                PacketPlayInFlyingHandle p = PacketPlayInFlyingHandle.createHandle(event.getPacket().getHandle());
-                synchronized (PlayerMovementControllerPredictedLegacy.this) {
-                    PlayerPositionInput input = this.input;
-                    MathUtil.setVector(input.currPosition, p.getX(), p.getY(), p.getZ());
-
-                    if (event.getType() == PacketType.IN_POSITION_LOOK) {
-                        input.updateYaw(p.getYaw());
-                        lastPositionWasLook = true;
-                    } else if (lastPositionWasLook) {
-                        // Sometimes a position packet is sent after a look with the same position
-                        // Ignore those.
-                        lastPositionWasLook = false; // Reset
-                        if (isVectorExactlyEqual(input.lastPosition, input.currPosition)) {
-                            return;
-                        }
-                    }
-
-                    receiveInput(input);
-                    input.updateLast();
-
-                    if (translateVehicleSteer) {
-                        PacketPlayInSteerVehicleHandle steer = PacketPlayInSteerVehicleHandle.createNew(
-                                input.lastHorizontalInput.left(),
-                                input.lastHorizontalInput.right(),
-                                input.lastHorizontalInput.forwards(),
-                                input.lastHorizontalInput.backwards(),
-                                input.lastVerticalInput == VerticalPlayerInput.JUMP,
-                                input.lastVerticalInput == VerticalPlayerInput.SNEAK,
-                                false);
-
-                        PacketUtil.receivePacket(player, steer);
+                if (event.getType() == PacketType.IN_POSITION_LOOK) {
+                    input.updateYaw(p.getYaw());
+                    lastPositionWasLook = true;
+                } else if (lastPositionWasLook) {
+                    // Sometimes a position packet is sent after a look with the same position
+                    // Ignore those.
+                    lastPositionWasLook = false; // Reset
+                    if (isVectorExactlyEqual(input.lastPosition, input.currPosition)) {
+                        return;
                     }
                 }
-            } else if (event.getType() == PacketType.IN_ABILITIES) {
-                PacketPlayInAbilitiesHandle p = PacketPlayInAbilitiesHandle.createHandle(event.getPacket().getHandle());
-                if (!p.isFlying()) {
-                    event.setCancelled(true);
-                    PlayerAbilities pa = EntityPlayerHandle.fromBukkit(event.getPlayer()).getAbilities();
-                    PacketPlayOutAbilitiesHandle pp = PacketPlayOutAbilitiesHandle.createNew(pa);
-                    PacketUtil.queuePacket(event.getPlayer(), pp);
+
+                receiveInput(input);
+                input.updateLast();
+
+                if (translateVehicleSteer) {
+                    PacketPlayInSteerVehicleHandle steer = PacketPlayInSteerVehicleHandle.createNew(
+                            input.lastHorizontalInput.left(),
+                            input.lastHorizontalInput.right(),
+                            input.lastHorizontalInput.forwards(),
+                            input.lastHorizontalInput.backwards(),
+                            input.lastVerticalInput == VerticalPlayerInput.JUMP,
+                            input.lastVerticalInput == VerticalPlayerInput.SNEAK,
+                            false);
+
+                    PacketUtil.receivePacket(player, steer);
                 }
             }
+        } else if (event.getType() == PacketType.IN_ABILITIES) {
+            PacketPlayInAbilitiesHandle p = PacketPlayInAbilitiesHandle.createHandle(event.getPacket().getHandle());
+            if (!p.isFlying()) {
+                event.setCancelled(true);
+                PlayerAbilities pa = EntityPlayerHandle.fromBukkit(event.getPlayer()).getAbilities();
+                PacketPlayOutAbilitiesHandle pp = PacketPlayOutAbilitiesHandle.createNew(pa);
+                PacketUtil.queuePacket(event.getPlayer(), pp);
+            }
         }
+    }
 
-        @Override
-        public void onPacketSend(PacketSendEvent event) {
-        }
+    @Override
+    public void onPacketSend(PacketSendEvent event) {
     }
 }

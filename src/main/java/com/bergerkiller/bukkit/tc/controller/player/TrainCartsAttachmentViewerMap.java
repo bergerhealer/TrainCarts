@@ -58,6 +58,7 @@ public class TrainCartsAttachmentViewerMap {
     public synchronized void remove(Player player) {
         TrainCartsAttachmentViewer viewer = viewers.remove(player);
         if (viewer != null) {
+            viewer.stopControllingMovement();
             final PacketQueue packetQueue = viewer.getPacketQueue();
             queuesList.remove(packetQueue);
             packetQueue.abort();

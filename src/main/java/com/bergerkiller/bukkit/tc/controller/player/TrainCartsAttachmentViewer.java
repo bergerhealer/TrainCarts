@@ -8,8 +8,11 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.controller.player.network.PacketQueue;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchronizer;
+import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
 import org.bukkit.entity.Player;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Implementation of {@link AttachmentViewer} by TrainCarts itself.
@@ -30,6 +33,7 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     // Components
     private final PacketQueue packetQueue;
     private final PlayerClientSynchronizer playerClientSynchronizer;
+    private final AtomicReference<PlayerMovementController> activeMovementController;
 
     TrainCartsAttachmentViewer(TrainCarts plugin, Player player, PlayerGameInfo playerGameInfo, PacketQueue packetQueue) {
         this.plugin = plugin;
@@ -42,6 +46,7 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
         this.supportRelativeRotationUpdate = AttachmentViewer.super.supportRelativeRotationUpdate();
         this.packetQueue = packetQueue;
         this.playerClientSynchronizer = plugin.getPlayerClientSynchronizerProvider().forViewer(this);
+        this.activeMovementController = new AtomicReference<>();
     }
 
     PacketQueue getPacketQueue() {
@@ -116,6 +121,24 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     @Override
     public void sendSilent(PacketHandle packet) {
         getPacketQueue().sendSilent(packet);
+    }
+
+    @Override
+    public PlayerMovementController controlMovement() {
+        PlayerMovementController newController = PlayerMovementController.ControllerType.forViewer(this).create(this);
+        PlayerMovementController previous = activeMovementController.getAndSet(newController);
+        if (previous != null) {
+            previous.stop();
+        }
+        return newController;
+    }
+
+    @Override
+    public void stopControllingMovement() {
+        PlayerMovementController previous = activeMovementController.getAndSet(null);
+        if (previous != null) {
+            previous.stop();
+        }
     }
 
     @Override
