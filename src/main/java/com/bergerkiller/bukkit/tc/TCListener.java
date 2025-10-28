@@ -111,7 +111,7 @@ public class TCListener implements Listener {
         FakePlayerSpawner.onViewerQuit(event.getPlayer());
         plugin.getTeamProvider().reset(event.getPlayer());
 
-        // Disable any active packet queues
+        // Disable any active attachment viewers
         plugin.getAttachmentViewers().remove(event.getPlayer());
     }
 

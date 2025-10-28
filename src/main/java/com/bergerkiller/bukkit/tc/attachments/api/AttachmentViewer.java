@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchronizer;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
+import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -317,6 +318,34 @@ public interface AttachmentViewer extends TrainCarts.Provider {
             return trainCarts.getAttachmentViewer(player);
         } else {
             return fallback(player);
+        }
+    }
+
+    /**
+     * Starts controlling the movement of this viewer. This causes the player to lose direct
+     * control over W/A/S/D movement controls, and allows the caller to send new positions
+     * to this player. The player is smoothly moved to these new positions.<br>
+     * <br>
+     * If someone else was controlling movement before, their control is ended.
+     *
+     * @return PlayerMovementController
+     */
+    default PlayerMovementController controlMovement() {
+        TrainCarts plugin = getTrainCarts();
+        if (!isConnected() || !plugin.isEnabled()) {
+            return PlayerMovementController.ControllerType.DISABLED.create(this);
+        } else {
+            return plugin.getAttachmentViewer(getPlayer()).controlMovement();
+        }
+    }
+
+    /**
+     * If someone had called {@link #controlMovement()}, stops this controller.
+     */
+    default void stopControllingMovement() {
+        TrainCarts plugin = getTrainCarts();
+        if (plugin.isEnabled()) {
+            plugin.getAttachmentViewer(getPlayer()).stopControllingMovement();
         }
     }
 

@@ -1,9 +1,18 @@
 package com.bergerkiller.bukkit.tc.controller.player.pmc;
 
 import com.bergerkiller.bukkit.common.Common;
+import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
+import com.bergerkiller.bukkit.common.events.PacketSendEvent;
+import com.bergerkiller.bukkit.common.protocol.PacketListener;
+import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.BiFunction;
 
 /**
  * Moves a player (in first person) to a target position using velocity updates.
@@ -11,27 +20,29 @@ import org.bukkit.util.Vector;
  * To mitigate this, it tracks incoming player input packets to detect these
  * missed velocity packets and adjust accordingly.
  */
-public abstract class PlayerMovementController {
-    private static final boolean HAS_INPUT_PACKET = Common.evaluateMCVersion(">=", "1.21.2");
-
+public abstract class PlayerMovementController implements PacketListener {
+    private final ControllerType type;
     protected final AttachmentViewer viewer;
     protected final Player player;
     private boolean syncAsArmorstand = true;
     private Vector lastSyncPos = null;
     protected volatile boolean translateVehicleSteer = false;
     protected boolean isFlightForced = false;
+    private boolean stopped = false;
 
-    public static PlayerMovementController create(AttachmentViewer viewer) {
-        if (HAS_INPUT_PACKET && viewer.evaluateGameVersion(">=", "1.21.2")) {
-            return new PlayerMovementControllerPredictedModern(viewer);
-        } else {
-            return new PlayerMovementControllerPredictedLegacy(viewer);
-        }
-    }
-
-    protected PlayerMovementController(AttachmentViewer viewer) {
+    protected PlayerMovementController(ControllerType type, AttachmentViewer viewer) {
+        this.type = type;
         this.viewer = viewer;
         this.player = viewer.getPlayer();
+    }
+
+    /**
+     * Gets the Type of movement controller this is. Internal use.
+     *
+     * @return PlayerMovementController Type
+     */
+    public final ControllerType getType() {
+        return type;
     }
 
     /**
@@ -63,9 +74,32 @@ public abstract class PlayerMovementController {
 
     public abstract VerticalPlayerInput verticalInput();
 
-    public abstract void stop();
+    /**
+     * Stops this movement controller. It will stop refreshing player positions,
+     * and the player will regain control like normal.
+     */
+    public final void stop() {
+        stopped = true;
+        type.remove(this);
+        setFlightForced(false);
+    }
+
+    /**
+     * Gets whether this controller has stopped. This happens when the player logs off, or
+     * when someone else takes movement control over. It also happens when the player
+     * warps away.
+     *
+     * @return True if stopped
+     */
+    public final boolean isStopped() {
+        return stopped;
+    }
 
     public final void setPosition(Vector position) {
+        if (stopped) {
+            return;
+        }
+
         // If synchronizing as armor stand, modify the position to be 3/4th
         if (syncAsArmorstand) {
             if (lastSyncPos == null) {
@@ -289,6 +323,88 @@ public abstract class PlayerMovementController {
                 return RIGHT;
             } else {
                 return NONE;
+            }
+        }
+    }
+
+    /**
+     * Type of PlayerMovementController implementation. Keeps track of the packet listener
+     * used for instances of this type.
+     */
+    public static final class ControllerType implements PacketListener {
+        private static final boolean HAS_INPUT_PACKET = Common.evaluateMCVersion(">=", "1.21.2");
+
+        private final BiFunction<ControllerType, AttachmentViewer, ? extends PlayerMovementController> factory;
+        private final PacketType[] listenedPacketTypes;
+        private final List<PlayerMovementController> activeControllers = new ArrayList<>();
+        private List<PlayerMovementController> activeControllersView = Collections.emptyList();
+
+        // Type implementations
+        public static final ControllerType DISABLED = new ControllerType(PlayerMovementControllerDisabled::new);
+        public static final ControllerType LEGACY = new ControllerType(PlayerMovementControllerPredictedLegacy::new,
+                PacketType.IN_POSITION, PacketType.IN_POSITION_LOOK, PacketType.IN_ABILITIES);
+        public static final ControllerType MODERN = new ControllerType(PlayerMovementControllerPredictedModern::new,
+                PacketType.IN_CLIENT_TICK_END,
+                PacketType.IN_POSITION, PacketType.IN_POSITION_LOOK,
+                PacketType.IN_STEER_VEHICLE, PacketType.IN_ABILITIES);
+
+        /**
+         * Selects the most appropriate controller type to use for a certain player viewer.
+         *
+         * @param viewer AttachmentViewer
+         * @return ControllerType
+         */
+        public static ControllerType forViewer(AttachmentViewer viewer) {
+            if (!viewer.isConnected()) {
+                return DISABLED;
+            } else if (HAS_INPUT_PACKET && viewer.evaluateGameVersion(">=", "1.21.2")) {
+                return MODERN;
+            } else {
+                return LEGACY;
+            }
+        }
+
+        public ControllerType(BiFunction<ControllerType, AttachmentViewer, ? extends PlayerMovementController> factory, PacketType... listenedPacketTypes) {
+            this.factory = factory;
+            this.listenedPacketTypes = listenedPacketTypes;
+        }
+
+        public synchronized PlayerMovementController create(AttachmentViewer viewer) {
+            PlayerMovementController controller = factory.apply(this, viewer);
+            activeControllers.add(controller);
+            activeControllersView = Collections.unmodifiableList(new ArrayList<>(activeControllers));
+            if (activeControllers.size() == 1 && listenedPacketTypes.length > 0) {
+                viewer.getTrainCarts().register(this, this.listenedPacketTypes);
+            }
+            return controller;
+        }
+
+        public synchronized void remove(PlayerMovementController controller) {
+            if (activeControllers.remove(controller)) {
+                activeControllersView = Collections.unmodifiableList(new ArrayList<>(activeControllers));
+                if (activeControllers.isEmpty() && listenedPacketTypes.length > 0) {
+                    controller.viewer.getTrainCarts().unregister(this);
+                }
+            }
+        }
+
+        @Override
+        public void onPacketReceive(PacketReceiveEvent event) {
+            final Player player = event.getPlayer();
+            for (PlayerMovementController controller : activeControllers) {
+                if (controller.player == player) {
+                    controller.onPacketReceive(event);
+                }
+            }
+        }
+
+        @Override
+        public void onPacketSend(PacketSendEvent event) {
+            final Player player = event.getPlayer();
+            for (PlayerMovementController controller : activeControllers) {
+                if (controller.player == player) {
+                    controller.onPacketSend(event);
+                }
             }
         }
     }
