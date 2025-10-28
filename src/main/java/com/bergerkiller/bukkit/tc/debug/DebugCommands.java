@@ -49,7 +49,7 @@ import com.bergerkiller.bukkit.tc.debug.types.DebugToolTypeTrackDistance;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.EventListenerHook;
-import com.bergerkiller.bukkit.tc.controller.player.PlayerMovementController;
+import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
 import org.incendo.cloud.annotation.specifier.Quoted;
 import org.incendo.cloud.annotations.Argument;
 import org.incendo.cloud.annotations.Command;

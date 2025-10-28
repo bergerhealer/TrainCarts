@@ -1,6 +1,6 @@
 package com.bergerkiller.bukkit.tc;
 
-import com.bergerkiller.bukkit.tc.controller.player.PlayerMovementController;
+import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
 import org.bukkit.util.Vector;
 import org.junit.Test;
 

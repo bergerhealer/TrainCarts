@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.controller.player;
+package com.bergerkiller.bukkit.tc.controller.player.pmc;
 
 import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
 import com.bergerkiller.bukkit.common.events.PacketSendEvent;

@@ -12,7 +12,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.particle.VirtualBoundingBox;
-import com.bergerkiller.bukkit.tc.controller.player.PlayerMovementController;
+import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
 import org.bukkit.ChatColor;
 import org.bukkit.util.Vector;
 
