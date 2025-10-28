@@ -3,7 +3,7 @@ package com.bergerkiller.bukkit.tc.controller.player;
 import com.bergerkiller.bukkit.common.collections.FastIdentityHashMap;
 import com.bergerkiller.bukkit.common.protocol.PlayerGameInfo;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.controller.global.PacketQueue;
+import com.bergerkiller.bukkit.tc.controller.player.network.PacketQueue;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;

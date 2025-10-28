@@ -5,6 +5,7 @@ import java.util.Random;
 import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.tc.controller.player.TrainCartsAttachmentViewerMap;
+import com.bergerkiller.bukkit.tc.controller.player.network.PacketQueue;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.bergerkiller.bukkit.common.Task;

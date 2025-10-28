@@ -7,7 +7,7 @@ import com.bergerkiller.bukkit.common.protocol.PlayerGameInfo;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.bukkit.tc.controller.global.PacketQueue;
+import com.bergerkiller.bukkit.tc.controller.player.network.PacketQueue;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
 import org.bukkit.entity.Player;
 

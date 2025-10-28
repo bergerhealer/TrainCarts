@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc.controller.global;
+package com.bergerkiller.bukkit.tc.controller.player.network;
 
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PlayerGameInfo;
