@@ -27,9 +27,11 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPredicted {
     protected final AtomicReference<Vector> lastPosition = new AtomicReference<>(null);
+    private Vector lastSentPosition = null;
+    private final Vector lastSentMotion = new Vector();
 
-    protected PlayerMovementControllerPredictedModern(AttachmentViewer viewer) {
-        super(viewer);
+    protected PlayerMovementControllerPredictedModern(ControllerType type, AttachmentViewer viewer) {
+        super(type, viewer);
     }
 
     private static final RelativeFlags FLAGS_ONLY_MOVE = RelativeFlags.RELATIVE_POSITION_ROTATION
@@ -81,11 +83,6 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
 
             sentPositions.add(new SentAbsoluteUpdate(position.clone()));
         }
-    }
-
-    @Override
-    protected PositionTracker createTracker(AttachmentViewer viewer) {
-        return new PositionTrackerModern(viewer);
     }
 
     private synchronized void receiveInput(PlayerPositionInput input) {
@@ -175,85 +172,63 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
         return "new Vector(" + v.getX() + ", 0.0, " + v.getZ() + ")";
     }
 
-    private class PositionTrackerModern extends PositionTracker {
-        private Vector lastSentPosition = null;
-        private final Vector lastSentMotion = new Vector();
+    @Override
+    public void onPacketReceive(PacketReceiveEvent event) {
+        if (event.getType() == PacketType.IN_POSITION || event.getType() == PacketType.IN_POSITION_LOOK) {
+            // Update last-known position and look yaw of the player
+            PacketPlayInFlyingHandle p = PacketPlayInFlyingHandle.createHandle(event.getPacket().getHandle());
+            synchronized (PlayerMovementControllerPredictedModern.this) {
+                PlayerPositionInput input = this.input;
+                MathUtil.setVector(input.currPosition, p.getX(), p.getY(), p.getZ());
 
-        public PositionTrackerModern(AttachmentViewer viewer) {
-            super(viewer);
-        }
-
-        @Override
-        public PacketType[] getPacketTypes() {
-            return new PacketType[] {
-                    PacketType.IN_CLIENT_TICK_END,
-                    PacketType.IN_POSITION, PacketType.IN_POSITION_LOOK,
-                    PacketType.IN_STEER_VEHICLE, PacketType.IN_ABILITIES
-            };
-        }
-
-        @Override
-        public void onPacketReceive(PacketReceiveEvent event) {
-            if (event.getPlayer() != player) {
-                return;
+                if (event.getType() == PacketType.IN_POSITION_LOOK) {
+                    input.updateYaw(p.getYaw());
+                }
             }
+        } else if (event.getType() == PacketType.IN_STEER_VEHICLE) {
+            // Update last-known inputs from the player
+            PacketPlayInSteerVehicleHandle packet = PacketPlayInSteerVehicleHandle.createHandle(event.getPacket().getHandle());
+            synchronized (PlayerMovementControllerPredictedModern.this) {
+                input.currHorizontalInput = HorizontalPlayerInput.fromSteer(
+                        packet.isLeft(), packet.isRight(), packet.isForward(), packet.isBackward()
+                );
+                input.currVerticalInput = VerticalPlayerInput.fromSteer(
+                        packet.isJump(), packet.isUnmount()
+                );
+            }
+        } else if (event.getType() == PacketType.IN_ABILITIES) {
+            // Ensure flight mode is kept active
+            PacketPlayInAbilitiesHandle p = PacketPlayInAbilitiesHandle.createHandle(event.getPacket().getHandle());
+            if (!p.isFlying()) {
+                event.setCancelled(true);
+                PlayerAbilities pa = EntityPlayerHandle.fromBukkit(event.getPlayer()).getAbilities();
+                PacketPlayOutAbilitiesHandle pp = PacketPlayOutAbilitiesHandle.createNew(pa);
+                PacketUtil.queuePacket(event.getPlayer(), pp);
+            }
+        } else if (event.getType() == PacketType.IN_CLIENT_TICK_END) {
+            // Synchronize everything on every client tick
+            receiveInput(input);
+            input.updateLast();
 
-            if (event.getType() == PacketType.IN_POSITION || event.getType() == PacketType.IN_POSITION_LOOK) {
-                // Update last-known position and look yaw of the player
-                PacketPlayInFlyingHandle p = PacketPlayInFlyingHandle.createHandle(event.getPacket().getHandle());
-                synchronized (PlayerMovementControllerPredictedModern.this) {
-                    PlayerPositionInput input = this.input;
-                    MathUtil.setVector(input.currPosition, p.getX(), p.getY(), p.getZ());
-
-                    if (event.getType() == PacketType.IN_POSITION_LOOK) {
-                        input.updateYaw(p.getYaw());
-                    }
-                }
-            } else if (event.getType() == PacketType.IN_STEER_VEHICLE) {
-                // Update last-known inputs from the player
-                PacketPlayInSteerVehicleHandle packet = PacketPlayInSteerVehicleHandle.createHandle(event.getPacket().getHandle());
-                synchronized (PlayerMovementControllerPredictedModern.this) {
-                    input.currHorizontalInput = HorizontalPlayerInput.fromSteer(
-                            packet.isLeft(), packet.isRight(), packet.isForward(), packet.isBackward()
-                    );
-                    input.currVerticalInput = VerticalPlayerInput.fromSteer(
-                            packet.isJump(), packet.isUnmount()
-                    );
-                }
-            } else if (event.getType() == PacketType.IN_ABILITIES) {
-                // Ensure flight mode is kept active
-                PacketPlayInAbilitiesHandle p = PacketPlayInAbilitiesHandle.createHandle(event.getPacket().getHandle());
-                if (!p.isFlying()) {
-                    event.setCancelled(true);
-                    PlayerAbilities pa = EntityPlayerHandle.fromBukkit(event.getPlayer()).getAbilities();
-                    PacketPlayOutAbilitiesHandle pp = PacketPlayOutAbilitiesHandle.createNew(pa);
-                    PacketUtil.queuePacket(event.getPlayer(), pp);
-                }
-            } else if (event.getType() == PacketType.IN_CLIENT_TICK_END) {
-                // Synchronize everything on every client tick
-                receiveInput(input);
-                input.updateLast();
-
-                Vector next = lastPosition.getAndSet(null);
-                if (next != null) {
-                    if (lastSentPosition != null) {
-                        MathUtil.setVector(lastSentMotion, next);
-                        lastSentMotion.subtract(lastSentPosition);
-                        MathUtil.setVector(lastSentPosition, next);
-                    } else {
-                        lastSentPosition = next.clone();
-                    }
-
-                    schedulePosition(next);
+            Vector next = lastPosition.getAndSet(null);
+            if (next != null) {
+                if (lastSentPosition != null) {
+                    MathUtil.setVector(lastSentMotion, next);
+                    lastSentMotion.subtract(lastSentPosition);
+                    MathUtil.setVector(lastSentPosition, next);
                 } else {
-                    lastSentPosition.add(lastSentMotion);
-                    schedulePosition(lastSentPosition);
+                    lastSentPosition = next.clone();
                 }
+
+                schedulePosition(next);
+            } else if (lastSentPosition != null) {
+                lastSentPosition.add(lastSentMotion);
+                schedulePosition(lastSentPosition);
             }
         }
+    }
 
-        @Override
-        public void onPacketSend(PacketSendEvent event) {
-        }
+    @Override
+    public void onPacketSend(PacketSendEvent event) {
     }
 }
