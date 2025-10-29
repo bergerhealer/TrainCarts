@@ -12,7 +12,6 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.particle.VirtualBoundingBox;
-import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
 import org.bukkit.ChatColor;
 import org.bukkit.util.Vector;
 
@@ -166,7 +165,7 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
     private static class LockedPlayer {
         public final AttachmentViewer viewer;
         public final double rx, rz;
-        public PlayerMovementController pvc;
+        public AttachmentViewer.MovementController movementController;
 
         public LockedPlayer(AttachmentViewer viewer, double rx, double rz) {
             this.viewer = viewer;
@@ -179,20 +178,20 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
         }
 
         public void lock(OrientedBoundingBox bbox) {
-            if (pvc == null) {
-                pvc = viewer.controlMovement();
+            if (movementController == null) {
+                movementController = viewer.controlMovement();
             }
 
             Vector pos = new Vector(rx, 0.0, rz);
             bbox.getOrientation().transformPoint(pos);
             pos.add(bbox.getPosition());
 
-            pvc.setPosition(pos);
+            movementController.update(pos);
         }
 
         public void unlock() {
-            if (pvc != null) {
-                pvc.stop();
+            if (movementController != null) {
+                movementController.stop();
             }
         }
     }
