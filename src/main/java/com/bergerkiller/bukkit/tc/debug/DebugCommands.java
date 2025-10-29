@@ -395,7 +395,7 @@ public class DebugCommands {
 
         new Task(plugin) {
             Quaternion rotation = new Quaternion();
-            PlayerMovementController controller = plugin.getAttachmentViewer(player).controlMovement();
+            AttachmentViewer.MovementController controller = plugin.getAttachmentViewer(player).controlMovement();
             Location loc = player.getLocation();
             int ctr = 0;
             final int duration = 200000;
@@ -435,33 +435,31 @@ public class DebugCommands {
                     player.setFlying(true);
                 }
 
-                controller.setPosition(loc.toVector());
-                
+                controller.update(loc.toVector());
+
                 speed *= 0.9;
-                if (controller.horizontalInput() != PlayerMovementController.HorizontalPlayerInput.NONE ||
-                    controller.verticalInput() != PlayerMovementController.VerticalPlayerInput.NONE) {
-                    
+                AttachmentViewer.Input input = controller.getInput();
+                if (input.hasWalkInput() || input.jumping() || input.sneaking()) {
                     lastMotion = new Vector();
                     speed += 0.2;
                 } else if (speed < 0.01) {
                     speed = 0.0;
                 }
-                
+
                 Quaternion q = Quaternion.fromLookDirection(player.getEyeLocation().getDirection(), new Vector(0, 1, 0));
-                if (controller.verticalInput() == PlayerMovementController.VerticalPlayerInput.JUMP) {
+                if (input.jumping()) {
                     lastMotion.add(q.upVector());
                 }
-                if (controller.horizontalInput().forwards()) {
+                if (input.forwards()) {
                     lastMotion.add(q.forwardVector());
-                } else if (controller.horizontalInput().backwards()) {
+                } else if (input.backwards()) {
                     lastMotion.add(q.forwardVector().multiply(-1.0));
                 }
-                if (controller.horizontalInput().left()) {
+                if (input.left()) {
                     lastMotion.add(q.rightVector());
-                } else if (controller.horizontalInput().right()) {
+                } else if (input.right()) {
                     lastMotion.add(q.rightVector().multiply(-1.0));
                 }
-                
                 loc.add(lastMotion.clone().multiply(speed));
             }
         }.start(5, 1);
@@ -481,7 +479,7 @@ public class DebugCommands {
 
         new Task(plugin) {
             Quaternion rotation = new Quaternion();
-            PlayerMovementController controller = plugin.getAttachmentViewer(player).controlMovement();
+            AttachmentViewer.MovementController controller = plugin.getAttachmentViewer(player).controlMovement();
             int ctr = 0;
             final int duration = 200000;
 
@@ -526,7 +524,7 @@ public class DebugCommands {
                     player.teleport(loc);
                     player.setFlying(true);
                 }
-                controller.setPosition(pos);
+                controller.update(pos);
                 if (ctr > 0) {
                     rotation.rotateX(4.0);
                 }
