@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
@@ -14,7 +13,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
  */
 public class FirstPersonViewStanding extends FirstPersonViewDefault {
     // Used for first-person player position control
-    private PlayerMovementController _velocityControl = null;
+    private AttachmentViewer.MovementController _movementControl = null;
 
     public FirstPersonViewStanding(CartAttachmentSeat seat, AttachmentViewer player) {
         super(seat, player);
@@ -43,9 +42,9 @@ public class FirstPersonViewStanding extends FirstPersonViewDefault {
     @Override
     public void makeHidden(AttachmentViewer viewer, boolean isReload) {
         // Stop this
-        if (_velocityControl != null) {
-            _velocityControl.stop();
-            _velocityControl = null;
+        if (_movementControl != null) {
+            _movementControl.stop();
+            _movementControl = null;
         }
 
         //TODO: Some smooth coasters related stuff?
@@ -60,9 +59,10 @@ public class FirstPersonViewStanding extends FirstPersonViewDefault {
     }
 
     private void updateVelocityControl() {
-        if (_velocityControl == null) {
-            _velocityControl = getViewer().controlMovement();
-            _velocityControl.translateVehicleSteer(true);
+        if (_movementControl == null) {
+            _movementControl = getViewer().controlMovement(
+                    AttachmentViewer.MovementController.Options.create()
+                            .preserveInput(true));
         }
 
         Vector pos;
@@ -74,6 +74,6 @@ public class FirstPersonViewStanding extends FirstPersonViewDefault {
             pos = this.getEyeTransform().toVector();
             pos.setY(pos.getY() - VirtualEntity.PLAYER_STANDING_EYE_HEIGHT);
         }
-        _velocityControl.setPosition(pos);
+        _movementControl.update(pos);
     }
 }
