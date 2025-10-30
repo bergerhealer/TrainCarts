@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc;
 
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
 import org.bukkit.util.Vector;
 import org.junit.Test;
@@ -39,25 +40,53 @@ public class FlyPlayerInputTest {
     /**
      * Test different algorithms to calculate the player-input motion vector here
      *
-     * @param flySpeed Bukkit fly speed (note: x 0.5F as Bukkit does a X 2.0F internally)
+     * @param currSpeed Bukkit fly speed (note: x 0.5F as Bukkit does a X 2.0F internally)
      * @param testCase TestCase
      * @return Motion Vector
      */
-    private static Vector getMotion_1_21_10(float flySpeed, TestCase testCase) {
+    private static Vector getMotion_1_21_10(float currSpeed, TestCase testCase) {
+        // Constants for 1.21.10
+        double diagonalSpeedFactor = 0.7071067094802855;
+        float verticalSpeedFactor = 3.0f;
+        AttachmentViewer.Input input = testCase.input;
+        PlayerMovementController.ForwardMotion currForward = testCase.fwd;
+
+        /* ================== Implementation =================== */
+
+        double horSpeedDbl = (double) currSpeed;
+        double verSpeedDbl = (double) (currSpeed * verticalSpeedFactor);
+
+        if (input.hasDiagonalWalkInput()) {
+            horSpeedDbl *= diagonalSpeedFactor;
+        } else {
+            horSpeedDbl *= 0.98F;
+        }
+
+        double left = input.sidewaysSigNum() * horSpeedDbl; // left/right
+        double forward = input.forwardsSigNum() * horSpeedDbl; // forward/backward
+        double vertical = input.verticalSigNum() * verSpeedDbl; // jump/sneak
+
+        return new Vector(
+                forward * currForward.dx + left * currForward.dz,
+                vertical,
+                forward * currForward.dz - left * currForward.dx);
+
+        /*
         double speed = (double) (flySpeed);
-        if (testCase.input.diagonal()) {
+        if (testCase.horizontalInput.diagonal()) {
             speed *= 0.7071067094802855;
         } else {
             speed *= 0.98F;
         }
 
-        double left = testCase.input.leftSteerInput() * speed;
-        double forward = testCase.input.forwardSteerInput() * speed;
+        double left = testCase.horizontalInput.leftSteerInput() * speed;
+        double forward = testCase.horizontalInput.forwardSteerInput() * speed;
 
         return new Vector(
                 forward * testCase.fwd.dx + left * testCase.fwd.dz,
                 0.0,
                 forward * testCase.fwd.dz - left * testCase.fwd.dx);
+         */
     }
 
     /**
@@ -338,21 +367,29 @@ public class FlyPlayerInputTest {
     // Just X axis!
     private static class TestCase {
         public final String desc;
-        public final PlayerMovementController.HorizontalPlayerInput input;
+        public final PlayerMovementController.HorizontalPlayerInput horizontalInput;
+        public final PlayerMovementController.VerticalPlayerInput verticalInput;
+        public final AttachmentViewer.Input input;
         public final Vector start;
         public final Vector expected;
         public final Vector motion;
         public final float yaw;
         public final PlayerMovementController.ForwardMotion fwd;
 
-        public TestCase(String desc, PlayerMovementController.HorizontalPlayerInput input, Vector start, Vector expected, Vector motion, float yaw) {
+        public TestCase(String desc, PlayerMovementController.HorizontalPlayerInput horizontalInput, Vector start, Vector expected, Vector motion, float yaw) {
+            this(desc, horizontalInput, PlayerMovementController.VerticalPlayerInput.NONE, start, expected, motion, yaw);
+        }
+
+        public TestCase(String desc, PlayerMovementController.HorizontalPlayerInput horizontalInput, PlayerMovementController.VerticalPlayerInput verticalInput, Vector start, Vector expected, Vector motion, float yaw) {
             // Temp
             start.setY(20.0);
             expected.setY(20.0);
             motion.setY(0.0);
 
             this.desc = desc;
-            this.input = input;
+            this.horizontalInput = horizontalInput;
+            this.verticalInput = verticalInput;
+            this.input = PlayerMovementController.composeInput(horizontalInput, verticalInput);
             this.start = start;
             this.expected = expected;
             this.motion = motion;
