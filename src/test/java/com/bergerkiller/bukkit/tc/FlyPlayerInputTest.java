@@ -97,6 +97,38 @@ public class FlyPlayerInputTest {
      */
     private static TestCase[] getTestCases_1_21_10() {
         return new TestCase[] {
+                /*
+                 * ============================================================================
+                 * ===================== Vertical Flight test cases =========================
+                 * ============================================================================
+                 */
+
+                new TestCase(
+                        "NEW TEST CASE FOR NONE + JUMP",
+                        PlayerMovementController.HorizontalPlayerInput.NONE,
+                        PlayerMovementController.VerticalPlayerInput.JUMP,
+                        new Vector(-175.5, 14.1, 354.5),
+                        new Vector(-175.5, 14.250000005960464, 354.5),
+                        new Vector(0.0, 0.0, 0.0),
+                        0.0f
+                ),
+
+                new TestCase(
+                        "NEW TEST CASE FOR NONE + SNEAK",
+                        PlayerMovementController.HorizontalPlayerInput.NONE,
+                        PlayerMovementController.VerticalPlayerInput.SNEAK,
+                        new Vector(-175.5, 14.1, 354.5),
+                        new Vector(-175.5, 13.949999994039535, 354.5),
+                        new Vector(0.0, 0.0, 0.0),
+                        0.0f
+                ),
+
+                /*
+                 * ============================================================================
+                 * ===================== Horizontal Flight test cases =========================
+                 * ============================================================================
+                 */
+
                 new TestCase(
                         "NEW TEST CASE FOR BACKWARDS_LEFT",
                         PlayerMovementController.HorizontalPlayerInput.BACKWARDS_LEFT,
@@ -378,14 +410,14 @@ public class FlyPlayerInputTest {
 
         public TestCase(String desc, PlayerMovementController.HorizontalPlayerInput horizontalInput, Vector start, Vector expected, Vector motion, float yaw) {
             this(desc, horizontalInput, PlayerMovementController.VerticalPlayerInput.NONE, start, expected, motion, yaw);
+
+            // Bleh
+            this.start.setY(20.0);
+            this.expected.setY(20.0);
+            this.motion.setY(0.0);
         }
 
         public TestCase(String desc, PlayerMovementController.HorizontalPlayerInput horizontalInput, PlayerMovementController.VerticalPlayerInput verticalInput, Vector start, Vector expected, Vector motion, float yaw) {
-            // Temp
-            start.setY(20.0);
-            expected.setY(20.0);
-            motion.setY(0.0);
-
             this.desc = desc;
             this.horizontalInput = horizontalInput;
             this.verticalInput = verticalInput;
@@ -403,17 +435,21 @@ public class FlyPlayerInputTest {
 
         public void logFail(Vector calculated) {
             System.out.println("TestCase{" + desc + "} = FAIL");
-            System.out.println("  Expected: " + dblWithPadding(expected.getX()) + dblWithPadding(expected.getZ()));
-            System.out.println("    Actual: " + dblWithPadding(calculated.getX()) + dblWithPadding(calculated.getZ()));
-            System.out.println("      Diff: " + dblWithPadding(Math.abs(expected.getX() - calculated.getX())) + dblWithPadding(Math.abs(expected.getZ() - calculated.getZ())));
+            System.out.println("            " + withPadding("X") + withPadding("Y") + withPadding("Z"));
+            System.out.println("  Expected: " + dblWithPadding(expected.getX()) + dblWithPadding(expected.getY()) + dblWithPadding(expected.getZ()));
+            System.out.println("    Actual: " + dblWithPadding(calculated.getX()) + dblWithPadding(calculated.getY()) + dblWithPadding(calculated.getZ()));
+            System.out.println("      Diff: " + dblWithPadding(Math.abs(expected.getX() - calculated.getX())) + dblWithPadding(Math.abs(expected.getY() - calculated.getY())) + dblWithPadding(Math.abs(expected.getZ() - calculated.getZ())));
         }
 
         private String dblWithPadding(double val) {
-            String s = Double.toString(val);
-            while (s.length() < 24) {
-                s += " ";
+            return withPadding(Double.toString(val));
+        }
+
+        private String withPadding(String text) {
+            while (text.length() < 24) {
+                text += " ";
             }
-            return s;
+            return text;
         }
     }
 }
