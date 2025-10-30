@@ -329,7 +329,6 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
         private List<PlayerMovementController> activeControllersView = Collections.emptyList();
 
         // Type implementations
-        public static final ControllerType DISABLED = new ControllerType(PlayerMovementControllerDisabled::new);
         public static final ControllerType LEGACY = new ControllerType(PlayerMovementControllerPredictedLegacy::new,
                 PacketType.IN_POSITION, PacketType.IN_POSITION_LOOK, PacketType.IN_ABILITIES);
         public static final ControllerType MODERN = new ControllerType(PlayerMovementControllerPredictedModern::new,
@@ -344,9 +343,7 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
          * @return ControllerType
          */
         public static ControllerType forViewer(AttachmentViewer viewer) {
-            if (!viewer.isConnected()) {
-                return DISABLED;
-            } else if (HAS_INPUT_PACKET && viewer.evaluateGameVersion(">=", "1.21.2")) {
+            if (HAS_INPUT_PACKET && viewer.evaluateGameVersion(">=", "1.21.2")) {
                 return MODERN;
             } else {
                 return LEGACY;
