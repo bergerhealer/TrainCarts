@@ -116,6 +116,8 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
 
         /** When player presses both forward and left for example, this factor is used */
         public final double diagonalSpeedFactor;
+        /** When player presses jump or sneak, this is the speed at which the player flies vertically */
+        public final float verticalSpeedFactor;
 
         public PlayerPositionInput(AttachmentViewer viewer) {
             this.player = viewer.getPlayer();
@@ -136,6 +138,8 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
             } else {
                 this.diagonalSpeedFactor = 0.7071067811865475244;
             }
+
+            this.verticalSpeedFactor = 3.0f;
         }
 
         public void setLastMotionUsingPositionChanges() {
@@ -155,27 +159,23 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
             lastVerticalInput = currVerticalInput;
         }
 
-        public Vector getPlayerInputMotion(HorizontalPlayerInput horizontalPlayerInput) {
-            Vector additionalMotion = getPlayerHorizontalInputMotion(horizontalPlayerInput);
-            additionalMotion.setY(lastVerticalInput.getMotion(currSpeed));
-            return additionalMotion;
-        }
+        public Vector getInputMotion(AttachmentViewer.Input input) {
+            double horSpeedDbl = (double) currSpeed;
+            double verSpeedDbl = (double) (currSpeed * verticalSpeedFactor);
 
-        public Vector getPlayerHorizontalInputMotion(HorizontalPlayerInput input) {
-            double speedDbl = (double) currSpeed;
-
-            if (input.diagonal()) {
-                speedDbl *= diagonalSpeedFactor;
+            if (input.hasDiagonalWalkInput()) {
+                horSpeedDbl *= diagonalSpeedFactor;
             } else {
-                speedDbl *= 0.98F;
+                horSpeedDbl *= 0.98F;
             }
 
-            double left = input.leftSteerInput() * speedDbl; // left/right
-            double forward = input.forwardSteerInput() * speedDbl; // forward/backward
+            double left = input.sidewaysSigNum() * horSpeedDbl; // left/right
+            double forward = input.forwardsSigNum() * horSpeedDbl; // forward/backward
+            double vertical = input.verticalSigNum() * verSpeedDbl; // jump/sneak
 
             return new Vector(
                     forward * currForward.dx + left * currForward.dz,
-                    0.0,
+                    vertical,
                     forward * currForward.dz - left * currForward.dx);
         }
     }

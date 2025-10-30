@@ -73,7 +73,7 @@ class PlayerMovementControllerPredictedLegacy extends PlayerMovementControllerPr
         // Try various types of player input
         // If the horizontal axis match, checks against the vertical input modes as well
         for (HorizontalPlayerInput hor : input.lastHorizontalInput.getNextLikelyInputs()) {
-            Vector additionalMotion = input.getPlayerInputMotion(hor);
+            Vector additionalMotion = input.getInputMotion(composeInput(hor, VerticalPlayerInput.NONE));
 
             ConsumeResult result = sentPositions.tryConsumeHorizontalInput(input, hor, additionalMotion);
             if (result != ConsumeResult.FAILED) {
@@ -96,7 +96,7 @@ class PlayerMovementControllerPredictedLegacy extends PlayerMovementControllerPr
         }
 
         if (DEBUG_MODE) {
-            Vector additionalMotion = input.getPlayerInputMotion(input.lastHorizontalInput);
+            Vector additionalMotion = input.getInputMotion(composeInput(input.lastHorizontalInput, input.lastVerticalInput));
 
             log("[FORWARD] " + input.currForward);
             log("[PREVIOUS] " + strVec(input.lastPosition));

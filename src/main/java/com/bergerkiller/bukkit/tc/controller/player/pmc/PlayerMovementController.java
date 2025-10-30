@@ -60,11 +60,21 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
 
     @Override
     public AttachmentViewer.Input getInput() {
-        HorizontalPlayerInput h = horizontalInput();
-        VerticalPlayerInput v = verticalInput();
+        return composeInput(horizontalInput(), verticalInput());
+    }
+
+    public static AttachmentViewer.Input composeInput(
+            HorizontalPlayerInput horizontalPlayerInput,
+            VerticalPlayerInput verticalPlayerInput
+    ) {
         return AttachmentViewer.Input.of(
-                h.left(), h.right(), h.forwards(), h.backwards(),
-                v == VerticalPlayerInput.JUMP, v == VerticalPlayerInput.SNEAK, false);
+                horizontalPlayerInput.left(),
+                horizontalPlayerInput.right(),
+                horizontalPlayerInput.forwards(),
+                horizontalPlayerInput.backwards(),
+                verticalPlayerInput == VerticalPlayerInput.JUMP,
+                verticalPlayerInput == VerticalPlayerInput.SNEAK,
+                false);
     }
 
     /**

@@ -89,7 +89,7 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
         if (DEBUG_MODE && DebugUtil.getBooleanValue("testcase", false)) {
             // Only process NO_INPUT so that any user input triggers a desync
             {
-                Vector additionalMotion = input.getPlayerInputMotion(HorizontalPlayerInput.NONE);
+                Vector additionalMotion = input.getInputMotion(AttachmentViewer.Input.NONE);
                 ConsumeResult result = sentPositions.tryConsumeHorizontalInput(input, HorizontalPlayerInput.NONE, additionalMotion);
                 if (result != ConsumeResult.FAILED) {
                     isSynchronized = result.isSynchronized();
@@ -103,6 +103,7 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
                         "                new TestCase(\n" +
                         "                        \"NEW TEST CASE FOR " + input.currHorizontalInput + "\",\n" +
                         "                        PlayerMovementController.HorizontalPlayerInput." + input.currHorizontalInput + ",\n" +
+                        "                        PlayerMovementController.VerticalPlayerInput." + input.currVerticalInput + ",\n" +
                         "                        " + bukkitVec(input.lastPosition) + ",\n" +
                         "                        " + bukkitVec(input.currPosition) + ",\n" +
                         "                        " + bukkitVec(input.lastMotion) + ",\n" +
@@ -113,7 +114,7 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
         } else {
             // Try the last known input of the player, followed by the new inputs from the player
             {
-                Vector additionalMotion = input.getPlayerInputMotion(input.lastHorizontalInput);
+                Vector additionalMotion = input.getInputMotion(composeInput(input.lastHorizontalInput, input.lastVerticalInput));
                 ConsumeResult result = sentPositions.tryConsumeHorizontalInput(input, input.lastHorizontalInput, additionalMotion);
                 if (result != ConsumeResult.FAILED) {
                     isSynchronized = result.isSynchronized();
@@ -121,7 +122,7 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
                 }
             }
             {
-                Vector additionalMotion = input.getPlayerInputMotion(HorizontalPlayerInput.NONE);
+                Vector additionalMotion = input.getInputMotion(AttachmentViewer.Input.NONE);
                 ConsumeResult result = sentPositions.tryConsumeHorizontalInput(input, HorizontalPlayerInput.NONE, additionalMotion);
                 if (result != ConsumeResult.FAILED) {
                     isSynchronized = result.isSynchronized();
@@ -129,7 +130,7 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
                 }
             }
             if (input.lastHorizontalInput != input.currHorizontalInput) {
-                Vector additionalMotion = input.getPlayerInputMotion(input.currHorizontalInput);
+                Vector additionalMotion = input.getInputMotion(composeInput(input.currHorizontalInput, input.currVerticalInput));
                 ConsumeResult result = sentPositions.tryConsumeHorizontalInput(input, input.currHorizontalInput, additionalMotion);
                 if (result != ConsumeResult.FAILED) {
                     isSynchronized = result.isSynchronized();
@@ -143,7 +144,7 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
                 log(" [CURRENT] " + strVec(input.currPosition));
                 log("  [MOTION] " + strVec(input.lastMotion));
 
-                Vector additionalMotion = input.getPlayerInputMotion(input.currHorizontalInput);
+                Vector additionalMotion = input.getInputMotion(composeInput(input.currHorizontalInput, input.currVerticalInput));
                 if (input.currHorizontalInput != HorizontalPlayerInput.NONE) {
                     log("[CURR PLAYER SPEED] " + input.currSpeed);
                     log("[MOVEMENT] " + strVec(additionalMotion));
