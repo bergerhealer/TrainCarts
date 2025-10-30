@@ -136,8 +136,10 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
             PlayerMovementController controller;
             if (prev instanceof PlayerMovementController) {
                 controller = (PlayerMovementController) prev;
-            } else {
+            } else if (isConnected()) {
                 controller = PlayerMovementController.ControllerType.forViewer(this).create(this);
+            } else {
+                return MovementController.DISABLED;
             }
             controller.setOptions(options);
             ticket.controller.set(controller);
