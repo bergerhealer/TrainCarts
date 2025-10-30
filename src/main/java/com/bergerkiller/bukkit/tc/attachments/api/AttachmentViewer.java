@@ -696,5 +696,46 @@ public interface AttachmentViewer extends TrainCarts.Provider {
         public boolean hasWalkInput() {
             return left || right || forwards || backwards;
         }
+
+        /**
+         * Gets whether the player is walking, and is strafing diagonally.
+         * This means either forwards/backwards and a left/right input is active.
+         * Does not check vertical motion (jump/sneak).
+         *
+         * @return True if walking diagonally
+         */
+        public boolean hasDiagonalWalkInput() {
+            return (left != right) && (forwards != backwards);
+        }
+
+        /**
+         * Returns 1.0 when moving {@link #left()}, -1.0 when moving {@link #right()}
+         * and 0.0 if neither or both inputs are active.
+         *
+         * @return Sideways sig num [0.0, -1.0, 1.0]
+         */
+        public double sidewaysSigNum() {
+            return (left == right) ? 0.0 : (left ? 1.0 : -1.0);
+        }
+
+        /**
+         * Returns 1.0 when moving {@link #forwards()}, -1.0 when moving {@link #backwards()}
+         * and 0.0 if neither or both inputs are active.
+         *
+         * @return Forwards sig num [0.0, -1.0, 1.0]
+         */
+        public double forwardsSigNum() {
+            return (forwards == backwards) ? 0.0 : (forwards ? 1.0 : -1.0);
+        }
+
+        /**
+         * Returns 1.0 when {@link #jumping()}, -1.0 when {@link #sneaking()}
+         * and 0.0 if neither or both inputs are active.
+         *
+         * @return Vertical input sig num [0.0, -1.0, 1.0]
+         */
+        public double verticalSigNum() {
+            return (jumping == sneaking) ? 0.0 : (jumping ? 1.0 : -1.0);
+        }
     }
 }
