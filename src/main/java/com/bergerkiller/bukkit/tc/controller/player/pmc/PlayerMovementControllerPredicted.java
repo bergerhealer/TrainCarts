@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.player.pmc;
 
+import com.bergerkiller.bukkit.common.math.Quaternion;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -7,6 +9,8 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
 /**
@@ -31,6 +35,8 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
     protected final SentPositionChain sentPositions = new SentPositionChain();
     protected boolean isSynchronized = false;
 
+    /** Last position requested through the movement controller API */
+    protected final AtomicReference<RequestedPosition> lastRequestedPosition = new AtomicReference<>(null);
     /** Keeps track of the position and other inputs received from the client */
     protected final PlayerPositionInput input;
 
@@ -43,8 +49,6 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
         }
     }
 
-    protected abstract void sendPosition(Vector position);
-
     @Override
     public synchronized HorizontalPlayerInput horizontalInput() {
         return input.lastHorizontalInput;
@@ -55,16 +59,42 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
         return input.lastVerticalInput;
     }
 
-    @Override
-    protected synchronized final void syncPosition(Vector position) {
-        // Important player is set to fly mode regularly
-        setFlightForced(true);
+    private RequestedPosition computeNextRequestedPosition(Vector position, Quaternion orientation) {
+        RequestedPosition lastRequestedPositionSync = this.lastRequestedPosition.get();
+        int serverTicks = CommonUtil.getServerTicks();
+        if (lastRequestedPositionSync != null && (serverTicks - lastRequestedPositionSync.serverTicks) < 20) {
+            // Compute motion based on how many ticks have elapsed or reuse previous motion
+            Vector motion;
+            if (lastRequestedPositionSync.serverTicks == serverTicks) {
+                motion = lastRequestedPositionSync.motion;
+            } else {
+                motion = position.clone().subtract(lastRequestedPositionSync.position);
+                double fact = 1.0 / (serverTicks - lastRequestedPositionSync.serverTicks);
+                motion.multiply(fact);
+            }
 
-        // If too many packets remain unacknowledged (>2s) in the chain, reset
-        if (sentPositions.size() > 40) {
-            sentPositions.clear();
-            isSynchronized = false;
+            // Not above 16 blocks/tick
+            if (motion.lengthSquared() < (16 * 16)) {
+                if (orientation == null) {
+                    orientation = lastRequestedPositionSync.orientation;
+                }
+                return new RequestedPosition(position, motion, orientation, serverTicks);
+            }
         }
+
+        // Completely new position / resync
+        return new RequestedPosition(position, new Vector(), orientation, serverTicks);
+    }
+
+    @Override
+    protected final void syncPosition(Vector position, Quaternion orientation) {
+        // Place the new position + orientation for consumption
+        // If orientation is never specified, it will remain null
+        this.lastRequestedPosition.set(computeNextRequestedPosition(position, orientation));
+
+        // TODO: Fake receive() the player position packet, so the server right away positions
+        // the player here as if the player sent it. This way laggy players don't appear to lag
+        // behind to other players.
 
         // For debug
         //Vector previousPosition = sentPositions.getCurrentPosition().clone();
@@ -72,19 +102,6 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
         if (DEBUG_MODE && !isSynchronized) {
             player.sendMessage("DESYNC DETECTED!");
         }
-
-        this.sendPosition(position);
-
-        // Logging for debug
-        /*
-        {
-            SentPositionUpdate update = sentPositions.getLast();
-            Vector motion = update.getMotion(previousPosition);
-            update.apply(previousPosition, new Vector(), new Vector(), new Vector());
-
-            log("SEND " + update.getClass().getSimpleName() + " // " + previousPosition + "  //  " + motion);
-        }
-        */
     }
 
     @SuppressWarnings("unused")
@@ -98,6 +115,30 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
 
     protected static String strVec(Vector v) {
         return v.getX() + " // " + v.getY() + " // " + v.getZ();
+    }
+
+    /**
+     * Position (and orientation) that was last requested through the Movement Controller API.
+     * This is updated on the main thread. The packet-receiving netty thread attempts
+     * to synchronize towards this position.
+     */
+    protected static final class RequestedPosition {
+        public final Vector position;
+        public final Vector motion;
+        public final Quaternion orientation;
+        public final int serverTicks;
+        private final AtomicBoolean consumed = new AtomicBoolean(false);
+
+        public RequestedPosition(Vector position, Vector motion, Quaternion orientation, int serverTicks) {
+            this.position = position;
+            this.motion = motion;
+            this.orientation = orientation;
+            this.serverTicks = serverTicks;
+        }
+
+        public boolean tryConsume() {
+            return consumed.compareAndSet(false, true);
+        }
     }
 
     protected static final class PlayerPositionInput {
@@ -181,136 +222,215 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
     }
 
     /**
+     * The state of the client. Keeps track of what the client position and motion
+     * values are assuming the updates have been applied the way they are.
+     */
+    protected static final class PlayerClientState {
+        /** Input motion added as a result of the player pressing movement controls */
+        public final Vector inputMotion = new Vector();
+        /** Last motion from {@link PlayerPositionInput}, immutable */
+        public final Vector lastMotion;
+        /** Motion of the player */
+        public final Vector motion = new Vector();
+        /** Position of the player */
+        public final Vector position = new Vector();
+        /** Position of the player + motion */
+        public final Vector positionAfterMotion = new Vector();
+
+        public PlayerClientState(Vector lastMotion) {
+            this.lastMotion = lastMotion;
+        }
+
+        public void setTo(PlayerClientState state) {
+            MathUtil.setVector(this.inputMotion, state.inputMotion);
+            MathUtil.setVector(this.lastMotion, state.lastMotion);
+            MathUtil.setVector(this.motion, state.motion);
+            MathUtil.setVector(this.position, state.position);
+            MathUtil.setVector(this.positionAfterMotion, state.positionAfterMotion);
+        }
+
+        public boolean isCorrect(Vector currentPosition) {
+            return isVectorExactlyEqual(positionAfterMotion, currentPosition);
+        }
+    }
+
+    protected static class SentPositionChainLink {
+        protected SentPositionUpdate next = null;
+    }
+
+    /**
      * A type of update sent to the client to change the position of the player in some way
      */
-    protected static abstract class SentPositionUpdate {
-        protected SentPositionUpdate next = null;
+    protected static abstract class SentPositionUpdate extends SentPositionChainLink {
+        /**
+         * Applies this position update to the client state.
+         * Must be further implemented.
+         *
+         * @param state PlayerClientState
+         */
+        protected abstract void apply(PlayerClientState state);
 
         /**
-         * Applies this position update to a position vector
+         * Applies this position update to the client state
          *
-         * @param position Position vector (is updated)
-         * @param additionalMotion Additional motion input provided by the Player
-         * @param lastMotion Motion from previous client update
-         * @param outMotion Predicted motion of the player is written to this vector.
-         *                  This includes the additional motion, if any
+         * @param state PlayerClientState
          */
-        public abstract void apply(Vector position, Vector additionalMotion,
-                                   Vector lastMotion, Vector outMotion);
+        public final void applyFull(PlayerClientState state) {
+            this.apply(state);
 
-        /**
-         * Gets the motion vector caused by this position update
-         *
-         * @param previousPosition Previous position before this update
-         * @return Motion vector
-         */
-        public abstract Vector getMotion(Vector previousPosition);
-
-        @SuppressWarnings("unused")
-        public String debugPrediction(PlayerPositionInput input, Vector additionalMotion) {
-            Vector newPosition = input.lastPosition.clone();
-            Vector outMotion = new Vector();
-            this.apply(newPosition, additionalMotion, input.lastMotion, outMotion);
-
-            return "    " + this.getClass().getSimpleName() + ": " + this.getMotion(input.lastPosition) + "\n" +
-                    "         Actual " + strVec(input.currPosition) + "\n" +
-                    "         Predicted " + strVec(newPosition);
+            // Update positionAfterMotion
+            MathUtil.setVector(state.positionAfterMotion, state.position);
+            state.positionAfterMotion.add(state.motion);
         }
 
         /**
          * Tries to detect this position update having happened.
-         * Also detects a vertical player input, if detected.
+         * Also detects a vertical player input, and which one, by looking for the different
+         * vertical permutations.
          *
          * @param input Player input history
          * @param horizontalInput Current horizontal input being checked. Additional motion is set to this.
-         * @param additionalMotion Additional motion from player input. The y-motion is updated.
-         * @param outMotion Output motion of the player is written here
-         * @param tmp A temporary vector filled with information important for computation
-         * @return True if this update was detected as having been consumed just now
+         * @param state PlayerClientState. Is updated if input is successfully tested
+         * @return The position update that was detected. This is the one the client is presumed to be
+         *         in right now. Returns null if none could be identified.
          */
-        public boolean detectAsInput(PlayerPositionInput input, HorizontalPlayerInput horizontalInput,
-                                     Vector additionalMotion, Vector outMotion, Vector tmp) {
-            // First try with the last-known vertical input of the player
-            additionalMotion.setY(input.lastVerticalInput.getMotion(input.currSpeed));
-            MathUtil.setVector(tmp, input.lastPosition);
-            this.apply(tmp, additionalMotion, input.lastMotion, outMotion);
-
-            // X and Z must match, otherwise the provided horizontal input doesn't match at all
-            Vector currPos = input.currPosition;
-            if (tmp.getX() != currPos.getX() || tmp.getZ() != currPos.getZ()) {
-                return false;
-            }
-
-            // If Y is different, maybe a different type of input was used, so do try those.
-            if (tmp.getY() != currPos.getY()) {
-                boolean foundMatchingVerticalInput = false;
-                for (VerticalPlayerInput vertInput : VerticalPlayerInput.values()) {
-                    if (vertInput == input.currVerticalInput) {
-                        continue; // Already checked
-                    }
-
-                    additionalMotion.setY(vertInput.getMotion(input.currSpeed));
-                    MathUtil.setVector(tmp, input.lastPosition);
-                    this.apply(tmp, additionalMotion, input.lastMotion, outMotion);
-                    if (tmp.getY() == currPos.getY()) {
-                        input.currVerticalInput = vertInput;
-                        foundMatchingVerticalInput = true;
-                        break;
-                    }
-                }
-                if (!foundMatchingVerticalInput) {
-                    return false;
+        public SentPositionUpdate findHorizontalInput(
+                PlayerPositionInput input,
+                HorizontalPlayerInput horizontalInput,
+                PlayerClientState state
+        ) {
+            for (VerticalPlayerInput verticalInput : new VerticalPlayerInput[] {
+                    VerticalPlayerInput.NONE, VerticalPlayerInput.JUMP, VerticalPlayerInput.SNEAK
+            }) {
+                SentPositionUpdate u = findInput(input, horizontalInput, verticalInput, state);
+                if (u != null) {
+                    return u;
                 }
             }
+            return null; // Not identified
+        }
 
-            input.currHorizontalInput = horizontalInput;
-            MathUtil.setVector(input.lastMotion, outMotion);
-            return true;
+        /**
+         * Tries to detect the position update having happened, with the assumed
+         * horizontal and vertical player input specified. This tests this position,
+         * and the next one in the chain, assuming all of them got applied in the same
+         * client tick.
+         *
+         * @param input Player input history
+         * @param horizontalInput Current horizontal input being checked. Additional motion is set using this.
+         * @param verticalInput Current vertical input being checked. Additional motion is set using this.
+         * @param state PlayerClientState. Is updated if input is successfully tested
+         * @return The position update that was detected. This is the one the client is presumed to be
+         *         in right now. Returns null if none could be identified.
+         */
+        public SentPositionUpdate findInput(
+                PlayerPositionInput input,
+                HorizontalPlayerInput horizontalInput,
+                VerticalPlayerInput verticalInput,
+                PlayerClientState state
+        ) {
+            // Seed the client state using the presumed initial client input state
+            MathUtil.setVector(state.position, input.lastPosition);
+            MathUtil.setVector(state.inputMotion, input.getInputMotion(composeInput(horizontalInput, verticalInput)));
+
+            // Try to apply this update, and the next ones, and check if one of the states match
+            for (SentPositionUpdate u = this; u != null; u = u.next) {
+                u.applyFull(state);
+                if (state.isCorrect(input.currPosition)) {
+                    input.currHorizontalInput = horizontalInput;
+                    input.currVerticalInput = verticalInput;
+                    MathUtil.setVector(input.lastMotion, state.motion);
+                    return u;
+                }
+            }
+            return null; // Not identified
         }
     }
 
-    protected static final class SentPositionChain extends SentPositionUpdate {
-        private final Vector currentPosition = new Vector();
-        private SentPositionUpdate last = this;
+    protected static final class SentPositionChain extends SentPositionChainLink {
+        /** The client state after all pending position updates have been applied */
+        private final PlayerClientState lastClientState = new PlayerClientState(new Vector());
+        private SentPositionChainLink last = this;
         private int count = 0;
 
-        public void calcCurrentPosition(Vector startPosition, Vector additionalMotion) {
-            MathUtil.setVector(currentPosition, startPosition);
-            this.apply(currentPosition, additionalMotion, new Vector(), new Vector());
+        public void calcLastClientState(PlayerClientState startState) {
+            lastClientState.setTo(startState);
+            for (SentPositionUpdate u = next; u != null; u = u.next) {
+                // Pretend that the previous tick's motion has been fully applied before this update
+                MathUtil.setVector(lastClientState.position, lastClientState.positionAfterMotion);
+
+                // Now apply the update on top of that + keep track of the positionAfterMotion
+                u.applyFull(lastClientState);
+            }
         }
 
         public Vector getCurrentPosition() {
-            return currentPosition;
-        }
-
-        @SuppressWarnings("unused")
-        public SentPositionUpdate getLast() {
-            return last;
+            return lastClientState.positionAfterMotion;
         }
 
         public int size() {
             return count;
         }
 
-        @Override
-        public void apply(Vector position, Vector additionalMotion, Vector lastMotion, Vector outMotion) {
-            for (SentPositionUpdate u = next; u != null; u = u.next) {
-                u.apply(position, additionalMotion, lastMotion, outMotion);
+        @SuppressWarnings("unused")
+        public void appendDebugNextPredictions(StringBuilder str, PlayerPositionInput input, Vector inputMotion) {
+            // Seed it with the last position and motion we've synchronized
+            PlayerClientState state = new PlayerClientState(input.lastMotion);
+            MathUtil.setVector(state.position, input.lastPosition);
+            MathUtil.setVector(state.inputMotion, inputMotion);
+
+            for (SentPositionUpdate u = this.next; u != null; u = u.next) {
+                u.applyFull(state);
+                appendDebugStr(str, u, state, input.currPosition);
             }
+
+            FRICTION_UPDATE.applyFull(state);
+            appendDebugStr(str, FRICTION_UPDATE, state, input.currPosition);
         }
 
-        @Override
-        public Vector getMotion(Vector previousPosition) {
-            return new Vector();
+        private static void appendDebugStr(StringBuilder str, SentPositionUpdate update, PlayerClientState state, Vector currPosition) {
+            str.append("\n    ").append(update.getClass().getSimpleName()).append(":\n");
+            str.append("            Actual ").append(strVec(currPosition)).append("\n");
+            str.append("         Predicted ").append(strVec(state.positionAfterMotion));
+        }
+
+        public ConsumeResult tryConsumeExactInput(
+                final PlayerPositionInput input,
+                final HorizontalPlayerInput horizontalInput,
+                final VerticalPlayerInput verticalInput
+        ) {
+            PlayerClientState state = new PlayerClientState(input.lastMotion);
+
+            // Go by all updates that were sent, and try to apply them
+            // It's possible one or more of them got merged together because they were
+            // received in the same tick. If so, we discard those as processed
+            SentPositionUpdate curr = next;
+            if (curr != null) {
+                SentPositionUpdate foundUpdate = curr.findInput(input, horizontalInput, verticalInput, state);
+                if (foundUpdate != null) {
+                    setStart(foundUpdate.next);
+                    calcLastClientState(state);
+                    //input.player.sendMessage("Consumed: FIRST");
+                    return ConsumeResult.OK;
+                }
+            }
+
+            // None matches, perhaps an update was skipped entirely
+            // In that case, the previous motion continues unhindered with a slowdown value
+            if (FRICTION_UPDATE.findInput(input, horizontalInput, verticalInput, state) != null) {
+                calcLastClientState(state);
+                //input.player.sendMessage("Consumed: Friction/No Update");
+                return ConsumeResult.OK;
+            }
+
+            return ConsumeResult.FAILED;
         }
 
         public ConsumeResult tryConsumeHorizontalInput(
                 final PlayerPositionInput input,
-                final HorizontalPlayerInput horizontalInput,
-                final Vector additionalMotion
+                final HorizontalPlayerInput horizontalInput
         ) {
-            Vector outMotion = new Vector();
-            Vector tmp = new Vector();
+            PlayerClientState state = new PlayerClientState(input.lastMotion);
 
             // Go by all updates that were sent, and try to apply them
             // It's possible one or more of them got merged together because they were
@@ -320,36 +440,19 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
             if (curr != null) {
                 // Ideally, the very first update matches, in which case we're all in sync.
                 // In that case, currentPosition remains valid and no need to recalculate that
-                if (curr.detectAsInput(input, horizontalInput, additionalMotion, outMotion, tmp)) {
-                    setStart(curr.next);
-                    if (additionalMotion.getX() != 0.0 || additionalMotion.getY() != 0.0 || additionalMotion.getZ() != 0.0) {
-                        calcCurrentPosition(input.currPosition, additionalMotion);
-                    }
+                SentPositionUpdate foundUpdate = curr.findHorizontalInput(input, horizontalInput, state);
+                if (foundUpdate != null) {
+                    setStart(foundUpdate.next);
+                    calcLastClientState(state);
                     //input.player.sendMessage("Consumed: FIRST");
                     return ConsumeResult.OK;
-                }
-
-                // Try the other updates
-                // If we find one matching, we lost the updates we sent before that point
-                // By updating the current position, next tick cycle of position updates
-                // will correct for it
-                int n = 1;
-                while (curr.next != null) {
-                    curr = curr.next;
-                    if (curr.detectAsInput(input, horizontalInput, additionalMotion, outMotion, tmp)) {
-                        setStart(curr.next);
-                        calcCurrentPosition(input.currPosition, additionalMotion);
-                        //input.player.sendMessage("Consumed: #" + n);
-                        return n > 5 ? ConsumeResult.LARGE_PACKET_DROP : ConsumeResult.OK;
-                    }
-                    n++;
                 }
             }
 
             // None matches, perhaps an update was skipped entirely
             // In that case, the previous motion continues unhindered with a slowdown value
-            if (FRICTION_UPDATE.detectAsInput(input, horizontalInput, additionalMotion, outMotion, tmp)) {
-                calcCurrentPosition(input.currPosition, additionalMotion);
+            if (FRICTION_UPDATE.findHorizontalInput(input, horizontalInput, state) != null) {
+                calcLastClientState(state);
                 //input.player.sendMessage("Consumed: Friction/No Update");
                 return ConsumeResult.OK;
             }
@@ -384,7 +487,7 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
             this.last.next = update;
             this.last = update;
             this.count++;
-            update.apply(this.currentPosition, new Vector(), new Vector(), new Vector());
+            update.applyFull(lastClientState);
         }
     }
 
@@ -396,20 +499,13 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
         }
 
         @Override
-        public void apply(Vector position, Vector additionalMotion, Vector lastMotion, Vector outMotion) {
-            MathUtil.setVector(outMotion, motion);
-            outMotion.add(additionalMotion);
+        protected void apply(PlayerClientState state) {
+            MathUtil.setVector(state.motion, motion);
+            state.motion.add(state.inputMotion);
 
-            if (Math.abs(outMotion.getY()) < MIN_MOTION) {
-                outMotion.setY(0.0);
+            if (Math.abs(state.motion.getY()) < MIN_MOTION) {
+                state.motion.setY(0.0);
             }
-
-            position.add(outMotion);
-        }
-
-        @Override
-        public Vector getMotion(Vector previousPosition) {
-            return motion.clone();
         }
     }
 
@@ -421,24 +517,20 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
         }
 
         @Override
-        public void apply(Vector position, Vector additionalMotion, Vector lastMotion, Vector outMotion) {
-            // Absolute updates use zero velocity, but player could provide input to counteract it
-            MathUtil.setVector(outMotion, additionalMotion);
-
-            MathUtil.setVector(position, this.position);
-            position.add(additionalMotion);
-        }
-
-        @Override
-        public Vector getMotion(Vector previousPosition) {
-            return position.clone().subtract(previousPosition);
+        protected void apply(PlayerClientState state) {
+            // Absolute updates reset velocity, but player could provide input to counteract it
+            MathUtil.setVector(state.motion, state.inputMotion);
+            MathUtil.setVector(state.position, this.position);
         }
     }
 
     protected static final class MovementFrictionUpdate extends SentPositionUpdate {
 
         @Override
-        public void apply(Vector position, Vector additionalMotion, Vector lastMotion, Vector outMotion) {
+        protected void apply(PlayerClientState state) {
+            Vector outMotion = state.motion;
+            Vector lastMotion = state.lastMotion;
+
             outMotion.setX(lastMotion.getX() * (double) 0.91F);
             outMotion.setY(lastMotion.getY() * (double) 0.6);
             outMotion.setZ(lastMotion.getZ() * (double) 0.91F);
@@ -448,16 +540,10 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
             if (Math.abs(outMotion.getZ()) < MIN_MOTION) {
                 outMotion.setZ(0.0);
             }
-            outMotion.add(additionalMotion);
+            outMotion.add(state.inputMotion);
             if (Math.abs(outMotion.getY()) < MIN_MOTION) {
                 outMotion.setY(0.0);
             }
-            position.add(outMotion);
-        }
-
-        @Override
-        public Vector getMotion(Vector previousPosition) {
-            return new Vector(); // Unused
         }
     }
 

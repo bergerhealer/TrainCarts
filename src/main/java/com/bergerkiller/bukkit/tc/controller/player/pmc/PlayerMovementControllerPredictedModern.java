@@ -17,7 +17,7 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlay
 import com.bergerkiller.generated.net.minecraft.server.level.EntityPlayerHandle;
 import org.bukkit.util.Vector;
 
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * After Minecraft 1.21.2 the player sends their input to the server, as well as a
@@ -26,9 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * position inputs that come in.
  */
 class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPredicted {
-    protected final AtomicReference<Vector> lastPosition = new AtomicReference<>(null);
-    private Vector lastSentPosition = null;
-    private final Vector lastSentMotion = new Vector();
+    private final AtomicInteger skippedPositions = new AtomicInteger(0);
 
     protected PlayerMovementControllerPredictedModern(ControllerType type, AttachmentViewer viewer) {
         super(type, viewer);
@@ -45,11 +43,6 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
             .withAbsoluteDeltaZ()
             .withRelativeDeltaRotation()
             .withRelativeRotation();
-
-    @Override
-    protected void sendPosition(Vector position) {
-        lastPosition.set(position);
-    }
 
     protected synchronized void schedulePosition(Vector position) {
         if (isSynchronized) {
@@ -89,8 +82,7 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
         if (DEBUG_MODE && DebugUtil.getBooleanValue("testcase", false)) {
             // Only process NO_INPUT so that any user input triggers a desync
             {
-                Vector additionalMotion = input.getInputMotion(AttachmentViewer.Input.NONE);
-                ConsumeResult result = sentPositions.tryConsumeHorizontalInput(input, HorizontalPlayerInput.NONE, additionalMotion);
+                ConsumeResult result = sentPositions.tryConsumeExactInput(input, HorizontalPlayerInput.NONE, VerticalPlayerInput.NONE);
                 if (result != ConsumeResult.FAILED) {
                     isSynchronized = result.isSynchronized();
                     return;
@@ -101,37 +93,34 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
             if (input.lastHorizontalInput == HorizontalPlayerInput.NONE) {
                 log("\n" +
                         "                new TestCase(\n" +
-                        "                        \"NEW TEST CASE FOR " + input.currHorizontalInput + "\",\n" +
+                        "                        \"NEW TEST CASE FOR " + input.currHorizontalInput + " + " + input.currVerticalInput + "\",\n" +
                         "                        PlayerMovementController.HorizontalPlayerInput." + input.currHorizontalInput + ",\n" +
                         "                        PlayerMovementController.VerticalPlayerInput." + input.currVerticalInput + ",\n" +
                         "                        " + bukkitVec(input.lastPosition) + ",\n" +
                         "                        " + bukkitVec(input.currPosition) + ",\n" +
                         "                        " + bukkitVec(input.lastMotion) + ",\n" +
                         "                        " + input.currYaw + "f\n" +
-                        "                )");
+                        "                ),");
             }
 
         } else {
             // Try the last known input of the player, followed by the new inputs from the player
             {
-                Vector additionalMotion = input.getInputMotion(composeInput(input.lastHorizontalInput, input.lastVerticalInput));
-                ConsumeResult result = sentPositions.tryConsumeHorizontalInput(input, input.lastHorizontalInput, additionalMotion);
+                ConsumeResult result = sentPositions.tryConsumeExactInput(input, input.lastHorizontalInput, input.lastVerticalInput);
                 if (result != ConsumeResult.FAILED) {
                     isSynchronized = result.isSynchronized();
                     return;
                 }
             }
             {
-                Vector additionalMotion = input.getInputMotion(AttachmentViewer.Input.NONE);
-                ConsumeResult result = sentPositions.tryConsumeHorizontalInput(input, HorizontalPlayerInput.NONE, additionalMotion);
+                ConsumeResult result = sentPositions.tryConsumeExactInput(input, HorizontalPlayerInput.NONE, VerticalPlayerInput.NONE);
                 if (result != ConsumeResult.FAILED) {
                     isSynchronized = result.isSynchronized();
                     return;
                 }
             }
-            if (input.lastHorizontalInput != input.currHorizontalInput) {
-                Vector additionalMotion = input.getInputMotion(composeInput(input.currHorizontalInput, input.currVerticalInput));
-                ConsumeResult result = sentPositions.tryConsumeHorizontalInput(input, input.currHorizontalInput, additionalMotion);
+            if (input.lastHorizontalInput != input.currHorizontalInput || input.lastVerticalInput != input.currVerticalInput) {
+                ConsumeResult result = sentPositions.tryConsumeExactInput(input, input.currHorizontalInput, input.currVerticalInput);
                 if (result != ConsumeResult.FAILED) {
                     isSynchronized = result.isSynchronized();
                     return;
@@ -150,12 +139,10 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
                     log("[MOVEMENT] " + strVec(additionalMotion));
                 }
 
-                String str = "Updates in flight predictions:";
-                for (SentPositionUpdate p = sentPositions.next; p != null; p = p.next) {
-                    str += "\n" + p.debugPrediction(input, additionalMotion);
-                }
-                str += "\n" + FRICTION_UPDATE.debugPrediction(input, additionalMotion);
-                log(str);
+                StringBuilder str = new StringBuilder();
+                str.append("Updates in flight predictions:");
+                sentPositions.appendDebugNextPredictions(str, input, additionalMotion);
+                log(str.toString());
             }
         }
 
@@ -170,7 +157,7 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
     }
 
     private static String bukkitVec(Vector v) {
-        return "new Vector(" + v.getX() + ", 0.0, " + v.getZ() + ")";
+        return "new Vector(" + v.getX() + ", " + v.getY() + ", " + v.getZ() + ")";
     }
 
     @Override
@@ -207,24 +194,32 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
                 PacketUtil.queuePacket(event.getPlayer(), pp);
             }
         } else if (event.getType() == PacketType.IN_CLIENT_TICK_END) {
-            // Synchronize everything on every client tick
-            receiveInput(input);
-            input.updateLast();
+            synchronized (PlayerMovementControllerPredictedModern.this) {
+                // Synchronize everything on every client tick
+                receiveInput(input);
+                input.updateLast();
 
-            Vector next = lastPosition.getAndSet(null);
-            if (next != null) {
-                if (lastSentPosition != null) {
-                    MathUtil.setVector(lastSentMotion, next);
-                    lastSentMotion.subtract(lastSentPosition);
-                    MathUtil.setVector(lastSentPosition, next);
-                } else {
-                    lastSentPosition = next.clone();
+                // If there are new requested positions, send them
+                RequestedPosition requested = lastRequestedPosition.get();
+                if (requested != null) {
+                    if (requested.tryConsume()) {
+                        // New position, use it
+                        schedulePosition(requested.position);
+                        skippedPositions.set(0);
+                    } else {
+                        // Skipped a tick. If not too long ago, send the motion again
+                        int count = skippedPositions.incrementAndGet();
+                        if (count < 10) {
+                            //schedulePosition(requested.position.clone().add(requested.motion.clone().multiply(count)));
+                        }
+                    }
                 }
 
-                schedulePosition(next);
-            } else if (lastSentPosition != null) {
-                lastSentPosition.add(lastSentMotion);
-                schedulePosition(lastSentPosition);
+                // If too many packets remain unacknowledged (>2s) in the chain, reset
+                if (sentPositions.size() > 40) {
+                    sentPositions.clear();
+                    isSynchronized = false;
+                }
             }
         }
     }

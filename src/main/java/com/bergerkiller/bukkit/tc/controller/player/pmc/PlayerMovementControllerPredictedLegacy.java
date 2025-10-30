@@ -30,7 +30,6 @@ class PlayerMovementControllerPredictedLegacy extends PlayerMovementControllerPr
         super(type, viewer);
     }
 
-    @Override
     protected synchronized void sendPosition(Vector position) {
         if (isSynchronized) {
             // Perform a relative velocity update
@@ -73,9 +72,7 @@ class PlayerMovementControllerPredictedLegacy extends PlayerMovementControllerPr
         // Try various types of player input
         // If the horizontal axis match, checks against the vertical input modes as well
         for (HorizontalPlayerInput hor : input.lastHorizontalInput.getNextLikelyInputs()) {
-            Vector additionalMotion = input.getInputMotion(composeInput(hor, VerticalPlayerInput.NONE));
-
-            ConsumeResult result = sentPositions.tryConsumeHorizontalInput(input, hor, additionalMotion);
+            ConsumeResult result = sentPositions.tryConsumeHorizontalInput(input, hor);
             if (result != ConsumeResult.FAILED) {
                 isSynchronized = result.isSynchronized();
 
@@ -103,12 +100,10 @@ class PlayerMovementControllerPredictedLegacy extends PlayerMovementControllerPr
             log("[BORKED] " + strVec(input.currPosition));
             log("[MOTION] " + strVec(input.lastMotion));
 
-            String str = "Updates in flight predictions:";
-            for (SentPositionUpdate p = sentPositions.next; p != null; p = p.next) {
-                str += "\n" + p.debugPrediction(input, additionalMotion);
-            }
-            str += "\n" + FRICTION_UPDATE.debugPrediction(input, additionalMotion);
-            log(str);
+            StringBuilder str = new StringBuilder();
+            str.append("Updates in flight predictions:");
+            sentPositions.appendDebugNextPredictions(str, input, additionalMotion);
+            log(str.toString());
         }
 
         // As an absolute fallback

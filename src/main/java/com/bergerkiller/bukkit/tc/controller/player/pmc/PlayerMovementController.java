@@ -99,6 +99,9 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
             return;
         }
 
+        // Important player is set to fly mode regularly
+        setFlightForced(true);
+
         // If synchronizing as armor stand, modify the position to be 3/4th
         if (syncAsArmorstand) {
             if (lastSyncPos == null) {
@@ -109,10 +112,10 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
             position = lastSyncPos;
         }
 
-        syncPosition(position);
+        syncPosition(position, orientation);
     }
 
-    protected abstract void syncPosition(Vector position);
+    protected abstract void syncPosition(Vector position, Quaternion orientation);
 
     protected void setFlightForced(boolean forced) {
         if (forced) {
