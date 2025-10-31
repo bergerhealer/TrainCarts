@@ -10,7 +10,6 @@ import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInAbilitiesHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInFlyingHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInSteerVehicleHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutAbilitiesHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityVelocityHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
@@ -71,9 +70,12 @@ class PlayerMovementControllerPredictedLegacy extends PlayerMovementControllerPr
     private synchronized void receiveInput(PlayerPositionInput input) {
         // Try various types of player input
         // If the horizontal axis match, checks against the vertical input modes as well
-        for (HorizontalPlayerInput hor : input.lastHorizontalInput.getNextLikelyInputs()) {
-            ConsumeResult result = sentPositions.tryConsumeHorizontalInput(input, hor);
+        final boolean sprinting = false;
+        for (HorizontalPlayerInput hor : input.lastInput.horizontal.getNextLikelyInputs()) {
+            PlayerClientState state = new PlayerClientState(input.lastMotion);
+            ConsumeResult result = sentPositions.tryConsumeHorizontalInput(input, state, hor, sprinting);
             if (result != ConsumeResult.FAILED) {
+                input.currInput = state.input;
                 isSynchronized = result.isSynchronized();
 
                 // [Debug] Send message to player with the current input
@@ -93,8 +95,6 @@ class PlayerMovementControllerPredictedLegacy extends PlayerMovementControllerPr
         }
 
         if (DEBUG_MODE) {
-            Vector additionalMotion = input.getInputMotion(composeInput(input.lastHorizontalInput, input.lastVerticalInput));
-
             log("[FORWARD] " + input.currForward);
             log("[PREVIOUS] " + strVec(input.lastPosition));
             log("[BORKED] " + strVec(input.currPosition));
@@ -102,7 +102,7 @@ class PlayerMovementControllerPredictedLegacy extends PlayerMovementControllerPr
 
             StringBuilder str = new StringBuilder();
             str.append("Updates in flight predictions:");
-            sentPositions.appendDebugNextPredictions(str, input, additionalMotion);
+            sentPositions.appendDebugNextPredictions(str, input, input.lastInput);
             log(str.toString());
         }
 
@@ -140,16 +140,7 @@ class PlayerMovementControllerPredictedLegacy extends PlayerMovementControllerPr
                 input.updateLast();
 
                 if (translateVehicleSteer) {
-                    PacketPlayInSteerVehicleHandle steer = PacketPlayInSteerVehicleHandle.createNew(
-                            input.lastHorizontalInput.left(),
-                            input.lastHorizontalInput.right(),
-                            input.lastHorizontalInput.forwards(),
-                            input.lastHorizontalInput.backwards(),
-                            input.lastVerticalInput == VerticalPlayerInput.JUMP,
-                            input.lastVerticalInput == VerticalPlayerInput.SNEAK,
-                            false);
-
-                    PacketUtil.receivePacket(player, steer);
+                    PacketUtil.receivePacket(player, input.lastInput.input.createSteerPacket());
                 }
             }
         } else if (event.getType() == PacketType.IN_ABILITIES) {

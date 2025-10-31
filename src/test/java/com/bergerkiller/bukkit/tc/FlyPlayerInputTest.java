@@ -130,6 +130,16 @@ public class FlyPlayerInputTest {
                  */
 
                 new TestCase(
+                        "NEW TEST CASE FOR FORWARDS_LEFT + NONE",
+                        PlayerMovementController.HorizontalPlayerInput.FORWARDS_LEFT,
+                        PlayerMovementController.VerticalPlayerInput.NONE,
+                        new Vector(-175.5, 14.1, 354.5),
+                        new Vector(-175.49672825001494, 14.1, 354.45010716353414),
+                        new Vector(0.0, 0.0, 0.0),
+                        -131.24988f
+                ),
+
+                new TestCase(
                         "NEW TEST CASE FOR BACKWARDS_LEFT",
                         PlayerMovementController.HorizontalPlayerInput.BACKWARDS_LEFT,
                         new Vector(-175.5, 0.0, 354.5),
@@ -421,7 +431,7 @@ public class FlyPlayerInputTest {
             this.desc = desc;
             this.horizontalInput = horizontalInput;
             this.verticalInput = verticalInput;
-            this.input = PlayerMovementController.composeInput(horizontalInput, verticalInput);
+            this.input = new PlayerMovementController.ComposedInput(horizontalInput, verticalInput, false).input;
             this.start = start;
             this.expected = expected;
             this.motion = motion;
