@@ -49,7 +49,6 @@ import com.bergerkiller.bukkit.tc.debug.types.DebugToolTypeTrackDistance;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.utils.EventListenerHook;
-import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
 import org.incendo.cloud.annotation.specifier.Quoted;
 import org.incendo.cloud.annotations.Argument;
 import org.incendo.cloud.annotations.Command;
@@ -460,7 +459,13 @@ public class DebugCommands {
                 } else if (input.right()) {
                     lastMotion.add(q.rightVector().multiply(-1.0));
                 }
-                loc.add(lastMotion.clone().multiply(speed));
+
+                double fixedSpeed = speed;
+                if (input.sprinting()) {
+                    fixedSpeed *= 2.0;
+                }
+
+                loc.add(lastMotion.clone().multiply(fixedSpeed));
             }
         }.start(5, 1);
         player.sendMessage("Started");
@@ -604,7 +609,8 @@ public class DebugCommands {
             final @Flag(value="dz") Double dz,
             final @Flag(value="relpos") boolean relpos,
             final @Flag(value="reldeltapos") boolean reldeltapos,
-            final @Flag(value="relrot") boolean relrot
+            final @Flag(value="relrot") boolean relrot,
+            final @Flag(value="look") boolean look
     ) {
         double p_x = LogicUtil.fixNull(x, 0.0);
         double p_y = LogicUtil.fixNull(y, 0.0);
@@ -621,14 +627,18 @@ public class DebugCommands {
         if (reldeltapos) {
             flags = flags.withRelativeDeltaX().withRelativeDeltaY().withRelativeDeltaZ();
         }
-        if (relrot) {
+        if (look || relrot) {
             flags = flags.withRelativeRotation();
         }
-        flags = flags.withRelativeDeltaRotation();
 
         PacketUtil.sendPacket(player, PacketPlayOutPositionHandle.createNew(
-                p_x, p_y, p_z, p_yaw, p_pitch,
+                p_x, p_y, p_z,
+                look ? 0.0f : p_yaw,
+                look ? 0.0f : p_pitch,
                 p_dx, p_dy, p_dz,
                 flags));
+
+        if (look) {
+        }
     }
 }

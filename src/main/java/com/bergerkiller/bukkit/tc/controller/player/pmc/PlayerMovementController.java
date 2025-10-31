@@ -54,29 +54,6 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
         }
     }
 
-    public abstract HorizontalPlayerInput horizontalInput();
-
-    public abstract VerticalPlayerInput verticalInput();
-
-    @Override
-    public AttachmentViewer.Input getInput() {
-        return composeInput(horizontalInput(), verticalInput());
-    }
-
-    public static AttachmentViewer.Input composeInput(
-            HorizontalPlayerInput horizontalPlayerInput,
-            VerticalPlayerInput verticalPlayerInput
-    ) {
-        return AttachmentViewer.Input.of(
-                horizontalPlayerInput.left(),
-                horizontalPlayerInput.right(),
-                horizontalPlayerInput.forwards(),
-                horizontalPlayerInput.backwards(),
-                verticalPlayerInput == VerticalPlayerInput.JUMP,
-                verticalPlayerInput == VerticalPlayerInput.SNEAK,
-                false);
-    }
-
     /**
      * Stops this movement controller. It will stop refreshing player positions,
      * and the player will regain control like normal.
@@ -180,6 +157,60 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
         @Override
         public String toString() {
             return "{dx=" +dx + ", dz=" + dz + "}";
+        }
+    }
+
+    /**
+     * Combines the AttachmentViewer Input API with the horizontal/vertical/sprint inputs that
+     * the movement controller uses.
+     */
+    public static final class ComposedInput {
+        public static final ComposedInput NONE = new ComposedInput(AttachmentViewer.Input.NONE);
+
+        public final HorizontalPlayerInput horizontal;
+        public final VerticalPlayerInput vertical;
+        public final boolean sprinting;
+        public final AttachmentViewer.Input input;
+
+        public ComposedInput(AttachmentViewer.Input input) {
+            this.horizontal = HorizontalPlayerInput.fromSteer(
+                    input.left(), input.right(), input.forwards(), input.backwards()
+            );
+            this.vertical = VerticalPlayerInput.fromSteer(
+                    input.jumping(), input.sneaking()
+            );
+            this.sprinting = input.sprinting();
+            this.input = input;
+        }
+
+        public ComposedInput(
+                final HorizontalPlayerInput horizontal,
+                final VerticalPlayerInput vertical,
+                final boolean sprinting
+        ) {
+            this.horizontal = horizontal;
+            this.vertical = vertical;
+            this.sprinting = sprinting;
+            this.input = AttachmentViewer.Input.of(
+                    horizontal.left(),
+                    horizontal.right(),
+                    horizontal.forwards(),
+                    horizontal.backwards(),
+                    vertical == VerticalPlayerInput.JUMP,
+                    vertical == VerticalPlayerInput.SNEAK,
+                    sprinting);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            } else if (o instanceof ComposedInput) {
+                ComposedInput other = (ComposedInput) o;
+                return this.input.equals(other.input);
+            } else {
+                return false;
+            }
         }
     }
 
@@ -347,7 +378,7 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
         public static final ControllerType MODERN = new ControllerType(PlayerMovementControllerPredictedModern::new,
                 PacketType.IN_CLIENT_TICK_END,
                 PacketType.IN_POSITION, PacketType.IN_POSITION_LOOK,
-                PacketType.IN_STEER_VEHICLE, PacketType.IN_ABILITIES);
+                PacketType.IN_STEER_VEHICLE, PacketType.IN_ABILITIES, PacketType.IN_ENTITY_ACTION);
 
         /**
          * Selects the most appropriate controller type to use for a certain player viewer.

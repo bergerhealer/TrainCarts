@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.common.wrappers.PlayerAbilities;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInAbilitiesHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInEntityActionHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInFlyingHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInSteerVehicleHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutAbilitiesHandle;
@@ -26,6 +27,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * position inputs that come in.
  */
 class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPredicted {
+    /** Whether the player used the sprint button along with forward to initiate sprint */
+    private boolean hasSprintButtonAction = false;
+    /** Whether the player has double-tapped W to sprint */
+    private boolean hasSprintDoubleTapAction = false;
+    /** How many position updates the client is behind */
     private final AtomicInteger skippedPositions = new AtomicInteger(0);
 
     protected PlayerMovementControllerPredictedModern(ControllerType type, AttachmentViewer viewer) {
@@ -82,7 +88,7 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
         if (DEBUG_MODE && DebugUtil.getBooleanValue("testcase", false)) {
             // Only process NO_INPUT so that any user input triggers a desync
             {
-                ConsumeResult result = sentPositions.tryConsumeExactInput(input, HorizontalPlayerInput.NONE, VerticalPlayerInput.NONE);
+                ConsumeResult result = sentPositions.tryConsumeExactInput(input, ComposedInput.NONE);
                 if (result != ConsumeResult.FAILED) {
                     isSynchronized = result.isSynchronized();
                     return;
@@ -90,12 +96,12 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
             }
 
             // Log desyncs as test case formats for the FlyPlayerInputTest
-            if (input.lastHorizontalInput == HorizontalPlayerInput.NONE) {
+            if (input.lastInput.horizontal == HorizontalPlayerInput.NONE) {
                 log("\n" +
                         "                new TestCase(\n" +
-                        "                        \"NEW TEST CASE FOR " + input.currHorizontalInput + " + " + input.currVerticalInput + "\",\n" +
-                        "                        PlayerMovementController.HorizontalPlayerInput." + input.currHorizontalInput + ",\n" +
-                        "                        PlayerMovementController.VerticalPlayerInput." + input.currVerticalInput + ",\n" +
+                        "                        \"NEW TEST CASE FOR " + input.currInput.horizontal + " + " + input.currInput.vertical + "\",\n" +
+                        "                        PlayerMovementController.HorizontalPlayerInput." + input.currInput.horizontal + ",\n" +
+                        "                        PlayerMovementController.VerticalPlayerInput." + input.currInput.vertical + ",\n" +
                         "                        " + bukkitVec(input.lastPosition) + ",\n" +
                         "                        " + bukkitVec(input.currPosition) + ",\n" +
                         "                        " + bukkitVec(input.lastMotion) + ",\n" +
@@ -106,21 +112,21 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
         } else {
             // Try the last known input of the player, followed by the new inputs from the player
             {
-                ConsumeResult result = sentPositions.tryConsumeExactInput(input, input.lastHorizontalInput, input.lastVerticalInput);
+                ConsumeResult result = sentPositions.tryConsumeExactInput(input, input.lastInput);
                 if (result != ConsumeResult.FAILED) {
                     isSynchronized = result.isSynchronized();
                     return;
                 }
             }
             {
-                ConsumeResult result = sentPositions.tryConsumeExactInput(input, HorizontalPlayerInput.NONE, VerticalPlayerInput.NONE);
+                ConsumeResult result = sentPositions.tryConsumeExactInput(input, ComposedInput.NONE);
                 if (result != ConsumeResult.FAILED) {
                     isSynchronized = result.isSynchronized();
                     return;
                 }
             }
-            if (input.lastHorizontalInput != input.currHorizontalInput || input.lastVerticalInput != input.currVerticalInput) {
-                ConsumeResult result = sentPositions.tryConsumeExactInput(input, input.currHorizontalInput, input.currVerticalInput);
+            if (!input.lastInput.equals(input.currInput)) {
+                ConsumeResult result = sentPositions.tryConsumeExactInput(input, input.currInput);
                 if (result != ConsumeResult.FAILED) {
                     isSynchronized = result.isSynchronized();
                     return;
@@ -128,20 +134,22 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
             }
 
             if (DEBUG_MODE) {
+                log("[INPUTS] " + input.currInput.input);
                 log("[FORWARD] yaw=" + input.currYaw + " " + input.currForward);
                 log("[PREVIOUS] " + strVec(input.lastPosition));
                 log(" [CURRENT] " + strVec(input.currPosition));
                 log("  [MOTION] " + strVec(input.lastMotion));
 
-                Vector additionalMotion = input.getInputMotion(composeInput(input.currHorizontalInput, input.currVerticalInput));
-                if (input.currHorizontalInput != HorizontalPlayerInput.NONE) {
+                ComposedInput controlInput = input.currInput;
+                Vector additionalMotion = input.getInputMotion(controlInput.input);
+                if (input.currInput.horizontal != HorizontalPlayerInput.NONE) {
                     log("[CURR PLAYER SPEED] " + input.currSpeed);
                     log("[MOVEMENT] " + strVec(additionalMotion));
                 }
 
                 StringBuilder str = new StringBuilder();
                 str.append("Updates in flight predictions:");
-                sentPositions.appendDebugNextPredictions(str, input, additionalMotion);
+                sentPositions.appendDebugNextPredictions(str, input, controlInput);
                 log(str.toString());
             }
         }
@@ -176,13 +184,13 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
         } else if (event.getType() == PacketType.IN_STEER_VEHICLE) {
             // Update last-known inputs from the player
             PacketPlayInSteerVehicleHandle packet = PacketPlayInSteerVehicleHandle.createHandle(event.getPacket().getHandle());
+            ComposedInput currInput = new ComposedInput(AttachmentViewer.Input.fromVehicleSteer(packet));
             synchronized (PlayerMovementControllerPredictedModern.this) {
-                input.currHorizontalInput = HorizontalPlayerInput.fromSteer(
-                        packet.isLeft(), packet.isRight(), packet.isForward(), packet.isBackward()
-                );
-                input.currVerticalInput = VerticalPlayerInput.fromSteer(
-                        packet.isJump(), packet.isUnmount()
-                );
+                hasSprintButtonAction = packet.isSprint();
+                if (hasSprintDoubleTapAction) {
+                    currInput = new ComposedInput(currInput.input.withSprinting(true));
+                }
+                input.currInput = currInput;
             }
         } else if (event.getType() == PacketType.IN_ABILITIES) {
             // Ensure flight mode is kept active
@@ -193,8 +201,29 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
                 PacketPlayOutAbilitiesHandle pp = PacketPlayOutAbilitiesHandle.createNew(pa);
                 PacketUtil.queuePacket(event.getPlayer(), pp);
             }
+        } else if (event.getType() == PacketType.IN_ENTITY_ACTION) {
+            PacketPlayInEntityActionHandle packet = PacketPlayInEntityActionHandle.createHandle(event.getPacket().getHandle());
+            Object action = packet.getAction();
+            if (action != null) {
+                String actionName = (action instanceof Enum) ? ((Enum<?>) action).name() : action.toString();
+                if ("START_SPRINTING".equals(actionName)) {
+                    synchronized (PlayerMovementControllerPredictedModern.this) {
+                        hasSprintDoubleTapAction = true;
+                        input.currInput = new ComposedInput(input.currInput.input.withSprinting(true));
+                    }
+                } else if ("STOP_SPRINTING".equals(actionName)) {
+                    synchronized (PlayerMovementControllerPredictedModern.this) {
+                        hasSprintDoubleTapAction = false;
+                        input.currInput = new ComposedInput(input.currInput.input.withSprinting(hasSprintButtonAction));
+                    }
+                }
+            }
         } else if (event.getType() == PacketType.IN_CLIENT_TICK_END) {
             synchronized (PlayerMovementControllerPredictedModern.this) {
+                if (DEBUG_MODE && !input.lastInput.equals(input.currInput)) {
+                    player.sendMessage("Input Changed: " + input.currInput.input);
+                }
+
                 // Synchronize everything on every client tick
                 receiveInput(input);
                 input.updateLast();

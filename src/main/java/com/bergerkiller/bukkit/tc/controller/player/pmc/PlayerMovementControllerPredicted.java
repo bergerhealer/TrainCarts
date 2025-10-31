@@ -50,13 +50,8 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
     }
 
     @Override
-    public synchronized HorizontalPlayerInput horizontalInput() {
-        return input.lastHorizontalInput;
-    }
-
-    @Override
-    public synchronized VerticalPlayerInput verticalInput() {
-        return input.lastVerticalInput;
+    public AttachmentViewer.Input getInput() {
+        return input.lastInput.input;
     }
 
     private RequestedPosition computeNextRequestedPosition(Vector position, Quaternion orientation) {
@@ -150,10 +145,8 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
         public float currYaw;
         public ForwardMotion currForward;
         public float currSpeed;
-        public HorizontalPlayerInput lastHorizontalInput;
-        public VerticalPlayerInput lastVerticalInput;
-        public HorizontalPlayerInput currHorizontalInput;
-        public VerticalPlayerInput currVerticalInput;
+        public ComposedInput lastInput;
+        public ComposedInput currInput;
 
         /** When player presses both forward and left for example, this factor is used */
         public final double diagonalSpeedFactor;
@@ -168,10 +161,8 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
             this.currYaw = player.getEyeLocation().getYaw();
             this.currForward = ForwardMotion.get(currYaw);
             this.currSpeed = 0.5F * player.getFlySpeed();
-            this.lastHorizontalInput = HorizontalPlayerInput.NONE;
-            this.lastVerticalInput = VerticalPlayerInput.NONE;
-            this.currHorizontalInput = HorizontalPlayerInput.NONE;
-            this.currVerticalInput = VerticalPlayerInput.NONE;
+            this.lastInput = ComposedInput.NONE;
+            this.currInput = ComposedInput.NONE;
 
             // I have NO idea why the client is inconsistent like that
             if (viewer.evaluateGameVersion(">=", "1.21.8")) {
@@ -196,8 +187,7 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
 
         public void updateLast() {
             MathUtil.setVector(lastPosition, currPosition);
-            lastHorizontalInput = currHorizontalInput;
-            lastVerticalInput = currVerticalInput;
+            lastInput = currInput;
         }
 
         public Vector getInputMotion(AttachmentViewer.Input input) {
@@ -208,6 +198,10 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
                 horSpeedDbl *= diagonalSpeedFactor;
             } else {
                 horSpeedDbl *= 0.98F;
+            }
+
+            if (input.sprinting() && input.forwards() && !input.backwards()) {
+                horSpeedDbl *= 2.0;
             }
 
             double left = input.sidewaysSigNum() * horSpeedDbl; // left/right
@@ -226,6 +220,8 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
      * values are assuming the updates have been applied the way they are.
      */
     protected static final class PlayerClientState {
+        /** Input control state of the player. The inputMotion field is set to this input */
+        public ComposedInput input = ComposedInput.NONE;
         /** Input motion added as a result of the player pressing movement controls */
         public final Vector inputMotion = new Vector();
         /** Last motion from {@link PlayerPositionInput}, immutable */
@@ -242,6 +238,7 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
         }
 
         public void setTo(PlayerClientState state) {
+            this.input = state.input;
             MathUtil.setVector(this.inputMotion, state.inputMotion);
             MathUtil.setVector(this.lastMotion, state.lastMotion);
             MathUtil.setVector(this.motion, state.motion);
@@ -290,6 +287,7 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
          *
          * @param input Player input history
          * @param horizontalInput Current horizontal input being checked. Additional motion is set to this.
+         * @param sprinting Current sprinting state input being checked. Additional motion is set using this.
          * @param state PlayerClientState. Is updated if input is successfully tested
          * @return The position update that was detected. This is the one the client is presumed to be
          *         in right now. Returns null if none could be identified.
@@ -297,12 +295,14 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
         public SentPositionUpdate findHorizontalInput(
                 PlayerPositionInput input,
                 HorizontalPlayerInput horizontalInput,
+                boolean sprinting,
                 PlayerClientState state
         ) {
             for (VerticalPlayerInput verticalInput : new VerticalPlayerInput[] {
                     VerticalPlayerInput.NONE, VerticalPlayerInput.JUMP, VerticalPlayerInput.SNEAK
             }) {
-                SentPositionUpdate u = findInput(input, horizontalInput, verticalInput, state);
+                ComposedInput controlInput = new ComposedInput(horizontalInput, verticalInput, sprinting);
+                SentPositionUpdate u = findInput(input, controlInput, state);
                 if (u != null) {
                     return u;
                 }
@@ -317,28 +317,25 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
          * client tick.
          *
          * @param input Player input history
-         * @param horizontalInput Current horizontal input being checked. Additional motion is set using this.
-         * @param verticalInput Current vertical input being checked. Additional motion is set using this.
+         * @param controlInput Current player control input being checked. Additional motion is set using this.
          * @param state PlayerClientState. Is updated if input is successfully tested
          * @return The position update that was detected. This is the one the client is presumed to be
          *         in right now. Returns null if none could be identified.
          */
         public SentPositionUpdate findInput(
                 PlayerPositionInput input,
-                HorizontalPlayerInput horizontalInput,
-                VerticalPlayerInput verticalInput,
+                ComposedInput controlInput,
                 PlayerClientState state
         ) {
             // Seed the client state using the presumed initial client input state
+            state.input = controlInput;
             MathUtil.setVector(state.position, input.lastPosition);
-            MathUtil.setVector(state.inputMotion, input.getInputMotion(composeInput(horizontalInput, verticalInput)));
+            MathUtil.setVector(state.inputMotion, input.getInputMotion(controlInput.input));
 
             // Try to apply this update, and the next ones, and check if one of the states match
             for (SentPositionUpdate u = this; u != null; u = u.next) {
                 u.applyFull(state);
                 if (state.isCorrect(input.currPosition)) {
-                    input.currHorizontalInput = horizontalInput;
-                    input.currVerticalInput = verticalInput;
                     MathUtil.setVector(input.lastMotion, state.motion);
                     return u;
                 }
@@ -373,11 +370,12 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
         }
 
         @SuppressWarnings("unused")
-        public void appendDebugNextPredictions(StringBuilder str, PlayerPositionInput input, Vector inputMotion) {
+        public void appendDebugNextPredictions(StringBuilder str, PlayerPositionInput input, ComposedInput controlInput) {
             // Seed it with the last position and motion we've synchronized
             PlayerClientState state = new PlayerClientState(input.lastMotion);
+            state.input = controlInput;
             MathUtil.setVector(state.position, input.lastPosition);
-            MathUtil.setVector(state.inputMotion, inputMotion);
+            MathUtil.setVector(state.inputMotion, input.getInputMotion(controlInput.input));
 
             for (SentPositionUpdate u = this.next; u != null; u = u.next) {
                 u.applyFull(state);
@@ -396,8 +394,7 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
 
         public ConsumeResult tryConsumeExactInput(
                 final PlayerPositionInput input,
-                final HorizontalPlayerInput horizontalInput,
-                final VerticalPlayerInput verticalInput
+                final ComposedInput controlInput
         ) {
             PlayerClientState state = new PlayerClientState(input.lastMotion);
 
@@ -406,7 +403,7 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
             // received in the same tick. If so, we discard those as processed
             SentPositionUpdate curr = next;
             if (curr != null) {
-                SentPositionUpdate foundUpdate = curr.findInput(input, horizontalInput, verticalInput, state);
+                SentPositionUpdate foundUpdate = curr.findInput(input, controlInput, state);
                 if (foundUpdate != null) {
                     setStart(foundUpdate.next);
                     calcLastClientState(state);
@@ -417,7 +414,7 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
 
             // None matches, perhaps an update was skipped entirely
             // In that case, the previous motion continues unhindered with a slowdown value
-            if (FRICTION_UPDATE.findInput(input, horizontalInput, verticalInput, state) != null) {
+            if (FRICTION_UPDATE.findInput(input, controlInput, state) != null) {
                 calcLastClientState(state);
                 //input.player.sendMessage("Consumed: Friction/No Update");
                 return ConsumeResult.OK;
@@ -428,10 +425,10 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
 
         public ConsumeResult tryConsumeHorizontalInput(
                 final PlayerPositionInput input,
-                final HorizontalPlayerInput horizontalInput
+                final PlayerClientState state,
+                final HorizontalPlayerInput horizontalInput,
+                final boolean sprinting
         ) {
-            PlayerClientState state = new PlayerClientState(input.lastMotion);
-
             // Go by all updates that were sent, and try to apply them
             // It's possible one or more of them got merged together because they were
             // received in the same tick. If so, we discard those and adjust currentPosition
@@ -440,7 +437,7 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
             if (curr != null) {
                 // Ideally, the very first update matches, in which case we're all in sync.
                 // In that case, currentPosition remains valid and no need to recalculate that
-                SentPositionUpdate foundUpdate = curr.findHorizontalInput(input, horizontalInput, state);
+                SentPositionUpdate foundUpdate = curr.findHorizontalInput(input, horizontalInput, sprinting, state);
                 if (foundUpdate != null) {
                     setStart(foundUpdate.next);
                     calcLastClientState(state);
@@ -451,7 +448,7 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
 
             // None matches, perhaps an update was skipped entirely
             // In that case, the previous motion continues unhindered with a slowdown value
-            if (FRICTION_UPDATE.findHorizontalInput(input, horizontalInput, state) != null) {
+            if (FRICTION_UPDATE.findHorizontalInput(input, horizontalInput, sprinting, state) != null) {
                 calcLastClientState(state);
                 //input.player.sendMessage("Consumed: Friction/No Update");
                 return ConsumeResult.OK;

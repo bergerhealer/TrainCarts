@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchron
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInSteerVehicleHandle;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -614,6 +615,11 @@ public interface AttachmentViewer extends TrainCarts.Provider {
             return new Input(left, right, forwards, backwards, jumping, sneaking, sprinting);
         }
 
+        public static Input fromVehicleSteer(PacketPlayInSteerVehicleHandle packet) {
+            return of(packet.isLeft(), packet.isRight(), packet.isForward(), packet.isBackward(),
+                    packet.isJump(), packet.isUnmount(), packet.isSprint());
+        }
+
         private Input(boolean left, boolean right, boolean forwards, boolean backwards, boolean jumping, boolean sneaking, boolean sprinting) {
             this.left = left;
             this.right = right;
@@ -736,6 +742,68 @@ public interface AttachmentViewer extends TrainCarts.Provider {
          */
         public double verticalSigNum() {
             return (jumping == sneaking) ? 0.0 : (jumping ? 1.0 : -1.0);
+        }
+
+        /**
+         * Returns a new Input with the {@link #sprinting()} value changed
+         * to a new one.
+         *
+         * @param newSprinting New sprinting value
+         * @return Updated Input
+         */
+        public Input withSprinting(boolean newSprinting) {
+            return of(left, right, forwards, backwards, jumping, sneaking, newSprinting);
+        }
+
+        /**
+         * Creates a new vehicle steer packet with these inputs. This packet can be
+         * received on the server and treated as (fake) input from the player.
+         *
+         * @return New PacketPlayInSteerVehicleHandle
+         */
+        public PacketPlayInSteerVehicleHandle createSteerPacket() {
+            return PacketPlayInSteerVehicleHandle.createNew(
+                    left, right, forwards, backwards,
+                    jumping, sneaking, sprinting);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            } else if (o instanceof Input) {
+                Input other = (Input) o;
+                return left == other.left && right == other.right &&
+                        forwards == other.forwards && backwards == other.backwards &&
+                        jumping == other.jumping && sneaking == other.sneaking &&
+                        sprinting == other.sprinting;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder str = new StringBuilder();
+            str.append("Input{");
+            appendIf(str, left, "left ");
+            appendIf(str, right, "right ");
+            appendIf(str, forwards, "forwards ");
+            appendIf(str, backwards, "backwards ");
+            appendIf(str, jumping, "jumping ");
+            appendIf(str, sneaking, "sneaking ");
+            appendIf(str, sprinting, "sprinting ");
+            if (str.charAt(str.length() - 1) == ' ') {
+                str.replace(str.length() - 1, str.length(), "");
+            }
+            str.append("}");
+            return str.toString();
+        }
+
+        private static void appendIf(StringBuilder str, boolean condition, String text) {
+            if (condition) {
+                str.append(text);
+            }
         }
     }
 }
