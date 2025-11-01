@@ -37,8 +37,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 class TCPacketListener implements PacketListener {
     public static final int ATTACK_SUPPRESS_DURATION = 250; // 250ms
     public static final PacketType[] LISTENED_TYPES = new PacketType[] {
-            PacketType.IN_STEER_VEHICLE, PacketType.IN_USE_ENTITY, PacketType.IN_ENTITY_ACTION,
-            PacketType.IN_POSITION, PacketType.IN_POSITION_LOOK
+            PacketType.IN_STEER_VEHICLE, PacketType.IN_USE_ENTITY, PacketType.IN_ENTITY_ACTION
     };
 
     private final TrainCarts traincarts;
