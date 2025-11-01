@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Random;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.tc.controller.player.TrainCartsAttachmentViewerMap;
 import com.bergerkiller.bukkit.tc.controller.player.network.PacketQueue;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -39,6 +40,7 @@ public class TrainUpdateController {
     private double realtimeFactor = 1.0; // Factor to correct for server lag this current tick
     private TrainUpdateTask updateTask = null;
     private TrainNetworkSyncTask networkSyncTask = null;
+    private TrainFullSyncTask fullSyncTask = null; // Only 1.8 - 1.10.2
     private AttachmentUpdateTransformHelper updateTransformHelper;
 
     public TrainUpdateController(TrainCarts plugin) {
@@ -82,10 +84,18 @@ public class TrainUpdateController {
 
     public void preEnable() {
         this.updateTask = new TrainUpdateTask(this.plugin);
-        this.updateTask.start(1, 1);
-
         this.networkSyncTask = new TrainNetworkSyncTask();
-        this.networkSyncTask.start(1, 1);
+
+        if (Common.evaluateMCVersion(">=", "1.11")) {
+            this.updateTask.start(1, 1);
+            this.networkSyncTask.start(1, 1);
+        } else {
+            // Bukkit tasks are bugged here. They do not run after one another consistently,
+            // jumping all over the place. We do not want the update task to run twice, followed
+            // by the network task. That causes broken behavior!
+            this.fullSyncTask = new TrainFullSyncTask();
+            this.fullSyncTask.start(1, 1);
+        }
 
         this.updateTransformHelper = AttachmentUpdateTransformHelper.create(1);
 
@@ -102,6 +112,8 @@ public class TrainUpdateController {
         this.updateTask = null;
         Task.stop(this.networkSyncTask);
         this.networkSyncTask = null;
+        Task.stop(this.fullSyncTask);
+        this.fullSyncTask = null;
     }
 
     public void computeAttachmentTransform(Attachment attachment, Matrix4x4 initialTransform) {
@@ -253,6 +265,23 @@ public class TrainUpdateController {
                 // Send the bundler packets / cleanup
                 viewerMap.forAllPacketQueues(PacketQueue::syncEnd);
             }
+        }
+    }
+
+    /**
+     * Only used on Minecraft 1.8 - 1.10.2, because on those versions the tasks
+     * do not get executed in the same order consistently. This causes horrible
+     * (audio) sync bugs.
+     */
+    private class TrainFullSyncTask extends Task {
+        public TrainFullSyncTask() {
+            super(plugin);
+        }
+
+        @Override
+        public void run() {
+            updateTask.run();
+            networkSyncTask.run();
         }
     }
 
