@@ -46,6 +46,8 @@ import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
 import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayerStore;
 import com.bergerkiller.bukkit.tc.controller.global.TrainUpdateController;
 import com.bergerkiller.bukkit.tc.controller.player.TrainCartsAttachmentViewerMap;
+import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchronizer;
+import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.locator.TrainLocator;
@@ -134,6 +136,8 @@ public class TrainCarts extends PluginBase {
     private final WorldEditSchematicLoader worldEditSchematicLoader = new WorldEditSchematicLoader(this);
     private final TrainCartsPlayerStore playerStore = new TrainCartsPlayerStore(this);
     private final EffectLoopPlayerController effectLoopPlayerController = new EffectLoopPlayerController(this);
+    private final PlayerClientSynchronizer.Provider playerClientSynchronizerProvider = PlayerClientSynchronizer.Provider.create(this);
+    private final PlayerPacketListener.Provider playerPacketListenerProvider = PlayerPacketListener.Provider.create(this);
     private SmoothCoastersAPI smoothCoastersAPI;
     private Commands commands;
 
@@ -525,6 +529,26 @@ public class TrainCarts extends PluginBase {
      */
     public EffectLoop.Player createEffectLoopPlayer(int limit) {
         return effectLoopPlayerController.createPlayer(limit);
+    }
+
+    /**
+     * Gets the main provider for the PlayerClientSynchronizer API. This API is used to send
+     * packets to players and fire callbacks when the client acknowledges those packets.
+     *
+     * @return PlayerClientSynchronizer Provider
+     */
+    public PlayerClientSynchronizer.Provider getPlayerClientSynchronizerProvider() {
+        return playerClientSynchronizerProvider;
+    }
+
+    /**
+     * Gets the PlayerPacketListener Provider, which is used to register temporary packet listeners
+     * for specific players only.
+     *
+     * @return PlayerPacketListener Provider
+     */
+    public PlayerPacketListener.Provider getPlayerPacketListenerProvider() {
+        return playerPacketListenerProvider;
     }
 
     /**
@@ -928,6 +952,10 @@ public class TrainCarts extends PluginBase {
         this.register(new TCSeatChangeListener());
         this.register(new TrainChestListener(this));
 
+        // Temporary per-player listener system
+        this.playerClientSynchronizerProvider.enable();
+        this.playerPacketListenerProvider.enable();
+
         // Only registered when needed...
         if (TCSuppressSeatTeleportPacketListener.SUPPRESS_POST_ENTER_PLAYER_POSITION_PACKET) {
             suppressSeatTeleportPacketListener = new TCSuppressSeatTeleportPacketListener(this);
@@ -1060,6 +1088,10 @@ public class TrainCarts extends PluginBase {
         Task.stop(autosaveTask);
         Task.stop(cacheCleanupTask);
         Task.stop(mutexZoneUpdateTask);
+
+        // Temporary per-player listener system
+        this.playerClientSynchronizerProvider.disable();
+        this.playerPacketListenerProvider.disable();
 
         //Stop preloading chunks (happens when quickly disabling after enabling)
         for (ChunkPreloadTask preloadTask : this.chunkPreloadTasks) {

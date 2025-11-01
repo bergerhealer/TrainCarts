@@ -1,7 +1,11 @@
 package com.bergerkiller.bukkit.tc.attachments.api;
 
 import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
+import com.bergerkiller.bukkit.common.protocol.PacketListener;
+import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchronizer;
+import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -175,6 +179,38 @@ public interface AttachmentViewer extends TrainCarts.Provider {
     }
 
     /**
+     * Gets the PlayerClientSynchronizer instance for a Player. This is used to send packets
+     * to the client, and wait for the client to acknowledge them. Then a callback is called
+     * on the server end.<br>
+     * <br>
+     * This is primarily useful to send position updates to the client and know when those
+     * have been applied. This accounts for (large) client latency.
+     *
+     * @return PlayerClientSynchronizer
+     */
+    default PlayerClientSynchronizer getClientSynchronizer() {
+        return getTrainCarts().getPlayerClientSynchronizerProvider().forPlayer(getPlayer());
+    }
+
+    /**
+     * Creates a packet listener, for this Player viewer only.
+     * Must call {@link PlayerPacketListener#enable()} before it is active.
+     * Can call disable to temporarily stop it, and terminate to shut down the packet
+     * listener forever. Is automatically stopped when this player quits the server.
+     *
+     * @param packetListener PacketListener
+     * @param packetTypes PacketTypes to listen for (receive OR send)
+     * @return PlayerPacketListener to enable/disable the listener. Also grants access
+     *         to the original packet listener implementation passed in.
+     * @param <L> PacketListener implementation type
+     */
+    default <L extends PacketListener> PlayerPacketListener<L> createPacketListener(L packetListener, PacketType... packetTypes) {
+        TrainCarts trainCarts = getTrainCarts();
+        return trainCarts.getPlayerPacketListenerProvider().create(
+                        getPlayer(), packetListener, packetTypes);
+    }
+
+    /**
      * Gets the Entity ID of the Player
      *
      * @return Player entity ID
@@ -255,13 +291,31 @@ public interface AttachmentViewer extends TrainCarts.Provider {
     }
 
     /**
+     * Obtains the AttachmentViewer implementation best suited for a Player.
+     * If TrainCarts is enabled and the player is still online, uses the TrainCarts
+     * implementation with optimized APIs. Otherwise uses the
+     * {@link #fallback(Player)} implementation.
+     *
+     * @param player Player
+     * @return AttachmentViewer
+     */
+    static AttachmentViewer forPlayer(final Player player) {
+        TrainCarts trainCarts = TrainCarts.plugin;
+        if (trainCarts != null && trainCarts.isEnabled()) {
+            return trainCarts.getAttachmentViewer(player);
+        } else {
+            return fallback(player);
+        }
+    }
+
+    /**
      * Obtains a fallback AttachmentViewer implementation, to be used when only
      * a Player input is provided.
      *
      * @param player
      * @return AttachmentViewer
      */
-    public static AttachmentViewer fallback(final Player player) {
+    static AttachmentViewer fallback(final Player player) {
         return new AttachmentViewer() {
             @Override
             public TrainCarts getTrainCarts() {

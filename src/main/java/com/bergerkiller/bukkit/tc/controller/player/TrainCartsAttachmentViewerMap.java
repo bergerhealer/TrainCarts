@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.collections.FastIdentityHashMap;
 import com.bergerkiller.bukkit.common.protocol.PlayerGameInfo;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.player.network.PacketQueue;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -36,7 +37,7 @@ public class TrainCartsAttachmentViewerMap {
         TrainCartsAttachmentViewer viewer = viewers.get(player);
         if (viewer == null) {
             final PlayerGameInfo playerGameInfo = PlayerGameInfo.of(player);
-            if (player.isValid()) {
+            if (player.isValid() || Bukkit.getPlayer(player.getUniqueId()) == player) {
                 final PacketQueue packetQueue = PacketQueue.create(plugin, player, playerGameInfo);
                 viewer = new TrainCartsAttachmentViewer(plugin, player, playerGameInfo, packetQueue);
                 viewers.put(player, viewer);

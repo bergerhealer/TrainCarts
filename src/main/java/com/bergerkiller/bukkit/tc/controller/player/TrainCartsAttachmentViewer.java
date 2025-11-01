@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.controller.player.network.PacketQueue;
+import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchronizer;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
 import org.bukkit.entity.Player;
 
@@ -28,6 +29,7 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     private final boolean supportsDisplayEntities;
     // Components
     private final PacketQueue packetQueue;
+    private final PlayerClientSynchronizer playerClientSynchronizer;
 
     TrainCartsAttachmentViewer(TrainCarts plugin, Player player, PlayerGameInfo playerGameInfo, PacketQueue packetQueue) {
         this.plugin = plugin;
@@ -40,10 +42,16 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
         this.supportsDisplayEntities = CommonCapabilities.HAS_DISPLAY_ENTITY
                 && evaluateGameVersion(">=", "1.19.4");
         this.packetQueue = packetQueue;
+        this.playerClientSynchronizer = plugin.getPlayerClientSynchronizerProvider().forViewer(this);
     }
 
     PacketQueue getPacketQueue() {
         return packetQueue;
+    }
+
+    @Override
+    public PlayerClientSynchronizer getClientSynchronizer() {
+        return playerClientSynchronizer;
     }
 
     @Override
