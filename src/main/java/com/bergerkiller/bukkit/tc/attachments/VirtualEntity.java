@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundMoveMinecartPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.vehicle.NewMinecartBehaviorHandle;
@@ -83,6 +84,7 @@ public class VirtualEntity extends VirtualSpawnableObject {
     private float syncYaw, syncPitch;
     private double liveVel;
     private double syncVel;
+    private int lastLiveVelTick = -1;
     private Vector relativePos = new Vector();
     private ByViewerPositionAdjustment byViewerPositionAdjustment = null;
     private EntityType entityType = EntityType.CHICKEN;
@@ -340,22 +342,44 @@ public class VirtualEntity extends VirtualSpawnableObject {
         // Velocity is used exclusively for controlling the minecart's audio level
         // When derailed, no audio should be made. Otherwise, the velocity speed controls volume.
         // Only applies when used in a minecart member network environment
-        liveVel = 0.0;
-        if (this.entityTypeIsMinecart && this.manager instanceof AttachmentControllerMember) {
-            MinecartMember<?> member = ((AttachmentControllerMember) manager).getMember();
-            if (member.hasInitializedGroup() && member.getGroup().getProperties().isSoundEnabled() && !member.isDerailed()) {
-                if (!Double.isNaN(this.velSyncAbsPos.getX())) {
-                    liveVel = this.liveAbsPos.distance(this.velSyncAbsPos);
-                }
-                MathUtil.setVector(this.velSyncAbsPos, this.liveAbsPos);
+        liveVel = calcNewVelocity();
+    }
 
-                // Limit to a maximum of 1.0, above this it's kind of pointless
-                if (liveVel > 1.0) liveVel = 1.0;
-
-                // Audio cutoff
-                if (liveVel < 0.001) liveVel = 0.0;
-            }
+    private double calcNewVelocity() {
+        if (!this.entityTypeIsMinecart || !(this.manager instanceof AttachmentControllerMember)) {
+            return 0.0;
         }
+
+        MinecartMember<?> member = ((AttachmentControllerMember) manager).getMember();
+        if (!member.hasInitializedGroup() || !member.getGroup().getProperties().isSoundEnabled() || member.isDerailed()) {
+            return 0.0;
+        }
+
+        // If called at the same tick as once before, leave velocity unchanged
+        int serverTicks = CommonUtil.getServerTicks();
+        int elapsedTicks = serverTicks - lastLiveVelTick;
+        lastLiveVelTick = serverTicks;
+
+        // There is no way to reliably calculate speed from a 0-tick
+        if (elapsedTicks == 0) {
+            return liveVel;
+        }
+
+        // If too long ago, only update sync pos but leave velocity 0.0 for now
+        double newLiveVel = liveVel;
+        if (elapsedTicks <= 20 && !Double.isNaN(this.velSyncAbsPos.getX())) {
+            newLiveVel = this.liveAbsPos.distance(this.velSyncAbsPos);
+            newLiveVel /= elapsedTicks;
+        }
+        MathUtil.setVector(this.velSyncAbsPos, this.liveAbsPos);
+
+        // Limit to a maximum of 1.0, above this it's kind of pointless
+        if (newLiveVel > 1.0) newLiveVel = 1.0;
+
+        // Audio cutoff
+        if (newLiveVel < 0.001) newLiveVel = 0.0;
+
+        return newLiveVel;
     }
 
     public void setEntityType(EntityType entityType) {
@@ -539,7 +563,6 @@ public class VirtualEntity extends VirtualSpawnableObject {
         // Velocity packets are only relevant when minecarts are used (with audio enabled)
         if (Math.abs(this.liveVel - this.syncVel) > 0.01 || (this.syncVel > 0.0 && this.liveVel == 0.0)) {
             this.syncVel = this.liveVel;
-
             broadcast(PacketPlayOutEntityVelocityHandle.createNew(this.entityId, this.syncVel, 0.0, 0.0));
         }
 
