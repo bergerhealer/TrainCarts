@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
-import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
+import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
@@ -12,7 +13,6 @@ import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutUpdateAttributesHandle;
 
 /**
@@ -86,10 +86,7 @@ public class FirstPersonViewDefault extends FirstPersonView {
             } else if (seat.isRotationLocked()) {
                 // Body is locked, make the player face forwards according to the eye transform
                 HeadRotation rot = HeadRotation.compute(eyeTransform).ensureLevel();
-
-                viewer.send(PacketPlayOutPositionHandle.createNew(
-                        0.0, 0.0, 0.0, rot.yaw, rot.pitch,
-                        RelativeFlags.RELATIVE_ROTATION.withAbsoluteRotation()));
+                viewer.send(Util.createAbsoluteRotationPacket(rot.yaw, rot.pitch));
             }
 
             if (useFakeCamera) {
@@ -192,9 +189,9 @@ public class FirstPersonViewDefault extends FirstPersonView {
 
             // Refresh this change in pitch/yaw/roll to the player
             if (Math.abs(pyr.getX()) > 1e-5 || Math.abs(pyr.getY()) > 1e-5) {
-                PacketPlayOutPositionHandle p = PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, (float) pyr.getY(), (float) pyr.getX());
-                this._playerPitchRemainder = (pyr.getX() - p.getPitch());
-                this._playerYawRemainder = (pyr.getY() - p.getYaw());
+                PacketHandle p = Util.createRelativeRotationPacket((float) pyr.getY(), (float) pyr.getX());
+                this._playerPitchRemainder = (pyr.getX() - Util.getRotationPacketPitch(p));
+                this._playerYawRemainder = (pyr.getY() - Util.getRotationPacketYaw(p));
                 this.player.send(p);
             } else {
                 this._playerPitchRemainder = pyr.getX();

@@ -1,15 +1,12 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
-import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
-import org.bukkit.Location;
+import com.bergerkiller.bukkit.tc.Util;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
 
 /**
  * Initializes and tracks the player input, which is used to move the spectator
@@ -19,14 +16,11 @@ class SpectatorInput {
     private AttachmentViewer player;
     private int blindTicks = 0;
     private float yawLimit = 360.0f;
+    private boolean enabled = false;
 
     // Tracks changes in yaw and pitch as the player looks around
-    private float lastYaw = 0.0f;
-    private float lastPitch = 0.0f;
-    private float deltaYaw = 0.0f;
-    private float deltaPitch = 0.0f;
-    private float pendingPitchCorrection = 0.0f;
-    private int pendingPitchCorrectionTicks = 0;
+    private final Object deltaRotationLock = new Object();
+    private YawPitch deltaRotation = YawPitch.ZERO;
 
     // Tracks accumulated yaw and pitch, updated relative to the eye orientation
     private final Quaternion absOrientation = new Quaternion();
@@ -41,14 +35,24 @@ class SpectatorInput {
         this.player = player;
         this.blindTicks = CommonUtil.getServerTicks() + 5; // no input for 5 ticks
         this.yawLimit = yawLimit;
-        this.lastPitch = 0.0f;
-        this.lastYaw = 0.0f;
-        this.deltaYaw = 0.0f;
-        this.deltaPitch = 0.0f;
-        this.pendingPitchCorrection = 0.0f;
-        this.pendingPitchCorrectionTicks = 0;
+        this.deltaRotation = YawPitch.ZERO;
         this.absOrientation.setIdentity();
+        this.enabled = true;
         sendRotation(0.0f, 0.0f); // reset
+    }
+
+    /**
+     * Does not track player orientation for view rotation.
+     * It will be locked to what the input transform gives.
+     */
+    public void startLocked() {
+        enabled = false;
+    }
+
+    public void addInputRotation(YawPitch rotation) {
+        synchronized (deltaRotationLock) {
+            deltaRotation = YawPitch.add(deltaRotation, rotation);
+        }
     }
 
     /**
@@ -63,8 +67,8 @@ class SpectatorInput {
         }
         this.player = null;
         this.blindTicks = 0;
-        this.deltaYaw = 0.0f;
-        this.deltaPitch = 0.0f;
+        this.deltaRotation = YawPitch.ZERO;
+        this.enabled = false;
     }
 
     public boolean isStarted() {
@@ -81,21 +85,26 @@ class SpectatorInput {
     }
 
     public void applyTo(Quaternion eyeRotation) {
-        // When player doesn't look around, just efficiently update the eye
-        if (this.deltaYaw != 0.0f || this.deltaPitch != 0.0f) {
-            // All actual calculations happen elsewhere, because it's complex
-            RelativeOrientationCalc calc = new RelativeOrientationCalc(this, eyeRotation);
-            this.absOrientation.setTo(calc.calculate());
-
-            // Ensure the absolute orientation never flips upside-down. This causes weird input.
-            // When detected, flip roll to make it level again
-            if (isUpsideDown(this.absOrientation)) {
-                this.absOrientation.rotateZFlip();
+        if (enabled) {
+            // Apply delta rotations
+            YawPitch accumulatedRotation;
+            synchronized (deltaRotationLock) {
+                accumulatedRotation = deltaRotation;
+                deltaRotation = YawPitch.ZERO;
             }
 
-            // Reset
-            this.deltaYaw = 0.0f;
-            this.deltaPitch = 0.0f;
+            // When player doesn't look around, just efficiently update the eye
+            if (accumulatedRotation.yaw != 0.0f || accumulatedRotation.pitch != 0.0f) {
+                // All actual calculations happen elsewhere, because it's complex
+                RelativeOrientationCalc calc = new RelativeOrientationCalc(this, accumulatedRotation, eyeRotation);
+                this.absOrientation.setTo(calc.calculate());
+
+                // Ensure the absolute orientation never flips upside-down. This causes weird input.
+                // When detected, flip roll to make it level again
+                if (isUpsideDown(this.absOrientation)) {
+                    this.absOrientation.rotateZFlip();
+                }
+            }
         }
 
         eyeRotation.multiply(this.absOrientation);
@@ -103,8 +112,6 @@ class SpectatorInput {
 
     /**
      * Updates the view orientation of the Player
-     *
-     * @param eyeTransform
      */
     public void update() {
         if (player == null) {
@@ -117,53 +124,10 @@ class SpectatorInput {
                 return; // Identity - input disabled until client sync'd up
             }
         }
-
-        // Track changes in look yaw and pitch
-        Location eye = player.getPlayer().getEyeLocation();
-        this.deltaYaw += eye.getYaw() - this.lastYaw;
-        this.deltaPitch += eye.getPitch() - this.lastPitch;
-        this.deltaYaw = MathUtil.wrapAngle(this.deltaYaw);
-        this.deltaPitch = MathUtil.wrapAngle(this.deltaPitch);
-        this.lastYaw = eye.getYaw();
-        this.lastPitch = eye.getPitch();
-
-        // While yaw is infinite, pitch locks up at -90 and 90 degrees
-        // When pitch reaches 45 degrees, add 90-degree leaps to stay within the safe zone
-        // Actual pitch limiting is handled during the eye update logic.
-        if (pendingPitchCorrection != 0.0f) {
-            // Check whether the delta yaw received is likely the result of a correction
-            if (pendingPitchCorrection == 90.0f && deltaPitch > 45.0f) {
-                deltaPitch -= pendingPitchCorrection;
-                pendingPitchCorrection = 0.0f;
-            } else if (pendingPitchCorrection == -90.0f && deltaPitch < -45.0f) {
-                deltaPitch -= pendingPitchCorrection;
-                pendingPitchCorrection = 0.0f;
-            } else if (++pendingPitchCorrectionTicks > 4) {
-                // 4 ticks of no response, too long. Assume the client got it.
-                deltaPitch -= pendingPitchCorrection;
-                pendingPitchCorrection = 0.0f;
-            }
-        } else {
-            if (lastPitch > 45.0f) {
-                // Send -90 correction
-                correctPitch(-90.0f);
-            } else if (lastPitch < -45.0f) {
-                // Send +90 correction
-                correctPitch(90.0f);
-            }
-        }
-    }
-
-    private void correctPitch(float correction) {
-        pendingPitchCorrection = correction;
-        pendingPitchCorrectionTicks = 0;
-        player.send(PacketPlayOutPositionHandle.createRelative(0.0, 0.0, 0.0, 0.0f, correction));
     }
 
     private void sendRotation(float pitch, float yaw) {
-        player.send(PacketPlayOutPositionHandle.createNew(
-                0.0, 0.0, 0.0, yaw, pitch,
-                RelativeFlags.RELATIVE_ROTATION.withAbsoluteRotation()));
+        player.send(Util.createAbsoluteRotationPacket(yaw, pitch));
     }
 
     private static boolean isUpsideDown(Quaternion q) {
@@ -189,7 +153,7 @@ class SpectatorInput {
         public final double deltaYaw;
         public final double maxForwardZ;
 
-        public RelativeOrientationCalc(SpectatorInput input, Quaternion eyeRotation) {
+        public RelativeOrientationCalc(SpectatorInput input, YawPitch inputRotation, Quaternion eyeRotation) {
             Quaternion current = Quaternion.multiply(eyeRotation, input.absOrientation);
             Vector eyePYR = current.getYawPitchRoll();
             this.basePitch = eyePYR.getX();
@@ -197,8 +161,8 @@ class SpectatorInput {
 
             // Upside-down movement has yaw inverted
             // Note: The rotateY function is -yaw because Minecraft is kind of poop like that
-            this.deltaPitch = input.deltaPitch;
-            this.deltaYaw = isUpsideDown(current) ? input.deltaYaw : -input.deltaYaw;
+            this.deltaPitch = inputRotation.pitch;
+            this.deltaYaw = isUpsideDown(current) ? inputRotation.yaw : -inputRotation.yaw;
 
             // Base is without the base yaw/pitch, so that the math works out right
             this.base = Quaternion.divide(input.absOrientation, current);
@@ -318,6 +282,29 @@ class SpectatorInput {
             }
 
             return true;
+        }
+    }
+
+    /**
+     * Immutable container for (relative) yaw/pitch values
+     */
+    public static final class YawPitch {
+        public static final YawPitch ZERO = new YawPitch(0.0f, 0.0f);
+
+        public final float yaw;
+        public final float pitch;
+
+        public YawPitch(float yaw, float pitch) {
+            this.yaw = yaw;
+            this.pitch = pitch;
+        }
+
+        public static YawPitch add(YawPitch a, YawPitch b) {
+            return new YawPitch(a.yaw + b.yaw, a.pitch + b.pitch);
+        }
+
+        public static YawPitch subtract(YawPitch a, YawPitch b) {
+            return new YawPitch(a.yaw - b.yaw, a.pitch - b.pitch);
         }
     }
 }

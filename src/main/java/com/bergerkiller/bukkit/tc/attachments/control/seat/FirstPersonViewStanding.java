@@ -1,13 +1,12 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
-import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
+import com.bergerkiller.bukkit.tc.Util;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.utils.PlayerVelocityController;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
 
 /**
  * Doesn't seat the player in any mount, leaving the player standing. Velocity movement control is used
@@ -32,10 +31,7 @@ public class FirstPersonViewStanding extends FirstPersonViewDefault {
         if (!isReload && seat.isRotationLocked()) {
             // Body is locked, make the player face forwards according to the eye transform
             HeadRotation rot = HeadRotation.compute(getEyeTransform()).ensureLevel();
-
-            viewer.send(PacketPlayOutPositionHandle.createNew(
-                    0.0, 0.0, 0.0, rot.yaw, rot.pitch,
-                    RelativeFlags.RELATIVE_ROTATION.withAbsoluteRotation()));
+            viewer.send(Util.createAbsoluteRotationPacket(rot.yaw, rot.pitch));
         }
 
         // Move the player to where the player should be
