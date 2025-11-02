@@ -8,11 +8,13 @@ import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.particle.VirtualBoundingBox;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
@@ -141,6 +143,7 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
 
         // lock em
         for (LockedPlayer player : lockedPlayers) {
+            player.updatePlayerMovement(bbox);
             player.lock(bbox);
         }
     }
@@ -164,7 +167,7 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
 
     private static class LockedPlayer {
         public final AttachmentViewer viewer;
-        public final double rx, rz;
+        public double rx, rz;
         public AttachmentViewer.MovementController movementController;
 
         public LockedPlayer(AttachmentViewer viewer, double rx, double rz) {
@@ -192,6 +195,47 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
         public void unlock() {
             if (movementController != null) {
                 movementController.stop();
+            }
+        }
+
+        public void updatePlayerMovement(OrientedBoundingBox bbox) {
+            if (movementController == null) {
+                return;
+            }
+
+            AttachmentViewer.Input input = movementController.getInput();
+            double speed = 0.15;
+            if (input.sprinting()) {
+                speed *= 1.5;
+            }
+
+            if (input.hasWalkInput()) {
+                Location eyeLoc = viewer.getPlayer().getEyeLocation();
+                Quaternion orientation = Quaternion.fromYawPitchRoll(0.0, eyeLoc.getYaw(), 0.0);
+
+                Quaternion relative = orientation.clone();
+                relative.divide(bbox.getOrientation());
+
+                Vector fwd = relative.forwardVector();
+                fwd.setY(0.0);
+                fwd.normalize();
+                fwd.multiply(speed);
+                if (input.hasDiagonalWalkInput()) {
+                    fwd.multiply(MathUtil.HALFROOTOFTWO);
+                }
+                fwd.multiply(input.forwardsSigNum());
+
+                Vector side = relative.rightVector();
+                side.setY(0.0);
+                side.normalize();
+                side.multiply(speed);
+                if (input.hasDiagonalWalkInput()) {
+                    side.multiply(MathUtil.HALFROOTOFTWO);
+                }
+                side.multiply(input.sidewaysSigNum());
+
+                rx += fwd.getX() + side.getX();
+                rz += fwd.getZ() + side.getZ();
             }
         }
     }
