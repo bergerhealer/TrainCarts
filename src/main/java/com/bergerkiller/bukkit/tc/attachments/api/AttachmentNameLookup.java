@@ -2,6 +2,11 @@ package com.bergerkiller.bukkit.tc.attachments.api;
 
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
+import com.bergerkiller.bukkit.tc.commands.selector.SelectorCondition;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -11,9 +16,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * An immutable object storing all the attachments in an attachment tree mapped
@@ -196,6 +203,41 @@ public class AttachmentNameLookup {
      */
     public List<Attachment> parents(Predicate<Attachment> filter) {
         return parents.stream().filter(filter).collect(StreamUtil.toUnmodifiableList());
+    }
+
+    /**
+     * Implements the seat= selector condition behavior. Will return a List of entities
+     * that pass the selector condition.
+     *
+     * @param sender CommandSender (for @p)
+     * @param condition SelectorCondition
+     * @return List of entities in Seat Attachments that pass the condition
+     */
+    public Stream<Entity> matchSeatSelector(CommandSender sender, SelectorCondition condition) {
+        // What seats do we look at? All of them, or only those of the key path specified?
+        List<CartAttachmentSeat> seats;
+        if (condition.hasKeyPath()) {
+            seats = getOfType(condition.getKeyPath(), CartAttachmentSeat.class);
+        } else {
+            seats = allOfType(CartAttachmentSeat.class);
+        }
+
+        // If comparing against true/false, simply return all the passengers
+        // The actual boolean check occurs elsewhere
+        if (condition.isBoolean()) {
+            return seats.stream()
+                    .map(CartAttachmentSeat::getEntity)
+                    .filter(Objects::nonNull);
+        }
+
+        // Do we include the sender in the checks? (@p)
+        final boolean includePlayer = condition.matchesText("@p");
+
+        // Look for players in the seat with a particular name (or if @p, are the sender)
+        return seats.stream()
+                .map(CartAttachmentSeat::getEntity)
+                .filter(e -> e instanceof Player)
+                .filter(p -> (includePlayer && p == sender) || condition.matchesText(((Player) p).getName()));
     }
 
     /**

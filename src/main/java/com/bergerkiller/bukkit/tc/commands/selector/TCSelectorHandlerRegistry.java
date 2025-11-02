@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -113,41 +112,12 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
                 return false;
             }
 
-            // What seats do we look at? All of them, or only those of the key path specified?
-            List<CartAttachmentSeat> seats;
-            if (condition.hasKeyPath()) {
-                seats = group.getAttachments().getNameLookup().getOfType(condition.getKeyPath(), CartAttachmentSeat.class);
-            } else {
-                seats = group.getAttachments().getNameLookup().allOfType(CartAttachmentSeat.class);
-            }
-
-            // If comparing against true/false, simply check if one of the seats is occupied or not
+            Stream<Entity> matchingEntities = group.getAttachments().getNameLookup().matchSeatSelector(sender, condition);
             if (condition.isBoolean()) {
-                boolean hasPassenger = false;
-                for (CartAttachmentSeat seat : seats) {
-                    if (seat.getEntity() != null) {
-                        hasPassenger = true;
-                        break;
-                    }
-                }
-                return hasPassenger == condition.getBoolean();
+                return matchingEntities.findAny().isPresent() == condition.getBoolean();
+            } else {
+                return matchingEntities.anyMatch(e -> e instanceof Player);
             }
-
-            // Do we include the sender in the checks? (@p)
-            boolean includePlayer = condition.matchesText("@p");
-
-            // Look for players in the seat with a particular name (or if @p, are the sender)
-            for (CartAttachmentSeat seat : seats) {
-                Entity passenger = seat.getEntity();
-                if (passenger instanceof Player) {
-                    if (includePlayer && passenger == sender) {
-                        return true;
-                    } else if (condition.matchesText(((Player) passenger).getName())) {
-                        return true;
-                    }
-                }
-            }
-            return false;
         });
     }
 
