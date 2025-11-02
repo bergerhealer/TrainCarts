@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.player;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
-import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PlayerGameInfo;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
@@ -27,6 +26,7 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     private final double armorStandButtOffset;
     private final boolean supportsDisplayEntityLocationInterpolation;
     private final boolean supportsDisplayEntities;
+    private final boolean supportRelativeRotationUpdate;
     // Components
     private final PacketQueue packetQueue;
     private final PlayerClientSynchronizer playerClientSynchronizer;
@@ -37,10 +37,9 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
         this.vmc = PlayerUtil.getVehicleMountController(player);
         this.playerGameInfo = playerGameInfo;
         this.armorStandButtOffset = AttachmentViewer.super.getArmorStandButtOffset();
-        this.supportsDisplayEntityLocationInterpolation = CommonCapabilities.HAS_DISPLAY_ENTITY_LOCATION_INTERPOLATION
-                && playerGameInfo.evaluateVersion(">=", "1.20.2");
-        this.supportsDisplayEntities = CommonCapabilities.HAS_DISPLAY_ENTITY
-                && evaluateGameVersion(">=", "1.19.4");
+        this.supportsDisplayEntityLocationInterpolation = AttachmentViewer.super.supportsDisplayEntityLocationInterpolation();
+        this.supportsDisplayEntities = AttachmentViewer.super.supportsDisplayEntities();
+        this.supportRelativeRotationUpdate = AttachmentViewer.super.supportRelativeRotationUpdate();
         this.packetQueue = packetQueue;
         this.playerClientSynchronizer = plugin.getPlayerClientSynchronizerProvider().forViewer(this);
     }
@@ -77,6 +76,11 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     @Override
     public boolean supportsDisplayEntities() {
         return supportsDisplayEntities;
+    }
+
+    @Override
+    public boolean supportRelativeRotationUpdate() {
+        return supportRelativeRotationUpdate;
     }
 
     @Override

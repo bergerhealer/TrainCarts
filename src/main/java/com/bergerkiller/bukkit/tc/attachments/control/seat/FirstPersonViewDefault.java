@@ -189,10 +189,21 @@ public class FirstPersonViewDefault extends FirstPersonView {
 
             // Refresh this change in pitch/yaw/roll to the player
             if (Math.abs(pyr.getX()) > 1e-5 || Math.abs(pyr.getY()) > 1e-5) {
-                PacketHandle p = Util.createRelativeRotationPacket((float) pyr.getY(), (float) pyr.getX());
-                this._playerPitchRemainder = (pyr.getX() - Util.getRotationPacketPitch(p));
-                this._playerYawRemainder = (pyr.getY() - Util.getRotationPacketYaw(p));
-                this.player.send(p);
+                if (getViewer().supportRelativeRotationUpdate()) {
+                    // Relative update
+                    PacketHandle p = Util.createRelativeRotationPacket((float) pyr.getY(), (float) pyr.getX());
+                    this._playerPitchRemainder = (pyr.getX() - Util.getRotationPacketPitch(p));
+                    this._playerYawRemainder = (pyr.getY() - Util.getRotationPacketYaw(p));
+                    this.player.send(p);
+                } else {
+                    // Must do it with an absolute update. Ew! Breaks client behavior a bit.
+                    PacketHandle p = Util.createAbsoluteRotationPacket(
+                            (float) (pyr.getY() + player_pyr.getY()),
+                            (float) (pyr.getX() - player_pyr.getX()));
+                    this._playerPitchRemainder = 0.0;
+                    this._playerYawRemainder = 0.0;
+                    this.player.send(p);
+                }
             } else {
                 this._playerPitchRemainder = pyr.getX();
                 this._playerYawRemainder = pyr.getY();

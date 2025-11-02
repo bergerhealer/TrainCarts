@@ -23,6 +23,7 @@ import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
@@ -2142,16 +2143,21 @@ public class Util {
                 || c == '.' || c == '+';
     }
 
+    /**
+     * Creates a relative rotation update packet for a player. Beware: does not work on all
+     * versions of the game!
+     *
+     * @param relativeYaw Relative yaw change
+     * @param relativePitch Relative pitch change
+     * @return Relative rotation packet
+     * @see AttachmentViewer#supportRelativeRotationUpdate()
+     */
     public static PacketHandle createRelativeRotationPacket(float relativeYaw, float relativePitch) {
         return PLAYER_ROTATION_PACKET_CREATOR.create(relativeYaw, true, relativePitch, true);
     }
 
     public static PacketHandle createAbsoluteRotationPacket(float yaw, float pitch) {
         return PLAYER_ROTATION_PACKET_CREATOR.create(yaw, false, pitch, false);
-    }
-
-    public static PacketHandle createRotationPacket(float yaw, boolean isYawRelative, float pitch, boolean isPitchRelative) {
-        return PLAYER_ROTATION_PACKET_CREATOR.create(yaw, isYawRelative, pitch, isPitchRelative);
     }
 
     public static float getRotationPacketYaw(PacketHandle p) {

@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.api;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
@@ -249,6 +250,17 @@ public interface AttachmentViewer extends TrainCarts.Provider {
      */
     default boolean supportsDisplayEntityLocationInterpolation() {
         return CommonCapabilities.HAS_DISPLAY_ENTITY_LOCATION_INTERPOLATION && evaluateGameVersion(">=", "1.20.2");
+    }
+
+    /**
+     * Gets whether this viewer, and the server itself, is capable of sending a relative camera rotation
+     * update to this player. Minecraft 1.21.2 - 1.21.8 do not support this.
+     *
+     * @return True if relative camera rotation updates are supported
+     */
+    default boolean supportRelativeRotationUpdate() {
+        return (Common.evaluateMCVersion("<", "1.21.2") || Common.evaluateMCVersion(">=", "1.21.9")) &&
+                (evaluateGameVersion("<", "1.21.2") || evaluateGameVersion(">=", "1.21.9"));
     }
 
     /**

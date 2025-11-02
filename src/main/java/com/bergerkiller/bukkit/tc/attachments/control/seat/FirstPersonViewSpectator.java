@@ -128,8 +128,13 @@ public class FirstPersonViewSpectator extends FirstPersonView {
             this._spectatorPacketListener.terminate();
             this._spectatorPacketListener = null;
         }
-        this._spectatorPacketListener = viewer.createPacketListener(new ViewControlPacketListener(),
-                PacketType.IN_POSITION_LOOK, PacketType.IN_POSITION, PacketType.IN_LOOK);
+        if (viewer.supportRelativeRotationUpdate()) {
+            this._spectatorPacketListener = viewer.createPacketListener(new ViewControlPacketListenerRelativePitch(),
+                    PacketType.IN_POSITION_LOOK, PacketType.IN_POSITION, PacketType.IN_LOOK);
+        } else {
+            this._spectatorPacketListener = viewer.createPacketListener(new ViewControlPacketListenerAbsoluteRotation(),
+                    PacketType.IN_POSITION_LOOK, PacketType.IN_POSITION, PacketType.IN_LOOK);
+        }
 
         // Mount the player itself off-screen on a mount somewhere
         // We want it to stay out of clickable range to prevent player d/c
@@ -253,57 +258,23 @@ public class FirstPersonViewSpectator extends FirstPersonView {
         }
     }
 
-    /**
-     * Active while the player is in this seats spectator mode to track the yaw/pitch changes
-     * of the player. Occasionally forces an adjustment of pitch to allow for infinite vertical
-     * panning.
-     */
-    private class ViewControlPacketListener implements PacketListener {
+    private abstract class ViewControlPacketListener implements PacketListener {
         /** While we process exclusively on the netty thread, it can't hurt to be safe */
-        private final Object stateLock = new Object();
+        protected final Object stateLock = new Object();
         /** Previous yaw/pitch value to use to detect look changes in the packet flow */
-        private SpectatorInput.YawPitch lastYawPitch = null;
+        protected SpectatorInput.YawPitch lastYawPitch = null;
         /** Is set to true at the start of a pitch adjustment cycle */
-        private boolean isAdjustingPitch = false;
+        protected boolean isAdjustingPitch = false;
         /** Keeps track of yaw/pitch received during the adjustment cycle */
-        private SpectatorInput.YawPitch yawPitchDuringAdjustment = null;
+        protected SpectatorInput.YawPitch yawPitchDuringAdjustment = null;
         /** Total pitch adjustment offset that still need to be acknowledged by the client */
-        private float inFlightPitchCorrection = 0.0f;
+        protected float inFlightPitchCorrection = 0.0f;
         /** Avoids sending too many adjustments per tick */
-        private int inFlightPitchCorrectionsCurrTick = -1;
+        protected int inFlightPitchCorrectionsCurrTick = -1;
 
-        private void ackPitchAdjustStart() {
-            synchronized (stateLock) {
-                isAdjustingPitch = true;
-                yawPitchDuringAdjustment = null;
-            }
-        }
+        protected abstract void makeAdjustment(SpectatorInput.YawPitch newYawPitch, float pitchAdjustment);
 
-        private void ackPitchAdjustDone(float pitchChange) {
-            synchronized (stateLock) {
-                if (!isAdjustingPitch) {
-                    return; // Desync???
-                }
-
-                // Apply the pitch change to the tracked client state
-                inFlightPitchCorrection -= pitchChange;
-                if (lastYawPitch != null) {
-                    lastYawPitch = new SpectatorInput.YawPitch(lastYawPitch.yaw, lastYawPitch.pitch + pitchChange);
-                }
-
-                SpectatorInput.YawPitch yawPitchDuringAdjustment = this.yawPitchDuringAdjustment;
-                this.yawPitchDuringAdjustment = null;
-                this.isAdjustingPitch = false;
-
-                // If the adjustment included look yaw/pitch updates, process them now
-                // The last look update received will make use of the corrected amounts
-                if (yawPitchDuringAdjustment != null) {
-                    detectLookChanges(yawPitchDuringAdjustment);
-                }
-            }
-        }
-
-        private void detectLookChanges(SpectatorInput.YawPitch newYawPitch) {
+        protected void detectLookChanges(SpectatorInput.YawPitch newYawPitch) {
             SpectatorInput.YawPitch lookChange = null;
             Float pitchAdjustment = null;
 
@@ -347,13 +318,14 @@ public class FirstPersonViewSpectator extends FirstPersonView {
 
             // Outside lock, start pitch adjustment cycles
             if (pitchAdjustment != null) {
-                final float pitchAdjustmentFinal = pitchAdjustment;
-                player.getClientSynchronizer().synchronizeBundle(
-                        Collections.singletonList(
-                                Util.createRelativeRotationPacket(0.0f, pitchAdjustmentFinal)
-                        ),
-                        this::ackPitchAdjustStart,
-                        () -> ackPitchAdjustDone(pitchAdjustmentFinal));
+                makeAdjustment(newYawPitch, pitchAdjustment);
+            }
+        }
+
+        protected void ackPitchAdjustStart() {
+            synchronized (stateLock) {
+                isAdjustingPitch = true;
+                yawPitchDuringAdjustment = null;
             }
         }
 
@@ -374,6 +346,99 @@ public class FirstPersonViewSpectator extends FirstPersonView {
 
         @Override
         public void onPacketSend(PacketSendEvent event) {
+        }
+    }
+
+    /**
+     * Active while the player is in this seats spectator mode to track the yaw/pitch changes
+     * of the player. Occasionally forces an adjustment of pitch to allow for infinite vertical
+     * panning. This is done using a relative pitch rotation update, leaving yaw unchanged.
+     */
+    private class ViewControlPacketListenerRelativePitch extends ViewControlPacketListener {
+
+        /**
+         * Called when player pitch is reset with a relative pitch change
+         *
+         * @param pitchChange Pitch change that is applied
+         */
+        private void ackPitchAdjustDone(float pitchChange) {
+            synchronized (stateLock) {
+                if (!isAdjustingPitch) {
+                    return; // Desync???
+                }
+
+                // Apply the pitch change to the tracked client state
+                inFlightPitchCorrection -= pitchChange;
+                if (lastYawPitch != null) {
+                    lastYawPitch = new SpectatorInput.YawPitch(lastYawPitch.yaw, lastYawPitch.pitch + pitchChange);
+                }
+
+                SpectatorInput.YawPitch yawPitchDuringAdjustment = this.yawPitchDuringAdjustment;
+                this.yawPitchDuringAdjustment = null;
+                this.isAdjustingPitch = false;
+
+                // If the adjustment included look yaw/pitch updates, process them now
+                // The last look update received will make use of the corrected amounts
+                if (yawPitchDuringAdjustment != null) {
+                    detectLookChanges(yawPitchDuringAdjustment);
+                }
+            }
+        }
+
+        @Override
+        protected void makeAdjustment(SpectatorInput.YawPitch newYawPitch, final float pitchAdjustment) {
+            player.getClientSynchronizer().synchronizeBundle(
+                    Collections.singletonList(
+                            Util.createRelativeRotationPacket(0.0f, pitchAdjustment)
+                    ),
+                    this::ackPitchAdjustStart,
+                    () -> ackPitchAdjustDone(pitchAdjustment));
+        }
+    }
+
+    /**
+     * Active while the player is in this seats spectator mode to track the yaw/pitch changes
+     * of the player. Occasionally forces an adjustment of pitch to allow for infinite vertical
+     * panning. This is done using an absolute pitch rotation update, which sadly also
+     * resets player yaw. So both need to be accounted for.
+     */
+    private class ViewControlPacketListenerAbsoluteRotation extends ViewControlPacketListener {
+        /**
+         * Called when player rotation is hard reset with an absolute yaw value
+         * (of the past) and a pitch of 0.0.
+         */
+        private void ackAbsoluteRotationAdjust(float absoluteYaw, float pitchChange) {
+            synchronized (stateLock) {
+                if (!isAdjustingPitch) {
+                    return; // Desync???
+                }
+
+                // Apply the pitch change to the tracked client state
+                inFlightPitchCorrection -= pitchChange;
+                if (lastYawPitch != null) {
+                    lastYawPitch = new SpectatorInput.YawPitch(absoluteYaw, 0.0f);
+                }
+
+                SpectatorInput.YawPitch yawPitchDuringAdjustment = this.yawPitchDuringAdjustment;
+                this.yawPitchDuringAdjustment = null;
+                this.isAdjustingPitch = false;
+
+                // If the adjustment included look yaw/pitch updates, process them now
+                // The last look update received will make use of the corrected amounts
+                if (yawPitchDuringAdjustment != null) {
+                    detectLookChanges(yawPitchDuringAdjustment);
+                }
+            }
+        }
+
+        @Override
+        protected void makeAdjustment(final SpectatorInput.YawPitch newYawPitch, final float pitchAdjustment) {
+            player.getClientSynchronizer().synchronizeBundle(
+                    Collections.singletonList(
+                            Util.createAbsoluteRotationPacket(newYawPitch.yaw, 0.0f)
+                    ),
+                    this::ackPitchAdjustStart,
+                    () -> ackAbsoluteRotationAdjust(newYawPitch.yaw, pitchAdjustment));
         }
     }
 }
