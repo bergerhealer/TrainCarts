@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
 import com.bergerkiller.bukkit.common.collections.ImplicitlySharedSet;
+import com.bergerkiller.bukkit.common.component.LibraryComponentList;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.controller.DefaultEntityController;
 import com.bergerkiller.bukkit.common.conversion.type.HandleConversion;
@@ -106,7 +107,11 @@ import java.util.stream.Collectors;
 
 public class TrainCarts extends PluginBase {
     public static TrainCarts plugin;
-    private Task autosaveTask;
+
+    /** Components that are disabled only after all trains have been unloaded */
+    private final LibraryComponentList<TrainCarts> criticalComponents = LibraryComponentList.forPlugin(this);
+
+    private final Task autosaveTask = new AutosaveTask(this);
     private Task cacheCleanupTask;
     private Task mutexZoneUpdateTask;
     private final List<ChunkPreloadTask> chunkPreloadTasks = new ArrayList<>();
@@ -120,10 +125,10 @@ public class TrainCarts extends PluginBase {
     private SavedAttachmentModelStore savedAttachmentModels;
     private SavedTrainPropertiesStore savedTrainsStore;
     private SeatAttachmentMap seatAttachmentMap;
-    private TeamProvider teamProvider;
+    private final TeamProvider teamProvider = new TeamProvider(this);;
     private PathProvider pathProvider;
     private RouteManager routeManager;
-    private TrainLocator trainLocator;
+    private final TrainLocator trainLocator = new TrainLocator(this);
     private TrainUpdateController trainUpdateController = new TrainUpdateController(this);
     private final TCSelectorHandlerRegistry selectorHandlerRegistry = new TCSelectorHandlerRegistry(this);
     private final OfflineGroupManager offlineGroupManager = new OfflineGroupManager(this);
@@ -828,18 +833,14 @@ public class TrainCarts extends PluginBase {
 
         // Core properties need to be there before defaults/cart/train properties are loaded
         // Will register commands that properties may define using annotations
-        propertyRegistry.enable();
+        criticalComponents.enable(propertyRegistry);
 
         // Selector registry, do this early in case a command block triggers during enabling
-        selectorHandlerRegistry.enable();
-
-        // Routinely saves TrainCarts changed state information to disk (autosave=true)
-        // Configured by loadConfig() so instantiate it here
-        autosaveTask = new AutosaveTask(this);
+        criticalComponents.enable(selectorHandlerRegistry);
 
         // Start playing effect loops. Not that internally it only starts playing after a 1 tick delay.
         // This is so that asynchronous loops don't play while the server is still starting up...
-        effectLoopPlayerController.enable();
+        criticalComponents.enable(effectLoopPlayerController);
 
         // Load configuration. Must occur before dependencies as some dependencies might be
         // disabled using TC's configuration.
@@ -860,23 +861,21 @@ public class TrainCarts extends PluginBase {
             }
         }
 
-        //WorldEdit schematic loader
-        this.worldEditSchematicLoader.enable();
+        // WorldEdit schematic loader
+        criticalComponents.enable(worldEditSchematicLoader);
 
         //Automatically tracks the signs that are loaded
         this.signController.enable();
 
         //Automatically saves sign metadata to disk in the background
         //For worlds not already loaded, loads metadata where this is a condition
-        this.offlineSignStore.enable();
+        criticalComponents.enable(offlineSignStore);
 
         //Initialize entity glow color provider
-        this.teamProvider = new TeamProvider(this);
-        this.teamProvider.enable();
+        criticalComponents.enable(teamProvider);
 
         //Initialize train locator manager
-        this.trainLocator = new TrainLocator(this);
-        this.trainLocator.enable();
+        criticalComponents.enable(trainLocator);
 
         //Initialize route manager
         this.routeManager = new RouteManager(getDataFolder() + File.separator + "routes.yml");
@@ -1203,24 +1202,14 @@ public class TrainCarts extends PluginBase {
         // Now plugin is mostly shut down, de-register all MinecartMember controllers from the server
         undoAllTCControllers();
 
-        this.effectLoopPlayerController.disable();
-
-        this.teamProvider.disable();
-        this.teamProvider = null;
-
-        this.trainLocator.disable();
-        this.trainLocator = null;
- 
+        // Disable all attachment types too
         AttachmentTypeRegistry.instance().unregisterAll();
 
         // De-register any offline sign handlers
         this.disableOfflineSignHandlers();
 
-        // Save offline sign metadata to disk (if needed) and stop writing in the background
-        this.offlineSignStore.disable();
-
-        //WorldEdit schematic loader can now also be shut down permanently
-        this.worldEditSchematicLoader.disable();
+        // Now shut down the critical components
+        criticalComponents.disable();
     }
 
     @SuppressWarnings({"rawtypes", "deprecation", "unchecked"})
