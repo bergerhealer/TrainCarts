@@ -36,6 +36,9 @@ public class SelectorHandlerTest {
                 replacements.add(selector);
                 for (SelectorCondition condition : conditions) {
                     replacements.add(condition.getKey());
+                    if (condition.hasKeyPath()) {
+                        replacements.add(condition.getKeyPath());
+                    }
                     replacements.add(condition.getValue());
                 }
                 return replacements;
@@ -46,6 +49,54 @@ public class SelectorHandlerTest {
                 return Collections.emptyList();
             }
         });
+    }
+
+    @Test
+    public void testHandlerSpacesInSelector() {
+        // Should ignore whitespace around key / key path / value
+        assertEquals(Arrays.asList("command test rest",
+                                   "command key rest",
+                                   "command path rest",
+                                   "command value rest"),
+                registry.expandCommands(null, "command @test[ key . path = value ] rest"));
+
+        // Should ignore whitespace around key / key path / value, with quoting still working
+        assertEquals(Arrays.asList("command test rest",
+                                   "command \"key space\" rest",
+                                   "command \"path space\" rest",
+                                   "command \"value space\" rest"),
+                registry.expandCommands(null, "command @test[ \"key space\".\"path space\" = \"value space\" ] rest"));
+
+        // Should keep whitespace within quotes
+        assertEquals(Arrays.asList("command test rest",
+                                   "command \" key \" rest",
+                                   "command \" path \" rest",
+                                   "command \" value \" rest"),
+                registry.expandCommands(null, "command @test[ \" key \".\" path \" = \" value \" ] rest"));
+    }
+
+    @Test
+    public void testHandlerKeyPathSelectors() {
+        assertEquals(Arrays.asList("command test",
+                                   "command key",
+                                   "command path",
+                                   "command value"),
+                registry.expandCommands(null, "command @test[key.path=value]"));
+        assertEquals(Arrays.asList("command test",
+                                   "command key",
+                                   "command path",
+                                   "command value"),
+                registry.expandCommands(null, "command @test[\"key\".\"path\"=value]"));
+        assertEquals(Arrays.asList("command test",
+                                   "command key",
+                                   "command path",
+                                   "command value"),
+                registry.expandCommands(null, "command @test[\"key.path\"=value]"));
+        assertEquals(Arrays.asList("command test",
+                                   "command key",
+                                   "command \"path with space\"",
+                                   "command value"),
+                registry.expandCommands(null, "command @test[\"key\".\"path with space\"=value]"));
     }
 
     @Test
@@ -95,8 +146,8 @@ public class SelectorHandlerTest {
                                    "command pre a post",
                                    "command pre b post"), registry.expandCommands(null, "command pre @test[a=\"b\"] post"));
 
-        // The quote gets unescaped but it contains contents with escaped " quotes
-        // These end up as the value ("b"), which then must be escaped again when output as expanded command argument
+        // Original value: ["\"b\""]
+        // The value is decoded as a ["b"] string, which is then output again escaped: ["\"b\""]
         assertEquals(Arrays.asList("command pre test post",
                                    "command pre a post",
                                    "command pre \"\\\"b\\\"\" post"), registry.expandCommands(null, "command pre @test[a=\"\\\"b\\\"\"] post"));
@@ -209,13 +260,6 @@ public class SelectorHandlerTest {
     }
 
     @Test
-    public void testHandlerWithDotKeyValues() {
-        assertEquals(Arrays.asList("command test",
-                                   "command a.b",
-                                   "command value"), registry.expandCommands(null, "command @test[a.b=value]"));
-    }
-
-    @Test
     public void testHandlerInvalidSyntax() {
         // This is mostly about making sure no errors are thrown
         assertEquals(Arrays.asList("command word@test"), registry.expandCommands(null, "command word@test"));
@@ -236,6 +280,51 @@ public class SelectorHandlerTest {
         assertEquals(Arrays.asList("command @test[a=b,c=d,e]"), registry.expandCommands(null, "command @test[a=b,c=d,e]"));
         assertEquals(Arrays.asList("command @test[a=b,c=d,e=]"), registry.expandCommands(null, "command @test[a=b,c=d,e=]"));
         assertEquals(Arrays.asList("command @test[a=b,c=d,=f]"), registry.expandCommands(null, "command @test[a=b,c=d,=f]"));
+    }
+
+    @Test
+    public void testKeyParser() {
+        assertEquals(SelectorCondition.Key.of("key"),
+                SelectorCondition.Key.parse("key"));
+        assertEquals(SelectorCondition.Key.of("key", "path"),
+                SelectorCondition.Key.parse("key.path"));
+        assertEquals(SelectorCondition.Key.of("key with spaces"),
+                SelectorCondition.Key.parse("\"key with spaces\""));
+        assertEquals(SelectorCondition.Key.of("key with spaces", "path"),
+                SelectorCondition.Key.parse("\"key with spaces\".path"));
+        assertEquals(SelectorCondition.Key.of("key with spaces", "path with spaces"),
+                SelectorCondition.Key.parse("\"key with spaces\".\"path with spaces\""));
+        assertEquals(SelectorCondition.Key.of(" key ", " path "),
+                SelectorCondition.Key.parse("\" key \".\" path \""));
+        assertEquals(SelectorCondition.Key.of("key"),
+                SelectorCondition.Key.parse("  key  "));
+        assertEquals(SelectorCondition.Key.of("key", "path"),
+                SelectorCondition.Key.parse("  key.path  "));
+        assertEquals(SelectorCondition.Key.of("key", "path"),
+                SelectorCondition.Key.parse("  key  .  path  "));
+        assertEquals(SelectorCondition.Key.of("key ", " path"),
+                SelectorCondition.Key.parse(" \"key . path\" "));
+    }
+
+    @Test
+    public void testConditionKeyPathQuotedA() {
+        SelectorCondition condition = SelectorCondition.parse("key.\"with path\"", "value");
+        assertEquals("key", condition.getKey());
+        assertEquals("with path", condition.getKeyPath());
+    }
+
+    @Test
+    public void testConditionKeyPathQuotedB() {
+        SelectorCondition condition = SelectorCondition.parse("\"key.with path\"", "value");
+        assertEquals("key", condition.getKey());
+        assertEquals("with path", condition.getKeyPath());
+    }
+
+    @Test
+    public void testConditionKeyPath() {
+        SelectorCondition condition = SelectorCondition.parse("key.with.path", "value");
+        assertEquals("key", condition.getKey());
+        assertEquals("with.path", condition.getKeyPath());
     }
 
     @Test

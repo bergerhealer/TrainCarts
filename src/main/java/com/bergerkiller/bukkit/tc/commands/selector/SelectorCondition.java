@@ -14,6 +14,7 @@ import java.util.stream.Stream;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.utils.BoundingRange;
+import com.bergerkiller.bukkit.tc.utils.QuoteEscapedString;
 
 /**
  * The key-value condition component of a selector query. Supports Minecraft
@@ -21,10 +22,15 @@ import com.bergerkiller.bukkit.tc.utils.BoundingRange;
  * as used for tag and name matching.
  */
 public class SelectorCondition {
-    private final String key;
+    private final Key key;
     private final String value;
 
+    @Deprecated
     protected SelectorCondition(String key, String value) {
+        this(Key.parse(key), value);
+    }
+
+    protected SelectorCondition(Key key, String value) {
         this.key = key;
         this.value = value;
     }
@@ -35,7 +41,27 @@ public class SelectorCondition {
      * @return key
      */
     public String getKey() {
-        return this.key;
+        return this.key.name();
+    }
+
+    /**
+     * Gets an additional path argument set on the key. If someone specifies
+     * <code>selectorname.path.to.item</code>, this returns <code>path.to.item</code>
+     *
+     * @return Key path argument, or "" if not specified (omitted)
+     */
+    public String getKeyPath() {
+        return this.key.path();
+    }
+
+    /**
+     * Gets whether a {@link #getKeyPath() key path} was set for this selector.
+     * If true, an extra argument is available to configure the selector with.
+     *
+     * @return True if a key path was set
+     */
+    public boolean hasKeyPath() {
+        return !this.key.path().isEmpty();
     }
 
     /**
@@ -168,24 +194,38 @@ public class SelectorCondition {
      * @param key The original key to which the value was bound
      * @param value Value to parse
      * @return Selector value representation of the input text value
+     * @deprecated Use {@link Key} for key instead
      */
     public static SelectorCondition parse(String key, String value) {
+        return parse(Key.parse(key), value);
+    }
+
+    /**
+     * Parses the value expression into its components so it can be used to
+     * compare text and numbers with it.
+     *
+     * @param key The original key to which the value was bound
+     * @param value Value to parse
+     * @return Selector value representation of the input text value
+     */
+    public static SelectorCondition parse(Key key, String value) {
         // Handle ! inversion, which only operates on the entire condition
         // This is so that expressions such as !1..5 works (checking outside of range)
         // The ! cannot be used for individual text expressions
         if (value.startsWith("!")) {
-            return new SelectorConditionInverted(key, value, parse(key, value.substring(1)));
+            SelectorCondition base = parse(key, value.substring(1));
+            return new SelectorConditionInverted(key, value, base);
         }
 
         // Check for a range (multiple) of values, acts as an OR for text
-        int rangeStart = safeNonEscapedIndexOf(value, "..", 0);
+        int rangeStart = QuoteEscapedString.unquotedIndexOf(value, "..", 0);
         if (rangeStart != -1) {
             // Check for more beyond rangeStart
-            int rangeCurrent = safeNonEscapedIndexOf(value, "..", rangeStart + 2);
+            int rangeCurrent = QuoteEscapedString.unquotedIndexOf(value, "..", rangeStart + 2);
             if (rangeCurrent == -1) {
                 // Check for a numeric range, which also handles text if needed
-                String first = (rangeStart > 0) ? value.substring(0, rangeStart) : null;
-                String second = ((rangeStart + 2) < value.length()) ? value.substring(rangeStart + 2) : null;
+                String first = (rangeStart > 0) ? value.substring(0, rangeStart).trim() : null;
+                String second = ((rangeStart + 2) < value.length()) ? value.substring(rangeStart + 2).trim() : null;
                 SelectorConditionNumeric min = (first != null)
                         ? SelectorConditionNumeric.tryParse(key, first)
                         : SelectorConditionNumeric.RANGE_MIN;
@@ -202,28 +242,28 @@ public class SelectorCondition {
                 // Collect a list of values
                 List<SelectorCondition> selectorValues = new ArrayList<SelectorCondition>(5);
                 if (rangeStart > 0) {
-                    selectorValues.add(parsePart(key, value.substring(0, rangeStart)));
+                    selectorValues.add(parsePart(key, value.substring(0, rangeStart).trim()));
                 }
                 if (rangeCurrent > (rangeStart + 2)) {
-                    selectorValues.add(parsePart(key, value.substring(rangeStart + 2, rangeCurrent)));
+                    selectorValues.add(parsePart(key, value.substring(rangeStart + 2, rangeCurrent).trim()));
                 }
 
                 int rangeNext;
-                while ((rangeNext = safeNonEscapedIndexOf(value, "..", rangeCurrent + 2)) != -1) {
+                while ((rangeNext = QuoteEscapedString.unquotedIndexOf(value, "..", rangeCurrent + 2)) != -1) {
                     if (rangeNext > (rangeCurrent + 2)) {
-                        selectorValues.add(parsePart(key, value.substring(rangeCurrent, rangeNext)));
+                        selectorValues.add(parsePart(key, value.substring(rangeCurrent, rangeNext).trim()));
                     }
                     rangeCurrent = rangeNext;
                 }
                 if ((rangeCurrent + 2) < value.length()) {
-                    selectorValues.add(parsePart(key, value.substring(rangeCurrent + 2)));
+                    selectorValues.add(parsePart(key, value.substring(rangeCurrent + 2).trim()));
                 }
-                return new SelectorConditionAnyOfText(key, value, selectorValues.toArray(new SelectorCondition[selectorValues.size()]));
+                return new SelectorConditionAnyOfText(key, value, selectorValues.toArray(new SelectorCondition[0]));
             }
         }
 
         // Not a range of values, standard single-value parsing
-        return parsePart(key, value);
+        return parsePart(key, value.trim());
     }
 
     /**
@@ -236,28 +276,14 @@ public class SelectorCondition {
      * @param value Value (right of =)
      * @return selector value
      */
-    private static SelectorCondition parsePart(String key, String value) {
-        // Try to unescape a string key
-        {
-            String s = tryUnescapeString(key);
-            if (s != null) {
-                key = s;
-            }
-        }
-
+    private static SelectorCondition parsePart(Key key, String value) {
         // Try to unescape a string value
         // This also makes it ineligible to be parsed as number / truthy
-        boolean isQuotedValue = false;
-        {
-            String s = tryUnescapeString(value);
-            if (s != null) {
-                isQuotedValue = true;
-                value = s;
-            }
-        }
+        QuoteEscapedString unescapedValue = QuoteEscapedString.tryParseQuoted(value);
+        value = unescapedValue.getUnescaped();
 
         // Check for numbers
-        if (!isQuotedValue && ParseUtil.isNumeric(value)) {
+        if (!unescapedValue.isQuoteEscaped() && ParseUtil.isNumeric(value)) {
             SelectorConditionNumeric numeric = SelectorConditionNumeric.tryParse(key, value);
             if (numeric != null) {
                 return numeric;
@@ -273,7 +299,7 @@ public class SelectorCondition {
         }
 
         // Truthy value
-        if (!isQuotedValue) {
+        if (!unescapedValue.isQuoteEscaped()) {
             SelectorConditionTruthy truthy = SelectorConditionTruthy.tryParse(key, value);
             if (truthy != null) {
                 return truthy;
@@ -285,103 +311,6 @@ public class SelectorCondition {
     }
 
     /**
-     * Looks up the next occurrence of a token, taking into account string escaping
-     * rules. This way string value like ".." can be specified. Only contents outside
-     * of string escaped sections can be matched.
-     *
-     * @param text Input text
-     * @param token Token to find
-     * @param fromIndex Index to start looking from
-     * @return Next index where the token is found, where the token is not string-escaped
-     */
-    private static int safeNonEscapedIndexOf(String text, String token, int fromIndex) {
-        int len = text.length();
-        while (fromIndex < len) {
-            int matchIndex = text.indexOf(token, fromIndex);
-            if (matchIndex == -1 || matchIndex == fromIndex) {
-                return matchIndex;
-            }
-
-            // Verify not string-escaped from the fromIndex til matchIndex
-            boolean isQuotedString = false;
-            char quoteChar = '"';
-            boolean escaped = false;
-            for(; fromIndex < len; fromIndex++) {
-                // When arriving at the next matched part, check if this is escaped or not
-                if (fromIndex == matchIndex) {
-                    if (!isQuotedString) {
-                        return matchIndex;
-                    }
-                }
-
-                char c = text.charAt(fromIndex);
-                if (escaped) {
-                    escaped = false;
-                } else if (c == '"' || c == '\'') {
-                    if (!isQuotedString) {
-                        isQuotedString = true;
-                        quoteChar = c;
-                    } else if (c == quoteChar) {
-                        isQuotedString = false;
-
-                        // If beyond the next matched part, break out and search again
-                        if (fromIndex > matchIndex) {
-                            break;
-                        }
-                    }
-                } else if (isQuotedString && c == '\\') {
-                    escaped = true;
-                }
-            }
-        }
-
-        return -1;
-    }
-
-    private static String tryUnescapeString(String str) {
-        int len = str.length();
-        if (len >= 2) {
-            char quoteChar = str.charAt(0);
-            if (quoteChar == '\'' || quoteChar == '"') {
-                return tryUnescapeString(str, quoteChar);
-            }
-        }
-        return null;
-    }
-
-    private static String tryUnescapeString(String str, char quoteChar) {
-        int len = str.length();
-        if (len >= 2 && str.charAt(0) == quoteChar && str.charAt(len - 1) == quoteChar) {
-            // Any escaping done at all? If not, just substring (fast)
-            if (str.indexOf('\\', 1) == -1) {
-                return str.substring(1, len - 1);
-            }
-
-            StringBuilder newStr = new StringBuilder(len - 1);
-            boolean escaped = false;
-            for (int i = 1; i < len; i++) {
-                char c = str.charAt(i);
-                if (escaped) {
-                    escaped = false;
-                    newStr.append(c);
-                } else if (c == '\\') {
-                    escaped = true;
-                } else if (c ==  quoteChar) {
-                    break;
-                } else {
-                    newStr.append(c);
-                }
-            }
-            if (escaped) {
-                return null; // Invalid syntax
-            }
-            return newStr.toString();
-        }
-
-        return null;
-    }
-
-    /**
      * Tries to parse all conditions specified within a conditions string.
      * If parsing fails, returns null.
      *
@@ -389,18 +318,19 @@ public class SelectorCondition {
      * @return Parsed conditions, or null if parsing failed (invalid syntax)
      */
     public static List<SelectorCondition> parseAll(String conditionsString) {
-        int separator = safeNonEscapedIndexOf(conditionsString, ",", 0);
+        int separator = QuoteEscapedString.unquotedIndexOf(conditionsString, ",", 0);
         final int length = conditionsString.length();
         if (separator == -1) {
             // A single condition provided
             // Parse as a singleton list, with an expected key=value syntax
             // Reject invalid matches such as value, =value and value=
-            int equals = safeNonEscapedIndexOf(conditionsString, "=", 0);
+            int equals = QuoteEscapedString.unquotedIndexOf(conditionsString, "=", 0);
             if (equals == -1 || equals == 0 || equals == (length-1)) {
                 return null;
             }
-            return Collections.singletonList(parse(conditionsString.substring(0, equals),
-                                                   conditionsString.substring(equals+1)));
+            Key condKey = Key.parse(conditionsString.substring(0, equals));
+            String condValue = conditionsString.substring(equals + 1);
+            return Collections.singletonList(parse(condKey, condValue));
         } else {
             // Multiple conditions provided, build a hashmap with them
             List<SelectorCondition> conditions = new ArrayList<SelectorCondition>(10);
@@ -408,14 +338,15 @@ public class SelectorCondition {
             int argEnd = separator;
             boolean valid = true;
             while (true) {
-                int equals = safeNonEscapedIndexOf(conditionsString, "=", argStart);
+                int equals = QuoteEscapedString.unquotedIndexOf(conditionsString, "=", argStart);
                 if (equals == -1 || equals == argStart || equals >= (argEnd-1)) {
                     valid = false;
                     break;
                 }
 
-                conditions.add(parse(conditionsString.substring(argStart, equals),
-                                     conditionsString.substring(equals+1, argEnd)));
+                Key condKey = Key.parse(conditionsString.substring(argStart, equals));
+                String condValue = conditionsString.substring(equals+1, argEnd);
+                conditions.add(parse(condKey, condValue));
 
                 // End of String
                 if (argEnd == length) {
@@ -424,7 +355,7 @@ public class SelectorCondition {
 
                 // Find next separator. If none found, condition is until end of String.
                 argStart = argEnd + 1;
-                argEnd = safeNonEscapedIndexOf(conditionsString,",", argEnd + 1);
+                argEnd = QuoteEscapedString.unquotedIndexOf(conditionsString,",", argEnd + 1);
                 if (argEnd == -1) {
                     argEnd = length;
                 }
@@ -442,7 +373,12 @@ public class SelectorCondition {
     public static class SelectorConditionInverted extends SelectorCondition {
         private final SelectorCondition base;
 
+        @Deprecated
         public SelectorConditionInverted(String key, String value, SelectorCondition base) {
+            this(Key.parse(key), value, base);
+        }
+
+        public SelectorConditionInverted(Key key, String value, SelectorCondition base) {
             super(key, value);
             this.base = base;
         }
@@ -492,12 +428,17 @@ public class SelectorCondition {
      * Selector for a singular numeric value
      */
     private static class SelectorConditionNumeric extends SelectorCondition {
-        public static final SelectorConditionNumeric RANGE_MIN = new SelectorConditionNumeric("NONE", "", Double.NEGATIVE_INFINITY, Long.MIN_VALUE);
-        public static final SelectorConditionNumeric RANGE_MAX = new SelectorConditionNumeric("NONE", "", Double.POSITIVE_INFINITY, Long.MAX_VALUE);
+        public static final SelectorConditionNumeric RANGE_MIN = new SelectorConditionNumeric(Key.of("NONE"), "", Double.NEGATIVE_INFINITY, Long.MIN_VALUE);
+        public static final SelectorConditionNumeric RANGE_MAX = new SelectorConditionNumeric(Key.of("NONE"), "", Double.POSITIVE_INFINITY, Long.MAX_VALUE);
         public final double valueDouble;
         public final long valueLong;
 
+        @Deprecated
         public SelectorConditionNumeric(String key, String value, double valueDouble, long valueLong) {
+            this(Key.parse(key), value, valueDouble, valueLong);
+        }
+
+        public SelectorConditionNumeric(Key key, String value, double valueDouble, long valueLong) {
             super(key, value);
             this.valueDouble = valueDouble;
             this.valueLong = valueLong;
@@ -533,7 +474,12 @@ public class SelectorCondition {
             return true;
         }
 
+        @Deprecated
         public static SelectorConditionNumeric tryParse(String key, String value) {
+            return tryParse(Key.parse(key), value);
+        }
+
+        public static SelectorConditionNumeric tryParse(Key key, String value) {
             double valueDouble = ParseUtil.parseDouble(value, Double.NaN);
             if (!Double.isNaN(valueDouble)) {
                 long valueLong = ParseUtil.parseLong(value, 0L);
@@ -549,7 +495,12 @@ public class SelectorCondition {
     private static class SelectorConditionNumericRange extends SelectorCondition {
         private final SelectorConditionNumeric min, max;
 
+        @Deprecated
         public SelectorConditionNumericRange(String key, String value, SelectorConditionNumeric min, SelectorConditionNumeric max) {
+            this(Key.parse(key), value, min, max);
+        }
+
+        public SelectorConditionNumericRange(Key key, String value, SelectorConditionNumeric min, SelectorConditionNumeric max) {
             super(key, value);
             if (min.valueDouble > max.valueDouble) {
                 this.min = max;
@@ -605,7 +556,12 @@ public class SelectorCondition {
         private final boolean firstAny;
         private final boolean lastAny;
 
+        @Deprecated
         public SelectorConditionWildcardText(String key, String value, String[] elements, boolean firstAny, boolean lastAny) {
+            this(Key.parse(key), value, elements, firstAny, lastAny);
+        }
+
+        public SelectorConditionWildcardText(Key key, String value, String[] elements, boolean firstAny, boolean lastAny) {
             super(key, value);
             this.elements = elements;
             this.firstAny = firstAny;
@@ -639,7 +595,12 @@ public class SelectorCondition {
     private static class SelectorConditionAnyOfText extends SelectorCondition {
         private final SelectorCondition[] selectorValues;
 
+        @Deprecated
         public SelectorConditionAnyOfText(String key, String value, SelectorCondition... selectorValues) {
+            this(Key.parse(key), value, selectorValues);
+        }
+
+        public SelectorConditionAnyOfText(Key key, String value, SelectorCondition... selectorValues) {
             super(key, value);
             this.selectorValues = selectorValues;
         }
@@ -735,7 +696,7 @@ public class SelectorCondition {
 
         private final boolean truthyValue;
 
-        protected SelectorConditionTruthy(String key, String value, boolean truthyValue) {
+        protected SelectorConditionTruthy(Key key, String value, boolean truthyValue) {
             super(key, value);
             this.truthyValue = truthyValue;
         }
@@ -745,9 +706,107 @@ public class SelectorCondition {
             return value == truthyValue;
         }
 
+        @Deprecated
         public static SelectorConditionTruthy tryParse(String key, String value) {
+            return tryParse(Key.parse(key), value);
+        }
+
+        public static SelectorConditionTruthy tryParse(Key key, String value) {
             Boolean truthy = truthyValues.get(value);
             return (truthy == null) ? null : new SelectorConditionTruthy(key, value, truthy.booleanValue());
+        }
+    }
+
+    /**
+     * Key of a selector condition. Consists of a String key name,
+     * and an optional path parameter (after the first dot).
+     */
+    public static final class Key {
+        private final String name;
+        private final String path;
+
+        /**
+         * Parses the key String format into key + path (if path is specified)
+         *
+         * @param keyStr Full key String
+         * @return Parsed Key
+         */
+        public static Key parse(String keyStr) {
+            // Trim whitespace left/right. Keep it within quotes if any.
+            keyStr = keyStr.trim();
+
+            // Try to unescape a string key
+            QuoteEscapedString unescapedKey = QuoteEscapedString.tryParseQuoted(keyStr);
+            keyStr = unescapedKey.getUnescaped();
+
+            // Try to identify a path argument in the key (key.path)
+            String keyPathStr = "";
+            {
+                int keyPathStart = QuoteEscapedString.unquotedIndexOf(keyStr, ".", 0);
+                if (keyPathStart != -1) {
+                    keyPathStr = keyStr.substring(keyPathStart + 1);
+                    keyStr = keyStr.substring(0, keyPathStart);
+                    if (!unescapedKey.isQuoteEscaped()) {
+                        keyStr = QuoteEscapedString.tryParseQuoted(keyStr.trim()).getUnescaped();
+                    }
+                    if (!unescapedKey.isQuoteEscaped()) {
+                        keyPathStr = QuoteEscapedString.tryParseQuoted(keyPathStr.trim()).getUnescaped();
+                    }
+                }
+            }
+
+            return of(keyStr, keyPathStr);
+        }
+
+        public static Key of(String name) {
+            return new Key(name);
+        }
+
+        public static Key of(String name, String path) {
+            return new Key(name, path);
+        }
+
+        private Key(String name) {
+            this(name, "");
+        }
+
+        private Key(String name, String path) {
+            this.name = name;
+            this.path = path;
+        }
+
+        public String name() {
+            return name;
+        }
+
+        public String path() {
+            return path;
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * name.hashCode() + path.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            } else if (o instanceof Key) {
+                Key other = (Key) o;
+                return this.name.equals(other.name) && this.path.equals(other.path);
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public String toString() {
+            if (path.isEmpty()) {
+                return "Key{name=" + name + "}";
+            } else {
+                return "Key{name=" + name + ", path=" + path + "}";
+            }
         }
     }
 }

@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.utils.QuoteEscapedString;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandException;
@@ -39,8 +40,8 @@ import com.bergerkiller.generated.net.minecraft.server.network.PlayerConnectionH
  * as a Listener in the Bukkit API.
  */
 public class SelectorHandlerRegistry implements Listener {
-    // ^\[([\w\d\-\+=,\*\.\!\"\'\\]+)\](?:\s|$)
-    private static final Pattern CONDITIONS_PATTERN = Pattern.compile("^\\[([\\w\\d\\-\\+=,\\*\\.\\!\\\"\\'\\\\]+)\\](?:\\s|$)");
+    // ^\[([\w\d\s\-\+=,\*\.\!\"\'\\]+)\](?:\s|$)
+    private static final Pattern CONDITIONS_PATTERN = Pattern.compile("^\\[([\\w\\d\\s\\-\\+=,\\*\\.\\!\\\"\\'\\\\]+)\\](?:\\s|$)");
 
     private final Map<String, SelectorHandler> handlers = new HashMap<>();
     private final JavaPlugin plugin;
@@ -169,7 +170,7 @@ public class SelectorHandlerRegistry implements Listener {
                 lastChar = ']'; // If next character is @ do not match!
                 replaceStartIndex = selectorStartIndex;
 
-                // Decode the selector name, efficiently, without using regex
+                // Decode the selector name (@train / @ptrain), efficiently, without using regex
                 // See if the found selector has a handler, if not, skip right away
                 selector = command.substring(selectorStartIndex + 1, nameEndIndex);
                 handler = handlers.get(selector.toLowerCase(Locale.ENGLISH));
@@ -284,14 +285,14 @@ public class SelectorHandlerRegistry implements Listener {
                 Iterator<StringBuilder> builderIter = resultBuilders.iterator();
                 for (String value : values) {
                     for (int i = 0; i < numResults; i++) {
-                        builderIter.next().append(Util.escapeQuotedArgument(value));
+                        builderIter.next().append(QuoteEscapedString.quoteEscape(value).getEscaped());
                     }
                 }
             } else {
                 // Only one value, append to all builders (easy)
                 final String value = values.iterator().next();
                 for (StringBuilder builder : resultBuilders) {
-                    builder.append(Util.escapeQuotedArgument(value));
+                    builder.append(QuoteEscapedString.quoteEscape(value).getEscaped());
                 }
             }
 

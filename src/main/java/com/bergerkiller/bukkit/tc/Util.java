@@ -27,6 +27,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.utils.QuoteEscapedString;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerRotationPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityEquipmentHandle;
@@ -2105,42 +2106,11 @@ public class Util {
      *
      * @param text Text
      * @return Input text if permitted, otherwise quote-escaped
+     * @deprecated Use {@link QuoteEscapedString#quoteEscape(String)}.getEscaped() instead
      */
-    //TODO: Moved to BKCL (UnquotedCharacterFilter)
+    @Deprecated
     public static String escapeQuotedArgument(String text) {
-        int len = text.length();
-        boolean allowed = true;
-        for (int i = 0; i < len; i++) {
-            if (!isAllowedInUnquotedString(text.charAt(i))) {
-                allowed = false;
-                break;
-            }
-        }
-        if (allowed) {
-            return text;
-        }
-
-        // Escape characters
-        StringBuilder escaped = new StringBuilder(len + 8);
-        escaped.append('"');
-        for (int i = 0; i < len; i++) {
-            char c = text.charAt(i);
-            if (c == '\\' || c == '"') {
-                escaped.append('\\');
-            }
-            escaped.append(c);
-        }
-        escaped.append('"');
-        return escaped.toString();
-    }
-
-    //TODO: Moved to BKCL (UnquotedCharacterFilter)
-    private static boolean isAllowedInUnquotedString(final char c) {
-        return c >= '0' && c <= '9'
-                || c >= 'A' && c <= 'Z'
-                || c >= 'a' && c <= 'z'
-                || c == '_' || c == '-'
-                || c == '.' || c == '+';
+        return QuoteEscapedString.quoteEscape(text).getEscaped();
     }
 
     /**

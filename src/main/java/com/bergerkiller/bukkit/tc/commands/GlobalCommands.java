@@ -37,6 +37,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.statements.Statement;
 
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
+import com.bergerkiller.bukkit.tc.utils.QuoteEscapedString;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Effect;
@@ -842,7 +843,7 @@ public class GlobalCommands {
         }
 
         String safeEditName = StringUtil.stripChatStyle(name);
-        text.setClickableRunCommand("/train edit " + Util.escapeQuotedArgument(safeEditName));
+        text.setClickableRunCommand("/train edit " + QuoteEscapedString.quoteEscape(safeEditName).getEscaped());
         return text;
     }
 }
