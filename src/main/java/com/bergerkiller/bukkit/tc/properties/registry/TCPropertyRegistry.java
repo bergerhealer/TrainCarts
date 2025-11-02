@@ -508,7 +508,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
         }
 
         @Override
-        public boolean matches(TrainProperties properties, SelectorCondition condition) {
+        public boolean matches(CommandSender sender, TrainProperties properties, SelectorCondition condition) {
             Object[] args = new Object[this.argumentAdapters.length];
             for (int i = 0; i < args.length; i++) {
                 args[i] = this.argumentAdapters[i].adapt(properties, condition);

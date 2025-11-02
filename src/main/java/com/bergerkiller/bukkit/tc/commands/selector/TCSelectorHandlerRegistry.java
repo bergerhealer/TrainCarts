@@ -10,7 +10,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -50,7 +52,7 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
 
         // Some special selector conditions that aren't related to a train property
         {
-            IPropertySelectorCondition speedCondition = (properties, condition) -> {
+            IPropertySelectorCondition speedCondition = (sender, properties, condition) -> {
                 MinecartGroup group = properties.getHolder();
                 double speed = (group == null || group.isEmpty())
                         ? 0.0 : group.head().getRealSpeedLimited();
@@ -59,7 +61,7 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
             registerCondition("speed", speedCondition);
             registerCondition("velocity", speedCondition);
         }
-        registerCondition("passengers", (properties, condition) -> {
+        registerCondition("passengers", (sender, properties, condition) -> {
             MinecartGroup group = properties.getHolder();
             int passengers = 0;
             if (group != null) {
@@ -69,7 +71,7 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
             }
             return condition.matchesNumber(passengers);
         });
-        registerCondition("playerpassengers", (properties, condition) -> {
+        registerCondition("playerpassengers", (sender, properties, condition) -> {
             MinecartGroup group = properties.getHolder();
             if (condition.isNumber()) {
                 int passengers = 0;
@@ -88,12 +90,12 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
                 return condition.matchesAnyText(Collections.emptyList());
             }
         });
-        registerCondition("derailed", (properties, condition) -> {
+        registerCondition("derailed", (sender, properties, condition) -> {
             MinecartGroup group = properties.getHolder();
-            boolean derailed = false;
             if (group == null) {
                 return false;
             }
+            boolean derailed = false;
             for (MinecartMember<?> member : group) {
                 if (member.isDerailed()) {
                     derailed = true;
@@ -102,8 +104,50 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
             }
             return condition.matchesBoolean(derailed);
         });
-        registerCondition("unloaded", (properties, condition) -> {
+        registerCondition("unloaded", (sender, properties, condition) -> {
             return condition.matchesBoolean(!properties.isLoaded());
+        });
+        registerCondition("seat", (sender, properties, condition) -> {
+            MinecartGroup group = properties.getHolder();
+            if (group == null) {
+                return false;
+            }
+
+            // What seats do we look at? All of them, or only those of the key path specified?
+            List<CartAttachmentSeat> seats;
+            if (condition.hasKeyPath()) {
+                seats = group.getAttachments().getNameLookup().getOfType(condition.getKeyPath(), CartAttachmentSeat.class);
+            } else {
+                seats = group.getAttachments().getNameLookup().allOfType(CartAttachmentSeat.class);
+            }
+
+            // If comparing against true/false, simply check if one of the seats is occupied or not
+            if (condition.isBoolean()) {
+                boolean hasPassenger = false;
+                for (CartAttachmentSeat seat : seats) {
+                    if (seat.getEntity() != null) {
+                        hasPassenger = true;
+                        break;
+                    }
+                }
+                return hasPassenger == condition.getBoolean();
+            }
+
+            // Do we include the sender in the checks? (@p)
+            boolean includePlayer = condition.matchesText("@p");
+
+            // Look for players in the seat with a particular name (or if @p, are the sender)
+            for (CartAttachmentSeat seat : seats) {
+                Entity passenger = seat.getEntity();
+                if (passenger instanceof Player) {
+                    if (includePlayer && passenger == sender) {
+                        return true;
+                    } else if (condition.matchesText(((Player) passenger).getName())) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         });
     }
 
@@ -186,7 +230,7 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
         for (SelectorCondition selectorCondition : conditions) {
             IPropertySelectorCondition condition = this.conditions.get(selectorCondition.getKey());
             if (condition != null) {
-                stream = stream.filter(properties -> condition.matches(properties, selectorCondition));
+                stream = stream.filter(properties -> condition.matches(sender, properties, selectorCondition));
             } else {
                 throw new SelectorException("Unknown condition: " + selectorCondition.getKey());
             }
