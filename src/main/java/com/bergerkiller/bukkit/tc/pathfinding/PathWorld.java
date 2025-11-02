@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.pathfinding;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -69,6 +70,30 @@ public class PathWorld implements TrainCarts.Provider {
         return _nodes.get(name);
     }
 
+    /**
+     * Tries to find a path node at the old location or the same name as
+     * another node. The specified node is allowed to have been removed.
+     *
+     * @param snapshot PathNodeSnapshot of a previous node
+     * @return Found PathNode, or null if the node has been removed
+     */
+    public PathNode tryFindNodeAgain(PathNodeSnapshot snapshot) {
+        PathNode atRail = getNodeAtRail(snapshot.getRailLocation());
+        if (atRail != null) {
+            return atRail;
+        }
+
+        for (String name : snapshot.getNames()) {
+            PathNode foundNode = getNodeByName(name);
+            if (foundNode != null) {
+                return foundNode;
+            }
+        }
+
+        // Not found
+        return null;
+    }
+
     public Set<BlockLocation> getRailBlocks() {
         return _blockNodes.keySet();
     }
@@ -106,6 +131,16 @@ public class PathWorld implements TrainCarts.Provider {
         }
         clearAll();
         markChanged();
+    }
+
+    public void rerouteFrom(List<String> destinationNames) {
+        for (String name : destinationNames) {
+            PathNode node = getNodeByName(name);
+            if (node != null) {
+                _provider.discoverFromNode(node);
+                removeFromMapping(node);
+            }
+        }
     }
 
     public void clearAll() {

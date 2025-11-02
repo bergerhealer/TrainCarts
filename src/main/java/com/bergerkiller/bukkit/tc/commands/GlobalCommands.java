@@ -283,7 +283,10 @@ public class GlobalCommands {
             final TrainCarts plugin,
             final @Flag(value="lazy", description="Delays recalculating routes until a train needs it") boolean lazy,
             final @Flag(value="stop", description="Stops all ongoing path route discovery operations") boolean stop,
-            final @Flag(value="status", description="Displays what the routing manager is currently doing") boolean status
+            final @Flag(value="status", description="Displays what the routing manager is currently doing") boolean status,
+            final @Flag(value="from", repeatable=true,
+                    description="Destination name(s) to reroute from",
+                    suggestions="destinations") List<String> fromDestinations
     ) {
         if (status) {
             if (!plugin.getPathProvider().isProcessing()) {
@@ -301,9 +304,29 @@ public class GlobalCommands {
         } else if (lazy) {
             PathNode.clearAll();
             sender.sendMessage(ChatColor.YELLOW + "All train routings will be recalculated when needed");
+        } else if (fromDestinations != null && !fromDestinations.isEmpty()) {
+            // Right away tell when certain from destinations don't exist
+            // There is no other logging of this condition
+            boolean hasDestinationsThatExist = false;
+            for (String destination : fromDestinations) {
+                if (plugin.getPathProvider().nodeExistsOnAnyWorld(destination)) {
+                    hasDestinationsThatExist = true;
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Destination with name '" + ChatColor.YELLOW + destination +
+                            ChatColor.RED + "' does not exist!");
+                }
+            }
+            if (!hasDestinationsThatExist) {
+                sender.sendMessage(ChatColor.RED + "No valid destination names were specified to reroute from!");
+            } else {
+                plugin.getPathProvider().notifyOfCompletion(sender);
+                plugin.getPathProvider().rerouteFrom(fromDestinations);
+                sender.sendMessage(ChatColor.YELLOW + "All train routings will be recalculated from the destination(s) specified");
+                sender.sendMessage(ChatColor.YELLOW + "If some destinations no longer exist, they will be removed");
+            }
         } else {
-            PathNode.reroute();
             plugin.getPathProvider().notifyOfCompletion(sender);
+            plugin.getPathProvider().reroute();
             sender.sendMessage(ChatColor.YELLOW + "All train routings will be recalculated");
         }
     }

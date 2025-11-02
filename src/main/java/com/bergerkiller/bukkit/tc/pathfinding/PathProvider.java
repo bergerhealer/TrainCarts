@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.pathfinding;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
+import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.CompressedDataReader;
 import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
@@ -39,9 +40,11 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 public class PathProvider extends Task implements TrainCarts.Provider {
     private static final String SWITCHER_NAME_FALLBACK = "::traincarts::switchable::";
@@ -54,19 +57,19 @@ public class PathProvider extends Task implements TrainCarts.Provider {
      * node there. If there is, then a node is created and re-routing from that node
      * is performed.
      */
-    private Queue<BlockLocation> pendingDiscovery = new LinkedList<BlockLocation>();
+    private final Queue<BlockLocation> pendingDiscovery = new LinkedList<BlockLocation>();
     /**
      * Nodes in the pathfinding graph that need to perform re-discovery. This means checking
      * all possible directions from which the node can be traveled and seeing what is on the
      * other end. Regularly these nodes are turned into PathFindOperation instances to perform
      * processing.
      */
-    private Set<PathNode> pendingNodes = new LinkedHashSet<>();
+    private final Set<PathNode> pendingNodes = new LinkedHashSet<>();
     /**
      * Pending operations from a path node into a given direction, where the route to other
      * nodes is computed. Each pending node can turn into one or more pending operations.
      */
-    private Queue<PathFindOperation> pendingOperations = new LinkedList<>();
+    private final Queue<PathFindOperation> pendingOperations = new LinkedList<>();
     /**
      * All nodes that had re-routing scheduled since the re-routing algorithm fell idle.
      * This is used to decide whether a node needs further calculations done when a route
@@ -75,11 +78,17 @@ public class PathProvider extends Task implements TrainCarts.Provider {
      * <br>
      * Once no more operations are being done, then this set is cleared.
      */
-    private Set<PathNode> scheduledNodesSinceIdle = new HashSet<>();
+    private final Set<PathNode> scheduledNodesSinceIdle = new HashSet<>();
+    /**
+     * Tracks the path nodes from which a reroute was initiated. When the rerouting finishes,
+     * the plugin checks all these nodes to see if they still exist afterwards. If not, a
+     * message is sent to the player informing of its removal.
+     */
+    private final Set<PathNodeSnapshot> pathNodesBeforeDiscovery = new HashSet<>();
     /**
      * People to notify when the routes have finished calculating
      */
-    private Set<CommandSender> sendersToNotifyOfCompletion = new HashSet<>();
+    private final Set<CommandSender> sendersToNotifyOfCompletion = new HashSet<>();
     private boolean hasChanges = false;
     private int maxProcessingPerTick = DEFAULT_MAX_PROCESSING_PER_TICK;
 
@@ -363,6 +372,37 @@ public class PathProvider extends Task implements TrainCarts.Provider {
     }
 
     /**
+     * Gets whether a particular destination name exists on any world
+     *
+     * @param name Destination (node) name
+     * @return True if it exists
+     */
+    public boolean nodeExistsOnAnyWorld(String name) {
+        for (PathWorld world : getWorlds()) {
+            if (world.getNodeByName(name) != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Tries to find a path node at the old location or the same name as
+     * another node. The specified node is allowed to have been removed.
+     *
+     * @param snapshot PathNodeSnapshot of a previous node
+     * @return Found PathNode, or null if the node has been removed
+     */
+    public PathNode tryFindNodeAgain(PathNodeSnapshot snapshot) {
+        PathWorld world = getWorld(snapshot.getWorldName());
+        if (world != null) {
+            return world.tryFindNodeAgain(snapshot);
+        } else {
+            return null;
+        }
+    }
+
+    /**
      * Clears all node information on all worlds
      */
     public void clearAll() {
@@ -377,6 +417,18 @@ public class PathProvider extends Task implements TrainCarts.Provider {
     public void reroute() {
         for (PathWorld world : getWorlds()) {
             world.rerouteAll();
+        }
+    }
+
+    /**
+     * Starts rerouting the paths from the destination names specified,
+     * and from there all other changes we detect.
+     *
+     * @param destinationNames Destination names
+     */
+    public void rerouteFrom(List<String> destinationNames) {
+        for (PathWorld world : getWorlds()) {
+            world.rerouteFrom(destinationNames);
         }
     }
 
@@ -452,7 +504,29 @@ public class PathProvider extends Task implements TrainCarts.Provider {
      * @param railLocation to discover destinations and switchers at
      */
     public void discoverFromRail(BlockLocation railLocation) {
+        PathWorld world = getWorld(railLocation.world);
+        if (world != null) {
+            PathNode atRail = world.getNodeAtRail(railLocation);
+            if (atRail != null) {
+                pathNodesBeforeDiscovery.add(atRail.getSnapshot());
+            }
+        }
+
         pendingDiscovery.add(railLocation);
+    }
+
+    /**
+     * Tells this Path Provider to schedule new destination and switcher sign discovery, starting at a particular
+     * path node. The node's rail location must have signs that switch or declare a destination, otherwise
+     * nothing will happen.<br>
+     * <br>
+     * Will tell players after rerouting finishes when this node no longer exists after the reroute completed.
+     *
+     * @param node PathNode to discover destinations and switchers at
+     */
+    public void discoverFromNode(PathNode node) {
+        pathNodesBeforeDiscovery.add(node.getSnapshot());
+        discoverFromRail(node.location);
     }
 
     /**
@@ -487,7 +561,26 @@ public class PathProvider extends Task implements TrainCarts.Provider {
         }
         if (this.pendingOperations.isEmpty()) {
             this.scheduledNodesSinceIdle.clear();
-            {
+            if (!sendersToNotifyOfCompletion.isEmpty()) {
+                // Collect extra information about path nodes that existed before the reroute started
+                // This properly logs information about path nodes passed with --from, or all of them
+                // if a complete reroute was initiated.
+                // Sort these nodes so that the ones with destination names are at the top.
+                final int maxUpdateMessages = 10;
+                List<MessageBuilder> updateMessages = pathNodesBeforeDiscovery.stream()
+                        .sorted()
+                        .map(snapshot -> snapshot.getUpdateMessage(tryFindNodeAgain(snapshot)))
+                        .filter(Objects::nonNull)
+                        .limit(maxUpdateMessages + 1)
+                        .collect(Collectors.toList());
+                final boolean hasMore = (updateMessages.size() > maxUpdateMessages);
+                if (hasMore) {
+                    updateMessages = updateMessages.subList(0, maxUpdateMessages);
+                }
+
+                // Clear for next reroute
+                pathNodesBeforeDiscovery.clear();
+
                 List<CommandSender> senders = new ArrayList<>(this.sendersToNotifyOfCompletion);
                 this.sendersToNotifyOfCompletion.clear();
                 for (CommandSender sender : senders) {
@@ -496,6 +589,12 @@ public class PathProvider extends Task implements TrainCarts.Provider {
                     }
                     if (sender instanceof Player && !((Player) sender).isValid()) {
                         continue; // don't send to offline players
+                    }
+                    for (MessageBuilder message : updateMessages) {
+                        message.send(sender);
+                    }
+                    if (hasMore) {
+                        sender.sendMessage(ChatColor.YELLOW + "...and more changes");
                     }
                     sender.sendMessage(ChatColor.GREEN + "Train rerouting completed!");
                 }

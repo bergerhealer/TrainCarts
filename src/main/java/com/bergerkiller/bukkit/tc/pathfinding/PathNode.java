@@ -308,6 +308,10 @@ public class PathNode {
         return this.names;
     }
 
+    public BlockLocation getRailLocation() {
+        return location;
+    }
+
     public Collection<PathConnection> getNeighbours() {
         return this.neighbors;
     }
@@ -466,27 +470,7 @@ public class PathNode {
      * @return Node display name
      */
     public String getDisplayName() {
-        // No name at all - use location as name
-        if (this.names.isEmpty()) {
-            return "[" + this.location.x + "/" + this.location.y + "/" + this.location.z + "]";
-        }
-
-        if (this.names.size() == 1) {
-            // Show this one name
-            return this.names.iterator().next();
-        } else {
-            // Show a list of names
-            StringBuilder builder = new StringBuilder(this.names.size() * 15);
-            builder.append('{');
-            for (String name : this.names) {
-                if (builder.length() > 1) {
-                    builder.append("/");
-                }
-                builder.append(name);
-            }
-            builder.append('}');
-            return builder.toString();
-        }
+        return formatDisplayName(location, names);
     }
 
     @Override
@@ -500,6 +484,40 @@ public class PathNode {
                 world.getTrainCarts().log(Level.INFO, "NODE AT " + this.location.toString() + " ADDED DESTINATION " + name);
             }
             world.addNodeName(this, name);
+        }
+    }
+
+    /**
+     * Gets a snapshot copy of this node's information. The returned snapshot will not change
+     * when properties of this node change.
+     *
+     * @return PathNodeSnapshot
+     */
+    public PathNodeSnapshot getSnapshot() {
+        return new PathNodeSnapshot(new HashSet<>(names), location, isRailSwitchable);
+    }
+
+    protected static String formatDisplayName(BlockLocation location, Set<String> names) {
+        // No name at all - use location as name
+        if (names.isEmpty()) {
+            return "[" + location.x + "/" + location.y + "/" + location.z + "]";
+        }
+
+        if (names.size() == 1) {
+            // Show this one name
+            return names.iterator().next();
+        } else {
+            // Show a list of names
+            StringBuilder builder = new StringBuilder(names.size() * 15);
+            builder.append('{');
+            for (String name : names) {
+                if (builder.length() > 1) {
+                    builder.append("/");
+                }
+                builder.append(name);
+            }
+            builder.append('}');
+            return builder.toString();
         }
     }
 
