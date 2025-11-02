@@ -39,10 +39,8 @@ import com.bergerkiller.generated.net.minecraft.server.network.PlayerConnectionH
  * as a Listener in the Bukkit API.
  */
 public class SelectorHandlerRegistry implements Listener {
-    // ^\[([\w\d\-\+=,\*\.\!]+)\](?:\s|$)
-    private static final Pattern CONDITIONS_PATTERN = Pattern.compile("^\\[([\\w\\d\\-\\+=,\\*\\.\\!]+)\\](?:\\s|$)");
-    // ^\[([\w\d\-\+=,\*\.\!\\\"]+)\]\"(?:\s|$)
-    private static final Pattern CONDITIONS_PATTERN_QUOTED = Pattern.compile("^\\[([\\w\\d\\-\\+=,\\*\\.\\!\\\\\\\"]+)\\]\\\"(?:\\s|$)");
+    // ^\[([\w\d\-\+=,\*\.\!\"\'\\]+)\](?:\s|$)
+    private static final Pattern CONDITIONS_PATTERN = Pattern.compile("^\\[([\\w\\d\\-\\+=,\\*\\.\\!\\\"\\'\\\\]+)\\](?:\\s|$)");
 
     private final Map<String, SelectorHandler> handlers = new HashMap<>();
     private final JavaPlugin plugin;
@@ -135,9 +133,6 @@ public class SelectorHandlerRegistry implements Listener {
                 }
             }
 
-            // Is the entire selector quote-escaped?
-            boolean quoteEscaped = (lastChar == '"');
-
             // The range of the input command to replace with the selector values
             int replaceStartIndex;
 
@@ -172,7 +167,7 @@ public class SelectorHandlerRegistry implements Listener {
                 selectorStartIndex = searchIndex;
                 searchIndex = nameEndIndex;
                 lastChar = ']'; // If next character is @ do not match!
-                replaceStartIndex = quoteEscaped ? (selectorStartIndex - 1) : selectorStartIndex;
+                replaceStartIndex = selectorStartIndex;
 
                 // Decode the selector name, efficiently, without using regex
                 // See if the found selector has a handler, if not, skip right away
@@ -201,8 +196,6 @@ public class SelectorHandlerRegistry implements Listener {
                 if (hasConditions) {
                     if (conditionsMatcher != null) {
                         conditionsMatcher.reset(command.subSequence(nameEndIndex, commandLength));
-                    } else if (quoteEscaped) {
-                        conditionsMatcher = CONDITIONS_PATTERN_QUOTED.matcher(command.subSequence(nameEndIndex, commandLength));
                     } else {
                         conditionsMatcher = CONDITIONS_PATTERN.matcher(command.subSequence(nameEndIndex, commandLength));
                     }
@@ -213,12 +206,6 @@ public class SelectorHandlerRegistry implements Listener {
                     conditionsString = conditionsMatcher.group(1);
                     searchIndex += conditionsString.length() + 2; // skip conditions in next search
                     postSelectorCommandStart += conditionsString.length() + 2;
-
-                    // Unescape
-                    if (quoteEscaped) {
-                        conditionsString = Util.unescapeString(conditionsString);
-                        postSelectorCommandStart++; // Omit " too
-                    }
                 } else {
                     conditionsString = null;
                 }

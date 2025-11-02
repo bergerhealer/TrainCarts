@@ -178,10 +178,10 @@ public class SelectorCondition {
         }
 
         // Check for a range (multiple) of values, acts as an OR for text
-        int rangeStart = value.indexOf("..");
+        int rangeStart = safeNonEscapedIndexOf(value, "..", 0);
         if (rangeStart != -1) {
             // Check for more beyond rangeStart
-            int rangeCurrent = value.indexOf("..", rangeStart + 2);
+            int rangeCurrent = safeNonEscapedIndexOf(value, "..", rangeStart + 2);
             if (rangeCurrent == -1) {
                 // Check for a numeric range, which also handles text if needed
                 String first = (rangeStart > 0) ? value.substring(0, rangeStart) : null;
@@ -209,7 +209,7 @@ public class SelectorCondition {
                 }
 
                 int rangeNext;
-                while ((rangeNext = value.indexOf("..", rangeCurrent + 2)) != -1) {
+                while ((rangeNext = safeNonEscapedIndexOf(value, "..", rangeCurrent + 2)) != -1) {
                     if (rangeNext > (rangeCurrent + 2)) {
                         selectorValues.add(parsePart(key, value.substring(rangeCurrent, rangeNext)));
                     }
@@ -232,13 +232,32 @@ public class SelectorCondition {
      * Checks for valid numbers and returns a number-compatible condition
      * if one can be parsed.
      *
-     * @param key
-     * @param value
+     * @param key Key (left of =)
+     * @param value Value (right of =)
      * @return selector value
      */
     private static SelectorCondition parsePart(String key, String value) {
+        // Try to unescape a string key
+        {
+            String s = tryUnescapeString(key);
+            if (s != null) {
+                key = s;
+            }
+        }
+
+        // Try to unescape a string value
+        // This also makes it ineligible to be parsed as number / truthy
+        boolean isQuotedValue = false;
+        {
+            String s = tryUnescapeString(value);
+            if (s != null) {
+                isQuotedValue = true;
+                value = s;
+            }
+        }
+
         // Check for numbers
-        if (ParseUtil.isNumeric(value)) {
+        if (!isQuotedValue && ParseUtil.isNumeric(value)) {
             SelectorConditionNumeric numeric = SelectorConditionNumeric.tryParse(key, value);
             if (numeric != null) {
                 return numeric;
@@ -254,13 +273,112 @@ public class SelectorCondition {
         }
 
         // Truthy value
-        SelectorConditionTruthy truthy = SelectorConditionTruthy.tryParse(key, value);
-        if (truthy != null) {
-            return truthy;
+        if (!isQuotedValue) {
+            SelectorConditionTruthy truthy = SelectorConditionTruthy.tryParse(key, value);
+            if (truthy != null) {
+                return truthy;
+            }
         }
 
         // Normal text value, nothing special
         return new SelectorCondition(key, value);
+    }
+
+    /**
+     * Looks up the next occurrence of a token, taking into account string escaping
+     * rules. This way string value like ".." can be specified. Only contents outside
+     * of string escaped sections can be matched.
+     *
+     * @param text Input text
+     * @param token Token to find
+     * @param fromIndex Index to start looking from
+     * @return Next index where the token is found, where the token is not string-escaped
+     */
+    private static int safeNonEscapedIndexOf(String text, String token, int fromIndex) {
+        int len = text.length();
+        while (fromIndex < len) {
+            int matchIndex = text.indexOf(token, fromIndex);
+            if (matchIndex == -1 || matchIndex == fromIndex) {
+                return matchIndex;
+            }
+
+            // Verify not string-escaped from the fromIndex til matchIndex
+            boolean isQuotedString = false;
+            char quoteChar = '"';
+            boolean escaped = false;
+            for(; fromIndex < len; fromIndex++) {
+                // When arriving at the next matched part, check if this is escaped or not
+                if (fromIndex == matchIndex) {
+                    if (!isQuotedString) {
+                        return matchIndex;
+                    }
+                }
+
+                char c = text.charAt(fromIndex);
+                if (escaped) {
+                    escaped = false;
+                } else if (c == '"' || c == '\'') {
+                    if (!isQuotedString) {
+                        isQuotedString = true;
+                        quoteChar = c;
+                    } else if (c == quoteChar) {
+                        isQuotedString = false;
+
+                        // If beyond the next matched part, break out and search again
+                        if (fromIndex > matchIndex) {
+                            break;
+                        }
+                    }
+                } else if (isQuotedString && c == '\\') {
+                    escaped = true;
+                }
+            }
+        }
+
+        return -1;
+    }
+
+    private static String tryUnescapeString(String str) {
+        int len = str.length();
+        if (len >= 2) {
+            char quoteChar = str.charAt(0);
+            if (quoteChar == '\'' || quoteChar == '"') {
+                return tryUnescapeString(str, quoteChar);
+            }
+        }
+        return null;
+    }
+
+    private static String tryUnescapeString(String str, char quoteChar) {
+        int len = str.length();
+        if (len >= 2 && str.charAt(0) == quoteChar && str.charAt(len - 1) == quoteChar) {
+            // Any escaping done at all? If not, just substring (fast)
+            if (str.indexOf('\\', 1) == -1) {
+                return str.substring(1, len - 1);
+            }
+
+            StringBuilder newStr = new StringBuilder(len - 1);
+            boolean escaped = false;
+            for (int i = 1; i < len; i++) {
+                char c = str.charAt(i);
+                if (escaped) {
+                    escaped = false;
+                    newStr.append(c);
+                } else if (c == '\\') {
+                    escaped = true;
+                } else if (c ==  quoteChar) {
+                    break;
+                } else {
+                    newStr.append(c);
+                }
+            }
+            if (escaped) {
+                return null; // Invalid syntax
+            }
+            return newStr.toString();
+        }
+
+        return null;
     }
 
     /**
@@ -271,13 +389,13 @@ public class SelectorCondition {
      * @return Parsed conditions, or null if parsing failed (invalid syntax)
      */
     public static List<SelectorCondition> parseAll(String conditionsString) {
-        int separator = conditionsString.indexOf(',');
+        int separator = safeNonEscapedIndexOf(conditionsString, ",", 0);
         final int length = conditionsString.length();
         if (separator == -1) {
             // A single condition provided
             // Parse as a singleton list, with an expected key=value syntax
             // Reject invalid matches such as value, =value and value=
-            int equals = conditionsString.indexOf('=');
+            int equals = safeNonEscapedIndexOf(conditionsString, "=", 0);
             if (equals == -1 || equals == 0 || equals == (length-1)) {
                 return null;
             }
@@ -290,7 +408,7 @@ public class SelectorCondition {
             int argEnd = separator;
             boolean valid = true;
             while (true) {
-                int equals = conditionsString.indexOf('=', argStart);
+                int equals = safeNonEscapedIndexOf(conditionsString, "=", argStart);
                 if (equals == -1 || equals == argStart || equals >= (argEnd-1)) {
                     valid = false;
                     break;
@@ -306,7 +424,7 @@ public class SelectorCondition {
 
                 // Find next separator. If none found, condition is until end of String.
                 argStart = argEnd + 1;
-                argEnd = conditionsString.indexOf(',', argEnd + 1);
+                argEnd = safeNonEscapedIndexOf(conditionsString,",", argEnd + 1);
                 if (argEnd == -1) {
                     argEnd = length;
                 }

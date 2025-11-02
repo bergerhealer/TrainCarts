@@ -86,6 +86,20 @@ public class SelectorHandlerTest {
         assertEquals(Arrays.asList("command pre test post",
                                    "command pre a post",
                                    "command pre b post"), registry.expandCommands(null, "command pre @test[a=b] post"));
+        assertEquals(Arrays.asList("command pre test post",
+                                   "command pre a post",
+                                   "command pre b post"), registry.expandCommands(null, "command pre @test[a='b'] post"));
+
+        // The quote should get parsed, and then dropped again as it does not need escaping as value
+        assertEquals(Arrays.asList("command pre test post",
+                                   "command pre a post",
+                                   "command pre b post"), registry.expandCommands(null, "command pre @test[a=\"b\"] post"));
+
+        // The quote gets unescaped but it contains contents with escaped " quotes
+        // These end up as the value ("b"), which then must be escaped again when output as expanded command argument
+        assertEquals(Arrays.asList("command pre test post",
+                                   "command pre a post",
+                                   "command pre \"\\\"b\\\"\" post"), registry.expandCommands(null, "command pre @test[a=\"\\\"b\\\"\"] post"));
     }
 
     @Test
@@ -110,30 +124,11 @@ public class SelectorHandlerTest {
                                    "command pre b post",
                                    "command pre c post",
                                    "command pre d post"), registry.expandCommands(null, "command pre @test[a=b,c=d] post"));
-    }
-
-    @Test
-    public void testHandlerTwoArgsQuoted() {
-        assertEquals(Arrays.asList("command test",
-                "command a",
-                "command b",
-                "command c",
-                "command d"), registry.expandCommands(null, "command \"@test[a=b,c=d]\""));
-        assertEquals(Arrays.asList("command pre test",
-                "command pre a",
-                "command pre b",
-                "command pre c",
-                "command pre d"), registry.expandCommands(null, "command pre \"@test[a=b,c=d]\""));
-        assertEquals(Arrays.asList("command test post",
-                "command a post",
-                "command b post",
-                "command c post",
-                "command d post"), registry.expandCommands(null, "command \"@test[a=b,c=d]\" post"));
         assertEquals(Arrays.asList("command pre test post",
-                "command pre a post",
-                "command pre b post",
-                "command pre c post",
-                "command pre d post"), registry.expandCommands(null, "command pre \"@test[a=b,c=d]\" post"));
+                                   "command pre a post",
+                                   "command pre b post",
+                                   "command pre c post",
+                                   "command pre d post"), registry.expandCommands(null, "command pre @test[a=\"b\",c=\"d\"] post"));
     }
 
     @Test
@@ -211,6 +206,13 @@ public class SelectorHandlerTest {
         assertEquals(Arrays.asList("command test",
                                    "command a",
                                    "command \"!b\""), registry.expandCommands(null, "command @test[a=!b]"));
+    }
+
+    @Test
+    public void testHandlerWithDotKeyValues() {
+        assertEquals(Arrays.asList("command test",
+                                   "command a.b",
+                                   "command value"), registry.expandCommands(null, "command @test[a.b=value]"));
     }
 
     @Test
