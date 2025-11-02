@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.control;
 
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.component.LibraryComponent;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
@@ -24,7 +25,7 @@ import java.util.UUID;
  * Team implementations are available: glow colors, disabling collision and
  * a disabled team which removes an entity from all teams when assigned.
  */
-public class TeamProvider {
+public class TeamProvider implements LibraryComponent {
     private final TrainCarts plugin;
     private final UniqueHash teamIdHash = new UniqueHash();
     private final Map<Player, ViewerState> viewerStates = new HashMap<>();
@@ -118,12 +119,14 @@ public class TeamProvider {
     /**
      * Enables the provider, initializing background services
      */
+    @Override
     public synchronized void enable() {
     }
 
     /**
      * Disables the provider, resetting state immediately
      */
+    @Override
     public synchronized void disable() {
         if (!this.pendingTeamUpdates.isEmpty()) {
             this.pendingTeamUpdates.clear();

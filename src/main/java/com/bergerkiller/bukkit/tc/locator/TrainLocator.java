@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import com.bergerkiller.bukkit.common.component.LibraryComponent;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.Task;
@@ -16,11 +17,17 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
  * Displays line particles between a player and one or more trains
  * to locate them.
  */
-public class TrainLocator {
+public class TrainLocator implements LibraryComponent {
+    private final TrainCarts plugin;
     private final Map<Key, TrainLocatorEntry> locators = new HashMap<>();
     private Task updateTask;
 
-    public void enable(TrainCarts plugin) {
+    public TrainLocator(TrainCarts plugin) {
+        this.plugin = plugin;
+    }
+
+    @Override
+    public void enable() {
         this.updateTask = new Task(plugin) {
             @Override
             public void run() {
@@ -45,6 +52,7 @@ public class TrainLocator {
         };
     }
 
+    @Override
     public void disable() {
         Task.stop(updateTask);
         this.updateTask = null;

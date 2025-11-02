@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.bergerkiller.bukkit.common.cloud.CloudSimpleHandler;
+import com.bergerkiller.bukkit.common.component.LibraryComponent;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -49,7 +50,7 @@ import org.bukkit.command.CommandSender;
 /**
  * Default traincarts property registry implementation
  */
-public final class TCPropertyRegistry implements IPropertyRegistry {
+public final class TCPropertyRegistry implements IPropertyRegistry, LibraryComponent {
     // Used by findPatternLiterals(String)
     private static final Pattern LITERALS_PATTERN = Pattern.compile("([\\w\\s]+)\\|?");
 
@@ -76,6 +77,7 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
         this.commands = commands;
     }
 
+    @Override
     public void enable() {
         // Register the PropertyCheckPermission annotation, which will run
         // a handler to check various property permissions before executing
@@ -100,6 +102,10 @@ public final class TCPropertyRegistry implements IPropertyRegistry {
         // Register commands of properties that were added before this registry was enabled
         pendingProperties.forEach(this::parsePropertyAnnotations);
         pendingProperties.clear();
+    }
+
+    @Override
+    public void disable() {
     }
 
     private IProperty<?> currentlyParsedProperty() {

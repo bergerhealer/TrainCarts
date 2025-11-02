@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.control.schematic;
 
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.component.LibraryComponent;
 import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCConfig;
@@ -49,7 +50,7 @@ import java.util.stream.Stream;
  * even after successfully loading the full schematic, as this signals that the
  * loader can release the schematic from the memory cache.
  */
-public class WorldEditSchematicLoader {
+public class WorldEditSchematicLoader implements LibraryComponent {
     private static final long SCHEMATIC_EXPIRE_TIME_MS = (30*60*1000); // After 30 mins
     private static final long SCHEMATIC_EXPIRE_TASK_INTERVAL = (20*60); // Every minute
     private final TrainCarts plugin;
@@ -85,6 +86,7 @@ public class WorldEditSchematicLoader {
      * Enables the worldedit schematic loader. Does not enable if WorldEdit isn't installed,
      * or loading of schematics is disabled in TrainCarts configuration.
      */
+    @Override
     public void enable() {
         // If disabled in the config, or WorldEdit isn't loaded/enabled, do not enable at all
         if (!TCConfig.allowSchematicAttachment || !CommonCapabilities.HAS_DISPLAY_ENTITY) {
@@ -140,6 +142,7 @@ public class WorldEditSchematicLoader {
      * Shuts down this schematic loader, if it was ever enabled. All previously loaded
      * schematics are purged.
      */
+    @Override
     public void disable() {
         isShuttingDown = true;
         if (loaderThread != null) {

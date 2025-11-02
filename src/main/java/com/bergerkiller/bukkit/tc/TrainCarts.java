@@ -805,7 +805,7 @@ public class TrainCarts extends PluginBase {
 
         //Initialize early so that others can register handlers
         //Loading is done in enable()
-        this.pathProvider = new PathProvider(this);
+        this.pathProvider = new PathProvider(this, getDataFolder() + File.separator + "destinations.dat");
 
         // We allow other plugins to register stuff during onLoad() as well
         plugin = this;
@@ -875,12 +875,12 @@ public class TrainCarts extends PluginBase {
         this.teamProvider.enable();
 
         //Initialize train locator manager
-        this.trainLocator = new TrainLocator();
-        this.trainLocator.enable(this);
+        this.trainLocator = new TrainLocator(this);
+        this.trainLocator.enable();
 
         //Initialize route manager
         this.routeManager = new RouteManager(getDataFolder() + File.separator + "routes.yml");
-        this.routeManager.load();
+        this.routeManager.enable();
 
         //Initialize SmoothCoastersAPI
         this.smoothCoastersAPI = new SmoothCoastersAPI(this);
@@ -893,7 +893,7 @@ public class TrainCarts extends PluginBase {
         Statement.init();
 
         // Start the path finding task
-        this.pathProvider.enable(getDataFolder() + File.separator + "destinations.dat");
+        this.pathProvider.enable();
 
         // Initialize train updater task
         // This initially uses a single-threaded updater because of a paper synchronization bug

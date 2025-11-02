@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
+import com.bergerkiller.bukkit.common.component.LibraryComponent;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import org.bukkit.Bukkit;
@@ -60,7 +61,7 @@ import com.google.common.collect.ListMultimap;
  * or worlds signs are in unload. Data is persistently stored
  * to disk in the background.
  */
-public class OfflineSignStore {
+public class OfflineSignStore implements LibraryComponent {
     private final TrainCarts plugin;
     private final ModuleLogger logger;
     private final OfflineWorldMap<OfflineSignWorldStore> byWorld = new OfflineWorldMap<>();
@@ -101,6 +102,7 @@ public class OfflineSignStore {
      * Enables the store for first-time use. Loads the save file and starts the background
      * writer.
      */
+    @Override
     public void enable() {
         legacyImporter.enable();
         writer.start();
@@ -115,6 +117,7 @@ public class OfflineSignStore {
     /**
      * Disables the store, saves any pending data and shuts down the writer.
      */
+    @Override
     public void disable() {
         // For all handlers still registered, print a warning. As that can be bad.
         // Handlers should unregister itself while their respective plugin disables

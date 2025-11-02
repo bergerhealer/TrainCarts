@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.pathfinding;
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.component.LibraryComponent;
 import com.bergerkiller.bukkit.common.config.CompressedDataReader;
 import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
@@ -46,10 +47,11 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
-public class PathProvider extends Task implements TrainCarts.Provider {
+public class PathProvider extends Task implements LibraryComponent, TrainCarts.Provider {
     private static final String SWITCHER_NAME_FALLBACK = "::traincarts::switchable::";
     public static final int DEFAULT_MAX_PROCESSING_PER_TICK = 30; // Maximum processing time in Ms per tick
     public static boolean DEBUG_MODE = false;
+    private final String fileName;
     private final Map<String, PathWorld> worlds = new HashMap<String, PathWorld>();
     private final List<PathRoutingHandler> handlers = new ArrayList<PathRoutingHandler>();
     /**
@@ -92,8 +94,9 @@ public class PathProvider extends Task implements TrainCarts.Provider {
     private boolean hasChanges = false;
     private int maxProcessingPerTick = DEFAULT_MAX_PROCESSING_PER_TICK;
 
-    public PathProvider(TrainCarts plugin) {
+    public PathProvider(TrainCarts plugin, String fileName) {
         super(plugin);
+        this.fileName = fileName;
 
         // Default TrainCarts routing handler - for signs
         registerRoutingHandler(new PathRoutingHandler() {
@@ -230,10 +233,11 @@ public class PathProvider extends Task implements TrainCarts.Provider {
         this.sendersToNotifyOfCompletion.add(sender);
     }
 
-    public void enable(String filename) {
+    @Override
+    public void enable() {
         this.start(1, 1);
 
-        new CompressedDataReader(filename) {
+        new CompressedDataReader(fileName) {
             public void read(DataInputStream stream) throws IOException {
                 // clear all previous data by clearing the worlds mapping
                 worlds.clear();
@@ -281,6 +285,7 @@ public class PathProvider extends Task implements TrainCarts.Provider {
         }
     }
 
+    @Override
     public void disable() {
         this.stop();
 

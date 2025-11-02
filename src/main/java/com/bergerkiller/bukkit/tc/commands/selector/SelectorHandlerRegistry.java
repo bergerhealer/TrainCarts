@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.bergerkiller.bukkit.common.component.LibraryComponent;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
@@ -39,7 +40,7 @@ import com.bergerkiller.generated.net.minecraft.server.network.PlayerConnectionH
  * For full initialization, plugins should register an instance of this Class
  * as a Listener in the Bukkit API.
  */
-public class SelectorHandlerRegistry implements Listener {
+public class SelectorHandlerRegistry implements Listener, LibraryComponent {
     // ^\[([\w\d\s\-\+=,\*\.\!\"\'\\]+)\](?:\s|$)
     private static final Pattern CONDITIONS_PATTERN = Pattern.compile("^\\[([\\w\\d\\s\\-\\+=,\\*\\.\\!\\\"\\'\\\\]+)\\](?:\\s|$)");
 
@@ -54,8 +55,13 @@ public class SelectorHandlerRegistry implements Listener {
      * Enables this selector handler registry so that it will start pre-processing
      * commands.
      */
+    @Override
     public void enable() {
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
+    }
+
+    @Override
+    public void disable() {
     }
 
     /**

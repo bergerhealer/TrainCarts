@@ -4,19 +4,30 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.bergerkiller.bukkit.common.component.LibraryComponent;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 
 /**
  * Saved destination route manager. Is used to save sequences of destinations
  * to file so they can be quickly applied to trains or minecarts.
  */
-public class RouteManager {
+public class RouteManager implements LibraryComponent {
     private final FileConfiguration config;
     private boolean changed;
 
     public RouteManager(String configFileName) {
         this.config = new FileConfiguration(configFileName);
         this.changed = false;
+    }
+
+    @Override
+    public void enable() {
+        load();
+    }
+
+    @Override
+    public void disable() {
+        // save is handled elsewhere
     }
 
     /**
