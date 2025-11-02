@@ -2578,7 +2578,8 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
      * Gets whether this Minecart Member can be taken by players when they log off, or when the server is shut down.
      * Ejects players when they log off, if this returns false.
      */
-    public boolean isPlayerTakable() {
+    // @Override (on new BKCL API)
+    public boolean isPlayerTakeable() {
         if (this.isUnloaded()) {
             return this.unloadedLastPlayerTakable;
         } else {

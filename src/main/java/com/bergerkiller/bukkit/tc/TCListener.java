@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.chunk.ForcedChunk;
 import com.bergerkiller.bukkit.common.collections.EntityMap;
@@ -79,6 +80,7 @@ import java.util.logging.Level;
 public class TCListener implements Listener {
     private static final boolean DEBUG_DO_TRACKTEST = false;
     private static final boolean DEBUG_DO_INVISIBLE_TRACK = false;
+    private static final boolean MUST_CHECK_PLAYER_TAKE = !Common.hasCapability("Common:EntityController:isPlayerTakeable");
     private static final long SIGN_CLICK_INTERVAL = 500; // Interval in MS where left-click interaction is allowed
     private static final long MAX_INTERACT_INTERVAL = 300; // Interval in MS where spam-interaction is allowed
     public static boolean cancelNextDrops = false;
@@ -94,11 +96,13 @@ public class TCListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
         // Eject players from minecarts if player takable is false
-        MinecartMember<?> vehicle = MinecartMemberStore.getFromEntity(event.getPlayer().getVehicle());
-        if (vehicle != null && !vehicle.isPlayerTakable()) {
-            // Eject the player before proceeding to the saving
-            // This prevents the player 'taking' the minecart with him
-            vehicle.getEntity().removePassenger(event.getPlayer());
+        if (MUST_CHECK_PLAYER_TAKE) {
+            MinecartMember<?> vehicle = MinecartMemberStore.getFromEntity(event.getPlayer().getVehicle());
+            if (vehicle != null && !vehicle.isPlayerTakeable()) {
+                // Eject the player before proceeding to the saving
+                // This prevents the player 'taking' the minecart with him
+                vehicle.getEntity().removePassenger(event.getPlayer());
+            }
         }
 
         // Clean up the fake teams we've sent

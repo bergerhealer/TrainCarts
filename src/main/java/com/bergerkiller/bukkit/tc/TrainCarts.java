@@ -1114,17 +1114,21 @@ public class TrainCarts extends PluginBase {
         //this corrects minecart positions before saving
         MinecartGroupStore.doPostMoveLogic();
 
-        //go by all minecart member entities on the server and eject those that have players inside
-        //this makes sure that the default save function doesn't overwrite it
-        for (World world : WorldUtil.getWorlds()) {
-            for (Chunk chunk : WorldUtil.getChunks(world)) {
-                for (org.bukkit.entity.Entity entity : ChunkUtil.getEntities(chunk)) {
-                    if (entity instanceof Minecart) {
-                        CommonEntity<?> commonEntity = CommonEntity.get(entity);
-                        if (commonEntity.hasPlayerPassenger()) {
-                            MinecartMember<?> member = commonEntity.getController(MinecartMember.class);
-                            if (member != null && !member.isPlayerTakable()) {
-                                commonEntity.eject();
+        // Go by all minecart member entities on the server and eject those that have players inside
+        // This makes sure that the default save function doesn't overwrite it
+        // No need to do this when BKCommonLib handles the player takeable logic themselves, then
+        // this is automatically done during clearControllers() / plugin shutdown.
+        if (!Common.hasCapability("Common:EntityController:isPlayerTakeable")) {
+            for (World world : WorldUtil.getWorlds()) {
+                for (Chunk chunk : WorldUtil.getChunks(world)) {
+                    for (org.bukkit.entity.Entity entity : ChunkUtil.getEntities(chunk)) {
+                        if (entity instanceof Minecart) {
+                            CommonEntity<?> commonEntity = CommonEntity.get(entity);
+                            if (commonEntity.hasPlayerPassenger()) {
+                                MinecartMember<?> member = commonEntity.getController(MinecartMember.class);
+                                if (member != null && !member.isPlayerTakeable()) {
+                                    commonEntity.eject();
+                                }
                             }
                         }
                     }
