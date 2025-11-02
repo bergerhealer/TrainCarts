@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.bergerkiller.bukkit.tc.TCConfig;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
@@ -38,26 +39,40 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         builder.yellow("Collision rules for the train:");
 
         // Blocks
-        builder.newLine().yellow(" - ").red(opt.blockMode().getOperationName());
-        builder.yellow(" ").blue("blocks");
+        appendCollisionMode(builder, opt.blockMode(), "blocks");
+
+        // Administrators forced to default using config.yml
+        if (TCConfig.collisionIgnoreGlobalOwners) {
+            appendCollisionMode(builder, CollisionMode.DEFAULT, "administrators");
+            builder.newLine().white("      collision.ignoreGlobalOwners = true ").blue("[config.yml]");
+        }
+
+        // Administrators forced to default using config.yml
+        if (TCConfig.collisionIgnoreOwners) {
+            appendCollisionMode(builder, CollisionMode.DEFAULT, "owners of this train");
+            builder.newLine().white("      collision.ignoreOwners = true ").blue("[config.yml]");
+        }
 
         // Players
-        builder.newLine().yellow(" - ").red(opt.playerMode().getOperationName());
-        builder.yellow(" ").blue("players");
+        appendCollisionMode(builder, opt.playerMode(),
+                (TCConfig.collisionIgnoreGlobalOwners || TCConfig.collisionIgnoreOwners)
+                        ? "other players" : "players");
 
         // Trains
-        builder.newLine().yellow(" - ").red(opt.trainMode().getOperationName());
-        builder.yellow(" ").blue("other trains");
+        appendCollisionMode(builder, opt.trainMode(), "other trains");
 
         // Mob categories
         for (Map.Entry<CollisionMobCategory, CollisionMode> entry : opt.mobModes().entrySet()) {
-            builder.newLine().yellow(" - ").red(entry.getValue().getOperationName());
-            builder.yellow(" ").blue(entry.getKey().getPluralMobType());
+            appendCollisionMode(builder, entry.getValue(), entry.getKey().getPluralMobType());
         }
 
         // Misc
-        builder.newLine().yellow(" - ").red(opt.miscMode().getOperationName());
-        builder.yellow(" ").blue("miscellaneous entities");
+        appendCollisionMode(builder, opt.miscMode(), "miscellaneous entities");
+    }
+
+    private void appendCollisionMode(MessageBuilder builder, CollisionMode mode, String who) {
+        builder.newLine().yellow(" - ").red(mode.getOperationName())
+                .yellow(" ").blue(who);
     }
 
     @CommandTargetTrain
