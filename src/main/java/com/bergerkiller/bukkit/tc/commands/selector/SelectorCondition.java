@@ -140,6 +140,18 @@ public class SelectorCondition {
     }
 
     /**
+     * Gets the argument value specified as a boolean.
+     * Throws a SelectorException if this value expression does not denote
+     * a boolean, or specifies a range of numbers instead of a single number.
+     *
+     * @return boolean
+     * @throws SelectorException
+     */
+    public boolean getBoolean() throws SelectorException {
+        throw new SelectorException(key + " value is not a boolean");
+    }
+
+    /**
      * Checks whether the given number value matches this selector
      * value expression. Throws a SelectorException if this value expression
      * does not denote a number.
@@ -184,6 +196,16 @@ public class SelectorCondition {
      * @return True if a number was specified
      */
     public boolean isNumber() {
+        return false;
+    }
+
+    /**
+     * Whether this selector condition represents a boolean. This can be true/false/yes/no,
+     * or a number "1" or "0" only.
+     *
+     * @return True if a boolean was specified
+     */
+    public boolean isBoolean() {
         return false;
     }
 
@@ -300,7 +322,7 @@ public class SelectorCondition {
 
         // Truthy value
         if (!unescapedValue.isQuoteEscaped()) {
-            SelectorConditionTruthy truthy = SelectorConditionTruthy.tryParse(key, value);
+            SelectorConditionBoolean truthy = SelectorConditionBoolean.tryParse(key, value);
             if (truthy != null) {
                 return truthy;
             }
@@ -461,17 +483,28 @@ public class SelectorCondition {
 
         @Override
         public boolean matchesBoolean(boolean value) throws SelectorException {
-            if (valueLong == 0)
-                return !value;
-            else if (valueLong == 1)
-                return value;
+            return getBoolean() == value;
+        }
+
+        @Override
+        public boolean getBoolean() throws SelectorException {
+            if (valueDouble == 0.0)
+                return false;
+            else if (valueDouble == 1.0)
+                return true;
             else
-                throw new SelectorException(getKey() + " value must be truthy (0, 1, true, etc.)");
+                throw new SelectorException(getKey() + " value is not a boolean (0, 1, true, etc.)");
         }
 
         @Override
         public boolean isNumber() {
             return true;
+        }
+
+        @Override
+        public boolean isBoolean() {
+            // Must be exact, if someone specifies "0.1" it's not a boolean anymore
+            return valueDouble == 0.0 || valueDouble == 1.0;
         }
 
         @Deprecated
@@ -678,8 +711,8 @@ public class SelectorCondition {
     /**
      * A text expression that can indicate text, or a true/false condition
      */
-    private static class SelectorConditionTruthy extends SelectorCondition {
-        private static final Map<String, Boolean> truthyValues = new HashMap<>();
+    private static class SelectorConditionBoolean extends SelectorCondition {
+        private static final Map<String, Boolean> booleanConstants = new HashMap<>();
         static {
             register("yes", Boolean.TRUE);
             register("true", Boolean.TRUE);
@@ -688,32 +721,42 @@ public class SelectorCondition {
         }
 
         private static void register(String key, Boolean value) {
-            truthyValues.put(key, value); // true
-            truthyValues.put(key.toLowerCase(Locale.ENGLISH), value); // TRUE
-            truthyValues.put(key.substring(0, 1).toUpperCase(Locale.ENGLISH) +
+            booleanConstants.put(key, value); // true
+            booleanConstants.put(key.toLowerCase(Locale.ENGLISH), value); // TRUE
+            booleanConstants.put(key.substring(0, 1).toUpperCase(Locale.ENGLISH) +
                     key.substring(1), value); // True
         }
 
-        private final boolean truthyValue;
+        private final boolean booleanValue;
 
-        protected SelectorConditionTruthy(Key key, String value, boolean truthyValue) {
+        protected SelectorConditionBoolean(Key key, String value, boolean booleanValue) {
             super(key, value);
-            this.truthyValue = truthyValue;
+            this.booleanValue = booleanValue;
+        }
+
+        @Override
+        public boolean isBoolean() {
+            return true;
         }
 
         @Override
         public boolean matchesBoolean(boolean value) throws SelectorException {
-            return value == truthyValue;
+            return value == booleanValue;
+        }
+
+        @Override
+        public boolean getBoolean() throws SelectorException {
+            return booleanValue;
         }
 
         @Deprecated
-        public static SelectorConditionTruthy tryParse(String key, String value) {
+        public static SelectorConditionBoolean tryParse(String key, String value) {
             return tryParse(Key.parse(key), value);
         }
 
-        public static SelectorConditionTruthy tryParse(Key key, String value) {
-            Boolean truthy = truthyValues.get(value);
-            return (truthy == null) ? null : new SelectorConditionTruthy(key, value, truthy.booleanValue());
+        public static SelectorConditionBoolean tryParse(Key key, String value) {
+            Boolean truthy = booleanConstants.get(value);
+            return (truthy == null) ? null : new SelectorConditionBoolean(key, value, truthy.booleanValue());
         }
     }
 
