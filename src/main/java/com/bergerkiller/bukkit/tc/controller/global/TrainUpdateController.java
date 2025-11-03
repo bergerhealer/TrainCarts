@@ -5,6 +5,7 @@ import java.util.Random;
 import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.common.Common;
+import com.bergerkiller.bukkit.common.component.LibraryComponent;
 import com.bergerkiller.bukkit.tc.controller.player.TrainCartsAttachmentViewerMap;
 import com.bergerkiller.bukkit.tc.controller.player.network.PacketQueue;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -32,7 +33,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
  * <li>Tracks the server tick rate for the train realtime physics behavior</li>
  * </ul>
  */
-public class TrainUpdateController {
+public class TrainUpdateController implements LibraryComponent {
     private final TrainCarts plugin;
     private int tickUpdateDivider = 1; // allows slowing down of minecart physics globally (debugging!)
     private int tickUpdateNow = 0; // forces update ticks
@@ -82,7 +83,8 @@ public class TrainUpdateController {
         this.tickUpdateNow += number;
     }
 
-    public void preEnable() {
+    @Override
+    public void enable() {
         this.updateTask = new TrainUpdateTask(this.plugin);
         this.networkSyncTask = new TrainNetworkSyncTask();
 
@@ -103,10 +105,14 @@ public class TrainUpdateController {
         //new DebugArtificialLag(this.plugin).start(1, 1);
     }
 
-    public void postEnable() {
+    /**
+     * Called after enabling to begin updating attachment trees of all trains on the server.
+     */
+    public void startUpdatingAttachments() {
         this.updateTransformHelper = AttachmentUpdateTransformHelper.create(TCConfig.attachmentTransformParallelism);
     }
 
+    @Override
     public void disable() {
         Task.stop(this.updateTask);
         this.updateTask = null;

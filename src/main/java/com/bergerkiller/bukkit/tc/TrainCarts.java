@@ -108,7 +108,9 @@ import java.util.stream.Collectors;
 public class TrainCarts extends PluginBase {
     public static TrainCarts plugin;
 
-    /** Components that are disabled only after all trains have been unloaded */
+    /** Components that are disabled before all trains have been unloaded, but after saving */
+    private final LibraryComponentList<TrainCarts> optionalComponents = LibraryComponentList.forPlugin(this);
+    /** Components that are disabled only after all trains have been unloaded and after the optional components */
     private final LibraryComponentList<TrainCarts> criticalComponents = LibraryComponentList.forPlugin(this);
 
     private final Task autosaveTask = new AutosaveTask(this);
@@ -806,7 +808,9 @@ public class TrainCarts extends PluginBase {
         this.offlineSignStore.load();
 
         // Initialize various offline-sign based signs that require info during enabling
-        this.enableOfflineSignHandlers();
+        MutexZoneCache.init(this);
+        this.spawnSignManager.load();
+        SignActionDetector.INSTANCE.enable(this);
 
         //Initialize early so that others can register handlers
         //Loading is done in enable()
@@ -865,7 +869,7 @@ public class TrainCarts extends PluginBase {
         criticalComponents.enable(worldEditSchematicLoader);
 
         //Automatically tracks the signs that are loaded
-        this.signController.enable();
+        optionalComponents.enable(signController);
 
         //Automatically saves sign metadata to disk in the background
         //For worlds not already loaded, loads metadata where this is a condition
@@ -878,8 +882,7 @@ public class TrainCarts extends PluginBase {
         criticalComponents.enable(trainLocator);
 
         //Initialize route manager
-        this.routeManager = new RouteManager(getDataFolder() + File.separator + "routes.yml");
-        this.routeManager.enable();
+        routeManager = optionalComponents.enable(new RouteManager(getDataFolder() + File.separator + "routes.yml"));
 
         //Initialize SmoothCoastersAPI
         this.smoothCoastersAPI = new SmoothCoastersAPI(this);
@@ -892,11 +895,11 @@ public class TrainCarts extends PluginBase {
         Statement.init();
 
         // Start the path finding task
-        this.pathProvider.enable();
+        optionalComponents.enable(pathProvider);
 
         // Initialize train updater task
         // This initially uses a single-threaded updater because of a paper synchronization bug
-        this.trainUpdateController.preEnable();
+        optionalComponents.enable(trainUpdateController);
 
         //Load properties
         TrainProperties.load(this);
@@ -952,8 +955,8 @@ public class TrainCarts extends PluginBase {
         this.register(new TrainChestListener(this));
 
         // Temporary per-player listener system
-        this.playerClientSynchronizerProvider.enable();
-        this.playerPacketListenerProvider.enable();
+        optionalComponents.enable(playerClientSynchronizerProvider);
+        optionalComponents.enable(playerPacketListenerProvider);
 
         // Only registered when needed...
         if (TCSuppressSeatTeleportPacketListener.SUPPRESS_POST_ENTER_PLAYER_POSITION_PACKET) {
@@ -1030,7 +1033,7 @@ public class TrainCarts extends PluginBase {
         }
 
         // Now all is setup right, start a (potential) multithreaded updater
-        this.trainUpdateController.postEnable();
+        this.trainUpdateController.startUpdatingAttachments();
     }
 
     @Override
@@ -1088,17 +1091,10 @@ public class TrainCarts extends PluginBase {
         Task.stop(cacheCleanupTask);
         Task.stop(mutexZoneUpdateTask);
 
-        // Temporary per-player listener system
-        this.playerClientSynchronizerProvider.disable();
-        this.playerPacketListenerProvider.disable();
-
         //Stop preloading chunks (happens when quickly disabling after enabling)
         for (ChunkPreloadTask preloadTask : this.chunkPreloadTasks) {
             preloadTask.abortPreloading();
         }
-
-        //stop updating
-        trainUpdateController.disable();
 
         //update max item stack
         if (TCConfig.maxMinecartStackSize != 1) {
@@ -1183,12 +1179,6 @@ public class TrainCarts extends PluginBase {
         //save all data to disk (autosave=false)
         save(SaveMode.SHUTDOWN);
 
-        // Disable path provider before de-initializing path nodes / sign actions
-        if (this.pathProvider != null) {
-            this.pathProvider.disable();
-            this.pathProvider = null;
-        }
-
         // Deinit classes
         ArrivalSigns.deinit();
         SignActionSpawn.deinit();
@@ -1197,7 +1187,13 @@ public class TrainCarts extends PluginBase {
         ItemAnimation.deinit();
         offlineGroupManager.deinit();
         RailLookup.clear();
-        this.signController.disable();
+
+        // Shut down all optional components not required for unloading / saving trains on shutdown
+        // Avoids components doing a bunch of tracking / event handling for trains that are unloading
+        optionalComponents.disable();
+
+        // Make invalid
+        this.pathProvider = null;
 
         // Now plugin is mostly shut down, de-register all MinecartMember controllers from the server
         undoAllTCControllers();
@@ -1206,7 +1202,9 @@ public class TrainCarts extends PluginBase {
         AttachmentTypeRegistry.instance().unregisterAll();
 
         // De-register any offline sign handlers
-        this.disableOfflineSignHandlers();
+        MutexZoneCache.deinit(this);
+        this.spawnSignManager.disable();
+        SignActionDetector.INSTANCE.disable(this);
 
         // Now shut down the critical components
         criticalComponents.disable();
@@ -1264,18 +1262,6 @@ public class TrainCarts extends PluginBase {
 
         // Save train information
         offlineGroupManager.save(saveMode);
-    }
-
-    private void enableOfflineSignHandlers() {
-        MutexZoneCache.init(this);
-        this.spawnSignManager.load();
-        SignActionDetector.INSTANCE.enable(this);
-    }
-
-    private void disableOfflineSignHandlers() {
-        MutexZoneCache.deinit(this);
-        this.spawnSignManager.disable();
-        SignActionDetector.INSTANCE.disable(this);
     }
 
     public void setBlockDataWithoutBreaking(Block block, BlockData blockData) {
