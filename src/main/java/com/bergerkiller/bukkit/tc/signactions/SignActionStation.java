@@ -188,4 +188,9 @@ public class SignActionStation extends TrainCartsSignAction {
         }
         return false;
     }
+
+    @Override
+    public String getDescriptiveOutputName(SignActionEvent event) {
+        return "Train waiting on station";
+    }
 }

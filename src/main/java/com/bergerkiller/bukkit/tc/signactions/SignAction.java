@@ -681,4 +681,19 @@ public abstract class SignAction {
     public boolean signTextChanged(SignActionEvent event) {
         return true;
     }
+
+    /**
+     * Gets a description of when a lever output of this sign is toggled. This
+     * description is displayed in "debug mode" when players place down levers
+     * onto a block bearing this sign action.<br>
+     * <br>
+     * For example, stations would return text indicating the sign toggles down
+     * the lever when a train is locked by the station on top.
+     *
+     * @param event Details about the sign
+     * @return Output description, or <i>null</i> if this sign action has no output (default)
+     */
+    public String getDescriptiveOutputName(SignActionEvent event) {
+        return null;
+    }
 }

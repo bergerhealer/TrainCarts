@@ -60,6 +60,11 @@ public class SignActionMutex extends TrainCartsSignAction {
     }
 
     @Override
+    public String getDescriptiveOutputName(SignActionEvent event) {
+        return "Train is inside mutex zone";
+    }
+
+    @Override
     public void loadedChanged(SignActionEvent info, boolean loaded) {
         // Note: we ignore unloading, it stays active even while the sign chunk isn't loaded
         // Removal occurs when the offline sign metadata store signals the sign is gone

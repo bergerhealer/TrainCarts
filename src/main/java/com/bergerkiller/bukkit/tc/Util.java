@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -37,6 +38,7 @@ import com.bergerkiller.mountiplex.reflection.util.FastMethod;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -2202,5 +2204,36 @@ public class Util {
         PacketHandle create(float yaw, boolean isYawRelative, float pitch, boolean isPitchRelative);
         float getYaw(PacketHandle p);
         float getPitch(PacketHandle p);
+    }
+
+    private static final EnumMap<ChatColor, Color> COLOR_TO_RGB = new EnumMap<>(ChatColor.class);
+    private static final Color UNKNOWN_CHAT_COLOR = Color.fromRGB(252, 252, 252);
+    static {
+        COLOR_TO_RGB.put(ChatColor.BLACK, Color.fromRGB(0, 0, 0));
+        COLOR_TO_RGB.put(ChatColor.DARK_BLUE, Color.fromRGB(0, 0, 168));
+        COLOR_TO_RGB.put(ChatColor.DARK_GREEN, Color.fromRGB(0, 168, 0));
+        COLOR_TO_RGB.put(ChatColor.DARK_AQUA, Color.fromRGB(0, 168, 168));
+        COLOR_TO_RGB.put(ChatColor.DARK_RED, Color.fromRGB(168, 0, 0));
+        COLOR_TO_RGB.put(ChatColor.DARK_PURPLE, Color.fromRGB(168, 0, 168));
+        COLOR_TO_RGB.put(ChatColor.GOLD, Color.fromRGB(252, 168, 0));
+        COLOR_TO_RGB.put(ChatColor.GRAY, Color.fromRGB(168, 168, 168));
+        COLOR_TO_RGB.put(ChatColor.DARK_GRAY, Color.fromRGB(84, 84, 84));
+        COLOR_TO_RGB.put(ChatColor.BLUE, Color.fromRGB(84, 84, 252));
+        COLOR_TO_RGB.put(ChatColor.GREEN, Color.fromRGB(84, 252, 84));
+        COLOR_TO_RGB.put(ChatColor.AQUA, Color.fromRGB(84, 252, 252));
+        COLOR_TO_RGB.put(ChatColor.RED, Color.fromRGB(252, 84, 84));
+        COLOR_TO_RGB.put(ChatColor.LIGHT_PURPLE, Color.fromRGB(252, 84, 252));
+        COLOR_TO_RGB.put(ChatColor.YELLOW, Color.fromRGB(252, 252, 84));
+        COLOR_TO_RGB.put(ChatColor.WHITE, Color.fromRGB(252, 252, 252));
+    }
+
+    /**
+     * Converts a Chat (Team) color to a rgb color value as it is displayed in the game
+     *
+     * @param chatColor Chat Color / Team Color
+     * @return RGB Color
+     */
+    public static Color toColor(ChatColor chatColor) {
+        return COLOR_TO_RGB.getOrDefault(chatColor, UNKNOWN_CHAT_COLOR);
     }
 }

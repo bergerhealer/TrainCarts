@@ -2,10 +2,12 @@ package com.bergerkiller.bukkit.tc.rails;
 
 import com.bergerkiller.bukkit.common.block.SignChangeTracker;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.StreamUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.offline.train.format.OfflineDataBlock;
+import com.bergerkiller.bukkit.tc.utils.ListCallbackCollector;
 import org.bukkit.block.Block;
 
 import java.io.ByteArrayInputStream;
@@ -118,6 +120,21 @@ public final class TrackedSignLookup implements TrainCarts.Provider {
             }
         }
         return null;
+    }
+
+    /**
+     * Gets a List of tracked signs that are 'attached' to a particular block,
+     * and if they output anything, would toggle levers on that block.
+     *
+     * @param block Block to check
+     * @return List of tracked signs that are 'attached'/assigned to this block
+     */
+    public List<RailLookup.TrackedSign> getOutputtingTrackedSigns(Block block) {
+        List<RailLookup.TrackedSign> results = Collections.emptyList();
+        for (SignSupplier supplier : suppliers) {
+            results = LogicUtil.combineUnmodifiableLists(results, supplier.getOutputtingTrackedSigns(plugin, block));
+        }
+        return results;
     }
 
     /**
@@ -340,7 +357,8 @@ public final class TrackedSignLookup implements TrainCarts.Provider {
     }
 
     /**
-     * Supplies tracked signs from the unique key the tracked sign had
+     * Supplies tracked signs from the unique key the tracked sign had, or from
+     * a "rail block" they are assigned to toggle the output of.
      */
     @FunctionalInterface
     public interface SignSupplier {
@@ -352,6 +370,18 @@ public final class TrackedSignLookup implements TrainCarts.Provider {
          * @return TrackedSign with this key
          */
         RailLookup.TrackedSign getTrackedSign(Object uniqueKey);
+
+        /**
+         * Gets a List of tracked signs that are 'attached' to a particular block,
+         * and if they output anything, would toggle levers on that block.
+         *
+         * @param trainCarts Main TrainCarts plugin instance
+         * @param block Block to check
+         * @return List of tracked signs that are 'attached'/assigned to this block
+         */
+        default List<RailLookup.TrackedSign> getOutputtingTrackedSigns(TrainCarts trainCarts, Block block) {
+            return Collections.emptyList();
+        }
     }
 
     private static class RealSignKeySerializer implements KeySerializer<RealSignKey> {
@@ -392,6 +422,22 @@ public final class TrackedSignLookup implements TrainCarts.Provider {
             }
 
             return null;
+        }
+
+        @Override
+        public List<RailLookup.TrackedSign> getOutputtingTrackedSigns(TrainCarts trainCarts, Block block) {
+            ListCallbackCollector<RailLookup.TrackedSign> signs = new ListCallbackCollector<>();
+            trainCarts.getSignController().forWorld(block.getWorld()).forEachNearbyVerify(block, true, entry -> {
+                if (entry.sign.isAttachedTo(block)) {
+                    if (entry.front.hasSignAction()) {
+                        signs.accept(entry.front.createTrackedSign(null /* Discover */));
+                    }
+                    if (entry.back.hasSignAction()) {
+                        signs.accept(entry.back.createTrackedSign(null /* Discover */));
+                    }
+                }
+            });
+            return signs.result();
         }
     }
 

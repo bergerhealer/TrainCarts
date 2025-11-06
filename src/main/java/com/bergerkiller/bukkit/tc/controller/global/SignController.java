@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.common.block.SignSide;
 import com.bergerkiller.bukkit.common.events.SignEditTextEvent;
 import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.events.SignBuildEvent;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.signactions.util.SignActionLookupMap;
@@ -68,6 +69,8 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 
 public class SignController implements LibraryComponent, Listener {
     private static final int MAX_REDSTONE_UPDATES_PER_TICK = 100000; // Purely to avoid a server crash
+    private static final boolean CAN_DEBUG_DISPLAY_SIGNS = Common.hasCapability("Common:BlockData:GetInteractableBox");
+
     private final TrainCarts plugin;
     private final SignControllerWorld NONE = new SignControllerWorld(this); // Dummy
     private final IdentityHashMap<World, SignControllerWorld> byWorld = new IdentityHashMap<>();
@@ -651,6 +654,23 @@ public class SignController implements LibraryComponent, Listener {
     }
 
     /**
+     * Spawns a debug highlight box for a real sign.
+     *
+     * @param viewer AttachmentViewer viewer to spawn it for (and despawn it for)
+     * @param sign SignChangeTracker of the real sign to display
+     * @param options Options for displaying it
+     * @return Runnable callback that de-spawns the highlight again
+     */
+    public static Runnable spawnDebugHighlight(AttachmentViewer viewer, SignChangeTracker sign, RailLookup.TrackedSign.DebugDisplayOptions options) {
+        if (!CAN_DEBUG_DISPLAY_SIGNS || !viewer.supportsDisplayEntities()) {
+            return () -> {};
+        }
+        SignDebugHighlight highlight = new SignDebugHighlight(viewer);
+        highlight.spawn(sign, options);
+        return highlight;
+    }
+
+    /**
      * An optionally sorted list of sign entries
      */
     public static final class EntryList {
@@ -746,18 +766,6 @@ public class SignController implements LibraryComponent, Listener {
         public static EntryList createSingleton(Entry entry) {
             return new EntryList(new Entry[] { entry }, true);
         }
-    }
-
-    /**
-     * A single Minecraft chunk, with information about the signs that exist inside.
-     * Keeps track of whether these signs have been registered in the by-neighbouring-block
-     * mapping.
-     */
-    public static final class ChunkEntryList {
-        public EntryList entries = EntryList.NONE;
-        public boolean isNeighbouringBlocksLoaded = false;
-
-
     }
 
     /**

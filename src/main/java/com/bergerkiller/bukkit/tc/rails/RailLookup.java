@@ -6,8 +6,10 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.controller.global.SignController;
 import com.bergerkiller.bukkit.tc.controller.global.SignControllerWorld;
+import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -541,6 +543,25 @@ public final class RailLookup {
         public abstract void setLine(int index, String line) throws IndexOutOfBoundsException;
 
         /**
+         * Called when it is requested for this tracked sign to display a highlight of some sort
+         * that identifies this sign to the viewer. For vanilla signs, this displays a glowing
+         * box effect where the sign is located using the color specified. Other sign implementations
+         * can choose to do with this what they please. If not implemented, the sign is simply
+         * not going to be highlighted.<br>
+         * <br>
+         * Should return a {@link Runnable} callback that when run de-spawns / disables this highlight
+         * again.
+         *
+         * @param viewer AttachmentViewer for whom to display it
+         * @param options DebugDisplayOptions, which includes a ChatColor team color to use for any
+         *                colored outline
+         * @return A runnable callback to de-spawn the highlight again
+         */
+        public Runnable showDebugHighlight(AttachmentViewer viewer, DebugDisplayOptions options) {
+            return () -> {};
+        }
+
+        /**
          * Parses the first line of this tracked sign to get the typical sign action header
          * Traincarts uses. This is the [train] syntax.
          *
@@ -848,6 +869,19 @@ public final class RailLookup {
                 throw new IllegalArgumentException("No sign or sign block specified (null)");
             }
         }
+
+        /**
+         * Options passed to {@link #showDebugHighlight(AttachmentViewer, DebugDisplayOptions)}
+         */
+        public interface DebugDisplayOptions extends TrainCarts.Provider {
+            /**
+             * ChatColor team color to use as the outline, in case a glow-effect outline is
+             * used for display.
+             *
+             * @return Team Color
+             */
+            ChatColor getTeamColor();
+        }
     }
 
     /**
@@ -1047,6 +1081,11 @@ public final class RailLookup {
             }
 
             return lines.toArray(new String[0]);
+        }
+
+        @Override
+        public Runnable showDebugHighlight(AttachmentViewer viewer, DebugDisplayOptions options) {
+            return SignController.spawnDebugHighlight(viewer, tracker, options);
         }
 
         @Override

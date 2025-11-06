@@ -138,6 +138,11 @@ public class SignActionSwitcher extends TrainCartsSignAction {
     }
 
     @Override
+    public String getDescriptiveOutputName(SignActionEvent event) {
+        return "Train activates switcher";
+    }
+
+    @Override
     public void route(SignRoutingEvent event) {
         // Optimization
         if (TCConfig.onlyPoweredSwitchersDoPathFinding && event.getHeader().isAlwaysOff()) {

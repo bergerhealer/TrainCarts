@@ -63,6 +63,7 @@ public class TCConfig {
     public static int maxDetectorLength;
     public static int maxMutexSize;
     public static boolean debugMutexGlow;
+    public static boolean debugOutputLevers;
     public static int maxMinecartStackSize;
     public static int defaultTransferRadius;
     public static int maxTransferRadius;
@@ -321,6 +322,10 @@ public class TCConfig {
 
         config.setHeader("debugMutexGlow", "\nWhether to show a glowing see-through effect when showing mutexes with /train debug mutex");
         debugMutexGlow = config.get("debugMutexGlow", true);
+
+        config.setHeader("debugOutputLevers", "\nWhether to show ingame help about action sign output levers and when they toggle");
+        config.addHeader("debugOutputLevers", "This is shown using a glow effect and a text display. 1.19.4+ only.");
+        debugOutputLevers = config.get("debugOutputLevers", true);
 
         config.setHeader("maxMinecartStackSize", "\nThe maximum amount of minecart items that can be stacked in one item");
         maxMinecartStackSize = config.get("maxMinecartStackSize", 64);

@@ -204,6 +204,11 @@ public class SignActionDetector extends TrainCartsSignAction {
     }
 
     @Override
+    public String getDescriptiveOutputName(SignActionEvent event) {
+        return "Train activates detector";
+    }
+
+    @Override
     public boolean build(SignChangeActionEvent event) {
         if (!SignBuildOptions.create()
                 .setPermission(Permission.BUILD_DETECTOR)

@@ -86,6 +86,11 @@ public class SignActionPathingMutex extends TrainCartsSignAction {
     }
 
     @Override
+    public String getDescriptiveOutputName(SignActionEvent event) {
+        return "Train is activated pathing mutex";
+    }
+
+    @Override
     public boolean build(SignChangeActionEvent event) {
         return SignBuildOptions.create()
                 .setPermission(Permission.BUILD_MUTEX)

@@ -38,6 +38,8 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
             () -> EntityType.valueOf("BLOCK_DISPLAY"), null);
     public static final EntityType ITEM_DISPLAY_ENTITY_TYPE = LogicUtil.tryMake(
             () -> EntityType.valueOf("ITEM_DISPLAY"), null);
+    public static final EntityType TEXT_DISPLAY_ENTITY_TYPE = LogicUtil.tryMake(
+            () -> EntityType.valueOf("TEXT_DISPLAY"), null);
     public static final EntityType INTERACTION_ENTITY_TYPE = LogicUtil.tryMake(
             () -> EntityType.valueOf("INTERACTION"), null);
 
@@ -108,6 +110,10 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
 
         scale = new Vector(1.0, 1.0, 1.0);
         brightness = Brightness.UNSET;
+    }
+
+    public DataWatcher getMetadata() {
+        return metadata;
     }
 
     protected Vector computeTranslation(Quaternion rotation) {

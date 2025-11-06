@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.controller.DefaultEntityController;
 import com.bergerkiller.bukkit.common.conversion.type.HandleConversion;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
+import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.internal.legacy.MaterialsByName;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
 import com.bergerkiller.bukkit.common.metrics.Metrics;
@@ -41,6 +42,7 @@ import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.commands.selector.SelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.commands.selector.TCSelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.controller.*;
+import com.bergerkiller.bukkit.tc.controller.global.ActionSignHighlighter;
 import com.bergerkiller.bukkit.tc.controller.global.EffectLoopPlayerController;
 import com.bergerkiller.bukkit.tc.controller.global.SignController;
 import com.bergerkiller.bukkit.tc.controller.global.TrainCartsPlayer;
@@ -140,6 +142,7 @@ public class TrainCarts extends PluginBase {
     private final SignController signController = new SignController(this);
     private final TrainCartsAttachmentViewerMap attachmentViewerMap = new TrainCartsAttachmentViewerMap(this);
     private ResourcePackModelListing modelListing = new ResourcePackModelListing(); // Uninitialized
+    private ActionSignHighlighter actionSignHighlighter = null;
     private final WorldEditSchematicLoader worldEditSchematicLoader = new WorldEditSchematicLoader(this);
     private final TrainCartsPlayerStore playerStore = new TrainCartsPlayerStore(this);
     private final EffectLoopPlayerController effectLoopPlayerController = new EffectLoopPlayerController(this);
@@ -749,6 +752,7 @@ public class TrainCarts extends PluginBase {
 
         if (!isEnabling) {
             this.signController.updateEnabled();
+            this.actionSignHighlighter.updateEnabled();
         }
     }
 
@@ -957,6 +961,11 @@ public class TrainCarts extends PluginBase {
         // Temporary per-player listener system
         optionalComponents.enable(playerClientSynchronizerProvider);
         optionalComponents.enable(playerPacketListenerProvider);
+
+        // Responsible for the highlighted signs players see when hovering over blocks with a lever
+        if (CommonCapabilities.HAS_DISPLAY_ENTITY && Common.hasCapability("Common:Block:RayTraceUtilImprovements") && Common.hasCapability("Common:BlockData:GetInteractableBox")) {
+            actionSignHighlighter = optionalComponents.enable(new ActionSignHighlighter(this));
+        }
 
         // Only registered when needed...
         if (TCSuppressSeatTeleportPacketListener.SUPPRESS_POST_ENTER_PLAYER_POSITION_PACKET) {
