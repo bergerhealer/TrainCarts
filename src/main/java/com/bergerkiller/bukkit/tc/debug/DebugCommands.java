@@ -5,6 +5,7 @@ import java.util.Collections;
 
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
@@ -13,6 +14,8 @@ import com.bergerkiller.bukkit.common.wrappers.ItemDisplayMode;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
+import com.bergerkiller.bukkit.tc.attachments.particle.VirtualBoundingBox;
+import com.bergerkiller.bukkit.tc.attachments.surface.CollisionSurface;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
@@ -640,5 +643,43 @@ public class DebugCommands {
 
         if (look) {
         }
+    }
+
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
+    @Command("train debug surface")
+    private void commandDebugShulkerSurface(
+            final TrainCarts plugin,
+            final Player player,
+            final @Flag(value="width") Double widthFlag,
+            final @Flag(value="height") Double heightFlag,
+            final @Flag(value="behind") boolean behind
+    ) {
+        AttachmentViewer viewer = plugin.getAttachmentViewer(player);
+        Quaternion orientation = Quaternion.fromLookDirection(player.getEyeLocation().getDirection(), new Vector(0, 1, 0));
+        OrientedBoundingBox bbox = new OrientedBoundingBox();
+        Location eyeLoc = viewer.getPlayer().getEyeLocation();
+        bbox.setPosition(eyeLoc.add(eyeLoc.getDirection().setY(0.0).normalize().multiply(behind ? -10.0 : 10.0)).toVector());
+        bbox.setSize(LogicUtil.fixNull(widthFlag, 5.0), 0.0, LogicUtil.fixNull(heightFlag, 5.0));
+        bbox.setOrientation(orientation);
+
+        // Spawn a particle to display it
+        VirtualBoundingBox particle = VirtualBoundingBox.createPlane(null, MaterialUtil.getFirst("ICE", "LEGACY_ICE"));
+        particle.update(bbox);
+        particle.spawn(viewer, new Vector());
+
+        // Spawn the surface itself (stays until player logs off)
+        // Refresh it every tick so that it properly switches between front / back
+        final CollisionSurface surface = viewer.createCollisionSurface();
+        new Task(plugin) {
+            @Override
+            public void run() {
+                surface.clear();
+                if (!viewer.isConnected()) {
+                    stop();
+                    return;
+                }
+                surface.addSurface(bbox);
+            }
+        }.start(1, 1);
     }
 }
