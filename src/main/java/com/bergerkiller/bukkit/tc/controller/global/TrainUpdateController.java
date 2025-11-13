@@ -265,6 +265,8 @@ public class TrainUpdateController implements LibraryComponent {
             try (ImplicitlySharedSet<MinecartGroup> groups = MinecartGroupStore.getGroups().clone()) {
                 // Update train positions
                 syncPositions(groups, false);
+                // Refresh collision surfaces (causes more packets to be sent)
+                plugin.getAttachmentViewers().updateCollisionSurfaces();
                 // Update playback of synchronous effects (sound & particle packets)
                 plugin.getEffectLoopPlayerController().updateSync();
             } finally {

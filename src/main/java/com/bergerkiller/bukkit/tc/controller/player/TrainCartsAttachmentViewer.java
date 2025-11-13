@@ -7,6 +7,8 @@ import com.bergerkiller.bukkit.common.protocol.PlayerGameInfo;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
+import com.bergerkiller.bukkit.tc.attachments.surface.CollisionSurface;
+import com.bergerkiller.bukkit.tc.attachments.surface.CollisionSurfaceTracker;
 import com.bergerkiller.bukkit.tc.controller.player.network.PacketQueue;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchronizer;
 import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
@@ -37,6 +39,7 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     private final PlayerClientSynchronizer playerClientSynchronizer;
     private final Object activeMovementControllerLock;
     private volatile MovementControllerTicket activeMovementController;
+    CollisionSurfaceTracker collisionSurfaceTracker;
 
     TrainCartsAttachmentViewer(TrainCarts plugin, Player player, PlayerGameInfo playerGameInfo, PacketQueue packetQueue) {
         this.plugin = plugin;
@@ -51,6 +54,7 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
         this.playerClientSynchronizer = plugin.getPlayerClientSynchronizerProvider().forViewer(this);
         this.activeMovementControllerLock = new MovementControllerTicket();
         this.activeMovementController = new MovementControllerTicket();
+        this.collisionSurfaceTracker = null;
     }
 
     PacketQueue getPacketQueue() {
@@ -155,6 +159,18 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
             prev = activeMovementController.controller.getAndSet(MovementController.DISABLED);
         }
         prev.stop();
+    }
+
+    @Override
+    public CollisionSurface createCollisionSurface() {
+        CollisionSurfaceTracker collisionSurfaceTracker = this.collisionSurfaceTracker;
+        if (collisionSurfaceTracker == null) {
+            if (!isConnected()) {
+                return CollisionSurface.DISABLED;
+            }
+            this.collisionSurfaceTracker = collisionSurfaceTracker = new CollisionSurfaceTracker(this);
+        }
+        return collisionSurfaceTracker.createSurface();
     }
 
     @Override

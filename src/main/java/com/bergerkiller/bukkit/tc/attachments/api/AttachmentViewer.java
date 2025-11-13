@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.surface.CollisionSurface;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchronizer;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
 import com.bergerkiller.bukkit.common.math.Quaternion;
@@ -363,6 +364,26 @@ public interface AttachmentViewer extends TrainCarts.Provider {
         TrainCarts plugin = getTrainCarts();
         if (plugin.isEnabled()) {
             plugin.getAttachmentViewer(getPlayer()).stopControllingMovement();
+        }
+    }
+
+    /**
+     * Creates a new CollisionSurface instance for this player that is used to built up a collision
+     * geometry the player can walk on / prevents movement. Surface changes can be applied to
+     * the returned surface and stay available until {@link CollisionSurface#clear()} is
+     * called.<br>
+     * <br>
+     * A typical update loop involves calling clear, followed by adding the surfaces/tiles
+     * that should be visible to the player.
+     *
+     * @return CollisionSurface
+     */
+    default CollisionSurface createCollisionSurface() {
+        TrainCarts plugin = getTrainCarts();
+        if (plugin.isEnabled() && isConnected()) {
+            return plugin.getAttachmentViewer(getPlayer()).createCollisionSurface();
+        } else {
+            return CollisionSurface.DISABLED;
         }
     }
 

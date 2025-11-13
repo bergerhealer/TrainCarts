@@ -13,12 +13,16 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.particle.VirtualBoundingBox;
+import com.bergerkiller.bukkit.tc.attachments.surface.CollisionSurface;
+import com.bergerkiller.bukkit.tc.attachments.surface.CollisionSurfaceTracker;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A 2D plane (can tilt) above which players are kept positioned. The
@@ -60,6 +64,11 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
     public void makeHidden(AttachmentViewer viewer) {
         if (plane != null) {
             plane.makeHidden(viewer);
+        }
+
+        CollisionSurface surface = surfacesOfViewers.remove(viewer);
+        if (surface != null) {
+            surface.clear();
         }
     }
 
@@ -112,6 +121,20 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
             plane = null;
         }
 
+        spawnSurfaces();
+    }
+
+    private Map<AttachmentViewer, CollisionSurface> surfacesOfViewers = new HashMap<>();
+
+    private void spawnSurfaces() {
+        for (AttachmentViewer viewer : getAttachmentViewers()) {
+            CollisionSurface surface = surfacesOfViewers.computeIfAbsent(viewer, AttachmentViewer::createCollisionSurface);
+            surface.clear();
+            surface.addSurface(bbox);
+        }
+    }
+
+    private void lockPlayers() {
         Vector halfSize = bbox.getSize().clone().multiply(0.5);
         for (AttachmentViewer viewer : getAttachmentViewers()) {
             if (isLocked(viewer)) {

@@ -73,4 +73,15 @@ public class TrainCartsAttachmentViewerMap {
     public synchronized void forAllPacketQueues(Consumer<PacketQueue> operation) {
         queuesList.forEach(operation);
     }
+
+    /**
+     * Updates all active collision surfaces of all viewers that have them
+     */
+    public synchronized void updateCollisionSurfaces() {
+        viewers.values().forEach(v -> {
+            if (v.collisionSurfaceTracker != null) {
+                v.collisionSurfaceTracker.update();
+            }
+        });
+    }
 }
