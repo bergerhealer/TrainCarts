@@ -374,14 +374,33 @@ public interface AttachmentViewer extends TrainCarts.Provider {
      * called.<br>
      * <br>
      * A typical update loop involves calling clear, followed by adding the surfaces/tiles
-     * that should be visible to the player.
+     * that should be visible to the player.<br>
+     * <br>
+     * Uses the default view range (8), so this should be refreshed every tick.
      *
      * @return CollisionSurface
      */
     default CollisionSurface createCollisionSurface() {
+        return createCollisionSurface(CollisionSurface.DEFAULT_VIEW_RANGE);
+    }
+
+    /**
+     * Creates a new CollisionSurface instance for this player that is used to built up a collision
+     * geometry the player can walk on / prevents movement. Surface changes can be applied to
+     * the returned surface and stay available until {@link CollisionSurface#clear()} is
+     * called.<br>
+     * <br>
+     * A typical update loop involves calling clear, followed by adding the surfaces/tiles
+     * that should be visible to the player.
+     *
+     * @param viewRange Distance in blocks from which players can see this surface spawn in.
+     *                  Set to Integer.MAX_VALUE if it should always be visible.
+     * @return CollisionSurface
+     */
+    default CollisionSurface createCollisionSurface(int viewRange) {
         TrainCarts plugin = getTrainCarts();
         if (plugin.isEnabled() && isConnected()) {
-            return plugin.getAttachmentViewer(getPlayer()).createCollisionSurface();
+            return plugin.getAttachmentViewer(getPlayer()).createCollisionSurface(viewRange);
         } else {
             return CollisionSurface.DISABLED;
         }

@@ -20,6 +20,7 @@ class OBBSurfaceContext {
     public final Vector normal;
     public final Vector halfSize;
     public final Vector playerPos;
+    public final boolean isFullyClipped;
     public final boolean isWall;
     public final boolean isBackSide;
     public final Vector planeMin, planeMax;
@@ -33,7 +34,7 @@ class OBBSurfaceContext {
     public final Vector projectedPos = new Vector();
     public final Vector projectedPosOnPlane = new Vector();
 
-    public OBBSurfaceContext(OrientedBoundingBox surfaceBbox, Vector playerPos) {
+    public OBBSurfaceContext(OrientedBoundingBox surfaceBbox, Vector playerPos, int playerViewRange) {
         this.position = surfaceBbox.getPosition();
         this.halfSize = surfaceBbox.getSize().clone().multiply(0.5);
         this.orientation = surfaceBbox.getOrientation();
@@ -62,8 +63,8 @@ class OBBSurfaceContext {
                 planeMax.setZ(Math.max(planeMax.getZ(), p.getZ()));
             }
         }
-        this.cuboid = IntCuboid.create(IntVector3.blockOf(planeMin), IntVector3.blockOf(planeMax).add(1, 1, 1));
 
+        // Figure out how this surface should be rendered to this player
         this.isWall = Math.abs(normal.getY()) < 0.6;
         if (this.isWall) {
             // Simplified because it's not a walkable surface
@@ -81,6 +82,31 @@ class OBBSurfaceContext {
                 this.isBackSide = playerPos.clone().subtract(position).dot(normal) < -0.5;
             }
         }
+
+        // Figure out the block range of shulkers we actually need to spawn
+        // This avoids spawning all the shulkers when the surface is very large, and limits
+        // it to the view cuboid range set for this viewer.
+        IntVector3 playerPosBlock = IntVector3.blockOf(playerPos);
+        IntCuboid viewRangeBox;
+        if (playerViewRange == Integer.MAX_VALUE) {
+            viewRangeBox = IntCuboid.ALL;
+        } else {
+            viewRangeBox = IntCuboid.create(
+                    playerPosBlock.subtract(playerViewRange, playerViewRange, playerViewRange),
+                    playerPosBlock.add(playerViewRange + 1, playerViewRange + 1, playerViewRange + 1));
+        }
+        IntVector3 cuboidMin = IntVector3.of(
+                Math.max(planeMin.getBlockX(), viewRangeBox.min.x),
+                Math.max(planeMin.getBlockY(), viewRangeBox.min.y),
+                Math.max(planeMin.getBlockZ(), viewRangeBox.min.z)
+        );
+        IntVector3 cuboidMax = IntVector3.of(
+                Math.min(planeMax.getBlockX() + 1, viewRangeBox.max.x),
+                Math.min(planeMax.getBlockY() + 1, viewRangeBox.max.y),
+                Math.min(planeMax.getBlockZ() + 1, viewRangeBox.max.z)
+        );
+        this.isFullyClipped = (cuboidMax.x <= cuboidMin.x || cuboidMax.y <= cuboidMin.y || cuboidMax.z <= cuboidMin.z);
+        this.cuboid = isFullyClipped ? IntCuboid.ZERO : IntCuboid.create(cuboidMin, cuboidMax);
     }
 
     /**
