@@ -17,8 +17,6 @@ import org.bukkit.util.Vector;
 class OBBSurfaceContext {
     public final Vector position;
     public final Quaternion orientation;
-    public final Vector right;
-    public final Vector forward;
     public final Vector normal;
     public final Vector halfSize;
     public final Vector playerPos;
@@ -39,8 +37,6 @@ class OBBSurfaceContext {
         this.position = surfaceBbox.getPosition();
         this.halfSize = surfaceBbox.getSize().clone().multiply(0.5);
         this.orientation = surfaceBbox.getOrientation();
-        this.right = orientation.rightVector();
-        this.forward = orientation.forwardVector();
         this.normal = orientation.upVector();
         this.playerPos = playerPos;
 
