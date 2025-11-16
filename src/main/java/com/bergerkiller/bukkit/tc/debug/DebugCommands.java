@@ -434,7 +434,7 @@ public class DebugCommands {
                     return;
                 }
 
-                if (!controller.update(loc.toVector(), true)) {
+                if (!controller.update(loc.toVector(), stopOnBlockCollision)) {
                     stop();
                     return;
                 }
