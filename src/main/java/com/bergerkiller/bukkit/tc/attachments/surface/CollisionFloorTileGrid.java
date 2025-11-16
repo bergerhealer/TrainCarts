@@ -3,7 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.surface;
 import com.bergerkiller.bukkit.common.collections.FastTrackedUpdateSet;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
-import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
+import org.bukkit.block.BlockFace;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -21,15 +21,11 @@ import java.util.function.Predicate;
  * as the surface shapes change.
  */
 class CollisionFloorTileGrid {
-    private final AttachmentViewer viewer;
-    private final ShulkerCache shulkerCache;
+    private final ShulkerTracker shulkerCache;
     private final LongHashMap<TileColumn> columns = new LongHashMap<>();
     private final FastTrackedUpdateSet<TileColumn> changedColumns = new FastTrackedUpdateSet<>();
-    // Reused lists
-    private final List<Shulker> changedShulkers = new ArrayList<>();
 
-    public CollisionFloorTileGrid(AttachmentViewer viewer, ShulkerCache shulkerCache) {
-        this.viewer = viewer;
+    public CollisionFloorTileGrid(ShulkerTracker shulkerCache) {
         this.shulkerCache = shulkerCache;
     }
 
@@ -44,33 +40,16 @@ class CollisionFloorTileGrid {
         }
 
         // Process all the tiles that have changed
-        try {
-            changedColumns.forEachAndClear(column -> {
-                if (column.shapes == TileColumnShapes.EMPTY) {
-                    // Despawn any shulkers and remove the tile
-                    column.despawnShulkers(shulkerCache);
-                    columns.remove(column.key);
-                } else {
-                    // Spawn / move the shulkers for the tile
-                    column.updateShulkers(changedShulkers, shulkerCache);
-                }
-            });
-
-            // Destroy first (might be respawned)
-            shulkerCache.sendDestroyPackets(viewer);
-
-            // Then spawn / update positions
-            for (Shulker shulker : changedShulkers) {
-                if (shulker.pendingSpawn) {
-                    shulker.pendingSpawn = false;
-                    shulker.spawn(viewer);
-                } else {
-                    shulker.syncPosition(viewer);
-                }
+        changedColumns.forEachAndClear(column -> {
+            if (column.shapes == TileColumnShapes.EMPTY) {
+                // Despawn any shulkers and remove the tile
+                column.despawnShulkers(shulkerCache);
+                columns.remove(column.key);
+            } else {
+                // Spawn / move the shulkers for the tile
+                column.updateShulkers(shulkerCache);
             }
-        } finally {
-            changedShulkers.clear();
-        }
+        });
     }
 
     public void addFloorTile(CollisionSurface surface, int x, int z, CollisionFloorTileShape shape) {
@@ -120,7 +99,7 @@ class CollisionFloorTileGrid {
             this.shapes = this.shapes.cleanupClearedTiles(this);
         }
 
-        public void despawnShulkers(ShulkerCache shulkerCache) {
+        public void despawnShulkers(ShulkerTracker shulkerCache) {
             if (!shulkers.isEmpty()) {
                 for (Shulker shulker : shulkers) {
                     shulkerCache.destroy(shulker);
@@ -129,7 +108,7 @@ class CollisionFloorTileGrid {
             }
         }
 
-        public void updateShulkers(List<Shulker> changedShulkers, ShulkerCache shulkerCache) {
+        public void updateShulkers(ShulkerTracker shulkerCache) {
             CollisionFloorTileShape shape = shapes.getShape();
             int requestedCount = shape.shulkerCount();
             int currentCount = shulkers.size();
@@ -141,7 +120,7 @@ class CollisionFloorTileGrid {
             // If not enough shulkers, add more
             // Give them an initial position that makes them unfavored for selecting
             while (requestedCount > currentCount) {
-                Shulker shulker = shulkerCache.spawn();
+                Shulker shulker = shulkerCache.spawn(BlockFace.UP);
                 shulker.x = Double.NaN;
                 shulker.y = -Double.MAX_VALUE;
                 shulker.z = Double.NaN;
@@ -185,14 +164,12 @@ class CollisionFloorTileGrid {
                 Shulker shulker = iter.next();
                 if (shulker.picked) {
                     shulker.picked = false; // Reset for next time
+                    shulker.scheduleMovement(); // Sync position later (if not spawned)
                 } else {
                     shulkerCache.destroy(shulker);
                     iter.remove();
                 }
             }
-
-            // All remaining shulkers must be spawned or updated next
-            changedShulkers.addAll(shulkers);
         }
     }
 

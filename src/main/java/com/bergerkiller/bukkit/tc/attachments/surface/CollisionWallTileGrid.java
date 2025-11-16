@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.attachments.surface;
 import com.bergerkiller.bukkit.common.collections.FastTrackedUpdateSet;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
-import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import org.bukkit.block.BlockFace;
 
 import java.util.ArrayList;
@@ -23,16 +22,12 @@ import java.util.function.Predicate;
  * The value will be the missing coordinate's absolute value.
  */
 final class CollisionWallTileGrid {
-    private final AttachmentViewer viewer;
-    private final ShulkerCache shulkerCache;
+    private final ShulkerTracker shulkerCache;
     private final WallAxisLogic axisLogic;
     private final LongHashMap<TileColumn> columns = new LongHashMap<>();
     private final FastTrackedUpdateSet<TileColumn> changedColumns = new FastTrackedUpdateSet<>();
-    // Reused lists
-    private final List<Shulker> changedShulkers = new ArrayList<>();
 
-    public CollisionWallTileGrid(AttachmentViewer viewer, ShulkerCache shulkerCache, BlockFace face) {
-        this.viewer = viewer;
+    public CollisionWallTileGrid(ShulkerTracker shulkerCache, BlockFace face) {
         this.shulkerCache = shulkerCache;
         this.axisLogic = WallAxisLogic.fromFace(face);
     }
@@ -48,33 +43,16 @@ final class CollisionWallTileGrid {
         }
 
         // Process all the tiles that have changed
-        try {
-            changedColumns.forEachAndClear(column -> {
-                if (column.slots.isEmpty()) {
-                    // Despawn any shulkers and remove the tile
-                    column.despawnShulkers(shulkerCache);
-                    columns.remove(column.key);
-                } else {
-                    // Spawn / move the shulkers for the tile
-                    column.updateShulkers(changedShulkers, shulkerCache, axisLogic);
-                }
-            });
-
-            // Destroy first (might be respawned)
-            shulkerCache.sendDestroyPackets(viewer);
-
-            // Then spawn / update positions
-            for (Shulker shulker : changedShulkers) {
-                if (shulker.pendingSpawn) {
-                    shulker.pendingSpawn = false;
-                    shulker.spawn(viewer);
-                } else {
-                    shulker.syncPosition(viewer);
-                }
+        changedColumns.forEachAndClear(column -> {
+            if (column.slots.isEmpty()) {
+                // Despawn any shulkers and remove the tile
+                column.despawnShulkers(shulkerCache);
+                columns.remove(column.key);
+            } else {
+                // Spawn / move the shulkers for the tile
+                column.updateShulkers(shulkerCache, axisLogic);
             }
-        } finally {
-            changedShulkers.clear();
-        }
+        });
     }
 
     public boolean isEmpty() {
@@ -160,7 +138,7 @@ final class CollisionWallTileGrid {
             removeIf(slot -> slot.token != slot.surface.getUpdateCounter());
         }
 
-        public void despawnShulkers(ShulkerCache shulkerCache) {
+        public void despawnShulkers(ShulkerTracker shulkerCache) {
             Shulker shulker = this.shulker;
             if (shulker != null) {
                 shulkerCache.destroy(shulker);
@@ -168,13 +146,12 @@ final class CollisionWallTileGrid {
             }
         }
 
-        public void updateShulkers(List<Shulker> changedShulkers, ShulkerCache shulkerCache, WallAxisLogic axisLogic) {
+        public void updateShulkers(ShulkerTracker shulkerCache, WallAxisLogic axisLogic) {
             Shulker shulker = this.shulker;
             if (shulker == null) {
-                this.shulker = shulker = shulkerCache.spawn();
+                this.shulker = shulker = shulkerCache.spawn(axisLogic.getPushAxis());
                 axisLogic.applyShulkerTile(shulker, tile_x, tile_y);
             }
-            changedShulkers.add(shulker);
 
             // If more than one slot (and thus mutable), sort it based on value nearest-first
             // If the axis modifier is negative, perform the sort in reverse (highest value is nearest)
@@ -184,6 +161,7 @@ final class CollisionWallTileGrid {
 
             // Apply value of the first slot (nearest)
             axisLogic.applyShulkerValue(shulker, slots.get(0).value);
+            shulker.scheduleMovement();
         }
     }
 
@@ -206,9 +184,15 @@ final class CollisionWallTileGrid {
 
     interface WallAxisLogic {
         static WallAxisLogic fromFace(BlockFace face) {
+            final BlockFace pushAxis = face.getOppositeFace();
             switch (face) {
                 case NORTH:
                     return new WallAxisLogic() {
+                        @Override
+                        public BlockFace getPushAxis() {
+                            return pushAxis;
+                        }
+
                         @Override
                         public void sortNearest(List<TileSlot> slots) {
                             slots.sort(Collections.reverseOrder());
@@ -228,6 +212,11 @@ final class CollisionWallTileGrid {
                 case SOUTH:
                     return new WallAxisLogic() {
                         @Override
+                        public BlockFace getPushAxis() {
+                            return pushAxis;
+                        }
+
+                        @Override
                         public void sortNearest(List<TileSlot> slots) {
                             Collections.sort(slots);
                         }
@@ -245,6 +234,11 @@ final class CollisionWallTileGrid {
                     };
                 case WEST:
                     return new WallAxisLogic() {
+                        @Override
+                        public BlockFace getPushAxis() {
+                            return pushAxis;
+                        }
+
                         @Override
                         public void sortNearest(List<TileSlot> slots) {
                             slots.sort(Collections.reverseOrder());
@@ -264,6 +258,11 @@ final class CollisionWallTileGrid {
                 case EAST:
                     return new WallAxisLogic() {
                         @Override
+                        public BlockFace getPushAxis() {
+                            return pushAxis;
+                        }
+
+                        @Override
                         public void sortNearest(List<TileSlot> slots) {
                             Collections.sort(slots);
                         }
@@ -282,6 +281,11 @@ final class CollisionWallTileGrid {
                 case DOWN:
                     return new WallAxisLogic() {
                         @Override
+                        public BlockFace getPushAxis() {
+                            return pushAxis;
+                        }
+
+                        @Override
                         public void sortNearest(List<TileSlot> slots) {
                             slots.sort(Collections.reverseOrder());
                         }
@@ -299,6 +303,11 @@ final class CollisionWallTileGrid {
                     };
                 case UP:
                     return new WallAxisLogic() {
+                        @Override
+                        public BlockFace getPushAxis() {
+                            return pushAxis;
+                        }
+
                         @Override
                         public void sortNearest(List<TileSlot> slots) {
                             Collections.sort(slots);
@@ -320,6 +329,7 @@ final class CollisionWallTileGrid {
             }
         }
 
+        BlockFace getPushAxis();
         void sortNearest(List<TileSlot> slots);
         void applyShulkerTile(Shulker shulker, int x, int y);
         void applyShulkerValue(Shulker shulker, double value);

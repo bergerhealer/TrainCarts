@@ -14,15 +14,17 @@ import java.util.EnumMap;
  */
 public class CollisionSurfaceTracker {
     private final AttachmentViewer viewer;
-    private final ShulkerCache shulkerCache;
+    private final PlayerPusher playerPusher;
+    private final ShulkerTracker shulkerCache;
     private final CollisionFloorTileGrid floorTiles;
     private final EnumMap<BlockFace, CollisionWallTileGrid> wallTiles;
 
     public CollisionSurfaceTracker(AttachmentViewer viewer) {
         this.viewer = viewer;
 
-        this.shulkerCache = new ShulkerCache();
-        this.floorTiles = new CollisionFloorTileGrid(viewer, shulkerCache);
+        this.playerPusher = new PlayerPusher(viewer);
+        this.shulkerCache = new ShulkerTracker();
+        this.floorTiles = new CollisionFloorTileGrid(shulkerCache);
         this.wallTiles = new EnumMap<>(BlockFace.class);
     }
 
@@ -37,6 +39,8 @@ public class CollisionSurfaceTracker {
             wallTiles.update();
             return wallTiles.isEmpty();
         });
+
+        shulkerCache.update(viewer, playerPusher);
     }
 
     /**
@@ -50,7 +54,7 @@ public class CollisionSurfaceTracker {
     }
 
     private CollisionWallTileGrid getWallTiles(BlockFace face) {
-        return wallTiles.computeIfAbsent(face, f -> new CollisionWallTileGrid(viewer, shulkerCache, f));
+        return wallTiles.computeIfAbsent(face, f -> new CollisionWallTileGrid(shulkerCache, f));
     }
 
     private class CollisionSurfaceImpl implements CollisionSurface {
