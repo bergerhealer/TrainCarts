@@ -28,6 +28,12 @@ import java.util.function.BiFunction;
  * missed velocity packets and adjust accordingly.
  */
 public abstract class PlayerMovementController implements AttachmentViewer.MovementController, PacketListener {
+    /**
+     * Enable to diagnose desynchronization issues ingame.
+     * Use /debugvar testcase true to generate test cases on first player input.
+     */
+    protected static final boolean DEBUG_MODE = true;
+
     private final ControllerType type;
     protected final AttachmentViewer viewer;
     protected final Player player;
@@ -184,21 +190,22 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
         }
 
         // Collided with a block, put the player there and apply remainder movement as velocity
+        Vector delta = to.clone().subtract(from);
+        Vector pos = from.add(delta.clone().multiply(result.theta));
+        Vector velocity = delta.clone().multiply(1.0 - result.theta);
+
+        PacketPlayOutPositionHandle packet = PacketPlayOutPositionHandle.createNew(
+                pos.getX(), pos.getY(), pos.getZ(), 0.0f, 0.0f,
+                velocity.getX(), velocity.getY(), velocity.getZ(),
+                RelativeFlags.ABSOLUTE_POSITION.withAbsoluteDelta().withRelativeRotation());
+
         // This must be in a synchronized block so that we do not send further packets accidentally that
         // undo our teleport sync.
         synchronized (this) {
             stop();
-
-            Vector delta = to.clone().subtract(from);
-            Vector pos = from.add(delta.clone().multiply(result.theta));
-            Vector velocity = delta.clone().multiply(1.0 - result.theta);
-
-            PacketPlayOutPositionHandle packet = PacketPlayOutPositionHandle.createNew(
-                    pos.getX(), pos.getY(), pos.getZ(), 0.0f, 0.0f,
-                    velocity.getX(), velocity.getY(), velocity.getZ(),
-                    RelativeFlags.ABSOLUTE_POSITION.withAbsoluteDelta().withRelativeRotation());
             viewer.send(packet);
-
+        }
+        if (DEBUG_MODE) {
             player.sendMessage("Collided with block");
         }
         return true;
