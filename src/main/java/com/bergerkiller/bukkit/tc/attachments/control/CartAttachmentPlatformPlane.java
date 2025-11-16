@@ -121,7 +121,9 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
             plane = null;
         }
 
-        spawnSurfaces();
+        if (!HelperMethods.hasInactiveParent(this) && isActive()) {
+            spawnSurfaces();
+        }
     }
 
     private Map<AttachmentViewer, CollisionSurface> surfacesOfViewers = new HashMap<>();
