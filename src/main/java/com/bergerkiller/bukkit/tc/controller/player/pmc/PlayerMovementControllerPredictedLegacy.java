@@ -121,6 +121,12 @@ class PlayerMovementControllerPredictedLegacy extends PlayerMovementControllerPr
         if (event.getType() == PacketType.IN_POSITION || event.getType() == PacketType.IN_POSITION_LOOK) {
             PacketPlayInFlyingHandle p = PacketPlayInFlyingHandle.createHandle(event.getPacket().getHandle());
             synchronized (PlayerMovementControllerPredictedLegacy.this) {
+                // It's possible the controller stopped before the packet listener was decoupled
+                // Then this synchronized block opens after.
+                if (hasStopped()) {
+                    return;
+                }
+
                 PlayerPositionInput input = this.input;
                 MathUtil.setVector(input.currPosition, p.getX(), p.getY(), p.getZ());
 

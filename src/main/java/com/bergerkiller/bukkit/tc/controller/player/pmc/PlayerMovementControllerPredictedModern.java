@@ -220,6 +220,12 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
             }
         } else if (event.getType() == PacketType.IN_CLIENT_TICK_END) {
             synchronized (PlayerMovementControllerPredictedModern.this) {
+                // It's possible the controller stopped before the packet listener was decoupled
+                // Then this synchronized block opens after.
+                if (hasStopped()) {
+                    return;
+                }
+
                 if (DEBUG_MODE && !input.lastInput.equals(input.currInput)) {
                     player.sendMessage("Input Changed: " + input.currInput.input);
                 }

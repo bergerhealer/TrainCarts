@@ -526,7 +526,8 @@ public interface AttachmentViewer extends TrainCarts.Provider {
             }
 
             @Override
-            public void update(Vector position, Quaternion orientation) {
+            public boolean update(Vector position, Quaternion orientation, boolean stopOnCollision) {
+                return false;
             }
         };
 
@@ -563,17 +564,52 @@ public interface AttachmentViewer extends TrainCarts.Provider {
          * @param position New position for the Player viewer
          * @param orientation New look-orientation for the Player viewer.
          *                    Use <i>null</i> to leave look-orientation untouched.
+         * @param stopOnBlockCollision Whether to check for block collisions, and to stop movement
+         *                             control when such a block collision is identified.
+         * @return True if the update was applied, False if the controller was/has been stopped
+         *         (due to block collision).
          */
-        void update(Vector position, Quaternion orientation);
+        boolean update(Vector position, Quaternion orientation, boolean stopOnBlockCollision);
 
         /**
          * Sends a new player position to the player. Look-orientation is not updated
          * and kept to the value of whatever it was before.
          *
          * @param position New position for the Player viewer
+         * @param stopOnBlockCollision Whether to check for block collisions, and to stop movement
+         *                             control when such a block collision is identified.
+         * @return True if the update was applied, False if the controller was/has been stopped
+         *         (due to block collision).
          */
-        default void update(Vector position) {
-            update(position, null);
+        default boolean update(Vector position, boolean stopOnBlockCollision) {
+            return update(position, null, stopOnBlockCollision);
+        }
+
+        /**
+         * Sends a new player position and look-orientation to the player. The player
+         * will be updated to move to this new position and have its look-orientation
+         * updated to reflect the new orientation. The orientation will be updated
+         * relatively: the change in orientation is kept track of and that is
+         * synchronized to the player.
+         *
+         * @param position New position for the Player viewer
+         * @param orientation New look-orientation for the Player viewer.
+         *                    Use <i>null</i> to leave look-orientation untouched.
+         * @return True if the update was applied, False if the controller was/has been stopped
+         */
+        default boolean update(Vector position, Quaternion orientation) {
+            return update(position, orientation, false);
+        }
+
+        /**
+         * Sends a new player position to the player. Look-orientation is not updated
+         * and kept to the value of whatever it was before.
+         *
+         * @param position New position for the Player viewer
+         * @return True if the update was applied, False if the controller was/has been stopped
+         */
+        default boolean update(Vector position) {
+            return update(position, false);
         }
 
         /**

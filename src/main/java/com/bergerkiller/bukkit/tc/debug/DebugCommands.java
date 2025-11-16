@@ -392,12 +392,16 @@ public class DebugCommands {
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
     @Command("train debug pvc fly")
-    private void commandTestFlight(final Player player, final TrainCarts plugin) {
-        final Vector center = new Vector(-175.5, 4.1 + 10.0, 354.5);
-
+    private void commandTestFlight(
+            final Player player,
+            final TrainCarts plugin,
+            final @Flag("stop_on_collide") boolean stopOnBlockCollision
+    ) {
         new Task(plugin) {
             Quaternion rotation = new Quaternion();
-            AttachmentViewer.MovementController controller = plugin.getAttachmentViewer(player).controlMovement();
+            AttachmentViewer.MovementController controller = plugin.getAttachmentViewer(player)
+                    .controlMovement();
+
             Location loc = player.getLocation();
             int ctr = 0;
             final int duration = 200000;
@@ -420,7 +424,6 @@ public class DebugCommands {
                 }
 
                 if (player.isSneaking()) {
-                    player.teleport(center.toLocation(player.getWorld()));
                     controller.stop();
                     stop();
                     return;
@@ -431,13 +434,10 @@ public class DebugCommands {
                     return;
                 }
 
-                if (ctr <= 1) {
-                    player.setFlying(true);
-                    player.teleport(loc);
-                    player.setFlying(true);
+                if (!controller.update(loc.toVector(), true)) {
+                    stop();
+                    return;
                 }
-
-                controller.update(loc.toVector());
 
                 speed *= 0.9;
                 AttachmentViewer.Input input = controller.getInput();
