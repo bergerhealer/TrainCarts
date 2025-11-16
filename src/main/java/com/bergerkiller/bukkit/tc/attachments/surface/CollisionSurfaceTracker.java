@@ -14,13 +14,15 @@ import java.util.EnumMap;
  */
 public class CollisionSurfaceTracker {
     private final AttachmentViewer viewer;
+    private final int viewDistance;
     private final PlayerPusher playerPusher;
     private final ShulkerTracker shulkerCache;
     private final CollisionFloorTileGrid floorTiles;
     private final EnumMap<BlockFace, CollisionWallTileGrid> wallTiles;
 
-    public CollisionSurfaceTracker(AttachmentViewer viewer) {
+    public CollisionSurfaceTracker(AttachmentViewer viewer, int viewDistance) {
         this.viewer = viewer;
+        this.viewDistance = viewDistance;
 
         this.playerPusher = new PlayerPusher(viewer);
         this.shulkerCache = new ShulkerTracker();
@@ -67,7 +69,10 @@ public class CollisionSurfaceTracker {
         @Override
         public void addSurface(OrientedBoundingBox surface) {
             Vector playerPos = viewer.getPlayer().getLocation().toVector();
-            OBBSurfaceContext context = new OBBSurfaceContext(surface, playerPos);
+            OBBSurfaceContext context = new OBBSurfaceContext(surface, playerPos, viewDistance);
+            if (context.isFullyClipped) {
+                return;
+            }
 
             if (context.isWall) {
                 // Steep surfaces are projected as a wall
