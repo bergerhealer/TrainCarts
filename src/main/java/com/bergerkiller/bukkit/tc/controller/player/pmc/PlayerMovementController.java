@@ -6,7 +6,13 @@ import com.bergerkiller.bukkit.common.events.PacketSendEvent;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
+import com.bergerkiller.generated.net.minecraft.server.level.EntityPlayerHandle;
+import com.bergerkiller.generated.net.minecraft.world.phys.AxisAlignedBBHandle;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -26,9 +32,11 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
     protected final AttachmentViewer viewer;
     protected final Player player;
     private boolean syncAsArmorstand = true;
+    private Vector prevPos = null;
     private Vector lastSyncPos = null;
     protected volatile boolean translateVehicleSteer = false;
     protected boolean isFlightForced = false;
+    private Boolean wasFlyingBeforeControl = null;
     private boolean stopped = false;
 
     protected PlayerMovementController(ControllerType type, AttachmentViewer viewer) {
@@ -63,6 +71,10 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
         stopped = true;
         type.remove(this);
         setFlightForced(false);
+        if (wasFlyingBeforeControl != null) {
+            player.setFlying(player.getAllowFlight() && wasFlyingBeforeControl);
+            wasFlyingBeforeControl = null;
+        }
     }
 
     @Override
@@ -71,9 +83,14 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
     }
 
     @Override
-    public final void update(Vector position, Quaternion orientation) {
+    public final boolean update(Vector position, Quaternion orientation, boolean stopOnBlockCollision) {
         if (stopped) {
-            return;
+            return false;
+        }
+
+        // Remember the original flight state of the player before we took over
+        if (wasFlyingBeforeControl == null) {
+            wasFlyingBeforeControl = player.isFlying();
         }
 
         // Important player is set to fly mode regularly
@@ -89,7 +106,20 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
             position = lastSyncPos;
         }
 
+        // Ensure not null
+        if (prevPos == null) {
+            prevPos = player.getLocation().toVector();
+        }
+
+        // If it should stop when a block collision is detected, handle that
+        if (stopOnBlockCollision && stopOnBlockCollisions(prevPos, position)) {
+            prevPos = null; // If restarting, use player position again instead of prevPos
+            return false;
+        }
+        MathUtil.setVector(prevPos, position);
+
         syncPosition(position, orientation);
+        return true;
     }
 
     protected abstract void syncPosition(Vector position, Quaternion orientation);
@@ -109,6 +139,69 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
             isFlightForced = false;
             player.setAllowFlight(false);
         }
+    }
+
+    /**
+     * Performs a ray-trace to see if the player collided with any blocks going from
+     * one position to another.
+     *
+     * @param from Previous position
+     * @param to New position
+     * @return True if a block collision occurred
+     */
+    protected boolean stopOnBlockCollisions(Vector from, Vector to) {
+        if (from.equals(to)) {
+            return false;
+        }
+
+        AxisAlignedBBHandle playerBBOX = EntityPlayerHandle.fromBukkit(player).getBoundingBox();
+
+        // Make the player bbox relative to itself
+        playerBBOX = AxisAlignedBBHandle.createNew(
+                -0.5 * (playerBBOX.getMaxX() - playerBBOX.getMinX()),
+                0.0,
+                -0.5 * (playerBBOX.getMaxZ() - playerBBOX.getMinZ()),
+                0.5 * (playerBBOX.getMaxX() - playerBBOX.getMinX()),
+                playerBBOX.getMaxY() - playerBBOX.getMinY(),
+                0.5 * (playerBBOX.getMaxZ() - playerBBOX.getMinZ())
+        );
+
+        // Compute from/to bounding boxes
+        AxisAlignedBBHandle fromBbox = playerBBOX.translate(from.getX(), from.getY(), from.getZ());
+        AxisAlignedBBHandle toBbox = playerBBOX.translate(to.getX(), to.getY(), to.getZ());
+
+        // Sweep to find collisions
+        SweptAABB.CollisionResult result = SweptAABB.findFirstCollision(fromBbox, toBbox, (x, y, z) -> {
+            AxisAlignedBBHandle bbox = BlockUtil.getBoundingBox(player.getWorld().getBlockAt(x, y, z));
+            if (bbox != null) {
+                return bbox.translate(x, y, z);
+            } else {
+                return null;
+            }
+        });
+        if (result == null) {
+            return false;
+        }
+
+        // Collided with a block, put the player there and apply remainder movement as velocity
+        // This must be in a synchronized block so that we do not send further packets accidentally that
+        // undo our teleport sync.
+        synchronized (this) {
+            stop();
+
+            Vector delta = to.clone().subtract(from);
+            Vector pos = from.add(delta.clone().multiply(result.theta));
+            Vector velocity = delta.clone().multiply(1.0 - result.theta);
+
+            PacketPlayOutPositionHandle packet = PacketPlayOutPositionHandle.createNew(
+                    pos.getX(), pos.getY(), pos.getZ(), 0.0f, 0.0f,
+                    velocity.getX(), velocity.getY(), velocity.getZ(),
+                    RelativeFlags.ABSOLUTE_POSITION.withAbsoluteDelta().withRelativeRotation());
+            viewer.send(packet);
+
+            player.sendMessage("Collided with block");
+        }
+        return true;
     }
 
     /**

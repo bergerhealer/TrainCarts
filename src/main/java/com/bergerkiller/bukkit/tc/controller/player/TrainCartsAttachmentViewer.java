@@ -138,7 +138,7 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
 
             MovementControllerTicket ticket = new MovementControllerTicket();
             PlayerMovementController controller;
-            if (prev instanceof PlayerMovementController) {
+            if (prev instanceof PlayerMovementController && !prev.hasStopped()) {
                 controller = (PlayerMovementController) prev;
             } else if (isConnected()) {
                 controller = PlayerMovementController.ControllerType.forViewer(this).create(this);
@@ -218,8 +218,8 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
         }
 
         @Override
-        public void update(Vector position, Quaternion orientation) {
-            controller.get().update(position, orientation);
+        public boolean update(Vector position, Quaternion orientation, boolean stopOnCollision) {
+            return controller.get().update(position, orientation, stopOnCollision);
         }
     }
 }
