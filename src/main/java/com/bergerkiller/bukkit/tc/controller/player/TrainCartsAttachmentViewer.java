@@ -162,13 +162,13 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     }
 
     @Override
-    public CollisionSurface createCollisionSurface() {
+    public CollisionSurface createCollisionSurface(int viewRange) {
         CollisionSurfaceTracker collisionSurfaceTracker = this.collisionSurfaceTracker;
         if (collisionSurfaceTracker == null) {
             if (!isConnected()) {
                 return CollisionSurface.DISABLED;
             }
-            this.collisionSurfaceTracker = collisionSurfaceTracker = new CollisionSurfaceTracker(this);
+            this.collisionSurfaceTracker = collisionSurfaceTracker = new CollisionSurfaceTracker(this, viewRange);
         }
         return collisionSurfaceTracker.createSurface();
     }

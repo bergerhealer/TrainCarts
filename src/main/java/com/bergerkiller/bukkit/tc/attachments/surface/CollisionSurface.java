@@ -9,6 +9,7 @@ import org.bukkit.block.BlockFace;
  * surfaces that have been created.
  */
 public interface CollisionSurface {
+    /** Surface used for disconnected players or when the plugin is disabled */
     CollisionSurface DISABLED = new CollisionSurface() {
         @Override
         public int getUpdateCounter() {
@@ -39,6 +40,8 @@ public interface CollisionSurface {
         public void clear() {
         }
     };
+    /** Default view range when the parameter is omitted */
+    int DEFAULT_VIEW_RANGE = 8;
 
     /**
      * Gets the update counter state. This is incremented every time

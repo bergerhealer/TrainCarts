@@ -669,7 +669,7 @@ public class DebugCommands {
 
         // Spawn the surface itself (stays until player logs off)
         // Refresh it every tick so that it properly switches between front / back
-        final CollisionSurface surface = viewer.createCollisionSurface();
+        final CollisionSurface surface = viewer.createCollisionSurface(Integer.MAX_VALUE);
         new Task(plugin) {
             @Override
             public void run() {
