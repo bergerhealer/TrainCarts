@@ -22,12 +22,6 @@ import java.util.logging.Level;
  * It is essential that the client is unmodded and has the same flight behavior as vanilla Minecraft.
  */
 abstract class PlayerMovementControllerPredicted extends PlayerMovementController {
-    /**
-     * Enable to diagnose desynchronization issues ingame.
-     * Use /debugvar testcase true to generate test cases on first player input.
-     */
-    protected static final boolean DEBUG_MODE = true;
-
     /** Any motion below this does not result in a position update on the client */
     protected static final double MIN_MOTION = 0.003;
 
